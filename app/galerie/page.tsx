@@ -1,3 +1,6 @@
+import Link from "next/link"
+import { works } from "../../data/works"
+
 export default function Galerie() {
   return (
     <main style={{ padding: "40px", fontFamily: "serif" }}>
@@ -10,12 +13,23 @@ export default function Galerie() {
 
       <hr />
 
-      <h2>Ukázková díla</h2>
+      <h2>Díla</h2>
 
       <ul>
-        <li>Dracula : Bram Stoker</li>
-        <li>Pride and Prejudice : Jane Austen</li>
-        <li>Sherlock Holmes : Arthur Conan Doyle</li>
+        {works.map((work) => (
+          <li key={work.id} style={{ marginBottom: "20px" }}>
+            <h3>
+              <Link href={`/dilo/${work.id}`}>{work.title}</Link>
+            </h3>
+            <p>
+              {work.author} {work.year ? `(${work.year})` : ""}
+            </p>
+            <p>{work.shortDesc}</p>
+            <p>
+              <strong>Tagy:</strong> {work.tags.join(", ")}
+            </p>
+          </li>
+        ))}
       </ul>
     </main>
   )
