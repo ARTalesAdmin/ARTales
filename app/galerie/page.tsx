@@ -1,5 +1,5 @@
 import Link from "next/link"
-import { works } from "../../data/works"
+import { works } from "../../core/works"
 
 export default function Galerie() {
   return (
@@ -19,15 +19,12 @@ export default function Galerie() {
         {works.map((work) => (
           <li key={work.id} style={{ marginBottom: "20px" }}>
             <h3>
-              <Link href={`/dilo/${work.id}`}>{work.title}</Link>
+              <Link href={`/dilo/${work.slug}`}>{work.title}</Link>
             </h3>
             <p>
               {work.author} {work.year ? `(${work.year})` : ""}
             </p>
-            <p>{work.shortDesc}</p>
-            <p>
-              <strong>Tagy:</strong> {work.tags.join(", ")}
-            </p>
+            <p>{work.summary}</p>
           </li>
         ))}
       </ul>

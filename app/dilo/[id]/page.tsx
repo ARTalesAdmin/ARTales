@@ -1,5 +1,9 @@
-import { works } from "../../../data/works"
 import Link from "next/link"
+import { works } from "@/core/works"
+import { versions } from "@/core/versions"
+import { contributors } from "@/core/contributors"
+import { sources } from "@/core/sources"
+import { rights } from "@/core/rights"
 
 type PageProps = {
   params: Promise<{ id: string }>
@@ -8,7 +12,7 @@ type PageProps = {
 export default async function DiloDetail({ params }: PageProps) {
   const { id } = await params
 
-  const work = works.find((item) => item.id === id)
+  const work = works.find((item) => item.slug === id)
 
   if (!work) {
     return (
@@ -22,6 +26,22 @@ export default async function DiloDetail({ params }: PageProps) {
     )
   }
 
+  const currentVersion = versions.find(
+    (version:any) => version.workId === work.id && version.isCurrent
+  )
+
+  const workContributors = contributors.filter(
+    (contributor:any) => contributor.workId === work.id
+  )
+
+  const mainAuthor =
+    workContributors.find((contributor) => contributor.roleType === "author") ||
+    null
+
+  const workSource = sources.find((source) => source.workId === work.id) || null
+
+  const workRights = rights.find((rightsItem) => rightsItem.workId === work.id) || null
+
   return (
     <main style={{ padding: "40px", fontFamily: "serif", lineHeight: 1.6 }}>
       <p>
@@ -31,40 +51,56 @@ export default async function DiloDetail({ params }: PageProps) {
       <h1>{work.title}</h1>
 
       <p>
-        <strong>Autor:</strong> {work.author}
+        <strong>Autor:</strong>{" "}
+        {mainAuthor ? mainAuthor.entityName : "Neznámý autor"}
       </p>
 
-      {work.year && (
-        <p>
-          <strong>Rok:</strong> {work.year}
-        </p>
-      )}
+      <p>
+        <strong>Typ díla:</strong> {work.workType}
+      </p>
 
       <p>
-        <strong>Jazyk:</strong> {work.language}
+        <strong>Jazyk:</strong> {work.canonicalLanguage}
       </p>
 
       <p>
         <strong>Stav:</strong> {work.status}
       </p>
 
-      <p>
-        <strong>Typ zdroje:</strong> {work.sourceType}
-      </p>
+      {workSource && (
+        <p>
+          <strong>Zdroj:</strong> {workSource.sourceLabel}
+        </p>
+      )}
 
-      <p>
-        <strong>Tagy:</strong> {work.tags.join(", ")}
-      </p>
+      {workRights && (
+        <p>
+          <strong>Právní status:</strong> {workRights.legalStatus}
+        </p>
+      )}
 
       <hr />
 
       <h2>O tomto díle</h2>
-      <p>{work.shortDesc}</p>
+      <p>{work.summary}</p>
 
       <hr />
 
-      <h2>Ukázka textu</h2>
-      <p style={{ whiteSpace: "pre-wrap" }}>{work.text}</p>
+      <h2>Text</h2>
+      <p style={{ whiteSpace: "pre-wrap" }}>
+        {currentVersion ? currentVersion.content : "Text zatím není dostupný."}
+      </p>
+
+      <hr />
+
+      <h2>Tiráž / vrstvy</h2>
+      <ul>
+        {workContributors.map((contributor) => (
+          <li key={contributor.id}>
+            {contributor.entityName} — {contributor.roleType}
+          </li>
+        ))}
+      </ul>
 
       <hr />
 
