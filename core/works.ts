@@ -34,4 +34,15 @@ export const works: Work[] = [
     createdAt: "2026-03-06",
     updatedAt: "2026-03-06",
   },
+  {
+    id: "work-dracula-cz-translation",
+    title: "Dracula — český překlad",
+    slug: "dracula-cz-translation",
+    summary: "A Czech translation derived from the original Dracula.",
+    workType: "translation",
+    canonicalLanguage: "cs",
+    status: "editing",
+    createdAt: "2026-03-06",
+    updatedAt: "2026-03-06",
+  },
 ]

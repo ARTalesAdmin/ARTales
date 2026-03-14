@@ -4,6 +4,7 @@ import { versions } from "@/core/versions"
 import { contributors } from "@/core/contributors"
 import { sources } from "@/core/sources"
 import { rights } from "@/core/rights"
+import { relations } from "@/core/relations"
 
 type PageProps = {
   params: Promise<{ id: string }>
@@ -27,20 +28,40 @@ export default async function DiloDetail({ params }: PageProps) {
   }
 
   const currentVersion = versions.find(
-    (version:any) => version.workId === work.id && version.isCurrent
+    (version: any) => version.workId === work.id && version.isCurrent
   )
 
   const workContributors = contributors.filter(
-    (contributor:any) => contributor.workId === work.id
+    (contributor: any) => contributor.workId === work.id
   )
 
   const mainAuthor =
-    workContributors.find((contributor) => contributor.roleType === "author") ||
+    workContributors.find((contributor: any) => contributor.roleType === "author") ||
     null
 
-  const workSource = sources.find((source) => source.workId === work.id) || null
+  const workSource =
+    sources.find((source: any) => source.workId === work.id) || null
 
-  const workRights = rights.find((rightsItem) => rightsItem.workId === work.id) || null
+  const workRights =
+    rights.find((rightsItem: any) => rightsItem.workId === work.id) || null
+
+  const parentRelation =
+    relations.find((relation: any) => relation.childWorkId === work.id) || null
+
+  const parentWork =
+    parentRelation
+      ? works.find((item) => item.id === parentRelation.parentWorkId) || null
+      : null
+
+  const childRelations = relations.filter(
+    (relation: any) => relation.parentWorkId === work.id
+  )
+
+  const childWorks = childRelations
+    .map((relation: any) =>
+      works.find((item) => item.id === relation.childWorkId) || null
+    )
+    .filter(Boolean)
 
   return (
     <main style={{ padding: "40px", fontFamily: "serif", lineHeight: 1.6 }}>
@@ -66,6 +87,26 @@ export default async function DiloDetail({ params }: PageProps) {
       <p>
         <strong>Stav:</strong> {work.status}
       </p>
+
+      {parentWork && (
+        <p>
+          <strong>Odvozeno z:</strong>{" "}
+          <Link href={`/dilo/${parentWork.slug}`}>{parentWork.title}</Link>
+        </p>
+      )}
+
+      {childWorks.length > 0 && (
+        <div>
+          <p><strong>Odvozená díla:</strong></p>
+          <ul>
+            {childWorks.map((child: any) => (
+              <li key={child.id}>
+                <Link href={`/dilo/${child.slug}`}>{child.title}</Link>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
 
       {workSource && (
         <p>
@@ -95,7 +136,7 @@ export default async function DiloDetail({ params }: PageProps) {
 
       <h2>Tiráž / vrstvy</h2>
       <ul>
-        {workContributors.map((contributor) => (
+        {workContributors.map((contributor: any) => (
           <li key={contributor.id}>
             {contributor.entityName} — {contributor.roleType}
           </li>

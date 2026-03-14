@@ -25,4 +25,12 @@ export const contributors: Contributor[] = [
     roleType: "author",
     creditLabel: "Author",
   },
+  {
+    id: "contrib-dracula-cz-translator",
+    workId: "work-dracula-cz-translation",
+    entityName: "ARTales",
+    entityType: "organization",
+    roleType: "translator",
+    creditLabel: "Translator",
+  }
 ]

@@ -25,4 +25,12 @@ export const rights: Rights[] = [
     licenseType: "public_domain",
     notes: "Original text is in the public domain.",
   },
+  {
+    id: "rights-dracula-cz",
+    workId: "work-dracula-cz-translation",
+    legalStatus: "licensed",
+    rightsHolder: "ARTales",
+    licenseType: "artales_internal",
+    notes: "Derived translation layer managed by ARTales.",
+  },
 ]

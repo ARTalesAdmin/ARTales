@@ -32,4 +32,17 @@ Jonathan Harker's Journal.
     isCurrent: true,
     createdAt: "2026-03-06",
   },
+  {
+    id: "version-dracula-cz-v1",
+    workId: "work-dracula-cz-translation",
+    versionNumber: 1,
+    content: `Kapitola I
+
+Deník Jonathana Harkera.
+
+3. května. Bystřice...`,
+    versionType: "draft",
+    isCurrent: true,
+    createdAt: "2026-03-06",
+  }
 ]
