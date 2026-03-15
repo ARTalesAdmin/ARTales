@@ -1,10 +1,14 @@
 import Link from "next/link"
-import { works } from "@/core/works"
-import { versions } from "@/core/versions"
-import { contributors } from "@/core/contributors"
-import { sources } from "@/core/sources"
-import { rights } from "@/core/rights"
-import { relations } from "@/core/relations"
+import {
+  getWorkBySlug,
+  getCurrentVersion,
+  getWorkContributors,
+  getMainAuthor,
+  getWorkSource,
+  getWorkRights,
+  getParentWork,
+  getChildWorks,
+} from "@/core/helpers"
 
 type PageProps = {
   params: Promise<{ id: string }>
@@ -13,7 +17,7 @@ type PageProps = {
 export default async function DiloDetail({ params }: PageProps) {
   const { id } = await params
 
-  const work = works.find((item) => item.slug === id)
+  const work = getWorkBySlug(id)
 
   if (!work) {
     return (
@@ -27,41 +31,13 @@ export default async function DiloDetail({ params }: PageProps) {
     )
   }
 
-  const currentVersion = versions.find(
-    (version: any) => version.workId === work.id && version.isCurrent
-  )
-
-  const workContributors = contributors.filter(
-    (contributor: any) => contributor.workId === work.id
-  )
-
-  const mainAuthor =
-    workContributors.find((contributor: any) => contributor.roleType === "author") ||
-    null
-
-  const workSource =
-    sources.find((source: any) => source.workId === work.id) || null
-
-  const workRights =
-    rights.find((rightsItem: any) => rightsItem.workId === work.id) || null
-
-  const parentRelation =
-    relations.find((relation: any) => relation.childWorkId === work.id) || null
-
-  const parentWork =
-    parentRelation
-      ? works.find((item) => item.id === parentRelation.parentWorkId) || null
-      : null
-
-  const childRelations = relations.filter(
-    (relation: any) => relation.parentWorkId === work.id
-  )
-
-  const childWorks = childRelations
-    .map((relation: any) =>
-      works.find((item) => item.id === relation.childWorkId) || null
-    )
-    .filter(Boolean)
+  const currentVersion = getCurrentVersion(work.id)
+  const workContributors = getWorkContributors(work.id)
+  const mainAuthor = getMainAuthor(work.id)
+  const workSource = getWorkSource(work.id)
+  const workRights = getWorkRights(work.id)
+  const parentWork = getParentWork(work.id)
+  const childWorks = getChildWorks(work.id)
 
   return (
     <main style={{ padding: "40px", fontFamily: "serif", lineHeight: 1.6 }}>
@@ -72,9 +48,15 @@ export default async function DiloDetail({ params }: PageProps) {
       <h1>{work.title}</h1>
 
       <p>
-        <strong>Autor:</strong>{" "}
-        {mainAuthor ? mainAuthor.entityName : "Neznámý autor"}
-      </p>
+  <strong>Autor:</strong>{" "}
+  {mainAuthor ? (
+    <Link href={`/autor/${encodeURIComponent(mainAuthor.entityName)}`}>
+      {mainAuthor.entityName}
+    </Link>
+  ) : (
+    "Neznámý autor"
+  )}
+</p>
 
       <p>
         <strong>Typ díla:</strong> {work.workType}
@@ -97,7 +79,9 @@ export default async function DiloDetail({ params }: PageProps) {
 
       {childWorks.length > 0 && (
         <div>
-          <p><strong>Odvozená díla:</strong></p>
+          <p>
+            <strong>Odvozená díla:</strong>
+          </p>
           <ul>
             {childWorks.map((child: any) => (
               <li key={child.id}>
