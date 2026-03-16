@@ -72,3 +72,35 @@ export function getChildWorks(workId: string) {
     )
     .filter(Boolean)
 }
+
+export function getWorksByRightsStatus(legalStatus: string) {
+  const matchedWorkIds = rights
+    .filter((right) => right.legalStatus === legalStatus)
+    .map((right) => right.workId)
+
+  return works.filter((work) => matchedWorkIds.includes(work.id))
+}
+
+export function getWorksBySourceType(sourceType: string) {
+  const matchedWorkIds = sources
+    .filter((source) => source.sourceType === sourceType)
+    .map((source) => source.workId)
+
+  return works.filter((work) => matchedWorkIds.includes(work.id))
+}
+
+export function getPublicDomainWorks() {
+  return getWorksByRightsStatus("public_domain")
+}
+
+export function getGutenbergWorks() {
+  return getWorksBySourceType("gutenberg")
+}
+
+export function getPublicDomainGutenbergWorks() {
+  const publicDomainIds = new Set(
+    getPublicDomainWorks().map((work) => work.id)
+  )
+
+  return getGutenbergWorks().filter((work) => publicDomainIds.has(work.id))
+}

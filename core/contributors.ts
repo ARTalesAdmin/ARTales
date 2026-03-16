@@ -26,11 +26,27 @@ export const contributors: Contributor[] = [
     creditLabel: "Author",
   },
   {
-    id: "contrib-dracula-cz-translator",
-    workId: "work-dracula-cz-translation",
-    entityName: "ARTales",
-    entityType: "organization",
-    roleType: "translator",
-    creditLabel: "Translator",
-  }
+  id: "contrib-dracula-cz-author",
+  workId: "work-dracula-cz-translation",
+  entityName: "ARTales",
+  entityType: "organization",
+  roleType: "author",
+  creditLabel: "Organizational Author",
+},
+{
+  id: "contrib-dracula-cz-ai",
+  workId: "work-dracula-cz-translation",
+  entityName: "AI Translation Module",
+  entityType: "ai",
+  roleType: "ai_assist",
+  creditLabel: "AI Assist",
+},
+{
+  id: "contrib-dracula-cz-review",
+  workId: "work-dracula-cz-translation",
+  entityName: "ARTales Editorial Review",
+  entityType: "organization",
+  roleType: "editor",
+  creditLabel: "Editorial Review",
+}
 ]
