@@ -9,7 +9,10 @@ import {
   getParentWork,
   getChildWorks,
 } from "@/core/helpers"
-import { getEditionsWithProductsByWorkId } from "@/publishing/helpers"
+import {
+  getEditionsWithProductsByWorkId,
+  getCollectionsByWorkId,
+} from "@/publishing/helpers"
 
 type PageProps = {
   params: Promise<{ id: string }>
@@ -40,6 +43,7 @@ export default async function DiloDetail({ params }: PageProps) {
   const parentWork = getParentWork(work.id)
   const childWorks = getChildWorks(work.id)
   const editionsWithProducts = getEditionsWithProductsByWorkId(work.id)
+  const collections = getCollectionsByWorkId(work.id)
 
   return (
     <main style={{ padding: "40px", fontFamily: "serif", lineHeight: 1.6 }}>
@@ -130,6 +134,19 @@ export default async function DiloDetail({ params }: PageProps) {
       </ul>
 
       <hr />
+      <h2>Kolekce</h2>
+
+      {collections.length === 0 ? (
+        <p>Toto dílo zatím není zařazeno do žádné kolekce.</p>
+      ) : (
+        <ul>
+          {collections.map((collection: any) => (
+            <li key={collection.id}>
+              <Link href={`/kolekce/${collection.slug}`}>{collection.title}</Link>
+            </li>
+          ))}
+        </ul>
+      )}
 
       <h2>Edice a produkty</h2>
 
