@@ -1,28 +1,24 @@
 import Link from "next/link"
-import { works } from "@/core/works"
-import { getMainAuthor } from "@/core/helpers"
+import { getWorksForGallery } from "@/lib/dbWorks"
 
-function getWorkLabel(work: any) {
-  if (work.slug === "dracula-cz-translation") {
-    return "Cesky preklad puvodniho dila"
+function getWorkLabel(originType: string) {
+  switch (originType) {
+    case "public_domain":
+      return "Volné dílo"
+    case "original":
+      return "Původní dílo"
+    case "translation":
+      return "Překlad"
+    case "other":
+      return "Jiná vrstva"
+    default:
+      return "Literární dílo"
   }
-
-  if (work.workType === "original") {
-    return "Puvodni dilo"
-  }
-
-  if (work.workType === "translation") {
-    return "Preklad"
-  }
-
-  if (work.workType === "remix") {
-    return "Odvozene dilo"
-  }
-
-  return "Literarni dilo"
 }
 
-export default function Galerie() {
+export default async function Galerie() {
+  const works = await getWorksForGallery()
+
   return (
     <main
       style={{
@@ -63,8 +59,8 @@ export default function Galerie() {
             marginBottom: "20px",
           }}
         >
-          Prochazej puvodni dila, preklady, odvozene vrstvy a prvni publikacni
-          formy. Galerie je verejna vstupni vrstva systemu ARTales.
+          Procházej původní díla, překlady a první publikované vrstvy. Galerie je
+          veřejná vstupní vrstva systému ARTales.
         </p>
 
         <div style={{ display: "flex", gap: "12px", flexWrap: "wrap" }}>
@@ -77,7 +73,7 @@ export default function Galerie() {
               color: "#111",
             }}
           >
-            Volna dila
+            Volná díla
           </Link>
 
           <Link
@@ -97,17 +93,17 @@ export default function Galerie() {
       <hr style={{ margin: "24px 0 32px 0" }} />
 
       <section>
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))",
-            gap: "18px",
-          }}
-        >
-          {works.map((work) => {
-            const mainAuthor = getMainAuthor(work.id)
-
-            return (
+        {works.length === 0 ? (
+          <p>V galerii zatím nejsou žádná publikovaná díla.</p>
+        ) : (
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))",
+              gap: "18px",
+            }}
+          >
+            {works.map((work) => (
               <article
                 key={work.id}
                 style={{
@@ -128,7 +124,7 @@ export default function Galerie() {
                       letterSpacing: "0.5px",
                     }}
                   >
-                    {getWorkLabel(work)}
+                    {getWorkLabel(work.origin_type)}
                   </p>
 
                   <h2
@@ -146,25 +142,36 @@ export default function Galerie() {
                     </Link>
                   </h2>
 
+                  {work.subtitle ? (
+                    <p style={{ margin: "0 0 8px 0", opacity: 0.85 }}>
+                      {work.subtitle}
+                    </p>
+                  ) : null}
+
                   <p style={{ margin: "0 0 8px 0" }}>
                     <strong>Autor:</strong>{" "}
-                    {mainAuthor ? (
-                      <Link
-                        href={`/autor/${encodeURIComponent(
-                          mainAuthor.entityName
-                        )}`}
-                      >
-                        {mainAuthor.entityName}
+                    {work.author ? (
+                      <Link href={`/autor/${work.author.slug}`}>
+                        {work.author.name}
                       </Link>
                     ) : (
-                      "Neznamy autor"
+                      "Neznámý autor"
                     )}
                   </p>
+
+                  {work.collection ? (
+                    <p style={{ margin: "0 0 8px 0" }}>
+                      <strong>Kolekce:</strong>{" "}
+                      <Link href={`/kolekce/${work.collection.slug}`}>
+                        {work.collection.title}
+                      </Link>
+                    </p>
+                  ) : null}
 
                   <p style={{ margin: "0 0 10px 0" }}>{work.summary}</p>
 
                   <p style={{ margin: 0, opacity: 0.8 }}>
-                    <strong>Jazyk:</strong> {work.canonicalLanguage}
+                    <strong>Jazyk:</strong> {work.canonical_language}
                   </p>
                 </div>
 
@@ -185,9 +192,9 @@ export default function Galerie() {
                   </Link>
                 </div>
               </article>
-            )
-          })}
-        </div>
+            ))}
+          </div>
+        )}
       </section>
     </main>
   )
