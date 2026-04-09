@@ -87,6 +87,18 @@ export default async function Galerie() {
           >
             Kolekce
           </Link>
+
+          <Link
+            href="/member"
+            style={{
+              padding: "10px 16px",
+              border: "1px solid #111",
+              textDecoration: "none",
+              color: "#111",
+            }}
+          >
+            Členská zóna
+          </Link>
         </div>
       </section>
 
