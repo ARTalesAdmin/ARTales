@@ -1,18 +1,13 @@
 import Link from "next/link"
-import {
-  getCollectionBySlug,
-  getWorksByCollectionId,
-} from "@/publishing/helpers"
-import { getMainAuthor } from "@/core/helpers"
+import { getCollectionBySlug } from "@/lib/dbCollections"
 
 type PageProps = {
-  params: Promise<{ id: string }>
+  params: Promise<{ slug: string }>
 }
 
 export default async function KolekceDetail({ params }: PageProps) {
-  const { id } = await params
-
-  const collection = getCollectionBySlug(id)
+  const { slug } = await params
+  const collection = await getCollectionBySlug(slug)
 
   if (!collection) {
     return (
@@ -25,15 +20,13 @@ export default async function KolekceDetail({ params }: PageProps) {
         }}
       >
         <h1>Kolekce nenalezena</h1>
-        <p>Tato kolekce v ARTales zatim neexistuje.</p>
+        <p>Tato kolekce v ARTales zatím neexistuje nebo není veřejně dostupná.</p>
         <p>
-          <Link href="/galerie">{"<- Zpet do Galerie"}</Link>
+          <Link href="/galerie">{"<- Zpět do Galerie"}</Link>
         </p>
       </main>
     )
   }
-
-  const works = getWorksByCollectionId(collection.id)
 
   return (
     <main
@@ -46,7 +39,7 @@ export default async function KolekceDetail({ params }: PageProps) {
       }}
     >
       <p style={{ marginBottom: "20px" }}>
-        <Link href="/galerie">{"<- Zpet do Galerie"}</Link>
+        <Link href="/galerie">{"<- Zpět do Galerie"}</Link>
       </p>
 
       <section
@@ -89,7 +82,7 @@ export default async function KolekceDetail({ params }: PageProps) {
               marginBottom: "18px",
             }}
           >
-            {collection.description}
+            {collection.description ?? "Popis kolekce zatím nebyl doplněn."}
           </p>
 
           <div
@@ -108,7 +101,7 @@ export default async function KolekceDetail({ params }: PageProps) {
                 cursor: "pointer",
               }}
             >
-              Projit dila v kolekci
+              Projít díla v kolekci
             </button>
           </div>
         </div>
@@ -126,7 +119,7 @@ export default async function KolekceDetail({ params }: PageProps) {
               opacity: 0.75,
             }}
           >
-            Vizual / cover kolekce
+            Vizuál / cover kolekce
           </div>
         </aside>
       </section>
@@ -134,10 +127,10 @@ export default async function KolekceDetail({ params }: PageProps) {
       <hr style={{ margin: "28px 0" }} />
 
       <section style={{ marginBottom: "32px" }}>
-        <h2 style={{ marginBottom: "12px" }}>Dila v kolekci</h2>
+        <h2 style={{ marginBottom: "12px" }}>Díla v kolekci</h2>
 
-        {works.length === 0 ? (
-          <p>V teto kolekci zatim nejsou zadna dila.</p>
+        {collection.works.length === 0 ? (
+          <p>V této kolekci zatím nejsou žádná publikovaná díla.</p>
         ) : (
           <div
             style={{
@@ -146,50 +139,46 @@ export default async function KolekceDetail({ params }: PageProps) {
               gap: "18px",
             }}
           >
-            {works.map((work: any) => {
-              const mainAuthor = getMainAuthor(work.id)
+            {collection.works.map((work) => (
+              <article
+                key={work.id}
+                style={{
+                  border: "1px solid #ddd",
+                  padding: "18px",
+                }}
+              >
+                <h3 style={{ marginTop: 0, marginBottom: "10px" }}>
+                  <Link href={`/dilo/${work.slug}`}>{work.title}</Link>
+                </h3>
 
-              return (
-                <article
-                  key={work.id}
-                  style={{
-                    border: "1px solid #ddd",
-                    padding: "18px",
-                  }}
-                >
-                  <h3 style={{ marginTop: 0, marginBottom: "10px" }}>
-                    <Link href={`/dilo/${work.slug}`}>{work.title}</Link>
-                  </h3>
+                <p style={{ marginTop: 0, marginBottom: "10px" }}>
+                  <strong>Autor:</strong>{" "}
+                  {work.author ? (
+                    <Link href={`/autor/${work.author.slug}`}>
+                      {work.author.name}
+                    </Link>
+                  ) : (
+                    "Neznámý autor"
+                  )}
+                </p>
 
-                  <p style={{ marginTop: 0, marginBottom: "10px" }}>
-                    <strong>Autor:</strong>{" "}
-                    {mainAuthor ? (
-                      <Link
-                        href={`/autor/${encodeURIComponent(
-                          mainAuthor.entityName
-                        )}`}
-                      >
-                        {mainAuthor.entityName}
-                      </Link>
-                    ) : (
-                      "Neznamy autor"
-                    )}
+                {work.subtitle ? (
+                  <p style={{ marginTop: 0, marginBottom: "10px", opacity: 0.85 }}>
+                    {work.subtitle}
                   </p>
+                ) : null}
 
-                  <p style={{ marginTop: 0, marginBottom: "10px" }}>
-                    {work.summary}
-                  </p>
+                <p style={{ marginTop: 0, marginBottom: "10px" }}>{work.summary}</p>
 
-                  <p style={{ marginTop: 0, opacity: 0.8 }}>
-                    <strong>Jazyk:</strong> {work.canonicalLanguage}
-                  </p>
+                <p style={{ marginTop: 0, opacity: 0.8 }}>
+                  <strong>Jazyk:</strong> {work.canonical_language}
+                </p>
 
-                  <p>
-                    <Link href={`/dilo/${work.slug}`}>Zobrazit detail</Link>
-                  </p>
-                </article>
-              )
-            })}
+                <p>
+                  <Link href={`/dilo/${work.slug}`}>Zobrazit detail</Link>
+                </p>
+              </article>
+            ))}
           </div>
         )}
       </section>
