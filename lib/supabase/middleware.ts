@@ -24,7 +24,6 @@ export async function updateSession(request: NextRequest) {
     }
   )
 
-  // Important: refresh/authenticate the user on every request where needed
   await supabase.auth.getUser()
 
   return response
