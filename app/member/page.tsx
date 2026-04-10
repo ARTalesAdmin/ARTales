@@ -1,9 +1,14 @@
 import { redirect } from "next/navigation"
 import { getCurrentProfile, getCurrentUser } from "@/lib/auth"
-import { completeProfile, logout } from "./actions"
+import {
+  completeProfile,
+  updateDisplayName,
+  changePassword,
+  logout,
+} from "./actions"
 
 type PageProps = {
-  searchParams: Promise<{ error?: string }>
+  searchParams: Promise<{ error?: string; success?: string }>
 }
 
 function getErrorMessage(error?: string) {
@@ -16,14 +21,38 @@ function getErrorMessage(error?: string) {
       return "Tento handle už je obsazený. Zvol jiný."
     case "save":
       return "Profil se nepodařilo uložit. Zkus to znovu."
+    case "display_name_missing":
+      return "Zobrazované jméno nemůže být prázdné."
+    case "display_name_save":
+      return "Zobrazované jméno se nepodařilo uložit."
+    case "password_missing":
+      return "Vyplň nové heslo i jeho potvrzení."
+    case "password_mismatch":
+      return "Hesla se neshodují."
+    case "password_short":
+      return "Heslo musí mít alespoň 8 znaků."
+    case "password_save":
+      return "Heslo se nepodařilo změnit."
+    default:
+      return null
+  }
+}
+
+function getSuccessMessage(success?: string) {
+  switch (success) {
+    case "display_name":
+      return "Zobrazované jméno bylo uloženo."
+    case "password":
+      return "Heslo bylo změněno."
     default:
       return null
   }
 }
 
 export default async function MemberPage({ searchParams }: PageProps) {
-  const { error } = await searchParams
+  const { error, success } = await searchParams
   const errorMessage = getErrorMessage(error)
+  const successMessage = getSuccessMessage(success)
 
   const user = await getCurrentUser()
 
@@ -129,8 +158,8 @@ export default async function MemberPage({ searchParams }: PageProps) {
                 }}
               />
               <p style={{ margin: "8px 0 0 0", fontSize: "14px", opacity: 0.75 }}>
-                Jedinečné systémové jméno. Používá se interně a později může být
-                součástí odkazu na profil. Po založení se běžně nemění.
+                Jedinečné systémové jméno. Používá se interně a může být součástí
+                odkazu na profil. Po založení se běžně nemění.
               </p>
             </div>
 
@@ -155,7 +184,7 @@ export default async function MemberPage({ searchParams }: PageProps) {
                 }}
               />
               <p style={{ margin: "8px 0 0 0", fontSize: "14px", opacity: 0.75 }}>
-                Jméno, které uvidí ostatní uživatelé v rozhraní a u tvých aktivit, vč. tiráže.
+                Jméno, které uvidí ostatní uživatelé v rozhraní a u tvých aktivit.
                 To lze později upravit.
               </p>
             </div>
@@ -219,6 +248,34 @@ export default async function MemberPage({ searchParams }: PageProps) {
         </p>
       </section>
 
+      {errorMessage ? (
+        <p
+          style={{
+            marginTop: 0,
+            marginBottom: "18px",
+            padding: "12px 14px",
+            border: "1px solid #d99",
+            background: "#fff7f7",
+          }}
+        >
+          {errorMessage}
+        </p>
+      ) : null}
+
+      {successMessage ? (
+        <p
+          style={{
+            marginTop: 0,
+            marginBottom: "18px",
+            padding: "12px 14px",
+            border: "1px solid #9c9",
+            background: "#f6fff6",
+          }}
+        >
+          {successMessage}
+        </p>
+      ) : null}
+
       <hr style={{ margin: "28px 0" }} />
 
       <section style={{ marginBottom: "28px" }}>
@@ -243,6 +300,126 @@ export default async function MemberPage({ searchParams }: PageProps) {
         <p>
           <strong>Aktivní:</strong> {profile.is_active ? "ano" : "ne"}
         </p>
+      </section>
+
+      <hr style={{ margin: "28px 0" }} />
+
+      <section style={{ marginBottom: "28px" }}>
+        <h2 style={{ marginBottom: "12px" }}>Upravit zobrazované jméno</h2>
+
+        <form action={updateDisplayName} style={{ display: "grid", gap: "14px", maxWidth: "520px" }}>
+          <div>
+            <label
+              htmlFor="display_name_update"
+              style={{ display: "block", marginBottom: "8px", fontWeight: 600 }}
+            >
+              Zobrazované jméno
+            </label>
+            <input
+              id="display_name_update"
+              name="display_name"
+              type="text"
+              required
+              defaultValue={profile.display_name ?? ""}
+              style={{
+                width: "100%",
+                padding: "12px 14px",
+                border: "1px solid #ccc",
+                fontSize: "16px",
+              }}
+            />
+            <p style={{ margin: "8px 0 0 0", fontSize: "14px", opacity: 0.75 }}>
+              To je jméno, které se ukazuje v rozhraní a u tvých aktivit.
+            </p>
+          </div>
+
+          <button
+            type="submit"
+            style={{
+              padding: "12px 18px",
+              border: "1px solid #111",
+              background: "#111",
+              color: "#fff",
+              cursor: "pointer",
+              fontSize: "16px",
+              fontWeight: 600,
+              width: "fit-content",
+            }}
+          >
+            Uložit jméno
+          </button>
+        </form>
+      </section>
+
+      <hr style={{ margin: "28px 0" }} />
+
+      <section style={{ marginBottom: "28px" }}>
+        <h2 style={{ marginBottom: "12px" }}>Změna hesla</h2>
+
+        <form action={changePassword} style={{ display: "grid", gap: "14px", maxWidth: "520px" }}>
+          <div>
+            <label
+              htmlFor="password"
+              style={{ display: "block", marginBottom: "8px", fontWeight: 600 }}
+            >
+              Nové heslo
+            </label>
+            <input
+              id="password"
+              name="password"
+              type="password"
+              required
+              autoComplete="new-password"
+              style={{
+                width: "100%",
+                padding: "12px 14px",
+                border: "1px solid #ccc",
+                fontSize: "16px",
+              }}
+            />
+          </div>
+
+          <div>
+            <label
+              htmlFor="password_confirm"
+              style={{ display: "block", marginBottom: "8px", fontWeight: 600 }}
+            >
+              Potvrzení nového hesla
+            </label>
+            <input
+              id="password_confirm"
+              name="password_confirm"
+              type="password"
+              required
+              autoComplete="new-password"
+              style={{
+                width: "100%",
+                padding: "12px 14px",
+                border: "1px solid #ccc",
+                fontSize: "16px",
+              }}
+            />
+            <p style={{ margin: "8px 0 0 0", fontSize: "14px", opacity: 0.75 }}>
+              Heslo musí mít alespoň 8 znaků.
+            </p>
+          </div>
+
+          <button
+            type="submit"
+            style={{
+              padding: "12px 18px",
+              border: "1px solid #111",
+              background: "#111",
+              color: "#fff",
+              cursor: "pointer",
+              fontSize: "16px",
+              fontWeight: 600,
+              width: "fit-content",
+            }}
+          >
+            Změnit heslo
+          </button>
+        </form>
       </section>
 
       <hr style={{ margin: "28px 0" }} />

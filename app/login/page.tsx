@@ -1,3 +1,4 @@
+import Link from "next/link"
 import { login } from "./actions"
 
 type PageProps = {
@@ -6,10 +7,10 @@ type PageProps = {
 
 function getErrorMessage(error?: string) {
   switch (error) {
+    case "invalid":
+      return "Neplatný e-mail nebo heslo."
     case "missing":
       return "Vyplň e-mail i heslo."
-    case "invalid":
-      return "Přihlášení se nezdařilo. Zkontroluj e-mail a heslo."
     default:
       return null
   }
@@ -33,7 +34,7 @@ export default async function LoginPage({ searchParams }: PageProps) {
       <div
         style={{
           width: "100%",
-          maxWidth: "460px",
+          maxWidth: "480px",
           border: "1px solid #ddd",
           padding: "32px",
         }}
@@ -52,7 +53,7 @@ export default async function LoginPage({ searchParams }: PageProps) {
 
         <h1
           style={{
-            fontSize: "36px",
+            fontSize: "34px",
             lineHeight: 1.1,
             marginTop: 0,
             marginBottom: "12px",
@@ -64,11 +65,22 @@ export default async function LoginPage({ searchParams }: PageProps) {
         <p
           style={{
             marginTop: 0,
-            marginBottom: "24px",
+            marginBottom: "22px",
             opacity: 0.8,
           }}
         >
-          Přihlas se do členské zóny ARTales.
+          Přístup do členské zóny ARTales.
+        </p>
+
+        <p
+          style={{
+            fontSize: "14px",
+            marginBottom: "20px",
+            opacity: 0.75,
+          }}
+        >
+          Účet musí být předem vytvořen administrátorem.  
+          Při prvním přihlášení použij svůj e-mail a zvol si vlastní heslo.
         </p>
 
         {errorMessage ? (
@@ -85,14 +97,15 @@ export default async function LoginPage({ searchParams }: PageProps) {
           </p>
         ) : null}
 
-        <form action={login} style={{ display: "grid", gap: "18px" }}>
+        <form action={login} style={{ display: "grid", gap: "16px" }}>
           <div>
             <label
               htmlFor="email"
-              style={{ display: "block", marginBottom: "8px", fontWeight: 600 }}
+              style={{ display: "block", marginBottom: "6px", fontWeight: 600 }}
             >
               E-mail
             </label>
+
             <input
               id="email"
               name="email"
@@ -111,10 +124,11 @@ export default async function LoginPage({ searchParams }: PageProps) {
           <div>
             <label
               htmlFor="password"
-              style={{ display: "block", marginBottom: "8px", fontWeight: 600 }}
+              style={{ display: "block", marginBottom: "6px", fontWeight: 600 }}
             >
               Heslo
             </label>
+
             <input
               id="password"
               name="password"
@@ -145,6 +159,20 @@ export default async function LoginPage({ searchParams }: PageProps) {
             Přihlásit se
           </button>
         </form>
+
+        <p
+          style={{
+            marginTop: "22px",
+            fontSize: "14px",
+            opacity: 0.75,
+          }}
+        >
+          Pokud se nemůžeš přihlásit, kontaktuj administrátora projektu.
+        </p>
+
+        <p style={{ marginTop: "18px" }}>
+          <Link href="/galerie">← Zpět do Galerie</Link>
+        </p>
       </div>
     </main>
   )
