@@ -80,7 +80,7 @@ export default async function LoginPage({ searchParams }: PageProps) {
           }}
         >
           Účet musí být předem vytvořen administrátorem.  
-          Při prvním přihlášení použij svůj e-mail a zvol si vlastní heslo.
+          Při prvním přihlášení použij svůj e-mail a dočasně přidělené heslo.
         </p>
 
         {errorMessage ? (
