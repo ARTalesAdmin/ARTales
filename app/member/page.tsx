@@ -1,3 +1,4 @@
+import Link from "next/link"
 import { redirect } from "next/navigation"
 import { getCurrentProfile, getCurrentUser } from "@/lib/auth"
 import {
@@ -307,7 +308,10 @@ export default async function MemberPage({ searchParams }: PageProps) {
       <section style={{ marginBottom: "28px" }}>
         <h2 style={{ marginBottom: "12px" }}>Upravit zobrazované jméno</h2>
 
-        <form action={updateDisplayName} style={{ display: "grid", gap: "14px", maxWidth: "520px" }}>
+        <form
+          action={updateDisplayName}
+          style={{ display: "grid", gap: "14px", maxWidth: "520px" }}
+        >
           <div>
             <label
               htmlFor="display_name_update"
@@ -356,7 +360,10 @@ export default async function MemberPage({ searchParams }: PageProps) {
       <section style={{ marginBottom: "28px" }}>
         <h2 style={{ marginBottom: "12px" }}>Změna hesla</h2>
 
-        <form action={changePassword} style={{ display: "grid", gap: "14px", maxWidth: "520px" }}>
+        <form
+          action={changePassword}
+          style={{ display: "grid", gap: "14px", maxWidth: "520px" }}
+        >
           <div>
             <label
               htmlFor="password"
@@ -428,14 +435,35 @@ export default async function MemberPage({ searchParams }: PageProps) {
         <h2 style={{ marginBottom: "12px" }}>Pracovní vrstva</h2>
 
         <p style={{ marginBottom: "12px" }}>
-          Další krok bude napojení editor nástrojů podle role.
+          Další krok je budování interních editor nástrojů podle role.
         </p>
 
-        <ul style={{ paddingLeft: "20px" }}>
+        <ul style={{ paddingLeft: "20px", marginBottom: "18px" }}>
           <li>správa děl</li>
           <li>správa autorů</li>
           <li>správa kolekcí</li>
         </ul>
+
+        {profile.role === "editor" || profile.role === "admin" ? (
+          <div style={{ display: "flex", gap: "12px", flexWrap: "wrap" }}>
+            <Link
+              href="/member/authors/new"
+              style={{
+                padding: "10px 14px",
+                border: "1px solid #111",
+                textDecoration: "none",
+                color: "#111",
+                fontWeight: 600,
+              }}
+            >
+              Nový autor
+            </Link>
+          </div>
+        ) : (
+          <p style={{ opacity: 0.75 }}>
+            Editor nástroje jsou dostupné jen editorům a administrátorům.
+          </p>
+        )}
       </section>
 
       <hr style={{ margin: "28px 0" }} />
