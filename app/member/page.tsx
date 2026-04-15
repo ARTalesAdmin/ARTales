@@ -434,36 +434,39 @@ export default async function MemberPage({ searchParams }: PageProps) {
       <section style={{ marginBottom: "28px" }}>
         <h2 style={{ marginBottom: "12px" }}>Pracovní vrstva</h2>
 
-        <p style={{ marginBottom: "12px" }}>
-          Další krok je budování interních editor nástrojů podle role.
-        </p>
+       {profile.role === "editor" || profile.role === "admin" ? (
+  <div style={{ display: "flex", gap: "12px", flexWrap: "wrap" }}>
+    <Link
+      href="/member/authors"
+      style={{
+        padding: "10px 14px",
+        border: "1px solid #111",
+        textDecoration: "none",
+        color: "#111",
+        fontWeight: 600,
+      }}
+    >
+      Autoři
+    </Link>
 
-        <ul style={{ paddingLeft: "20px", marginBottom: "18px" }}>
-          <li>správa děl</li>
-          <li>správa autorů</li>
-          <li>správa kolekcí</li>
-        </ul>
-
-        {profile.role === "editor" || profile.role === "admin" ? (
-          <div style={{ display: "flex", gap: "12px", flexWrap: "wrap" }}>
-            <Link
-              href="/member/authors/new"
-              style={{
-                padding: "10px 14px",
-                border: "1px solid #111",
-                textDecoration: "none",
-                color: "#111",
-                fontWeight: 600,
-              }}
-            >
-              Nový autor
-            </Link>
-          </div>
-        ) : (
-          <p style={{ opacity: 0.75 }}>
-            Editor nástroje jsou dostupné jen editorům a administrátorům.
-          </p>
-        )}
+    <Link
+      href="/member/authors/new"
+      style={{
+        padding: "10px 14px",
+        border: "1px solid #111",
+        textDecoration: "none",
+        color: "#111",
+        fontWeight: 600,
+      }}
+    >
+      Nový autor
+    </Link>
+  </div>
+) : (
+  <p style={{ opacity: 0.75 }}>
+    Editor nástroje jsou dostupné jen editorům a administrátorům.
+  </p>
+)}
       </section>
 
       <hr style={{ margin: "28px 0" }} />

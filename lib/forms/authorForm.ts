@@ -1,4 +1,5 @@
 import { slugify } from "@/lib/slug"
+import type { AuthorEditItem } from "@/lib/dbAuthors"
 
 export type AuthorFormValues = {
   name: string
@@ -23,6 +24,20 @@ export function getDefaultAuthorFormValues(): AuthorFormValues {
     country: "",
     primary_language: "",
     is_public_visible: false,
+  }
+}
+
+export function mapAuthorToFormValues(author: AuthorEditItem): AuthorFormValues {
+  return {
+    name: author.name,
+    slug: author.slug,
+    author_type: author.author_type,
+    bio: author.bio ?? "",
+    birth_year: author.birth_year?.toString() ?? "",
+    death_year: author.death_year?.toString() ?? "",
+    country: author.country ?? "",
+    primary_language: author.primary_language ?? "",
+    is_public_visible: author.is_public_visible,
   }
 }
 
@@ -105,6 +120,24 @@ export function mapAuthorFormValuesToInsertPayload(
     primary_language: toNullableString(values.primary_language),
     is_public_visible: values.is_public_visible,
     created_by: profileId,
+    updated_by: profileId,
+  }
+}
+
+export function mapAuthorFormValuesToUpdatePayload(
+  values: AuthorFormValues,
+  profileId: string
+) {
+  return {
+    name: values.name,
+    slug: values.slug,
+    author_type: values.author_type,
+    bio: toNullableString(values.bio),
+    birth_year: toNullableNumber(values.birth_year),
+    death_year: toNullableNumber(values.death_year),
+    country: toNullableString(values.country),
+    primary_language: toNullableString(values.primary_language),
+    is_public_visible: values.is_public_visible,
     updated_by: profileId,
   }
 }
