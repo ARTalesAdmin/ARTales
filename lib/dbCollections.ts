@@ -1,4 +1,5 @@
 import { supabase } from "./supabase"
+import { createClient } from "@/lib/supabase/server"
 import {
   getPublishedWorksByCollectionId,
   type GalleryWorkItem,
@@ -81,7 +82,9 @@ export async function getCollectionBySlug(
 }
 
 export async function getCollectionsForMember(): Promise<CollectionListItem[]> {
-  const { data, error } = await supabase
+  const supabaseServer = await createClient()
+
+  const { data, error } = await supabaseServer
     .from("collections")
     .select(`
       id,
@@ -113,7 +116,9 @@ export async function getCollectionsForMember(): Promise<CollectionListItem[]> {
 export async function getCollectionForEditBySlug(
   slug: string
 ): Promise<CollectionEditItem | null> {
-  const { data, error } = await supabase
+  const supabaseServer = await createClient()
+
+  const { data, error } = await supabaseServer
     .from("collections")
     .select(`
       id,
