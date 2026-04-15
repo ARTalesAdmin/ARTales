@@ -1,6 +1,7 @@
 import Link from "next/link"
 import { getWorkBySlug } from "@/lib/dbWorks"
 import { getLanguageLabel } from "@/lib/dictionaries/language"
+import { getStatusLabel } from "@/lib/dictionaries/status"
 
 type PageProps = {
   params: Promise<{ slug: string }>
@@ -52,12 +53,13 @@ export default async function DiloDetail({ params }: PageProps) {
     )
   }
 
-  const languageLabel = getLanguageLabel(work.canonical_language, "public")
-
   const excerpt =
     work.content.length > 800
       ? work.content.slice(0, 800) + "..."
       : work.content
+
+  const languageLabel = getLanguageLabel(work.canonical_language, "public")
+  const statusLabel = getStatusLabel(work.status, "public")
 
   return (
     <main
@@ -239,7 +241,7 @@ export default async function DiloDetail({ params }: PageProps) {
         </p>
 
         <p>
-          <strong>Stav:</strong> {work.status}
+          <strong>Status:</strong> {statusLabel ?? work.status}
         </p>
       </section>
 
