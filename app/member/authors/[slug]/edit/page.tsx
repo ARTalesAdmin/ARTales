@@ -3,6 +3,7 @@ import { requireEditorOrAdmin } from "@/lib/guards"
 import { getAuthorForEditBySlug } from "@/lib/dbAuthors"
 import { mapAuthorToFormValues } from "@/lib/forms/authorForm"
 import { updateAuthor } from "@/lib/actions/authors"
+import { getLanguageOptions } from "@/lib/dictionaries/language"
 
 type PageProps = {
   params: Promise<{ slug: string }>
@@ -25,6 +26,8 @@ function getErrorMessage(error?: string) {
       return "Tento slug už existuje. Zvol jiný."
     case "save_failed":
       return "Autora se nepodařilo uložit. Zkus to znovu."
+    case "primary_language_invalid":
+      return "Primární jazyk musí být vybrán z nabídky."
     default:
       return null
   }
@@ -64,6 +67,7 @@ export default async function EditAuthorPage({
   const values = mapAuthorToFormValues(author)
   const errorMessage = getErrorMessage(error)
   const successMessage = getSuccessMessage(success)
+  const languageOptions = getLanguageOptions("internal")
 
   const submitAction = updateAuthor.bind(null, slug)
 
@@ -321,10 +325,9 @@ export default async function EditAuthorPage({
             >
               Primární jazyk
             </label>
-            <input
+            <select
               id="primary_language"
               name="primary_language"
-              type="text"
               defaultValue={values.primary_language}
               style={{
                 width: "100%",
@@ -332,7 +335,17 @@ export default async function EditAuthorPage({
                 border: "1px solid #ccc",
                 fontSize: "16px",
               }}
-            />
+            >
+              <option value="">— Nevybráno —</option>
+              {languageOptions.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+            <p style={{ margin: "8px 0 0 0", fontSize: "14px", opacity: 0.75 }}>
+              Hodnota se ukládá jako standardizovaný kód.
+            </p>
           </div>
 
           <label style={{ display: "flex", gap: "10px", alignItems: "center" }}>

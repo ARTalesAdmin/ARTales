@@ -1,5 +1,6 @@
 import Link from "next/link"
 import { getCollectionBySlug } from "@/lib/dbCollections"
+import { getLanguageLabel } from "@/lib/dictionaries/language"
 
 type PageProps = {
   params: Promise<{ slug: string }>
@@ -139,46 +140,54 @@ export default async function KolekceDetail({ params }: PageProps) {
               gap: "18px",
             }}
           >
-            {collection.works.map((work) => (
-              <article
-                key={work.id}
-                style={{
-                  border: "1px solid #ddd",
-                  padding: "18px",
-                }}
-              >
-                <h3 style={{ marginTop: 0, marginBottom: "10px" }}>
-                  <Link href={`/dilo/${work.slug}`}>{work.title}</Link>
-                </h3>
+            {collection.works.map((work) => {
+              const languageLabel = getLanguageLabel(
+                work.canonical_language,
+                "public"
+              )
 
-                <p style={{ marginTop: 0, marginBottom: "10px" }}>
-                  <strong>Autor:</strong>{" "}
-                  {work.author ? (
-                    <Link href={`/autor/${work.author.slug}`}>
-                      {work.author.name}
-                    </Link>
-                  ) : (
-                    "Neznámý autor"
-                  )}
-                </p>
+              return (
+                <article
+                  key={work.id}
+                  style={{
+                    border: "1px solid #ddd",
+                    padding: "18px",
+                  }}
+                >
+                  <h3 style={{ marginTop: 0, marginBottom: "10px" }}>
+                    <Link href={`/dilo/${work.slug}`}>{work.title}</Link>
+                  </h3>
 
-                {work.subtitle ? (
-                  <p style={{ marginTop: 0, marginBottom: "10px", opacity: 0.85 }}>
-                    {work.subtitle}
+                  <p style={{ marginTop: 0, marginBottom: "10px" }}>
+                    <strong>Autor:</strong>{" "}
+                    {work.author ? (
+                      <Link href={`/autor/${work.author.slug}`}>
+                        {work.author.name}
+                      </Link>
+                    ) : (
+                      "Neznámý autor"
+                    )}
                   </p>
-                ) : null}
 
-                <p style={{ marginTop: 0, marginBottom: "10px" }}>{work.summary}</p>
+                  {work.subtitle ? (
+                    <p style={{ marginTop: 0, marginBottom: "10px", opacity: 0.85 }}>
+                      {work.subtitle}
+                    </p>
+                  ) : null}
 
-                <p style={{ marginTop: 0, opacity: 0.8 }}>
-                  <strong>Jazyk:</strong> {work.canonical_language}
-                </p>
+                  <p style={{ marginTop: 0, marginBottom: "10px" }}>{work.summary}</p>
 
-                <p>
-                  <Link href={`/dilo/${work.slug}`}>Zobrazit detail</Link>
-                </p>
-              </article>
-            ))}
+                  <p style={{ marginTop: 0, opacity: 0.8 }}>
+                    <strong>Language:</strong>{" "}
+                    {languageLabel ?? work.canonical_language}
+                  </p>
+
+                  <p>
+                    <Link href={`/dilo/${work.slug}`}>Zobrazit detail</Link>
+                  </p>
+                </article>
+              )
+            })}
           </div>
         )}
       </section>

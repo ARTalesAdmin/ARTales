@@ -1,5 +1,6 @@
 import { slugify } from "@/lib/slug"
 import type { AuthorEditItem } from "@/lib/dbAuthors"
+import { isLanguageCode } from "@/lib/dictionaries/language"
 
 export type AuthorFormValues = {
   name: string
@@ -44,6 +45,7 @@ export function mapAuthorToFormValues(author: AuthorEditItem): AuthorFormValues 
 export function parseAuthorFormData(formData: FormData): AuthorFormValues {
   const name = String(formData.get("name") ?? "").trim()
   const rawSlug = String(formData.get("slug") ?? "").trim()
+  const rawLanguage = String(formData.get("primary_language") ?? "").trim()
 
   return {
     name,
@@ -56,7 +58,7 @@ export function parseAuthorFormData(formData: FormData): AuthorFormValues {
     birth_year: String(formData.get("birth_year") ?? "").trim(),
     death_year: String(formData.get("death_year") ?? "").trim(),
     country: String(formData.get("country") ?? "").trim(),
-    primary_language: String(formData.get("primary_language") ?? "").trim(),
+    primary_language: rawLanguage,
     is_public_visible: formData.get("is_public_visible") === "on",
   }
 }
@@ -100,6 +102,10 @@ export function validateAuthorFormValues(values: AuthorFormValues): string | nul
     (!Number.isInteger(Number(values.death_year)) || values.death_year.length !== 4)
   ) {
     return "death_year_invalid"
+  }
+
+  if (values.primary_language && !isLanguageCode(values.primary_language)) {
+    return "primary_language_invalid"
   }
 
   return null

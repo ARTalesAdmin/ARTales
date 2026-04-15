@@ -1,5 +1,6 @@
 import Link from "next/link"
 import { getWorksForGallery } from "@/lib/dbWorks"
+import { getLanguageLabel } from "@/lib/dictionaries/language"
 
 function getWorkLabel(originType: string) {
   switch (originType) {
@@ -65,18 +66,6 @@ export default async function Galerie() {
 
         <div style={{ display: "flex", gap: "12px", flexWrap: "wrap" }}>
           <Link
-            href="/galerie/volna-dila"
-            style={{
-              padding: "10px 16px",
-              border: "1px solid #111",
-              textDecoration: "none",
-              color: "#111",
-            }}
-          >
-            Volná díla
-          </Link>
-
-          <Link
             href="/kolekce/gothic-classics"
             style={{
               padding: "10px 16px",
@@ -115,96 +104,104 @@ export default async function Galerie() {
               gap: "18px",
             }}
           >
-            {works.map((work) => (
-              <article
-                key={work.id}
-                style={{
-                  border: "1px solid #ddd",
-                  padding: "20px",
-                  display: "flex",
-                  flexDirection: "column",
-                  gap: "10px",
-                }}
-              >
-                <div>
-                  <p
-                    style={{
-                      margin: "0 0 8px 0",
-                      fontSize: "13px",
-                      opacity: 0.7,
-                      textTransform: "uppercase",
-                      letterSpacing: "0.5px",
-                    }}
-                  >
-                    {getWorkLabel(work.origin_type)}
-                  </p>
+            {works.map((work) => {
+              const languageLabel = getLanguageLabel(
+                work.canonical_language,
+                "public"
+              )
 
-                  <h2
-                    style={{
-                      margin: "0 0 8px 0",
-                      fontSize: "28px",
-                      lineHeight: 1.15,
-                    }}
-                  >
+              return (
+                <article
+                  key={work.id}
+                  style={{
+                    border: "1px solid #ddd",
+                    padding: "20px",
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: "10px",
+                  }}
+                >
+                  <div>
+                    <p
+                      style={{
+                        margin: "0 0 8px 0",
+                        fontSize: "13px",
+                        opacity: 0.7,
+                        textTransform: "uppercase",
+                        letterSpacing: "0.5px",
+                      }}
+                    >
+                      {getWorkLabel(work.origin_type)}
+                    </p>
+
+                    <h2
+                      style={{
+                        margin: "0 0 8px 0",
+                        fontSize: "28px",
+                        lineHeight: 1.15,
+                      }}
+                    >
+                      <Link
+                        href={`/dilo/${work.slug}`}
+                        style={{ textDecoration: "none", color: "#111" }}
+                      >
+                        {work.title}
+                      </Link>
+                    </h2>
+
+                    {work.subtitle ? (
+                      <p style={{ margin: "0 0 8px 0", opacity: 0.85 }}>
+                        {work.subtitle}
+                      </p>
+                    ) : null}
+
+                    <p style={{ margin: "0 0 8px 0" }}>
+                      <strong>Autor:</strong>{" "}
+                      {work.author ? (
+                        <Link href={`/autor/${work.author.slug}`}>
+                          {work.author.name}
+                        </Link>
+                      ) : (
+                        "Neznámý autor"
+                      )}
+                    </p>
+
+                    {work.collection ? (
+                      <p style={{ margin: "0 0 8px 0" }}>
+                        <strong>Kolekce:</strong>{" "}
+                        <Link href={`/kolekce/${work.collection.slug}`}>
+                          {work.collection.title}
+                        </Link>
+                      </p>
+                    ) : null}
+
+                    <p style={{ margin: "0 0 10px 0" }}>{work.summary}</p>
+
+                    <p style={{ margin: 0, opacity: 0.8 }}>
+                      <strong>Language:</strong>{" "}
+                      {languageLabel ?? work.canonical_language}
+                    </p>
+                  </div>
+
+                  <div style={{ marginTop: "auto" }}>
                     <Link
                       href={`/dilo/${work.slug}`}
-                      style={{ textDecoration: "none", color: "#111" }}
+                      style={{
+                        display: "inline-block",
+                        marginTop: "8px",
+                        padding: "10px 14px",
+                        border: "1px solid #111",
+                        textDecoration: "none",
+                        color: "#111",
+                        fontWeight: 600,
+                      }}
                     >
-                      {work.title}
+                      Zobrazit detail
                     </Link>
-                  </h2>
-
-                  {work.subtitle ? (
-                    <p style={{ margin: "0 0 8px 0", opacity: 0.85 }}>
-                      {work.subtitle}
-                    </p>
-                  ) : null}
-
-                  <p style={{ margin: "0 0 8px 0" }}>
-                    <strong>Autor:</strong>{" "}
-                    {work.author ? (
-                      <Link href={`/autor/${work.author.slug}`}>
-                        {work.author.name}
-                      </Link>
-                    ) : (
-                      "Neznámý autor"
-                    )}
-                  </p>
-
-                  {work.collection ? (
-                    <p style={{ margin: "0 0 8px 0" }}>
-                      <strong>Kolekce:</strong>{" "}
-                      <Link href={`/kolekce/${work.collection.slug}`}>
-                        {work.collection.title}
-                      </Link>
-                    </p>
-                  ) : null}
-
-                  <p style={{ margin: "0 0 10px 0" }}>{work.summary}</p>
-
-                  <p style={{ margin: 0, opacity: 0.8 }}>
-                    <strong>Jazyk:</strong> {work.canonical_language}
-                  </p>
-                </div>
-
-                <div style={{ marginTop: "auto" }}>
-                  <Link
-                    href={`/dilo/${work.slug}`}
-                    style={{
-                      display: "inline-block",
-                      marginTop: "8px",
-                      padding: "10px 14px",
-                      border: "1px solid #111",
-                      textDecoration: "none",
-                      color: "#111",
-                      fontWeight: 600,
-                    }}
-                  >
-                    Zobrazit detail
-                  </Link>
-                </div>
-              </article>
-            ))}
+                  </div>
+                </article>
+              )
+            })}
           </div>
         )}
       </section>

@@ -1,4 +1,5 @@
 import Link from "next/link"
+import { getLanguageOptions } from "@/lib/dictionaries/language"
 import { requireEditorOrAdmin } from "@/lib/guards"
 import { createAuthor } from "@/lib/actions/authors"
 import { getDefaultAuthorFormValues } from "@/lib/forms/authorForm"
@@ -23,6 +24,8 @@ function getErrorMessage(error?: string) {
       return "Tento slug už existuje. Zvol jiný."
     case "save_failed":
       return "Autora se nepodařilo uložit. Zkus to znovu."
+    case "primary_language_invalid":
+      return "Primární jazyk musí být vybrán z nabídky."
     default:
       return null
   }
@@ -34,6 +37,7 @@ export default async function NewAuthorPage({ searchParams }: PageProps) {
   const defaults = getDefaultAuthorFormValues()
   const { error } = await searchParams
   const errorMessage = getErrorMessage(error)
+  const languageOptions = getLanguageOptions("internal")
 
   return (
     <main
@@ -287,10 +291,9 @@ export default async function NewAuthorPage({ searchParams }: PageProps) {
             >
               Primární jazyk
             </label>
-            <input
+            <select
               id="primary_language"
               name="primary_language"
-              type="text"
               defaultValue={defaults.primary_language}
               style={{
                 width: "100%",
@@ -298,9 +301,16 @@ export default async function NewAuthorPage({ searchParams }: PageProps) {
                 border: "1px solid #ccc",
                 fontSize: "16px",
               }}
-            />
+            >
+              <option value="">— Nevybráno —</option>
+              {languageOptions.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
             <p style={{ margin: "8px 0 0 0", fontSize: "14px", opacity: 0.75 }}>
-              Např. <code>cs</code>, <code>en</code>, <code>de</code>.
+              Do databáze se ukládá pouze kód jazyka, editor vidí český popisek.
             </p>
           </div>
 

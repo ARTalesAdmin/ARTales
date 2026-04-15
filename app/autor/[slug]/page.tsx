@@ -1,5 +1,6 @@
 import Link from "next/link"
 import { getAuthorBySlug } from "@/lib/dbAuthors"
+import { getLanguageLabel } from "@/lib/dictionaries/language"
 
 type PageProps = {
   params: Promise<{ slug: string }>
@@ -33,6 +34,8 @@ export default async function AutorDetail({ params }: PageProps) {
       </main>
     )
   }
+
+  const primaryLanguageLabel = getLanguageLabel(author.primary_language, "public")
 
   const years =
     author.birth_year || author.death_year
@@ -91,9 +94,9 @@ export default async function AutorDetail({ params }: PageProps) {
             </p>
           ) : null}
 
-          {author.primary_language ? (
+          {primaryLanguageLabel ? (
             <p style={{ margin: "0 0 6px 0" }}>
-              <strong>Primární jazyk:</strong> {author.primary_language}
+              <strong>Primary language:</strong> {primaryLanguageLabel}
             </p>
           ) : null}
         </div>

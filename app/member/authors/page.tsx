@@ -1,6 +1,7 @@
 import Link from "next/link"
 import { requireEditorOrAdmin } from "@/lib/guards"
 import { getAuthorsForMember } from "@/lib/dbAuthors"
+import { getLanguageLabel } from "@/lib/dictionaries/language"
 
 function formatLifeSpan(birth?: number | null, death?: number | null) {
   if (!birth && !death) return null
@@ -84,6 +85,7 @@ export default async function MemberAuthorsPage() {
           }}
         >
           {authors.map((author) => {
+            const languageLabel = getLanguageLabel(author.primary_language, "internal")
             const lifeSpan = formatLifeSpan(author.birth_year, author.death_year)
 
             return (
@@ -132,9 +134,9 @@ export default async function MemberAuthorsPage() {
                     </p>
                   ) : null}
 
-                  {author.primary_language ? (
+                  {languageLabel ? (
                     <p style={{ margin: "0 0 8px 0" }}>
-                      <strong>Jazyk:</strong> {author.primary_language}
+                      <strong>Jazyk:</strong> {languageLabel}
                     </p>
                   ) : null}
 

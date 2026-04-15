@@ -99,23 +99,6 @@ export default function Home() {
         </Link>
 
         <Link
-          href="/galerie/volna-dila"
-          style={{
-            display: "block",
-            padding: "20px",
-            border: "1px solid #ddd",
-            textDecoration: "none",
-            color: "#111",
-          }}
-        >
-          <h2 style={{ marginTop: 0, marginBottom: "8px" }}>Volná díla</h2>
-          <p style={{ margin: 0 }}>
-            První veřejně dostupná klasická díla a texty vedené v otevřenější
-            vrstvě systému.
-          </p>
-        </Link>
-
-        <Link
           href="/kolekce/gothic-classics"
           style={{
             display: "block",
