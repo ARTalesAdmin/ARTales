@@ -10,6 +10,10 @@ import {
   mapWorkFormValuesToUpdatePayload,
 } from "@/lib/forms/workForm"
 
+function encodeDbError(message: string) {
+  return encodeURIComponent(message.slice(0, 300))
+}
+
 export async function createWork(formData: FormData): Promise<void> {
   const profile = await requireEditorOrAdmin()
   const supabase = await createClient()
@@ -36,7 +40,9 @@ export async function createWork(formData: FormData): Promise<void> {
       redirect("/member/works/new?error=slug_taken")
     }
 
-    redirect("/member/works/new?error=save_failed")
+    redirect(
+      `/member/works/new?error=save_failed&db_error=${encodeDbError(error.message)}`
+    )
   }
 
   redirect(`/member/works/${payload.slug}/edit?success=work_created`)
@@ -70,7 +76,11 @@ export async function updateWork(
       redirect(`/member/works/${originalSlug}/edit?error=slug_taken`)
     }
 
-    redirect(`/member/works/${originalSlug}/edit?error=save_failed`)
+    redirect(
+      `/member/works/${originalSlug}/edit?error=save_failed&db_error=${encodeDbError(
+        error.message
+      )}`
+    )
   }
 
   redirect(`/member/works/${payload.slug}/edit?success=work_updated`)

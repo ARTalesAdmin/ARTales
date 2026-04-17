@@ -8,7 +8,7 @@ import { getStatusOptions } from "@/lib/dictionaries/status"
 import WorkBlocksEditor from "@/components/editor/WorkBlocksEditor"
 
 type PageProps = {
-  searchParams: Promise<{ error?: string }>
+  searchParams: Promise<{ error?: string; db_error?: string }>
 }
 
 function getErrorMessage(error?: string) {
@@ -50,7 +50,7 @@ export default async function NewWorkPage({ searchParams }: PageProps) {
   await requireEditorOrAdmin()
 
   const supabase = await createClient()
-  const { error } = await searchParams
+  const { error, db_error } = await searchParams
   const errorMessage = getErrorMessage(error)
 
   const languageOptions = getLanguageOptions("internal")
@@ -119,6 +119,23 @@ export default async function NewWorkPage({ searchParams }: PageProps) {
         >
           {errorMessage}
         </p>
+      ) : null}
+
+      {db_error ? (
+        <pre
+          style={{
+            marginTop: 0,
+            marginBottom: "18px",
+            padding: "12px 14px",
+            border: "1px solid #ccc",
+            background: "#f8f8f8",
+            whiteSpace: "pre-wrap",
+            overflowX: "auto",
+            fontSize: "13px",
+          }}
+        >
+          DB error: {decodeURIComponent(db_error)}
+        </pre>
       ) : null}
 
       <form action={createWork} style={{ display: "grid", gap: "22px" }}>

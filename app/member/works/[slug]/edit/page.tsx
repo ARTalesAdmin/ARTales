@@ -11,7 +11,7 @@ import WorkBlocksEditor from "@/components/editor/WorkBlocksEditor"
 
 type PageProps = {
   params: Promise<{ slug: string }>
-  searchParams: Promise<{ error?: string; success?: string }>
+  searchParams: Promise<{ error?: string; success?: string; db_error?: string }>
 }
 
 function getErrorMessage(error?: string) {
@@ -68,7 +68,7 @@ export default async function EditWorkPage({
 
   const supabase = await createClient()
   const { slug } = await params
-  const { error, success } = await searchParams
+  const { error, success, db_error } = await searchParams
 
   const work = await getWorkForEditBySlug(slug)
 
@@ -146,6 +146,23 @@ export default async function EditWorkPage({
         >
           {errorMessage}
         </p>
+      ) : null}
+
+            {db_error ? (
+        <pre
+          style={{
+            marginTop: 0,
+            marginBottom: "18px",
+            padding: "12px 14px",
+            border: "1px solid #ccc",
+            background: "#f8f8f8",
+            whiteSpace: "pre-wrap",
+            overflowX: "auto",
+            fontSize: "13px",
+          }}
+        >
+          DB error: {decodeURIComponent(db_error)}
+        </pre>
       ) : null}
 
       {successMessage ? (
