@@ -486,6 +486,33 @@ export default async function MemberPage({ searchParams }: PageProps) {
     >
       Nová kolekce
     </Link>
+
+    <Link
+  href="/member/works"
+  style={{
+    padding: "10px 14px",
+    border: "1px solid #111",
+    textDecoration: "none",
+    color: "#111",
+    fontWeight: 600,
+  }}
+>
+  Díla
+</Link>
+
+<Link
+  href="/member/works/new"
+  style={{
+    padding: "10px 14px",
+    border: "1px solid #111",
+    textDecoration: "none",
+    color: "#111",
+    fontWeight: 600,
+  }}
+>
+  Nové dílo
+</Link>
+
   </div>
 ) : (
   <p style={{ opacity: 0.75 }}>

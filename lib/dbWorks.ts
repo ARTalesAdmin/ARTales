@@ -1,4 +1,6 @@
 import { supabase } from "./supabase"
+import { createClient } from "@/lib/supabase/server"
+import type { WorkBlock } from "@/lib/blocks"
 
 export type WorkOriginType =
   | "public_domain"
@@ -53,6 +55,44 @@ export type WorkDetailItem = {
   collection: WorkCollectionRef
 }
 
+export type MemberWorkListItem = {
+  id: string
+  title: string
+  slug: string
+  subtitle: string | null
+  summary: string
+  canonical_language: string
+  status: WorkStatus
+  origin_type: WorkOriginType
+  author: {
+    id: string
+    name: string
+    slug: string
+  } | null
+  collection: {
+    id: string
+    title: string
+    slug: string
+  } | null
+}
+
+export type WorkEditItem = {
+  id: string
+  title: string
+  slug: string
+  subtitle: string | null
+  summary: string
+  canonical_language: string
+  origin_type: WorkOriginType
+  source_label: WorkSourceLabel
+  source_reference: string | null
+  status: WorkStatus
+  primary_author_id: string | null
+  collection_id: string | null
+  content: string
+  content_blocks: WorkBlock[]
+}
+
 type RawRelationAuthor =
   | {
       id: unknown
@@ -100,6 +140,23 @@ type RawWorkDetailRow = {
   status: unknown
   authors?: RawRelationAuthor | RawRelationAuthor[]
   collections?: RawRelationCollection | RawRelationCollection[]
+}
+
+type RawWorkEditRow = {
+  id: unknown
+  title: unknown
+  slug: unknown
+  subtitle: unknown
+  summary: unknown
+  canonical_language: unknown
+  origin_type: unknown
+  source_label: unknown
+  source_reference: unknown
+  status: unknown
+  primary_author_id: unknown
+  collection_id: unknown
+  content: unknown
+  content_blocks: unknown
 }
 
 function normalizeAuthorRelation(
@@ -165,6 +222,28 @@ function mapWorkDetail(row: RawWorkDetailRow): WorkDetailItem {
     author: normalizeAuthorRelation(row.authors),
     collection: normalizeCollectionRelation(row.collections),
   }
+}
+
+function mapRawContentBlocks(value: unknown): WorkBlock[] {
+  if (!Array.isArray(value)) return []
+
+  return value
+    .map((item) => {
+      if (!item || typeof item !== "object") return null
+
+      const raw = item as Record<string, unknown>
+
+      return {
+        id: typeof raw.id === "string" ? raw.id : crypto.randomUUID(),
+        type: String(raw.type ?? "paragraph") as WorkBlock["type"],
+        content: typeof raw.content === "string" ? raw.content : "",
+        editor_note:
+          typeof raw.editor_note === "string" && raw.editor_note.trim() !== ""
+            ? raw.editor_note
+            : null,
+      }
+    })
+    .filter((item): item is WorkBlock => item !== null)
 }
 
 export async function getWorksForGallery(): Promise<GalleryWorkItem[]> {
@@ -317,4 +396,124 @@ export async function getPublishedWorksByCollectionId(
   }
 
   return (data ?? []).map((row) => mapGalleryWork(row as RawGalleryWorkRow))
+}
+
+export async function getWorksForMember(): Promise<MemberWorkListItem[]> {
+  const supabaseServer = await createClient()
+
+  const { data, error } = await supabaseServer
+    .from("works")
+    .select(`
+      id,
+      title,
+      slug,
+      subtitle,
+      summary,
+      canonical_language,
+      status,
+      origin_type,
+      authors:primary_author_id (
+        id,
+        name,
+        slug
+      ),
+      collections:collection_id (
+        id,
+        title,
+        slug
+      )
+    `)
+    .order("title", { ascending: true })
+
+  if (error) {
+    console.error("DB error in getWorksForMember:", error)
+    throw new Error(`Failed to load works for member: ${error.message}`)
+  }
+
+  return ((data ?? []) as RawGalleryWorkRow[]).map((row) => ({
+    id: String(row.id),
+    title: String(row.title),
+    slug: String(row.slug),
+    subtitle: row.subtitle == null ? null : String(row.subtitle),
+    summary: String(row.summary ?? ""),
+    canonical_language: String(row.canonical_language),
+    status: String(row.status) as WorkStatus,
+    origin_type: String(row.origin_type) as WorkOriginType,
+    author: (() => {
+      const author = normalizeAuthorRelation(row.authors)
+      return author
+        ? {
+            id: author.id,
+            name: author.name,
+            slug: author.slug,
+          }
+        : null
+    })(),
+    collection: (() => {
+      const collection = normalizeCollectionRelation(row.collections)
+      return collection
+        ? {
+            id: collection.id,
+            title: collection.title,
+            slug: collection.slug,
+          }
+        : null
+    })(),
+  }))
+}
+
+export async function getWorkForEditBySlug(
+  slug: string
+): Promise<WorkEditItem | null> {
+  const supabaseServer = await createClient()
+
+  const { data, error } = await supabaseServer
+    .from("works")
+    .select(`
+      id,
+      title,
+      slug,
+      subtitle,
+      summary,
+      canonical_language,
+      origin_type,
+      source_label,
+      source_reference,
+      status,
+      primary_author_id,
+      collection_id,
+      content,
+      content_blocks
+    `)
+    .eq("slug", slug)
+    .maybeSingle()
+
+  if (error) {
+    console.error("DB error in getWorkForEditBySlug:", error)
+    throw new Error(`Failed to load work for edit: ${error.message}`)
+  }
+
+  if (!data) return null
+
+  const row = data as RawWorkEditRow
+
+  return {
+    id: String(row.id),
+    title: String(row.title),
+    slug: String(row.slug),
+    subtitle: row.subtitle == null ? null : String(row.subtitle),
+    summary: String(row.summary ?? ""),
+    canonical_language: String(row.canonical_language),
+    origin_type: String(row.origin_type) as WorkOriginType,
+    source_label: String(row.source_label) as WorkSourceLabel,
+    source_reference:
+      row.source_reference == null ? null : String(row.source_reference),
+    status: String(row.status) as WorkStatus,
+    primary_author_id:
+      row.primary_author_id == null ? null : String(row.primary_author_id),
+    collection_id:
+      row.collection_id == null ? null : String(row.collection_id),
+    content: String(row.content ?? ""),
+    content_blocks: mapRawContentBlocks(row.content_blocks),
+  }
 }
