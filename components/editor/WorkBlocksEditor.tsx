@@ -14,7 +14,7 @@ type Props = {
 
 export default function WorkBlocksEditor({ initialBlocks = [] }: Props) {
   const [blocks, setBlocks] = useState<WorkBlock[]>(
-    initialBlocks.length > 0 ? initialBlocks : [createEmptyBlock("paragraph")]
+    initialBlocks.length > 0 ? initialBlocks : [createEmptyBlock("chapter")]
   )
 
   const blockTypeOptions = useMemo(() => getWorkBlockTypeOptions(), [])
@@ -32,7 +32,7 @@ export default function WorkBlocksEditor({ initialBlocks = [] }: Props) {
   function removeBlock(index: number) {
     setBlocks((prev) => {
       const next = prev.filter((_, i) => i !== index)
-      return next.length > 0 ? next : [createEmptyBlock("paragraph")]
+      return next.length > 0 ? next : [createEmptyBlock("chapter")]
     })
   }
 
@@ -61,8 +61,9 @@ export default function WorkBlocksEditor({ initialBlocks = [] }: Props) {
       <div>
         <h2 style={{ marginTop: 0, marginBottom: "8px" }}>Obsahové bloky</h2>
         <p style={{ margin: 0, opacity: 0.8 }}>
-          Skládej text z předdefinovaných bloků. Interní poznámka se neukládá
-          pro čtenáře, jen pro editora.
+          Skládej text z předdefinovaných bloků. Každý blok kromě předělu musí mít obsah. 
+          Interní poznámka k bloku se neukládá pro čtenáře, jen pro editora.
+        </p>
         </p>
       </div>
 

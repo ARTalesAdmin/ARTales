@@ -86,8 +86,16 @@ export function validateWorkFormValues(values: WorkFormValues): string | null {
     return "slug_invalid"
   }
 
-  if (!values.summary) {
+    if (!values.summary) {
     return "summary_missing"
+  }
+
+  if (values.summary.trim().length < 200) {
+    return "summary_too_short"
+  }
+
+  if (values.summary.trim().length > 800) {
+    return "summary_too_long"
   }
 
   if (!values.primary_author_id) {

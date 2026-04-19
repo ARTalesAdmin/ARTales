@@ -21,6 +21,10 @@ function getErrorMessage(error?: string) {
       return "Slug může obsahovat jen malá písmena, čísla a pomlčky."
     case "summary_missing":
       return "Shrnutí díla je povinné."
+    case "summary_too_short":
+      return "Shrnutí je příliš krátké. Musí mít alespoň 200 znaků."
+    case "summary_too_long":
+      return "Shrnutí je příliš dlouhé. Maximum je 800 znaků."
     case "primary_author_missing":
       return "Primární autor je povinný."
     case "canonical_language_invalid":
@@ -150,7 +154,10 @@ export default async function NewWorkPage({ searchParams }: PageProps) {
           <h2 style={{ margin: 0 }}>Metadata díla</h2>
 
           <div>
-            <label htmlFor="title" style={{ display: "block", marginBottom: "8px", fontWeight: 600 }}>
+            <label
+              htmlFor="title"
+              style={{ display: "block", marginBottom: "8px", fontWeight: 600 }}
+            >
               Název díla
             </label>
             <input
@@ -165,10 +172,16 @@ export default async function NewWorkPage({ searchParams }: PageProps) {
                 fontSize: "16px",
               }}
             />
+            <p style={{ margin: "8px 0 0 0", fontSize: "14px", opacity: 0.75 }}>
+              Hlavní název díla. Povinné pole.
+            </p>
           </div>
 
           <div>
-            <label htmlFor="slug" style={{ display: "block", marginBottom: "8px", fontWeight: 600 }}>
+            <label
+              htmlFor="slug"
+              style={{ display: "block", marginBottom: "8px", fontWeight: 600 }}
+            >
               Slug
             </label>
             <input
@@ -182,10 +195,16 @@ export default async function NewWorkPage({ searchParams }: PageProps) {
                 fontSize: "16px",
               }}
             />
+            <p style={{ margin: "8px 0 0 0", fontSize: "14px", opacity: 0.75 }}>
+              URL identifikátor díla. Když ho nevyplníš, vytvoří se automaticky z názvu. Povolená jsou pouze malá písmena, čísla a pomlčky.
+            </p>
           </div>
 
           <div>
-            <label htmlFor="subtitle" style={{ display: "block", marginBottom: "8px", fontWeight: 600 }}>
+            <label
+              htmlFor="subtitle"
+              style={{ display: "block", marginBottom: "8px", fontWeight: 600 }}
+            >
               Podnázev
             </label>
             <input
@@ -199,10 +218,16 @@ export default async function NewWorkPage({ searchParams }: PageProps) {
                 fontSize: "16px",
               }}
             />
+            <p style={{ margin: "8px 0 0 0", fontSize: "14px", opacity: 0.75 }}>
+              Nepovinný doplňující název díla.
+            </p>
           </div>
 
           <div>
-            <label htmlFor="summary" style={{ display: "block", marginBottom: "8px", fontWeight: 600 }}>
+            <label
+              htmlFor="summary"
+              style={{ display: "block", marginBottom: "8px", fontWeight: 600 }}
+            >
               Shrnutí
             </label>
             <textarea
@@ -218,10 +243,16 @@ export default async function NewWorkPage({ searchParams }: PageProps) {
                 resize: "vertical",
               }}
             />
+            <p style={{ margin: "8px 0 0 0", fontSize: "14px", opacity: 0.75 }}>
+              Krátké představení díla pro galerii a detail. Povinné pole. Doporučený rozsah je 200–800 znaků.
+            </p>
           </div>
 
           <div>
-            <label htmlFor="primary_author_id" style={{ display: "block", marginBottom: "8px", fontWeight: 600 }}>
+            <label
+              htmlFor="primary_author_id"
+              style={{ display: "block", marginBottom: "8px", fontWeight: 600 }}
+            >
               Primární autor
             </label>
             <select
@@ -243,10 +274,16 @@ export default async function NewWorkPage({ searchParams }: PageProps) {
                 </option>
               ))}
             </select>
+            <p style={{ margin: "8px 0 0 0", fontSize: "14px", opacity: 0.75 }}>
+              Hlavní autor, pod kterým bude dílo vedeno. Povinné pole.
+            </p>
           </div>
 
           <div>
-            <label htmlFor="collection_id" style={{ display: "block", marginBottom: "8px", fontWeight: 600 }}>
+            <label
+              htmlFor="collection_id"
+              style={{ display: "block", marginBottom: "8px", fontWeight: 600 }}
+            >
               Kolekce
             </label>
             <select
@@ -267,10 +304,16 @@ export default async function NewWorkPage({ searchParams }: PageProps) {
                 </option>
               ))}
             </select>
+            <p style={{ margin: "8px 0 0 0", fontSize: "14px", opacity: 0.75 }}>
+              Nepovinné zařazení díla do kolekce.
+            </p>
           </div>
 
           <div>
-            <label htmlFor="canonical_language" style={{ display: "block", marginBottom: "8px", fontWeight: 600 }}>
+            <label
+              htmlFor="canonical_language"
+              style={{ display: "block", marginBottom: "8px", fontWeight: 600 }}
+            >
               Jazyk
             </label>
             <select
@@ -291,10 +334,16 @@ export default async function NewWorkPage({ searchParams }: PageProps) {
                 </option>
               ))}
             </select>
+            <p style={{ margin: "8px 0 0 0", fontSize: "14px", opacity: 0.75 }}>
+              Hlavní jazyk díla. Ukládá se standardizovaný kód, editor vidí český popisek.
+            </p>
           </div>
 
           <div>
-            <label htmlFor="status" style={{ display: "block", marginBottom: "8px", fontWeight: 600 }}>
+            <label
+              htmlFor="status"
+              style={{ display: "block", marginBottom: "8px", fontWeight: 600 }}
+            >
               Status
             </label>
             <select
@@ -315,10 +364,16 @@ export default async function NewWorkPage({ searchParams }: PageProps) {
                 </option>
               ))}
             </select>
+            <p style={{ margin: "8px 0 0 0", fontSize: "14px", opacity: 0.75 }}>
+              Stav workflow díla. Koncept = rozpracováno, Ke kontrole = připraveno ke schválení, Publikováno = veřejně viditelné, Archivováno = interně uložené.
+            </p>
           </div>
 
           <div>
-            <label htmlFor="origin_type" style={{ display: "block", marginBottom: "8px", fontWeight: 600 }}>
+            <label
+              htmlFor="origin_type"
+              style={{ display: "block", marginBottom: "8px", fontWeight: 600 }}
+            >
               Typ původu
             </label>
             <select
@@ -338,10 +393,16 @@ export default async function NewWorkPage({ searchParams }: PageProps) {
               <option value="translation">Překlad</option>
               <option value="other">Jiná vrstva</option>
             </select>
+            <p style={{ margin: "8px 0 0 0", fontSize: "14px", opacity: 0.75 }}>
+              Určuje, zda jde o původní dílo, překlad, volné dílo nebo jinou vrstvu.
+            </p>
           </div>
 
           <div>
-            <label htmlFor="source_label" style={{ display: "block", marginBottom: "8px", fontWeight: 600 }}>
+            <label
+              htmlFor="source_label"
+              style={{ display: "block", marginBottom: "8px", fontWeight: 600 }}
+            >
               Zdroj
             </label>
             <select
@@ -361,10 +422,16 @@ export default async function NewWorkPage({ searchParams }: PageProps) {
               <option value="manual">Ruční vložení</option>
               <option value="original">Původní zdroj</option>
             </select>
+            <p style={{ margin: "8px 0 0 0", fontSize: "14px", opacity: 0.75 }}>
+              Odkud text nebo jeho základ pochází. Např. ruční vložení, web nebo Project Gutenberg.
+            </p>
           </div>
 
           <div>
-            <label htmlFor="source_reference" style={{ display: "block", marginBottom: "8px", fontWeight: 600 }}>
+            <label
+              htmlFor="source_reference"
+              style={{ display: "block", marginBottom: "8px", fontWeight: 600 }}
+            >
               Reference zdroje
             </label>
             <input
@@ -378,6 +445,9 @@ export default async function NewWorkPage({ searchParams }: PageProps) {
                 fontSize: "16px",
               }}
             />
+            <p style={{ margin: "8px 0 0 0", fontSize: "14px", opacity: 0.75 }}>
+              Nepovinný odkaz, poznámka nebo identifikátor zdroje.
+            </p>
           </div>
         </section>
 

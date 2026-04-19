@@ -14,6 +14,26 @@ function encodeDbError(message: string) {
   return encodeURIComponent(message.slice(0, 300))
 }
 
+function applyPublicationFields<T extends Record<string, unknown>>(
+  payload: T,
+  status: string,
+  profileId: string
+) {
+  if (status === "published") {
+    return {
+      ...payload,
+      published_at: new Date().toISOString(),
+      published_by: profileId,
+    }
+  }
+
+  return {
+    ...payload,
+    published_at: null,
+    published_by: null,
+  }
+}
+
 export async function createWork(formData: FormData): Promise<void> {
   const profile = await requireEditorOrAdmin()
   const supabase = await createClient()
@@ -25,7 +45,8 @@ export async function createWork(formData: FormData): Promise<void> {
     redirect(`/member/works/new?error=${validationError}`)
   }
 
-  const payload = mapWorkFormValuesToInsertPayload(values, profile.id)
+  const basePayload = mapWorkFormValuesToInsertPayload(values, profile.id)
+  const payload = applyPublicationFields(basePayload, values.status, profile.id)
 
   const { error } = await supabase
     .from("works")
@@ -62,7 +83,8 @@ export async function updateWork(
     redirect(`/member/works/${originalSlug}/edit?error=${validationError}`)
   }
 
-  const payload = mapWorkFormValuesToUpdatePayload(values, profile.id)
+  const basePayload = mapWorkFormValuesToUpdatePayload(values, profile.id)
+  const payload = applyPublicationFields(basePayload, values.status, profile.id)
 
   const { error } = await supabase
     .from("works")
