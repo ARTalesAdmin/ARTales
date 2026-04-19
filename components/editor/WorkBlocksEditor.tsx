@@ -61,9 +61,9 @@ export default function WorkBlocksEditor({ initialBlocks = [] }: Props) {
       <div>
         <h2 style={{ marginTop: 0, marginBottom: "8px" }}>Obsahové bloky</h2>
         <p style={{ margin: 0, opacity: 0.8 }}>
-          Skládej text z předdefinovaných bloků. Každý blok kromě předělu musí mít obsah. 
-          Interní poznámka k bloku se neukládá pro čtenáře, jen pro editora.
-        </p>
+          Skládej text z předdefinovaných bloků. Každý blok kromě předělu musí
+          mít obsah. Interní poznámka k bloku se neukládá pro čtenáře, jen pro
+          editora.
         </p>
       </div>
 
@@ -147,7 +147,11 @@ export default function WorkBlocksEditor({ initialBlocks = [] }: Props) {
               <div>
                 <label
                   htmlFor={`block-type-${block.id}`}
-                  style={{ display: "block", marginBottom: "6px", fontWeight: 600 }}
+                  style={{
+                    display: "block",
+                    marginBottom: "6px",
+                    fontWeight: 600,
+                  }}
                 >
                   Typ bloku
                 </label>
@@ -174,7 +178,13 @@ export default function WorkBlocksEditor({ initialBlocks = [] }: Props) {
                   ))}
                 </select>
 
-                <p style={{ margin: "8px 0 0 0", fontSize: "14px", opacity: 0.75 }}>
+                <p
+                  style={{
+                    margin: "8px 0 0 0",
+                    fontSize: "14px",
+                    opacity: 0.75,
+                  }}
+                >
                   {selectedTypeMeta.help}
                 </p>
               </div>
@@ -182,7 +192,11 @@ export default function WorkBlocksEditor({ initialBlocks = [] }: Props) {
               <div>
                 <label
                   htmlFor={`block-content-${block.id}`}
-                  style={{ display: "block", marginBottom: "6px", fontWeight: 600 }}
+                  style={{
+                    display: "block",
+                    marginBottom: "6px",
+                    fontWeight: 600,
+                  }}
                 >
                   Obsah bloku
                 </label>
@@ -210,7 +224,11 @@ export default function WorkBlocksEditor({ initialBlocks = [] }: Props) {
               <div>
                 <label
                   htmlFor={`block-note-${block.id}`}
-                  style={{ display: "block", marginBottom: "6px", fontWeight: 600 }}
+                  style={{
+                    display: "block",
+                    marginBottom: "6px",
+                    fontWeight: 600,
+                  }}
                 >
                   Interní poznámka k bloku
                 </label>
@@ -220,7 +238,8 @@ export default function WorkBlocksEditor({ initialBlocks = [] }: Props) {
                   value={block.editor_note ?? ""}
                   onChange={(e) =>
                     updateBlock(index, {
-                      editor_note: e.target.value.trim() === "" ? null : e.target.value,
+                      editor_note:
+                        e.target.value.trim() === "" ? null : e.target.value,
                     })
                   }
                   rows={3}
