@@ -1,6 +1,6 @@
 "use client"
 
-import { useMemo, useState } from "react"
+import { useMemo } from "react"
 import {
   createEmptyBlock,
   getWorkBlockTypeOptions,
@@ -9,14 +9,11 @@ import {
 } from "@/lib/blocks"
 
 type Props = {
-  initialBlocks?: WorkBlock[]
+  blocks: WorkBlock[]
+  setBlocks: React.Dispatch<React.SetStateAction<WorkBlock[]>>
 }
 
-export default function WorkBlocksEditor({ initialBlocks = [] }: Props) {
-  const [blocks, setBlocks] = useState<WorkBlock[]>(
-    initialBlocks.length > 0 ? initialBlocks : [createEmptyBlock("chapter")]
-  )
-
+export default function WorkBlocksEditor({ blocks, setBlocks }: Props) {
   const blockTypeOptions = useMemo(() => getWorkBlockTypeOptions(), [])
 
   function updateBlock(index: number, patch: Partial<WorkBlock>) {
@@ -66,12 +63,6 @@ export default function WorkBlocksEditor({ initialBlocks = [] }: Props) {
           editora.
         </p>
       </div>
-
-      <input
-        type="hidden"
-        name="content_blocks_json"
-        value={JSON.stringify(blocks)}
-      />
 
       <div style={{ display: "grid", gap: "16px" }}>
         {blocks.map((block, index) => {

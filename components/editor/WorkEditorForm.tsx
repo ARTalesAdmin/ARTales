@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import WorkBlocksEditor from "./WorkBlocksEditor"
 import type { WorkBlock } from "@/lib/blocks"
 
@@ -37,6 +37,10 @@ function getStorageKey(mode: "new" | "edit", slug?: string) {
     : `artales-work-draft-edit:${slug}`
 }
 
+function stableStringify(value: unknown) {
+  return JSON.stringify(value)
+}
+
 export default function WorkEditorForm(props: Props) {
   const {
     mode,
@@ -65,10 +69,44 @@ export default function WorkEditorForm(props: Props) {
     source_reference: initialData.source_reference,
   })
 
+  const [blocks, setBlocks] = useState<WorkBlock[]>(
+    initialData.blocks.length > 0 ? initialData.blocks : []
+  )
+
   const [hasDraft, setHasDraft] = useState(false)
   const [lastSaved, setLastSaved] = useState<string | null>(null)
   const [draftLoaded, setDraftLoaded] = useState(false)
   const [autosaveEnabled, setAutosaveEnabled] = useState(false)
+
+  const currentSnapshot = useMemo(
+    () =>
+      stableStringify({
+        form: formState,
+        blocks,
+      }),
+    [formState, blocks]
+  )
+
+  const initialSnapshot = useMemo(
+    () =>
+      stableStringify({
+        form: {
+          title: initialData.title,
+          slug: initialData.slug,
+          subtitle: initialData.subtitle,
+          summary: initialData.summary,
+          primary_author_id: initialData.primary_author_id,
+          collection_id: initialData.collection_id,
+          canonical_language: initialData.canonical_language,
+          status: initialData.status,
+          origin_type: initialData.origin_type,
+          source_label: initialData.source_label,
+          source_reference: initialData.source_reference,
+        },
+        blocks: initialData.blocks,
+      }),
+    [initialData]
+  )
 
   useEffect(() => {
     const raw = localStorage.getItem(storageKey)
@@ -81,27 +119,38 @@ export default function WorkEditorForm(props: Props) {
 
     try {
       const parsed = JSON.parse(raw)
-      setHasDraft(true)
-      setLastSaved(parsed.updated_at ?? null)
+      const draftSnapshot = stableStringify({
+        form: parsed.form ?? {},
+        blocks: parsed.blocks ?? [],
+      })
+
+      if (draftSnapshot !== initialSnapshot) {
+        setHasDraft(true)
+        setLastSaved(parsed.updated_at ?? null)
+      } else {
+        localStorage.removeItem(storageKey)
+        setAutosaveEnabled(true)
+      }
     } catch {
       localStorage.removeItem(storageKey)
       setAutosaveEnabled(true)
     } finally {
       setDraftLoaded(true)
     }
-  }, [storageKey])
+  }, [storageKey, initialSnapshot])
 
   useEffect(() => {
     if (!draftLoaded || !autosaveEnabled) return
 
     const payload = {
       form: formState,
+      blocks,
       updated_at: new Date().toISOString(),
     }
 
     localStorage.setItem(storageKey, JSON.stringify(payload))
     setLastSaved(payload.updated_at)
-  }, [formState, storageKey, draftLoaded, autosaveEnabled])
+  }, [formState, blocks, storageKey, draftLoaded, autosaveEnabled])
 
   function restoreDraft() {
     const raw = localStorage.getItem(storageKey)
@@ -128,6 +177,10 @@ export default function WorkEditorForm(props: Props) {
           source_label: parsed.form.source_label ?? "manual",
           source_reference: parsed.form.source_reference ?? "",
         })
+      }
+
+      if (Array.isArray(parsed.blocks)) {
+        setBlocks(parsed.blocks)
       }
 
       setLastSaved(parsed.updated_at ?? null)
@@ -571,7 +624,13 @@ export default function WorkEditorForm(props: Props) {
           </div>
         </section>
 
-        <WorkBlocksEditor initialBlocks={initialData.blocks} />
+        <WorkBlocksEditor blocks={blocks} setBlocks={setBlocks} />
+
+        <input
+          type="hidden"
+          name="content_blocks_json"
+          value={JSON.stringify(blocks)}
+        />
 
         <div style={{ display: "flex", gap: "12px", flexWrap: "wrap" }}>
           <button
