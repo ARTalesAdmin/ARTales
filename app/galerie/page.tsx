@@ -1,6 +1,7 @@
 import Link from "next/link"
 import { getWorksForGallery } from "@/lib/dbWorks"
 import { getLanguageLabel } from "@/lib/dictionaries/language"
+export const dynamic = "force-dynamic"
 
 function getWorkLabel(originType: string) {
   switch (originType) {
