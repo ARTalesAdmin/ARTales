@@ -5,7 +5,7 @@ import { createClient } from "@/lib/supabase/server"
 import { getCollectionsForMember } from "@/lib/dbCollections"
 import { getLanguageOptions } from "@/lib/dictionaries/language"
 import { getStatusOptions } from "@/lib/dictionaries/status"
-import WorkBlocksEditor from "@/components/editor/WorkBlocksEditor"
+import WorkEditorForm from "@/components/editor/WorkEditorForm"
 
 type PageProps = {
   searchParams: Promise<{ error?: string; db_error?: string }>
@@ -63,14 +63,14 @@ export default async function NewWorkPage({ searchParams }: PageProps) {
 
   const { data: authorsData, error: authorsError } = await supabase
     .from("authors")
-    .select("id, name, slug")
+    .select("id, name")
     .order("name", { ascending: true })
 
   if (authorsError) {
     throw new Error(`Failed to load authors: ${authorsError.message}`)
   }
 
-  const authors = (authorsData ?? []) as { id: string; name: string; slug: string }[]
+  const authors = (authorsData ?? []) as { id: string; name: string }[]
 
   return (
     <main
@@ -142,346 +142,31 @@ export default async function NewWorkPage({ searchParams }: PageProps) {
         </pre>
       ) : null}
 
-      <form action={createWork} style={{ display: "grid", gap: "22px" }}>
-        <section
-          style={{
-            border: "1px solid #ddd",
-            padding: "24px",
-            display: "grid",
-            gap: "18px",
-          }}
-        >
-          <h2 style={{ margin: 0 }}>Metadata díla</h2>
-
-          <div>
-            <label
-              htmlFor="title"
-              style={{ display: "block", marginBottom: "8px", fontWeight: 600 }}
-            >
-              Název díla
-            </label>
-            <input
-              id="title"
-              name="title"
-              type="text"
-              required
-              style={{
-                width: "100%",
-                padding: "12px 14px",
-                border: "1px solid #ccc",
-                fontSize: "16px",
-              }}
-            />
-            <p style={{ margin: "8px 0 0 0", fontSize: "14px", opacity: 0.75 }}>
-              Hlavní název díla. Povinné pole.
-            </p>
-          </div>
-
-          <div>
-            <label
-              htmlFor="slug"
-              style={{ display: "block", marginBottom: "8px", fontWeight: 600 }}
-            >
-              Slug
-            </label>
-            <input
-              id="slug"
-              name="slug"
-              type="text"
-              style={{
-                width: "100%",
-                padding: "12px 14px",
-                border: "1px solid #ccc",
-                fontSize: "16px",
-              }}
-            />
-            <p style={{ margin: "8px 0 0 0", fontSize: "14px", opacity: 0.75 }}>
-              URL identifikátor díla. Když ho nevyplníš, vytvoří se automaticky z názvu. Povolená jsou pouze malá písmena, čísla a pomlčky.
-            </p>
-          </div>
-
-          <div>
-            <label
-              htmlFor="subtitle"
-              style={{ display: "block", marginBottom: "8px", fontWeight: 600 }}
-            >
-              Podnázev
-            </label>
-            <input
-              id="subtitle"
-              name="subtitle"
-              type="text"
-              style={{
-                width: "100%",
-                padding: "12px 14px",
-                border: "1px solid #ccc",
-                fontSize: "16px",
-              }}
-            />
-            <p style={{ margin: "8px 0 0 0", fontSize: "14px", opacity: 0.75 }}>
-              Nepovinný doplňující název díla.
-            </p>
-          </div>
-
-          <div>
-            <label
-              htmlFor="summary"
-              style={{ display: "block", marginBottom: "8px", fontWeight: 600 }}
-            >
-              Shrnutí
-            </label>
-            <textarea
-              id="summary"
-              name="summary"
-              required
-              rows={4}
-              style={{
-                width: "100%",
-                padding: "12px 14px",
-                border: "1px solid #ccc",
-                fontSize: "16px",
-                resize: "vertical",
-              }}
-            />
-            <p style={{ margin: "8px 0 0 0", fontSize: "14px", opacity: 0.75 }}>
-              Krátké představení díla pro galerii a detail. Povinné pole. Doporučený rozsah je 200–800 znaků.
-            </p>
-          </div>
-
-          <div>
-            <label
-              htmlFor="primary_author_id"
-              style={{ display: "block", marginBottom: "8px", fontWeight: 600 }}
-            >
-              Primární autor
-            </label>
-            <select
-              id="primary_author_id"
-              name="primary_author_id"
-              required
-              defaultValue=""
-              style={{
-                width: "100%",
-                padding: "12px 14px",
-                border: "1px solid #ccc",
-                fontSize: "16px",
-              }}
-            >
-              <option value="">— Vyber autora —</option>
-              {authors.map((author) => (
-                <option key={author.id} value={author.id}>
-                  {author.name}
-                </option>
-              ))}
-            </select>
-            <p style={{ margin: "8px 0 0 0", fontSize: "14px", opacity: 0.75 }}>
-              Hlavní autor, pod kterým bude dílo vedeno. Povinné pole.
-            </p>
-          </div>
-
-          <div>
-            <label
-              htmlFor="collection_id"
-              style={{ display: "block", marginBottom: "8px", fontWeight: 600 }}
-            >
-              Kolekce
-            </label>
-            <select
-              id="collection_id"
-              name="collection_id"
-              defaultValue=""
-              style={{
-                width: "100%",
-                padding: "12px 14px",
-                border: "1px solid #ccc",
-                fontSize: "16px",
-              }}
-            >
-              <option value="">— Bez kolekce —</option>
-              {collections.map((collection) => (
-                <option key={collection.id} value={collection.id}>
-                  {collection.title}
-                </option>
-              ))}
-            </select>
-            <p style={{ margin: "8px 0 0 0", fontSize: "14px", opacity: 0.75 }}>
-              Nepovinné zařazení díla do kolekce.
-            </p>
-          </div>
-
-          <div>
-            <label
-              htmlFor="canonical_language"
-              style={{ display: "block", marginBottom: "8px", fontWeight: 600 }}
-            >
-              Jazyk
-            </label>
-            <select
-              id="canonical_language"
-              name="canonical_language"
-              required
-              defaultValue="cs"
-              style={{
-                width: "100%",
-                padding: "12px 14px",
-                border: "1px solid #ccc",
-                fontSize: "16px",
-              }}
-            >
-              {languageOptions.map((option) => (
-                <option key={option.value} value={option.value}>
-                  {option.label}
-                </option>
-              ))}
-            </select>
-            <p style={{ margin: "8px 0 0 0", fontSize: "14px", opacity: 0.75 }}>
-              Hlavní jazyk díla. Ukládá se standardizovaný kód, editor vidí český popisek.
-            </p>
-          </div>
-
-          <div>
-            <label
-              htmlFor="status"
-              style={{ display: "block", marginBottom: "8px", fontWeight: 600 }}
-            >
-              Status
-            </label>
-            <select
-              id="status"
-              name="status"
-              required
-              defaultValue="draft"
-              style={{
-                width: "100%",
-                padding: "12px 14px",
-                border: "1px solid #ccc",
-                fontSize: "16px",
-              }}
-            >
-              {statusOptions.map((option) => (
-                <option key={option.value} value={option.value}>
-                  {option.label}
-                </option>
-              ))}
-            </select>
-            <p style={{ margin: "8px 0 0 0", fontSize: "14px", opacity: 0.75 }}>
-              Stav workflow díla. Koncept = rozpracováno, Ke kontrole = připraveno ke schválení, Publikováno = veřejně viditelné, Archivováno = interně uložené.
-            </p>
-          </div>
-
-          <div>
-            <label
-              htmlFor="origin_type"
-              style={{ display: "block", marginBottom: "8px", fontWeight: 600 }}
-            >
-              Typ původu
-            </label>
-            <select
-              id="origin_type"
-              name="origin_type"
-              required
-              defaultValue="original"
-              style={{
-                width: "100%",
-                padding: "12px 14px",
-                border: "1px solid #ccc",
-                fontSize: "16px",
-              }}
-            >
-              <option value="public_domain">Volné dílo</option>
-              <option value="original">Původní dílo</option>
-              <option value="translation">Překlad</option>
-              <option value="other">Jiná vrstva</option>
-            </select>
-            <p style={{ margin: "8px 0 0 0", fontSize: "14px", opacity: 0.75 }}>
-              Určuje, zda jde o původní dílo, překlad, volné dílo nebo jinou vrstvu.
-            </p>
-          </div>
-
-          <div>
-            <label
-              htmlFor="source_label"
-              style={{ display: "block", marginBottom: "8px", fontWeight: 600 }}
-            >
-              Zdroj
-            </label>
-            <select
-              id="source_label"
-              name="source_label"
-              required
-              defaultValue="manual"
-              style={{
-                width: "100%",
-                padding: "12px 14px",
-                border: "1px solid #ccc",
-                fontSize: "16px",
-              }}
-            >
-              <option value="gutenberg">Project Gutenberg</option>
-              <option value="web">Web</option>
-              <option value="manual">Ruční vložení</option>
-              <option value="original">Původní zdroj</option>
-            </select>
-            <p style={{ margin: "8px 0 0 0", fontSize: "14px", opacity: 0.75 }}>
-              Odkud text nebo jeho základ pochází. Např. ruční vložení, web nebo Project Gutenberg.
-            </p>
-          </div>
-
-          <div>
-            <label
-              htmlFor="source_reference"
-              style={{ display: "block", marginBottom: "8px", fontWeight: 600 }}
-            >
-              Reference zdroje
-            </label>
-            <input
-              id="source_reference"
-              name="source_reference"
-              type="text"
-              style={{
-                width: "100%",
-                padding: "12px 14px",
-                border: "1px solid #ccc",
-                fontSize: "16px",
-              }}
-            />
-            <p style={{ margin: "8px 0 0 0", fontSize: "14px", opacity: 0.75 }}>
-              Nepovinný odkaz, poznámka nebo identifikátor zdroje.
-            </p>
-          </div>
-        </section>
-
-        <WorkBlocksEditor />
-
-        <div style={{ display: "flex", gap: "12px", flexWrap: "wrap" }}>
-          <button
-            type="submit"
-            style={{
-              padding: "12px 18px",
-              border: "1px solid #111",
-              background: "#111",
-              color: "#fff",
-              cursor: "pointer",
-              fontSize: "16px",
-              fontWeight: 600,
-            }}
-          >
-            Uložit dílo
-          </button>
-
-          <Link
-            href="/member/works"
-            style={{
-              padding: "12px 18px",
-              border: "1px solid #ccc",
-              textDecoration: "none",
-              color: "#111",
-            }}
-          >
-            Zrušit
-          </Link>
-        </div>
-      </form>
+      <WorkEditorForm
+        mode="new"
+        initialData={{
+          title: "",
+          slug: "",
+          subtitle: "",
+          summary: "",
+          primary_author_id: "",
+          collection_id: "",
+          canonical_language: "cs",
+          status: "draft",
+          origin_type: "original",
+          source_label: "manual",
+          source_reference: "",
+          blocks: [],
+        }}
+        authors={authors}
+        collections={collections.map((collection) => ({
+          id: collection.id,
+          title: collection.title,
+        }))}
+        languageOptions={languageOptions}
+        statusOptions={statusOptions}
+        action={createWork}
+      />
     </main>
   )
 }

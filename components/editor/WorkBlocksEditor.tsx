@@ -1,6 +1,6 @@
 "use client"
 
-import { useMemo, useState } from "react"
+import { useMemo } from "react"
 import {
   createEmptyBlock,
   getWorkBlockTypeOptions,
@@ -9,44 +9,37 @@ import {
 } from "@/lib/blocks"
 
 type Props = {
-  initialBlocks?: WorkBlock[]
+  blocks: WorkBlock[]
+  onChange: (blocks: WorkBlock[]) => void
 }
 
-export default function WorkBlocksEditor({ initialBlocks = [] }: Props) {
-  const [blocks, setBlocks] = useState<WorkBlock[]>(
-    initialBlocks.length > 0 ? initialBlocks : [createEmptyBlock("chapter")]
-  )
-
+export default function WorkBlocksEditor({ blocks, onChange }: Props) {
   const blockTypeOptions = useMemo(() => getWorkBlockTypeOptions(), [])
 
   function updateBlock(index: number, patch: Partial<WorkBlock>) {
-    setBlocks((prev) =>
-      prev.map((block, i) => (i === index ? { ...block, ...patch } : block))
+    onChange(
+      blocks.map((block, i) => (i === index ? { ...block, ...patch } : block))
     )
   }
 
   function addBlock(type: WorkBlockType = "paragraph") {
-    setBlocks((prev) => [...prev, createEmptyBlock(type)])
+    onChange([...blocks, createEmptyBlock(type)])
   }
 
   function removeBlock(index: number) {
-    setBlocks((prev) => {
-      const next = prev.filter((_, i) => i !== index)
-      return next.length > 0 ? next : [createEmptyBlock("chapter")]
-    })
+    const next = blocks.filter((_, i) => i !== index)
+    onChange(next.length > 0 ? next : [createEmptyBlock("chapter")])
   }
 
   function moveBlock(index: number, direction: -1 | 1) {
-    setBlocks((prev) => {
-      const targetIndex = index + direction
-      if (targetIndex < 0 || targetIndex >= prev.length) return prev
+    const targetIndex = index + direction
+    if (targetIndex < 0 || targetIndex >= blocks.length) return
 
-      const next = [...prev]
-      const current = next[index]
-      next[index] = next[targetIndex]
-      next[targetIndex] = current
-      return next
-    })
+    const next = [...blocks]
+    const current = next[index]
+    next[index] = next[targetIndex]
+    next[targetIndex] = current
+    onChange(next)
   }
 
   return (
@@ -66,12 +59,6 @@ export default function WorkBlocksEditor({ initialBlocks = [] }: Props) {
           editora.
         </p>
       </div>
-
-      <input
-        type="hidden"
-        name="content_blocks_json"
-        value={JSON.stringify(blocks)}
-      />
 
       <div style={{ display: "grid", gap: "16px" }}>
         {blocks.map((block, index) => {

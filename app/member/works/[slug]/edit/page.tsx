@@ -7,7 +7,7 @@ import { getCollectionsForMember } from "@/lib/dbCollections"
 import { getWorkForEditBySlug } from "@/lib/dbWorks"
 import { getLanguageOptions } from "@/lib/dictionaries/language"
 import { getStatusOptions } from "@/lib/dictionaries/status"
-import WorkBlocksEditor from "@/components/editor/WorkBlocksEditor"
+import WorkEditorForm from "@/components/editor/WorkEditorForm"
 
 type PageProps = {
   params: Promise<{ slug: string }>
@@ -24,6 +24,10 @@ function getErrorMessage(error?: string) {
       return "Slug může obsahovat jen malá písmena, čísla a pomlčky."
     case "summary_missing":
       return "Shrnutí díla je povinné."
+    case "summary_too_short":
+      return "Shrnutí je příliš krátké. Musí mít alespoň 200 znaků."
+    case "summary_too_long":
+      return "Shrnutí je příliš dlouhé. Maximum je 800 znaků."
     case "primary_author_missing":
       return "Primární autor je povinný."
     case "canonical_language_invalid":
@@ -78,14 +82,14 @@ export default async function EditWorkPage({
 
   const { data: authorsData, error: authorsError } = await supabase
     .from("authors")
-    .select("id, name, slug")
+    .select("id, name")
     .order("name", { ascending: true })
 
   if (authorsError) {
     throw new Error(`Failed to load authors: ${authorsError.message}`)
   }
 
-  const authors = (authorsData ?? []) as { id: string; name: string; slug: string }[]
+  const authors = (authorsData ?? []) as { id: string; name: string }[]
   const collections = await getCollectionsForMember()
   const languageOptions = getLanguageOptions("internal")
   const statusOptions = getStatusOptions("internal")
@@ -148,7 +152,21 @@ export default async function EditWorkPage({
         </p>
       ) : null}
 
-            {db_error ? (
+      {successMessage ? (
+        <p
+          style={{
+            marginTop: 0,
+            marginBottom: "18px",
+            padding: "12px 14px",
+            border: "1px solid #9c9",
+            background: "#f6fff6",
+          }}
+        >
+          {successMessage}
+        </p>
+      ) : null}
+
+      {db_error ? (
         <pre
           style={{
             marginTop: 0,
@@ -165,299 +183,32 @@ export default async function EditWorkPage({
         </pre>
       ) : null}
 
-      {successMessage ? (
-        <p
-          style={{
-            marginTop: 0,
-            marginBottom: "18px",
-            padding: "12px 14px",
-            border: "1px solid #9c9",
-            background: "#f6fff6",
-          }}
-        >
-          {successMessage}
-        </p>
-      ) : null}
-
-      <form action={updateWorkWithSlug} style={{ display: "grid", gap: "22px" }}>
-        <section
-          style={{
-            border: "1px solid #ddd",
-            padding: "24px",
-            display: "grid",
-            gap: "18px",
-          }}
-        >
-          <h2 style={{ margin: 0 }}>Metadata díla</h2>
-
-          <div>
-            <label htmlFor="title" style={{ display: "block", marginBottom: "8px", fontWeight: 600 }}>
-              Název díla
-            </label>
-            <input
-              id="title"
-              name="title"
-              type="text"
-              required
-              defaultValue={work.title}
-              style={{
-                width: "100%",
-                padding: "12px 14px",
-                border: "1px solid #ccc",
-                fontSize: "16px",
-              }}
-            />
-          </div>
-
-          <div>
-            <label htmlFor="slug" style={{ display: "block", marginBottom: "8px", fontWeight: 600 }}>
-              Slug
-            </label>
-            <input
-              id="slug"
-              name="slug"
-              type="text"
-              defaultValue={work.slug}
-              style={{
-                width: "100%",
-                padding: "12px 14px",
-                border: "1px solid #ccc",
-                fontSize: "16px",
-              }}
-            />
-          </div>
-
-          <div>
-            <label htmlFor="subtitle" style={{ display: "block", marginBottom: "8px", fontWeight: 600 }}>
-              Podnázev
-            </label>
-            <input
-              id="subtitle"
-              name="subtitle"
-              type="text"
-              defaultValue={work.subtitle ?? ""}
-              style={{
-                width: "100%",
-                padding: "12px 14px",
-                border: "1px solid #ccc",
-                fontSize: "16px",
-              }}
-            />
-          </div>
-
-          <div>
-            <label htmlFor="summary" style={{ display: "block", marginBottom: "8px", fontWeight: 600 }}>
-              Shrnutí
-            </label>
-            <textarea
-              id="summary"
-              name="summary"
-              required
-              rows={4}
-              defaultValue={work.summary}
-              style={{
-                width: "100%",
-                padding: "12px 14px",
-                border: "1px solid #ccc",
-                fontSize: "16px",
-                resize: "vertical",
-              }}
-            />
-          </div>
-
-          <div>
-            <label htmlFor="primary_author_id" style={{ display: "block", marginBottom: "8px", fontWeight: 600 }}>
-              Primární autor
-            </label>
-            <select
-              id="primary_author_id"
-              name="primary_author_id"
-              required
-              defaultValue={work.primary_author_id ?? ""}
-              style={{
-                width: "100%",
-                padding: "12px 14px",
-                border: "1px solid #ccc",
-                fontSize: "16px",
-              }}
-            >
-              <option value="">— Vyber autora —</option>
-              {authors.map((author) => (
-                <option key={author.id} value={author.id}>
-                  {author.name}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div>
-            <label htmlFor="collection_id" style={{ display: "block", marginBottom: "8px", fontWeight: 600 }}>
-              Kolekce
-            </label>
-            <select
-              id="collection_id"
-              name="collection_id"
-              defaultValue={work.collection_id ?? ""}
-              style={{
-                width: "100%",
-                padding: "12px 14px",
-                border: "1px solid #ccc",
-                fontSize: "16px",
-              }}
-            >
-              <option value="">— Bez kolekce —</option>
-              {collections.map((collection) => (
-                <option key={collection.id} value={collection.id}>
-                  {collection.title}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div>
-            <label htmlFor="canonical_language" style={{ display: "block", marginBottom: "8px", fontWeight: 600 }}>
-              Jazyk
-            </label>
-            <select
-              id="canonical_language"
-              name="canonical_language"
-              required
-              defaultValue={work.canonical_language}
-              style={{
-                width: "100%",
-                padding: "12px 14px",
-                border: "1px solid #ccc",
-                fontSize: "16px",
-              }}
-            >
-              {languageOptions.map((option) => (
-                <option key={option.value} value={option.value}>
-                  {option.label}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div>
-            <label htmlFor="status" style={{ display: "block", marginBottom: "8px", fontWeight: 600 }}>
-              Status
-            </label>
-            <select
-              id="status"
-              name="status"
-              required
-              defaultValue={work.status}
-              style={{
-                width: "100%",
-                padding: "12px 14px",
-                border: "1px solid #ccc",
-                fontSize: "16px",
-              }}
-            >
-              {statusOptions.map((option) => (
-                <option key={option.value} value={option.value}>
-                  {option.label}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div>
-            <label htmlFor="origin_type" style={{ display: "block", marginBottom: "8px", fontWeight: 600 }}>
-              Typ původu
-            </label>
-            <select
-              id="origin_type"
-              name="origin_type"
-              required
-              defaultValue={work.origin_type}
-              style={{
-                width: "100%",
-                padding: "12px 14px",
-                border: "1px solid #ccc",
-                fontSize: "16px",
-              }}
-            >
-              <option value="public_domain">Volné dílo</option>
-              <option value="original">Původní dílo</option>
-              <option value="translation">Překlad</option>
-              <option value="other">Jiná vrstva</option>
-            </select>
-          </div>
-
-          <div>
-            <label htmlFor="source_label" style={{ display: "block", marginBottom: "8px", fontWeight: 600 }}>
-              Zdroj
-            </label>
-            <select
-              id="source_label"
-              name="source_label"
-              required
-              defaultValue={work.source_label}
-              style={{
-                width: "100%",
-                padding: "12px 14px",
-                border: "1px solid #ccc",
-                fontSize: "16px",
-              }}
-            >
-              <option value="gutenberg">Project Gutenberg</option>
-              <option value="web">Web</option>
-              <option value="manual">Ruční vložení</option>
-              <option value="original">Původní zdroj</option>
-            </select>
-          </div>
-
-          <div>
-            <label htmlFor="source_reference" style={{ display: "block", marginBottom: "8px", fontWeight: 600 }}>
-              Reference zdroje
-            </label>
-            <input
-              id="source_reference"
-              name="source_reference"
-              type="text"
-              defaultValue={work.source_reference ?? ""}
-              style={{
-                width: "100%",
-                padding: "12px 14px",
-                border: "1px solid #ccc",
-                fontSize: "16px",
-              }}
-            />
-          </div>
-        </section>
-
-        <WorkBlocksEditor initialBlocks={work.content_blocks} />
-
-        <div style={{ display: "flex", gap: "12px", flexWrap: "wrap" }}>
-          <button
-            type="submit"
-            style={{
-              padding: "12px 18px",
-              border: "1px solid #111",
-              background: "#111",
-              color: "#fff",
-              cursor: "pointer",
-              fontSize: "16px",
-              fontWeight: 600,
-            }}
-          >
-            Uložit změny
-          </button>
-
-          <Link
-            href={`/dilo/${work.slug}`}
-            style={{
-              padding: "12px 18px",
-              border: "1px solid #ccc",
-              textDecoration: "none",
-              color: "#111",
-            }}
-          >
-            Veřejný detail
-          </Link>
-        </div>
-      </form>
+      <WorkEditorForm
+        mode="edit"
+        slug={slug}
+        initialData={{
+          title: work.title,
+          slug: work.slug,
+          subtitle: work.subtitle ?? "",
+          summary: work.summary,
+          primary_author_id: work.primary_author_id ?? "",
+          collection_id: work.collection_id ?? "",
+          canonical_language: work.canonical_language,
+          status: work.status,
+          origin_type: work.origin_type,
+          source_label: work.source_label,
+          source_reference: work.source_reference ?? "",
+          blocks: work.content_blocks,
+        }}
+        authors={authors}
+        collections={collections.map((collection) => ({
+          id: collection.id,
+          title: collection.title,
+        }))}
+        languageOptions={languageOptions}
+        statusOptions={statusOptions}
+        action={updateWorkWithSlug}
+      />
     </main>
   )
 }
