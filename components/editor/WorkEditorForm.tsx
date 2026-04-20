@@ -1,13 +1,12 @@
 "use client"
 
-import { useEffect, useMemo, useState } from "react"
+import { useEffect, useState } from "react"
 import WorkBlocksEditor from "./WorkBlocksEditor"
-import { createEmptyBlock, type WorkBlock } from "@/lib/blocks"
+import type { WorkBlock } from "@/lib/blocks"
 
 type Props = {
   mode: "new" | "edit"
   slug?: string
-  success?: string
 
   initialData: {
     title: string
@@ -30,11 +29,6 @@ type Props = {
   statusOptions: { value: string; label: string }[]
 
   action: (formData: FormData) => Promise<void>
-
-  secondaryLink?: {
-    href: string
-    label: string
-  }
 }
 
 function getStorageKey(mode: "new" | "edit", slug?: string) {
@@ -43,39 +37,19 @@ function getStorageKey(mode: "new" | "edit", slug?: string) {
     : `artales-work-draft-edit:${slug}`
 }
 
-type DraftPayload = {
-  form: {
-    title: string
-    slug: string
-    subtitle: string
-    summary: string
-    primary_author_id: string
-    collection_id: string
-    canonical_language: string
-    status: string
-    origin_type: string
-    source_label: string
-    source_reference: string
-  }
-  blocks: WorkBlock[]
-  updated_at: string
-}
-
 export default function WorkEditorForm(props: Props) {
   const {
     mode,
     slug,
-    success,
     initialData,
     authors,
     collections,
     languageOptions,
     statusOptions,
     action,
-    secondaryLink,
   } = props
 
-  const storageKey = useMemo(() => getStorageKey(mode, slug), [mode, slug])
+  const storageKey = getStorageKey(mode, slug)
 
   const [formState, setFormState] = useState({
     title: initialData.title,
@@ -91,82 +65,85 @@ export default function WorkEditorForm(props: Props) {
     source_reference: initialData.source_reference,
   })
 
-  const [blocks, setBlocks] = useState<WorkBlock[]>(
-    initialData.blocks.length > 0 ? initialData.blocks : [createEmptyBlock("chapter")]
-  )
-
   const [hasDraft, setHasDraft] = useState(false)
   const [lastSaved, setLastSaved] = useState<string | null>(null)
+  const [draftLoaded, setDraftLoaded] = useState(false)
+  const [autosaveEnabled, setAutosaveEnabled] = useState(false)
 
-  // Vyčištění draftu po úspěšném uložení
-  useEffect(() => {
-    if (!success) return
-
-    localStorage.removeItem(storageKey)
-
-    if (success === "work_created") {
-      localStorage.removeItem("artales-work-draft-new")
-    }
-
-    setHasDraft(false)
-    setLastSaved(null)
-  }, [success, storageKey])
-
-  // Zjistit, jestli draft existuje
   useEffect(() => {
     const raw = localStorage.getItem(storageKey)
-    if (!raw) return
+
+    if (!raw) {
+      setDraftLoaded(true)
+      setAutosaveEnabled(true)
+      return
+    }
 
     try {
-      const parsed = JSON.parse(raw) as DraftPayload
+      const parsed = JSON.parse(raw)
       setHasDraft(true)
+      setLastSaved(parsed.updated_at ?? null)
+    } catch {
+      localStorage.removeItem(storageKey)
+      setAutosaveEnabled(true)
+    } finally {
+      setDraftLoaded(true)
+    }
+  }, [storageKey])
+
+  useEffect(() => {
+    if (!draftLoaded || !autosaveEnabled) return
+
+    const payload = {
+      form: formState,
+      updated_at: new Date().toISOString(),
+    }
+
+    localStorage.setItem(storageKey, JSON.stringify(payload))
+    setLastSaved(payload.updated_at)
+  }, [formState, storageKey, draftLoaded, autosaveEnabled])
+
+  function restoreDraft() {
+    const raw = localStorage.getItem(storageKey)
+    if (!raw) {
+      setHasDraft(false)
+      setAutosaveEnabled(true)
+      return
+    }
+
+    try {
+      const parsed = JSON.parse(raw)
+
+      if (parsed.form) {
+        setFormState({
+          title: parsed.form.title ?? "",
+          slug: parsed.form.slug ?? "",
+          subtitle: parsed.form.subtitle ?? "",
+          summary: parsed.form.summary ?? "",
+          primary_author_id: parsed.form.primary_author_id ?? "",
+          collection_id: parsed.form.collection_id ?? "",
+          canonical_language: parsed.form.canonical_language ?? "cs",
+          status: parsed.form.status ?? "draft",
+          origin_type: parsed.form.origin_type ?? "original",
+          source_label: parsed.form.source_label ?? "manual",
+          source_reference: parsed.form.source_reference ?? "",
+        })
+      }
+
       setLastSaved(parsed.updated_at ?? null)
     } catch {
       // ignore broken draft
     }
-  }, [storageKey])
 
-  // Autosave s debounce
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      const payload: DraftPayload = {
-        form: formState,
-        blocks,
-        updated_at: new Date().toISOString(),
-      }
-
-      localStorage.setItem(storageKey, JSON.stringify(payload))
-      setLastSaved(payload.updated_at)
-    }, 700)
-
-    return () => clearTimeout(timer)
-  }, [formState, blocks, storageKey])
-
-  function restoreDraft() {
-    const raw = localStorage.getItem(storageKey)
-    if (!raw) return
-
-    try {
-      const parsed = JSON.parse(raw) as DraftPayload
-
-      if (parsed.form) {
-        setFormState(parsed.form)
-      }
-
-      if (Array.isArray(parsed.blocks) && parsed.blocks.length > 0) {
-        setBlocks(parsed.blocks)
-      }
-
-      setHasDraft(false)
-    } catch {
-      // ignore
-    }
+    setHasDraft(false)
+    setAutosaveEnabled(true)
   }
 
   function discardDraft() {
     localStorage.removeItem(storageKey)
     setHasDraft(false)
     setLastSaved(null)
+    setAutosaveEnabled(true)
   }
 
   return (
@@ -193,9 +170,6 @@ export default function WorkEditorForm(props: Props) {
           <p style={{ margin: "0 0 12px 0", fontSize: "14px", opacity: 0.8 }}>
             Pokud od poslední práce uplynul delší čas, zvaž, jestli chceš obnovit
             lokální návrh, nebo pokračovat bez něj.
-            {mode === "edit"
-              ? " U editace může být lokální návrh odlišný od aktuálně uložené verze v databázi."
-              : null}
           </p>
 
           <div style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
@@ -597,13 +571,7 @@ export default function WorkEditorForm(props: Props) {
           </div>
         </section>
 
-        <WorkBlocksEditor blocks={blocks} onChange={setBlocks} />
-
-        <input
-          type="hidden"
-          name="content_blocks_json"
-          value={JSON.stringify(blocks)}
-        />
+        <WorkBlocksEditor initialBlocks={initialData.blocks} />
 
         <div style={{ display: "flex", gap: "12px", flexWrap: "wrap" }}>
           <button
@@ -618,22 +586,8 @@ export default function WorkEditorForm(props: Props) {
               fontWeight: 600,
             }}
           >
-            {mode === "new" ? "Uložit dílo" : "Uložit změny"}
+            Uložit dílo
           </button>
-
-          {secondaryLink ? (
-            <a
-              href={secondaryLink.href}
-              style={{
-                padding: "12px 18px",
-                border: "1px solid #ccc",
-                textDecoration: "none",
-                color: "#111",
-              }}
-            >
-              {secondaryLink.label}
-            </a>
-          ) : null}
         </div>
       </form>
     </>
