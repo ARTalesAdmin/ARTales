@@ -6,6 +6,10 @@ export const WORK_BLOCK_TYPES = [
   "letter",
   "separator",
   "note",
+  "dedication",
+  "preface",
+  "afterword",
+  "acknowledgement",
 ] as const
 
 export type WorkBlockType = (typeof WORK_BLOCK_TYPES)[number]
@@ -70,6 +74,30 @@ export const WORK_BLOCK_TYPE_META: Record<
     publicLabel: "Note",
     preservesLineBreaks: false,
   },
+  dedication: {
+    internalLabel: "Věnování",
+    internalHelp: "Krátké věnování na začátku díla.",
+    publicLabel: "Dedication",
+    preservesLineBreaks: true,
+  },
+  preface: {
+    internalLabel: "Předmluva",
+    internalHelp: "Úvodní text před hlavním obsahem díla.",
+    publicLabel: "Preface",
+    preservesLineBreaks: true,
+  },
+  afterword: {
+    internalLabel: "Doslov",
+    internalHelp: "Závěrečný text po hlavním obsahu díla.",
+    publicLabel: "Afterword",
+    preservesLineBreaks: true,
+  },
+  acknowledgement: {
+    internalLabel: "Poděkování",
+    internalHelp: "Sekce poděkování na konci nebo začátku díla.",
+    publicLabel: "Acknowledgement",
+    preservesLineBreaks: true,
+  },
 }
 
 export function isWorkBlockType(value: string): value is WorkBlockType {
@@ -84,7 +112,7 @@ export function getWorkBlockTypeOptions() {
   }))
 }
 
-export function createEmptyBlock(type: WorkBlockType = "paragraph"): WorkBlock {
+export function createEmptyBlock(type: WorkBlockType = "chapter"): WorkBlock {
   return {
     id: crypto.randomUUID(),
     type,
@@ -138,8 +166,7 @@ export function validateWorkBlocks(blocks: WorkBlock[]): string | null {
   }
 
   const hasVisibleContent = blocks.some(
-    (block) =>
-      block.type === "separator" || block.content.trim() !== ""
+    (block) => block.type === "separator" || block.content.trim() !== ""
   )
 
   if (!hasVisibleContent) {
@@ -160,18 +187,14 @@ export function flattenBlocksToPlainText(blocks: WorkBlock[]): string {
     .map((block) => {
       switch (block.type) {
         case "chapter":
-          return block.content.trim()
-
         case "paragraph":
-          return block.content.trim()
-
         case "quote":
-          return block.content.trim()
-
         case "poem":
-          return block.content.trim()
-
         case "letter":
+        case "dedication":
+        case "preface":
+        case "afterword":
+        case "acknowledgement":
           return block.content.trim()
 
         case "separator":

@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react"
 import WorkBlocksEditor from "./WorkBlocksEditor"
-import type { WorkBlock } from "@/lib/blocks"
+import { createEmptyBlock, type WorkBlock } from "@/lib/blocks"
 
 type Props = {
   mode: "new" | "edit"
@@ -79,7 +79,7 @@ export default function WorkEditorForm(props: Props) {
   })
 
   const [blocks, setBlocks] = useState<WorkBlock[]>(
-    initialData.blocks.length > 0 ? initialData.blocks : []
+    initialData.blocks.length > 0 ? initialData.blocks : [createEmptyBlock("chapter")]
   )
 
   const [hasDraft, setHasDraft] = useState(false)
@@ -112,7 +112,10 @@ export default function WorkEditorForm(props: Props) {
           source_label: initialData.source_label,
           source_reference: initialData.source_reference,
         },
-        blocks: initialData.blocks,
+        blocks:
+          initialData.blocks.length > 0
+            ? initialData.blocks
+            : [createEmptyBlock("chapter")],
       }),
     [initialData]
   )

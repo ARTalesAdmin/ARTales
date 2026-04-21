@@ -341,6 +341,59 @@ export default function WorkBlocksEditor({ blocks, setBlocks }: Props) {
         >
           Přidat poznámku
         </button>
+
+                <button
+          type="button"
+          onClick={() => addBlock("dedication")}
+          style={{
+            padding: "10px 14px",
+            border: "1px solid #ccc",
+            background: "#fff",
+            cursor: "pointer",
+          }}
+        >
+          Přidat věnování
+        </button>
+
+        <button
+          type="button"
+          onClick={() => addBlock("preface")}
+          style={{
+            padding: "10px 14px",
+            border: "1px solid #ccc",
+            background: "#fff",
+            cursor: "pointer",
+          }}
+        >
+          Přidat předmluvu
+        </button>
+
+        <button
+          type="button"
+          onClick={() => addBlock("afterword")}
+          style={{
+            padding: "10px 14px",
+            border: "1px solid #ccc",
+            background: "#fff",
+            cursor: "pointer",
+          }}
+        >
+          Přidat doslov
+        </button>
+
+        <button
+          type="button"
+          onClick={() => addBlock("acknowledgement")}
+          style={{
+            padding: "10px 14px",
+            border: "1px solid #ccc",
+            background: "#fff",
+            cursor: "pointer",
+          }}
+        >
+          Přidat poděkování
+        </button>
+        
       </div>
     </section>
   )
