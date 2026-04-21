@@ -128,7 +128,7 @@ export default function WorkEditorForm(props: Props) {
     [initialData]
   )
 
-  useEffect(() => {
+    useEffect(() => {
     const raw = localStorage.getItem(storageKey)
 
     if (!raw) {
@@ -139,25 +139,68 @@ export default function WorkEditorForm(props: Props) {
 
     try {
       const parsed = JSON.parse(raw)
+      const parsedForm = parsed.form ?? {}
+      const parsedBlocks = Array.isArray(parsed.blocks) ? parsed.blocks : []
+
       const draftSnapshot = stableStringify({
-        form: parsed.form ?? {},
-        blocks: parsed.blocks ?? [],
+        form: parsedForm,
+        blocks: parsedBlocks,
       })
 
-      if (draftSnapshot !== initialSnapshot) {
-        setHasDraft(true)
-        setLastSaved(parsed.updated_at ?? null)
-      } else {
+      if (draftSnapshot === initialSnapshot) {
         localStorage.removeItem(storageKey)
         setAutosaveEnabled(true)
+        return
       }
+
+      // Speciální flow: návrat z vytvoření autora
+      if (forcedAuthorId) {
+        const nextFormState = {
+          title: parsedForm.title ?? "",
+          slug: parsedForm.slug ?? "",
+          subtitle: parsedForm.subtitle ?? "",
+          summary: parsedForm.summary ?? "",
+          primary_author_id: forcedAuthorId,
+          collection_id: parsedForm.collection_id ?? "",
+          canonical_language: parsedForm.canonical_language ?? "cs",
+          status: parsedForm.status ?? "draft",
+          origin_type: parsedForm.origin_type ?? "original",
+          source_label: parsedForm.source_label ?? "manual",
+          source_reference: parsedForm.source_reference ?? "",
+        }
+
+        setFormState(nextFormState)
+        setBlocks(
+          parsedBlocks.length > 0
+            ? parsedBlocks
+            : [createEmptyBlock("chapter")]
+        )
+
+        const nextPayload = {
+          form: nextFormState,
+          blocks:
+            parsedBlocks.length > 0
+              ? parsedBlocks
+              : [createEmptyBlock("chapter")],
+          updated_at: new Date().toISOString(),
+        }
+
+        localStorage.setItem(storageKey, JSON.stringify(nextPayload))
+        setLastSaved(nextPayload.updated_at)
+        setHasDraft(false)
+        setAutosaveEnabled(true)
+        return
+      }
+
+      setHasDraft(true)
+      setLastSaved(parsed.updated_at ?? null)
     } catch {
       localStorage.removeItem(storageKey)
       setAutosaveEnabled(true)
     } finally {
       setDraftLoaded(true)
     }
-  }, [storageKey, initialSnapshot])
+  }, [storageKey, initialSnapshot, forcedAuthorId])
 
   useEffect(() => {
     if (!draftLoaded || !autosaveEnabled) return
@@ -172,8 +215,8 @@ export default function WorkEditorForm(props: Props) {
     setLastSaved(payload.updated_at)
   }, [formState, blocks, storageKey, draftLoaded, autosaveEnabled])
 
-  useEffect(() => {
-    if (!forcedAuthorId) return
+    useEffect(() => {
+    if (!forcedAuthorId || !draftLoaded) return
 
     setFormState((prev) => ({
       ...prev,
@@ -200,7 +243,7 @@ export default function WorkEditorForm(props: Props) {
     } catch {
       // ignore broken draft
     }
-  }, [forcedAuthorId, storageKey])
+  }, [forcedAuthorId, storageKey, draftLoaded])
 
   function restoreDraft() {
     const raw = localStorage.getItem(storageKey)
