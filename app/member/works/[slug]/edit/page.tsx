@@ -99,6 +99,13 @@ export default async function EditWorkPage({
 
   const updateWorkWithSlug = updateWork.bind(null, slug)
 
+  const clearDraftKeys =
+    success === "work_created"
+      ? ["artales-work-draft-new", `artales-work-draft-edit:${slug}`]
+      : success === "work_updated"
+      ? [`artales-work-draft-edit:${slug}`]
+      : []
+
   return (
     <main
       style={{
@@ -208,6 +215,7 @@ export default async function EditWorkPage({
         languageOptions={languageOptions}
         statusOptions={statusOptions}
         action={updateWorkWithSlug}
+        clearDraftKeys={clearDraftKeys}
       />
     </main>
   )

@@ -142,7 +142,7 @@ export default async function NewWorkPage({ searchParams }: PageProps) {
         </pre>
       ) : null}
 
-      <WorkEditorForm
+        <WorkEditorForm
         mode="new"
         initialData={{
           title: "",
@@ -166,6 +166,7 @@ export default async function NewWorkPage({ searchParams }: PageProps) {
         languageOptions={languageOptions}
         statusOptions={statusOptions}
         action={createWork}
+        clearDraftKeys={[]}
       />
     </main>
   )

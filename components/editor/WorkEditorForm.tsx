@@ -29,6 +29,7 @@ type Props = {
   statusOptions: { value: string; label: string }[]
 
   action: (formData: FormData) => Promise<void>
+  clearDraftKeys?: string[]
 }
 
 function getStorageKey(mode: "new" | "edit", slug?: string) {
@@ -51,9 +52,17 @@ export default function WorkEditorForm(props: Props) {
     languageOptions,
     statusOptions,
     action,
+    clearDraftKeys = [],
   } = props
 
   const storageKey = getStorageKey(mode, slug)
+    useEffect(() => {
+    if (clearDraftKeys.length === 0) return
+
+    clearDraftKeys.forEach((key) => {
+      localStorage.removeItem(key)
+    })
+  }, [clearDraftKeys])
 
   const [formState, setFormState] = useState({
     title: initialData.title,
