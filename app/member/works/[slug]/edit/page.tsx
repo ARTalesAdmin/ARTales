@@ -11,7 +11,12 @@ import WorkEditorForm from "@/components/editor/WorkEditorForm"
 
 type PageProps = {
   params: Promise<{ slug: string }>
-  searchParams: Promise<{ error?: string; success?: string; db_error?: string }>
+  searchParams: Promise<{
+    error?: string
+    success?: string
+    db_error?: string
+    createdAuthorId?: string
+  }>
 }
 
 function getErrorMessage(error?: string) {
@@ -72,7 +77,7 @@ export default async function EditWorkPage({
 
   const supabase = await createClient()
   const { slug } = await params
-  const { error, success, db_error } = await searchParams
+  const { error, success, db_error, createdAuthorId } = await searchParams
 
   const work = await getWorkForEditBySlug(slug)
 
@@ -216,6 +221,7 @@ export default async function EditWorkPage({
         statusOptions={statusOptions}
         action={updateWorkWithSlug}
         clearDraftKeys={clearDraftKeys}
+        forcedAuthorId={createdAuthorId ?? ""}
       />
     </main>
   )

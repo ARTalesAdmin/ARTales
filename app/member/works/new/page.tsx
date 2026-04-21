@@ -8,7 +8,11 @@ import { getStatusOptions } from "@/lib/dictionaries/status"
 import WorkEditorForm from "@/components/editor/WorkEditorForm"
 
 type PageProps = {
-  searchParams: Promise<{ error?: string; db_error?: string }>
+  searchParams: Promise<{
+    error?: string
+    db_error?: string
+    createdAuthorId?: string
+  }>
 }
 
 function getErrorMessage(error?: string) {
@@ -54,7 +58,7 @@ export default async function NewWorkPage({ searchParams }: PageProps) {
   await requireEditorOrAdmin()
 
   const supabase = await createClient()
-  const { error, db_error } = await searchParams
+  const { error, db_error, createdAuthorId } = await searchParams
   const errorMessage = getErrorMessage(error)
 
   const languageOptions = getLanguageOptions("internal")
@@ -142,7 +146,7 @@ export default async function NewWorkPage({ searchParams }: PageProps) {
         </pre>
       ) : null}
 
-        <WorkEditorForm
+      <WorkEditorForm
         mode="new"
         initialData={{
           title: "",
@@ -167,6 +171,7 @@ export default async function NewWorkPage({ searchParams }: PageProps) {
         statusOptions={statusOptions}
         action={createWork}
         clearDraftKeys={[]}
+        forcedAuthorId={createdAuthorId ?? ""}
       />
     </main>
   )

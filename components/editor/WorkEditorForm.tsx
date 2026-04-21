@@ -1,8 +1,9 @@
 "use client"
 
+import Link from "next/link"
 import { useEffect, useMemo, useState } from "react"
-import WorkBlocksEditor from "./WorkBlocksEditor"
 import { createEmptyBlock, type WorkBlock } from "@/lib/blocks"
+import WorkBlocksEditor from "./WorkBlocksEditor"
 
 type Props = {
   mode: "new" | "edit"
@@ -30,6 +31,7 @@ type Props = {
 
   action: (formData: FormData) => Promise<void>
   clearDraftKeys?: string[]
+  forcedAuthorId?: string
 }
 
 function getStorageKey(mode: "new" | "edit", slug?: string) {
@@ -53,10 +55,14 @@ export default function WorkEditorForm(props: Props) {
     statusOptions,
     action,
     clearDraftKeys = [],
+    forcedAuthorId = "",
   } = props
 
   const storageKey = getStorageKey(mode, slug)
-    useEffect(() => {
+  const returnTo =
+    mode === "new" ? "/member/works/new" : `/member/works/${slug}/edit`
+
+  useEffect(() => {
     if (clearDraftKeys.length === 0) return
 
     clearDraftKeys.forEach((key) => {
@@ -79,7 +85,9 @@ export default function WorkEditorForm(props: Props) {
   })
 
   const [blocks, setBlocks] = useState<WorkBlock[]>(
-    initialData.blocks.length > 0 ? initialData.blocks : [createEmptyBlock("chapter")]
+    initialData.blocks.length > 0
+      ? initialData.blocks
+      : [createEmptyBlock("chapter")]
   )
 
   const [hasDraft, setHasDraft] = useState(false)
@@ -163,6 +171,36 @@ export default function WorkEditorForm(props: Props) {
     localStorage.setItem(storageKey, JSON.stringify(payload))
     setLastSaved(payload.updated_at)
   }, [formState, blocks, storageKey, draftLoaded, autosaveEnabled])
+
+  useEffect(() => {
+    if (!forcedAuthorId) return
+
+    setFormState((prev) => ({
+      ...prev,
+      primary_author_id: forcedAuthorId,
+    }))
+
+    const raw = localStorage.getItem(storageKey)
+    if (!raw) return
+
+    try {
+      const parsed = JSON.parse(raw)
+
+      const next = {
+        ...parsed,
+        form: {
+          ...(parsed.form ?? {}),
+          primary_author_id: forcedAuthorId,
+        },
+        updated_at: new Date().toISOString(),
+      }
+
+      localStorage.setItem(storageKey, JSON.stringify(next))
+      setLastSaved(next.updated_at)
+    } catch {
+      // ignore broken draft
+    }
+  }, [forcedAuthorId, storageKey])
 
   function restoreDraft() {
     const raw = localStorage.getItem(storageKey)
@@ -399,6 +437,19 @@ export default function WorkEditorForm(props: Props) {
             >
               Primární autor
             </label>
+
+            <div style={{ marginBottom: "8px" }}>
+              <Link
+                href={`/member/authors/new?returnTo=${encodeURIComponent(returnTo)}`}
+                style={{
+                  fontSize: "14px",
+                  textDecoration: "underline",
+                }}
+              >
+                Nový autor
+              </Link>
+            </div>
+
             <select
               id="primary_author_id"
               name="primary_author_id"
@@ -425,7 +476,9 @@ export default function WorkEditorForm(props: Props) {
               ))}
             </select>
             <p style={{ margin: "8px 0 0 0", fontSize: "14px", opacity: 0.75 }}>
-              Hlavní autor, pod kterým bude dílo vedeno. Povinné pole.
+              Hlavní autor, pod kterým bude dílo vedeno. Povinné pole. Pokud autor
+              ještě neexistuje, můžeš ho založit přes odkaz výše a po návratu bude
+              automaticky vybraný.
             </p>
           </div>
 

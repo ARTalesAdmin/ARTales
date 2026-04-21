@@ -5,7 +5,7 @@ import { createAuthor } from "@/lib/actions/authors"
 import { getDefaultAuthorFormValues } from "@/lib/forms/authorForm"
 
 type PageProps = {
-  searchParams: Promise<{ error?: string }>
+  searchParams: Promise<{ error?: string; returnTo?: string }>
 }
 
 function getErrorMessage(error?: string) {
@@ -35,9 +35,11 @@ export default async function NewAuthorPage({ searchParams }: PageProps) {
   await requireEditorOrAdmin()
 
   const defaults = getDefaultAuthorFormValues()
-  const { error } = await searchParams
+  const { error, returnTo } = await searchParams
   const errorMessage = getErrorMessage(error)
   const languageOptions = getLanguageOptions("internal")
+
+  const cancelHref = returnTo && returnTo.startsWith("/") ? returnTo : "/member"
 
   return (
     <main
@@ -50,7 +52,7 @@ export default async function NewAuthorPage({ searchParams }: PageProps) {
       }}
     >
       <p style={{ marginBottom: "20px" }}>
-        <Link href="/member">{"<- Zpět do členské zóny"}</Link>
+        <Link href={cancelHref}>{"<- Zpět"}</Link>
       </p>
 
       <section style={{ marginBottom: "28px" }}>
@@ -98,6 +100,8 @@ export default async function NewAuthorPage({ searchParams }: PageProps) {
       ) : null}
 
       <form action={createAuthor} style={{ display: "grid", gap: "22px" }}>
+        <input type="hidden" name="returnTo" value={returnTo ?? ""} />
+
         <section
           style={{
             border: "1px solid #ddd",
@@ -127,7 +131,7 @@ export default async function NewAuthorPage({ searchParams }: PageProps) {
               }}
             />
             <p style={{ margin: "8px 0 0 0", fontSize: "14px", opacity: 0.75 }}>
-              Oficiální nebo běžně používané jméno autora.
+              Oficiální nebo běžně používané jméno autora. Povinné pole.
             </p>
           </div>
 
@@ -152,7 +156,7 @@ export default async function NewAuthorPage({ searchParams }: PageProps) {
             />
             <p style={{ margin: "8px 0 0 0", fontSize: "14px", opacity: 0.75 }}>
               URL identifikátor autora. Když ho nevyplníš, vytvoří se automaticky
-              ze jména.
+              ze jména. Povolená jsou pouze malá písmena, čísla a pomlčky.
             </p>
           </div>
 
@@ -204,6 +208,9 @@ export default async function NewAuthorPage({ searchParams }: PageProps) {
                 resize: "vertical",
               }}
             />
+            <p style={{ margin: "8px 0 0 0", fontSize: "14px", opacity: 0.75 }}>
+              Nepovinné stručné představení autora.
+            </p>
           </div>
         </section>
 
@@ -238,6 +245,9 @@ export default async function NewAuthorPage({ searchParams }: PageProps) {
                   fontSize: "16px",
                 }}
               />
+              <p style={{ margin: "8px 0 0 0", fontSize: "14px", opacity: 0.75 }}>
+                Nepovinné pole. Použij čtyřmístný rok.
+              </p>
             </div>
 
             <div>
@@ -260,6 +270,9 @@ export default async function NewAuthorPage({ searchParams }: PageProps) {
                   fontSize: "16px",
                 }}
               />
+              <p style={{ margin: "8px 0 0 0", fontSize: "14px", opacity: 0.75 }}>
+                Nepovinné pole. Použij čtyřmístný rok.
+              </p>
             </div>
           </div>
 
@@ -282,6 +295,9 @@ export default async function NewAuthorPage({ searchParams }: PageProps) {
                 fontSize: "16px",
               }}
             />
+            <p style={{ margin: "8px 0 0 0", fontSize: "14px", opacity: 0.75 }}>
+              Nepovinné pole. Zatím volný text.
+            </p>
           </div>
 
           <div>
@@ -310,7 +326,8 @@ export default async function NewAuthorPage({ searchParams }: PageProps) {
               ))}
             </select>
             <p style={{ margin: "8px 0 0 0", fontSize: "14px", opacity: 0.75 }}>
-              Do databáze se ukládá pouze kód jazyka, editor vidí český popisek.
+              Nepovinné pole. Do databáze se ukládá pouze kód jazyka, editor vidí
+              český popisek.
             </p>
           </div>
 
@@ -322,6 +339,9 @@ export default async function NewAuthorPage({ searchParams }: PageProps) {
             />
             <span>Autor je veřejně viditelný</span>
           </label>
+          <p style={{ margin: "-8px 0 0 0", fontSize: "14px", opacity: 0.75 }}>
+            Pokud není zaškrtnuto, autor zůstane jen v interní vrstvě editoru.
+          </p>
         </section>
 
         <div style={{ display: "flex", gap: "12px", flexWrap: "wrap" }}>
@@ -341,7 +361,7 @@ export default async function NewAuthorPage({ searchParams }: PageProps) {
           </button>
 
           <Link
-            href="/member"
+            href={cancelHref}
             style={{
               padding: "12px 18px",
               border: "1px solid #ccc",
