@@ -66,7 +66,7 @@ function renderBlock({ block, index, footnoteNumberByBlockId }: RenderBlockProps
           data-block-type={block.type}
           aria-label={meta.internalLabel}
         >
-          <p className="artales-book-part-kicker">Část</p>
+          <p className="artales-book-part-kicker">Part</p>
           <h2>{text}</h2>
         </section>
       )
@@ -155,7 +155,7 @@ function renderBlock({ block, index, footnoteNumberByBlockId }: RenderBlockProps
     case "note":
       return (
         <aside key={key} className="artales-block artales-note" data-block-type={block.type}>
-          <strong>Poznámka</strong>
+          <strong>Note</strong>
           {renderMultiParagraphText(text)}
         </aside>
       )
@@ -186,7 +186,7 @@ function renderBlock({ block, index, footnoteNumberByBlockId }: RenderBlockProps
     case "preface":
       return (
         <section key={key} className="artales-block artales-preface" data-block-type={block.type}>
-          <h3>Předmluva</h3>
+          <h3>Preface</h3>
           {renderMultiParagraphText(text)}
         </section>
       )
@@ -194,7 +194,7 @@ function renderBlock({ block, index, footnoteNumberByBlockId }: RenderBlockProps
     case "afterword":
       return (
         <section key={key} className="artales-block artales-afterword" data-block-type={block.type}>
-          <h3>Doslov</h3>
+          <h3>Afterword</h3>
           {renderMultiParagraphText(text)}
         </section>
       )
@@ -202,7 +202,7 @@ function renderBlock({ block, index, footnoteNumberByBlockId }: RenderBlockProps
     case "acknowledgement":
       return (
         <section key={key} className="artales-block artales-acknowledgement" data-block-type={block.type}>
-          <h3>Poděkování</h3>
+          <h3>Acknowledgement</h3>
           {renderMultiParagraphText(text)}
         </section>
       )
@@ -241,8 +241,8 @@ export default function WorkContentRenderer({ blocks, fallbackContent, className
       )}
 
       {footnoteBlocks.length > 0 ? (
-        <section className="artales-footnotes" aria-label="Poznámky pod čarou">
-          <h3>Poznámky pod čarou</h3>
+        <section className="artales-footnotes" aria-label="Footnotes">
+          <h3>Footnotes</h3>
           <ol>
             {footnoteBlocks.map((block, index) => (
               <li key={getStableBlockKey(block, index)} id={`footnote-${index + 1}`}>
