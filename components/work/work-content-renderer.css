@@ -1,0 +1,269 @@
+.artales-work-content {
+  --artales-text: #191715;
+  --artales-muted: #69635c;
+  --artales-border: #d8d0c6;
+  --artales-soft: #f7f3ee;
+  color: var(--artales-text);
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 18px;
+  line-height: 1.75;
+  max-width: 760px;
+}
+
+.artales-block {
+  break-inside: avoid;
+  margin: 0 0 1.25rem;
+}
+
+.artales-paragraph p,
+.artales-quote p,
+.artales-letter p,
+.artales-newspaper p,
+.artales-note p,
+.artales-dedication p,
+.artales-preface p,
+.artales-afterword p,
+.artales-acknowledgement p {
+  margin: 0 0 1rem;
+}
+
+.artales-book-part {
+  border-bottom: 1px solid var(--artales-border);
+  margin: 3.5rem 0 2rem;
+  padding-bottom: 1.25rem;
+  text-align: center;
+}
+
+.artales-book-part:first-child {
+  margin-top: 0;
+}
+
+.artales-book-part-kicker {
+  color: var(--artales-muted);
+  font-size: 0.75rem;
+  letter-spacing: 0.18em;
+  margin: 0 0 0.45rem;
+  text-transform: uppercase;
+}
+
+.artales-book-part h2 {
+  font-size: clamp(2rem, 5vw, 3.2rem);
+  font-weight: 500;
+  line-height: 1.12;
+  margin: 0;
+}
+
+.artales-chapter {
+  margin: 3rem 0 1.75rem;
+  page-break-before: always;
+}
+
+.artales-chapter:first-child {
+  page-break-before: auto;
+}
+
+.artales-chapter h3 {
+  font-size: clamp(1.55rem, 3.5vw, 2.35rem);
+  font-weight: 500;
+  line-height: 1.18;
+  margin: 0;
+  text-align: center;
+}
+
+.artales-headline h4 {
+  font-size: 1.35rem;
+  font-weight: 700;
+  line-height: 1.28;
+  margin: 2rem 0 0.85rem;
+}
+
+.artales-quote {
+  border-left: 3px solid var(--artales-border);
+  color: #37312b;
+  font-size: 1.03em;
+  font-style: italic;
+  margin: 1.75rem 0;
+  padding: 0.35rem 0 0.35rem 1.25rem;
+}
+
+.artales-poem {
+  margin: 1.75rem auto;
+  max-width: 42rem;
+}
+
+.artales-poem pre {
+  background: transparent;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 1em;
+  line-height: 1.72;
+  margin: 0;
+  overflow-x: auto;
+  white-space: pre-wrap;
+}
+
+.artales-letter {
+  background: var(--artales-soft);
+  border: 1px solid var(--artales-border);
+  margin: 2rem 0;
+  padding: 1.5rem;
+}
+
+.artales-letter-place-year,
+.artales-letter-date-signature {
+  color: var(--artales-muted);
+  font-style: italic;
+}
+
+.artales-letter-date-signature {
+  margin-left: auto;
+  max-width: 70%;
+  text-align: right;
+}
+
+.artales-newspaper {
+  border: 1px solid var(--artales-border);
+  column-gap: 2rem;
+  columns: 2 18rem;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 0.96em;
+  line-height: 1.62;
+  margin: 2rem 0;
+  padding: 1.4rem;
+}
+
+.artales-place-line {
+  color: var(--artales-muted);
+  font-style: italic;
+  margin: 1.6rem 0 1rem;
+  text-align: right;
+}
+
+.artales-separator {
+  color: var(--artales-muted);
+  letter-spacing: 0.35em;
+  margin: 2.25rem 0;
+  text-align: center;
+}
+
+.artales-note,
+.artales-footnote-ref {
+  background: #fbfaf8;
+  border-left: 3px solid var(--artales-border);
+  color: #3e3831;
+  font-size: 0.94em;
+  line-height: 1.62;
+  padding: 0.8rem 1rem;
+}
+
+.artales-note strong {
+  display: block;
+  font-size: 0.8rem;
+  letter-spacing: 0.08em;
+  margin-bottom: 0.35rem;
+  text-transform: uppercase;
+}
+
+.artales-footnote-ref {
+  display: flex;
+  gap: 0.55rem;
+}
+
+.artales-dedication {
+  color: #3c352f;
+  font-style: italic;
+  margin: 2.25rem auto;
+  max-width: 34rem;
+  text-align: center;
+}
+
+.artales-preface,
+.artales-afterword,
+.artales-acknowledgement {
+  border-top: 1px solid var(--artales-border);
+  margin: 2.75rem 0 2rem;
+  padding-top: 1.25rem;
+}
+
+.artales-preface h3,
+.artales-afterword h3,
+.artales-acknowledgement h3,
+.artales-footnotes h3 {
+  font-size: 1.25rem;
+  margin: 0 0 1rem;
+}
+
+.artales-footnotes {
+  border-top: 1px solid var(--artales-border);
+  color: #3e3831;
+  font-size: 0.9em;
+  line-height: 1.55;
+  margin-top: 3rem;
+  padding-top: 1.25rem;
+}
+
+.artales-footnotes ol {
+  margin: 0;
+  padding-left: 1.35rem;
+}
+
+.artales-footnotes li {
+  margin-bottom: 0.55rem;
+}
+
+@media (max-width: 720px) {
+  .artales-work-content {
+    font-size: 17px;
+  }
+
+  .artales-letter,
+  .artales-newspaper {
+    padding: 1rem;
+  }
+
+  .artales-letter-date-signature {
+    max-width: none;
+  }
+}
+
+@media print {
+  .artales-work-content {
+    color: #000;
+    font-size: 11pt;
+    line-height: 1.5;
+    max-width: none;
+  }
+
+  .artales-block {
+    margin-bottom: 0.9rem;
+    orphans: 3;
+    widows: 3;
+  }
+
+  .artales-book-part {
+    break-before: page;
+    margin-top: 0;
+    padding-top: 3cm;
+  }
+
+  .artales-chapter {
+    break-before: page;
+    margin-top: 0;
+    padding-top: 2cm;
+  }
+
+  .artales-book-part:first-child,
+  .artales-chapter:first-child {
+    break-before: auto;
+  }
+
+  .artales-letter,
+  .artales-newspaper,
+  .artales-note,
+  .artales-footnote-ref {
+    background: transparent;
+  }
+
+  .artales-newspaper {
+    columns: 2;
+  }
+}

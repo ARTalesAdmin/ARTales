@@ -1,6 +1,6 @@
 import { supabase } from "./supabase"
 import { createClient } from "@/lib/supabase/server"
-import type { WorkBlock } from "@/lib/blocks"
+import { sanitizeWorkBlocks, type WorkBlock } from "@/lib/blocks"
 
 export type WorkOriginType =
   | "public_domain"
@@ -46,6 +46,7 @@ export type WorkDetailItem = {
   subtitle: string | null
   summary: string
   content: string
+  content_blocks: WorkBlock[]
   canonical_language: string
   origin_type: WorkOriginType
   source_label: WorkSourceLabel
@@ -133,6 +134,7 @@ type RawWorkDetailRow = {
   subtitle: unknown
   summary: unknown
   content: unknown
+  content_blocks: unknown
   canonical_language: unknown
   origin_type: unknown
   source_label: unknown
@@ -213,6 +215,7 @@ function mapWorkDetail(row: RawWorkDetailRow): WorkDetailItem {
     subtitle: row.subtitle == null ? null : String(row.subtitle),
     summary: String(row.summary),
     content: String(row.content),
+    content_blocks: mapRawContentBlocks(row.content_blocks),
     canonical_language: String(row.canonical_language),
     origin_type: row.origin_type as WorkOriginType,
     source_label: row.source_label as WorkSourceLabel,
@@ -225,25 +228,7 @@ function mapWorkDetail(row: RawWorkDetailRow): WorkDetailItem {
 }
 
 function mapRawContentBlocks(value: unknown): WorkBlock[] {
-  if (!Array.isArray(value)) return []
-
-  return value
-    .map((item) => {
-      if (!item || typeof item !== "object") return null
-
-      const raw = item as Record<string, unknown>
-
-      return {
-        id: typeof raw.id === "string" ? raw.id : crypto.randomUUID(),
-        type: String(raw.type ?? "paragraph") as WorkBlock["type"],
-        content: typeof raw.content === "string" ? raw.content : "",
-        editor_note:
-          typeof raw.editor_note === "string" && raw.editor_note.trim() !== ""
-            ? raw.editor_note
-            : null,
-      }
-    })
-    .filter((item): item is WorkBlock => item !== null)
+  return sanitizeWorkBlocks(value)
 }
 
 export async function getWorksForGallery(): Promise<GalleryWorkItem[]> {
@@ -292,6 +277,7 @@ export async function getWorkBySlug(
       subtitle,
       summary,
       content,
+      content_blocks,
       canonical_language,
       origin_type,
       source_label,

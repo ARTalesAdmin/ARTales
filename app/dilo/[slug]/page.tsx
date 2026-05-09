@@ -1,5 +1,6 @@
 import Link from "next/link"
 import { getWorkBySlug } from "@/lib/dbWorks"
+import WorkContentRenderer from "@/components/work/WorkContentRenderer"
 import { getLanguageLabel } from "@/lib/dictionaries/language"
 import { getStatusLabel } from "@/lib/dictionaries/status"
 
@@ -52,11 +53,6 @@ export default async function DiloDetail({ params }: PageProps) {
       </main>
     )
   }
-
-  const excerpt =
-    work.content.length > 800
-      ? work.content.slice(0, 800) + "..."
-      : work.content
 
   const languageLabel = getLanguageLabel(work.canonical_language, "public")
   const statusLabel = getStatusLabel(work.status, "public")
@@ -212,9 +208,12 @@ export default async function DiloDetail({ params }: PageProps) {
 
       <hr style={{ margin: "28px 0" }} />
 
-      <section style={{ marginBottom: "32px" }}>
-        <h2 style={{ marginBottom: "12px" }}>Ukázka textu</h2>
-        <p style={{ whiteSpace: "pre-wrap" }}>{excerpt}</p>
+      <section style={{ marginBottom: "40px" }}>
+        <h2 style={{ marginBottom: "20px" }}>Text díla</h2>
+        <WorkContentRenderer
+          blocks={work.content_blocks}
+          fallbackContent={work.content}
+        />
       </section>
 
       <hr style={{ margin: "28px 0" }} />
