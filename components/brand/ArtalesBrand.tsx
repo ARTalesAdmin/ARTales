@@ -22,9 +22,9 @@ const markSrc = {
 function getWordmarkSize(size: NonNullable<ArtalesBrandProps["size"]>) {
   switch (size) {
     case "sm":
-      return { width: 132, height: 35 }
+      return { width: 124, height: 33 }
     case "lg":
-      return { width: 240, height: 63 }
+      return { width: 236, height: 62 }
     case "md":
     default:
       return { width: 172, height: 45 }
@@ -34,12 +34,12 @@ function getWordmarkSize(size: NonNullable<ArtalesBrandProps["size"]>) {
 function getMarkSize(size: NonNullable<ArtalesBrandProps["size"]>) {
   switch (size) {
     case "sm":
-      return { width: 28, height: 46 }
+      return { width: 22, height: 33 }
     case "lg":
-      return { width: 48, height: 78 }
+      return { width: 42, height: 62 }
     case "md":
     default:
-      return { width: 34, height: 55 }
+      return { width: 30, height: 44 }
   }
 }
 

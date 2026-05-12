@@ -66,6 +66,10 @@ body {
   object-fit: contain;
 }
 
+.artales-brand__wordmark {
+  max-width: min(44vw, 100%);
+}
+
 .artales-brand__text {
   color: var(--artales-ink);
   font-family: Georgia, "Times New Roman", serif;
@@ -75,6 +79,10 @@ body {
 }
 
 .artales-brand--dark .artales-brand__text {
+  color: var(--artales-ink);
+}
+
+.artales-brand--light .artales-brand__text {
   color: var(--artales-gold-soft);
 }
 
@@ -242,5 +250,11 @@ body {
 
   .artales-member-nav {
     grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  }
+}
+
+@media (max-width: 820px) {
+  .artales-home-hero {
+    grid-template-columns: 1fr !important;
   }
 }

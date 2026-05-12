@@ -1,151 +1,185 @@
 import Link from "next/link"
+import ArtalesBrand from "@/components/brand/ArtalesBrand"
+import { getPublicDictionary } from "@/lib/i18n/public"
 
 export default function Home() {
+  const { public: t } = getPublicDictionary()
+
   return (
-    <main
-      style={{
-        padding: "48px 32px",
-        fontFamily: "serif",
-        lineHeight: 1.6,
-        maxWidth: "1000px",
-        margin: "0 auto",
-      }}
-    >
-      <section style={{ marginBottom: "48px" }}>
-        <p
-          style={{
-            fontSize: "14px",
-            textTransform: "uppercase",
-            letterSpacing: "1px",
-            opacity: 0.7,
-            marginBottom: "12px",
-          }}
-        >
-          ARTales
-        </p>
-
-        <h1
-          style={{
-            fontSize: "48px",
-            marginBottom: "16px",
-            lineHeight: 1.1,
-          }}
-        >
-          Living Books Gallery
-        </h1>
-
-        <p
-          style={{
-            fontSize: "20px",
-            maxWidth: "760px",
-            marginBottom: "24px",
-          }}
-        >
-          Digitální galerie literárních děl, překladů, odvozených verzí a
-          budoucích živých knih. ARTales nestaví jen katalog textů, ale systém,
-          ve kterém lze text číst, vydávat, rozvíjet a později i spoluvytvářet.
-        </p>
-
-        <div style={{ display: "flex", gap: "12px", flexWrap: "wrap" }}>
-          <Link
-            href="/galerie"
-            style={{
-              padding: "12px 18px",
-              border: "1px solid #111",
-              textDecoration: "none",
-              color: "#111",
-              fontWeight: 600,
-            }}
-          >
-            Projít galerii
+    <div className="artales-public-shell">
+      <header className="artales-public-header">
+        <ArtalesBrand variant="dark" size="md" showMark />
+        <nav className="artales-public-header__nav" aria-label="Public navigation">
+          <Link className="artales-public-link" href="/galerie">
+            {t.gallery}
           </Link>
+          <Link className="artales-public-link" href="/kolekce/gothic-classics">
+            {t.collections}
+          </Link>
+        </nav>
+      </header>
 
-          <a
-            href="#o-projektu"
-            style={{
-              padding: "12px 18px",
-              border: "1px solid #ccc",
-              textDecoration: "none",
-              color: "#111",
-            }}
-          >
-            O projektu
-          </a>
-        </div>
-      </section>
-
-      <section
+      <main
         style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))",
-          gap: "16px",
-          marginBottom: "48px",
+          color: "var(--artales-ink)",
+          fontFamily: "Arial, Helvetica, sans-serif",
+          lineHeight: 1.6,
+          margin: "0 auto",
+          maxWidth: "1180px",
+          padding: "clamp(46px, 8vw, 92px) 24px 72px",
         }}
       >
-        <Link
-          href="/galerie"
+        <section
           style={{
-            display: "block",
-            padding: "20px",
-            border: "1px solid #ddd",
-            textDecoration: "none",
-            color: "#111",
+            alignItems: "center",
+            display: "grid",
+            gap: "clamp(28px, 6vw, 72px)",
+            gridTemplateColumns: "minmax(0, 1.1fr) minmax(260px, 0.9fr)",
+            marginBottom: "clamp(54px, 8vw, 96px)",
+          }}
+          className="artales-home-hero"
+        >
+          <div>
+            <p
+              style={{
+                color: "#8a6a2d",
+                fontSize: "13px",
+                fontWeight: 800,
+                letterSpacing: "0.16em",
+                margin: "0 0 14px",
+                textTransform: "uppercase",
+              }}
+            >
+              Literary publishing platform
+            </p>
+
+            <h1
+              style={{
+                color: "var(--artales-ink)",
+                fontFamily: "Georgia, 'Times New Roman', serif",
+                fontSize: "clamp(48px, 8vw, 92px)",
+                letterSpacing: "-0.055em",
+                lineHeight: 0.98,
+                margin: "0 0 22px",
+              }}
+            >
+              Literature, curated for the next layer.
+            </h1>
+
+            <p
+              style={{
+                color: "#3f362f",
+                fontSize: "20px",
+                margin: "0 0 28px",
+                maxWidth: "720px",
+              }}
+            >
+              ARTales is an emerging library, publishing system and reader for
+              classic works, original writing, translations and curated editions.
+            </p>
+
+            <div style={{ display: "flex", flexWrap: "wrap", gap: "12px" }}>
+              <Link className="artales-button" href="/galerie">
+                Enter the Gallery
+              </Link>
+              <Link className="artales-button-secondary" href="/reader/the-phantom-of-the-opera?mode=preview">
+                Try the reader
+              </Link>
+            </div>
+          </div>
+
+          <aside
+            style={{
+              background:
+                "linear-gradient(180deg, rgba(255,255,255,0.58), rgba(255,255,255,0.26))",
+              border: "1px solid rgba(13, 21, 40, 0.12)",
+              borderRadius: "32px",
+              boxShadow: "0 30px 80px rgba(13, 21, 40, 0.12)",
+              padding: "clamp(28px, 5vw, 52px)",
+              textAlign: "center",
+            }}
+          >
+            <ArtalesBrand href="" variant="dark" size="lg" showMark />
+            <p
+              style={{
+                color: "#5f5247",
+                fontSize: "15px",
+                margin: "28px auto 0",
+                maxWidth: "360px",
+              }}
+            >
+              A calm public surface now, with deeper editorial, edition and
+              subscription layers prepared underneath.
+            </p>
+          </aside>
+        </section>
+
+        <section
+          style={{
+            display: "grid",
+            gap: "18px",
+            gridTemplateColumns: "repeat(auto-fit, minmax(230px, 1fr))",
+            marginBottom: "56px",
           }}
         >
-          <h2 style={{ marginTop: 0, marginBottom: "8px" }}>Galerie</h2>
-          <p style={{ margin: 0 }}>
-            Procházej díla, překlady, odvozeniny a první publikační vrstvy.
-          </p>
-        </Link>
+          {[
+            {
+              title: "Curated editions",
+              text: "Public-domain works, translations and original texts can be shaped into structured editions instead of flat pages.",
+            },
+            {
+              title: "Block-first reading",
+              text: "Chapters, poems, letters, notes and future images keep their own semantic form from editor to reader.",
+            },
+            {
+              title: "Built for expansion",
+              text: "The platform is being prepared for accounts, subscriptions, formats, languages and editorial roles.",
+            },
+          ].map((item) => (
+            <article
+              key={item.title}
+              style={{
+                background: "rgba(255, 255, 255, 0.52)",
+                border: "1px solid rgba(13, 21, 40, 0.1)",
+                borderRadius: "24px",
+                boxShadow: "0 18px 48px rgba(13, 21, 40, 0.07)",
+                padding: "24px",
+              }}
+            >
+              <h2
+                style={{
+                  fontFamily: "Georgia, 'Times New Roman', serif",
+                  fontSize: "26px",
+                  lineHeight: 1.14,
+                  margin: "0 0 10px",
+                }}
+              >
+                {item.title}
+              </h2>
+              <p style={{ color: "#4c4239", margin: 0 }}>{item.text}</p>
+            </article>
+          ))}
+        </section>
 
-        <Link
-          href="/kolekce/gothic-classics"
+        <section
           style={{
-            display: "block",
-            padding: "20px",
-            border: "1px solid #ddd",
-            textDecoration: "none",
-            color: "#111",
+            borderTop: "1px solid rgba(13, 21, 40, 0.14)",
+            display: "flex",
+            flexWrap: "wrap",
+            gap: "14px",
+            justifyContent: "space-between",
+            paddingTop: "24px",
           }}
         >
-          <h2 style={{ marginTop: 0, marginBottom: "8px" }}>Kolekce</h2>
-          <p style={{ margin: 0 }}>
-            Tematické celky, kurátorské výběry a budoucí publikační řady.
+          <p style={{ color: "#5f5247", margin: 0 }}>
+            ARTales is under active development. Public interface defaults to English;
+            internal editorial tools currently remain Czech-first.
           </p>
-        </Link>
-      </section>
-
-      <section id="o-projektu" style={{ marginBottom: "40px" }}>
-        <h2 style={{ fontSize: "30px", marginBottom: "16px" }}>O projektu</h2>
-
-        <p>
-          ARTales je stavěný po vrstvách. Pod veřejnou galerií běží vlastní
-          jádro, které rozlišuje dílo, verzi textu, přispěvatele, vztahy mezi
-          texty, práva a zdroje. Díky tomu může systém unést jak klasická díla,
-          tak překlady, remixy, nové verze a později i komunitní a AI vrstvy.
-        </p>
-
-        <p>
-          První implementace se soustředí na to, aby Galerie byla srozumitelná,
-          čitelná a funkční. Další vrstvy — ingest, pracovní nástroje, Lab,
-          personalizace a pokročilejší ekonomika odvozenin — přijdou v dalších
-          fázích.
-        </p>
-      </section>
-
-      <section>
-        <h2 style={{ fontSize: "30px", marginBottom: "16px" }}>Kontakt / stav</h2>
-
-        <p>
-          Projekt je ve výstavbě, ale základní architektura Galerie už běží.
-          Postupně doplňujeme publikační vrstvy, kolekce, čtenářské akce a
-          budoucí pracovní režimy pro autory a editory.
-        </p>
-
-        <p style={{ opacity: 0.75 }}>
-          ARTales — under construction, but already alive.
-        </p>
-      </section>
-    </main>
+          <Link className="artales-public-link" href="/member">
+            Member zone
+          </Link>
+        </section>
+      </main>
+    </div>
   )
 }

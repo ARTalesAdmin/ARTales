@@ -54,7 +54,7 @@ export default async function ReaderPage({ params, searchParams }: ReaderPagePro
           background: "rgba(9, 11, 13, 0.72)",
         }}
       >
-        <ArtalesBrand variant="dark" size="sm" showMark />
+        <ArtalesBrand variant="light" size="sm" showMark />
         <div
           style={{
             minWidth: 0,

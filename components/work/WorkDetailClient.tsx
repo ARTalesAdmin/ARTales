@@ -44,13 +44,10 @@ export default function WorkDetailClient({
   return (
     <div className="artales-public-shell">
       <header className="artales-public-header">
-        <ArtalesBrand variant="light" size="md" showMark />
+        <ArtalesBrand variant="dark" size="md" showMark />
         <nav className="artales-public-header__nav" aria-label="Public navigation">
           <Link className="artales-public-link" href="/galerie">
             {t.gallery}
-          </Link>
-          <Link className="artales-public-link" href="/member">
-            {t.memberZone}
           </Link>
         </nav>
       </header>

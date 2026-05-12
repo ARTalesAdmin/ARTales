@@ -29,7 +29,7 @@ export default function MemberZoneNav() {
 
   return (
     <aside className="artales-member-sidebar">
-      <ArtalesBrand href="/member" variant="dark" size="sm" showMark />
+      <ArtalesBrand href="/member" variant="light" size="sm" showMark />
       <p className="artales-member-sidebar__title">{member.zoneTitle}</p>
       <p className="artales-member-sidebar__subtitle">{member.zoneSubtitle}</p>
 
