@@ -1,11 +1,13 @@
 import type { WorkBlock } from "@/lib/blocks"
 import { WORK_BLOCK_TYPE_META } from "@/lib/blocks"
+import { getBlockFormatPreset, type BlockFormatPresetId } from "@/lib/rendering/blockFormats"
 import "./work-content-renderer.css"
 
 type Props = {
   blocks: WorkBlock[]
   fallbackContent?: string | null
   className?: string
+  formatPreset?: BlockFormatPresetId
 }
 
 type RenderBlockProps = {
@@ -212,7 +214,13 @@ function renderBlock({ block, index, footnoteNumberByBlockId }: RenderBlockProps
   }
 }
 
-export default function WorkContentRenderer({ blocks, fallbackContent, className }: Props) {
+export default function WorkContentRenderer({
+  blocks,
+  fallbackContent,
+  className,
+  formatPreset = "defaultReader",
+}: Props) {
+  const preset = getBlockFormatPreset(formatPreset)
   const safeBlocks = Array.isArray(blocks) ? blocks : []
   const visibleBlocks = safeBlocks.filter((block) => {
     if (block.type === "separator") return true
@@ -226,7 +234,12 @@ export default function WorkContentRenderer({ blocks, fallbackContent, className
 
   if (visibleBlocks.length === 0 && fallbackContent?.trim()) {
     return (
-      <article className={["artales-work-content", className].filter(Boolean).join(" ")}>
+      <article
+      className={["artales-work-content", preset.className, className]
+        .filter(Boolean)
+        .join(" ")}
+      data-format-preset={preset.id}
+    >
         <section className="artales-block artales-paragraph" data-block-type="fallback_content">
           {renderMultiParagraphText(fallbackContent)}
         </section>
@@ -235,7 +248,12 @@ export default function WorkContentRenderer({ blocks, fallbackContent, className
   }
 
   return (
-    <article className={["artales-work-content", className].filter(Boolean).join(" ")}>
+    <article
+      className={["artales-work-content", preset.className, className]
+        .filter(Boolean)
+        .join(" ")}
+      data-format-preset={preset.id}
+    >
       {visibleBlocks.map((block, index) =>
         renderBlock({ block, index, footnoteNumberByBlockId })
       )}

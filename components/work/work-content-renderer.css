@@ -267,3 +267,21 @@
     columns: 2;
   }
 }
+
+.artales-renderer--edition-classic {
+  font-size: 17.5px;
+  line-height: 1.82;
+  max-width: 700px;
+}
+
+.artales-renderer--edition-classic .artales-paragraph p {
+  margin-bottom: 0.9rem;
+  text-align: justify;
+  text-indent: 1.35em;
+}
+
+.artales-renderer--edition-classic .artales-chapter h3,
+.artales-renderer--edition-classic .artales-book-part h2 {
+  color: #111827;
+  letter-spacing: 0.01em;
+}

@@ -24,3 +24,223 @@ body {
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
+
+:root {
+  --artales-ink: #0d1528;
+  --artales-ink-soft: #18233c;
+  --artales-black: #090b0d;
+  --artales-gold: #d9b76e;
+  --artales-gold-soft: #f1d89d;
+  --artales-paper: #fbf5ea;
+  --artales-paper-warm: #f3eadc;
+  --artales-muted: #73685d;
+  --artales-border: rgba(13, 21, 40, 0.14);
+  --artales-shadow: 0 24px 80px rgba(5, 7, 12, 0.26);
+}
+
+html {
+  background: var(--artales-paper);
+}
+
+body {
+  min-height: 100vh;
+}
+
+.artales-brand-link {
+  color: inherit;
+  display: inline-flex;
+  text-decoration: none;
+}
+
+.artales-brand {
+  align-items: center;
+  display: inline-flex;
+  gap: 0.65rem;
+  line-height: 1;
+}
+
+.artales-brand__wordmark,
+.artales-brand__mark {
+  display: block;
+  height: auto;
+  object-fit: contain;
+}
+
+.artales-brand__text {
+  color: var(--artales-ink);
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 1.6rem;
+  font-weight: 700;
+  letter-spacing: -0.04em;
+}
+
+.artales-brand--dark .artales-brand__text {
+  color: var(--artales-gold-soft);
+}
+
+.artales-brand--sm .artales-brand__text {
+  font-size: 1.1rem;
+}
+
+.artales-brand--lg .artales-brand__text {
+  font-size: 2.2rem;
+}
+
+.artales-public-shell {
+  background:
+    radial-gradient(circle at top left, rgba(217, 183, 110, 0.14), transparent 30rem),
+    linear-gradient(180deg, #fffaf0 0%, var(--artales-paper) 100%);
+  color: var(--artales-ink);
+  min-height: 100vh;
+}
+
+.artales-public-header {
+  align-items: center;
+  border-bottom: 1px solid rgba(13, 21, 40, 0.1);
+  display: flex;
+  gap: 1rem;
+  justify-content: space-between;
+  margin: 0 auto;
+  max-width: 1180px;
+  padding: 18px 24px;
+}
+
+.artales-public-header__nav {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.artales-public-link {
+  color: var(--artales-ink);
+  font-size: 0.92rem;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.artales-public-link:hover {
+  color: #6f5424;
+}
+
+.artales-button,
+.artales-button-secondary,
+.artales-button-muted {
+  align-items: center;
+  border-radius: 999px;
+  display: inline-flex;
+  font-size: 0.95rem;
+  font-weight: 800;
+  gap: 0.45rem;
+  justify-content: center;
+  padding: 0.8rem 1.05rem;
+  text-decoration: none;
+  transition: transform 120ms ease, box-shadow 120ms ease, background 120ms ease;
+}
+
+.artales-button {
+  background: var(--artales-ink);
+  border: 1px solid var(--artales-ink);
+  color: #fff;
+  box-shadow: 0 12px 28px rgba(13, 21, 40, 0.18);
+}
+
+.artales-button:hover,
+.artales-button-secondary:hover {
+  transform: translateY(-1px);
+}
+
+.artales-button-secondary {
+  background: rgba(255, 255, 255, 0.55);
+  border: 1px solid rgba(13, 21, 40, 0.22);
+  color: var(--artales-ink);
+}
+
+.artales-button-muted {
+  background: rgba(13, 21, 40, 0.05);
+  border: 1px solid rgba(13, 21, 40, 0.12);
+  color: rgba(13, 21, 40, 0.62);
+  cursor: not-allowed;
+}
+
+.artales-member-shell {
+  background: #f8f2e8;
+  color: #17130f;
+  min-height: 100vh;
+}
+
+.artales-member-layout {
+  display: grid;
+  grid-template-columns: 260px minmax(0, 1fr);
+  min-height: 100vh;
+}
+
+.artales-member-sidebar {
+  background:
+    radial-gradient(circle at top, rgba(217, 183, 110, 0.22), transparent 18rem),
+    var(--artales-ink);
+  border-right: 1px solid rgba(217, 183, 110, 0.2);
+  color: #fff;
+  padding: 22px;
+}
+
+.artales-member-sidebar__title {
+  color: var(--artales-gold-soft);
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 1.45rem;
+  font-weight: 700;
+  margin: 16px 0 2px;
+}
+
+.artales-member-sidebar__subtitle {
+  color: rgba(255, 255, 255, 0.64);
+  font-size: 0.82rem;
+  margin: 0 0 22px;
+}
+
+.artales-member-nav {
+  display: grid;
+  gap: 0.5rem;
+}
+
+.artales-member-nav__group {
+  border-top: 1px solid rgba(255, 255, 255, 0.12);
+  display: grid;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+  padding-top: 0.75rem;
+}
+
+.artales-member-nav__link {
+  border: 1px solid transparent;
+  border-radius: 14px;
+  color: rgba(255, 255, 255, 0.78);
+  font-weight: 700;
+  padding: 0.72rem 0.85rem;
+  text-decoration: none;
+}
+
+.artales-member-nav__link:hover,
+.artales-member-nav__link--active {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(217, 183, 110, 0.28);
+  color: #fff;
+}
+
+.artales-member-content {
+  min-width: 0;
+}
+
+@media (max-width: 860px) {
+  .artales-member-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .artales-member-sidebar {
+    position: static;
+  }
+
+  .artales-member-nav {
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  }
+}

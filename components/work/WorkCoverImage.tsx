@@ -1,4 +1,8 @@
+"use client"
+
+import { useEffect, useState } from "react"
 import Image from "next/image"
+import ArtalesBrand from "@/components/brand/ArtalesBrand"
 import { getPublicStorageImageUrl } from "@/lib/storageImages"
 
 type WorkCoverImageProps = {
@@ -17,8 +21,14 @@ export default function WorkCoverImage({
   variant = "detail",
 }: WorkCoverImageProps) {
   const imageUrl = getPublicStorageImageUrl(imagePath)
+  const [hasImageError, setHasImageError] = useState(false)
   const isCard = variant === "card"
-  const minHeight = isCard ? 260 : 440
+  const minHeight = isCard ? 270 : 460
+  const shouldShowImage = Boolean(imageUrl) && !hasImageError
+
+  useEffect(() => {
+    setHasImageError(false)
+  }, [imageUrl])
 
   return (
     <figure
@@ -29,27 +39,29 @@ export default function WorkCoverImage({
       }}
     >
       <div
-        aria-label={imageUrl ? undefined : "Work cover placeholder"}
+        aria-label={shouldShowImage ? undefined : "Work cover placeholder"}
         style={{
           position: "relative",
           minHeight: `${minHeight}px`,
           overflow: "hidden",
-          border: "1px solid rgba(23, 19, 15, 0.16)",
+          border: "1px solid rgba(217, 183, 110, 0.3)",
+          borderRadius: isCard ? "18px" : "24px",
           background:
-            "linear-gradient(145deg, #f2eadf 0%, #d9cbb9 46%, #b9a48d 100%)",
-          boxShadow: isCard ? "none" : "0 18px 45px rgba(23, 19, 15, 0.12)",
+            "radial-gradient(circle at top, rgba(217, 183, 110, 0.26), transparent 18rem), linear-gradient(145deg, #111827 0%, #090b0d 70%)",
+          boxShadow: isCard ? "0 14px 34px rgba(5, 7, 12, 0.12)" : "0 24px 70px rgba(5, 7, 12, 0.22)",
         }}
       >
-        {imageUrl ? (
+        {shouldShowImage && imageUrl ? (
           <Image
             src={imageUrl}
             alt={alt?.trim() || `Cover image for ${title}`}
             fill
-            sizes={isCard ? "(max-width: 768px) 100vw, 320px" : "(max-width: 768px) 100vw, 360px"}
+            sizes={isCard ? "(max-width: 768px) 100vw, 320px" : "(max-width: 768px) 100vw, 380px"}
             style={{
               objectFit: "cover",
             }}
             priority={!isCard}
+            onError={() => setHasImageError(true)}
           />
         ) : (
           <div
@@ -58,33 +70,36 @@ export default function WorkCoverImage({
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
-              padding: isCard ? "20px" : "28px",
+              padding: isCard ? "22px" : "34px",
               textAlign: "center",
             }}
           >
-            <div>
-              <p
-                style={{
-                  margin: "0 0 12px",
-                  fontSize: "12px",
-                  letterSpacing: "0.16em",
-                  textTransform: "uppercase",
-                  color: "rgba(23, 19, 15, 0.58)",
-                }}
-              >
-                ARTales Edition
-              </p>
-              <p
-                style={{
-                  margin: 0,
-                  fontFamily: "Georgia, 'Times New Roman', serif",
-                  fontSize: isCard ? "24px" : "28px",
-                  lineHeight: 1.15,
-                  color: "#17130f",
-                }}
-              >
-                {title}
-              </p>
+            <div style={{ display: "grid", justifyItems: "center", gap: "18px" }}>
+              <ArtalesBrand href="" variant="dark" size={isCard ? "sm" : "md"} showMark />
+              <div>
+                <p
+                  style={{
+                    margin: "0 0 12px",
+                    fontSize: "12px",
+                    letterSpacing: "0.16em",
+                    textTransform: "uppercase",
+                    color: "rgba(241, 216, 157, 0.72)",
+                  }}
+                >
+                  ARTales Edition
+                </p>
+                <p
+                  style={{
+                    margin: 0,
+                    fontFamily: "Georgia, 'Times New Roman', serif",
+                    fontSize: isCard ? "24px" : "31px",
+                    lineHeight: 1.13,
+                    color: "#fff8e7",
+                  }}
+                >
+                  {title}
+                </p>
+              </div>
             </div>
           </div>
         )}

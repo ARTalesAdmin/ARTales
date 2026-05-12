@@ -2,221 +2,221 @@ import Link from "next/link"
 import { getWorksForGallery } from "@/lib/dbWorks"
 import { getLanguageLabel } from "@/lib/dictionaries/language"
 import WorkCoverImage from "@/components/work/WorkCoverImage"
+import ArtalesBrand from "@/components/brand/ArtalesBrand"
+import { getPublicDictionary } from "@/lib/i18n/public"
+
 export const dynamic = "force-dynamic"
 
 function getWorkLabel(originType: string) {
+  const t = getPublicDictionary().public
+
   switch (originType) {
     case "public_domain":
-      return "Volné dílo"
+      return t.publicDomain
     case "original":
-      return "Původní dílo"
+      return t.original
     case "translation":
-      return "Překlad"
+      return t.translation
     case "other":
-      return "Jiná vrstva"
+      return t.otherLayer
     default:
-      return "Literární dílo"
+      return t.literaryWork
   }
 }
 
 export default async function Galerie() {
   const works = await getWorksForGallery()
+  const { common, public: t } = getPublicDictionary()
 
   return (
-    <main
-      style={{
-        padding: "48px 32px",
-        fontFamily: "serif",
-        lineHeight: 1.6,
-        maxWidth: "1100px",
-        margin: "0 auto",
-      }}
-    >
-      <section style={{ marginBottom: "32px" }}>
-        <p
-          style={{
-            fontSize: "14px",
-            textTransform: "uppercase",
-            letterSpacing: "1px",
-            opacity: 0.7,
-            marginBottom: "10px",
-          }}
-        >
-          ARTales
-        </p>
-
-        <h1
-          style={{
-            fontSize: "42px",
-            marginBottom: "14px",
-            lineHeight: 1.1,
-          }}
-        >
-          Galerie ARTales
-        </h1>
-
-        <p
-          style={{
-            fontSize: "19px",
-            maxWidth: "760px",
-            marginBottom: "20px",
-          }}
-        >
-          Procházej původní díla, překlady a první publikované vrstvy. Galerie je
-          veřejná vstupní vrstva systému ARTales.
-        </p>
-
-        <div style={{ display: "flex", gap: "12px", flexWrap: "wrap" }}>
-          <Link
-            href="/kolekce/gothic-classics"
-            style={{
-              padding: "10px 16px",
-              border: "1px solid #ccc",
-              textDecoration: "none",
-              color: "#111",
-            }}
-          >
-            Kolekce
+    <div className="artales-public-shell">
+      <header className="artales-public-header">
+        <ArtalesBrand variant="light" size="md" showMark />
+        <nav className="artales-public-header__nav" aria-label="Public navigation">
+          <Link className="artales-public-link" href="/galerie">
+            {t.gallery}
           </Link>
-
-          <Link
-            href="/member"
-            style={{
-              padding: "10px 16px",
-              border: "1px solid #111",
-              textDecoration: "none",
-              color: "#111",
-            }}
-          >
-            Členská zóna
+          <Link className="artales-public-link" href="/member">
+            {t.memberZone}
           </Link>
-        </div>
-      </section>
+        </nav>
+      </header>
 
-      <hr style={{ margin: "24px 0 32px 0" }} />
-
-      <section>
-        {works.length === 0 ? (
-          <p>V galerii zatím nejsou žádná publikovaná díla.</p>
-        ) : (
-          <div
+      <main
+        style={{
+          padding: "52px 32px 68px",
+          fontFamily: "Arial, Helvetica, sans-serif",
+          lineHeight: 1.6,
+          maxWidth: "1180px",
+          margin: "0 auto",
+          color: "var(--artales-ink)",
+        }}
+      >
+        <section style={{ marginBottom: "38px" }}>
+          <p
             style={{
-              display: "grid",
-              gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))",
-              gap: "18px",
+              fontSize: "13px",
+              textTransform: "uppercase",
+              letterSpacing: "0.16em",
+              color: "#8a6a2d",
+              fontWeight: 800,
+              marginBottom: "12px",
             }}
           >
-            {works.map((work) => {
-              const languageLabel = getLanguageLabel(
-                work.canonical_language,
-                "public"
-              )
+            {t.galleryEyebrow}
+          </p>
 
-              return (
-                <article
-                  key={work.id}
-                  style={{
-                    border: "1px solid #ddd",
-                    padding: "20px",
-                    display: "flex",
-                    flexDirection: "column",
-                    gap: "14px",
-                  }}
-                >
-                  <Link href={`/dilo/${work.slug}`} aria-label={`Open ${work.title}`}>
-                    <WorkCoverImage
-                      title={work.title}
-                      imagePath={work.cover_image_path}
-                      alt={work.cover_image_alt}
-                      caption={work.cover_image_caption}
-                      variant="card"
-                    />
-                  </Link>
+          <h1
+            style={{
+              fontFamily: "Georgia, 'Times New Roman', serif",
+              fontSize: "clamp(44px, 7vw, 78px)",
+              marginBottom: "16px",
+              lineHeight: 1.02,
+              letterSpacing: "-0.045em",
+            }}
+          >
+            {t.galleryTitle}
+          </h1>
 
-                  <div>
-                    <p
-                      style={{
-                        margin: "0 0 8px 0",
-                        fontSize: "13px",
-                        opacity: 0.7,
-                        textTransform: "uppercase",
-                        letterSpacing: "0.5px",
-                      }}
-                    >
-                      {getWorkLabel(work.origin_type)}
-                    </p>
+          <p
+            style={{
+              fontSize: "19px",
+              maxWidth: "780px",
+              marginBottom: "24px",
+              color: "#3f362f",
+            }}
+          >
+            {t.galleryIntro}
+          </p>
 
-                    <h2
-                      style={{
-                        margin: "0 0 8px 0",
-                        fontSize: "28px",
-                        lineHeight: 1.15,
-                      }}
-                    >
-                      <Link
-                        href={`/dilo/${work.slug}`}
-                        style={{ textDecoration: "none", color: "#111" }}
-                      >
-                        {work.title}
-                      </Link>
-                    </h2>
+          <div style={{ display: "flex", gap: "12px", flexWrap: "wrap" }}>
+            <Link className="artales-button-secondary" href="/kolekce/gothic-classics">
+              {t.collections}
+            </Link>
 
-                    {work.subtitle ? (
-                      <p style={{ margin: "0 0 8px 0", opacity: 0.85 }}>
-                        {work.subtitle}
-                      </p>
-                    ) : null}
-
-                    <p style={{ margin: "0 0 8px 0" }}>
-                      <strong>Autor:</strong>{" "}
-                      {work.author ? (
-                        <Link href={`/autor/${work.author.slug}`}>
-                          {work.author.name}
-                        </Link>
-                      ) : (
-                        "Neznámý autor"
-                      )}
-                    </p>
-
-                    {work.collection ? (
-                      <p style={{ margin: "0 0 8px 0" }}>
-                        <strong>Kolekce:</strong>{" "}
-                        <Link href={`/kolekce/${work.collection.slug}`}>
-                          {work.collection.title}
-                        </Link>
-                      </p>
-                    ) : null}
-
-                    <p style={{ margin: "0 0 10px 0" }}>{work.summary}</p>
-
-                    <p style={{ margin: 0, opacity: 0.8 }}>
-                      <strong>Language:</strong>{" "}
-                      {languageLabel ?? work.canonical_language}
-                    </p>
-                  </div>
-
-                  <div style={{ marginTop: "auto" }}>
-                    <Link
-                      href={`/dilo/${work.slug}`}
-                      style={{
-                        display: "inline-block",
-                        marginTop: "8px",
-                        padding: "10px 14px",
-                        border: "1px solid #111",
-                        textDecoration: "none",
-                        color: "#111",
-                        fontWeight: 600,
-                      }}
-                    >
-                      Zobrazit detail
-                    </Link>
-                  </div>
-                </article>
-              )
-            })}
+            <Link className="artales-button" href="/member">
+              {t.memberZone}
+            </Link>
           </div>
-        )}
-      </section>
-    </main>
+        </section>
+
+        <section>
+          {works.length === 0 ? (
+            <p>{t.noPublishedWorks}</p>
+          ) : (
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))",
+                gap: "22px",
+              }}
+            >
+              {works.map((work) => {
+                const languageLabel = getLanguageLabel(
+                  work.canonical_language,
+                  "public"
+                )
+
+                return (
+                  <article
+                    key={work.id}
+                    style={{
+                      background: "rgba(255, 255, 255, 0.58)",
+                      border: "1px solid rgba(13, 21, 40, 0.1)",
+                      borderRadius: "24px",
+                      boxShadow: "0 18px 45px rgba(13, 21, 40, 0.08)",
+                      padding: "18px",
+                      display: "flex",
+                      flexDirection: "column",
+                      gap: "16px",
+                    }}
+                  >
+                    <Link href={`/dilo/${work.slug}`} aria-label={`Open ${work.title}`}>
+                      <WorkCoverImage
+                        title={work.title}
+                        imagePath={work.cover_image_path}
+                        alt={work.cover_image_alt}
+                        caption={work.cover_image_caption}
+                        variant="card"
+                      />
+                    </Link>
+
+                    <div>
+                      <p
+                        style={{
+                          margin: "0 0 8px 0",
+                          fontSize: "12px",
+                          color: "#8a6a2d",
+                          textTransform: "uppercase",
+                          letterSpacing: "0.12em",
+                          fontWeight: 800,
+                        }}
+                      >
+                        {getWorkLabel(work.origin_type)}
+                      </p>
+
+                      <h2
+                        style={{
+                          margin: "0 0 8px 0",
+                          fontFamily: "Georgia, 'Times New Roman', serif",
+                          fontSize: "29px",
+                          lineHeight: 1.12,
+                        }}
+                      >
+                        <Link
+                          href={`/dilo/${work.slug}`}
+                          style={{ textDecoration: "none", color: "var(--artales-ink)" }}
+                        >
+                          {work.title}
+                        </Link>
+                      </h2>
+
+                      {work.subtitle ? (
+                        <p style={{ margin: "0 0 8px 0", color: "#5f5247" }}>
+                          {work.subtitle}
+                        </p>
+                      ) : null}
+
+                      <p style={{ margin: "0 0 8px 0" }}>
+                        <strong>{common.author}:</strong>{" "}
+                        {work.author ? (
+                          <Link href={`/autor/${work.author.slug}`}>
+                            {work.author.name}
+                          </Link>
+                        ) : (
+                          t.unknownAuthor
+                        )}
+                      </p>
+
+                      {work.collection ? (
+                        <p style={{ margin: "0 0 8px 0" }}>
+                          <strong>{common.collection}:</strong>{" "}
+                          <Link href={`/kolekce/${work.collection.slug}`}>
+                            {work.collection.title}
+                          </Link>
+                        </p>
+                      ) : null}
+
+                      <p style={{ margin: "0 0 12px 0", color: "#3f362f" }}>{work.summary}</p>
+
+                      <p style={{ margin: 0, color: "#5f5247" }}>
+                        <strong>{common.language}:</strong>{" "}
+                        {languageLabel ?? work.canonical_language}
+                      </p>
+                    </div>
+
+                    <div style={{ marginTop: "auto" }}>
+                      <Link className="artales-button-secondary" href={`/dilo/${work.slug}`}>
+                        {t.openDetail}
+                      </Link>
+                    </div>
+                  </article>
+                )
+              })}
+            </div>
+          )}
+        </section>
+      </main>
+    </div>
   )
 }
