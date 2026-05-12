@@ -2,7 +2,7 @@ import Link from "next/link"
 import { getWorksForGallery } from "@/lib/dbWorks"
 import { getLanguageLabel } from "@/lib/dictionaries/language"
 import WorkCoverImage from "@/components/work/WorkCoverImage"
-import ArtalesBrand from "@/components/brand/ArtalesBrand"
+import PublicHeader from "@/components/public/PublicHeader"
 import { getPublicDictionary } from "@/lib/i18n/public"
 
 export const dynamic = "force-dynamic"
@@ -30,14 +30,7 @@ export default async function Galerie() {
 
   return (
     <div className="artales-public-shell">
-      <header className="artales-public-header">
-        <ArtalesBrand variant="dark" size="md" showMark />
-        <nav className="artales-public-header__nav" aria-label="Public navigation">
-          <Link className="artales-public-link" href="/galerie">
-            {t.gallery}
-          </Link>
-        </nav>
-      </header>
+      <PublicHeader active="gallery" />
 
       <main
         style={{

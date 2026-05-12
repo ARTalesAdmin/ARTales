@@ -3,7 +3,7 @@ export const enPublic = {
   galleryEyebrow: "ARTales Library",
   galleryTitle: "ARTales Gallery",
   galleryIntro:
-    "Explore original works, translations, and curated public-domain editions. ARTales is being built as a literary publishing and reading platform.",
+    "Explore original works, translations, and curated public-domain editions. ARTales is being built as a living library: a place where texts keep their structure, context, editions, and reading layers.",
   collections: "Collections",
   memberZone: "Member zone",
   noPublishedWorks: "No published works are available yet.",
@@ -30,4 +30,46 @@ export const enPublic = {
   otherLayer: "Other layer",
   literaryWork: "Literary work",
   previewNote: "This is a short preview. Continue to the full online reader.",
+
+  homeEyebrow: "Living books, structured editions",
+  homeTitle: "Books should not become flat files.",
+  homeIntro:
+    "ARTales is a living-book platform for literature: a structured library, editorial workshop, and reader where texts can grow into editions, translations, formats, collections, and future subscription layers.",
+  homePrimaryCta: "Enter the Gallery",
+  homeSecondaryCta: "Try the reader",
+  homeBrandNote:
+    "A public reading surface today, with editorial, edition, language, and access layers prepared underneath.",
+  homeCardEditionsTitle: "Living editions",
+  homeCardEditionsText:
+    "A work is not just a text blob. It can carry chapters, poems, letters, notes, images, metadata, sources, credits, and edition history.",
+  homeCardReaderTitle: "Reader-first structure",
+  homeCardReaderText:
+    "The same block structure can serve the public reader, future PDF/EPUB exports, and internal editorial workflows.",
+  homeCardExpansionTitle: "Built for layers",
+  homeCardExpansionText:
+    "ARTales is prepared for accounts, subscriptions, multilingual interfaces, editorial roles, paid formats, and curated collections.",
+  homeDevelopmentNote:
+    "ARTales is under active development. Public surfaces currently default to English; internal editorial tools are Czech-first for the current team.",
+
+  author: "Author",
+  authorNotFoundTitle: "Author not found",
+  authorNotFoundText: "The requested author does not exist in ARTales or is not publicly visible yet.",
+  authorTypePerson: "Person",
+  authorTypeCollective: "Collective",
+  authorTypeUnknown: "Unknown author",
+  years: "Years",
+  country: "Country",
+  primaryLanguage: "Primary language",
+  authorBioMissing: "The author biography has not been added yet.",
+  publishedWorks: "Published works",
+  authorNoWorks: "This author has no published works in the gallery yet.",
+
+  collection: "Collection",
+  collectionNotFoundTitle: "Collection not found",
+  collectionNotFoundText: "This collection does not exist in ARTales or is not publicly visible yet.",
+  collectionDescriptionMissing: "The collection description has not been added yet.",
+  browseCollectionWorks: "Browse works in this collection",
+  collectionVisualPlaceholder: "Collection visual",
+  worksInCollection: "Works in this collection",
+  collectionNoWorks: "This collection does not contain any published works yet.",
 }

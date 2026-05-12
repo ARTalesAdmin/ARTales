@@ -1,5 +1,6 @@
 import Link from "next/link"
 import ArtalesBrand from "@/components/brand/ArtalesBrand"
+import PublicHeader from "@/components/public/PublicHeader"
 import { getPublicDictionary } from "@/lib/i18n/public"
 
 export default function Home() {
@@ -7,17 +8,7 @@ export default function Home() {
 
   return (
     <div className="artales-public-shell">
-      <header className="artales-public-header">
-        <ArtalesBrand variant="dark" size="md" showMark />
-        <nav className="artales-public-header__nav" aria-label="Public navigation">
-          <Link className="artales-public-link" href="/galerie">
-            {t.gallery}
-          </Link>
-          <Link className="artales-public-link" href="/kolekce/gothic-classics">
-            {t.collections}
-          </Link>
-        </nav>
-      </header>
+      <PublicHeader active="home" />
 
       <main
         style={{
@@ -50,7 +41,7 @@ export default function Home() {
                 textTransform: "uppercase",
               }}
             >
-              Literary publishing platform
+              {t.homeEyebrow}
             </p>
 
             <h1
@@ -63,7 +54,7 @@ export default function Home() {
                 margin: "0 0 22px",
               }}
             >
-              Literature, curated for the next layer.
+              {t.homeTitle}
             </h1>
 
             <p
@@ -71,19 +62,18 @@ export default function Home() {
                 color: "#3f362f",
                 fontSize: "20px",
                 margin: "0 0 28px",
-                maxWidth: "720px",
+                maxWidth: "760px",
               }}
             >
-              ARTales is an emerging library, publishing system and reader for
-              classic works, original writing, translations and curated editions.
+              {t.homeIntro}
             </p>
 
             <div style={{ display: "flex", flexWrap: "wrap", gap: "12px" }}>
               <Link className="artales-button" href="/galerie">
-                Enter the Gallery
+                {t.homePrimaryCta}
               </Link>
               <Link className="artales-button-secondary" href="/reader/the-phantom-of-the-opera?mode=preview">
-                Try the reader
+                {t.homeSecondaryCta}
               </Link>
             </div>
           </div>
@@ -91,7 +81,7 @@ export default function Home() {
           <aside
             style={{
               background:
-                "linear-gradient(180deg, rgba(255,255,255,0.58), rgba(255,255,255,0.26))",
+                "linear-gradient(180deg, rgba(255,255,255,0.62), rgba(255,255,255,0.34))",
               border: "1px solid rgba(13, 21, 40, 0.12)",
               borderRadius: "32px",
               boxShadow: "0 30px 80px rgba(13, 21, 40, 0.12)",
@@ -105,11 +95,10 @@ export default function Home() {
                 color: "#5f5247",
                 fontSize: "15px",
                 margin: "28px auto 0",
-                maxWidth: "360px",
+                maxWidth: "380px",
               }}
             >
-              A calm public surface now, with deeper editorial, edition and
-              subscription layers prepared underneath.
+              {t.homeBrandNote}
             </p>
           </aside>
         </section>
@@ -124,16 +113,16 @@ export default function Home() {
         >
           {[
             {
-              title: "Curated editions",
-              text: "Public-domain works, translations and original texts can be shaped into structured editions instead of flat pages.",
+              title: t.homeCardEditionsTitle,
+              text: t.homeCardEditionsText,
             },
             {
-              title: "Block-first reading",
-              text: "Chapters, poems, letters, notes and future images keep their own semantic form from editor to reader.",
+              title: t.homeCardReaderTitle,
+              text: t.homeCardReaderText,
             },
             {
-              title: "Built for expansion",
-              text: "The platform is being prepared for accounts, subscriptions, formats, languages and editorial roles.",
+              title: t.homeCardExpansionTitle,
+              text: t.homeCardExpansionText,
             },
           ].map((item) => (
             <article
@@ -172,12 +161,8 @@ export default function Home() {
           }}
         >
           <p style={{ color: "#5f5247", margin: 0 }}>
-            ARTales is under active development. Public interface defaults to English;
-            internal editorial tools currently remain Czech-first.
+            {t.homeDevelopmentNote}
           </p>
-          <Link className="artales-public-link" href="/member">
-            Member zone
-          </Link>
         </section>
       </main>
     </div>
