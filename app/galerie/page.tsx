@@ -1,6 +1,7 @@
 import Link from "next/link"
 import { getWorksForGallery } from "@/lib/dbWorks"
 import { getLanguageLabel } from "@/lib/dictionaries/language"
+import WorkCoverImage from "@/components/work/WorkCoverImage"
 export const dynamic = "force-dynamic"
 
 function getWorkLabel(originType: string) {
@@ -101,7 +102,7 @@ export default async function Galerie() {
           <div
             style={{
               display: "grid",
-              gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))",
+              gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))",
               gap: "18px",
             }}
           >
@@ -119,9 +120,19 @@ export default async function Galerie() {
                     padding: "20px",
                     display: "flex",
                     flexDirection: "column",
-                    gap: "10px",
+                    gap: "14px",
                   }}
                 >
+                  <Link href={`/dilo/${work.slug}`} aria-label={`Open ${work.title}`}>
+                    <WorkCoverImage
+                      title={work.title}
+                      imagePath={work.cover_image_path}
+                      alt={work.cover_image_alt}
+                      caption={work.cover_image_caption}
+                      variant="card"
+                    />
+                  </Link>
+
                   <div>
                     <p
                       style={{

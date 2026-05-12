@@ -37,6 +37,9 @@ export type GalleryWorkItem = {
   status: WorkStatus
   author: WorkAuthorRef
   collection: WorkCollectionRef
+  cover_image_path: string | null
+  cover_image_alt: string | null
+  cover_image_caption: string | null
 }
 
 export type WorkDetailItem = {
@@ -54,6 +57,9 @@ export type WorkDetailItem = {
   status: WorkStatus
   author: WorkAuthorRef
   collection: WorkCollectionRef
+  cover_image_path: string | null
+  cover_image_alt: string | null
+  cover_image_caption: string | null
 }
 
 export type MemberWorkListItem = {
@@ -75,6 +81,9 @@ export type MemberWorkListItem = {
     title: string
     slug: string
   } | null
+  cover_image_path: string | null
+  cover_image_alt: string | null
+  cover_image_caption: string | null
 }
 
 export type WorkEditItem = {
@@ -92,6 +101,9 @@ export type WorkEditItem = {
   collection_id: string | null
   content: string
   content_blocks: WorkBlock[]
+  cover_image_path: string | null
+  cover_image_alt: string | null
+  cover_image_caption: string | null
 }
 
 type RawRelationAuthor =
@@ -123,6 +135,9 @@ type RawGalleryWorkRow = {
   canonical_language: unknown
   origin_type: unknown
   status: unknown
+  cover_image_path: unknown
+  cover_image_alt: unknown
+  cover_image_caption: unknown
   authors?: RawRelationAuthor | RawRelationAuthor[]
   collections?: RawRelationCollection | RawRelationCollection[]
 }
@@ -140,6 +155,9 @@ type RawWorkDetailRow = {
   source_label: unknown
   source_reference: unknown
   status: unknown
+  cover_image_path: unknown
+  cover_image_alt: unknown
+  cover_image_caption: unknown
   authors?: RawRelationAuthor | RawRelationAuthor[]
   collections?: RawRelationCollection | RawRelationCollection[]
 }
@@ -159,6 +177,9 @@ type RawWorkEditRow = {
   collection_id: unknown
   content: unknown
   content_blocks: unknown
+  cover_image_path: unknown
+  cover_image_alt: unknown
+  cover_image_caption: unknown
 }
 
 function normalizeAuthorRelation(
@@ -202,6 +223,10 @@ function mapGalleryWork(row: RawGalleryWorkRow): GalleryWorkItem {
     canonical_language: String(row.canonical_language),
     origin_type: row.origin_type as WorkOriginType,
     status: row.status as WorkStatus,
+    cover_image_path: row.cover_image_path == null ? null : String(row.cover_image_path),
+    cover_image_alt: row.cover_image_alt == null ? null : String(row.cover_image_alt),
+    cover_image_caption:
+      row.cover_image_caption == null ? null : String(row.cover_image_caption),
     author: normalizeAuthorRelation(row.authors),
     collection: normalizeCollectionRelation(row.collections),
   }
@@ -222,6 +247,10 @@ function mapWorkDetail(row: RawWorkDetailRow): WorkDetailItem {
     source_reference:
       row.source_reference == null ? null : String(row.source_reference),
     status: row.status as WorkStatus,
+    cover_image_path: row.cover_image_path == null ? null : String(row.cover_image_path),
+    cover_image_alt: row.cover_image_alt == null ? null : String(row.cover_image_alt),
+    cover_image_caption:
+      row.cover_image_caption == null ? null : String(row.cover_image_caption),
     author: normalizeAuthorRelation(row.authors),
     collection: normalizeCollectionRelation(row.collections),
   }
@@ -243,6 +272,9 @@ export async function getWorksForGallery(): Promise<GalleryWorkItem[]> {
       canonical_language,
       origin_type,
       status,
+      cover_image_path,
+      cover_image_alt,
+      cover_image_caption,
       authors:primary_author_id (
         id,
         name,
@@ -283,6 +315,9 @@ export async function getWorkBySlug(
       source_label,
       source_reference,
       status,
+      cover_image_path,
+      cover_image_alt,
+      cover_image_caption,
       authors:primary_author_id (
         id,
         name,
@@ -324,6 +359,9 @@ export async function getPublishedWorksByAuthorId(
       canonical_language,
       origin_type,
       status,
+      cover_image_path,
+      cover_image_alt,
+      cover_image_caption,
       authors:primary_author_id (
         id,
         name,
@@ -361,6 +399,9 @@ export async function getPublishedWorksByCollectionId(
       canonical_language,
       origin_type,
       status,
+      cover_image_path,
+      cover_image_alt,
+      cover_image_caption,
       authors:primary_author_id (
         id,
         name,
@@ -398,6 +439,9 @@ export async function getWorksForMember(): Promise<MemberWorkListItem[]> {
       canonical_language,
       status,
       origin_type,
+      cover_image_path,
+      cover_image_alt,
+      cover_image_caption,
       authors:primary_author_id (
         id,
         name,
@@ -425,6 +469,10 @@ export async function getWorksForMember(): Promise<MemberWorkListItem[]> {
     canonical_language: String(row.canonical_language),
     status: String(row.status) as WorkStatus,
     origin_type: String(row.origin_type) as WorkOriginType,
+    cover_image_path: row.cover_image_path == null ? null : String(row.cover_image_path),
+    cover_image_alt: row.cover_image_alt == null ? null : String(row.cover_image_alt),
+    cover_image_caption:
+      row.cover_image_caption == null ? null : String(row.cover_image_caption),
     author: (() => {
       const author = normalizeAuthorRelation(row.authors)
       return author
@@ -466,6 +514,9 @@ export async function getWorkForEditBySlug(
       source_label,
       source_reference,
       status,
+      cover_image_path,
+      cover_image_alt,
+      cover_image_caption,
       primary_author_id,
       collection_id,
       content,
@@ -501,5 +552,9 @@ export async function getWorkForEditBySlug(
       row.collection_id == null ? null : String(row.collection_id),
     content: String(row.content ?? ""),
     content_blocks: mapRawContentBlocks(row.content_blocks),
+    cover_image_path: row.cover_image_path == null ? null : String(row.cover_image_path),
+    cover_image_alt: row.cover_image_alt == null ? null : String(row.cover_image_alt),
+    cover_image_caption:
+      row.cover_image_caption == null ? null : String(row.cover_image_caption),
   }
 }

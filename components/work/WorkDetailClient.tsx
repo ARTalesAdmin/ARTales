@@ -8,6 +8,7 @@ import {
   getPreviewFallbackContent,
 } from "@/lib/workPreview"
 import WorkReaderOverlay from "@/components/work/WorkReaderOverlay"
+import WorkCoverImage from "@/components/work/WorkCoverImage"
 
 type ReaderMode = "preview" | "full" | null
 
@@ -115,46 +116,13 @@ export default function WorkDetailClient({
         }}
       >
         <aside>
-          <div
-            aria-label="Work cover placeholder"
-            style={{
-              minHeight: "440px",
-              border: "1px solid rgba(23, 19, 15, 0.16)",
-              background:
-                "linear-gradient(145deg, #f2eadf 0%, #d9cbb9 46%, #b9a48d 100%)",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              padding: "28px",
-              textAlign: "center",
-              boxShadow: "0 18px 45px rgba(23, 19, 15, 0.12)",
-            }}
-          >
-            <div>
-              <p
-                style={{
-                  margin: "0 0 12px",
-                  fontSize: "12px",
-                  letterSpacing: "0.16em",
-                  textTransform: "uppercase",
-                  color: "rgba(23, 19, 15, 0.58)",
-                }}
-              >
-                ARTales Edition
-              </p>
-              <p
-                style={{
-                  margin: 0,
-                  fontFamily: "Georgia, 'Times New Roman', serif",
-                  fontSize: "28px",
-                  lineHeight: 1.15,
-                  color: "#17130f",
-                }}
-              >
-                {work.title}
-              </p>
-            </div>
-          </div>
+          <WorkCoverImage
+            title={work.title}
+            imagePath={work.cover_image_path}
+            alt={work.cover_image_alt}
+            caption={work.cover_image_caption}
+            variant="detail"
+          />
         </aside>
 
         <div>

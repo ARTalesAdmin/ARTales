@@ -21,6 +21,9 @@ type Props = {
     origin_type: string
     source_label: string
     source_reference: string
+    cover_image_path: string
+    cover_image_alt: string
+    cover_image_caption: string
     blocks: WorkBlock[]
   }
 
@@ -82,6 +85,9 @@ export default function WorkEditorForm(props: Props) {
     origin_type: initialData.origin_type,
     source_label: initialData.source_label,
     source_reference: initialData.source_reference,
+    cover_image_path: initialData.cover_image_path,
+    cover_image_alt: initialData.cover_image_alt,
+    cover_image_caption: initialData.cover_image_caption,
   })
 
   const [blocks, setBlocks] = useState<WorkBlock[]>(
@@ -119,6 +125,9 @@ export default function WorkEditorForm(props: Props) {
           origin_type: initialData.origin_type,
           source_label: initialData.source_label,
           source_reference: initialData.source_reference,
+          cover_image_path: initialData.cover_image_path,
+          cover_image_alt: initialData.cover_image_alt,
+          cover_image_caption: initialData.cover_image_caption,
         },
         blocks:
           initialData.blocks.length > 0
@@ -167,6 +176,9 @@ export default function WorkEditorForm(props: Props) {
           origin_type: parsedForm.origin_type ?? "original",
           source_label: parsedForm.source_label ?? "manual",
           source_reference: parsedForm.source_reference ?? "",
+          cover_image_path: parsedForm.cover_image_path ?? "",
+          cover_image_alt: parsedForm.cover_image_alt ?? "",
+          cover_image_caption: parsedForm.cover_image_caption ?? "",
         }
 
         setFormState(nextFormState)
@@ -269,6 +281,9 @@ export default function WorkEditorForm(props: Props) {
           origin_type: parsed.form.origin_type ?? "original",
           source_label: parsed.form.source_label ?? "manual",
           source_reference: parsed.form.source_reference ?? "",
+          cover_image_path: parsed.form.cover_image_path ?? "",
+          cover_image_alt: parsed.form.cover_image_alt ?? "",
+          cover_image_caption: parsed.form.cover_image_caption ?? "",
         })
       }
 
@@ -730,6 +745,106 @@ export default function WorkEditorForm(props: Props) {
               Nepovinný odkaz, poznámka nebo identifikátor zdroje.
             </p>
           </div>
+
+          <section
+            style={{
+              border: "1px solid #e2ded8",
+              padding: "18px",
+              display: "grid",
+              gap: "16px",
+              background: "#fbfaf7",
+            }}
+          >
+            <h3 style={{ margin: 0 }}>Obálka / veřejný vizuál</h3>
+
+            <div>
+              <label
+                htmlFor="cover_image_path"
+                style={{ display: "block", marginBottom: "8px", fontWeight: 600 }}
+              >
+                Storage path obálky
+              </label>
+              <input
+                id="cover_image_path"
+                name="cover_image_path"
+                type="text"
+                value={formState.cover_image_path}
+                onChange={(e) =>
+                  setFormState((prev) => ({
+                    ...prev,
+                    cover_image_path: e.target.value,
+                  }))
+                }
+                placeholder="works/{work_id}/cover/cover.webp"
+                style={{
+                  width: "100%",
+                  padding: "12px 14px",
+                  border: "1px solid #ccc",
+                  fontSize: "16px",
+                }}
+              />
+              <p style={{ margin: "8px 0 0 0", fontSize: "14px", opacity: 0.75 }}>
+                Zatím ručně vložená cesta k souboru v bucketu artales-images. Můžeš
+                vložit i celou public URL ze Supabase; aplikace si z ní cestu odvodí.
+              </p>
+            </div>
+
+            <div>
+              <label
+                htmlFor="cover_image_alt"
+                style={{ display: "block", marginBottom: "8px", fontWeight: 600 }}
+              >
+                Alt text obálky
+              </label>
+              <input
+                id="cover_image_alt"
+                name="cover_image_alt"
+                type="text"
+                value={formState.cover_image_alt}
+                onChange={(e) =>
+                  setFormState((prev) => ({
+                    ...prev,
+                    cover_image_alt: e.target.value,
+                  }))
+                }
+                placeholder="Krátký popis obrázku pro přístupnost a SEO"
+                style={{
+                  width: "100%",
+                  padding: "12px 14px",
+                  border: "1px solid #ccc",
+                  fontSize: "16px",
+                }}
+              />
+            </div>
+
+            <div>
+              <label
+                htmlFor="cover_image_caption"
+                style={{ display: "block", marginBottom: "8px", fontWeight: 600 }}
+              >
+                Popisek / kredit obálky
+              </label>
+              <input
+                id="cover_image_caption"
+                name="cover_image_caption"
+                type="text"
+                value={formState.cover_image_caption}
+                onChange={(e) =>
+                  setFormState((prev) => ({
+                    ...prev,
+                    cover_image_caption: e.target.value,
+                  }))
+                }
+                placeholder="Nepovinný veřejný popisek nebo kredit obrázku"
+                style={{
+                  width: "100%",
+                  padding: "12px 14px",
+                  border: "1px solid #ccc",
+                  fontSize: "16px",
+                }}
+              />
+            </div>
+          </section>
         </section>
 
         <WorkBlocksEditor blocks={blocks} setBlocks={setBlocks} />

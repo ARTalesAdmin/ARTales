@@ -17,6 +17,9 @@ export type WorkFormValues = {
   origin_type: "public_domain" | "original" | "translation" | "other"
   source_label: "gutenberg" | "web" | "manual" | "original"
   source_reference: string
+  cover_image_path: string
+  cover_image_alt: string
+  cover_image_caption: string
   status: string
   primary_author_id: string
   collection_id: string
@@ -65,6 +68,9 @@ export function parseWorkFormData(formData: FormData): WorkFormValues {
     origin_type: String(formData.get("origin_type") ?? "").trim() as WorkFormValues["origin_type"],
     source_label: String(formData.get("source_label") ?? "").trim() as WorkFormValues["source_label"],
     source_reference: String(formData.get("source_reference") ?? "").trim(),
+    cover_image_path: String(formData.get("cover_image_path") ?? "").trim(),
+    cover_image_alt: String(formData.get("cover_image_alt") ?? "").trim(),
+    cover_image_caption: String(formData.get("cover_image_caption") ?? "").trim(),
     status: String(formData.get("status") ?? "").trim(),
     primary_author_id: String(formData.get("primary_author_id") ?? "").trim(),
     collection_id: String(formData.get("collection_id") ?? "").trim(),
@@ -142,6 +148,9 @@ export function mapWorkFormValuesToInsertPayload(
     origin_type: values.origin_type,
     source_label: values.source_label,
     source_reference: toNullableString(values.source_reference),
+    cover_image_path: toNullableString(values.cover_image_path),
+    cover_image_alt: toNullableString(values.cover_image_alt),
+    cover_image_caption: toNullableString(values.cover_image_caption),
     status: values.status,
     primary_author_id: values.primary_author_id,
     collection_id: toNullableForeignKey(values.collection_id),
@@ -165,6 +174,9 @@ export function mapWorkFormValuesToUpdatePayload(
     origin_type: values.origin_type,
     source_label: values.source_label,
     source_reference: toNullableString(values.source_reference),
+    cover_image_path: toNullableString(values.cover_image_path),
+    cover_image_alt: toNullableString(values.cover_image_alt),
+    cover_image_caption: toNullableString(values.cover_image_caption),
     status: values.status,
     primary_author_id: values.primary_author_id,
     collection_id: toNullableForeignKey(values.collection_id),
