@@ -1,11 +1,11 @@
-import Link from "next/link"
-import { requireEditorOrAdmin } from "@/lib/guards"
-import { getCollectionsForMember } from "@/lib/dbCollections"
+import Link from "next/link";
+import { requireEditorOrAdmin } from "@/lib/guards";
+import { getCollectionsForMember } from "@/lib/dbCollections";
 
 export default async function MemberCollectionsPage() {
-  await requireEditorOrAdmin()
+  await requireEditorOrAdmin();
 
-  const collections = await getCollectionsForMember()
+  const collections = await getCollectionsForMember();
 
   return (
     <main
@@ -46,8 +46,8 @@ export default async function MemberCollectionsPage() {
         </h1>
 
         <p style={{ maxWidth: "720px", marginBottom: "18px" }}>
-          Přehled kolekcí v systému ARTales. Kolekce slouží jako veřejné i interní
-          seskupení děl.
+          Přehled kolekcí v systému ARTales. Kolekce slouží jako veřejné i
+          interní seskupení děl.
         </p>
 
         <div style={{ display: "flex", gap: "12px", flexWrap: "wrap" }}>
@@ -82,7 +82,10 @@ export default async function MemberCollectionsPage() {
             <article
               key={collection.id}
               style={{
-                border: "1px solid #ddd",
+                border: "1px solid rgba(13, 21, 40, 0.16)",
+                borderRadius: "20px",
+                background: "#fffdf8",
+                boxShadow: "0 12px 30px rgba(13, 21, 40, 0.07)",
                 padding: "20px",
                 display: "flex",
                 flexDirection: "column",
@@ -158,5 +161,5 @@ export default async function MemberCollectionsPage() {
         </div>
       )}
     </main>
-  )
+  );
 }

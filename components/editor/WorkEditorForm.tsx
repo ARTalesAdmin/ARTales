@@ -1,51 +1,51 @@
-"use client"
+"use client";
 
-import Link from "next/link"
-import { useEffect, useMemo, useState } from "react"
-import { createEmptyBlock, type WorkBlock } from "@/lib/blocks"
-import WorkBlocksEditor from "./WorkBlocksEditor"
+import Link from "next/link";
+import { useEffect, useMemo, useState } from "react";
+import { createEmptyBlock, type WorkBlock } from "@/lib/blocks";
+import WorkBlocksEditor from "./WorkBlocksEditor";
 
 type Props = {
-  mode: "new" | "edit"
-  slug?: string
+  mode: "new" | "edit";
+  slug?: string;
 
   initialData: {
-    title: string
-    slug: string
-    subtitle: string
-    summary: string
-    primary_author_id: string
-    collection_id: string
-    canonical_language: string
-    status: string
-    origin_type: string
-    source_label: string
-    source_reference: string
-    cover_image_request: string
-    cover_image_path: string
-    cover_image_alt: string
-    cover_image_caption: string
-    blocks: WorkBlock[]
-  }
+    title: string;
+    slug: string;
+    subtitle: string;
+    summary: string;
+    primary_author_id: string;
+    collection_id: string;
+    canonical_language: string;
+    status: string;
+    origin_type: string;
+    source_label: string;
+    source_reference: string;
+    cover_image_request: string;
+    cover_image_path: string;
+    cover_image_alt: string;
+    cover_image_caption: string;
+    blocks: WorkBlock[];
+  };
 
-  authors: { id: string; name: string }[]
-  collections: { id: string; title: string }[]
-  languageOptions: { value: string; label: string }[]
-  statusOptions: { value: string; label: string }[]
+  authors: { id: string; name: string }[];
+  collections: { id: string; title: string }[];
+  languageOptions: { value: string; label: string }[];
+  statusOptions: { value: string; label: string }[];
 
-  action: (formData: FormData) => Promise<void>
-  clearDraftKeys?: string[]
-  forcedAuthorId?: string
-}
+  action: (formData: FormData) => Promise<void>;
+  clearDraftKeys?: string[];
+  forcedAuthorId?: string;
+};
 
 function getStorageKey(mode: "new" | "edit", slug?: string) {
   return mode === "new"
     ? "artales-work-draft-new"
-    : `artales-work-draft-edit:${slug}`
+    : `artales-work-draft-edit:${slug}`;
 }
 
 function stableStringify(value: unknown) {
-  return JSON.stringify(value)
+  return JSON.stringify(value);
 }
 
 export default function WorkEditorForm(props: Props) {
@@ -60,19 +60,19 @@ export default function WorkEditorForm(props: Props) {
     action,
     clearDraftKeys = [],
     forcedAuthorId = "",
-  } = props
+  } = props;
 
-  const storageKey = getStorageKey(mode, slug)
+  const storageKey = getStorageKey(mode, slug);
   const returnTo =
-    mode === "new" ? "/member/works/new" : `/member/works/${slug}/edit`
+    mode === "new" ? "/member/works/new" : `/member/works/${slug}/edit`;
 
   useEffect(() => {
-    if (clearDraftKeys.length === 0) return
+    if (clearDraftKeys.length === 0) return;
 
     clearDraftKeys.forEach((key) => {
-      localStorage.removeItem(key)
-    })
-  }, [clearDraftKeys])
+      localStorage.removeItem(key);
+    });
+  }, [clearDraftKeys]);
 
   const [formState, setFormState] = useState({
     title: initialData.title,
@@ -90,41 +90,50 @@ export default function WorkEditorForm(props: Props) {
     cover_image_path: initialData.cover_image_path,
     cover_image_alt: initialData.cover_image_alt,
     cover_image_caption: initialData.cover_image_caption,
-  })
+  });
 
   const [blocks, setBlocks] = useState<WorkBlock[]>(
     initialData.blocks.length > 0
       ? initialData.blocks
-      : [createEmptyBlock("chapter")]
-  )
+      : [createEmptyBlock("chapter")],
+  );
 
-  const [hasDraft, setHasDraft] = useState(false)
-  const [lastSaved, setLastSaved] = useState<string | null>(null)
-  const [draftLoaded, setDraftLoaded] = useState(false)
-  const [autosaveEnabled, setAutosaveEnabled] = useState(false)
+  const [hasDraft, setHasDraft] = useState(false);
+  const [lastSaved, setLastSaved] = useState<string | null>(null);
+  const [draftLoaded, setDraftLoaded] = useState(false);
+  const [autosaveEnabled, setAutosaveEnabled] = useState(false);
 
-  const summaryLength = formState.summary.trim().length
+  const summaryLength = formState.summary.trim().length;
   const hasBlocks = blocks.some((block) => {
-    if (block.type === "separator") return true
+    if (block.type === "separator") return true;
     if (block.type === "letter") {
-      return String(block.fields?.body ?? block.content ?? "").trim() !== ""
+      return String(block.fields?.body ?? block.content ?? "").trim() !== "";
     }
     if (block.type === "image") {
       return (
-        String(block.fields?.storage_path ?? block.content ?? "").trim() !== "" ||
+        String(block.fields?.storage_path ?? block.content ?? "").trim() !==
+          "" ||
         String(block.fields?.image_request ?? "").trim() !== "" ||
         String(block.fields?.caption ?? "").trim() !== ""
-      )
+      );
     }
-    return block.content.trim() !== ""
-  })
+    return block.content.trim() !== "";
+  });
   const readinessItems = [
     { label: "Název", done: formState.title.trim() !== "" },
     { label: "Autor", done: formState.primary_author_id.trim() !== "" },
-    { label: "Shrnutí 200–800 znaků", done: summaryLength >= 200 && summaryLength <= 800 },
+    {
+      label: "Shrnutí 200–800 znaků",
+      done: summaryLength >= 200 && summaryLength <= 800,
+    },
     { label: "Obsahové bloky", done: hasBlocks },
-    { label: "Obálka nebo poznámka k obálce", done: formState.cover_image_path.trim() !== "" || formState.cover_image_request.trim() !== "" },
-  ]
+    {
+      label: "Obálka nebo poznámka k obálce",
+      done:
+        formState.cover_image_path.trim() !== "" ||
+        formState.cover_image_request.trim() !== "",
+    },
+  ];
 
   const currentSnapshot = useMemo(
     () =>
@@ -132,8 +141,8 @@ export default function WorkEditorForm(props: Props) {
         form: formState,
         blocks,
       }),
-    [formState, blocks]
-  )
+    [formState, blocks],
+  );
 
   const initialSnapshot = useMemo(
     () =>
@@ -160,32 +169,32 @@ export default function WorkEditorForm(props: Props) {
             ? initialData.blocks
             : [createEmptyBlock("chapter")],
       }),
-    [initialData]
-  )
+    [initialData],
+  );
 
-    useEffect(() => {
-    const raw = localStorage.getItem(storageKey)
+  useEffect(() => {
+    const raw = localStorage.getItem(storageKey);
 
     if (!raw) {
-      setDraftLoaded(true)
-      setAutosaveEnabled(true)
-      return
+      setDraftLoaded(true);
+      setAutosaveEnabled(true);
+      return;
     }
 
     try {
-      const parsed = JSON.parse(raw)
-      const parsedForm = parsed.form ?? {}
-      const parsedBlocks = Array.isArray(parsed.blocks) ? parsed.blocks : []
+      const parsed = JSON.parse(raw);
+      const parsedForm = parsed.form ?? {};
+      const parsedBlocks = Array.isArray(parsed.blocks) ? parsed.blocks : [];
 
       const draftSnapshot = stableStringify({
         form: parsedForm,
         blocks: parsedBlocks,
-      })
+      });
 
       if (draftSnapshot === initialSnapshot) {
-        localStorage.removeItem(storageKey)
-        setAutosaveEnabled(true)
-        return
+        localStorage.removeItem(storageKey);
+        setAutosaveEnabled(true);
+        return;
       }
 
       // Speciální flow: návrat z vytvoření autora
@@ -206,14 +215,14 @@ export default function WorkEditorForm(props: Props) {
           cover_image_path: parsedForm.cover_image_path ?? "",
           cover_image_alt: parsedForm.cover_image_alt ?? "",
           cover_image_caption: parsedForm.cover_image_caption ?? "",
-        }
+        };
 
-        setFormState(nextFormState)
+        setFormState(nextFormState);
         setBlocks(
           parsedBlocks.length > 0
             ? parsedBlocks
-            : [createEmptyBlock("chapter")]
-        )
+            : [createEmptyBlock("chapter")],
+        );
 
         const nextPayload = {
           form: nextFormState,
@@ -222,51 +231,51 @@ export default function WorkEditorForm(props: Props) {
               ? parsedBlocks
               : [createEmptyBlock("chapter")],
           updated_at: new Date().toISOString(),
-        }
+        };
 
-        localStorage.setItem(storageKey, JSON.stringify(nextPayload))
-        setLastSaved(nextPayload.updated_at)
-        setHasDraft(false)
-        setAutosaveEnabled(true)
-        return
+        localStorage.setItem(storageKey, JSON.stringify(nextPayload));
+        setLastSaved(nextPayload.updated_at);
+        setHasDraft(false);
+        setAutosaveEnabled(true);
+        return;
       }
 
-      setHasDraft(true)
-      setLastSaved(parsed.updated_at ?? null)
+      setHasDraft(true);
+      setLastSaved(parsed.updated_at ?? null);
     } catch {
-      localStorage.removeItem(storageKey)
-      setAutosaveEnabled(true)
+      localStorage.removeItem(storageKey);
+      setAutosaveEnabled(true);
     } finally {
-      setDraftLoaded(true)
+      setDraftLoaded(true);
     }
-  }, [storageKey, initialSnapshot, forcedAuthorId])
+  }, [storageKey, initialSnapshot, forcedAuthorId]);
 
   useEffect(() => {
-    if (!draftLoaded || !autosaveEnabled) return
+    if (!draftLoaded || !autosaveEnabled) return;
 
     const payload = {
       form: formState,
       blocks,
       updated_at: new Date().toISOString(),
-    }
+    };
 
-    localStorage.setItem(storageKey, JSON.stringify(payload))
-    setLastSaved(payload.updated_at)
-  }, [formState, blocks, storageKey, draftLoaded, autosaveEnabled])
+    localStorage.setItem(storageKey, JSON.stringify(payload));
+    setLastSaved(payload.updated_at);
+  }, [formState, blocks, storageKey, draftLoaded, autosaveEnabled]);
 
-    useEffect(() => {
-    if (!forcedAuthorId || !draftLoaded) return
+  useEffect(() => {
+    if (!forcedAuthorId || !draftLoaded) return;
 
     setFormState((prev) => ({
       ...prev,
       primary_author_id: forcedAuthorId,
-    }))
+    }));
 
-    const raw = localStorage.getItem(storageKey)
-    if (!raw) return
+    const raw = localStorage.getItem(storageKey);
+    if (!raw) return;
 
     try {
-      const parsed = JSON.parse(raw)
+      const parsed = JSON.parse(raw);
 
       const next = {
         ...parsed,
@@ -275,25 +284,25 @@ export default function WorkEditorForm(props: Props) {
           primary_author_id: forcedAuthorId,
         },
         updated_at: new Date().toISOString(),
-      }
+      };
 
-      localStorage.setItem(storageKey, JSON.stringify(next))
-      setLastSaved(next.updated_at)
+      localStorage.setItem(storageKey, JSON.stringify(next));
+      setLastSaved(next.updated_at);
     } catch {
       // ignore broken draft
     }
-  }, [forcedAuthorId, storageKey, draftLoaded])
+  }, [forcedAuthorId, storageKey, draftLoaded]);
 
   function restoreDraft() {
-    const raw = localStorage.getItem(storageKey)
+    const raw = localStorage.getItem(storageKey);
     if (!raw) {
-      setHasDraft(false)
-      setAutosaveEnabled(true)
-      return
+      setHasDraft(false);
+      setAutosaveEnabled(true);
+      return;
     }
 
     try {
-      const parsed = JSON.parse(raw)
+      const parsed = JSON.parse(raw);
 
       if (parsed.form) {
         setFormState({
@@ -312,27 +321,27 @@ export default function WorkEditorForm(props: Props) {
           cover_image_path: parsed.form.cover_image_path ?? "",
           cover_image_alt: parsed.form.cover_image_alt ?? "",
           cover_image_caption: parsed.form.cover_image_caption ?? "",
-        })
+        });
       }
 
       if (Array.isArray(parsed.blocks)) {
-        setBlocks(parsed.blocks)
+        setBlocks(parsed.blocks);
       }
 
-      setLastSaved(parsed.updated_at ?? null)
+      setLastSaved(parsed.updated_at ?? null);
     } catch {
       // ignore broken draft
     }
 
-    setHasDraft(false)
-    setAutosaveEnabled(true)
+    setHasDraft(false);
+    setAutosaveEnabled(true);
   }
 
   function discardDraft() {
-    localStorage.removeItem(storageKey)
-    setHasDraft(false)
-    setLastSaved(null)
-    setAutosaveEnabled(true)
+    localStorage.removeItem(storageKey);
+    setHasDraft(false);
+    setLastSaved(null);
+    setAutosaveEnabled(true);
   }
 
   return (
@@ -357,8 +366,8 @@ export default function WorkEditorForm(props: Props) {
           ) : null}
 
           <p style={{ margin: "0 0 12px 0", fontSize: "14px", opacity: 0.8 }}>
-            Pokud od poslední práce uplynul delší čas, zvaž, jestli chceš obnovit
-            lokální návrh, nebo pokračovat bez něj.
+            Pokud od poslední práce uplynul delší čas, zvaž, jestli chceš
+            obnovit lokální návrh, nebo pokračovat bez něj.
           </p>
 
           <div style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
@@ -393,9 +402,10 @@ export default function WorkEditorForm(props: Props) {
       ) : null}
 
       <section
+        className="artales-member-panel"
         style={{
-          border: "1px solid #e2ded8",
-          background: "#fbfaf7",
+          border: "1px solid rgba(13, 21, 40, 0.14)",
+          background: "#fffdf8",
           padding: "18px",
           marginBottom: "22px",
           display: "grid",
@@ -421,13 +431,25 @@ export default function WorkEditorForm(props: Props) {
         </div>
         {mode === "edit" && slug ? (
           <div style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
-            <Link href={`/dilo/${slug}`} target="_blank" style={{ color: "#111", textDecoration: "underline" }}>
+            <Link
+              href={`/dilo/${slug}`}
+              target="_blank"
+              style={{ color: "#111", textDecoration: "underline" }}
+            >
               Otevřít veřejný detail
             </Link>
-            <Link href={`/reader/${slug}?mode=preview`} target="_blank" style={{ color: "#111", textDecoration: "underline" }}>
+            <Link
+              href={`/reader/${slug}?mode=preview`}
+              target="_blank"
+              style={{ color: "#111", textDecoration: "underline" }}
+            >
               Otevřít ukázku ve čtečce
             </Link>
-            <Link href={`/reader/${slug}?mode=full`} target="_blank" style={{ color: "#111", textDecoration: "underline" }}>
+            <Link
+              href={`/reader/${slug}?mode=full`}
+              target="_blank"
+              style={{ color: "#111", textDecoration: "underline" }}
+            >
               Otevřít celé dílo ve čtečce
             </Link>
           </div>
@@ -436,8 +458,11 @@ export default function WorkEditorForm(props: Props) {
 
       <form action={action} style={{ display: "grid", gap: "22px" }}>
         <section
+          className="artales-member-panel"
           style={{
-            border: "1px solid #ddd",
+            border: "1px solid rgba(13, 21, 40, 0.14)",
+            background: "#fffdf8",
+            borderRadius: "22px",
             padding: "24px",
             display: "grid",
             gap: "18px",
@@ -464,7 +489,9 @@ export default function WorkEditorForm(props: Props) {
               style={{
                 width: "100%",
                 padding: "12px 14px",
-                border: "1px solid #ccc",
+                border: "1px solid rgba(13, 21, 40, 0.22)",
+                background: "#fffefb",
+                borderRadius: "12px",
                 fontSize: "16px",
               }}
             />
@@ -491,13 +518,15 @@ export default function WorkEditorForm(props: Props) {
               style={{
                 width: "100%",
                 padding: "12px 14px",
-                border: "1px solid #ccc",
+                border: "1px solid rgba(13, 21, 40, 0.22)",
+                background: "#fffefb",
+                borderRadius: "12px",
                 fontSize: "16px",
               }}
             />
             <p style={{ margin: "8px 0 0 0", fontSize: "14px", opacity: 0.75 }}>
-              URL identifikátor díla. Když ho nevyplníš, vytvoří se automaticky z
-              názvu. Povolená jsou pouze malá písmena, čísla a pomlčky.
+              URL identifikátor díla. Když ho nevyplníš, vytvoří se automaticky
+              z názvu. Povolená jsou pouze malá písmena, čísla a pomlčky.
             </p>
           </div>
 
@@ -519,7 +548,9 @@ export default function WorkEditorForm(props: Props) {
               style={{
                 width: "100%",
                 padding: "12px 14px",
-                border: "1px solid #ccc",
+                border: "1px solid rgba(13, 21, 40, 0.22)",
+                background: "#fffefb",
+                borderRadius: "12px",
                 fontSize: "16px",
               }}
             />
@@ -547,14 +578,17 @@ export default function WorkEditorForm(props: Props) {
               style={{
                 width: "100%",
                 padding: "12px 14px",
-                border: "1px solid #ccc",
+                border: "1px solid rgba(13, 21, 40, 0.22)",
+                background: "#fffefb",
+                borderRadius: "12px",
                 fontSize: "16px",
                 resize: "vertical",
               }}
             />
             <p style={{ margin: "8px 0 0 0", fontSize: "14px", opacity: 0.75 }}>
               Krátké představení díla pro galerii a detail. Povinné pole.
-              Doporučený rozsah je 200–800 znaků. Aktuálně: {summaryLength} znaků.
+              Doporučený rozsah je 200–800 znaků. Aktuálně: {summaryLength}{" "}
+              znaků.
             </p>
           </div>
 
@@ -592,7 +626,9 @@ export default function WorkEditorForm(props: Props) {
               style={{
                 width: "100%",
                 padding: "12px 14px",
-                border: "1px solid #ccc",
+                border: "1px solid rgba(13, 21, 40, 0.22)",
+                background: "#fffefb",
+                borderRadius: "12px",
                 fontSize: "16px",
               }}
             >
@@ -604,9 +640,9 @@ export default function WorkEditorForm(props: Props) {
               ))}
             </select>
             <p style={{ margin: "8px 0 0 0", fontSize: "14px", opacity: 0.75 }}>
-              Hlavní autor, pod kterým bude dílo vedeno. Povinné pole. Pokud autor
-              ještě neexistuje, můžeš ho založit přes odkaz výše a po návratu bude
-              automaticky vybraný.
+              Hlavní autor, pod kterým bude dílo vedeno. Povinné pole. Pokud
+              autor ještě neexistuje, můžeš ho založit přes odkaz výše a po
+              návratu bude automaticky vybraný.
             </p>
           </div>
 
@@ -630,7 +666,9 @@ export default function WorkEditorForm(props: Props) {
               style={{
                 width: "100%",
                 padding: "12px 14px",
-                border: "1px solid #ccc",
+                border: "1px solid rgba(13, 21, 40, 0.22)",
+                background: "#fffefb",
+                borderRadius: "12px",
                 fontSize: "16px",
               }}
             >
@@ -666,7 +704,9 @@ export default function WorkEditorForm(props: Props) {
               style={{
                 width: "100%",
                 padding: "12px 14px",
-                border: "1px solid #ccc",
+                border: "1px solid rgba(13, 21, 40, 0.22)",
+                background: "#fffefb",
+                borderRadius: "12px",
                 fontSize: "16px",
               }}
             >
@@ -677,8 +717,8 @@ export default function WorkEditorForm(props: Props) {
               ))}
             </select>
             <p style={{ margin: "8px 0 0 0", fontSize: "14px", opacity: 0.75 }}>
-              Hlavní jazyk díla. Ukládá se standardizovaný kód, editor vidí český
-              popisek.
+              Hlavní jazyk díla. Ukládá se standardizovaný kód, editor vidí
+              český popisek.
             </p>
           </div>
 
@@ -699,7 +739,9 @@ export default function WorkEditorForm(props: Props) {
               style={{
                 width: "100%",
                 padding: "12px 14px",
-                border: "1px solid #ccc",
+                border: "1px solid rgba(13, 21, 40, 0.22)",
+                background: "#fffefb",
+                borderRadius: "12px",
                 fontSize: "16px",
               }}
             >
@@ -736,7 +778,9 @@ export default function WorkEditorForm(props: Props) {
               style={{
                 width: "100%",
                 padding: "12px 14px",
-                border: "1px solid #ccc",
+                border: "1px solid rgba(13, 21, 40, 0.22)",
+                background: "#fffefb",
+                borderRadius: "12px",
                 fontSize: "16px",
               }}
             >
@@ -771,7 +815,9 @@ export default function WorkEditorForm(props: Props) {
               style={{
                 width: "100%",
                 padding: "12px 14px",
-                border: "1px solid #ccc",
+                border: "1px solid rgba(13, 21, 40, 0.22)",
+                background: "#fffefb",
+                borderRadius: "12px",
                 fontSize: "16px",
               }}
             >
@@ -807,7 +853,9 @@ export default function WorkEditorForm(props: Props) {
               style={{
                 width: "100%",
                 padding: "12px 14px",
-                border: "1px solid #ccc",
+                border: "1px solid rgba(13, 21, 40, 0.22)",
+                background: "#fffefb",
+                borderRadius: "12px",
                 fontSize: "16px",
               }}
             />
@@ -830,7 +878,11 @@ export default function WorkEditorForm(props: Props) {
             <div>
               <label
                 htmlFor="cover_image_request"
-                style={{ display: "block", marginBottom: "8px", fontWeight: 600 }}
+                style={{
+                  display: "block",
+                  marginBottom: "8px",
+                  fontWeight: 600,
+                }}
               >
                 Název souboru obálky / poznámka
               </label>
@@ -853,7 +905,9 @@ export default function WorkEditorForm(props: Props) {
                   fontSize: "16px",
                 }}
               />
-              <p style={{ margin: "8px 0 0 0", fontSize: "14px", opacity: 0.75 }}>
+              <p
+                style={{ margin: "8px 0 0 0", fontSize: "14px", opacity: 0.75 }}
+              >
                 Pro běžné editory: nahraj obrázek do sdílené složky a sem napiš
                 přesný název souboru nebo poznámku. Technické vložení do systému
                 a cesta níže se doplní později správcem.
@@ -863,7 +917,11 @@ export default function WorkEditorForm(props: Props) {
             <div>
               <label
                 htmlFor="cover_image_path"
-                style={{ display: "block", marginBottom: "8px", fontWeight: 600 }}
+                style={{
+                  display: "block",
+                  marginBottom: "8px",
+                  fontWeight: 600,
+                }}
               >
                 Technická cesta obálky (doplňuje správce)
               </label>
@@ -886,7 +944,9 @@ export default function WorkEditorForm(props: Props) {
                   fontSize: "16px",
                 }}
               />
-              <p style={{ margin: "8px 0 0 0", fontSize: "14px", opacity: 0.75 }}>
+              <p
+                style={{ margin: "8px 0 0 0", fontSize: "14px", opacity: 0.75 }}
+              >
                 Běžný editor toto pole nemusí řešit. Sem se vkládá až technická
                 cesta po nahrání obrázku do interního úložiště.
               </p>
@@ -895,7 +955,11 @@ export default function WorkEditorForm(props: Props) {
             <div>
               <label
                 htmlFor="cover_image_alt"
-                style={{ display: "block", marginBottom: "8px", fontWeight: 600 }}
+                style={{
+                  display: "block",
+                  marginBottom: "8px",
+                  fontWeight: 600,
+                }}
               >
                 Alt text obálky
               </label>
@@ -923,7 +987,11 @@ export default function WorkEditorForm(props: Props) {
             <div>
               <label
                 htmlFor="cover_image_caption"
-                style={{ display: "block", marginBottom: "8px", fontWeight: 600 }}
+                style={{
+                  display: "block",
+                  marginBottom: "8px",
+                  fontWeight: 600,
+                }}
               >
                 Popisek / kredit obálky
               </label>
@@ -976,5 +1044,5 @@ export default function WorkEditorForm(props: Props) {
         </div>
       </form>
     </>
-  )
+  );
 }

@@ -1,17 +1,17 @@
-"use client"
+"use client";
 
-import { useEffect, useState } from "react"
-import Image from "next/image"
-import ArtalesBrand from "@/components/brand/ArtalesBrand"
-import { getPublicStorageImageUrl } from "@/lib/storageImages"
+import { useEffect, useState } from "react";
+import Image from "next/image";
+import ArtalesBrand from "@/components/brand/ArtalesBrand";
+import { getPublicStorageImageUrl } from "@/lib/storageImages";
 
 type WorkCoverImageProps = {
-  title: string
-  imagePath?: string | null
-  alt?: string | null
-  caption?: string | null
-  variant?: "detail" | "card"
-}
+  title: string;
+  imagePath?: string | null;
+  alt?: string | null;
+  caption?: string | null;
+  variant?: "detail" | "card";
+};
 
 export default function WorkCoverImage({
   title,
@@ -20,15 +20,15 @@ export default function WorkCoverImage({
   caption,
   variant = "detail",
 }: WorkCoverImageProps) {
-  const imageUrl = getPublicStorageImageUrl(imagePath)
-  const [hasImageError, setHasImageError] = useState(false)
-  const isCard = variant === "card"
-  const minHeight = isCard ? 270 : 460
-  const shouldShowImage = Boolean(imageUrl) && !hasImageError
+  const imageUrl = getPublicStorageImageUrl(imagePath);
+  const [hasImageError, setHasImageError] = useState(false);
+  const isCard = variant === "card";
+  const minHeight = isCard ? 270 : 460;
+  const shouldShowImage = Boolean(imageUrl) && !hasImageError;
 
   useEffect(() => {
-    setHasImageError(false)
-  }, [imageUrl])
+    setHasImageError(false);
+  }, [imageUrl]);
 
   return (
     <figure
@@ -46,9 +46,12 @@ export default function WorkCoverImage({
           overflow: "hidden",
           border: "1px solid rgba(217, 183, 110, 0.3)",
           borderRadius: isCard ? "18px" : "24px",
-          background:
-            "radial-gradient(circle at top, rgba(217, 183, 110, 0.26), transparent 18rem), linear-gradient(145deg, #111827 0%, #090b0d 70%)",
-          boxShadow: isCard ? "0 14px 34px rgba(5, 7, 12, 0.12)" : "0 24px 70px rgba(5, 7, 12, 0.22)",
+          background: shouldShowImage
+            ? "#f3eadc"
+            : "radial-gradient(circle at top, rgba(217, 183, 110, 0.34), transparent 18rem), linear-gradient(145deg, #fff8e8 0%, #ead9b8 100%)",
+          boxShadow: isCard
+            ? "0 14px 34px rgba(5, 7, 12, 0.12)"
+            : "0 24px 70px rgba(5, 7, 12, 0.22)",
         }}
       >
         {shouldShowImage && imageUrl ? (
@@ -56,7 +59,11 @@ export default function WorkCoverImage({
             src={imageUrl}
             alt={alt?.trim() || `Cover image for ${title}`}
             fill
-            sizes={isCard ? "(max-width: 768px) 100vw, 320px" : "(max-width: 768px) 100vw, 380px"}
+            sizes={
+              isCard
+                ? "(max-width: 768px) 100vw, 320px"
+                : "(max-width: 768px) 100vw, 380px"
+            }
             style={{
               objectFit: "cover",
             }}
@@ -74,8 +81,15 @@ export default function WorkCoverImage({
               textAlign: "center",
             }}
           >
-            <div style={{ display: "grid", justifyItems: "center", gap: "18px" }}>
-              <ArtalesBrand href="" variant="dark" size={isCard ? "sm" : "md"} showMark />
+            <div
+              style={{ display: "grid", justifyItems: "center", gap: "18px" }}
+            >
+              <ArtalesBrand
+                href=""
+                variant="dark"
+                size={isCard ? "sm" : "md"}
+                showMark
+              />
               <div>
                 <p
                   style={{
@@ -83,7 +97,7 @@ export default function WorkCoverImage({
                     fontSize: "12px",
                     letterSpacing: "0.16em",
                     textTransform: "uppercase",
-                    color: "rgba(241, 216, 157, 0.72)",
+                    color: "rgba(13, 21, 40, 0.58)",
                   }}
                 >
                   ARTales Edition
@@ -94,7 +108,7 @@ export default function WorkCoverImage({
                     fontFamily: "Georgia, 'Times New Roman', serif",
                     fontSize: isCard ? "24px" : "31px",
                     lineHeight: 1.13,
-                    color: "#fff8e7",
+                    color: "#0d1528",
                   }}
                 >
                   {title}
@@ -117,5 +131,5 @@ export default function WorkCoverImage({
         </figcaption>
       ) : null}
     </figure>
-  )
+  );
 }

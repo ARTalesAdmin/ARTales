@@ -1,13 +1,13 @@
-import Link from "next/link"
-import { requireEditorOrAdmin } from "@/lib/guards"
-import { getWorksForMember } from "@/lib/dbWorks"
-import { getLanguageLabel } from "@/lib/dictionaries/language"
-import { getStatusLabel } from "@/lib/dictionaries/status"
+import Link from "next/link";
+import { requireEditorOrAdmin } from "@/lib/guards";
+import { getWorksForMember } from "@/lib/dbWorks";
+import { getLanguageLabel } from "@/lib/dictionaries/language";
+import { getStatusLabel } from "@/lib/dictionaries/status";
 
 export default async function MemberWorksPage() {
-  await requireEditorOrAdmin()
+  await requireEditorOrAdmin();
 
-  const works = await getWorksForMember()
+  const works = await getWorksForMember();
 
   return (
     <main
@@ -83,15 +83,18 @@ export default async function MemberWorksPage() {
           {works.map((work) => {
             const languageLabel = getLanguageLabel(
               work.canonical_language,
-              "internal"
-            )
-            const statusLabel = getStatusLabel(work.status, "internal")
+              "internal",
+            );
+            const statusLabel = getStatusLabel(work.status, "internal");
 
             return (
               <article
                 key={work.id}
                 style={{
-                  border: "1px solid #ddd",
+                  border: "1px solid rgba(13, 21, 40, 0.16)",
+                  borderRadius: "20px",
+                  background: "#fffdf8",
+                  boxShadow: "0 12px 30px rgba(13, 21, 40, 0.07)",
                   padding: "20px",
                   display: "flex",
                   flexDirection: "column",
@@ -121,7 +124,8 @@ export default async function MemberWorksPage() {
                   </p>
 
                   <p style={{ margin: "0 0 8px 0" }}>
-                    <strong>Jazyk:</strong> {languageLabel ?? work.canonical_language}
+                    <strong>Jazyk:</strong>{" "}
+                    {languageLabel ?? work.canonical_language}
                   </p>
 
                   <p style={{ margin: "0 0 8px 0" }}>
@@ -169,10 +173,10 @@ export default async function MemberWorksPage() {
                   </Link>
                 </div>
               </article>
-            )
+            );
           })}
         </div>
       )}
     </main>
-  )
+  );
 }

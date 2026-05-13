@@ -82,7 +82,11 @@ body {
 
 .artales-public-shell {
   background:
-    radial-gradient(circle at top left, rgba(217, 183, 110, 0.14), transparent 30rem),
+    radial-gradient(
+      circle at top left,
+      rgba(217, 183, 110, 0.14),
+      transparent 30rem
+    ),
     linear-gradient(180deg, #fffaf0 0%, var(--artales-paper) 100%);
   color: var(--artales-ink);
   min-height: 100vh;
@@ -129,7 +133,10 @@ body {
   justify-content: center;
   padding: 0.8rem 1.05rem;
   text-decoration: none;
-  transition: transform 120ms ease, box-shadow 120ms ease, background 120ms ease;
+  transition:
+    transform 120ms ease,
+    box-shadow 120ms ease,
+    background 120ms ease;
 }
 
 .artales-button {
@@ -171,7 +178,11 @@ body {
 
 .artales-member-sidebar {
   background:
-    radial-gradient(circle at top, rgba(217, 183, 110, 0.22), transparent 18rem),
+    radial-gradient(
+      circle at top,
+      rgba(217, 183, 110, 0.22),
+      transparent 18rem
+    ),
     var(--artales-ink);
   border-right: 1px solid rgba(217, 183, 110, 0.2);
   color: #fff;
@@ -243,4 +254,29 @@ body {
   .artales-home-hero {
     grid-template-columns: 1fr !important;
   }
+}
+
+.artales-member-content input,
+.artales-member-content textarea,
+.artales-member-content select {
+  background: #fffefb;
+  border-radius: 12px;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.85);
+}
+
+.artales-member-content section,
+.artales-member-content article {
+  border-radius: 20px;
+}
+
+.artales-member-card {
+  background: #fffdf8;
+  border: 1px solid rgba(13, 21, 40, 0.16) !important;
+  box-shadow: 0 12px 30px rgba(13, 21, 40, 0.07);
+}
+
+.artales-member-panel {
+  background: rgba(255, 253, 248, 0.86);
+  border: 1px solid rgba(13, 21, 40, 0.14) !important;
+  box-shadow: 0 16px 38px rgba(13, 21, 40, 0.06);
 }

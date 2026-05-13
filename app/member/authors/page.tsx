@@ -1,18 +1,21 @@
-import Link from "next/link"
-import { requireEditorOrAdmin } from "@/lib/guards"
-import { getAuthorsForMember } from "@/lib/dbAuthors"
-import { getLanguageLabel, getLanguageLabels } from "@/lib/dictionaries/language"
+import Link from "next/link";
+import { requireEditorOrAdmin } from "@/lib/guards";
+import { getAuthorsForMember } from "@/lib/dbAuthors";
+import {
+  getLanguageLabel,
+  getLanguageLabels,
+} from "@/lib/dictionaries/language";
 
 function formatLifeSpan(birth?: number | null, death?: number | null) {
-  if (!birth && !death) return null
-  if (birth && !death) return `${birth}–`
-  if (birth && death) return `${birth}–${death}`
-  return null
+  if (!birth && !death) return null;
+  if (birth && !death) return `${birth}–`;
+  if (birth && death) return `${birth}–${death}`;
+  return null;
 }
 
 export default async function MemberAuthorsPage() {
-  await requireEditorOrAdmin()
-  const authors = await getAuthorsForMember()
+  await requireEditorOrAdmin();
+  const authors = await getAuthorsForMember();
 
   return (
     <main
@@ -85,15 +88,27 @@ export default async function MemberAuthorsPage() {
           }}
         >
           {authors.map((author) => {
-            const languageLabel = getLanguageLabel(author.primary_language, "internal")
-            const writingLanguageLabels = getLanguageLabels(author.writing_languages, "internal")
-            const lifeSpan = formatLifeSpan(author.birth_year, author.death_year)
+            const languageLabel = getLanguageLabel(
+              author.primary_language,
+              "internal",
+            );
+            const writingLanguageLabels = getLanguageLabels(
+              author.writing_languages,
+              "internal",
+            );
+            const lifeSpan = formatLifeSpan(
+              author.birth_year,
+              author.death_year,
+            );
 
             return (
               <article
                 key={author.id}
                 style={{
-                  border: "1px solid #ddd",
+                  border: "1px solid rgba(13, 21, 40, 0.16)",
+                  borderRadius: "20px",
+                  background: "#fffdf8",
+                  boxShadow: "0 12px 30px rgba(13, 21, 40, 0.07)",
                   padding: "20px",
                   display: "flex",
                   flexDirection: "column",
@@ -143,7 +158,8 @@ export default async function MemberAuthorsPage() {
 
                   {writingLanguageLabels.length > 0 ? (
                     <p style={{ margin: "0 0 8px 0" }}>
-                      <strong>Jazyky:</strong> {writingLanguageLabels.join(", ")}
+                      <strong>Jazyky:</strong>{" "}
+                      {writingLanguageLabels.join(", ")}
                     </p>
                   ) : null}
 
@@ -157,7 +173,14 @@ export default async function MemberAuthorsPage() {
                   </p>
                 </div>
 
-                <div style={{ marginTop: "auto", display: "flex", gap: "10px", flexWrap: "wrap" }}>
+                <div
+                  style={{
+                    marginTop: "auto",
+                    display: "flex",
+                    gap: "10px",
+                    flexWrap: "wrap",
+                  }}
+                >
                   <Link
                     href={`/autor/${author.slug}`}
                     style={{
@@ -184,10 +207,10 @@ export default async function MemberAuthorsPage() {
                   </Link>
                 </div>
               </article>
-            )
+            );
           })}
         </div>
       )}
     </main>
-  )
+  );
 }
