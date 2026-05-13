@@ -160,6 +160,7 @@ export default async function NewWorkPage({ searchParams }: PageProps) {
           origin_type: "original",
           source_label: "manual",
           source_reference: "",
+          cover_image_request: "",
           cover_image_path: "",
           cover_image_alt: "",
           cover_image_caption: "",

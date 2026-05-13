@@ -13,6 +13,7 @@ export type AuthorDetailItem = {
   death_year: number | null
   country: string | null
   primary_language: string | null
+  writing_languages: string[]
   is_public_visible: boolean
   works: GalleryWorkItem[]
 }
@@ -26,6 +27,7 @@ export type AuthorListItem = {
   death_year: number | null
   country: string | null
   primary_language: string | null
+  writing_languages: string[]
   is_public_visible: boolean
 }
 
@@ -39,6 +41,7 @@ export type AuthorEditItem = {
   death_year: number | null
   country: string | null
   primary_language: string | null
+  writing_languages: string[]
   is_public_visible: boolean
 }
 
@@ -52,6 +55,7 @@ type RawAuthorRow = {
   death_year: unknown
   country: unknown
   primary_language: unknown
+  writing_languages: unknown
   is_public_visible: unknown
 }
 
@@ -67,6 +71,9 @@ function mapRawAuthor(row: RawAuthorRow): AuthorEditItem {
     country: row.country == null ? null : String(row.country),
     primary_language:
       row.primary_language == null ? null : String(row.primary_language),
+    writing_languages: Array.isArray(row.writing_languages)
+      ? row.writing_languages.map((value) => String(value))
+      : [],
     is_public_visible: Boolean(row.is_public_visible),
   }
 }
@@ -86,6 +93,7 @@ export async function getAuthorBySlug(
       death_year,
       country,
       primary_language,
+      writing_languages,
       is_public_visible
     `)
     .eq("slug", slug)
@@ -121,6 +129,7 @@ export async function getAuthorsForMember(): Promise<AuthorListItem[]> {
       death_year,
       country,
       primary_language,
+      writing_languages,
       is_public_visible
     `)
     .order("name", { ascending: true })
@@ -142,6 +151,7 @@ export async function getAuthorsForMember(): Promise<AuthorListItem[]> {
       death_year: mapped.death_year,
       country: mapped.country,
       primary_language: mapped.primary_language,
+      writing_languages: mapped.writing_languages,
       is_public_visible: mapped.is_public_visible,
     }
   })
@@ -162,6 +172,7 @@ export async function getAuthorForEditBySlug(
       death_year,
       country,
       primary_language,
+      writing_languages,
       is_public_visible
     `)
     .eq("slug", slug)

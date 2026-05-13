@@ -11,6 +11,46 @@ export const LANGUAGE_DICTIONARY = {
     publicLabel: "German",
     internalLabel: "Němčina",
   },
+  fr: {
+    publicLabel: "French",
+    internalLabel: "Francouzština",
+  },
+  it: {
+    publicLabel: "Italian",
+    internalLabel: "Italština",
+  },
+  la: {
+    publicLabel: "Latin",
+    internalLabel: "Latina",
+  },
+  el: {
+    publicLabel: "Greek",
+    internalLabel: "Řečtina",
+  },
+  es: {
+    publicLabel: "Spanish",
+    internalLabel: "Španělština",
+  },
+  ru: {
+    publicLabel: "Russian",
+    internalLabel: "Ruština",
+  },
+  pl: {
+    publicLabel: "Polish",
+    internalLabel: "Polština",
+  },
+  pt: {
+    publicLabel: "Portuguese",
+    internalLabel: "Portugalština",
+  },
+  uk: {
+    publicLabel: "Ukrainian",
+    internalLabel: "Ukrajinština",
+  },
+  sk: {
+    publicLabel: "Slovak",
+    internalLabel: "Slovenština",
+  },
 } as const
 
 export type LanguageCode = keyof typeof LANGUAGE_DICTIONARY
@@ -21,6 +61,19 @@ export const LANGUAGE_CODES = Object.keys(
 
 export function isLanguageCode(value: string): value is LanguageCode {
   return LANGUAGE_CODES.includes(value as LanguageCode)
+}
+
+export function normalizeLanguageCodes(values: string[]): LanguageCode[] {
+  const seen = new Set<LanguageCode>()
+
+  for (const value of values) {
+    const trimmed = value.trim()
+    if (isLanguageCode(trimmed)) {
+      seen.add(trimmed)
+    }
+  }
+
+  return Array.from(seen)
 }
 
 export function getLanguageLabel(
@@ -36,6 +89,17 @@ export function getLanguageLabel(
   return context === "public"
     ? LANGUAGE_DICTIONARY[value].publicLabel
     : LANGUAGE_DICTIONARY[value].internalLabel
+}
+
+export function getLanguageLabels(
+  values: string[] | null | undefined,
+  context: "public" | "internal"
+): string[] {
+  if (!Array.isArray(values)) return []
+
+  return values
+    .map((value) => getLanguageLabel(value, context))
+    .filter((label): label is string => Boolean(label))
 }
 
 export function getLanguageOptions(context: "internal" | "public") {

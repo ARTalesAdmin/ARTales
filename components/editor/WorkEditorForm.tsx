@@ -21,6 +21,7 @@ type Props = {
     origin_type: string
     source_label: string
     source_reference: string
+    cover_image_request: string
     cover_image_path: string
     cover_image_alt: string
     cover_image_caption: string
@@ -85,6 +86,7 @@ export default function WorkEditorForm(props: Props) {
     origin_type: initialData.origin_type,
     source_label: initialData.source_label,
     source_reference: initialData.source_reference,
+    cover_image_request: initialData.cover_image_request,
     cover_image_path: initialData.cover_image_path,
     cover_image_alt: initialData.cover_image_alt,
     cover_image_caption: initialData.cover_image_caption,
@@ -100,6 +102,29 @@ export default function WorkEditorForm(props: Props) {
   const [lastSaved, setLastSaved] = useState<string | null>(null)
   const [draftLoaded, setDraftLoaded] = useState(false)
   const [autosaveEnabled, setAutosaveEnabled] = useState(false)
+
+  const summaryLength = formState.summary.trim().length
+  const hasBlocks = blocks.some((block) => {
+    if (block.type === "separator") return true
+    if (block.type === "letter") {
+      return String(block.fields?.body ?? block.content ?? "").trim() !== ""
+    }
+    if (block.type === "image") {
+      return (
+        String(block.fields?.storage_path ?? block.content ?? "").trim() !== "" ||
+        String(block.fields?.image_request ?? "").trim() !== "" ||
+        String(block.fields?.caption ?? "").trim() !== ""
+      )
+    }
+    return block.content.trim() !== ""
+  })
+  const readinessItems = [
+    { label: "Název", done: formState.title.trim() !== "" },
+    { label: "Autor", done: formState.primary_author_id.trim() !== "" },
+    { label: "Shrnutí 200–800 znaků", done: summaryLength >= 200 && summaryLength <= 800 },
+    { label: "Obsahové bloky", done: hasBlocks },
+    { label: "Obálka nebo poznámka k obálce", done: formState.cover_image_path.trim() !== "" || formState.cover_image_request.trim() !== "" },
+  ]
 
   const currentSnapshot = useMemo(
     () =>
@@ -125,6 +150,7 @@ export default function WorkEditorForm(props: Props) {
           origin_type: initialData.origin_type,
           source_label: initialData.source_label,
           source_reference: initialData.source_reference,
+          cover_image_request: initialData.cover_image_request,
           cover_image_path: initialData.cover_image_path,
           cover_image_alt: initialData.cover_image_alt,
           cover_image_caption: initialData.cover_image_caption,
@@ -176,6 +202,7 @@ export default function WorkEditorForm(props: Props) {
           origin_type: parsedForm.origin_type ?? "original",
           source_label: parsedForm.source_label ?? "manual",
           source_reference: parsedForm.source_reference ?? "",
+          cover_image_request: parsedForm.cover_image_request ?? "",
           cover_image_path: parsedForm.cover_image_path ?? "",
           cover_image_alt: parsedForm.cover_image_alt ?? "",
           cover_image_caption: parsedForm.cover_image_caption ?? "",
@@ -281,6 +308,7 @@ export default function WorkEditorForm(props: Props) {
           origin_type: parsed.form.origin_type ?? "original",
           source_label: parsed.form.source_label ?? "manual",
           source_reference: parsed.form.source_reference ?? "",
+          cover_image_request: parsed.form.cover_image_request ?? "",
           cover_image_path: parsed.form.cover_image_path ?? "",
           cover_image_alt: parsed.form.cover_image_alt ?? "",
           cover_image_caption: parsed.form.cover_image_caption ?? "",
@@ -363,6 +391,48 @@ export default function WorkEditorForm(props: Props) {
           </div>
         </div>
       ) : null}
+
+      <section
+        style={{
+          border: "1px solid #e2ded8",
+          background: "#fbfaf7",
+          padding: "18px",
+          marginBottom: "22px",
+          display: "grid",
+          gap: "12px",
+        }}
+      >
+        <h2 style={{ margin: 0 }}>Kontrola připravenosti</h2>
+        <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
+          {readinessItems.map((item) => (
+            <span
+              key={item.label}
+              style={{
+                border: `1px solid ${item.done ? "#b8cfa8" : "#e0c39a"}`,
+                background: item.done ? "#f5fff1" : "#fff8ed",
+                borderRadius: "999px",
+                padding: "6px 10px",
+                fontSize: "13px",
+              }}
+            >
+              {item.done ? "✓" : "!"} {item.label}
+            </span>
+          ))}
+        </div>
+        {mode === "edit" && slug ? (
+          <div style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
+            <Link href={`/dilo/${slug}`} target="_blank" style={{ color: "#111", textDecoration: "underline" }}>
+              Otevřít veřejný detail
+            </Link>
+            <Link href={`/reader/${slug}?mode=preview`} target="_blank" style={{ color: "#111", textDecoration: "underline" }}>
+              Otevřít ukázku ve čtečce
+            </Link>
+            <Link href={`/reader/${slug}?mode=full`} target="_blank" style={{ color: "#111", textDecoration: "underline" }}>
+              Otevřít celé dílo ve čtečce
+            </Link>
+          </div>
+        ) : null}
+      </section>
 
       <form action={action} style={{ display: "grid", gap: "22px" }}>
         <section
@@ -484,7 +554,7 @@ export default function WorkEditorForm(props: Props) {
             />
             <p style={{ margin: "8px 0 0 0", fontSize: "14px", opacity: 0.75 }}>
               Krátké představení díla pro galerii a detail. Povinné pole.
-              Doporučený rozsah je 200–800 znaků.
+              Doporučený rozsah je 200–800 znaků. Aktuálně: {summaryLength} znaků.
             </p>
           </div>
 
@@ -759,10 +829,43 @@ export default function WorkEditorForm(props: Props) {
 
             <div>
               <label
+                htmlFor="cover_image_request"
+                style={{ display: "block", marginBottom: "8px", fontWeight: 600 }}
+              >
+                Název souboru obálky / poznámka
+              </label>
+              <input
+                id="cover_image_request"
+                name="cover_image_request"
+                type="text"
+                value={formState.cover_image_request}
+                onChange={(e) =>
+                  setFormState((prev) => ({
+                    ...prev,
+                    cover_image_request: e.target.value,
+                  }))
+                }
+                placeholder="např. phantom-cover-final.jpg nebo použít tmavou obálku z disku"
+                style={{
+                  width: "100%",
+                  padding: "12px 14px",
+                  border: "1px solid #ccc",
+                  fontSize: "16px",
+                }}
+              />
+              <p style={{ margin: "8px 0 0 0", fontSize: "14px", opacity: 0.75 }}>
+                Pro běžné editory: nahraj obrázek do sdílené složky a sem napiš
+                přesný název souboru nebo poznámku. Technické vložení do systému
+                a cesta níže se doplní později správcem.
+              </p>
+            </div>
+
+            <div>
+              <label
                 htmlFor="cover_image_path"
                 style={{ display: "block", marginBottom: "8px", fontWeight: 600 }}
               >
-                Storage path obálky
+                Technická cesta obálky (doplňuje správce)
               </label>
               <input
                 id="cover_image_path"
@@ -784,8 +887,8 @@ export default function WorkEditorForm(props: Props) {
                 }}
               />
               <p style={{ margin: "8px 0 0 0", fontSize: "14px", opacity: 0.75 }}>
-                Zatím ručně vložená cesta k souboru v bucketu artales-images. Můžeš
-                vložit i celou public URL ze Supabase; aplikace si z ní cestu odvodí.
+                Běžný editor toto pole nemusí řešit. Sem se vkládá až technická
+                cesta po nahrání obrázku do interního úložiště.
               </p>
             </div>
 

@@ -285,3 +285,59 @@
   color: #111827;
   letter-spacing: 0.01em;
 }
+
+.artales-image {
+  margin: 2rem auto;
+  text-align: center;
+}
+
+.artales-image img {
+  border: 1px solid var(--artales-border);
+  display: block;
+  height: auto;
+  margin: 0 auto;
+  max-width: 100%;
+}
+
+.artales-image figcaption {
+  color: var(--artales-muted);
+  font-size: 0.86em;
+  line-height: 1.45;
+  margin-top: 0.65rem;
+}
+
+.artales-image--normal {
+  max-width: 34rem;
+}
+
+.artales-image--wide {
+  max-width: 48rem;
+}
+
+.artales-image--full {
+  max-width: 100%;
+}
+
+.artales-image--left {
+  margin-left: 0;
+  margin-right: auto;
+  text-align: left;
+}
+
+.artales-image--right {
+  margin-left: auto;
+  margin-right: 0;
+  text-align: right;
+}
+
+.artales-image--left img,
+.artales-image--right img {
+  margin-left: 0;
+  margin-right: 0;
+}
+
+.artales-separator {
+  margin-bottom: 0.2cm;
+  margin-top: 0.2cm;
+  text-align: center;
+}

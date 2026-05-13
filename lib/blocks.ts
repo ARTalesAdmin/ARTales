@@ -15,6 +15,7 @@ export const WORK_BLOCK_TYPES = [
   "preface",
   "afterword",
   "acknowledgement",
+  "image",
 ] as const
 
 export type WorkBlockType = (typeof WORK_BLOCK_TYPES)[number]
@@ -136,6 +137,13 @@ export const WORK_BLOCK_TYPE_META: Record<
     publicLabel: "Acknowledgement",
     preservesLineBreaks: true,
   },
+  image: {
+    internalLabel: "Obrázek",
+    internalHelp:
+      "Obrázek nebo ilustrace. Editor vyplní hlavně název souboru / poznámku; technickou cestu doplní správce po nahrání.",
+    publicLabel: "Image",
+    preservesLineBreaks: false,
+  },
 }
 
 export function isWorkBlockType(value: string): value is WorkBlockType {
@@ -161,6 +169,23 @@ export function createEmptyBlock(type: WorkBlockType = "chapter"): WorkBlock {
         place_year: "",
         body: "",
         date_signature: "",
+      },
+    }
+  }
+
+  if (type === "image") {
+    return {
+      id: crypto.randomUUID(),
+      type,
+      content: "",
+      editor_note: null,
+      fields: {
+        image_request: "",
+        storage_path: "",
+        alt: "",
+        caption: "",
+        alignment: "center",
+        size: "normal",
       },
     }
   }
@@ -221,6 +246,41 @@ function normalizeLetterBlock(candidate: Record<string, unknown>): WorkBlock {
   }
 }
 
+function normalizeImageBlock(candidate: Record<string, unknown>): WorkBlock {
+  const rawFields = normalizeFields(candidate.fields) ?? {}
+  const storagePath = normalizeContent(rawFields.storage_path ?? candidate.content ?? "")
+  const imageRequest = normalizeContent(rawFields.image_request ?? "")
+  const alt = normalizeContent(rawFields.alt ?? "")
+  const caption = normalizeContent(rawFields.caption ?? "")
+  const rawAlignment = normalizeContent(rawFields.alignment ?? "center")
+  const rawSize = normalizeContent(rawFields.size ?? "normal")
+
+  const alignment = ["center", "left", "right", "wide"].includes(rawAlignment)
+    ? rawAlignment
+    : "center"
+  const size = ["normal", "wide", "full"].includes(rawSize)
+    ? rawSize
+    : "normal"
+
+  return {
+    id:
+      typeof candidate.id === "string" && candidate.id.trim() !== ""
+        ? candidate.id
+        : crypto.randomUUID(),
+    type: "image",
+    content: storagePath,
+    editor_note: normalizeEditorNote(candidate.editor_note),
+    fields: {
+      image_request: imageRequest,
+      storage_path: storagePath,
+      alt,
+      caption,
+      alignment,
+      size,
+    },
+  }
+}
+
 export function sanitizeWorkBlocks(input: unknown): WorkBlock[] {
   if (!Array.isArray(input)) return []
 
@@ -235,6 +295,10 @@ export function sanitizeWorkBlocks(input: unknown): WorkBlock[] {
 
       if (type === "letter") {
         return normalizeLetterBlock(candidate)
+      }
+
+      if (type === "image") {
+        return normalizeImageBlock(candidate)
       }
 
       const content = normalizeContent(candidate.content)
@@ -261,6 +325,13 @@ export function validateWorkBlocks(blocks: WorkBlock[]): string | null {
 
   const hasVisibleContent = blocks.some((block) => {
     if (block.type === "separator") return true
+    if (block.type === "image") {
+      return (
+        String(block.fields?.storage_path ?? block.content ?? "").trim() !== "" ||
+        String(block.fields?.image_request ?? "").trim() !== "" ||
+        String(block.fields?.caption ?? "").trim() !== ""
+      )
+    }
     if (block.type === "letter") {
       return String(block.fields?.body ?? block.content ?? "").trim() !== ""
     }
@@ -274,6 +345,7 @@ export function validateWorkBlocks(blocks: WorkBlock[]): string | null {
 
   for (const block of blocks) {
     if (block.type === "separator") continue
+    if (block.type === "image") continue
 
     if (block.type === "letter") {
       const body = String(block.fields?.body ?? block.content ?? "").trim()
@@ -310,6 +382,12 @@ export function flattenBlocksToPlainText(blocks: WorkBlock[]): string {
         case "afterword":
         case "acknowledgement":
           return block.content.trim()
+
+        case "image": {
+          const caption = String(block.fields?.caption ?? "").trim()
+          const imageRequest = String(block.fields?.image_request ?? "").trim()
+          return ["[Obrázek]", caption || imageRequest].filter(Boolean).join(" ")
+        }
 
         case "letter": {
           const placeYear = String(block.fields?.place_year ?? "").trim()

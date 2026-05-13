@@ -305,7 +305,7 @@ export default async function NewAuthorPage({ searchParams }: PageProps) {
               htmlFor="primary_language"
               style={{ display: "block", marginBottom: "8px", fontWeight: 600 }}
             >
-              Primární jazyk
+              Hlavní jazyk autora
             </label>
             <select
               id="primary_language"
@@ -326,10 +326,45 @@ export default async function NewAuthorPage({ searchParams }: PageProps) {
               ))}
             </select>
             <p style={{ margin: "8px 0 0 0", fontSize: "14px", opacity: 0.75 }}>
-              Nepovinné pole. Do databáze se ukládá pouze kód jazyka, editor vidí
-              český popisek.
+              Jeden hlavní jazyk pro rychlé filtrování a starší výpisy.
             </p>
           </div>
+
+          <fieldset
+            style={{
+              border: "1px solid #e2ded8",
+              padding: "16px",
+              display: "grid",
+              gap: "10px",
+            }}
+          >
+            <legend style={{ padding: "0 6px", fontWeight: 600 }}>
+              Jazyky autora / psaní
+            </legend>
+            <p style={{ margin: 0, fontSize: "14px", opacity: 0.75 }}>
+              Lze vybrat více jazyků. Použij pro autory, kteří psali nebo jsou
+              významně vedeni ve více jazykových vrstvách.
+            </p>
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))",
+                gap: "8px 12px",
+              }}
+            >
+              {languageOptions.map((option) => (
+                <label key={option.value} style={{ display: "flex", gap: "8px", alignItems: "center" }}>
+                  <input
+                    type="checkbox"
+                    name="writing_languages"
+                    value={option.value}
+                    defaultChecked={defaults.writing_languages.some((language) => language === option.value)}
+                  />
+                  <span>{option.label}</span>
+                </label>
+              ))}
+            </div>
+          </fieldset>
 
           <label style={{ display: "flex", gap: "10px", alignItems: "center" }}>
             <input

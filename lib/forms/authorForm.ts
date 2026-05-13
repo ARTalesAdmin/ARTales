@@ -1,6 +1,10 @@
 import { slugify } from "@/lib/slug"
 import type { AuthorEditItem } from "@/lib/dbAuthors"
-import { isLanguageCode } from "@/lib/dictionaries/language"
+import {
+  isLanguageCode,
+  normalizeLanguageCodes,
+  type LanguageCode,
+} from "@/lib/dictionaries/language"
 
 export type AuthorFormValues = {
   name: string
@@ -11,6 +15,7 @@ export type AuthorFormValues = {
   death_year: string
   country: string
   primary_language: string
+  writing_languages: LanguageCode[]
   is_public_visible: boolean
 }
 
@@ -24,6 +29,7 @@ export function getDefaultAuthorFormValues(): AuthorFormValues {
     death_year: "",
     country: "",
     primary_language: "",
+    writing_languages: [],
     is_public_visible: false,
   }
 }
@@ -38,6 +44,7 @@ export function mapAuthorToFormValues(author: AuthorEditItem): AuthorFormValues 
     death_year: author.death_year?.toString() ?? "",
     country: author.country ?? "",
     primary_language: author.primary_language ?? "",
+    writing_languages: normalizeLanguageCodes(author.writing_languages ?? []),
     is_public_visible: author.is_public_visible,
   }
 }
@@ -46,6 +53,9 @@ export function parseAuthorFormData(formData: FormData): AuthorFormValues {
   const name = String(formData.get("name") ?? "").trim()
   const rawSlug = String(formData.get("slug") ?? "").trim()
   const rawLanguage = String(formData.get("primary_language") ?? "").trim()
+  const rawWritingLanguages = formData
+    .getAll("writing_languages")
+    .map((value) => String(value).trim())
 
   return {
     name,
@@ -59,6 +69,7 @@ export function parseAuthorFormData(formData: FormData): AuthorFormValues {
     death_year: String(formData.get("death_year") ?? "").trim(),
     country: String(formData.get("country") ?? "").trim(),
     primary_language: rawLanguage,
+    writing_languages: normalizeLanguageCodes(rawWritingLanguages),
     is_public_visible: formData.get("is_public_visible") === "on",
   }
 }
@@ -124,6 +135,7 @@ export function mapAuthorFormValuesToInsertPayload(
     death_year: toNullableNumber(values.death_year),
     country: toNullableString(values.country),
     primary_language: toNullableString(values.primary_language),
+    writing_languages: values.writing_languages,
     is_public_visible: values.is_public_visible,
     created_by: profileId,
     updated_by: profileId,
@@ -143,6 +155,7 @@ export function mapAuthorFormValuesToUpdatePayload(
     death_year: toNullableNumber(values.death_year),
     country: toNullableString(values.country),
     primary_language: toNullableString(values.primary_language),
+    writing_languages: values.writing_languages,
     is_public_visible: values.is_public_visible,
     updated_by: profileId,
   }

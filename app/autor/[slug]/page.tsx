@@ -1,6 +1,6 @@
 import Link from "next/link"
 import { getAuthorBySlug } from "@/lib/dbAuthors"
-import { getLanguageLabel } from "@/lib/dictionaries/language"
+import { getLanguageLabel, getLanguageLabels } from "@/lib/dictionaries/language"
 import PublicHeader from "@/components/public/PublicHeader"
 import WorkCoverImage from "@/components/work/WorkCoverImage"
 import { getPublicDictionary } from "@/lib/i18n/public"
@@ -75,6 +75,7 @@ export default async function AutorDetail({ params }: PageProps) {
   }
 
   const primaryLanguageLabel = getLanguageLabel(author.primary_language, "public")
+  const writingLanguageLabels = getLanguageLabels(author.writing_languages, "public")
 
   const years =
     author.birth_year || author.death_year
@@ -153,6 +154,9 @@ export default async function AutorDetail({ params }: PageProps) {
             ) : null}
             {primaryLanguageLabel ? (
               <span><strong>{t.primaryLanguage}:</strong> {primaryLanguageLabel}</span>
+            ) : null}
+            {writingLanguageLabels.length > 0 ? (
+              <span><strong>Writing languages:</strong> {writingLanguageLabels.join(", ")}</span>
             ) : null}
           </div>
 

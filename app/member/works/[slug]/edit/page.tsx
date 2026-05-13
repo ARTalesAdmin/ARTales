@@ -210,6 +210,7 @@ export default async function EditWorkPage({
           origin_type: work.origin_type,
           source_label: work.source_label,
           source_reference: work.source_reference ?? "",
+          cover_image_request: work.cover_image_request ?? "",
           cover_image_path: work.cover_image_path ?? "",
           cover_image_alt: work.cover_image_alt ?? "",
           cover_image_caption: work.cover_image_caption ?? "",

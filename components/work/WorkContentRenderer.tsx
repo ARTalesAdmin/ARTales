@@ -1,6 +1,7 @@
 import type { WorkBlock } from "@/lib/blocks"
 import { WORK_BLOCK_TYPE_META } from "@/lib/blocks"
 import { getBlockFormatPreset, type BlockFormatPresetId } from "@/lib/rendering/blockFormats"
+import { getPublicStorageImageUrl } from "@/lib/storageImages"
 import "./work-content-renderer.css"
 
 type Props = {
@@ -25,6 +26,10 @@ function getBlockText(block: WorkBlock): string {
 }
 
 function getLetterField(block: WorkBlock, fieldName: string): string {
+  return String(block.fields?.[fieldName] ?? "").trim()
+}
+
+function getImageField(block: WorkBlock, fieldName: string): string {
   return String(block.fields?.[fieldName] ?? "").trim()
 }
 
@@ -57,7 +62,7 @@ function renderBlock({ block, index, footnoteNumberByBlockId }: RenderBlockProps
   const text = getBlockText(block)
   const meta = WORK_BLOCK_TYPE_META[block.type]
 
-  if (block.type !== "separator" && text === "") return null
+  if (block.type !== "separator" && block.type !== "image" && text === "") return null
 
   switch (block.type) {
     case "book_part":
@@ -154,6 +159,29 @@ function renderBlock({ block, index, footnoteNumberByBlockId }: RenderBlockProps
         </div>
       )
 
+
+    case "image": {
+      const storagePath = getImageField(block, "storage_path") || text
+      const imageUrl = getPublicStorageImageUrl(storagePath)
+      const caption = getImageField(block, "caption")
+      const alt = getImageField(block, "alt") || caption || "ARTales image"
+      const alignment = getImageField(block, "alignment") || "center"
+      const size = getImageField(block, "size") || "normal"
+
+      if (!imageUrl) return null
+
+      return (
+        <figure
+          key={key}
+          className={`artales-block artales-image artales-image--${alignment} artales-image--${size}`}
+          data-block-type={block.type}
+        >
+          <img src={imageUrl} alt={alt} loading="lazy" />
+          {caption ? <figcaption>{caption}</figcaption> : null}
+        </figure>
+      )
+    }
+
     case "note":
       return (
         <aside key={key} className="artales-block artales-note" data-block-type={block.type}>
@@ -224,6 +252,9 @@ export default function WorkContentRenderer({
   const safeBlocks = Array.isArray(blocks) ? blocks : []
   const visibleBlocks = safeBlocks.filter((block) => {
     if (block.type === "separator") return true
+    if (block.type === "image") {
+      return getImageField(block, "storage_path") !== "" || getBlockText(block) !== ""
+    }
     return getBlockText(block) !== ""
   })
 

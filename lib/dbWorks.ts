@@ -37,6 +37,7 @@ export type GalleryWorkItem = {
   status: WorkStatus
   author: WorkAuthorRef
   collection: WorkCollectionRef
+  cover_image_request: string | null
   cover_image_path: string | null
   cover_image_alt: string | null
   cover_image_caption: string | null
@@ -57,6 +58,7 @@ export type WorkDetailItem = {
   status: WorkStatus
   author: WorkAuthorRef
   collection: WorkCollectionRef
+  cover_image_request: string | null
   cover_image_path: string | null
   cover_image_alt: string | null
   cover_image_caption: string | null
@@ -81,6 +83,7 @@ export type MemberWorkListItem = {
     title: string
     slug: string
   } | null
+  cover_image_request: string | null
   cover_image_path: string | null
   cover_image_alt: string | null
   cover_image_caption: string | null
@@ -101,6 +104,7 @@ export type WorkEditItem = {
   collection_id: string | null
   content: string
   content_blocks: WorkBlock[]
+  cover_image_request: string | null
   cover_image_path: string | null
   cover_image_alt: string | null
   cover_image_caption: string | null
@@ -135,6 +139,7 @@ type RawGalleryWorkRow = {
   canonical_language: unknown
   origin_type: unknown
   status: unknown
+  cover_image_request: unknown
   cover_image_path: unknown
   cover_image_alt: unknown
   cover_image_caption: unknown
@@ -155,6 +160,7 @@ type RawWorkDetailRow = {
   source_label: unknown
   source_reference: unknown
   status: unknown
+  cover_image_request: unknown
   cover_image_path: unknown
   cover_image_alt: unknown
   cover_image_caption: unknown
@@ -177,6 +183,7 @@ type RawWorkEditRow = {
   collection_id: unknown
   content: unknown
   content_blocks: unknown
+  cover_image_request: unknown
   cover_image_path: unknown
   cover_image_alt: unknown
   cover_image_caption: unknown
@@ -223,6 +230,8 @@ function mapGalleryWork(row: RawGalleryWorkRow): GalleryWorkItem {
     canonical_language: String(row.canonical_language),
     origin_type: row.origin_type as WorkOriginType,
     status: row.status as WorkStatus,
+    cover_image_request:
+      row.cover_image_request == null ? null : String(row.cover_image_request),
     cover_image_path: row.cover_image_path == null ? null : String(row.cover_image_path),
     cover_image_alt: row.cover_image_alt == null ? null : String(row.cover_image_alt),
     cover_image_caption:
@@ -247,6 +256,8 @@ function mapWorkDetail(row: RawWorkDetailRow): WorkDetailItem {
     source_reference:
       row.source_reference == null ? null : String(row.source_reference),
     status: row.status as WorkStatus,
+    cover_image_request:
+      row.cover_image_request == null ? null : String(row.cover_image_request),
     cover_image_path: row.cover_image_path == null ? null : String(row.cover_image_path),
     cover_image_alt: row.cover_image_alt == null ? null : String(row.cover_image_alt),
     cover_image_caption:
@@ -272,6 +283,7 @@ export async function getWorksForGallery(): Promise<GalleryWorkItem[]> {
       canonical_language,
       origin_type,
       status,
+      cover_image_request,
       cover_image_path,
       cover_image_alt,
       cover_image_caption,
@@ -315,6 +327,7 @@ export async function getWorkBySlug(
       source_label,
       source_reference,
       status,
+      cover_image_request,
       cover_image_path,
       cover_image_alt,
       cover_image_caption,
@@ -359,6 +372,7 @@ export async function getPublishedWorksByAuthorId(
       canonical_language,
       origin_type,
       status,
+      cover_image_request,
       cover_image_path,
       cover_image_alt,
       cover_image_caption,
@@ -399,6 +413,7 @@ export async function getPublishedWorksByCollectionId(
       canonical_language,
       origin_type,
       status,
+      cover_image_request,
       cover_image_path,
       cover_image_alt,
       cover_image_caption,
@@ -439,6 +454,7 @@ export async function getWorksForMember(): Promise<MemberWorkListItem[]> {
       canonical_language,
       status,
       origin_type,
+      cover_image_request,
       cover_image_path,
       cover_image_alt,
       cover_image_caption,
@@ -469,6 +485,8 @@ export async function getWorksForMember(): Promise<MemberWorkListItem[]> {
     canonical_language: String(row.canonical_language),
     status: String(row.status) as WorkStatus,
     origin_type: String(row.origin_type) as WorkOriginType,
+    cover_image_request:
+      row.cover_image_request == null ? null : String(row.cover_image_request),
     cover_image_path: row.cover_image_path == null ? null : String(row.cover_image_path),
     cover_image_alt: row.cover_image_alt == null ? null : String(row.cover_image_alt),
     cover_image_caption:
@@ -514,6 +532,7 @@ export async function getWorkForEditBySlug(
       source_label,
       source_reference,
       status,
+      cover_image_request,
       cover_image_path,
       cover_image_alt,
       cover_image_caption,
@@ -552,6 +571,8 @@ export async function getWorkForEditBySlug(
       row.collection_id == null ? null : String(row.collection_id),
     content: String(row.content ?? ""),
     content_blocks: mapRawContentBlocks(row.content_blocks),
+    cover_image_request:
+      row.cover_image_request == null ? null : String(row.cover_image_request),
     cover_image_path: row.cover_image_path == null ? null : String(row.cover_image_path),
     cover_image_alt: row.cover_image_alt == null ? null : String(row.cover_image_alt),
     cover_image_caption:
