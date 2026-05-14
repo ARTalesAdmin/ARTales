@@ -1,19 +1,20 @@
-import Link from "next/link"
-import type { WorkDetailItem } from "@/lib/dbWorks"
-import WorkCoverImage from "@/components/work/WorkCoverImage"
-import PublicHeader from "@/components/public/PublicHeader"
-import { getPublicDictionary } from "@/lib/i18n/public"
+import Link from "next/link";
+import type { WorkDetailItem } from "@/lib/dbWorks";
+import WorkCoverImage from "@/components/work/WorkCoverImage";
+import PublicHeader from "@/components/public/PublicHeader";
+import ReaderWorkActions from "@/components/reader/ReaderWorkActions";
+import { getPublicDictionary } from "@/lib/i18n/public";
 
 type WorkDetailClientProps = {
-  work: WorkDetailItem
-  languageLabel: string
-  statusLabel: string
-  originLabel: string
-  sourceLabel: string
-}
+  work: WorkDetailItem;
+  languageLabel: string;
+  statusLabel: string;
+  originLabel: string;
+  sourceLabel: string;
+};
 
 function ComingSoonBadge() {
-  const t = getPublicDictionary().common
+  const t = getPublicDictionary().common;
 
   return (
     <span
@@ -28,23 +29,23 @@ function ComingSoonBadge() {
     >
       {t.comingSoon}
     </span>
-  )
+  );
 }
 
 function normalizeIsbnStatus(status: string | null | undefined) {
   switch (status) {
     case "assigned":
-      return "Assigned"
+      return "Assigned";
     case "external":
-      return "External"
+      return "External";
     case "planned":
-      return "Planned"
+      return "Planned";
     case "requested":
-      return "Requested"
+      return "Requested";
     case "not_applicable":
-      return "Not applicable"
+      return "Not applicable";
     default:
-      return "Not required"
+      return "Not required";
   }
 }
 
@@ -55,12 +56,12 @@ export default function WorkDetailClient({
   originLabel,
   sourceLabel,
 }: WorkDetailClientProps) {
-  const { common, public: t } = getPublicDictionary()
-  const authorName = work.author?.name ?? t.unknownAuthor
+  const { common, public: t } = getPublicDictionary();
+  const authorName = work.author?.name ?? t.unknownAuthor;
   const publicIsbnVisible =
     Boolean(work.isbn) &&
-    (work.isbn_status === "assigned" || work.isbn_status === "external")
-  const editionLanguage = work.edition_language || work.canonical_language
+    (work.isbn_status === "assigned" || work.isbn_status === "external");
+  const editionLanguage = work.edition_language || work.canonical_language;
 
   return (
     <div className="artales-public-shell">
@@ -78,7 +79,8 @@ export default function WorkDetailClient({
       >
         <p style={{ margin: "0 0 22px" }}>
           <Link href="/galerie" style={{ color: "#5f5247" }}>
-            {"<- "}{t.backToGallery}
+            {"<- "}
+            {t.backToGallery}
           </Link>
         </p>
 
@@ -129,7 +131,13 @@ export default function WorkDetailClient({
             </h1>
 
             {work.subtitle ? (
-              <p style={{ margin: "0 0 12px", fontSize: "20px", color: "#5f5247" }}>
+              <p
+                style={{
+                  margin: "0 0 12px",
+                  fontSize: "20px",
+                  color: "#5f5247",
+                }}
+              >
                 {work.subtitle}
               </p>
             ) : null}
@@ -137,7 +145,10 @@ export default function WorkDetailClient({
             <p style={{ margin: "0 0 18px", fontSize: "18px" }}>
               {t.byAuthor}{" "}
               {work.author ? (
-                <Link href={`/autor/${work.author.slug}`} style={{ color: "var(--artales-ink)", fontWeight: 800 }}>
+                <Link
+                  href={`/autor/${work.author.slug}`}
+                  style={{ color: "var(--artales-ink)", fontWeight: 800 }}
+                >
                   {work.author.name}
                 </Link>
               ) : (
@@ -159,30 +170,22 @@ export default function WorkDetailClient({
             {work.collection ? (
               <p style={{ margin: "0 0 24px", color: "#5f5247" }}>
                 {t.partOf}{" "}
-                <Link href={`/kolekce/${work.collection.slug}`} style={{ color: "var(--artales-ink)", fontWeight: 800 }}>
+                <Link
+                  href={`/kolekce/${work.collection.slug}`}
+                  style={{ color: "var(--artales-ink)", fontWeight: 800 }}
+                >
                   {work.collection.title}
                 </Link>
               </p>
             ) : null}
 
-            <div
-              style={{
-                display: "flex",
-                gap: "10px",
-                flexWrap: "wrap",
-                marginTop: "22px",
-              }}
-            >
-              <Link className="artales-button" href={`/reader/${work.slug}?mode=preview`}>
-                {t.readPreview}
-              </Link>
-              <Link className="artales-button-secondary" href={`/reader/${work.slug}?mode=full`}>
-                {t.readOnline}
-              </Link>
-              <span className="artales-button-muted" title="User accounts will enable saved works later.">
-                {t.saveForLater} <ComingSoonBadge />
-              </span>
-            </div>
+            <ReaderWorkActions
+              slug={work.slug}
+              readPreviewLabel={t.readPreview}
+              readOnlineLabel={t.readOnline}
+              continueReadingLabel={t.continueReading}
+              saveForLaterLabel={t.saveForLater}
+            />
 
             <div
               style={{
@@ -192,9 +195,15 @@ export default function WorkDetailClient({
                 marginTop: "12px",
               }}
             >
-              <span className="artales-button-muted">{t.buyPdf} <ComingSoonBadge /></span>
-              <span className="artales-button-muted">{t.buyEpub} <ComingSoonBadge /></span>
-              <span className="artales-button-muted">{t.audiobook} <ComingSoonBadge /></span>
+              <span className="artales-button-muted">
+                {t.buyPdf} <ComingSoonBadge />
+              </span>
+              <span className="artales-button-muted">
+                {t.buyEpub} <ComingSoonBadge />
+              </span>
+              <span className="artales-button-muted">
+                {t.audiobook} <ComingSoonBadge />
+              </span>
             </div>
           </div>
         </section>
@@ -246,7 +255,9 @@ export default function WorkDetailClient({
               ) : null}
 
               <dt style={{ fontWeight: 800 }}>{common.language}</dt>
-              <dd style={{ margin: 0 }}>{work.edition_language ? editionLanguage : languageLabel}</dd>
+              <dd style={{ margin: 0 }}>
+                {work.edition_language ? editionLanguage : languageLabel}
+              </dd>
 
               {work.original_language ? (
                 <>
@@ -286,7 +297,12 @@ export default function WorkDetailClient({
                 <>
                   <dt style={{ fontWeight: 800 }}>Source URL</dt>
                   <dd style={{ margin: 0 }}>
-                    <a href={work.edition_source_url} target="_blank" rel="noreferrer" style={{ color: "var(--artales-ink)", fontWeight: 700 }}>
+                    <a
+                      href={work.edition_source_url}
+                      target="_blank"
+                      rel="noreferrer"
+                      style={{ color: "var(--artales-ink)", fontWeight: 700 }}
+                    >
                       {work.edition_source_url}
                     </a>
                   </dd>
@@ -303,14 +319,18 @@ export default function WorkDetailClient({
               {work.contributor_summary ? (
                 <>
                   <dt style={{ fontWeight: 800 }}>Contributors</dt>
-                  <dd style={{ margin: 0, whiteSpace: "pre-wrap" }}>{work.contributor_summary}</dd>
+                  <dd style={{ margin: 0, whiteSpace: "pre-wrap" }}>
+                    {work.contributor_summary}
+                  </dd>
                 </>
               ) : null}
 
               {work.edition_note_public ? (
                 <>
                   <dt style={{ fontWeight: 800 }}>Edition note</dt>
-                  <dd style={{ margin: 0, whiteSpace: "pre-wrap" }}>{work.edition_note_public}</dd>
+                  <dd style={{ margin: 0, whiteSpace: "pre-wrap" }}>
+                    {work.edition_note_public}
+                  </dd>
                 </>
               ) : null}
 
@@ -321,10 +341,14 @@ export default function WorkDetailClient({
                 </>
               ) : null}
 
-              {work.isbn_status && work.isbn_status !== "not_required" && !publicIsbnVisible ? (
+              {work.isbn_status &&
+              work.isbn_status !== "not_required" &&
+              !publicIsbnVisible ? (
                 <>
                   <dt style={{ fontWeight: 800 }}>ISBN status</dt>
-                  <dd style={{ margin: 0 }}>{normalizeIsbnStatus(work.isbn_status)}</dd>
+                  <dd style={{ margin: 0 }}>
+                    {normalizeIsbnStatus(work.isbn_status)}
+                  </dd>
                 </>
               ) : null}
 
@@ -360,10 +384,12 @@ export default function WorkDetailClient({
             >
               {t.aboutCollection}
             </h2>
-            <p style={{ margin: 0, color: "#3f362f" }}>{work.collection.description}</p>
+            <p style={{ margin: 0, color: "#3f362f" }}>
+              {work.collection.description}
+            </p>
           </section>
         ) : null}
       </main>
     </div>
-  )
+  );
 }

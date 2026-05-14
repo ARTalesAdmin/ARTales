@@ -341,3 +341,71 @@
   margin-top: 0.2cm;
   text-align: center;
 }
+
+.artales-renderer--reader-comfort {
+  font-size: 18px;
+  line-height: 1.86;
+  max-width: 720px;
+}
+
+.artales-renderer--reader-comfort .artales-paragraph p {
+  margin-bottom: 0.95rem;
+  text-align: justify;
+  text-indent: 1.2em;
+}
+
+.artales-renderer--reader-comfort .artales-paragraph p:first-child,
+.artales-renderer--reader-comfort
+  .artales-chapter
+  + .artales-paragraph
+  p:first-child,
+.artales-renderer--reader-comfort
+  .artales-book-part
+  + .artales-paragraph
+  p:first-child {
+  text-indent: 0;
+}
+
+.artales-renderer--reader-compact {
+  font-size: 17px;
+  line-height: 1.68;
+  max-width: 780px;
+}
+
+.artales-renderer--reader-compact .artales-paragraph p {
+  margin-bottom: 0.65rem;
+  text-align: justify;
+  text-indent: 1em;
+}
+
+.artales-renderer--reader-comfort .artales-chapter,
+.artales-renderer--reader-compact .artales-chapter {
+  margin-top: 3.2rem;
+}
+
+.artales-renderer--reader-comfort .artales-quote,
+.artales-renderer--reader-compact .artales-quote {
+  background: rgba(217, 183, 110, 0.08);
+  border-left-color: rgba(138, 106, 45, 0.42);
+  border-radius: 0 16px 16px 0;
+  padding: 0.8rem 1.25rem;
+}
+
+.artales-renderer--reader-comfort .artales-letter,
+.artales-renderer--reader-compact .artales-letter {
+  border-radius: 20px;
+  box-shadow: 0 18px 48px rgba(13, 21, 40, 0.08);
+}
+
+.artales-renderer--reader-comfort .artales-image img,
+.artales-renderer--reader-compact .artales-image img {
+  border-radius: 18px;
+  box-shadow: 0 18px 45px rgba(13, 21, 40, 0.14);
+}
+
+.artales-renderer--reader-comfort .artales-note,
+.artales-renderer--reader-comfort .artales-footnote-ref,
+.artales-renderer--reader-compact .artales-note,
+.artales-renderer--reader-compact .artales-footnote-ref {
+  border-radius: 0 14px 14px 0;
+}

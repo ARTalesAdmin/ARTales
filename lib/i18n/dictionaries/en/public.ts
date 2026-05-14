@@ -13,6 +13,7 @@ export const enPublic = {
   readOnline: "Read online",
   continueReading: "Continue reading",
   saveForLater: "Save for later",
+  savedLocally: "Saved locally",
   buyPdf: "Buy PDF",
   buyEpub: "Buy EPUB",
   audiobook: "Audiobook",
@@ -53,7 +54,8 @@ export const enPublic = {
 
   author: "Author",
   authorNotFoundTitle: "Author not found",
-  authorNotFoundText: "The requested author does not exist in ARTales or is not publicly visible yet.",
+  authorNotFoundText:
+    "The requested author does not exist in ARTales or is not publicly visible yet.",
   authorTypePerson: "Person",
   authorTypeCollective: "Collective",
   authorTypeUnknown: "Unknown author",
@@ -66,10 +68,13 @@ export const enPublic = {
 
   collection: "Collection",
   collectionNotFoundTitle: "Collection not found",
-  collectionNotFoundText: "This collection does not exist in ARTales or is not publicly visible yet.",
-  collectionDescriptionMissing: "The collection description has not been added yet.",
+  collectionNotFoundText:
+    "This collection does not exist in ARTales or is not publicly visible yet.",
+  collectionDescriptionMissing:
+    "The collection description has not been added yet.",
   browseCollectionWorks: "Browse works in this collection",
   collectionVisualPlaceholder: "Collection visual",
   worksInCollection: "Works in this collection",
-  collectionNoWorks: "This collection does not contain any published works yet.",
-}
+  collectionNoWorks:
+    "This collection does not contain any published works yet.",
+};
