@@ -1,4 +1,4 @@
-export const readerThemeIds = ["paper", "sepia", "dark"] as const;
+export const readerThemeIds = ["light", "script", "dark"] as const;
 export type ReaderThemeId = (typeof readerThemeIds)[number];
 
 export const readerWidthIds = ["narrow", "normal", "wide"] as const;
@@ -17,9 +17,18 @@ export type ReaderSettings = {
 export const defaultReaderSettings: ReaderSettings = {
   fontScale: 1,
   width: "normal",
-  theme: "paper",
+  theme: "light",
   density: "comfortable",
 };
+
+function normalizeLegacyTheme(value: unknown): ReaderThemeId {
+  if (value === "paper") return "light";
+  if (value === "sepia") return "script";
+  if (readerThemeIds.includes(value as ReaderThemeId)) {
+    return value as ReaderThemeId;
+  }
+  return defaultReaderSettings.theme;
+}
 
 export function clampReaderFontScale(value: number) {
   if (!Number.isFinite(value)) return defaultReaderSettings.fontScale;
@@ -29,13 +38,11 @@ export function clampReaderFontScale(value: number) {
 export function normalizeReaderSettings(value: unknown): ReaderSettings {
   if (!value || typeof value !== "object") return defaultReaderSettings;
 
-  const raw = value as Partial<ReaderSettings>;
+  const raw = value as Partial<ReaderSettings> & { theme?: unknown };
   const width = readerWidthIds.includes(raw.width as ReaderWidthId)
     ? (raw.width as ReaderWidthId)
     : defaultReaderSettings.width;
-  const theme = readerThemeIds.includes(raw.theme as ReaderThemeId)
-    ? (raw.theme as ReaderThemeId)
-    : defaultReaderSettings.theme;
+  const theme = normalizeLegacyTheme(raw.theme);
   const density = readerDensityIds.includes(raw.density as ReaderDensityId)
     ? (raw.density as ReaderDensityId)
     : defaultReaderSettings.density;

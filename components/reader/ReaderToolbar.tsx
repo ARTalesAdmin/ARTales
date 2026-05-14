@@ -48,101 +48,109 @@ export default function ReaderToolbar({
   onClearBookmark,
 }: ReaderToolbarProps) {
   const progress = Math.max(0, Math.min(100, Math.round(progressPercent)));
+  const brandVariant = settings.theme === "dark" ? "light" : "dark";
 
   return (
     <header className="artales-reader-toolbar">
-      <div className="artales-reader-toolbar__brand">
-        <ArtalesBrand variant="light" size="sm" showMark />
-        <div className="artales-reader-toolbar__title-wrap">
-          <p className="artales-reader-toolbar__mode">
-            {mode === "preview" ? "Preview" : "Online reader"}
-          </p>
-          <h1 className="artales-reader-toolbar__title">{title}</h1>
-          {authorName ? (
-            <p className="artales-reader-toolbar__author">by {authorName}</p>
-          ) : null}
+      <div className="artales-reader-toolbar__main-row">
+        <div className="artales-reader-toolbar__brand">
+          <ArtalesBrand variant={brandVariant} size="sm" showMark />
+          <div className="artales-reader-toolbar__title-wrap">
+            <p className="artales-reader-toolbar__mode">
+              {mode === "preview" ? "Preview" : "Online reader"}
+            </p>
+            <h1 className="artales-reader-toolbar__title">{title}</h1>
+            {authorName ? (
+              <p className="artales-reader-toolbar__author">by {authorName}</p>
+            ) : null}
+          </div>
+        </div>
+
+        <div
+          className="artales-reader-toolbar__controls"
+          aria-label="Reader controls"
+        >
+          <div
+            className="artales-reader-progress"
+            aria-label={`Reading progress ${progress}%`}
+          >
+            <span>{progress}%</span>
+            <div className="artales-reader-progress__track">
+              <div style={{ width: `${progress}%` }} />
+            </div>
+          </div>
+
+          <div className="artales-reader-control-group" aria-label="Text size">
+            <button
+              type="button"
+              onClick={() => onFontDelta(-0.05)}
+              aria-label="Decrease font size"
+            >
+              A-
+            </button>
+            <span>{Math.round(settings.fontScale * 100)}%</span>
+            <button
+              type="button"
+              onClick={() => onFontDelta(0.05)}
+              aria-label="Increase font size"
+            >
+              A+
+            </button>
+          </div>
+
+          <label className="artales-reader-select-label">
+            Theme
+            <select
+              value={settings.theme}
+              onChange={(event) =>
+                onThemeChange(event.target.value as ReaderThemeId)
+              }
+            >
+              <option value="light">Light</option>
+              <option value="script">Script</option>
+              <option value="dark">Dark</option>
+            </select>
+          </label>
+
+          <label className="artales-reader-select-label">
+            Width
+            <select
+              value={settings.width}
+              onChange={(event) =>
+                onWidthChange(event.target.value as ReaderWidthId)
+              }
+            >
+              <option value="narrow">Narrow</option>
+              <option value="normal">Normal</option>
+              <option value="wide">Wide</option>
+            </select>
+          </label>
+
+          <label className="artales-reader-select-label">
+            Density
+            <select
+              value={settings.density}
+              onChange={(event) =>
+                onDensityChange(event.target.value as ReaderDensityId)
+              }
+            >
+              <option value="comfortable">Comfort</option>
+              <option value="compact">Compact</option>
+            </select>
+          </label>
         </div>
       </div>
 
       <div
-        className="artales-reader-toolbar__controls"
-        aria-label="Reader controls"
+        className="artales-reader-toolbar__action-row"
+        aria-label="Reader actions"
       >
-        <div
-          className="artales-reader-progress"
-          aria-label={`Reading progress ${progress}%`}
-        >
-          <span>{progress}%</span>
-          <div className="artales-reader-progress__track">
-            <div style={{ width: `${progress}%` }} />
-          </div>
-        </div>
-
-        <div className="artales-reader-control-group" aria-label="Text size">
-          <button
-            type="button"
-            onClick={() => onFontDelta(-0.05)}
-            aria-label="Decrease font size"
-          >
-            A-
-          </button>
-          <span>{Math.round(settings.fontScale * 100)}%</span>
-          <button
-            type="button"
-            onClick={() => onFontDelta(0.05)}
-            aria-label="Increase font size"
-          >
-            A+
-          </button>
-        </div>
-
-        <label className="artales-reader-select-label">
-          Theme
-          <select
-            value={settings.theme}
-            onChange={(event) =>
-              onThemeChange(event.target.value as ReaderThemeId)
-            }
-          >
-            <option value="paper">Paper</option>
-            <option value="sepia">Sepia</option>
-            <option value="dark">Dark</option>
-          </select>
-        </label>
-
-        <label className="artales-reader-select-label">
-          Width
-          <select
-            value={settings.width}
-            onChange={(event) =>
-              onWidthChange(event.target.value as ReaderWidthId)
-            }
-          >
-            <option value="narrow">Narrow</option>
-            <option value="normal">Normal</option>
-            <option value="wide">Wide</option>
-          </select>
-        </label>
-
-        <label className="artales-reader-select-label">
-          Density
-          <select
-            value={settings.density}
-            onChange={(event) =>
-              onDensityChange(event.target.value as ReaderDensityId)
-            }
-          >
-            <option value="comfortable">Comfort</option>
-            <option value="compact">Compact</option>
-          </select>
-        </label>
-
         <button
           type="button"
           className="artales-reader-ghost-button"
           onClick={onBookmark}
         >
-          Bookmark
+          {bookmark ? "Update bookmark" : "Bookmark"}
         </button>
         {bookmark ? (
           <>
@@ -158,7 +166,7 @@ export default function ReaderToolbar({
               className="artales-reader-ghost-button"
               onClick={onClearBookmark}
             >
-              Clear
+              Clear bookmark
             </button>
           </>
         ) : null}

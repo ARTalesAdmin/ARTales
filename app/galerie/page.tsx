@@ -83,7 +83,9 @@ export default async function Galerie() {
             <Link className="artales-button-secondary" href="/kolekce/gothic-classics">
               {t.collections}
             </Link>
-
+            <Link className="artales-button-secondary" href="/autori">
+              {t.authors}
+            </Link>
           </div>
         </section>
 

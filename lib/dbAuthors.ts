@@ -187,3 +187,43 @@ export async function getAuthorForEditBySlug(
 
   return mapRawAuthor(data as RawAuthorRow)
 }
+export async function getAuthorsForPublicGallery(): Promise<AuthorListItem[]> {
+  const { data, error } = await supabase
+    .from("authors")
+    .select(`
+      id,
+      name,
+      slug,
+      author_type,
+      birth_year,
+      death_year,
+      country,
+      primary_language,
+      writing_languages,
+      is_public_visible
+    `)
+    .eq("is_public_visible", true)
+    .order("name", { ascending: true });
+
+  if (error) {
+    console.error("DB error in getAuthorsForPublicGallery:", error);
+    throw new Error(`Failed to load public authors: ${error.message}`);
+  }
+
+  return ((data ?? []) as RawAuthorRow[]).map((row) => {
+    const mapped = mapRawAuthor(row);
+
+    return {
+      id: mapped.id,
+      name: mapped.name,
+      slug: mapped.slug,
+      author_type: mapped.author_type,
+      birth_year: mapped.birth_year,
+      death_year: mapped.death_year,
+      country: mapped.country,
+      primary_language: mapped.primary_language,
+      writing_languages: mapped.writing_languages,
+      is_public_visible: mapped.is_public_visible,
+    };
+  });
+}

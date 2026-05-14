@@ -5,6 +5,7 @@ export const enPublic = {
   galleryIntro:
     "Explore original works, translations, and curated public-domain editions. ARTales is being built as a living library: a place where texts keep their structure, context, editions, and reading layers.",
   collections: "Collections",
+  authors: "Authors",
   memberZone: "Member zone",
   noPublishedWorks: "No published works are available yet.",
   openDetail: "Open detail",
@@ -53,6 +54,12 @@ export const enPublic = {
     "ARTales is under active development. Public surfaces currently default to English; internal editorial tools are Czech-first for the current team.",
 
   author: "Author",
+  authorsTitle: "ARTales Authors",
+  authorsEyebrow: "Literary voices",
+  authorsIntro:
+    "Browse authors, translators, collectives, and source voices represented in ARTales editions. Author pages connect works, languages, context, and future contribution layers.",
+  noPublicAuthors: "No public authors are available yet.",
+  openAuthor: "Open author",
   authorNotFoundTitle: "Author not found",
   authorNotFoundText:
     "The requested author does not exist in ARTales or is not publicly visible yet.",

@@ -1,43 +1,128 @@
 .artales-reader {
   --reader-font-scale: 1;
+  --reader-outer-bg:
+    radial-gradient(circle at top, rgba(217, 183, 110, 0.22), transparent 32rem),
+    linear-gradient(180deg, #f4ead7 0%, #dbc59d 100%);
+  --reader-toolbar-bg: rgba(255, 250, 240, 0.86);
+  --reader-toolbar-border: rgba(13, 21, 40, 0.12);
+  --reader-toolbar-text: #071226;
+  --reader-toolbar-muted: rgba(13, 21, 40, 0.66);
+  --reader-control-bg: rgba(255, 255, 255, 0.62);
+  --reader-control-border: rgba(13, 21, 40, 0.16);
+  --reader-control-text: #071226;
+  --reader-control-option-bg: #fffaf0;
   --reader-paper: #fffaf0;
   --reader-paper-text: #17130f;
   --reader-paper-muted: #6c6258;
-  --reader-paper-border: rgba(217, 183, 110, 0.28);
-  background:
-    radial-gradient(circle at top, rgba(217, 183, 110, 0.22), transparent 32rem),
-    linear-gradient(180deg, #090b0d 0%, #0d1528 100%);
-  color: #fff8e7;
+  --reader-paper-border: rgba(165, 126, 56, 0.22);
+  --reader-paper-shadow: 0 28px 90px rgba(39, 29, 18, 0.18);
+  --reader-accent: #987331;
+  --reader-accent-strong: #6c4b18;
+  --reader-accent-soft: #ead39b;
+  --reader-bookmark: #9c6a2d;
+  background: var(--reader-outer-bg);
+  color: var(--reader-toolbar-text);
   font-family: Arial, Helvetica, sans-serif;
   min-height: 100vh;
 }
 
-.artales-reader--theme-sepia {
-  --reader-paper: #f1dfc3;
-  --reader-paper-text: #241a11;
-  --reader-paper-muted: #705d48;
-  --reader-paper-border: rgba(130, 93, 43, 0.28);
+.artales-reader--theme-light {
+  --reader-outer-bg:
+    radial-gradient(circle at top, rgba(217, 183, 110, 0.18), transparent 34rem),
+    linear-gradient(180deg, #f7f1e6 0%, #e7d4a0 100%);
+  --reader-toolbar-bg: rgba(255, 250, 240, 0.9);
+  --reader-toolbar-border: rgba(13, 21, 40, 0.12);
+  --reader-toolbar-text: #071226;
+  --reader-toolbar-muted: rgba(13, 21, 40, 0.66);
+  --reader-control-bg: rgba(255, 255, 255, 0.64);
+  --reader-control-border: rgba(13, 21, 40, 0.16);
+  --reader-control-text: #071226;
+  --reader-control-option-bg: #fffaf0;
+  --reader-paper: #fffdf7;
+  --reader-paper-text: #17130f;
+  --reader-paper-muted: #6c6258;
+  --reader-paper-border: rgba(165, 126, 56, 0.22);
+  --reader-paper-shadow: 0 28px 90px rgba(39, 29, 18, 0.16);
+  --reader-accent: #987331;
+  --reader-accent-strong: #6c4b18;
+  --reader-accent-soft: #ead39b;
+  --reader-bookmark: #a56d24;
+}
+
+.artales-reader--theme-script {
+  --reader-outer-bg:
+    radial-gradient(circle at top left, rgba(171, 118, 44, 0.2), transparent 34rem),
+    linear-gradient(180deg, #e9d8b9 0%, #c9a979 100%);
+  --reader-toolbar-bg: rgba(67, 43, 25, 0.86);
+  --reader-toolbar-border: rgba(249, 230, 186, 0.22);
+  --reader-toolbar-text: #fff3d4;
+  --reader-toolbar-muted: rgba(255, 243, 212, 0.72);
+  --reader-control-bg: rgba(255, 243, 212, 0.09);
+  --reader-control-border: rgba(255, 243, 212, 0.3);
+  --reader-control-text: #fff3d4;
+  --reader-control-option-bg: #432b19;
+  --reader-paper: #f4e5c8;
+  --reader-paper-text: #24180d;
+  --reader-paper-muted: #6f553a;
+  --reader-paper-border: rgba(104, 68, 29, 0.26);
+  --reader-paper-shadow: 0 28px 90px rgba(52, 31, 16, 0.26);
+  --reader-accent: #7e501a;
+  --reader-accent-strong: #4d2d0d;
+  --reader-accent-soft: #d7b36d;
+  --reader-bookmark: #7e341a;
 }
 
 .artales-reader--theme-dark {
+  --reader-outer-bg:
+    radial-gradient(circle at top, rgba(217, 183, 110, 0.16), transparent 34rem),
+    linear-gradient(180deg, #05070b 0%, #0b1324 100%);
+  --reader-toolbar-bg: rgba(5, 7, 11, 0.84);
+  --reader-toolbar-border: rgba(241, 216, 157, 0.18);
+  --reader-toolbar-text: #fff8e7;
+  --reader-toolbar-muted: rgba(255, 248, 231, 0.68);
+  --reader-control-bg: rgba(255, 248, 231, 0.05);
+  --reader-control-border: rgba(241, 216, 157, 0.28);
+  --reader-control-text: #fff8e7;
+  --reader-control-option-bg: #111827;
   --reader-paper: #111827;
   --reader-paper-text: #f7ecd8;
   --reader-paper-muted: rgba(247, 236, 216, 0.66);
   --reader-paper-border: rgba(241, 216, 157, 0.18);
+  --reader-paper-shadow: 0 32px 120px rgba(0, 0, 0, 0.42);
+  --reader-accent: #e7d4a0;
+  --reader-accent-strong: #f1d89d;
+  --reader-accent-soft: rgba(241, 216, 157, 0.18);
+  --reader-bookmark: #d6a846;
 }
 
 .artales-reader-toolbar {
-  align-items: center;
   backdrop-filter: blur(18px);
-  background: rgba(9, 11, 13, 0.76);
-  border-bottom: 1px solid rgba(217, 183, 110, 0.18);
-  display: flex;
-  gap: 20px;
-  justify-content: space-between;
-  padding: 14px clamp(14px, 4vw, 36px);
+  background: var(--reader-toolbar-bg);
+  border-bottom: 1px solid var(--reader-toolbar-border);
+  color: var(--reader-toolbar-text);
+  display: grid;
+  gap: 10px;
+  padding: 12px clamp(14px, 4vw, 36px);
   position: sticky;
   top: 0;
   z-index: 20;
+}
+
+.artales-reader-toolbar__main-row {
+  align-items: center;
+  display: flex;
+  gap: 20px;
+  justify-content: space-between;
+  min-width: 0;
+}
+
+.artales-reader-toolbar__action-row {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: flex-end;
+  min-height: 38px;
 }
 
 .artales-reader-toolbar__brand {
@@ -52,7 +137,7 @@
 }
 
 .artales-reader-toolbar__mode {
-  color: rgba(241, 216, 157, 0.78);
+  color: var(--reader-accent-strong);
   font-size: 10px;
   font-weight: 900;
   letter-spacing: 0.14em;
@@ -60,7 +145,13 @@
   text-transform: uppercase;
 }
 
+.artales-reader--theme-dark .artales-reader-toolbar__mode,
+.artales-reader--theme-script .artales-reader-toolbar__mode {
+  color: var(--reader-accent);
+}
+
 .artales-reader-toolbar__title {
+  color: var(--reader-toolbar-text);
   font-family: Georgia, "Times New Roman", serif;
   font-size: clamp(16px, 2.2vw, 24px);
   line-height: 1.1;
@@ -72,7 +163,7 @@
 }
 
 .artales-reader-toolbar__author {
-  color: rgba(255, 248, 231, 0.68);
+  color: var(--reader-toolbar-muted);
   font-size: 12px;
   margin: 2px 0 0;
 }
@@ -92,9 +183,9 @@
 .artales-reader-primary-link,
 .artales-reader-exit-link {
   align-items: center;
-  border: 1px solid rgba(241, 216, 157, 0.28);
+  border: 1px solid var(--reader-control-border);
   border-radius: 999px;
-  color: #fff8e7;
+  color: var(--reader-control-text);
   display: inline-flex;
   font-size: 12px;
   font-weight: 800;
@@ -104,46 +195,61 @@
   text-decoration: none;
 }
 
+.artales-reader-control-group,
+.artales-reader-select-label,
+.artales-reader-ghost-button,
+.artales-reader-ghost-link,
+.artales-reader-exit-link {
+  background: var(--reader-control-bg);
+}
+
 .artales-reader-control-group button,
 .artales-reader-ghost-button {
-  background: transparent;
   cursor: pointer;
   font: inherit;
 }
 
 .artales-reader-control-group button {
+  background: transparent;
   border: 0;
-  color: #fff8e7;
+  color: var(--reader-control-text);
   padding: 0;
 }
 
+.artales-reader-ghost-button {
+  appearance: none;
+}
+
 .artales-reader-select-label select {
-  background: rgba(255, 248, 231, 0.08);
+  background: rgba(255, 255, 255, 0.14);
   border: 0;
   border-radius: 999px;
-  color: #fff8e7;
+  color: var(--reader-control-text);
   font: inherit;
   padding: 0.18rem 0.4rem;
 }
 
 .artales-reader-select-label option {
-  background: #111827;
-  color: #fff8e7;
-}
-
-.artales-reader-ghost-button {
-  background: rgba(255, 248, 231, 0.04);
+  background: var(--reader-control-option-bg);
+  color: var(--reader-control-text);
 }
 
 .artales-reader-primary-link {
-  background: var(--artales-gold-soft);
-  border-color: var(--artales-gold-soft);
+  background: var(--reader-accent-soft);
+  border-color: var(--reader-accent-soft);
+  color: var(--reader-accent-strong);
+}
+
+.artales-reader--theme-dark .artales-reader-primary-link,
+.artales-reader--theme-script .artales-reader-primary-link {
+  background: var(--reader-accent);
+  border-color: var(--reader-accent);
   color: #0d1528;
 }
 
 .artales-reader-progress {
   align-items: center;
-  color: rgba(255, 248, 231, 0.78);
+  color: var(--reader-toolbar-muted);
   display: flex;
   font-size: 12px;
   font-weight: 800;
@@ -152,7 +258,7 @@
 }
 
 .artales-reader-progress__track {
-  background: rgba(255, 248, 231, 0.18);
+  background: color-mix(in srgb, var(--reader-toolbar-text) 18%, transparent);
   border-radius: 999px;
   height: 6px;
   overflow: hidden;
@@ -160,7 +266,7 @@
 }
 
 .artales-reader-progress__track div {
-  background: var(--artales-gold-soft);
+  background: var(--reader-accent);
   height: 100%;
   transition: width 160ms ease;
 }
@@ -173,11 +279,50 @@
   background: var(--reader-paper);
   border: 1px solid var(--reader-paper-border);
   border-radius: 30px;
-  box-shadow: var(--artales-shadow);
+  box-shadow: var(--reader-paper-shadow);
   color: var(--reader-paper-text);
   margin: 0 auto;
   min-height: min(82vh, 1120px);
   padding: clamp(34px, 6vw, 82px) clamp(22px, 7vw, 104px);
+  position: relative;
+}
+
+.artales-reader__bookmark-ribbon {
+  align-items: center;
+  appearance: none;
+  background: linear-gradient(180deg, var(--reader-bookmark), color-mix(in srgb, var(--reader-bookmark) 72%, #2b1609));
+  border: 0;
+  border-radius: 0 0 12px 12px;
+  box-shadow: 0 14px 32px rgba(0, 0, 0, 0.18);
+  color: #fff8e7;
+  cursor: pointer;
+  display: flex;
+  font-size: 11px;
+  font-weight: 900;
+  justify-content: center;
+  letter-spacing: 0.08em;
+  min-height: 104px;
+  padding: 10px 6px 14px;
+  position: absolute;
+  right: clamp(18px, 3vw, 42px);
+  text-transform: uppercase;
+  top: -1px;
+  width: 34px;
+  z-index: 2;
+}
+
+.artales-reader__bookmark-ribbon::after {
+  border-left: 17px solid transparent;
+  border-right: 17px solid transparent;
+  border-top: 17px solid color-mix(in srgb, var(--reader-bookmark) 76%, #2b1609);
+  bottom: -16px;
+  content: "";
+  left: 0;
+  position: absolute;
+}
+
+.artales-reader__bookmark-ribbon span {
+  writing-mode: vertical-rl;
 }
 
 .artales-reader--width-narrow .artales-reader__paper {
@@ -198,11 +343,11 @@
   margin: 0 auto;
 }
 
-.artales-reader--theme-dark .artales-work-content {
+.artales-reader__paper .artales-work-content {
   --artales-text: var(--reader-paper-text);
   --artales-muted: var(--reader-paper-muted);
-  --artales-border: rgba(241, 216, 157, 0.22);
-  --artales-soft: rgba(255, 248, 231, 0.06);
+  --artales-border: var(--reader-paper-border);
+  --artales-soft: color-mix(in srgb, var(--reader-paper-text) 6%, transparent);
 }
 
 .artales-reader__preview-note,
@@ -235,7 +380,7 @@
 }
 
 @media (max-width: 980px) {
-  .artales-reader-toolbar {
+  .artales-reader-toolbar__main-row {
     align-items: flex-start;
     flex-direction: column;
   }
@@ -244,7 +389,8 @@
     max-width: 82vw;
   }
 
-  .artales-reader-toolbar__controls {
+  .artales-reader-toolbar__controls,
+  .artales-reader-toolbar__action-row {
     justify-content: flex-start;
   }
 }
@@ -263,7 +409,12 @@
     padding-right: 18px;
   }
 
-  .artales-reader-toolbar__controls {
+  .artales-reader__bookmark-ribbon {
+    right: 18px;
+  }
+
+  .artales-reader-toolbar__controls,
+  .artales-reader-toolbar__action-row {
     gap: 6px;
   }
 }

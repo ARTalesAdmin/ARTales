@@ -206,6 +206,17 @@ export default function ReaderClient({
 
       <section className="artales-reader__stage">
         <article className="artales-reader__paper">
+          {bookmark ? (
+            <button
+              type="button"
+              className="artales-reader__bookmark-ribbon"
+              onClick={handleGoToBookmark}
+              aria-label="Go to saved bookmark"
+              title="Go to bookmark"
+            >
+              <span>Bookmark</span>
+            </button>
+          ) : null}
           {mode === "preview" ? (
             <p className="artales-reader__preview-note">
               This is a short preview. Continue to the full online reader when
