@@ -31,6 +31,23 @@ function ComingSoonBadge() {
   )
 }
 
+function normalizeIsbnStatus(status: string | null | undefined) {
+  switch (status) {
+    case "assigned":
+      return "Assigned"
+    case "external":
+      return "External"
+    case "planned":
+      return "Planned"
+    case "requested":
+      return "Requested"
+    case "not_applicable":
+      return "Not applicable"
+    default:
+      return "Not required"
+  }
+}
+
 export default function WorkDetailClient({
   work,
   languageLabel,
@@ -40,6 +57,10 @@ export default function WorkDetailClient({
 }: WorkDetailClientProps) {
   const { common, public: t } = getPublicDictionary()
   const authorName = work.author?.name ?? t.unknownAuthor
+  const publicIsbnVisible =
+    Boolean(work.isbn) &&
+    (work.isbn_status === "assigned" || work.isbn_status === "external")
+  const editionLanguage = work.edition_language || work.canonical_language
 
   return (
     <div className="artales-public-shell">
@@ -210,19 +231,100 @@ export default function WorkDetailClient({
               <dt style={{ fontWeight: 800 }}>{common.author}</dt>
               <dd style={{ margin: 0 }}>{authorName}</dd>
 
+              {work.edition_title ? (
+                <>
+                  <dt style={{ fontWeight: 800 }}>Edition</dt>
+                  <dd style={{ margin: 0 }}>{work.edition_title}</dd>
+                </>
+              ) : null}
+
+              {work.edition_version ? (
+                <>
+                  <dt style={{ fontWeight: 800 }}>Version</dt>
+                  <dd style={{ margin: 0 }}>{work.edition_version}</dd>
+                </>
+              ) : null}
+
               <dt style={{ fontWeight: 800 }}>{common.language}</dt>
-              <dd style={{ margin: 0 }}>{languageLabel}</dd>
+              <dd style={{ margin: 0 }}>{work.edition_language ? editionLanguage : languageLabel}</dd>
+
+              {work.original_language ? (
+                <>
+                  <dt style={{ fontWeight: 800 }}>Original language</dt>
+                  <dd style={{ margin: 0 }}>{work.original_language}</dd>
+                </>
+              ) : null}
 
               <dt style={{ fontWeight: 800 }}>{t.editionType}</dt>
               <dd style={{ margin: 0 }}>{originLabel}</dd>
 
+              {work.edition_publisher ? (
+                <>
+                  <dt style={{ fontWeight: 800 }}>Publisher / imprint</dt>
+                  <dd style={{ margin: 0 }}>{work.edition_publisher}</dd>
+                </>
+              ) : null}
+
+              {work.publication_year ? (
+                <>
+                  <dt style={{ fontWeight: 800 }}>Publication year</dt>
+                  <dd style={{ margin: 0 }}>{work.publication_year}</dd>
+                </>
+              ) : null}
+
+              {work.edition_license ? (
+                <>
+                  <dt style={{ fontWeight: 800 }}>License / rights</dt>
+                  <dd style={{ margin: 0 }}>{work.edition_license}</dd>
+                </>
+              ) : null}
+
               <dt style={{ fontWeight: 800 }}>{common.source}</dt>
               <dd style={{ margin: 0 }}>{sourceLabel}</dd>
+
+              {work.edition_source_url ? (
+                <>
+                  <dt style={{ fontWeight: 800 }}>Source URL</dt>
+                  <dd style={{ margin: 0 }}>
+                    <a href={work.edition_source_url} target="_blank" rel="noreferrer" style={{ color: "var(--artales-ink)", fontWeight: 700 }}>
+                      {work.edition_source_url}
+                    </a>
+                  </dd>
+                </>
+              ) : null}
 
               {work.source_reference ? (
                 <>
                   <dt style={{ fontWeight: 800 }}>{common.reference}</dt>
                   <dd style={{ margin: 0 }}>{work.source_reference}</dd>
+                </>
+              ) : null}
+
+              {work.contributor_summary ? (
+                <>
+                  <dt style={{ fontWeight: 800 }}>Contributors</dt>
+                  <dd style={{ margin: 0, whiteSpace: "pre-wrap" }}>{work.contributor_summary}</dd>
+                </>
+              ) : null}
+
+              {work.edition_note_public ? (
+                <>
+                  <dt style={{ fontWeight: 800 }}>Edition note</dt>
+                  <dd style={{ margin: 0, whiteSpace: "pre-wrap" }}>{work.edition_note_public}</dd>
+                </>
+              ) : null}
+
+              {publicIsbnVisible ? (
+                <>
+                  <dt style={{ fontWeight: 800 }}>ISBN</dt>
+                  <dd style={{ margin: 0 }}>{work.isbn}</dd>
+                </>
+              ) : null}
+
+              {work.isbn_status && work.isbn_status !== "not_required" && !publicIsbnVisible ? (
+                <>
+                  <dt style={{ fontWeight: 800 }}>ISBN status</dt>
+                  <dd style={{ margin: 0 }}>{normalizeIsbnStatus(work.isbn_status)}</dd>
                 </>
               ) : null}
 

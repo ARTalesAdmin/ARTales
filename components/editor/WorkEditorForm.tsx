@@ -21,6 +21,20 @@ type Props = {
     origin_type: string;
     source_label: string;
     source_reference: string;
+    edition_title: string;
+    edition_version: string;
+    edition_language: string;
+    original_language: string;
+    edition_source_url: string;
+    edition_license: string;
+    edition_publisher: string;
+    publication_year: string;
+    isbn: string;
+    isbn_status: string;
+    isbn_note: string;
+    edition_note_public: string;
+    edition_note_internal: string;
+    contributor_summary: string;
     cover_image_request: string;
     cover_image_path: string;
     cover_image_alt: string;
@@ -86,6 +100,20 @@ export default function WorkEditorForm(props: Props) {
     origin_type: initialData.origin_type,
     source_label: initialData.source_label,
     source_reference: initialData.source_reference,
+    edition_title: initialData.edition_title,
+    edition_version: initialData.edition_version,
+    edition_language: initialData.edition_language,
+    original_language: initialData.original_language,
+    edition_source_url: initialData.edition_source_url,
+    edition_license: initialData.edition_license,
+    edition_publisher: initialData.edition_publisher,
+    publication_year: initialData.publication_year,
+    isbn: initialData.isbn,
+    isbn_status: initialData.isbn_status,
+    isbn_note: initialData.isbn_note,
+    edition_note_public: initialData.edition_note_public,
+    edition_note_internal: initialData.edition_note_internal,
+    contributor_summary: initialData.contributor_summary,
     cover_image_request: initialData.cover_image_request,
     cover_image_path: initialData.cover_image_path,
     cover_image_alt: initialData.cover_image_alt,
@@ -133,6 +161,27 @@ export default function WorkEditorForm(props: Props) {
         formState.cover_image_path.trim() !== "" ||
         formState.cover_image_request.trim() !== "",
     },
+    {
+      label: "Jazyk edice",
+      done:
+        formState.edition_language.trim() !== "" ||
+        formState.canonical_language.trim() !== "",
+    },
+    {
+      label: "Zdroj / licence / původ",
+      done:
+        formState.edition_license.trim() !== "" ||
+        formState.source_reference.trim() !== "" ||
+        formState.edition_source_url.trim() !== "",
+    },
+    {
+      label: "Přispěvatelé / tiráž",
+      done: formState.contributor_summary.trim() !== "",
+    },
+    {
+      label: "Stav ISBN",
+      done: formState.isbn_status.trim() !== "",
+    },
   ];
 
   const currentSnapshot = useMemo(
@@ -159,6 +208,20 @@ export default function WorkEditorForm(props: Props) {
           origin_type: initialData.origin_type,
           source_label: initialData.source_label,
           source_reference: initialData.source_reference,
+          edition_title: initialData.edition_title,
+          edition_version: initialData.edition_version,
+          edition_language: initialData.edition_language,
+          original_language: initialData.original_language,
+          edition_source_url: initialData.edition_source_url,
+          edition_license: initialData.edition_license,
+          edition_publisher: initialData.edition_publisher,
+          publication_year: initialData.publication_year,
+          isbn: initialData.isbn,
+          isbn_status: initialData.isbn_status,
+          isbn_note: initialData.isbn_note,
+          edition_note_public: initialData.edition_note_public,
+          edition_note_internal: initialData.edition_note_internal,
+          contributor_summary: initialData.contributor_summary,
           cover_image_request: initialData.cover_image_request,
           cover_image_path: initialData.cover_image_path,
           cover_image_alt: initialData.cover_image_alt,
@@ -211,6 +274,20 @@ export default function WorkEditorForm(props: Props) {
           origin_type: parsedForm.origin_type ?? "original",
           source_label: parsedForm.source_label ?? "manual",
           source_reference: parsedForm.source_reference ?? "",
+          edition_title: parsedForm.edition_title ?? "",
+          edition_version: parsedForm.edition_version ?? "",
+          edition_language: parsedForm.edition_language ?? parsedForm.canonical_language ?? "cs",
+          original_language: parsedForm.original_language ?? "",
+          edition_source_url: parsedForm.edition_source_url ?? "",
+          edition_license: parsedForm.edition_license ?? "",
+          edition_publisher: parsedForm.edition_publisher ?? "ARTales",
+          publication_year: parsedForm.publication_year ?? "",
+          isbn: parsedForm.isbn ?? "",
+          isbn_status: parsedForm.isbn_status ?? "not_required",
+          isbn_note: parsedForm.isbn_note ?? "",
+          edition_note_public: parsedForm.edition_note_public ?? "",
+          edition_note_internal: parsedForm.edition_note_internal ?? "",
+          contributor_summary: parsedForm.contributor_summary ?? "",
           cover_image_request: parsedForm.cover_image_request ?? "",
           cover_image_path: parsedForm.cover_image_path ?? "",
           cover_image_alt: parsedForm.cover_image_alt ?? "",
@@ -317,6 +394,20 @@ export default function WorkEditorForm(props: Props) {
           origin_type: parsed.form.origin_type ?? "original",
           source_label: parsed.form.source_label ?? "manual",
           source_reference: parsed.form.source_reference ?? "",
+          edition_title: parsed.form.edition_title ?? "",
+          edition_version: parsed.form.edition_version ?? "",
+          edition_language: parsed.form.edition_language ?? parsed.form.canonical_language ?? "cs",
+          original_language: parsed.form.original_language ?? "",
+          edition_source_url: parsed.form.edition_source_url ?? "",
+          edition_license: parsed.form.edition_license ?? "",
+          edition_publisher: parsed.form.edition_publisher ?? "ARTales",
+          publication_year: parsed.form.publication_year ?? "",
+          isbn: parsed.form.isbn ?? "",
+          isbn_status: parsed.form.isbn_status ?? "not_required",
+          isbn_note: parsed.form.isbn_note ?? "",
+          edition_note_public: parsed.form.edition_note_public ?? "",
+          edition_note_internal: parsed.form.edition_note_internal ?? "",
+          contributor_summary: parsed.form.contributor_summary ?? "",
           cover_image_request: parsed.form.cover_image_request ?? "",
           cover_image_path: parsed.form.cover_image_path ?? "",
           cover_image_alt: parsed.form.cover_image_alt ?? "",
@@ -863,6 +954,122 @@ export default function WorkEditorForm(props: Props) {
               Nepovinný odkaz, poznámka nebo identifikátor zdroje.
             </p>
           </div>
+
+          <section
+            style={{
+              border: "1px solid rgba(13, 21, 40, 0.18)",
+              borderRadius: "18px",
+              padding: "20px",
+              display: "grid",
+              gap: "16px",
+              background: "#fffaf0",
+            }}
+          >
+            <div>
+              <h3 style={{ margin: "0 0 6px" }}>Tiráž / edice</h3>
+              <p style={{ margin: 0, fontSize: "14px", opacity: 0.78 }}>
+                Ediční metadata určují, co přesně publikujeme: jazyk edice,
+                původ, licenci, přispěvatele a případný stav ISBN. ISBN zde
+                není interní ID díla; používá se až pro konkrétní vydání nebo
+                distribuční formát.
+              </p>
+            </div>
+
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: "14px" }}>
+              <div>
+                <label htmlFor="edition_title" style={{ display: "block", marginBottom: "8px", fontWeight: 600 }}>Název edice</label>
+                <input id="edition_title" name="edition_title" type="text" value={formState.edition_title} onChange={(e) => setFormState((prev) => ({ ...prev, edition_title: e.target.value }))} placeholder="např. ARTales public-domain edition" style={{ width: "100%", padding: "12px 14px", border: "1px solid rgba(13, 21, 40, 0.22)", background: "#fffefb", borderRadius: "12px", fontSize: "16px" }} />
+              </div>
+
+              <div>
+                <label htmlFor="edition_version" style={{ display: "block", marginBottom: "8px", fontWeight: 600 }}>Verze edice</label>
+                <input id="edition_version" name="edition_version" type="text" value={formState.edition_version} onChange={(e) => setFormState((prev) => ({ ...prev, edition_version: e.target.value }))} placeholder="např. v1.0, draft, annotated" style={{ width: "100%", padding: "12px 14px", border: "1px solid rgba(13, 21, 40, 0.22)", background: "#fffefb", borderRadius: "12px", fontSize: "16px" }} />
+              </div>
+            </div>
+
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: "14px" }}>
+              <div>
+                <label htmlFor="edition_language" style={{ display: "block", marginBottom: "8px", fontWeight: 600 }}>Jazyk edice</label>
+                <select id="edition_language" name="edition_language" value={formState.edition_language} onChange={(e) => setFormState((prev) => ({ ...prev, edition_language: e.target.value }))} style={{ width: "100%", padding: "12px 14px", border: "1px solid rgba(13, 21, 40, 0.22)", background: "#fffefb", borderRadius: "12px", fontSize: "16px" }}>
+                  <option value="">Použít hlavní jazyk díla</option>
+                  {languageOptions.map((option) => (<option key={option.value} value={option.value}>{option.label}</option>))}
+                </select>
+              </div>
+
+              <div>
+                <label htmlFor="original_language" style={{ display: "block", marginBottom: "8px", fontWeight: 600 }}>Původní jazyk</label>
+                <select id="original_language" name="original_language" value={formState.original_language} onChange={(e) => setFormState((prev) => ({ ...prev, original_language: e.target.value }))} style={{ width: "100%", padding: "12px 14px", border: "1px solid rgba(13, 21, 40, 0.22)", background: "#fffefb", borderRadius: "12px", fontSize: "16px" }}>
+                  <option value="">Nevyplněno / shodné</option>
+                  {languageOptions.map((option) => (<option key={option.value} value={option.value}>{option.label}</option>))}
+                </select>
+              </div>
+            </div>
+
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: "14px" }}>
+              <div>
+                <label htmlFor="edition_license" style={{ display: "block", marginBottom: "8px", fontWeight: 600 }}>Licence / práva</label>
+                <input id="edition_license" name="edition_license" type="text" value={formState.edition_license} onChange={(e) => setFormState((prev) => ({ ...prev, edition_license: e.target.value }))} placeholder="např. Public domain, CC BY, interní práva" style={{ width: "100%", padding: "12px 14px", border: "1px solid rgba(13, 21, 40, 0.22)", background: "#fffefb", borderRadius: "12px", fontSize: "16px" }} />
+              </div>
+
+              <div>
+                <label htmlFor="edition_source_url" style={{ display: "block", marginBottom: "8px", fontWeight: 600 }}>URL zdroje</label>
+                <input id="edition_source_url" name="edition_source_url" type="url" value={formState.edition_source_url} onChange={(e) => setFormState((prev) => ({ ...prev, edition_source_url: e.target.value }))} placeholder="https://..." style={{ width: "100%", padding: "12px 14px", border: "1px solid rgba(13, 21, 40, 0.22)", background: "#fffefb", borderRadius: "12px", fontSize: "16px" }} />
+              </div>
+            </div>
+
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: "14px" }}>
+              <div>
+                <label htmlFor="edition_publisher" style={{ display: "block", marginBottom: "8px", fontWeight: 600 }}>Vydavatel / imprint</label>
+                <input id="edition_publisher" name="edition_publisher" type="text" value={formState.edition_publisher} onChange={(e) => setFormState((prev) => ({ ...prev, edition_publisher: e.target.value }))} placeholder="ARTales" style={{ width: "100%", padding: "12px 14px", border: "1px solid rgba(13, 21, 40, 0.22)", background: "#fffefb", borderRadius: "12px", fontSize: "16px" }} />
+              </div>
+
+              <div>
+                <label htmlFor="publication_year" style={{ display: "block", marginBottom: "8px", fontWeight: 600 }}>Rok vydání</label>
+                <input id="publication_year" name="publication_year" type="text" value={formState.publication_year} onChange={(e) => setFormState((prev) => ({ ...prev, publication_year: e.target.value }))} placeholder="např. 2026" style={{ width: "100%", padding: "12px 14px", border: "1px solid rgba(13, 21, 40, 0.22)", background: "#fffefb", borderRadius: "12px", fontSize: "16px" }} />
+              </div>
+            </div>
+
+            <div>
+              <label htmlFor="contributor_summary" style={{ display: "block", marginBottom: "8px", fontWeight: 600 }}>Přispěvatelé / veřejná tiráž</label>
+              <textarea id="contributor_summary" name="contributor_summary" rows={3} value={formState.contributor_summary} onChange={(e) => setFormState((prev) => ({ ...prev, contributor_summary: e.target.value }))} placeholder="např. Original author: Gaston Leroux; Editor: Ivana; Technical edition: ARTales" style={{ width: "100%", padding: "12px 14px", border: "1px solid rgba(13, 21, 40, 0.22)", background: "#fffefb", borderRadius: "12px", fontSize: "16px" }} />
+              <p style={{ margin: "8px 0 0", fontSize: "14px", opacity: 0.75 }}>MVP forma contributor modelu. Později z toho vznikne strukturovaná tabulka osob, rolí a potvrzení práce.</p>
+            </div>
+
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: "14px" }}>
+              <div>
+                <label htmlFor="isbn_status" style={{ display: "block", marginBottom: "8px", fontWeight: 600 }}>Stav ISBN</label>
+                <select id="isbn_status" name="isbn_status" value={formState.isbn_status} onChange={(e) => setFormState((prev) => ({ ...prev, isbn_status: e.target.value }))} style={{ width: "100%", padding: "12px 14px", border: "1px solid rgba(13, 21, 40, 0.22)", background: "#fffefb", borderRadius: "12px", fontSize: "16px" }}>
+                  <option value="not_required">Není potřeba</option>
+                  <option value="planned">Plánováno</option>
+                  <option value="requested">Zažádáno</option>
+                  <option value="assigned">Přiděleno</option>
+                  <option value="external">Externí ISBN</option>
+                  <option value="not_applicable">Nelze použít</option>
+                </select>
+              </div>
+
+              <div>
+                <label htmlFor="isbn" style={{ display: "block", marginBottom: "8px", fontWeight: 600 }}>ISBN</label>
+                <input id="isbn" name="isbn" type="text" value={formState.isbn} onChange={(e) => setFormState((prev) => ({ ...prev, isbn: e.target.value }))} placeholder="978-..." style={{ width: "100%", padding: "12px 14px", border: "1px solid rgba(13, 21, 40, 0.22)", background: "#fffefb", borderRadius: "12px", fontSize: "16px" }} />
+              </div>
+            </div>
+
+            <div>
+              <label htmlFor="isbn_note" style={{ display: "block", marginBottom: "8px", fontWeight: 600 }}>Poznámka k ISBN</label>
+              <input id="isbn_note" name="isbn_note" type="text" value={formState.isbn_note} onChange={(e) => setFormState((prev) => ({ ...prev, isbn_note: e.target.value }))} placeholder="např. řešit až při PDF vydání" style={{ width: "100%", padding: "12px 14px", border: "1px solid rgba(13, 21, 40, 0.22)", background: "#fffefb", borderRadius: "12px", fontSize: "16px" }} />
+              <p style={{ margin: "8px 0 0", fontSize: "14px", opacity: 0.75 }}>ISBN nepoužívej jako interní ID. Veřejně se zobrazí pouze při stavu Přiděleno nebo Externí ISBN.</p>
+            </div>
+
+            <div>
+              <label htmlFor="edition_note_public" style={{ display: "block", marginBottom: "8px", fontWeight: 600 }}>Veřejná ediční poznámka</label>
+              <textarea id="edition_note_public" name="edition_note_public" rows={3} value={formState.edition_note_public} onChange={(e) => setFormState((prev) => ({ ...prev, edition_note_public: e.target.value }))} placeholder="Krátká poznámka, kterou může vidět čtenář v tiráži." style={{ width: "100%", padding: "12px 14px", border: "1px solid rgba(13, 21, 40, 0.22)", background: "#fffefb", borderRadius: "12px", fontSize: "16px" }} />
+            </div>
+
+            <div>
+              <label htmlFor="edition_note_internal" style={{ display: "block", marginBottom: "8px", fontWeight: 600 }}>Interní ediční poznámka</label>
+              <textarea id="edition_note_internal" name="edition_note_internal" rows={3} value={formState.edition_note_internal} onChange={(e) => setFormState((prev) => ({ ...prev, edition_note_internal: e.target.value }))} placeholder="Interní poznámky k právům, zdroji, kontrole nebo budoucímu vydání." style={{ width: "100%", padding: "12px 14px", border: "1px solid rgba(13, 21, 40, 0.22)", background: "#fffefb", borderRadius: "12px", fontSize: "16px" }} />
+            </div>
+          </section>
 
           <section
             style={{

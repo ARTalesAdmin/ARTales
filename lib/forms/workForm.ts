@@ -17,6 +17,20 @@ export type WorkFormValues = {
   origin_type: "public_domain" | "original" | "translation" | "other"
   source_label: "gutenberg" | "web" | "manual" | "original"
   source_reference: string
+  edition_title: string
+  edition_version: string
+  edition_language: string
+  original_language: string
+  edition_source_url: string
+  edition_license: string
+  edition_publisher: string
+  publication_year: string
+  isbn: string
+  isbn_status: string
+  isbn_note: string
+  edition_note_public: string
+  edition_note_internal: string
+  contributor_summary: string
   cover_image_request: string
   cover_image_path: string
   cover_image_alt: string
@@ -69,6 +83,20 @@ export function parseWorkFormData(formData: FormData): WorkFormValues {
     origin_type: String(formData.get("origin_type") ?? "").trim() as WorkFormValues["origin_type"],
     source_label: String(formData.get("source_label") ?? "").trim() as WorkFormValues["source_label"],
     source_reference: String(formData.get("source_reference") ?? "").trim(),
+    edition_title: String(formData.get("edition_title") ?? "").trim(),
+    edition_version: String(formData.get("edition_version") ?? "").trim(),
+    edition_language: String(formData.get("edition_language") ?? "").trim(),
+    original_language: String(formData.get("original_language") ?? "").trim(),
+    edition_source_url: String(formData.get("edition_source_url") ?? "").trim(),
+    edition_license: String(formData.get("edition_license") ?? "").trim(),
+    edition_publisher: String(formData.get("edition_publisher") ?? "").trim(),
+    publication_year: String(formData.get("publication_year") ?? "").trim(),
+    isbn: String(formData.get("isbn") ?? "").trim(),
+    isbn_status: String(formData.get("isbn_status") ?? "not_required").trim(),
+    isbn_note: String(formData.get("isbn_note") ?? "").trim(),
+    edition_note_public: String(formData.get("edition_note_public") ?? "").trim(),
+    edition_note_internal: String(formData.get("edition_note_internal") ?? "").trim(),
+    contributor_summary: String(formData.get("contributor_summary") ?? "").trim(),
     cover_image_request: String(formData.get("cover_image_request") ?? "").trim(),
     cover_image_path: String(formData.get("cover_image_path") ?? "").trim(),
     cover_image_alt: String(formData.get("cover_image_alt") ?? "").trim(),
@@ -126,6 +154,18 @@ export function validateWorkFormValues(values: WorkFormValues): string | null {
     return "source_label_invalid"
   }
 
+  if (values.edition_language && !isLanguageCode(values.edition_language)) {
+    return "edition_language_invalid"
+  }
+
+  if (values.original_language && !isLanguageCode(values.original_language)) {
+    return "original_language_invalid"
+  }
+
+  if (values.isbn_status === "assigned" && !values.isbn) {
+    return "isbn_missing"
+  }
+
   const blocksError = validateWorkBlocks(values.content_blocks)
 
   if (blocksError) {
@@ -150,6 +190,20 @@ export function mapWorkFormValuesToInsertPayload(
     origin_type: values.origin_type,
     source_label: values.source_label,
     source_reference: toNullableString(values.source_reference),
+    edition_title: toNullableString(values.edition_title),
+    edition_version: toNullableString(values.edition_version),
+    edition_language: toNullableString(values.edition_language),
+    original_language: toNullableString(values.original_language),
+    edition_source_url: toNullableString(values.edition_source_url),
+    edition_license: toNullableString(values.edition_license),
+    edition_publisher: toNullableString(values.edition_publisher),
+    publication_year: toNullableString(values.publication_year),
+    isbn: toNullableString(values.isbn),
+    isbn_status: values.isbn_status || "not_required",
+    isbn_note: toNullableString(values.isbn_note),
+    edition_note_public: toNullableString(values.edition_note_public),
+    edition_note_internal: toNullableString(values.edition_note_internal),
+    contributor_summary: toNullableString(values.contributor_summary),
     cover_image_request: toNullableString(values.cover_image_request),
     cover_image_path: toNullableString(values.cover_image_path),
     cover_image_alt: toNullableString(values.cover_image_alt),
@@ -177,6 +231,20 @@ export function mapWorkFormValuesToUpdatePayload(
     origin_type: values.origin_type,
     source_label: values.source_label,
     source_reference: toNullableString(values.source_reference),
+    edition_title: toNullableString(values.edition_title),
+    edition_version: toNullableString(values.edition_version),
+    edition_language: toNullableString(values.edition_language),
+    original_language: toNullableString(values.original_language),
+    edition_source_url: toNullableString(values.edition_source_url),
+    edition_license: toNullableString(values.edition_license),
+    edition_publisher: toNullableString(values.edition_publisher),
+    publication_year: toNullableString(values.publication_year),
+    isbn: toNullableString(values.isbn),
+    isbn_status: values.isbn_status || "not_required",
+    isbn_note: toNullableString(values.isbn_note),
+    edition_note_public: toNullableString(values.edition_note_public),
+    edition_note_internal: toNullableString(values.edition_note_internal),
+    contributor_summary: toNullableString(values.contributor_summary),
     cover_image_request: toNullableString(values.cover_image_request),
     cover_image_path: toNullableString(values.cover_image_path),
     cover_image_alt: toNullableString(values.cover_image_alt),

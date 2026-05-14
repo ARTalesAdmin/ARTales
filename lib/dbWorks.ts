@@ -55,6 +55,20 @@ export type WorkDetailItem = {
   origin_type: WorkOriginType
   source_label: WorkSourceLabel
   source_reference: string | null
+  edition_title: string | null
+  edition_version: string | null
+  edition_language: string | null
+  original_language: string | null
+  edition_source_url: string | null
+  edition_license: string | null
+  edition_publisher: string | null
+  publication_year: string | null
+  isbn: string | null
+  isbn_status: string
+  isbn_note: string | null
+  edition_note_public: string | null
+  edition_note_internal: string | null
+  contributor_summary: string | null
   status: WorkStatus
   author: WorkAuthorRef
   collection: WorkCollectionRef
@@ -99,6 +113,20 @@ export type WorkEditItem = {
   origin_type: WorkOriginType
   source_label: WorkSourceLabel
   source_reference: string | null
+  edition_title: string | null
+  edition_version: string | null
+  edition_language: string | null
+  original_language: string | null
+  edition_source_url: string | null
+  edition_license: string | null
+  edition_publisher: string | null
+  publication_year: string | null
+  isbn: string | null
+  isbn_status: string
+  isbn_note: string | null
+  edition_note_public: string | null
+  edition_note_internal: string | null
+  contributor_summary: string | null
   status: WorkStatus
   primary_author_id: string | null
   collection_id: string | null
@@ -159,6 +187,20 @@ type RawWorkDetailRow = {
   origin_type: unknown
   source_label: unknown
   source_reference: unknown
+  edition_title: unknown
+  edition_version: unknown
+  edition_language: unknown
+  original_language: unknown
+  edition_source_url: unknown
+  edition_license: unknown
+  edition_publisher: unknown
+  publication_year: unknown
+  isbn: unknown
+  isbn_status: unknown
+  isbn_note: unknown
+  edition_note_public: unknown
+  edition_note_internal: unknown
+  contributor_summary: unknown
   status: unknown
   cover_image_request: unknown
   cover_image_path: unknown
@@ -178,6 +220,20 @@ type RawWorkEditRow = {
   origin_type: unknown
   source_label: unknown
   source_reference: unknown
+  edition_title: unknown
+  edition_version: unknown
+  edition_language: unknown
+  original_language: unknown
+  edition_source_url: unknown
+  edition_license: unknown
+  edition_publisher: unknown
+  publication_year: unknown
+  isbn: unknown
+  isbn_status: unknown
+  isbn_note: unknown
+  edition_note_public: unknown
+  edition_note_internal: unknown
+  contributor_summary: unknown
   status: unknown
   primary_author_id: unknown
   collection_id: unknown
@@ -255,6 +311,20 @@ function mapWorkDetail(row: RawWorkDetailRow): WorkDetailItem {
     source_label: row.source_label as WorkSourceLabel,
     source_reference:
       row.source_reference == null ? null : String(row.source_reference),
+    edition_title: row.edition_title == null ? null : String(row.edition_title),
+    edition_version: row.edition_version == null ? null : String(row.edition_version),
+    edition_language: row.edition_language == null ? null : String(row.edition_language),
+    original_language: row.original_language == null ? null : String(row.original_language),
+    edition_source_url: row.edition_source_url == null ? null : String(row.edition_source_url),
+    edition_license: row.edition_license == null ? null : String(row.edition_license),
+    edition_publisher: row.edition_publisher == null ? null : String(row.edition_publisher),
+    publication_year: row.publication_year == null ? null : String(row.publication_year),
+    isbn: row.isbn == null ? null : String(row.isbn),
+    isbn_status: row.isbn_status == null ? "not_required" : String(row.isbn_status),
+    isbn_note: row.isbn_note == null ? null : String(row.isbn_note),
+    edition_note_public: row.edition_note_public == null ? null : String(row.edition_note_public),
+    edition_note_internal: row.edition_note_internal == null ? null : String(row.edition_note_internal),
+    contributor_summary: row.contributor_summary == null ? null : String(row.contributor_summary),
     status: row.status as WorkStatus,
     cover_image_request:
       row.cover_image_request == null ? null : String(row.cover_image_request),
@@ -326,6 +396,20 @@ export async function getWorkBySlug(
       origin_type,
       source_label,
       source_reference,
+      edition_title,
+      edition_version,
+      edition_language,
+      original_language,
+      edition_source_url,
+      edition_license,
+      edition_publisher,
+      publication_year,
+      isbn,
+      isbn_status,
+      isbn_note,
+      edition_note_public,
+      edition_note_internal,
+      contributor_summary,
       status,
       cover_image_request,
       cover_image_path,
@@ -531,6 +615,20 @@ export async function getWorkForEditBySlug(
       origin_type,
       source_label,
       source_reference,
+      edition_title,
+      edition_version,
+      edition_language,
+      original_language,
+      edition_source_url,
+      edition_license,
+      edition_publisher,
+      publication_year,
+      isbn,
+      isbn_status,
+      isbn_note,
+      edition_note_public,
+      edition_note_internal,
+      contributor_summary,
       status,
       cover_image_request,
       cover_image_path,
@@ -564,6 +662,20 @@ export async function getWorkForEditBySlug(
     source_label: String(row.source_label) as WorkSourceLabel,
     source_reference:
       row.source_reference == null ? null : String(row.source_reference),
+    edition_title: row.edition_title == null ? null : String(row.edition_title),
+    edition_version: row.edition_version == null ? null : String(row.edition_version),
+    edition_language: row.edition_language == null ? null : String(row.edition_language),
+    original_language: row.original_language == null ? null : String(row.original_language),
+    edition_source_url: row.edition_source_url == null ? null : String(row.edition_source_url),
+    edition_license: row.edition_license == null ? null : String(row.edition_license),
+    edition_publisher: row.edition_publisher == null ? null : String(row.edition_publisher),
+    publication_year: row.publication_year == null ? null : String(row.publication_year),
+    isbn: row.isbn == null ? null : String(row.isbn),
+    isbn_status: row.isbn_status == null ? "not_required" : String(row.isbn_status),
+    isbn_note: row.isbn_note == null ? null : String(row.isbn_note),
+    edition_note_public: row.edition_note_public == null ? null : String(row.edition_note_public),
+    edition_note_internal: row.edition_note_internal == null ? null : String(row.edition_note_internal),
+    contributor_summary: row.contributor_summary == null ? null : String(row.contributor_summary),
     status: String(row.status) as WorkStatus,
     primary_author_id:
       row.primary_author_id == null ? null : String(row.primary_author_id),

@@ -39,6 +39,12 @@ function getErrorMessage(error?: string) {
       return "Typ původu není platný."
     case "source_label_invalid":
       return "Zdroj není platný."
+    case "edition_language_invalid":
+      return "Jazyk edice musí být vybrán z nabídky."
+    case "original_language_invalid":
+      return "Původní jazyk musí být vybrán z nabídky."
+    case "isbn_missing":
+      return "Při stavu ISBN Přiděleno musí být ISBN vyplněné."
     case "blocks_missing":
       return "Dílo musí obsahovat alespoň jeden blok."
     case "blocks_empty":
@@ -160,6 +166,20 @@ export default async function NewWorkPage({ searchParams }: PageProps) {
           origin_type: "original",
           source_label: "manual",
           source_reference: "",
+          edition_title: "",
+          edition_version: "",
+          edition_language: "cs",
+          original_language: "",
+          edition_source_url: "",
+          edition_license: "",
+          edition_publisher: "ARTales",
+          publication_year: "",
+          isbn: "",
+          isbn_status: "not_required",
+          isbn_note: "",
+          edition_note_public: "",
+          edition_note_internal: "",
+          contributor_summary: "",
           cover_image_request: "",
           cover_image_path: "",
           cover_image_alt: "",
