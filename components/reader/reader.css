@@ -108,12 +108,56 @@
   z-index: 20;
 }
 
-.artales-reader-toolbar__main-row {
+.artales-reader-toolbar__top-row {
   align-items: center;
   display: grid;
-  gap: 20px;
-  grid-template-columns: minmax(260px, 1fr) auto;
+  gap: 18px;
+  grid-template-columns: minmax(220px, 1fr) auto;
   min-width: 0;
+}
+
+.artales-reader-toolbar__settings-panel {
+  display: grid;
+  gap: 8px;
+}
+
+.artales-reader-toolbar__top-actions {
+  align-items: center;
+  display: flex;
+  flex: 0 0 auto;
+  gap: 10px;
+  justify-content: flex-end;
+  min-width: 0;
+}
+
+.artales-reader-settings-toggle {
+  align-items: center;
+  appearance: none;
+  background: var(--reader-control-bg);
+  border: 1px solid var(--reader-control-border);
+  border-radius: 999px;
+  color: var(--reader-control-text);
+  cursor: pointer;
+  display: inline-flex;
+  flex: 0 0 auto;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 900;
+  gap: 7px;
+  min-height: 36px;
+  padding: 0.48rem 0.78rem;
+  white-space: nowrap;
+}
+
+.artales-reader-settings-toggle span {
+  color: var(--reader-accent-strong);
+  font-size: 12px;
+  line-height: 1;
+}
+
+.artales-reader--theme-dark .artales-reader-settings-toggle span,
+.artales-reader--theme-script .artales-reader-settings-toggle span {
+  color: var(--reader-accent);
 }
 
 .artales-reader-toolbar__action-row {
@@ -279,6 +323,14 @@
   min-width: 118px;
 }
 
+.artales-reader-progress--top {
+  background: color-mix(in srgb, var(--reader-control-bg) 72%, transparent);
+  border: 1px solid var(--reader-control-border);
+  border-radius: 999px;
+  min-height: 36px;
+  padding: 0.48rem 0.72rem;
+}
+
 .artales-reader-progress__track {
   background: color-mix(in srgb, var(--reader-toolbar-text) 18%, transparent);
   border-radius: 999px;
@@ -421,7 +473,7 @@
 }
 
 @media (max-width: 980px) {
-  .artales-reader-toolbar__main-row {
+  .artales-reader-toolbar__top-row {
     align-items: flex-start;
     grid-template-columns: 1fr;
   }
@@ -430,6 +482,7 @@
     max-width: 82vw;
   }
 
+  .artales-reader-toolbar__top-actions,
   .artales-reader-toolbar__controls,
   .artales-reader-toolbar__action-row {
     justify-content: flex-start;
@@ -437,6 +490,32 @@
 }
 
 @media (max-width: 640px) {
+  .artales-reader-toolbar {
+    gap: 8px;
+    padding: 10px 12px;
+  }
+
+  .artales-reader-toolbar__top-row {
+    gap: 10px;
+  }
+
+  .artales-reader-toolbar__top-actions {
+    justify-content: space-between;
+    width: 100%;
+  }
+
+  .artales-reader-progress--top {
+    min-width: 96px;
+  }
+
+  .artales-reader-progress__track {
+    width: 48px;
+  }
+
+  .artales-reader-settings-toggle {
+    margin-left: auto;
+  }
+
   .artales-reader__stage {
     padding-left: 0;
     padding-right: 0;

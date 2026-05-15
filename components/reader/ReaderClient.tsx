@@ -175,6 +175,13 @@ export default function ReaderClient({
     setSettings((current) => ({ ...current, ...patch }));
   }, []);
 
+  const handleToggleControls = useCallback(() => {
+    setSettings((current) => ({
+      ...current,
+      controlsCollapsed: !current.controlsCollapsed,
+    }));
+  }, []);
+
   function handleFontDelta(delta: number) {
     setSettings((current) => ({
       ...current,
@@ -228,6 +235,7 @@ export default function ReaderClient({
         onDensityChange={(density: ReaderDensityId) =>
           updateSettings({ density })
         }
+        onToggleControls={handleToggleControls}
         onBookmark={handleBookmark}
         onGoToBookmark={handleGoToBookmark}
         onClearBookmark={handleClearBookmark}

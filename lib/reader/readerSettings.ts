@@ -12,6 +12,12 @@ export type ReaderSettings = {
   width: ReaderWidthId;
   theme: ReaderThemeId;
   density: ReaderDensityId;
+  /**
+   * Local reader preference. Later this can move to user profile preferences.
+   * When true, the persistent reader top bar stays visible, but detailed
+   * controls and bookmark actions are collapsed.
+   */
+  controlsCollapsed: boolean;
 };
 
 export const defaultReaderSettings: ReaderSettings = {
@@ -19,6 +25,7 @@ export const defaultReaderSettings: ReaderSettings = {
   width: "normal",
   theme: "light",
   density: "comfortable",
+  controlsCollapsed: false,
 };
 
 function normalizeLegacyTheme(value: unknown): ReaderThemeId {
@@ -54,5 +61,6 @@ export function normalizeReaderSettings(value: unknown): ReaderSettings {
     width,
     theme,
     density,
+    controlsCollapsed: Boolean(raw.controlsCollapsed),
   };
 }
