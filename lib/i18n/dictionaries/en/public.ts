@@ -73,6 +73,13 @@ export const enPublic = {
   publishedWorks: "Published works",
   authorNoWorks: "This author has no published works in the gallery yet.",
 
+  collectionsTitle: "ARTales Collections",
+  collectionsEyebrow: "Curated shelves",
+  collectionsIntro:
+    "Browse curated ARTales shelves: thematic paths through living editions, classic texts, translations, and future reading layers.",
+  noPublicCollections: "No public collections are available yet.",
+  openCollection: "Open collection",
+
   collection: "Collection",
   collectionNotFoundTitle: "Collection not found",
   collectionNotFoundText:

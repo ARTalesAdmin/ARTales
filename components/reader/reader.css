@@ -110,19 +110,23 @@
 
 .artales-reader-toolbar__main-row {
   align-items: center;
-  display: flex;
+  display: grid;
   gap: 20px;
-  justify-content: space-between;
+  grid-template-columns: minmax(260px, 1fr) auto;
   min-width: 0;
 }
 
 .artales-reader-toolbar__action-row {
   align-items: center;
   display: flex;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   gap: 8px;
   justify-content: flex-end;
   min-height: 38px;
+  overflow-x: auto;
+  padding-bottom: 2px;
+  scrollbar-width: thin;
+  white-space: nowrap;
 }
 
 .artales-reader-toolbar__brand {
@@ -171,9 +175,15 @@
 .artales-reader-toolbar__controls {
   align-items: center;
   display: flex;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   gap: 8px;
   justify-content: flex-end;
+  max-width: min(100%, 820px);
+  min-width: 0;
+  overflow-x: auto;
+  padding-bottom: 2px;
+  scrollbar-width: thin;
+  white-space: nowrap;
 }
 
 .artales-reader-control-group,
@@ -187,6 +197,7 @@
   border-radius: 999px;
   color: var(--reader-control-text);
   display: inline-flex;
+  flex: 0 0 auto;
   font-size: 12px;
   font-weight: 800;
   gap: 7px;
@@ -207,6 +218,16 @@
 .artales-reader-ghost-button {
   cursor: pointer;
   font: inherit;
+}
+
+.artales-reader-control-group {
+  min-width: 122px;
+}
+
+.artales-reader-control-group span {
+  display: inline-block;
+  min-width: 42px;
+  text-align: center;
 }
 
 .artales-reader-control-group button {
@@ -251,6 +272,7 @@
   align-items: center;
   color: var(--reader-toolbar-muted);
   display: flex;
+  flex: 0 0 auto;
   font-size: 12px;
   font-weight: 800;
   gap: 7px;
@@ -287,42 +309,61 @@
   position: relative;
 }
 
-.artales-reader__bookmark-ribbon {
+.artales-reader__bookmark-marker {
   align-items: center;
   appearance: none;
-  background: linear-gradient(180deg, var(--reader-bookmark), color-mix(in srgb, var(--reader-bookmark) 72%, #2b1609));
+  background: linear-gradient(
+    90deg,
+    color-mix(in srgb, var(--reader-bookmark) 42%, transparent),
+    color-mix(in srgb, var(--reader-bookmark) 18%, transparent) 58%,
+    transparent
+  );
   border: 0;
-  border-radius: 0 0 12px 12px;
-  box-shadow: 0 14px 32px rgba(0, 0, 0, 0.18);
-  color: #fff8e7;
+  border-left: 5px solid var(--reader-bookmark);
+  border-radius: 0 999px 999px 0;
+  box-shadow: 0 10px 28px color-mix(in srgb, var(--reader-bookmark) 28%, transparent);
+  color: var(--reader-accent-strong);
   cursor: pointer;
   display: flex;
-  font-size: 11px;
+  font-size: 10px;
   font-weight: 900;
-  justify-content: center;
-  letter-spacing: 0.08em;
-  min-height: 104px;
-  padding: 10px 6px 14px;
+  height: 28px;
+  justify-content: flex-start;
+  left: clamp(10px, 2.4vw, 34px);
+  letter-spacing: 0.12em;
+  padding: 0 18px 0 12px;
+  pointer-events: auto;
   position: absolute;
-  right: clamp(18px, 3vw, 42px);
   text-transform: uppercase;
-  top: -1px;
-  width: 34px;
-  z-index: 2;
+  transform: translateY(-50%);
+  width: min(46%, 360px);
+  z-index: 3;
 }
 
-.artales-reader__bookmark-ribbon::after {
-  border-left: 17px solid transparent;
-  border-right: 17px solid transparent;
-  border-top: 17px solid color-mix(in srgb, var(--reader-bookmark) 76%, #2b1609);
-  bottom: -16px;
+.artales-reader__bookmark-marker::before {
+  background: radial-gradient(circle, var(--reader-bookmark) 0 2px, transparent 2.6px);
   content: "";
-  left: 0;
-  position: absolute;
+  height: 6px;
+  margin-right: 8px;
+  width: 6px;
 }
 
-.artales-reader__bookmark-ribbon span {
-  writing-mode: vertical-rl;
+.artales-reader__bookmark-marker::after {
+  background: linear-gradient(90deg, var(--reader-bookmark), transparent);
+  content: "";
+  height: 1px;
+  left: 0;
+  opacity: 0.35;
+  position: absolute;
+  right: -120px;
+  top: 50%;
+}
+
+.artales-reader__bookmark-marker span {
+  opacity: 0.82;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .artales-reader--width-narrow .artales-reader__paper {
@@ -382,7 +423,7 @@
 @media (max-width: 980px) {
   .artales-reader-toolbar__main-row {
     align-items: flex-start;
-    flex-direction: column;
+    grid-template-columns: 1fr;
   }
 
   .artales-reader-toolbar__title {
@@ -409,8 +450,9 @@
     padding-right: 18px;
   }
 
-  .artales-reader__bookmark-ribbon {
-    right: 18px;
+  .artales-reader__bookmark-marker {
+    left: 0;
+    width: min(72%, 300px);
   }
 
   .artales-reader-toolbar__controls,

@@ -67,9 +67,11 @@ export default function ReaderClient({
   );
   const [progressPercent, setProgressPercent] = useState(0);
   const [bookmark, setBookmark] = useState<ReaderBookmark | null>(null);
+  const [bookmarkMarkerTop, setBookmarkMarkerTop] = useState<number | null>(null);
   const restoredInitialPosition = useRef(false);
+  const paperRef = useRef<HTMLElement | null>(null);
 
-  const detailHref = `/dilo/${slug}`;
+  const detailHref = `/work/${slug}`;
   const fullHref = `/reader/${slug}?mode=full`;
   const previewHref = `/reader/${slug}?mode=preview`;
 
@@ -80,6 +82,31 @@ export default function ReaderClient({
   useEffect(() => {
     setBookmark(loadReaderBookmark(slug));
   }, [slug]);
+
+  const recalculateBookmarkMarker = useCallback((nextBookmark: ReaderBookmark | null) => {
+    if (!nextBookmark || typeof window === "undefined" || !paperRef.current) {
+      setBookmarkMarkerTop(null);
+      return;
+    }
+
+    const paperTop = paperRef.current.getBoundingClientRect().top + window.scrollY;
+    const readingOffset = Math.min(180, Math.max(86, window.innerHeight * 0.16));
+    const approximateDocumentY = nextBookmark.scrollY + readingOffset;
+    const maxTop = Math.max(0, paperRef.current.scrollHeight - 24);
+    const nextTop = Math.max(0, Math.min(maxTop, approximateDocumentY - paperTop));
+
+    setBookmarkMarkerTop(nextTop);
+  }, []);
+
+  useEffect(() => {
+    recalculateBookmarkMarker(bookmark);
+  }, [bookmark, recalculateBookmarkMarker, settings.fontScale, settings.width, settings.density]);
+
+  useEffect(() => {
+    const onResize = () => recalculateBookmarkMarker(bookmark);
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
+  }, [bookmark, recalculateBookmarkMarker]);
 
   useEffect(() => {
     if (restoredInitialPosition.current) return;
@@ -166,6 +193,7 @@ export default function ReaderClient({
     };
     saveReaderBookmark(nextBookmark);
     setBookmark(nextBookmark);
+    recalculateBookmarkMarker(nextBookmark);
   }
 
   function handleGoToBookmark() {
@@ -176,6 +204,7 @@ export default function ReaderClient({
   function handleClearBookmark() {
     clearReaderBookmark(slug);
     setBookmark(null);
+    setBookmarkMarkerTop(null);
   }
 
   return (
@@ -205,16 +234,17 @@ export default function ReaderClient({
       />
 
       <section className="artales-reader__stage">
-        <article className="artales-reader__paper">
-          {bookmark ? (
+        <article className="artales-reader__paper" ref={paperRef}>
+          {bookmark && bookmarkMarkerTop != null ? (
             <button
               type="button"
-              className="artales-reader__bookmark-ribbon"
+              className="artales-reader__bookmark-marker"
+              style={{ top: `${bookmarkMarkerTop}px` }}
               onClick={handleGoToBookmark}
               aria-label="Go to saved bookmark"
               title="Go to bookmark"
             >
-              <span>Bookmark</span>
+              <span>ARTales bookmark</span>
             </button>
           ) : null}
           {mode === "preview" ? (

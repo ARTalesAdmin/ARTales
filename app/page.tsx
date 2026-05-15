@@ -69,7 +69,7 @@ export default function Home() {
             </p>
 
             <div style={{ display: "flex", flexWrap: "wrap", gap: "12px" }}>
-              <Link className="artales-button" href="/galerie">
+              <Link className="artales-button" href="/gallery">
                 {t.homePrimaryCta}
               </Link>
               <Link className="artales-button-secondary" href="/reader/the-phantom-of-the-opera?mode=preview">

@@ -22,21 +22,21 @@ export default function PublicHeader({ active }: PublicHeaderProps) {
       <nav className="artales-public-header__nav" aria-label="Public navigation">
         <Link
           className="artales-public-link"
-          href="/galerie"
+          href="/gallery"
           aria-current={active === "gallery" ? "page" : undefined}
         >
           {t.gallery}
         </Link>
         <Link
           className="artales-public-link"
-          href="/kolekce/gothic-classics"
+          href="/collections"
           aria-current={active === "collection" ? "page" : undefined}
         >
           {t.collections}
         </Link>
         <Link
           className="artales-public-link"
-          href="/autori"
+          href="/authors"
           aria-current={active === "authors" || active === "author" ? "page" : undefined}
         >
           {t.authors}

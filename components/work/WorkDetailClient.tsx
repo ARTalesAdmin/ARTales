@@ -78,7 +78,7 @@ export default function WorkDetailClient({
         }}
       >
         <p style={{ margin: "0 0 22px" }}>
-          <Link href="/galerie" style={{ color: "#5f5247" }}>
+          <Link href="/gallery" style={{ color: "#5f5247" }}>
             {"<- "}
             {t.backToGallery}
           </Link>
@@ -146,7 +146,7 @@ export default function WorkDetailClient({
               {t.byAuthor}{" "}
               {work.author ? (
                 <Link
-                  href={`/autor/${work.author.slug}`}
+                  href={`/author/${work.author.slug}`}
                   style={{ color: "var(--artales-ink)", fontWeight: 800 }}
                 >
                   {work.author.name}
@@ -171,7 +171,7 @@ export default function WorkDetailClient({
               <p style={{ margin: "0 0 24px", color: "#5f5247" }}>
                 {t.partOf}{" "}
                 <Link
-                  href={`/kolekce/${work.collection.slug}`}
+                  href={`/collections/${work.collection.slug}`}
                   style={{ color: "var(--artales-ink)", fontWeight: 800 }}
                 >
                   {work.collection.title}

@@ -139,3 +139,33 @@ export async function getCollectionForEditBySlug(
 
   return mapRawCollection(data as RawCollectionRow)
 }
+export async function getCollectionsForPublicGallery(): Promise<CollectionListItem[]> {
+  const { data, error } = await supabase
+    .from("collections")
+    .select(`
+      id,
+      title,
+      slug,
+      description,
+      is_public_visible
+    `)
+    .eq("is_public_visible", true)
+    .order("title", { ascending: true });
+
+  if (error) {
+    console.error("DB error in getCollectionsForPublicGallery:", error);
+    throw new Error(`Failed to load public collections: ${error.message}`);
+  }
+
+  return ((data ?? []) as RawCollectionRow[]).map((row) => {
+    const mapped = mapRawCollection(row);
+
+    return {
+      id: mapped.id,
+      title: mapped.title,
+      slug: mapped.slug,
+      description: mapped.description,
+      is_public_visible: mapped.is_public_visible,
+    };
+  });
+}
