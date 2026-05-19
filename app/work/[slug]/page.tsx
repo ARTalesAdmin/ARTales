@@ -1,61 +1,69 @@
-import Link from "next/link"
-import { getWorkBySlug } from "@/lib/dbWorks"
-import WorkDetailClient from "@/components/work/WorkDetailClient"
-import { getLanguageLabel } from "@/lib/dictionaries/language"
-import { getStatusLabel } from "@/lib/dictionaries/status"
+import Link from "next/link";
+import { getWorkBySlug } from "@/lib/dbWorks";
+import WorkDetailClient from "@/components/work/WorkDetailClient";
+import { getLanguageLabel } from "@/lib/dictionaries/language";
+import { getStatusLabel } from "@/lib/dictionaries/status";
+import { getCurrentProfile } from "@/lib/auth";
+import { canReadFull } from "@/lib/permissions";
 
 type PageProps = {
-  params: Promise<{ slug: string }>
-}
+  params: Promise<{ slug: string }>;
+};
 
 function getOriginLabel(originType: string) {
   switch (originType) {
     case "public_domain":
-      return "Public domain edition"
+      return "Public domain edition";
     case "original":
-      return "Original work"
+      return "Original work";
     case "translation":
-      return "Translation"
+      return "Translation";
     case "other":
-      return "Literary edition"
+      return "Literary edition";
     default:
-      return "Literary work"
+      return "Literary work";
   }
 }
 
 function getSourceLabel(sourceLabel: string) {
   switch (sourceLabel) {
     case "gutenberg":
-      return "Project Gutenberg"
+      return "Project Gutenberg";
     case "web":
-      return "Web source"
+      return "Web source";
     case "manual":
-      return "Manual editorial input"
+      return "Manual editorial input";
     case "original":
-      return "Original source"
+      return "Original source";
     default:
-      return sourceLabel
+      return sourceLabel;
   }
 }
 
 export default async function WorkDetail({ params }: PageProps) {
-  const { slug } = await params
-  const work = await getWorkBySlug(slug)
+  const { slug } = await params;
+  const work = await getWorkBySlug(slug);
 
   if (!work) {
     return (
       <main style={{ padding: "40px", fontFamily: "serif" }}>
         <h1>Work not found</h1>
-        <p>The requested ARTales work does not exist or is not publicly available yet.</p>
+        <p>
+          The requested ARTales work does not exist or is not publicly available
+          yet.
+        </p>
         <p>
           <Link href="/gallery">Back to Gallery</Link>
         </p>
       </main>
-    )
+    );
   }
 
-  const languageLabel = getLanguageLabel(work.canonical_language, "public") ?? work.canonical_language
-  const statusLabel = getStatusLabel(work.status, "public") ?? work.status
+  const languageLabel =
+    getLanguageLabel(work.canonical_language, "public") ??
+    work.canonical_language;
+  const statusLabel = getStatusLabel(work.status, "public") ?? work.status;
+  const profile = await getCurrentProfile();
 
   return (
     <WorkDetailClient
@@ -64,6 +72,7 @@ export default async function WorkDetail({ params }: PageProps) {
       statusLabel={statusLabel}
       originLabel={getOriginLabel(work.origin_type)}
       sourceLabel={getSourceLabel(work.source_label)}
+      canReadFull={canReadFull(profile)}
     />
-  )
+  );
 }

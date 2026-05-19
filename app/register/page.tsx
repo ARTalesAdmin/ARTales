@@ -1,6 +1,6 @@
 import Link from "next/link";
 import ArtalesBrand from "@/components/brand/ArtalesBrand";
-import { login } from "./actions";
+import { registerReader } from "./actions";
 
 type PageProps = {
   searchParams: Promise<{ error?: string; next?: string }>;
@@ -8,22 +8,20 @@ type PageProps = {
 
 function getErrorMessage(error?: string) {
   switch (error) {
-    case "invalid":
-      return "Invalid e-mail or password.";
     case "missing":
-      return "Fill in both e-mail and password.";
-    case "inactive":
-      return "This account is currently inactive.";
-    case "member_required":
-      return "This area is available only to ARTales members, editors and admins.";
-    case "register_required":
-      return "Create a free ARTales account to continue.";
+      return "Fill in your e-mail, handle, display name and password.";
+    case "password_short":
+      return "Password must have at least 8 characters.";
+    case "handle":
+      return "Handle must have 3–32 characters and can contain a-z, 0-9, _ or -.";
+    case "signup":
+      return "Registration failed. The e-mail or handle may already be used.";
     default:
       return null;
   }
 }
 
-export default async function LoginPage({ searchParams }: PageProps) {
+export default async function RegisterPage({ searchParams }: PageProps) {
   const { error, next } = await searchParams;
   const errorMessage = getErrorMessage(error);
 
@@ -34,17 +32,18 @@ export default async function LoginPage({ searchParams }: PageProps) {
           <ArtalesBrand href="/gallery" variant="light" size="md" showMark />
         </div>
 
-        <p className="artales-auth-eyebrow">ARTales access</p>
-        <h1 className="artales-auth-title">Sign in</h1>
+        <p className="artales-auth-eyebrow">Free reader account</p>
+        <h1 className="artales-auth-title">Create your ARTales account</h1>
         <p className="artales-auth-lede">
-          Enter your reader account, member workspace or editorial layer.
+          Register to keep reading beyond previews, save titles and prepare your
+          personal living-books library.
         </p>
 
         {errorMessage ? (
           <p className="artales-auth-alert">{errorMessage}</p>
         ) : null}
 
-        <form action={login} className="artales-auth-form">
+        <form action={registerReader} className="artales-auth-form">
           <input type="hidden" name="next" value={next ?? ""} />
 
           <label>
@@ -53,26 +52,37 @@ export default async function LoginPage({ searchParams }: PageProps) {
           </label>
 
           <label>
+            <span>Handle</span>
+            <input
+              name="handle"
+              type="text"
+              required
+              placeholder="reader-name"
+            />
+          </label>
+
+          <label>
+            <span>Display name</span>
+            <input name="display_name" type="text" required />
+          </label>
+
+          <label>
             <span>Password</span>
             <input
               name="password"
               type="password"
               required
-              autoComplete="current-password"
+              autoComplete="new-password"
             />
           </label>
 
           <button type="submit" className="artales-auth-submit">
-            Sign in
+            Create free account
           </button>
         </form>
 
         <p className="artales-auth-note">
-          New reader? <Link href="/register">Create a free account</Link>.
-        </p>
-
-        <p className="artales-auth-note artales-auth-note--muted">
-          Member and editor access may require an invitation.
+          Already have an account? <Link href="/login">Sign in</Link>.
         </p>
       </section>
     </main>

@@ -11,6 +11,7 @@ type WorkDetailClientProps = {
   statusLabel: string;
   originLabel: string;
   sourceLabel: string;
+  canReadFull: boolean;
 };
 
 function ComingSoonBadge() {
@@ -55,6 +56,7 @@ export default function WorkDetailClient({
   statusLabel,
   originLabel,
   sourceLabel,
+  canReadFull,
 }: WorkDetailClientProps) {
   const { common, public: t } = getPublicDictionary();
   const authorName = work.author?.name ?? t.unknownAuthor;
@@ -185,6 +187,7 @@ export default function WorkDetailClient({
               readOnlineLabel={t.readOnline}
               continueReadingLabel={t.continueReading}
               saveForLaterLabel={t.saveForLater}
+              canReadFull={canReadFull}
             />
 
             <div

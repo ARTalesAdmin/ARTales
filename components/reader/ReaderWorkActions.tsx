@@ -14,6 +14,7 @@ type ReaderWorkActionsProps = {
   readOnlineLabel: string;
   continueReadingLabel: string;
   saveForLaterLabel: string;
+  canReadFull: boolean;
 };
 
 export default function ReaderWorkActions({
@@ -22,6 +23,7 @@ export default function ReaderWorkActions({
   readOnlineLabel,
   continueReadingLabel,
   saveForLaterLabel,
+  canReadFull,
 }: ReaderWorkActionsProps) {
   const [hasProgress, setHasProgress] = useState(false);
   const [saved, setSaved] = useState(false);
@@ -33,6 +35,11 @@ export default function ReaderWorkActions({
   }, [slug]);
 
   function toggleSaved() {
+    if (!canReadFull) {
+      window.location.href = `/login?error=register_required&next=${encodeURIComponent(`/work/${slug}`)}`;
+      return;
+    }
+
     const next = !saved;
     setWorkSaved(slug, next);
     setSaved(next);
@@ -45,14 +52,22 @@ export default function ReaderWorkActions({
       </Link>
       <Link
         className="artales-button-secondary"
-        href={`/reader/${slug}?mode=full`}
+        href={
+          canReadFull
+            ? `/reader/${slug}?mode=full`
+            : `/login?error=register_required&next=${encodeURIComponent(`/reader/${slug}?mode=full`)}`
+        }
       >
         {readOnlineLabel}
       </Link>
       {hasProgress ? (
         <Link
           className="artales-button-secondary"
-          href={`/reader/${slug}?mode=full`}
+          href={
+            canReadFull
+              ? `/reader/${slug}?mode=full`
+              : `/login?error=register_required&next=${encodeURIComponent(`/reader/${slug}?mode=full`)}`
+          }
         >
           {continueReadingLabel}
         </Link>
@@ -62,7 +77,7 @@ export default function ReaderWorkActions({
         className="artales-button-secondary"
         onClick={toggleSaved}
       >
-        {saved ? "Saved locally" : saveForLaterLabel}
+        {saved ? "Saved" : saveForLaterLabel}
       </button>
     </div>
   );

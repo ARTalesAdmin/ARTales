@@ -1,22 +1,62 @@
-import { redirect } from "next/navigation"
-import { getCurrentProfile } from "@/lib/auth"
+import { redirect } from "next/navigation";
+import { getCurrentProfile } from "@/lib/auth";
+import {
+  canAccessMemberZone,
+  canEditContent,
+  canManageInvites,
+  canReviewSubmissions,
+} from "@/lib/permissions";
 
 export async function requireAuthenticatedProfile() {
-  const profile = await getCurrentProfile()
+  const profile = await getCurrentProfile();
 
   if (!profile) {
-    redirect("/login")
+    redirect("/login");
   }
 
-  return profile
+  if (profile.is_active === false) {
+    redirect("/login?error=inactive");
+  }
+
+  return profile;
+}
+
+export async function requireMemberZoneAccess() {
+  const profile = await requireAuthenticatedProfile();
+
+  if (!canAccessMemberZone(profile)) {
+    redirect("/login?error=member_required");
+  }
+
+  return profile;
 }
 
 export async function requireEditorOrAdmin() {
-  const profile = await requireAuthenticatedProfile()
+  const profile = await requireAuthenticatedProfile();
 
-  if (profile.role !== "editor" && profile.role !== "admin") {
-    redirect("/member")
+  if (!canEditContent(profile)) {
+    redirect("/member");
   }
 
-  return profile
+  return profile;
+}
+
+export async function requireInviteManager() {
+  const profile = await requireMemberZoneAccess();
+
+  if (!canManageInvites(profile)) {
+    redirect("/member");
+  }
+
+  return profile;
+}
+
+export async function requireSubmissionReviewer() {
+  const profile = await requireMemberZoneAccess();
+
+  if (!canReviewSubmissions(profile)) {
+    redirect("/member/submissions");
+  }
+
+  return profile;
 }

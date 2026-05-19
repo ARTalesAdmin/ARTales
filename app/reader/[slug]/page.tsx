@@ -1,7 +1,9 @@
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import ReaderClient from "@/components/reader/ReaderClient";
 import { getWorkBySlug } from "@/lib/dbWorks";
 import { getPreviewBlocks, getPreviewFallbackContent } from "@/lib/workPreview";
+import { getCurrentProfile } from "@/lib/auth";
+import { canReadFull } from "@/lib/permissions";
 
 type ReaderPageProps = {
   params: Promise<{ slug: string }>;
@@ -23,6 +25,14 @@ export default async function ReaderPage({
   }
 
   const readerMode = mode === "full" ? "full" : "preview";
+  const profile = await getCurrentProfile();
+
+  if (readerMode === "full" && !canReadFull(profile)) {
+    redirect(
+      `/login?error=register_required&next=${encodeURIComponent(`/reader/${work.slug}?mode=full`)}`,
+    );
+  }
+
   const isPreview = readerMode === "preview";
   const blocks = isPreview
     ? getPreviewBlocks(work.content_blocks)
