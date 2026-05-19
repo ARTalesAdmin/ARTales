@@ -11,6 +11,7 @@ import {
 import { requireInviteManager } from "@/lib/guards";
 import { canInviteRole, normalizeRole } from "@/lib/permissions";
 import { buildAppUrl } from "@/lib/appUrl";
+import { ensureProfileForUser } from "@/lib/profileSync";
 
 function normalizeEmail(value: string) {
   return value.trim().toLowerCase();
@@ -140,53 +141,27 @@ export async function registerFromInvite(
 
   if (error || !data.user) {
     console.error("Invite sign-up error:", error);
+    const message = error?.message.toLowerCase() ?? "";
+    if (message.includes("already") || message.includes("registered")) {
+      redirect(`/invite/${token}?error=already_registered`);
+    }
     redirect(`/invite/${token}?error=signup`);
   }
 
-  const userId = data.user.id;
+  // v0.8.3: accept the invite and create/update profile with service-role
+  // immediately when auth user exists. This works even when e-mail
+  // confirmation prevents an authenticated browser session right after sign-up.
+  const ensured = await ensureProfileForUser({
+    id: data.user.id,
+    email: data.user.email ?? email,
+  });
 
-  // If Supabase returns an active session, we can immediately finalize the invite
-  // from the server action. If e-mail confirmation is required, the DB trigger
-  // added in v0.8.1 performs the same profile/invite sync when auth.users is created.
+  if (!ensured.ok) {
+    console.error("Invite profile ensure failed after sign-up:", ensured.reason);
+    redirect(`/invite/${token}?error=profile_sync`);
+  }
+
   if (data.session) {
-    const { error: profileError } = await supabase.from("profiles").upsert({
-      id: userId,
-      email,
-      role: invite.invited_role,
-      is_active: true,
-      invited_by_user_id: invite.invited_by_user_id,
-      invite_id: invite.id,
-    });
-
-    if (profileError) {
-      console.error("Invite profile upsert error:", profileError);
-    }
-
-    const { error: inviteError } = await supabase
-      .from("invites")
-      .update({
-        status: "accepted",
-        accepted_by_user_id: userId,
-        accepted_at: new Date().toISOString(),
-      })
-      .eq("id", invite.id)
-      .eq("status", "pending");
-
-    if (inviteError) {
-      console.error("Invite accept update error:", inviteError);
-    }
-
-    await recordActivity({
-      actorUserId: userId,
-      action: "invite_accepted",
-      targetType: "invite",
-      targetId: invite.id,
-      metadata: {
-        role: invite.invited_role,
-        invitedBy: invite.invited_by_user_id,
-      },
-    });
-
     redirect("/onboarding");
   }
 

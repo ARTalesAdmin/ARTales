@@ -17,6 +17,14 @@ function getErrorMessage(error?: string) {
       return "Handle must have 3–30 characters and can contain only a-z, 0-9, dot, underscore or hyphen.";
     case "handle_taken":
       return "This handle is already taken. Choose another one.";
+    case "profile_upsert_failed":
+    case "profile_missing_after_upsert":
+      return "ARTales could not prepare your profile record. Try signing out and back in. If it repeats, contact an admin.";
+    case "handle_check_failed":
+      return "ARTales could not check handle availability. Try again.";
+    case "profile_update_failed":
+    case "profile_incomplete_after_update":
+      return "Profile details could not be saved. Try again.";
     case "save":
       return "Profile could not be saved. Try again.";
     default:

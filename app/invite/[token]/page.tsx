@@ -22,6 +22,10 @@ function getErrorMessage(error?: string) {
       return "Password must have at least 8 characters.";
     case "signup":
       return "Account creation failed. The e-mail may already be registered. If the account exists, use Sign in instead.";
+    case "already_registered":
+      return "This e-mail already has an ARTales account. Sign in to accept or finish the invitation.";
+    case "profile_sync":
+      return "The account was created, but ARTales could not finish the invitation link. Sign in once, then try onboarding again. If this repeats, contact an admin.";
     default:
       return null;
   }
@@ -101,7 +105,7 @@ export default async function InvitePage({ params, searchParams }: PageProps) {
             </form>
 
             <p className="artales-auth-note">
-              Already created the account or confirmed the e-mail? <Link href="/login">Sign in</Link>.
+              Already created the account or confirmed the e-mail? <Link href={`/login?next=${encodeURIComponent("/onboarding")}`}>Sign in</Link>.
             </p>
           </>
         )}

@@ -14,6 +14,8 @@ function getErrorMessage(error?: string) {
       return "Fill in both e-mail and password.";
     case "inactive":
       return "This account is currently inactive.";
+    case "profile_save":
+      return "Your account exists, but ARTales could not prepare your profile. Try signing in again. If it repeats, contact an admin.";
     case "member_required":
       return "This area is available only to ARTales members, editors and admins.";
     case "register_required":
