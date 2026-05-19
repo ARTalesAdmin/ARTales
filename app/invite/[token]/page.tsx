@@ -3,6 +3,8 @@ import ArtalesBrand from "@/components/brand/ArtalesBrand";
 import { getInviteByToken } from "@/lib/dbInvites";
 import { registerFromInvite } from "@/lib/actions/invites";
 
+export const dynamic = "force-dynamic";
+
 type PageProps = {
   params: Promise<{ token: string }>;
   searchParams: Promise<{ error?: string }>;
@@ -15,13 +17,11 @@ function getErrorMessage(error?: string) {
     case "expired":
       return "This invitation has expired.";
     case "missing":
-      return "Fill in all required fields.";
+      return "Use the invited e-mail address and enter a password.";
     case "password_short":
       return "Password must have at least 8 characters.";
-    case "handle":
-      return "Handle must have 3–32 characters and can contain a-z, 0-9, _ or -.";
     case "signup":
-      return "Account creation failed.";
+      return "Account creation failed. The e-mail may already be registered.";
     default:
       return null;
   }
@@ -44,9 +44,7 @@ export default async function InvitePage({ params, searchParams }: PageProps) {
         <p className="artales-auth-eyebrow">ARTales invitation</p>
         <h1 className="artales-auth-title">Accept invitation</h1>
 
-        {errorMessage ? (
-          <p className="artales-auth-alert">{errorMessage}</p>
-        ) : null}
+        {errorMessage ? <p className="artales-auth-alert">{errorMessage}</p> : null}
 
         {inviteInvalid ? (
           <>
@@ -60,8 +58,9 @@ export default async function InvitePage({ params, searchParams }: PageProps) {
         ) : (
           <>
             <p className="artales-auth-lede">
-              You were invited as <strong>{invite.invited_role}</strong>. Use
-              the e-mail address below and create your ARTales account.
+              You were invited as <strong>{invite.invited_role}</strong>. Create
+              the account first; profile details such as display name and handle
+              are completed during onboarding after sign-in.
             </p>
 
             <form
@@ -69,35 +68,41 @@ export default async function InvitePage({ params, searchParams }: PageProps) {
               className="artales-auth-form"
             >
               <label>
-                <span>E-mail</span>
+                <span>Invited e-mail</span>
                 <input
                   name="email"
                   type="email"
                   required
+                  readOnly
                   defaultValue={invite.email}
+                  autoComplete="email"
                 />
+                <small>
+                  This invite is bound to this e-mail address. Use it when
+                  signing in later.
+                </small>
               </label>
-              <label>
-                <span>Handle</span>
-                <input
-                  name="handle"
-                  type="text"
-                  required
-                  placeholder="name-surname"
-                />
-              </label>
-              <label>
-                <span>Display name</span>
-                <input name="display_name" type="text" required />
-              </label>
+
               <label>
                 <span>Password</span>
-                <input name="password" type="password" required />
+                <input
+                  name="password"
+                  type="password"
+                  required
+                  minLength={8}
+                  autoComplete="new-password"
+                />
+                <small>Use at least 8 characters.</small>
               </label>
+
               <button type="submit" className="artales-auth-submit">
-                Create account
+                Create account from invitation
               </button>
             </form>
+
+            <p className="artales-auth-note">
+              Already created the account? <Link href="/login">Sign in</Link>.
+            </p>
           </>
         )}
       </section>

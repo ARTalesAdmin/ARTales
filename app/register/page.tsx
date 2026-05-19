@@ -2,6 +2,8 @@ import Link from "next/link";
 import ArtalesBrand from "@/components/brand/ArtalesBrand";
 import { registerReader } from "./actions";
 
+export const dynamic = "force-dynamic";
+
 type PageProps = {
   searchParams: Promise<{ error?: string; next?: string }>;
 };
@@ -9,13 +11,11 @@ type PageProps = {
 function getErrorMessage(error?: string) {
   switch (error) {
     case "missing":
-      return "Fill in your e-mail, handle, display name and password.";
+      return "Fill in your e-mail and password.";
     case "password_short":
       return "Password must have at least 8 characters.";
-    case "handle":
-      return "Handle must have 3–32 characters and can contain a-z, 0-9, _ or -.";
     case "signup":
-      return "Registration failed. The e-mail or handle may already be used.";
+      return "Registration failed. The e-mail may already be used.";
     default:
       return null;
   }
@@ -35,13 +35,11 @@ export default async function RegisterPage({ searchParams }: PageProps) {
         <p className="artales-auth-eyebrow">Free reader account</p>
         <h1 className="artales-auth-title">Create your ARTales account</h1>
         <p className="artales-auth-lede">
-          Register to keep reading beyond previews, save titles and prepare your
-          personal living-books library.
+          Create the account first. Your display name, handle and reader
+          preferences are completed during onboarding after your first sign-in.
         </p>
 
-        {errorMessage ? (
-          <p className="artales-auth-alert">{errorMessage}</p>
-        ) : null}
+        {errorMessage ? <p className="artales-auth-alert">{errorMessage}</p> : null}
 
         <form action={registerReader} className="artales-auth-form">
           <input type="hidden" name="next" value={next ?? ""} />
@@ -49,21 +47,7 @@ export default async function RegisterPage({ searchParams }: PageProps) {
           <label>
             <span>E-mail</span>
             <input name="email" type="email" required autoComplete="email" />
-          </label>
-
-          <label>
-            <span>Handle</span>
-            <input
-              name="handle"
-              type="text"
-              required
-              placeholder="reader-name"
-            />
-          </label>
-
-          <label>
-            <span>Display name</span>
-            <input name="display_name" type="text" required />
+            <small>Use the e-mail address you want to use for ARTales login.</small>
           </label>
 
           <label>
@@ -72,8 +56,10 @@ export default async function RegisterPage({ searchParams }: PageProps) {
               name="password"
               type="password"
               required
+              minLength={8}
               autoComplete="new-password"
             />
+            <small>Use at least 8 characters.</small>
           </label>
 
           <button type="submit" className="artales-auth-submit">

@@ -3,7 +3,7 @@ import ArtalesBrand from "@/components/brand/ArtalesBrand";
 import { login } from "./actions";
 
 type PageProps = {
-  searchParams: Promise<{ error?: string; next?: string }>;
+  searchParams: Promise<{ error?: string; next?: string; success?: string }>;
 };
 
 function getErrorMessage(error?: string) {
@@ -18,14 +18,28 @@ function getErrorMessage(error?: string) {
       return "This area is available only to ARTales members, editors and admins.";
     case "register_required":
       return "Create a free ARTales account to continue.";
+    case "confirm_email":
+      return "Your e-mail address must be confirmed before signing in.";
+    default:
+      return null;
+  }
+}
+
+function getSuccessMessage(success?: string) {
+  switch (success) {
+    case "registered":
+      return "Account created. Check your e-mail if confirmation is required, then sign in.";
+    case "invite_created":
+      return "Account created from invitation. Sign in to finish onboarding.";
     default:
       return null;
   }
 }
 
 export default async function LoginPage({ searchParams }: PageProps) {
-  const { error, next } = await searchParams;
+  const { error, next, success } = await searchParams;
   const errorMessage = getErrorMessage(error);
+  const successMessage = getSuccessMessage(success);
 
   return (
     <main className="artales-auth-shell">
@@ -42,6 +56,10 @@ export default async function LoginPage({ searchParams }: PageProps) {
 
         {errorMessage ? (
           <p className="artales-auth-alert">{errorMessage}</p>
+        ) : null}
+
+        {successMessage ? (
+          <p className="artales-auth-success">{successMessage}</p>
         ) : null}
 
         <form action={login} className="artales-auth-form">

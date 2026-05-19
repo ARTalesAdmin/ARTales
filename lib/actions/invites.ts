@@ -16,7 +16,7 @@ function normalizeEmail(value: string) {
 }
 
 function getAppUrl() {
-  return process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000";
+  return process.env.NEXT_PUBLIC_SITE_URL || process.env.APP_URL || "http://localhost:3000";
 }
 
 export async function createInvite(formData: FormData): Promise<void> {
@@ -70,7 +70,7 @@ export async function createInvite(formData: FormData): Promise<void> {
     metadata: { email, invitedRole },
   });
 
-  const inviteUrl = `${getAppUrl()}/invite/${token}`;
+  const inviteUrl = `${getAppUrl().replace(/\/$/, "")}/invite/${token}`;
   redirect(
     `/member/invites?success=created&invite=${encodeURIComponent(inviteUrl)}`,
   );
@@ -117,27 +117,13 @@ export async function registerFromInvite(
 
   const email = normalizeEmail(String(formData.get("email") ?? ""));
   const password = String(formData.get("password") ?? "");
-  const displayName = String(formData.get("display_name") ?? "").trim();
-  const handle = String(formData.get("handle") ?? "")
-    .trim()
-    .toLowerCase();
 
-  if (
-    !email ||
-    email !== invite.email ||
-    !password ||
-    !displayName ||
-    !handle
-  ) {
+  if (!email || email !== invite.email || !password) {
     redirect(`/invite/${token}?error=missing`);
   }
 
   if (password.length < 8) {
     redirect(`/invite/${token}?error=password_short`);
-  }
-
-  if (!/^[a-z0-9_-]{3,32}$/.test(handle)) {
-    redirect(`/invite/${token}?error=handle`);
   }
 
   const supabase = await createClient();
@@ -146,10 +132,10 @@ export async function registerFromInvite(
     password,
     options: {
       data: {
-        display_name: displayName,
-        handle,
+        role: invite.invited_role,
         invited_role: invite.invited_role,
         invite_id: invite.id,
+        invited_by_user_id: invite.invited_by_user_id,
       },
     },
   });
@@ -161,40 +147,50 @@ export async function registerFromInvite(
 
   const userId = data.user.id;
 
-  await supabase.from("profiles").upsert({
-    id: userId,
-    email,
-    handle,
-    display_name: displayName,
-    role: invite.invited_role,
-    is_active: true,
-    invited_by_user_id: invite.invited_by_user_id,
-    invite_id: invite.id,
-  });
-
-  await supabase
-    .from("invites")
-    .update({
-      status: "accepted",
-      accepted_by_user_id: userId,
-      accepted_at: new Date().toISOString(),
-    })
-    .eq("id", invite.id);
-
-  await recordActivity({
-    actorUserId: userId,
-    action: "invite_accepted",
-    targetType: "invite",
-    targetId: invite.id,
-    metadata: {
+  // If Supabase returns an active session, we can immediately finalize the invite
+  // from the server action. If e-mail confirmation is required, the DB trigger
+  // added in v0.8.1 performs the same profile/invite sync when auth.users is created.
+  if (data.session) {
+    const { error: profileError } = await supabase.from("profiles").upsert({
+      id: userId,
+      email,
       role: invite.invited_role,
-      invitedBy: invite.invited_by_user_id,
-    },
-  });
+      is_active: true,
+      invited_by_user_id: invite.invited_by_user_id,
+      invite_id: invite.id,
+    });
 
-  redirect(
-    invite.invited_role === "reader"
-      ? "/gallery?success=registered"
-      : "/member",
-  );
+    if (profileError) {
+      console.error("Invite profile upsert error:", profileError);
+    }
+
+    const { error: inviteError } = await supabase
+      .from("invites")
+      .update({
+        status: "accepted",
+        accepted_by_user_id: userId,
+        accepted_at: new Date().toISOString(),
+      })
+      .eq("id", invite.id)
+      .eq("status", "pending");
+
+    if (inviteError) {
+      console.error("Invite accept update error:", inviteError);
+    }
+
+    await recordActivity({
+      actorUserId: userId,
+      action: "invite_accepted",
+      targetType: "invite",
+      targetId: invite.id,
+      metadata: {
+        role: invite.invited_role,
+        invitedBy: invite.invited_by_user_id,
+      },
+    });
+
+    redirect("/onboarding");
+  }
+
+  redirect("/login?success=invite_created");
 }
