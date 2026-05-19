@@ -2,6 +2,7 @@
 
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { recordActivity } from "@/lib/activityLog";
 import {
   getInviteByToken,
@@ -125,45 +126,51 @@ export async function registerFromInvite(
     redirect(`/invite/${token}?error=password_short`);
   }
 
-  const supabase = await createClient();
-  const { data, error } = await supabase.auth.signUp({
+  // v0.8.4: invite sign-up uses the server-side Supabase Admin API.
+  // The regular public signUp() flow can return a null session when e-mail
+  // confirmation is enabled and was previously misread as "account exists".
+  // For invitation-based accounts we already have a controlled invite token,
+  // so we create the auth user server-side, mark the e-mail as confirmed for
+  // this MVP flow, then prepare the ARTales profile/invite lineage.
+  const admin = createAdminClient();
+
+  const { data, error } = await admin.auth.admin.createUser({
     email,
     password,
-    options: {
-      data: {
-        role: invite.invited_role,
-        invited_role: invite.invited_role,
-        invite_id: invite.id,
-        invited_by_user_id: invite.invited_by_user_id,
-      },
+    email_confirm: true,
+    user_metadata: {
+      role: invite.invited_role,
+      invited_role: invite.invited_role,
+      invite_id: invite.id,
+      invited_by_user_id: invite.invited_by_user_id,
     },
   });
 
   if (error || !data.user) {
-    console.error("Invite sign-up error:", error);
+    console.error("Invite admin createUser error:", error);
     const message = error?.message.toLowerCase() ?? "";
-    if (message.includes("already") || message.includes("registered")) {
+
+    if (
+      message.includes("already") ||
+      message.includes("registered") ||
+      message.includes("exists") ||
+      message.includes("duplicate")
+    ) {
       redirect(`/invite/${token}?error=already_registered`);
     }
-    redirect(`/invite/${token}?error=signup`);
+
+    redirect(`/invite/${token}?error=signup&detail=${encodeURIComponent(error?.message ?? "unknown")}`);
   }
 
-  // v0.8.3: accept the invite and create/update profile with service-role
-  // immediately when auth user exists. This works even when e-mail
-  // confirmation prevents an authenticated browser session right after sign-up.
   const ensured = await ensureProfileForUser({
     id: data.user.id,
     email: data.user.email ?? email,
   });
 
   if (!ensured.ok) {
-    console.error("Invite profile ensure failed after sign-up:", ensured.reason);
-    redirect(`/invite/${token}?error=profile_sync`);
+    console.error("Invite profile ensure failed after admin createUser:", ensured.reason);
+    redirect(`/invite/${token}?error=profile_sync&reason=${encodeURIComponent(ensured.reason ?? "unknown")}`);
   }
 
-  if (data.session) {
-    redirect("/onboarding");
-  }
-
-  redirect("/login?success=check_email_invite");
+  redirect("/login?success=invite_ready");
 }

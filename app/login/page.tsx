@@ -35,6 +35,8 @@ function getSuccessMessage(success?: string) {
       return "Account created from invitation. Sign in to finish onboarding.";
     case "check_email_invite":
       return "Account created from invitation. Check your e-mail inbox, confirm the account, then sign in here to finish onboarding.";
+    case "invite_ready":
+      return "Invitation account created. Sign in with the password you just chose to finish onboarding.";
     default:
       return null;
   }

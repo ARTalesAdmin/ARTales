@@ -21,9 +21,9 @@ function getErrorMessage(error?: string) {
     case "password_short":
       return "Password must have at least 8 characters.";
     case "signup":
-      return "Account creation failed. The e-mail may already be registered. If the account exists, use Sign in instead.";
+      return "Account creation failed. The account was not created. Try again, or contact an admin if this repeats.";
     case "already_registered":
-      return "This e-mail already has an ARTales account. Sign in to accept or finish the invitation.";
+      return "This e-mail already has an ARTales account. Sign in with that account to accept or finish the invitation.";
     case "profile_sync":
       return "The account was created, but ARTales could not finish the invitation link. Sign in once, then try onboarding again. If this repeats, contact an admin.";
     default:
@@ -63,8 +63,8 @@ export default async function InvitePage({ params, searchParams }: PageProps) {
           <>
             <p className="artales-auth-lede">
               You were invited as <strong>{invite.invited_role}</strong>. Create
-              the account first; profile details such as display name and handle
-              are completed during onboarding after sign-in.
+              the account first, then sign in to complete your display name and
+              handle during onboarding.
             </p>
 
             <form
@@ -105,7 +105,7 @@ export default async function InvitePage({ params, searchParams }: PageProps) {
             </form>
 
             <p className="artales-auth-note">
-              Already created the account or confirmed the e-mail? <Link href={`/login?next=${encodeURIComponent("/onboarding")}`}>Sign in</Link>.
+              Already created this account? <Link href={`/login?next=${encodeURIComponent("/onboarding")}`}>Sign in to finish onboarding</Link>.
             </p>
           </>
         )}
