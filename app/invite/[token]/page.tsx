@@ -21,7 +21,7 @@ function getErrorMessage(error?: string) {
     case "password_short":
       return "Password must have at least 8 characters.";
     case "signup":
-      return "Account creation failed. The account was not created. Try again, or contact an admin if this repeats.";
+      return "Account creation failed. Try again, or contact an admin if this repeats. The technical detail is stored in the URL for debugging.";
     case "already_registered":
       return "This e-mail already has an ARTales account. Sign in with that account to accept or finish the invitation.";
     case "profile_sync":

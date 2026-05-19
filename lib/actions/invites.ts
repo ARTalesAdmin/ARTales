@@ -2,7 +2,6 @@
 
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { createAdminClient } from "@/lib/supabase/admin";
 import { recordActivity } from "@/lib/activityLog";
 import {
   getInviteByToken,
@@ -126,29 +125,30 @@ export async function registerFromInvite(
     redirect(`/invite/${token}?error=password_short`);
   }
 
-  // v0.8.4: invite sign-up uses the server-side Supabase Admin API.
-  // The regular public signUp() flow can return a null session when e-mail
-  // confirmation is enabled and was previously misread as "account exists".
-  // For invitation-based accounts we already have a controlled invite token,
-  // so we create the auth user server-side, mark the e-mail as confirmed for
-  // this MVP flow, then prepare the ARTales profile/invite lineage.
-  const admin = createAdminClient();
+  // v0.8.5: use the normal public Supabase sign-up flow again.
+  // A null session after signUp() usually means e-mail confirmation is enabled,
+  // not that the account already exists. Invite/profile sync is handled by
+  // the auth trigger as a fallback and by service-role ensureProfileForUser()
+  // when data.user is available. Final onboarding happens after sign-in.
+  const supabase = await createClient();
 
-  const { data, error } = await admin.auth.admin.createUser({
+  const { data, error } = await supabase.auth.signUp({
     email,
     password,
-    email_confirm: true,
-    user_metadata: {
-      role: invite.invited_role,
-      invited_role: invite.invited_role,
-      invite_id: invite.id,
-      invited_by_user_id: invite.invited_by_user_id,
+    options: {
+      emailRedirectTo: buildAppUrl("/login?success=registered"),
+      data: {
+        role: invite.invited_role,
+        invited_role: invite.invited_role,
+        invite_id: invite.id,
+        invited_by_user_id: invite.invited_by_user_id,
+      },
     },
   });
 
-  if (error || !data.user) {
-    console.error("Invite admin createUser error:", error);
-    const message = error?.message.toLowerCase() ?? "";
+  if (error) {
+    console.error("Invite signUp error:", error);
+    const message = error.message.toLowerCase();
 
     if (
       message.includes("already") ||
@@ -159,18 +159,25 @@ export async function registerFromInvite(
       redirect(`/invite/${token}?error=already_registered`);
     }
 
-    redirect(`/invite/${token}?error=signup&detail=${encodeURIComponent(error?.message ?? "unknown")}`);
+    redirect(`/invite/${token}?error=signup&detail=${encodeURIComponent(error.message)}`);
   }
 
-  const ensured = await ensureProfileForUser({
-    id: data.user.id,
-    email: data.user.email ?? email,
-  });
+  if (data.user?.id) {
+    const ensured = await ensureProfileForUser({
+      id: data.user.id,
+      email: data.user.email ?? email,
+    });
 
-  if (!ensured.ok) {
-    console.error("Invite profile ensure failed after admin createUser:", ensured.reason);
-    redirect(`/invite/${token}?error=profile_sync&reason=${encodeURIComponent(ensured.reason ?? "unknown")}`);
+    if (!ensured.ok) {
+      console.error("Invite profile ensure failed after signUp:", ensured.reason);
+      // Do not block account confirmation because profile sync also runs after login.
+      redirect(`/login?success=check_email_invite&warning=${encodeURIComponent(ensured.reason ?? "profile_sync_pending")}`);
+    }
   }
 
-  redirect("/login?success=invite_ready");
+  if (!data.session) {
+    redirect("/login?success=check_email_invite");
+  }
+
+  redirect("/onboarding");
 }
