@@ -19,7 +19,7 @@ function getErrorMessage(error?: string) {
     case "register_required":
       return "Create a free ARTales account to continue.";
     case "confirm_email":
-      return "Your e-mail address must be confirmed before signing in.";
+      return "Your e-mail address must be confirmed before signing in. Open the confirmation e-mail from ARTales/Supabase, confirm the account, then return here and sign in.";
     default:
       return null;
   }
@@ -28,9 +28,11 @@ function getErrorMessage(error?: string) {
 function getSuccessMessage(success?: string) {
   switch (success) {
     case "registered":
-      return "Account created. Check your e-mail if confirmation is required, then sign in.";
+      return "Account created. Check your e-mail inbox for the confirmation link. After confirming the account, return here and sign in.";
     case "invite_created":
       return "Account created from invitation. Sign in to finish onboarding.";
+    case "check_email_invite":
+      return "Account created from invitation. Check your e-mail inbox, confirm the account, then sign in here to finish onboarding.";
     default:
       return null;
   }

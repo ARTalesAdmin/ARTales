@@ -21,7 +21,7 @@ function getErrorMessage(error?: string) {
     case "password_short":
       return "Password must have at least 8 characters.";
     case "signup":
-      return "Account creation failed. The e-mail may already be registered.";
+      return "Account creation failed. The e-mail may already be registered. If the account exists, use Sign in instead.";
     default:
       return null;
   }
@@ -101,7 +101,7 @@ export default async function InvitePage({ params, searchParams }: PageProps) {
             </form>
 
             <p className="artales-auth-note">
-              Already created the account? <Link href="/login">Sign in</Link>.
+              Already created the account or confirmed the e-mail? <Link href="/login">Sign in</Link>.
             </p>
           </>
         )}

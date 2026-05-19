@@ -10,14 +10,12 @@ import {
 } from "@/lib/dbInvites";
 import { requireInviteManager } from "@/lib/guards";
 import { canInviteRole, normalizeRole } from "@/lib/permissions";
+import { buildAppUrl } from "@/lib/appUrl";
 
 function normalizeEmail(value: string) {
   return value.trim().toLowerCase();
 }
 
-function getAppUrl() {
-  return process.env.NEXT_PUBLIC_SITE_URL || process.env.APP_URL || "http://localhost:3000";
-}
 
 export async function createInvite(formData: FormData): Promise<void> {
   const profile = await requireInviteManager();
@@ -70,7 +68,7 @@ export async function createInvite(formData: FormData): Promise<void> {
     metadata: { email, invitedRole },
   });
 
-  const inviteUrl = `${getAppUrl().replace(/\/$/, "")}/invite/${token}`;
+  const inviteUrl = buildAppUrl(`/invite/${token}`);
   redirect(
     `/member/invites?success=created&invite=${encodeURIComponent(inviteUrl)}`,
   );
@@ -192,5 +190,5 @@ export async function registerFromInvite(
     redirect("/onboarding");
   }
 
-  redirect("/login?success=invite_created");
+  redirect("/login?success=check_email_invite");
 }

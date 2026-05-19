@@ -7,11 +7,17 @@ import {
   normalizeHandle,
   validateHandle,
 } from "@/lib/profileValidation";
-import { recordActivity } from "@/lib/activityLog";
+import { normalizeRole } from "@/lib/permissions";
 
 function safeNext(value: string) {
   return value && value.startsWith("/") && !value.startsWith("//") ? value : "";
 }
+
+type OnboardingResult = {
+  ok?: boolean;
+  reason?: string;
+  role?: string;
+};
 
 export async function completeOnboarding(formData: FormData): Promise<void> {
   const displayName = normalizeDisplayName(
@@ -37,57 +43,38 @@ export async function completeOnboarding(formData: FormData): Promise<void> {
     redirect(`/login?next=${encodeURIComponent("/onboarding")}`);
   }
 
-  const { data: currentProfile } = await supabase
-    .from("profiles")
-    .select("handle")
-    .eq("id", user.id)
-    .maybeSingle();
-
-  if (currentProfile?.handle !== handle) {
-    const { data: handleAvailable, error: handleCheckError } = await supabase.rpc(
-      "is_handle_available",
-      { candidate: handle },
-    );
-
-    if (handleCheckError) {
-      console.error("Handle availability check error:", handleCheckError);
-    }
-
-    if (handleAvailable === false) {
-      redirect(`/onboarding?error=handle_taken${next ? `&next=${encodeURIComponent(next)}` : ""}`);
-    }
-  }
-
-  const { error } = await supabase
-    .from("profiles")
-    .update({
-      display_name: displayName,
-      handle,
-    })
-    .eq("id", user.id);
+  const { data, error } = await supabase.rpc(
+    "artales_complete_onboarding_v082",
+    {
+      display_name_input: displayName,
+      handle_input: handle,
+    },
+  );
 
   if (error) {
-    console.error("Onboarding profile update error:", error);
+    console.error("Onboarding RPC error:", error);
     redirect(`/onboarding?error=save${next ? `&next=${encodeURIComponent(next)}` : ""}`);
   }
 
-  await recordActivity({
-    actorUserId: user.id,
-    action: "profile_onboarding_completed",
-    targetType: "profile",
-    targetId: user.id,
-    metadata: { handle },
-  });
+  const result = (data ?? {}) as OnboardingResult;
+
+  if (!result.ok) {
+    const reason = result.reason ?? "save";
+    const allowedReasons = new Set([
+      "missing",
+      "handle",
+      "handle_taken",
+      "not_authenticated",
+      "save",
+    ]);
+    const safeReason = allowedReasons.has(reason) ? reason : "save";
+    redirect(`/onboarding?error=${safeReason}${next ? `&next=${encodeURIComponent(next)}` : ""}`);
+  }
 
   if (next) {
     redirect(next);
   }
 
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("role")
-    .eq("id", user.id)
-    .maybeSingle();
-
-  redirect(profile?.role === "reader" ? "/gallery" : "/member");
+  const role = normalizeRole(result.role ?? "reader");
+  redirect(role === "reader" ? "/gallery" : "/member");
 }

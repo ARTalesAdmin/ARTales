@@ -40,6 +40,17 @@ export async function login(formData: FormData): Promise<void> {
     redirect("/login?error=invalid");
   }
 
+  // v0.8.2: finalize pending invitation/profile server-side after login.
+  // This repairs the common flow where e-mail confirmation delays a normal session
+  // during sign-up and the invite has to be accepted after the first real login.
+  const { error: ensureError } = await supabase.rpc(
+    "artales_ensure_profile_after_login_v082",
+  );
+
+  if (ensureError) {
+    console.error("Profile/invite ensure after login failed:", ensureError);
+  }
+
   const { data: profile } = await supabase
     .from("profiles")
     .select("role, is_active, handle, display_name")
@@ -47,12 +58,6 @@ export async function login(formData: FormData): Promise<void> {
     .maybeSingle();
 
   if (!profile) {
-    await supabase.from("profiles").upsert({
-      id: user.id,
-      email,
-      role: "reader",
-      is_active: true,
-    });
     redirect(`/onboarding${next ? `?next=${encodeURIComponent(next)}` : ""}`);
   }
 
