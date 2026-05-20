@@ -55,6 +55,15 @@ export default async function AccountPage() {
         </article>
 
         <article className="artales-account-card">
+          <p className="artales-account-card__label">Security</p>
+          <h2>Password</h2>
+          <p>
+            Change your password or send yourself a password reset e-mail.
+          </p>
+          <Link href="/account/security">Open security</Link>
+        </article>
+
+        <article className="artales-account-card">
           <p className="artales-account-card__label">Reader settings</p>
           <h2>Comfort first</h2>
           <p>

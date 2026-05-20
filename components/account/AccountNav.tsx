@@ -6,6 +6,7 @@ const accountLinks = [
   { href: "/account", label: "Overview" },
   { href: "/account/library", label: "My library" },
   { href: "/account/profile", label: "Profile" },
+  { href: "/account/security", label: "Security" },
   { href: "/account/settings", label: "Reader settings" },
   { href: "/account/membership", label: "Membership" },
 ];
@@ -23,6 +24,9 @@ export default function AccountNav({
         <ArtalesBrand href="/account" variant="light" size="md" showMark />
       </div>
       <p className="artales-account-eyebrow">Personal account</p>
+      <p className="artales-account-sidebar__hint">
+        Identity, security, reader preferences and future purchases live here.
+      </p>
       <nav
         className="artales-account-nav"
         aria-label="Reader account navigation"

@@ -700,3 +700,67 @@ body {
   border-color: rgba(217, 183, 110, 0.35);
   color: #fff;
 }
+
+.artales-app-shell,
+.artales-workspace-shell {
+  background:
+    radial-gradient(circle at top left, rgba(217, 183, 110, 0.12), transparent 34rem),
+    linear-gradient(180deg, #fffaf0 0%, var(--artales-paper) 100%);
+  min-height: 100vh;
+}
+
+.artales-account-shell--embedded,
+.artales-member-shell--embedded {
+  min-height: calc(100vh - 82px);
+}
+
+.artales-member-shell--embedded {
+  background: transparent;
+}
+
+.artales-account-sidebar__hint {
+  color: rgba(255, 255, 255, 0.58);
+  font-size: 0.9rem;
+  line-height: 1.5;
+  margin: 0.45rem 0 0;
+}
+
+.artales-account-panel--spaced {
+  margin-top: 22px;
+}
+
+.artales-button-primary,
+.artales-button-secondary {
+  align-items: center;
+  border-radius: 999px;
+  display: inline-flex;
+  font-weight: 900;
+  justify-content: center;
+  min-height: 42px;
+  padding: 0.68rem 1rem;
+  text-decoration: none;
+}
+
+.artales-button-primary {
+  background: var(--artales-ink);
+  border: 1px solid var(--artales-ink);
+  color: #fff8e5;
+}
+
+.artales-button-primary:hover {
+  background: #6f5424;
+  border-color: #6f5424;
+  color: #fff;
+}
+
+.artales-button-secondary button,
+.artales-button-secondary[type="submit"] {
+  font: inherit;
+}
+
+@media (max-width: 780px) {
+  .artales-account-shell--embedded,
+  .artales-member-shell--embedded {
+    min-height: auto;
+  }
+}

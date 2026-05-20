@@ -22,6 +22,8 @@ function getErrorMessage(error?: string) {
       return "Create a free ARTales account to continue.";
     case "confirm_email":
       return "Your e-mail address must be confirmed before signing in. Open the confirmation e-mail from ARTales/Supabase, confirm the account, then return here and sign in.";
+    case "auth_callback":
+      return "The authentication link could not be completed. Try again or request a new link.";
     default:
       return null;
   }
@@ -37,6 +39,8 @@ function getSuccessMessage(success?: string) {
       return "Account created from invitation. Check your e-mail inbox, confirm the account, then sign in here to finish onboarding.";
     case "invite_ready":
       return "Invitation account created. Sign in with the password you just chose to finish onboarding.";
+    case "password_reset":
+      return "Password was changed. Sign in with your new password.";
     default:
       return null;
   }
@@ -90,6 +94,10 @@ export default async function LoginPage({ searchParams }: PageProps) {
             Sign in
           </button>
         </form>
+
+        <p className="artales-auth-note">
+          <Link href="/forgot-password">Forgot password?</Link>
+        </p>
 
         <p className="artales-auth-note">
           New reader? <Link href="/register">Create a free account</Link>.

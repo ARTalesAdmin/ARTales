@@ -87,43 +87,6 @@ export async function updateDisplayName(formData: FormData): Promise<void> {
   redirect("/member?success=display_name")
 }
 
-export async function changePassword(formData: FormData): Promise<void> {
-  const password = String(formData.get("password") ?? "")
-  const passwordConfirm = String(formData.get("password_confirm") ?? "")
-
-  if (!password || !passwordConfirm) {
-    redirect("/member?error=password_missing")
-  }
-
-  if (password !== passwordConfirm) {
-    redirect("/member?error=password_mismatch")
-  }
-
-  if (password.length < 8) {
-    redirect("/member?error=password_short")
-  }
-
-  const supabase = await createClient()
-
-  const {
-    data: { user },
-    error: userError,
-  } = await supabase.auth.getUser()
-
-  if (userError || !user) {
-    redirect("/login")
-  }
-
-  const { error } = await supabase.auth.updateUser({
-    password,
-  })
-
-  if (error) {
-    redirect("/member?error=password_save")
-  }
-
-  redirect("/member?success=password")
-}
 
 export async function logout(): Promise<void> {
   const supabase = await createClient()
