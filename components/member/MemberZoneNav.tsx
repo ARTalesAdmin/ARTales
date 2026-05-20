@@ -73,6 +73,9 @@ export default function MemberZoneNav() {
         </div>
 
         <div className="artales-member-nav__group">
+          <Link className="artales-member-nav__link" href="/account">
+            My account
+          </Link>
           <Link className="artales-member-nav__link" href="/gallery">
             {member.publicGallery}
           </Link>

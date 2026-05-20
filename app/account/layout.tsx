@@ -4,12 +4,16 @@ import { requireAccountProfile } from "@/lib/account";
 
 export const dynamic = "force-dynamic";
 
-export default async function AccountLayout({ children }: { children: ReactNode }) {
-  await requireAccountProfile();
+export default async function AccountLayout({
+  children,
+}: {
+  children: ReactNode;
+}) {
+  const profile = await requireAccountProfile();
 
   return (
     <div className="artales-account-shell">
-      <AccountNav />
+      <AccountNav profile={profile} />
       <main className="artales-account-content">{children}</main>
     </div>
   );

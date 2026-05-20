@@ -1,28 +1,55 @@
 import Link from "next/link";
 import ArtalesBrand from "@/components/brand/ArtalesBrand";
+import { canAccessMemberZone, type PermissionProfile } from "@/lib/permissions";
 
-const links = [
+const accountLinks = [
   { href: "/account", label: "Overview" },
   { href: "/account/library", label: "My library" },
   { href: "/account/profile", label: "Profile" },
   { href: "/account/settings", label: "Reader settings" },
   { href: "/account/membership", label: "Membership" },
-  { href: "/gallery", label: "Gallery" },
 ];
 
-export default function AccountNav() {
+export default function AccountNav({
+  profile,
+}: {
+  profile: PermissionProfile;
+}) {
+  const showMemberZone = canAccessMemberZone(profile);
+
   return (
     <aside className="artales-account-sidebar">
       <div className="artales-account-brand">
         <ArtalesBrand href="/account" variant="light" size="md" showMark />
       </div>
-      <p className="artales-account-eyebrow">Reader account</p>
-      <nav className="artales-account-nav" aria-label="Reader account navigation">
-        {links.map((link) => (
-          <Link key={link.href} href={link.href} className="artales-account-nav__link">
+      <p className="artales-account-eyebrow">Personal account</p>
+      <nav
+        className="artales-account-nav"
+        aria-label="Reader account navigation"
+      >
+        {accountLinks.map((link) => (
+          <Link
+            key={link.href}
+            href={link.href}
+            className="artales-account-nav__link"
+          >
             {link.label}
           </Link>
         ))}
+
+        <div className="artales-account-nav__group">
+          {showMemberZone ? (
+            <Link
+              href="/member"
+              className="artales-account-nav__link artales-account-nav__link--emphasis"
+            >
+              Member zone
+            </Link>
+          ) : null}
+          <Link href="/gallery" className="artales-account-nav__link">
+            Gallery
+          </Link>
+        </div>
       </nav>
     </aside>
   );

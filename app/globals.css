@@ -291,7 +291,11 @@ body {
 .artales-auth-shell {
   align-items: center;
   background:
-    radial-gradient(circle at top left, rgba(217, 183, 110, 0.18), transparent 30rem),
+    radial-gradient(
+      circle at top left,
+      rgba(217, 183, 110, 0.18),
+      transparent 30rem
+    ),
     linear-gradient(135deg, #071226 0%, #0d1528 48%, #17130f 100%);
   color: #fff;
   display: flex;
@@ -302,7 +306,11 @@ body {
 
 .artales-auth-card {
   background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.03)),
+    linear-gradient(
+      180deg,
+      rgba(255, 255, 255, 0.08),
+      rgba(255, 255, 255, 0.03)
+    ),
     rgba(8, 12, 24, 0.88);
   border: 1px solid rgba(217, 183, 110, 0.34);
   border-radius: 28px;
@@ -408,7 +416,11 @@ body {
 
 .artales-account-shell {
   background:
-    radial-gradient(circle at top left, rgba(217, 183, 110, 0.12), transparent 34rem),
+    radial-gradient(
+      circle at top left,
+      rgba(217, 183, 110, 0.12),
+      transparent 34rem
+    ),
     linear-gradient(135deg, #f7f1e6 0%, #efe3ce 48%, #fdf8ed 100%);
   color: var(--artales-ink);
   display: grid;
@@ -421,7 +433,11 @@ body {
 .artales-account-sidebar {
   align-self: start;
   background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.03)),
+    linear-gradient(
+      180deg,
+      rgba(255, 255, 255, 0.08),
+      rgba(255, 255, 255, 0.03)
+    ),
     #071226;
   border: 1px solid rgba(217, 183, 110, 0.34);
   border-radius: 28px;
@@ -518,7 +534,11 @@ body {
 }
 
 .artales-account-card--featured {
-  background: linear-gradient(180deg, rgba(255, 250, 235, 0.96), rgba(238, 221, 181, 0.72));
+  background: linear-gradient(
+    180deg,
+    rgba(255, 250, 235, 0.96),
+    rgba(238, 221, 181, 0.72)
+  );
   border-color: rgba(198, 163, 90, 0.46);
 }
 
@@ -651,4 +671,32 @@ body {
 
 .artales-account-logout {
   margin: 0 0 22px;
+}
+
+.artales-public-link--primary {
+  background: rgba(13, 21, 40, 0.92);
+  border: 1px solid rgba(13, 21, 40, 0.92);
+  border-radius: 999px;
+  color: #fff;
+  padding: 0.58rem 0.9rem;
+}
+
+.artales-public-link--primary:hover {
+  background: #6f5424;
+  border-color: #6f5424;
+  color: #fff;
+}
+
+.artales-account-nav__group {
+  border-top: 1px solid rgba(255, 255, 255, 0.12);
+  display: grid;
+  gap: 8px;
+  margin-top: 10px;
+  padding-top: 12px;
+}
+
+.artales-account-nav__link--emphasis {
+  background: rgba(217, 183, 110, 0.12);
+  border-color: rgba(217, 183, 110, 0.35);
+  color: #fff;
 }
