@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { normalizeRole } from "@/lib/permissions";
 import { ensureProfileForUser } from "@/lib/profileSync";
+import { isProfileComplete } from "@/lib/profileValidation";
 
 function safeNext(value: string) {
   return value && value.startsWith("/") && !value.startsWith("//") ? value : "";
@@ -55,7 +56,7 @@ export async function login(formData: FormData): Promise<void> {
     redirect("/login?error=inactive");
   }
 
-  if (!profile.handle || !profile.display_name) {
+  if (!isProfileComplete(profile)) {
     redirect(`/onboarding${next ? `?next=${encodeURIComponent(next)}` : ""}`);
   }
 
@@ -64,5 +65,5 @@ export async function login(formData: FormData): Promise<void> {
   }
 
   const role = normalizeRole(profile.role);
-  redirect(role === "reader" ? "/gallery" : "/member");
+  redirect(role === "reader" ? "/account" : "/member");
 }

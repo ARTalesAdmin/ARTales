@@ -70,5 +70,5 @@ export async function completeOnboarding(formData: FormData): Promise<void> {
   }
 
   const role = normalizeRole(result.profile.role ?? "reader");
-  redirect(role === "reader" ? "/gallery" : "/member");
+  redirect(role === "reader" ? "/account" : "/member");
 }

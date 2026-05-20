@@ -2,6 +2,7 @@ import Link from "next/link";
 import ArtalesBrand from "@/components/brand/ArtalesBrand";
 import { getCurrentProfile } from "@/lib/auth";
 import { completeOnboarding } from "./actions";
+import { onboardingDisplayNameDefault, onboardingHandleDefault } from "@/lib/profileValidation";
 
 export const dynamic = "force-dynamic";
 
@@ -62,7 +63,7 @@ export default async function OnboardingPage({ searchParams }: PageProps) {
               name="display_name"
               type="text"
               required
-              defaultValue={profile?.display_name ?? ""}
+              defaultValue={onboardingDisplayNameDefault(profile?.display_name, profile?.email)}
               placeholder="Hana Žížlavská"
               autoComplete="name"
             />
@@ -77,7 +78,7 @@ export default async function OnboardingPage({ searchParams }: PageProps) {
               name="handle"
               type="text"
               required
-              defaultValue={profile?.handle ?? ""}
+              defaultValue={onboardingHandleDefault(profile?.handle)}
               placeholder="hana-zizlavska"
               autoComplete="username"
             />

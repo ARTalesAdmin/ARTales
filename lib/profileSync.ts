@@ -25,6 +25,7 @@ type ProfileRow = {
   display_name: string | null;
   invite_id: string | null;
   invited_by_user_id: string | null;
+  profile_completed_at: string | null;
 };
 
 export type EnsureProfileResult = {
@@ -40,6 +41,14 @@ export type CompleteOnboardingResult = EnsureProfileResult & {
 
 function normalizeEmail(email: string | null | undefined) {
   return String(email ?? "").trim().toLowerCase();
+}
+
+function fallbackDisplayName(email: string) {
+  return email.split("@")[0] || "reader";
+}
+
+function fallbackHandle(userId: string) {
+  return `user-${userId.replace(/-/g, "").slice(0, 8)}`;
 }
 
 async function insertActivity(
@@ -95,7 +104,7 @@ async function getProfileById(
 ) {
   const { data, error } = await admin
     .from("profiles")
-    .select("id, email, role, is_active, handle, display_name, invite_id, invited_by_user_id")
+    .select("id, email, role, is_active, handle, display_name, invite_id, invited_by_user_id, profile_completed_at")
     .eq("id", userId)
     .maybeSingle();
 
@@ -155,11 +164,12 @@ export async function ensureProfileForUser(
     email,
     role: finalRole,
     is_active: true,
-    handle: existingProfile?.handle ?? null,
-    display_name: existingProfile?.display_name ?? null,
+    handle: existingProfile?.handle ?? fallbackHandle(userId),
+    display_name: existingProfile?.display_name ?? fallbackDisplayName(email),
     invite_id: existingProfile?.invite_id ?? pendingInvite?.id ?? null,
     invited_by_user_id:
       existingProfile?.invited_by_user_id ?? pendingInvite?.invited_by_user_id ?? null,
+    profile_completed_at: existingProfile?.profile_completed_at ?? null,
   };
 
   const { error: upsertError } = await admin.from("profiles").upsert(nextProfile, {
@@ -243,6 +253,7 @@ export async function completeOnboardingForUser(
     .update({
       display_name: displayName,
       handle,
+      profile_completed_at: new Date().toISOString(),
     })
     .eq("id", user.id);
 
