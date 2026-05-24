@@ -62,7 +62,7 @@ export default async function SubmissionsPage({ searchParams }: PageProps) {
           fontWeight: 800,
         }}
       >
-        Member flow
+        ARTales · pracovní tok
       </p>
       <h1
         style={{
@@ -74,14 +74,19 @@ export default async function SubmissionsPage({ searchParams }: PageProps) {
         Příspěvky / návrhy práce
       </h1>
       <p style={{ maxWidth: "760px", color: "#5f5247" }}>
-        Tady vzniká auditní stopa: kdo co dodal, kdy, kdo to zkontroloval a s
-        jakým výsledkem. Přijaté příspěvky půjde později převádět do tiráže,
-        contributorů a přínosového ledgeru.
+        Tady se sbírají pracovní příspěvky a jejich systémové stopy. Člen odešle
+        podklad, editor jej přijme, vrátí k úpravě nebo zamítne. Každý krok má být
+        později zapisován automaticky pro tiráž, contributor vrstvu a přínosový ledger.
       </p>
+
+      <section className="artales-member-panel" style={{ padding: "16px", marginTop: "18px" }}>
+        <strong>Směr systému:</strong> ručně se zadává jen obsah a rozhodnutí. Záznamy o tom,
+        kdo co odeslal, zkontroloval, vrátil nebo publikoval, mají vznikat automaticky.
+      </section>
 
       <p style={{ marginTop: "20px" }}>
         <Link className="artales-button" href="/member/submissions/new">
-          Nový příspěvek
+          Přidat příspěvek
         </Link>
       </p>
 
@@ -90,7 +95,7 @@ export default async function SubmissionsPage({ searchParams }: PageProps) {
           className="artales-member-panel"
           style={{ padding: "12px 14px", color: "#7b1d1d" }}
         >
-          Akce se nepodařila.
+          Akce se nepodařila. Zkontroluj údaje a zkus to znovu.
         </p>
       ) : null}
       {success ? (
@@ -98,7 +103,7 @@ export default async function SubmissionsPage({ searchParams }: PageProps) {
           className="artales-member-panel"
           style={{ padding: "12px 14px", color: "#22602f" }}
         >
-          Uloženo.
+          Změna byla uložena.
         </p>
       ) : null}
 
@@ -145,7 +150,7 @@ export default async function SubmissionsPage({ searchParams }: PageProps) {
                   </p>
                 ) : null}
                 <p style={{ color: "#5f5247", fontSize: 14 }}>
-                  Odesláno: {new Date(item.created_at).toLocaleString("cs-CZ")}
+                  Systémový záznam: odesláno {new Date(item.created_at).toLocaleString("cs-CZ")}
                 </p>
                 {item.review_note ? (
                   <p
@@ -199,7 +204,7 @@ export default async function SubmissionsPage({ searchParams }: PageProps) {
                     />
                   </label>
                   <button type="submit" className="artales-button-secondary">
-                    Uložit kontrolu
+                    Uložit rozhodnutí
                   </button>
                 </form>
               ) : null}
@@ -207,7 +212,7 @@ export default async function SubmissionsPage({ searchParams }: PageProps) {
           </article>
         ))}
         {submissions.length === 0 ? (
-          <p>Zatím tu nejsou žádné příspěvky.</p>
+          <p>Zatím tu nejsou žádné příspěvky. Jakmile člen odešle práci ke kontrole, objeví se zde.</p>
         ) : null}
       </section>
     </main>

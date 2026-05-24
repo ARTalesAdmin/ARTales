@@ -26,7 +26,7 @@ export default async function MemberPage() {
           textTransform: "uppercase",
         }}
       >
-        ARTales workspace
+        ARTales · interní zóna
       </p>
       <h1
         style={{
@@ -37,30 +37,29 @@ export default async function MemberPage() {
           margin: "0 0 16px",
         }}
       >
-        Welcome, {name}
+        Vítej, {name}
       </h1>
       <p style={{ color: "#4d4238", fontSize: "1.08rem", lineHeight: 1.65 }}>
-        This is the internal ARTales workspace. Personal identity, password,
-        reader settings, purchases and future membership tools are managed in
-        My account.
+        Tohle je pracovní prostředí ARTales. Osobní identita, heslo, čtenářská
+        nastavení, budoucí nákupy a členství se spravují v osobním účtu.
       </p>
 
       <section
         className="artales-member-panel"
         style={{ marginTop: 28, padding: 24 }}
       >
-        <h2 style={{ marginTop: 0 }}>Personal account</h2>
+        <h2 style={{ marginTop: 0 }}>Osobní účet</h2>
         <p>
-          Signed in as <strong>{profile?.display_name ?? name}</strong>
-          {profile?.handle ? <> / @{profile.handle}</> : null}. Change your
-          profile, password and reader settings in the account area.
+          Přihlášený účet: <strong>{profile?.display_name ?? name}</strong>
+          {profile?.handle ? <> / @{profile.handle}</> : null}. Profil, heslo a
+          čtenářská nastavení upravuj v osobním účtu.
         </p>
         <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
           <Link className="artales-button-primary" href="/account">
-            Open My account
+            Otevřít můj účet
           </Link>
           <Link className="artales-button-secondary" href="/account/security">
-            Security settings
+            Zabezpečení účtu
           </Link>
         </div>
       </section>
@@ -69,31 +68,31 @@ export default async function MemberPage() {
         className="artales-member-panel"
         style={{ marginTop: 22, padding: 24 }}
       >
-        <h2 style={{ marginTop: 0 }}>Workspace tools</h2>
+        <h2 style={{ marginTop: 0 }}>Pracovní nástroje</h2>
         <p>
-          Review incoming work, manage invitations and continue editorial tasks
-          according to your role.
+          Zpracuj příspěvky, spravuj pozvánky a pokračuj v editorských úkolech
+          podle své role.
         </p>
         <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
           <Link className="artales-button-secondary" href="/member/submissions">
-            Submissions
+            Příspěvky
           </Link>
           <Link className="artales-button-secondary" href="/member/invites">
-            Invites
+            Pozvánky
           </Link>
           {canEditContent ? (
             <>
               <Link className="artales-button-secondary" href="/member/works">
-                Works
+                Díla
               </Link>
               <Link className="artales-button-secondary" href="/member/authors">
-                Authors
+                Autoři
               </Link>
               <Link
                 className="artales-button-secondary"
                 href="/member/collections"
               >
-                Collections
+                Kolekce
               </Link>
             </>
           ) : null}
@@ -102,7 +101,7 @@ export default async function MemberPage() {
 
       <form action={logout} style={{ marginTop: 28 }}>
         <button type="submit" className="artales-button-secondary">
-          Sign out
+          Odhlásit se
         </button>
       </form>
     </main>

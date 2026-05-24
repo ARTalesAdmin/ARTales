@@ -18,7 +18,7 @@ export default async function NewSubmissionPage() {
           fontWeight: 800,
         }}
       >
-        Member flow
+        ARTales · pracovní tok
       </p>
       <h1
         style={{

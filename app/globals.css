@@ -764,3 +764,28 @@ body {
     min-height: auto;
   }
 }
+
+.artales-account-muted {
+  color: #7a6b5d !important;
+  font-size: 0.92rem;
+  font-weight: 700;
+}
+
+.artales-status-chip {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  border: 1px solid rgba(13, 21, 40, 0.13);
+  background: rgba(255, 253, 248, 0.72);
+  color: #4d4238;
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  padding: 4px 10px;
+  text-transform: uppercase;
+}
+
+.artales-status-chip--private {
+  background: rgba(238, 221, 181, 0.35);
+  color: #7b571c;
+}

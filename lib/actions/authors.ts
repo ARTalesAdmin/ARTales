@@ -63,7 +63,7 @@ export async function createAuthor(formData: FormData): Promise<void> {
     redirect(appendCreatedAuthorId(returnTo, String(data.id)))
   }
 
-  redirect(`/autor/${payload.slug}?success=author_created`)
+  redirect(`/member/authors/${payload.slug}/edit?success=author_created`)
 }
 
 export async function updateAuthor(

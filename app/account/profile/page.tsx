@@ -49,7 +49,15 @@ export default async function AccountProfilePage({ searchParams }: PageProps) {
 
         <label>
           <span>Handle</span>
-          <input name="handle" type="text" required defaultValue={profile.handle ?? ""} />
+          <input
+            name="handle"
+            type="text"
+            required
+            minLength={3}
+            maxLength={30}
+            pattern="[a-z0-9._-]{3,30}"
+            defaultValue={profile.handle ?? ""}
+          />
           <small>Unique identifier. Use a-z, 0-9, dot, underscore or hyphen. No spaces or diacritics.</small>
         </label>
 

@@ -181,17 +181,30 @@ export default async function MemberAuthorsPage() {
                     flexWrap: "wrap",
                   }}
                 >
-                  <Link
-                    href={`/autor/${author.slug}`}
-                    style={{
-                      padding: "10px 14px",
-                      border: "1px solid #ccc",
-                      textDecoration: "none",
-                      color: "#111",
-                    }}
-                  >
-                    Veřejný detail
-                  </Link>
+                  {author.is_public_visible ? (
+                    <Link
+                      href={`/autor/${author.slug}`}
+                      style={{
+                        padding: "10px 14px",
+                        border: "1px solid #ccc",
+                        textDecoration: "none",
+                        color: "#111",
+                      }}
+                    >
+                      Veřejný detail
+                    </Link>
+                  ) : (
+                    <span
+                      style={{
+                        padding: "10px 14px",
+                        border: "1px solid rgba(13,21,40,.14)",
+                        color: "#665b50",
+                        background: "rgba(255,255,255,.55)",
+                      }}
+                    >
+                      Neveřejný autor
+                    </span>
+                  )}
 
                   <Link
                     href={`/member/authors/${author.slug}/edit`}

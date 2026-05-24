@@ -1,5 +1,6 @@
 import { supabase } from "./supabase"
 import { getPublishedWorksByAuthorId, type GalleryWorkItem } from "./dbWorks"
+import { createAdminClient } from "./supabase/admin"
 
 export type AuthorType = "person" | "collective" | "unknown"
 
@@ -118,7 +119,9 @@ export async function getAuthorBySlug(
 }
 
 export async function getAuthorsForMember(): Promise<AuthorListItem[]> {
-  const { data, error } = await supabase
+  const admin = createAdminClient()
+
+  const { data, error } = await admin
     .from("authors")
     .select(`
       id,
@@ -160,7 +163,9 @@ export async function getAuthorsForMember(): Promise<AuthorListItem[]> {
 export async function getAuthorForEditBySlug(
   slug: string
 ): Promise<AuthorEditItem | null> {
-  const { data, error } = await supabase
+  const admin = createAdminClient()
+
+  const { data, error } = await admin
     .from("authors")
     .select(`
       id,

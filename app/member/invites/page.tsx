@@ -38,7 +38,7 @@ export default async function InvitesPage({ searchParams }: PageProps) {
           fontWeight: 800,
         }}
       >
-        ARTales identity
+        ARTales · identita
       </p>
       <h1
         style={{

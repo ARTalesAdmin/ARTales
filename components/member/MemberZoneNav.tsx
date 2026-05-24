@@ -35,7 +35,7 @@ export default function MemberZoneNav() {
       <p className="artales-member-sidebar__title">{member.zoneTitle}</p>
       <p className="artales-member-sidebar__subtitle">{member.zoneSubtitle}</p>
 
-      <nav className="artales-member-nav" aria-label="Členská navigace">
+      <nav className="artales-member-nav" aria-label="Navigace interní zóny">
         {primaryLinks.map((item) => (
           <Link
             key={item.href}
@@ -74,7 +74,7 @@ export default function MemberZoneNav() {
 
         <div className="artales-member-nav__group">
           <Link className="artales-member-nav__link" href="/account">
-            My account
+            Můj účet
           </Link>
           <Link className="artales-member-nav__link" href="/gallery">
             {member.publicGallery}
