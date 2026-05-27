@@ -35,11 +35,6 @@ export default function ReaderWorkActions({
   }, [slug]);
 
   function toggleSaved() {
-    if (!canReadFull) {
-      window.location.href = `/login?error=register_required&next=${encodeURIComponent(`/work/${slug}`)}`;
-      return;
-    }
-
     const next = !saved;
     setWorkSaved(slug, next);
     setSaved(next);
@@ -52,22 +47,14 @@ export default function ReaderWorkActions({
       </Link>
       <Link
         className="artales-button-secondary"
-        href={
-          canReadFull
-            ? `/reader/${slug}?mode=full`
-            : `/login?error=register_required&next=${encodeURIComponent(`/reader/${slug}?mode=full`)}`
-        }
+        href={canReadFull ? `/reader/${slug}?mode=full` : "/account/membership"}
       >
         {readOnlineLabel}
       </Link>
       {hasProgress ? (
         <Link
           className="artales-button-secondary"
-          href={
-            canReadFull
-              ? `/reader/${slug}?mode=full`
-              : `/login?error=register_required&next=${encodeURIComponent(`/reader/${slug}?mode=full`)}`
-          }
+          href={canReadFull ? `/reader/${slug}?mode=full` : "/account/membership"}
         >
           {continueReadingLabel}
         </Link>

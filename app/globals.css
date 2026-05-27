@@ -789,3 +789,111 @@ body {
   background: rgba(238, 221, 181, 0.35);
   color: #7b571c;
 }
+
+/* v0.9.0 — entitlement/library/membership foundation */
+.artales-account-promo-panel {
+  border: 1px solid rgba(184, 134, 11, 0.34);
+  background: linear-gradient(135deg, rgba(255, 248, 220, 0.96), rgba(255, 255, 255, 0.82));
+  border-radius: 24px;
+  padding: 22px;
+  box-shadow: 0 18px 44px rgba(13, 21, 40, 0.08);
+  margin: 22px 0;
+}
+
+.artales-account-promo-panel h2 {
+  margin: 4px 0 10px;
+  font-family: Georgia, 'Times New Roman', serif;
+}
+
+.artales-account-tier-card h2 span {
+  font-size: 0.52em;
+  font-family: Arial, Helvetica, sans-serif;
+  font-weight: 700;
+  color: rgba(13, 21, 40, 0.54);
+}
+
+.artales-account-tier-card__topline {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.artales-account-feature-list {
+  margin: 16px 0 0;
+  padding-left: 18px;
+  color: rgba(13, 21, 40, 0.74);
+}
+
+.artales-account-feature-list li + li {
+  margin-top: 6px;
+}
+
+.artales-account-stat-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 14px;
+  margin: 24px 0;
+}
+
+.artales-account-stat-card {
+  border: 1px solid rgba(13, 21, 40, 0.1);
+  border-radius: 20px;
+  padding: 18px;
+  background: rgba(255, 255, 255, 0.86);
+  box-shadow: 0 12px 34px rgba(13, 21, 40, 0.07);
+}
+
+.artales-account-stat-card span {
+  display: block;
+  font-size: 12px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: rgba(13, 21, 40, 0.56);
+}
+
+.artales-account-stat-card strong {
+  display: block;
+  margin-top: 8px;
+  font-size: 34px;
+  font-family: Georgia, 'Times New Roman', serif;
+  color: var(--artales-ink);
+}
+
+.artales-account-list {
+  display: grid;
+  gap: 12px;
+  margin-top: 16px;
+}
+
+.artales-account-list-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 18px;
+  border: 1px solid rgba(13, 21, 40, 0.1);
+  border-radius: 18px;
+  padding: 16px;
+  background: rgba(255, 255, 255, 0.76);
+}
+
+.artales-account-list-item h3 {
+  margin: 2px 0 4px;
+  font-family: Georgia, 'Times New Roman', serif;
+}
+
+.artales-account-list-item p {
+  margin: 0;
+}
+
+@media (max-width: 780px) {
+  .artales-account-stat-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .artales-account-list-item {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+}
