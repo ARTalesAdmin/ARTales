@@ -80,6 +80,9 @@ export default async function MemberPage() {
           <Link className="artales-button-secondary" href="/member/invites">
             Pozvánky
           </Link>
+          <Link className="artales-button-secondary" href="/member/entitlements">
+            Nároky čtenářů
+          </Link>
           {canEditContent ? (
             <>
               <Link className="artales-button-secondary" href="/member/works">

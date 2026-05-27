@@ -4,7 +4,7 @@ import WorkDetailClient from "@/components/work/WorkDetailClient";
 import { getLanguageLabel } from "@/lib/dictionaries/language";
 import { getStatusLabel } from "@/lib/dictionaries/status";
 import { getCurrentProfile } from "@/lib/auth";
-import { canOpenFullReader } from "@/lib/entitlements";
+import { canOpenFullReader, getWelcomeUnlockStatus, isWorkSavedForUser } from "@/lib/entitlements";
 
 type PageProps = {
   params: Promise<{ slug: string }>;
@@ -65,6 +65,8 @@ export default async function WorkDetail({ params }: PageProps) {
   const statusLabel = getStatusLabel(work.status, "public") ?? work.status;
   const profile = await getCurrentProfile();
   const canOpenFull = await canOpenFullReader(profile, work.id);
+  const welcomeUnlock = profile && profile.role === "reader" ? await getWelcomeUnlockStatus(profile.id) : { available: false, used: false };
+  const isSaved = profile ? await isWorkSavedForUser(profile.id, work.id) : false;
 
   return (
     <WorkDetailClient
@@ -74,6 +76,10 @@ export default async function WorkDetail({ params }: PageProps) {
       originLabel={getOriginLabel(work.origin_type)}
       sourceLabel={getSourceLabel(work.source_label)}
       canReadFull={canOpenFull}
+      workId={work.id}
+      isSignedIn={Boolean(profile)}
+      isSaved={isSaved}
+      welcomeUnlockAvailable={!canOpenFull && welcomeUnlock.available}
     />
   );
 }

@@ -36,7 +36,28 @@ export default async function AccountLibraryPage() {
           <span>AT Credits</span>
           <strong>{summary.atCreditBalance}</strong>
         </article>
+        <article className="artales-account-stat-card">
+          <span>Welcome unlock</span>
+          <strong>{summary.welcomeUnlockAvailable ? "1" : "0"}</strong>
+        </article>
       </div>
+
+      {summary.welcomeUnlockAvailable ? (
+        <section className="artales-account-promo-panel">
+          <p className="artales-account-card__label">Free Reader benefit</p>
+          <h2>You have 1 welcome unlock available</h2>
+          <p>
+            Choose carefully: the welcome unlock permanently adds one title to your online library. On a work detail page, use the confirmation screen before it is spent.
+          </p>
+          <Link className="artales-button" href="/gallery">Choose a title</Link>
+        </section>
+      ) : summary.welcomeUnlockUsed ? (
+        <section className="artales-account-panel">
+          <p className="artales-account-card__label">Welcome unlock</p>
+          <h2>Already used</h2>
+          <p>Your one-time welcome unlock has already been used. The unlocked title appears in your online titles below.</p>
+        </section>
+      ) : null}
 
       <div className="artales-account-grid">
         <article className="artales-account-card">

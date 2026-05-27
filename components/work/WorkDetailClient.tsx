@@ -12,6 +12,10 @@ type WorkDetailClientProps = {
   originLabel: string;
   sourceLabel: string;
   canReadFull: boolean;
+  workId: string;
+  isSignedIn: boolean;
+  isSaved: boolean;
+  welcomeUnlockAvailable: boolean;
 };
 
 function ComingSoonBadge() {
@@ -57,6 +61,10 @@ export default function WorkDetailClient({
   originLabel,
   sourceLabel,
   canReadFull,
+  workId,
+  isSignedIn,
+  isSaved,
+  welcomeUnlockAvailable,
 }: WorkDetailClientProps) {
   const { common, public: t } = getPublicDictionary();
   const authorName = work.author?.name ?? t.unknownAuthor;
@@ -183,6 +191,10 @@ export default function WorkDetailClient({
 
             <ReaderWorkActions
               slug={work.slug}
+              workId={workId}
+              isSignedIn={isSignedIn}
+              isSaved={isSaved}
+              welcomeUnlockAvailable={welcomeUnlockAvailable}
               readPreviewLabel={t.readPreview}
               readOnlineLabel={t.readOnline}
               continueReadingLabel={t.continueReading}

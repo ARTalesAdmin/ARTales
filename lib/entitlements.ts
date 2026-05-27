@@ -25,12 +25,42 @@ export type ReaderLibrarySummary = {
   savedItems: number;
   recentItems: number;
   atCreditBalance: number;
+  welcomeUnlockAvailable: boolean;
+  welcomeUnlockUsed: boolean;
 };
 
 export type ReaderUnlockedWork = GalleryWorkItem & {
   entitlementSource: string;
   entitlementCreatedAt: string;
   entitlementExpiresAt: string | null;
+};
+
+export type EntitlementRequestStatus = "pending" | "approved" | "rejected" | "cancelled";
+
+export type EntitlementRequestItem = {
+  id: string;
+  status: EntitlementRequestStatus;
+  note: string | null;
+  admin_note: string | null;
+  created_at: string;
+  reviewed_at: string | null;
+  requested_by: {
+    id: string;
+    email: string;
+    display_name: string | null;
+    handle: string | null;
+  } | null;
+  target_user: {
+    id: string;
+    email: string;
+    display_name: string | null;
+    handle: string | null;
+  } | null;
+  work: {
+    id: string;
+    title: string;
+    slug: string;
+  } | null;
 };
 
 type EntitlementWorkRelation = {
@@ -81,6 +111,64 @@ type EntitlementWorkRow = {
   works?: EntitlementWorkRelation | EntitlementWorkRelation[] | null;
 };
 
+type EntitlementRequestRawRow = {
+  id: unknown;
+  status: unknown;
+  note: unknown;
+  admin_note: unknown;
+  created_at: unknown;
+  reviewed_at: unknown;
+  requested_by?:
+    | {
+        id: unknown;
+        email: unknown;
+        display_name: unknown;
+        handle: unknown;
+      }
+    | null
+    | Array<{
+        id: unknown;
+        email: unknown;
+        display_name: unknown;
+        handle: unknown;
+      }>;
+  target_user?:
+    | {
+        id: unknown;
+        email: unknown;
+        display_name: unknown;
+        handle: unknown;
+      }
+    | null
+    | Array<{
+        id: unknown;
+        email: unknown;
+        display_name: unknown;
+        handle: unknown;
+      }>;
+  works?:
+    | {
+        id: unknown;
+        title: unknown;
+        slug: unknown;
+      }
+    | null
+    | Array<{
+        id: unknown;
+        title: unknown;
+        slug: unknown;
+      }>;
+};
+
+function firstRelation<T>(value: T | T[] | null | undefined): T | null {
+  if (Array.isArray(value)) return value[0] ?? null;
+  return value ?? null;
+}
+
+function isKnownRequestStatus(value: string): value is EntitlementRequestStatus {
+  return value === "pending" || value === "approved" || value === "rejected" || value === "cancelled";
+}
+
 export async function hasOnlineReadEntitlement(userId: string, workId: string) {
   const supabase = await createClient();
   const now = new Date().toISOString();
@@ -127,6 +215,34 @@ export async function hasActiveLibraryMembership(userId: string) {
   return Boolean(data);
 }
 
+export async function hasUsedWelcomeUnlock(userId: string) {
+  const supabase = await createClient();
+
+  const { data, error } = await supabase
+    .from("reader_entitlements")
+    .select("id")
+    .eq("user_id", userId)
+    .eq("source", "welcome_unlock")
+    .eq("is_active", true)
+    .limit(1);
+
+  if (error) {
+    console.error("Welcome unlock status check failed:", error);
+    return false;
+  }
+
+  return Boolean(data && data.length > 0);
+}
+
+export async function getWelcomeUnlockStatus(userId: string) {
+  const used = await hasUsedWelcomeUnlock(userId);
+
+  return {
+    available: !used,
+    used,
+  };
+}
+
 export async function canReadWorkOnline(userId: string | null | undefined, workId: string) {
   if (!userId) return false;
 
@@ -138,10 +254,64 @@ export async function canReadWorkOnline(userId: string | null | undefined, workI
   return hasDirectEntitlement || hasLibraryMembership;
 }
 
+export async function isWorkSavedForUser(userId: string, workId: string) {
+  const supabase = await createClient();
+
+  const { data, error } = await supabase
+    .from("reader_library_items")
+    .select("id")
+    .eq("user_id", userId)
+    .eq("work_id", workId)
+    .eq("item_type", "saved")
+    .maybeSingle();
+
+  if (error) {
+    console.error("Saved work status check failed:", error);
+    return false;
+  }
+
+  return Boolean(data);
+}
+
+export async function setSavedWorkForUser(params: {
+  userId: string;
+  workId: string;
+  saved: boolean;
+}) {
+  const admin = createAdminClient();
+
+  if (!params.saved) {
+    const { error } = await admin
+      .from("reader_library_items")
+      .delete()
+      .eq("user_id", params.userId)
+      .eq("work_id", params.workId)
+      .eq("item_type", "saved");
+
+    if (error) throw new Error(`Failed to remove saved work: ${error.message}`);
+    return;
+  }
+
+  const { error } = await admin
+    .from("reader_library_items")
+    .upsert(
+      {
+        user_id: params.userId,
+        work_id: params.workId,
+        item_type: "saved",
+        source: "account",
+        updated_at: new Date().toISOString(),
+      },
+      { onConflict: "user_id,work_id,item_type" },
+    );
+
+  if (error) throw new Error(`Failed to save work: ${error.message}`);
+}
+
 export async function getReaderLibrarySummary(userId: string): Promise<ReaderLibrarySummary> {
   const supabase = await createClient();
 
-  const [entitlements, libraryItems, credits] = await Promise.all([
+  const [entitlements, libraryItems, credits, welcome] = await Promise.all([
     supabase
       .from("reader_entitlements")
       .select("entitlement_type", { count: "exact", head: false })
@@ -155,6 +325,7 @@ export async function getReaderLibrarySummary(userId: string): Promise<ReaderLib
       .from("reader_credit_ledger")
       .select("amount")
       .eq("user_id", userId),
+    getWelcomeUnlockStatus(userId),
   ]);
 
   if (entitlements.error) console.error("Library entitlement summary failed:", entitlements.error);
@@ -172,6 +343,8 @@ export async function getReaderLibrarySummary(userId: string): Promise<ReaderLib
     savedItems: itemRows.filter((row) => row.item_type === "saved").length,
     recentItems: itemRows.filter((row) => row.item_type === "recent").length,
     atCreditBalance: creditRows.reduce((sum, row) => sum + Number(row.amount ?? 0), 0),
+    welcomeUnlockAvailable: welcome.available,
+    welcomeUnlockUsed: welcome.used,
   };
 }
 
@@ -223,12 +396,12 @@ export async function getReaderUnlockedWorks(userId: string): Promise<ReaderUnlo
 
   const rows = (data ?? []).map((row) => {
     const rawRow = row as EntitlementWorkRow;
-    const work = Array.isArray(rawRow.works) ? rawRow.works[0] : rawRow.works;
+    const work = firstRelation(rawRow.works);
 
     if (!work) return null;
 
-    const author = Array.isArray(work.authors) ? work.authors[0] : work.authors;
-    const collection = Array.isArray(work.collections) ? work.collections[0] : work.collections;
+    const author = firstRelation(work.authors);
+    const collection = firstRelation(work.collections);
 
     return {
       id: String(work.id),
@@ -305,22 +478,131 @@ export async function grantOnlineReadEntitlement(params: {
       throw new Error(`Failed to update online read entitlement: ${error.message}`);
     }
 
-    return;
+    return existing.id as string;
   }
 
-  const { error } = await admin.from("reader_entitlements").insert({
-    user_id: params.userId,
-    work_id: params.workId,
-    entitlement_type: "online_read",
-    source: params.source ?? "manual_grant",
-    granted_by_user_id: params.grantedByUserId ?? null,
-    note: params.note ?? null,
-    is_active: true,
-  });
+  const { data, error } = await admin
+    .from("reader_entitlements")
+    .insert({
+      user_id: params.userId,
+      work_id: params.workId,
+      entitlement_type: "online_read",
+      source: params.source ?? "manual_grant",
+      granted_by_user_id: params.grantedByUserId ?? null,
+      note: params.note ?? null,
+      is_active: true,
+    })
+    .select("id")
+    .single();
 
   if (error) {
     throw new Error(`Failed to grant online read entitlement: ${error.message}`);
   }
+
+  return String(data.id);
+}
+
+export async function grantWelcomeUnlock(params: {
+  userId: string;
+  workId: string;
+}) {
+  const used = await hasUsedWelcomeUnlock(params.userId);
+  if (used) {
+    throw new Error("Welcome unlock has already been used.");
+  }
+
+  return grantOnlineReadEntitlement({
+    userId: params.userId,
+    workId: params.workId,
+    source: "welcome_unlock",
+    grantedByUserId: null,
+    note: "Free Reader welcome unlock.",
+  });
+}
+
+export async function listEntitlementRequests(status: EntitlementRequestStatus | "all" = "pending") {
+  const admin = createAdminClient();
+
+  let query = admin
+    .from("reader_entitlement_requests")
+    .select(`
+      id,
+      status,
+      note,
+      admin_note,
+      created_at,
+      reviewed_at,
+      requested_by:requested_by_user_id (
+        id,
+        email,
+        display_name,
+        handle
+      ),
+      target_user:target_user_id (
+        id,
+        email,
+        display_name,
+        handle
+      ),
+      works:work_id (
+        id,
+        title,
+        slug
+      )
+    `)
+    .order("created_at", { ascending: false })
+    .limit(50);
+
+  if (status !== "all") {
+    query = query.eq("status", status);
+  }
+
+  const { data, error } = await query;
+
+  if (error) {
+    console.error("Entitlement requests load failed:", error);
+    return [];
+  }
+
+  return (data ?? []).map((row) => {
+    const raw = row as EntitlementRequestRawRow;
+    const requestedBy = firstRelation(raw.requested_by);
+    const targetUser = firstRelation(raw.target_user);
+    const work = firstRelation(raw.works);
+    const statusValue = String(raw.status ?? "pending");
+
+    return {
+      id: String(raw.id),
+      status: isKnownRequestStatus(statusValue) ? statusValue : "pending",
+      note: raw.note == null ? null : String(raw.note),
+      admin_note: raw.admin_note == null ? null : String(raw.admin_note),
+      created_at: String(raw.created_at),
+      reviewed_at: raw.reviewed_at == null ? null : String(raw.reviewed_at),
+      requested_by: requestedBy
+        ? {
+            id: String(requestedBy.id),
+            email: String(requestedBy.email),
+            display_name: requestedBy.display_name == null ? null : String(requestedBy.display_name),
+            handle: requestedBy.handle == null ? null : String(requestedBy.handle),
+          }
+        : null,
+      target_user: targetUser
+        ? {
+            id: String(targetUser.id),
+            email: String(targetUser.email),
+            display_name: targetUser.display_name == null ? null : String(targetUser.display_name),
+            handle: targetUser.handle == null ? null : String(targetUser.handle),
+          }
+        : null,
+      work: work
+        ? {
+            id: String(work.id),
+            title: String(work.title),
+            slug: String(work.slug),
+          }
+        : null,
+    } satisfies EntitlementRequestItem;
+  });
 }
 
 export async function canOpenFullReader(profile: { id: string; role?: string | null; is_active?: boolean | null } | null | undefined, workId: string) {
