@@ -2,7 +2,8 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
-import { createEmptyBlock, type WorkBlock } from "@/lib/blocks";
+import { WORK_BLOCK_TYPE_META, createEmptyBlock, type WorkBlock } from "@/lib/blocks";
+import { parseRawTextToWorkBlocks, type ParsedWorkBlocksResult } from "@/lib/textParser";
 import WorkBlocksEditor from "./WorkBlocksEditor";
 
 type Props = {
@@ -130,6 +131,9 @@ export default function WorkEditorForm(props: Props) {
   const [lastSaved, setLastSaved] = useState<string | null>(null);
   const [draftLoaded, setDraftLoaded] = useState(false);
   const [autosaveEnabled, setAutosaveEnabled] = useState(false);
+  const [parserInput, setParserInput] = useState("");
+  const [parserResult, setParserResult] = useState<ParsedWorkBlocksResult | null>(null);
+  const [parserMessage, setParserMessage] = useState<string | null>(null);
 
   const summaryLength = formState.summary.trim().length;
   const hasBlocks = blocks.some((block) => {
@@ -433,6 +437,46 @@ export default function WorkEditorForm(props: Props) {
     setHasDraft(false);
     setLastSaved(null);
     setAutosaveEnabled(true);
+  }
+
+  function runParser() {
+    const parsed = parseRawTextToWorkBlocks(parserInput);
+    setParserResult(parsed);
+
+    if (parsed.blocks.length === 0) {
+      setParserMessage("Parser nenašel žádný použitelný blok. Zkontroluj vstupní text.");
+      return;
+    }
+
+    setParserMessage(
+      `Rozpoznáno ${parsed.blocks.length} bloků. Před vložením do díla prosím zkontroluj náhled.`,
+    );
+  }
+
+  function replaceBlocksWithParserResult() {
+    if (!parserResult || parserResult.blocks.length === 0) return;
+
+    const shouldReplace = window.confirm(
+      "Nahradit současné bloky výsledkem parseru? Aktuální bloky zůstanou zachované jen v lokálním autosave, dokud dílo znovu neuložíš.",
+    );
+
+    if (!shouldReplace) return;
+
+    setBlocks(parserResult.blocks);
+    setParserMessage("Bloky byly nahrazeny výsledkem parseru. Teď je můžeš ručně zkontrolovat a uložit dílo.");
+  }
+
+  function appendParserResult() {
+    if (!parserResult || parserResult.blocks.length === 0) return;
+
+    setBlocks((prev) => [...prev, ...parserResult.blocks]);
+    setParserMessage("Bloky z parseru byly přidány na konec díla. Teď je můžeš ručně zkontrolovat a uložit dílo.");
+  }
+
+  function clearParser() {
+    setParserInput("");
+    setParserResult(null);
+    setParserMessage(null);
   }
 
   return (
@@ -1223,6 +1267,184 @@ export default function WorkEditorForm(props: Props) {
               />
             </div>
           </section>
+        </section>
+
+        <section
+          className="artales-member-panel artales-parser-panel"
+          style={{
+            border: "1px solid rgba(13, 21, 40, 0.14)",
+            background: "#fffdf8",
+            borderRadius: "22px",
+            padding: "24px",
+            display: "grid",
+            gap: "16px",
+          }}
+        >
+          <div>
+            <p
+              style={{
+                margin: "0 0 8px 0",
+                fontSize: "13px",
+                letterSpacing: "0.08em",
+                textTransform: "uppercase",
+                opacity: 0.68,
+              }}
+            >
+              Produkční nástroj
+            </p>
+            <h2 style={{ margin: 0 }}>Parser textu do ARTales bloků</h2>
+            <p style={{ margin: "8px 0 0 0", opacity: 0.78 }}>
+              Vlož celý připravený text, nech ho rozdělit na kapitoly, odstavce,
+              předěly a pravděpodobné básně. Parser nic automaticky neukládá do
+              databáze. Výsledek nejdřív vložíš do editoru, potom ho ručně
+              zkontroluješ a uložíš dílo.
+            </p>
+          </div>
+
+          <label htmlFor="raw_text_parser" style={{ fontWeight: 700 }}>
+            Surový text
+          </label>
+          <textarea
+            id="raw_text_parser"
+            rows={12}
+            value={parserInput}
+            onChange={(event) => setParserInput(event.target.value)}
+            placeholder={"Kapitola I\n\nPrvní odstavec textu...\n\n* * *\n\nDalší scéna..."}
+            style={{
+              width: "100%",
+              padding: "14px 16px",
+              border: "1px solid rgba(13, 21, 40, 0.22)",
+              background: "#fffefb",
+              borderRadius: "14px",
+              fontSize: "15px",
+              lineHeight: 1.55,
+              resize: "vertical",
+              fontFamily: "Georgia, serif",
+            }}
+          />
+
+          <div style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
+            <button
+              type="button"
+              onClick={runParser}
+              style={{
+                padding: "10px 14px",
+                border: "1px solid #111",
+                background: "#111",
+                color: "#fff",
+                borderRadius: "999px",
+                cursor: "pointer",
+                fontWeight: 700,
+              }}
+            >
+              Rozparsovat text
+            </button>
+            <button
+              type="button"
+              onClick={replaceBlocksWithParserResult}
+              disabled={!parserResult || parserResult.blocks.length === 0}
+              style={{
+                padding: "10px 14px",
+                border: "1px solid rgba(13, 21, 40, 0.24)",
+                background: parserResult && parserResult.blocks.length > 0 ? "#fff" : "#f2efe8",
+                color: parserResult && parserResult.blocks.length > 0 ? "#111" : "#888",
+                borderRadius: "999px",
+                cursor: parserResult && parserResult.blocks.length > 0 ? "pointer" : "not-allowed",
+                fontWeight: 700,
+              }}
+            >
+              Nahradit současné bloky
+            </button>
+            <button
+              type="button"
+              onClick={appendParserResult}
+              disabled={!parserResult || parserResult.blocks.length === 0}
+              style={{
+                padding: "10px 14px",
+                border: "1px solid rgba(13, 21, 40, 0.24)",
+                background: parserResult && parserResult.blocks.length > 0 ? "#fff" : "#f2efe8",
+                color: parserResult && parserResult.blocks.length > 0 ? "#111" : "#888",
+                borderRadius: "999px",
+                cursor: parserResult && parserResult.blocks.length > 0 ? "pointer" : "not-allowed",
+                fontWeight: 700,
+              }}
+            >
+              Přidat na konec
+            </button>
+            <button
+              type="button"
+              onClick={clearParser}
+              style={{
+                padding: "10px 14px",
+                border: "1px solid rgba(13, 21, 40, 0.18)",
+                background: "transparent",
+                borderRadius: "999px",
+                cursor: "pointer",
+              }}
+            >
+              Vyčistit parser
+            </button>
+          </div>
+
+          {parserMessage ? (
+            <p
+              style={{
+                margin: 0,
+                padding: "10px 12px",
+                border: "1px solid rgba(13, 21, 40, 0.12)",
+                background: "rgba(246, 238, 219, 0.8)",
+                borderRadius: "12px",
+              }}
+            >
+              {parserMessage}
+            </p>
+          ) : null}
+
+          {parserResult && parserResult.blocks.length > 0 ? (
+            <div style={{ display: "grid", gap: "12px" }}>
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "repeat(auto-fit, minmax(130px, 1fr))",
+                  gap: "10px",
+                }}
+              >
+                <span className="artales-parser-stat">Bloky: {parserResult.stats.totalBlocks}</span>
+                <span className="artales-parser-stat">Kapitoly: {parserResult.stats.chapters}</span>
+                <span className="artales-parser-stat">Odstavce: {parserResult.stats.paragraphs}</span>
+                <span className="artales-parser-stat">Básně: {parserResult.stats.poems}</span>
+                <span className="artales-parser-stat">Předěly: {parserResult.stats.separators}</span>
+              </div>
+
+              <div style={{ display: "grid", gap: "8px" }}>
+                <h3 style={{ margin: 0 }}>Náhled prvních bloků</h3>
+                {parserResult.blocks.slice(0, 12).map((block, index) => (
+                  <div
+                    key={block.id}
+                    style={{
+                      border: "1px solid rgba(13, 21, 40, 0.12)",
+                      background: "#fffefb",
+                      borderRadius: "14px",
+                      padding: "12px",
+                    }}
+                  >
+                    <p style={{ margin: "0 0 6px 0", fontSize: "13px", opacity: 0.72 }}>
+                      {index + 1}. {WORK_BLOCK_TYPE_META[block.type].internalLabel}
+                      {block.editor_note ? ` · ${block.editor_note}` : ""}
+                    </p>
+                    <p style={{ margin: 0, whiteSpace: "pre-wrap" }}>
+                      {block.content.length > 260 ? `${block.content.slice(0, 260)}…` : block.content}
+                    </p>
+                  </div>
+                ))}
+                {parserResult.blocks.length > 12 ? (
+                  <p style={{ margin: 0, opacity: 0.72 }}>
+                    Dalších {parserResult.blocks.length - 12} bloků se zobrazí až po vložení do editoru.
+                  </p>
+                ) : null}
+              </div>
+            </div>
+          ) : null}
         </section>
 
         <WorkBlocksEditor blocks={blocks} setBlocks={setBlocks} />

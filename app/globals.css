@@ -1023,3 +1023,18 @@ body {
     grid-template-columns: 1fr;
   }
 }
+
+.artales-parser-stat {
+  border: 1px solid rgba(13, 21, 40, 0.14);
+  background: rgba(255, 254, 251, 0.86);
+  border-radius: 999px;
+  padding: 8px 10px;
+  font-size: 13px;
+  font-weight: 700;
+  text-align: center;
+}
+
+.artales-parser-panel textarea:focus {
+  outline: 2px solid rgba(148, 105, 42, 0.32);
+  outline-offset: 2px;
+}
