@@ -1294,9 +1294,10 @@ export default function WorkEditorForm(props: Props) {
             </p>
             <h2 style={{ margin: 0 }}>Parser textu do ARTales bloků</h2>
             <p style={{ margin: "8px 0 0 0", opacity: 0.78 }}>
-              Vlož celý připravený text, nech ho rozdělit na kapitoly, odstavce,
-              předěly a pravděpodobné básně. Parser nic automaticky neukládá do
-              databáze. Výsledek nejdřív vložíš do editoru, potom ho ručně
+              Vlož celý připravený text a nech ho rozdělit do ARTales bloků:
+              kapitoly, odstavce, předěly, básně, citace, dopisy, poznámky,
+              předmluvy, doslovy a další typy. Parser nic automaticky neukládá
+              do databáze. Výsledek nejdřív vložíš do editoru, potom ho ručně
               zkontroluješ a uložíš dílo.
             </p>
           </div>
@@ -1309,7 +1310,7 @@ export default function WorkEditorForm(props: Props) {
             rows={12}
             value={parserInput}
             onChange={(event) => setParserInput(event.target.value)}
-            placeholder={"Kapitola I\n\nPrvní odstavec textu...\n\n* * *\n\nDalší scéna..."}
+            placeholder={"VĚNOVÁNÍ\n\nKapitola I\n\nPrvní odstavec textu...\n\n* * *\n\nPraha, 1890\n\nMilý příteli,\ntext dopisu...\nTvůj Jan"}
             style={{
               width: "100%",
               padding: "14px 16px",
@@ -1410,10 +1411,23 @@ export default function WorkEditorForm(props: Props) {
                 }}
               >
                 <span className="artales-parser-stat">Bloky: {parserResult.stats.totalBlocks}</span>
+                <span className="artales-parser-stat">Části: {parserResult.stats.bookParts}</span>
                 <span className="artales-parser-stat">Kapitoly: {parserResult.stats.chapters}</span>
+                <span className="artales-parser-stat">Titulky: {parserResult.stats.headlines}</span>
                 <span className="artales-parser-stat">Odstavce: {parserResult.stats.paragraphs}</span>
+                <span className="artales-parser-stat">Citace: {parserResult.stats.quotes}</span>
                 <span className="artales-parser-stat">Básně: {parserResult.stats.poems}</span>
+                <span className="artales-parser-stat">Dopisy: {parserResult.stats.letters}</span>
+                <span className="artales-parser-stat">Články: {parserResult.stats.newspaperArticles}</span>
+                <span className="artales-parser-stat">Datace: {parserResult.stats.placeLines}</span>
                 <span className="artales-parser-stat">Předěly: {parserResult.stats.separators}</span>
+                <span className="artales-parser-stat">Poznámky: {parserResult.stats.notes}</span>
+                <span className="artales-parser-stat">Pozn. pod čarou: {parserResult.stats.footnotes}</span>
+                <span className="artales-parser-stat">Věnování: {parserResult.stats.dedications}</span>
+                <span className="artales-parser-stat">Předmluvy: {parserResult.stats.prefaces}</span>
+                <span className="artales-parser-stat">Doslovy: {parserResult.stats.afterwords}</span>
+                <span className="artales-parser-stat">Poděkování: {parserResult.stats.acknowledgements}</span>
+                <span className="artales-parser-stat">Obrázky: {parserResult.stats.images}</span>
               </div>
 
               <div style={{ display: "grid", gap: "8px" }}>
