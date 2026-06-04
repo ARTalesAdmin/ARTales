@@ -1,89 +1,124 @@
 import type { WorkBlock, WorkBlockType } from "@/lib/blocks";
 
-export type ParserConfidence = "vysoká" | "střední" | "nízká";
+const MARKUP_TAG_TO_BLOCK_TYPE: Record<string, WorkBlockType> = {
+  book_part: "book_part",
+  chapter: "chapter",
+  headline: "headline",
+  paragraph: "paragraph",
+  quote: "quote",
+  poem: "poem",
+  letter: "letter",
+  newspaper_article: "newspaper_article",
+  place_line: "place_line",
+  separator: "separator",
+  note: "note",
+  footnote: "footnote",
+  dedication: "dedication",
+  preface: "preface",
+  afterword: "afterword",
+  acknowledgement: "acknowledgement",
+  image: "image",
+};
+
+export const ARTALES_TEXT_PREPROCESSOR_PROMPT = `Jsi ARTales text preprocessor.
+
+Tvůj jediný úkol je připravit literární text pro import do ARTales editoru.
+
+ZÁKLADNÍ PRAVIDLA:
+- Neměň obsah textu.
+- Neopravuj styl, pravopis, interpunkci, archaické výrazy ani formulace autora.
+- Nezkracuj.
+- Neparafrázuj.
+- Nedoplňuj vlastní komentáře.
+- Nevysvětluj, co děláš.
+- Výstup musí být pouze původní text doplněný o strukturální značky ARTales.
+
+ZNAČKY:
+Používej pouze tyto značky, vždy samostatně na řádku:
+::book_part
+::chapter
+::headline
+::paragraph
+::quote
+::poem
+::letter
+::newspaper_article
+::place_line
+::separator
+::note
+::footnote
+::dedication
+::preface
+::afterword
+::acknowledgement
+::image
+
+METODIKA:
+- Každý skutečný odstavec prózy označ jako samostatný blok ::paragraph.
+- Nadpis kapitoly označ jako ::chapter.
+- Vyšší část knihy označ jako ::book_part.
+- Krátký vnitřní titulek označ jako ::headline.
+- Předmluvu označ jako ::preface.
+- Doslov označ jako ::afterword.
+- Věnování označ jako ::dedication.
+- Poděkování označ jako ::acknowledgement.
+- Veršovaný úsek označ jako ::poem a zachovej původní zalomení řádků.
+- Dopis označ jako ::letter a zachovej jeho vnitřní strukturu.
+- Vložený novinový článek označ jako ::newspaper_article.
+- Místo, datum nebo dataci na samostatném řádku označ jako ::place_line.
+- Oddělovače typu * * * nebo --- označ jako ::separator.
+- Poznámku označ jako ::note.
+- Poznámku pod čarou označ jako ::footnote.
+
+FORMÁT VÝSTUPU:
+- Značka vždy určuje typ následujícího bloku.
+- Značka musí být sama na řádku.
+- Za značkou nech text daného bloku.
+- Neobaluj výstup do Markdownu.
+- Nepřidávej úvod ani závěr.
+
+PŘÍKLAD:
+::chapter
+Kapitola I
+
+::paragraph
+První odstavec textu.
+
+::paragraph
+Druhý odstavec textu.
+
+::separator
+* * *
+
+::poem
+První verš
+druhý verš
+třetí verš`;
 
 export type ParsedWorkBlocksResult = {
   blocks: WorkBlock[];
+  usedMarkup: boolean;
   stats: {
     totalBlocks: number;
-    bookParts: number;
     chapters: number;
-    headlines: number;
     paragraphs: number;
-    quotes: number;
     poems: number;
-    letters: number;
-    newspaperArticles: number;
-    placeLines: number;
     separators: number;
-    notes: number;
-    footnotes: number;
-    dedications: number;
-    prefaces: number;
-    afterwords: number;
-    acknowledgements: number;
-    images: number;
+    quotes: number;
+    placeLines: number;
+    markedBlocks: number;
   };
 };
 
-type Detection = {
-  type: WorkBlockType;
-  content: string;
-  note?: string;
-  fields?: Record<string, string | null>;
-};
-
-function createId() {
-  return typeof crypto !== "undefined" && "randomUUID" in crypto
-    ? crypto.randomUUID()
-    : `parsed-${Date.now()}-${Math.random().toString(16).slice(2)}`;
-}
-
-function createBlock(type: WorkBlockType, content: string, editorNote?: string, fields?: Record<string, string | null>): WorkBlock {
-  const normalizedContent = type === "separator" ? "* * *" : content.trim();
-
-  if (type === "letter") {
-    return {
-      id: createId(),
-      type,
-      content: normalizedContent,
-      editor_note: editorNote ?? null,
-      fields: {
-        place_year: fields?.place_year ?? "",
-        body: fields?.body ?? normalizedContent,
-        date_signature: fields?.date_signature ?? "",
-      },
-    };
-  }
-
-  if (type === "image") {
-    return {
-      id: createId(),
-      type,
-      content: normalizedContent,
-      editor_note: editorNote ?? null,
-      fields: {
-        image_request: fields?.image_request ?? normalizedContent,
-        storage_path: fields?.storage_path ?? "",
-        alt: fields?.alt ?? "",
-        caption: fields?.caption ?? "",
-        alignment: fields?.alignment ?? "center",
-        size: fields?.size ?? "normal",
-      },
-    };
-  }
-
+function createBlock(type: WorkBlockType, content: string, editorNote?: string): WorkBlock {
   return {
-    id: createId(),
+    id: typeof crypto !== "undefined" && "randomUUID" in crypto
+      ? crypto.randomUUID()
+      : `parsed-${Date.now()}-${Math.random().toString(16).slice(2)}`,
     type,
-    content: normalizedContent,
+    content: content.trim(),
     editor_note: editorNote ?? null,
-    fields,
   };
-}
-
-function note(confidence: ParserConfidence, reason: string) {
-  return `Parser: ${confidence} jistota · ${reason}`;
 }
 
 function normalizeRawText(rawText: string) {
@@ -120,269 +155,184 @@ function getNonEmptyLines(value: string) {
     .filter(Boolean);
 }
 
-function stripBlockLabel(text: string) {
-  return text
-    .replace(/^(věnování|venovani|dedication)\s*[:—-]?\s*/i, "")
-    .replace(/^(předmluva|predmluva|preface)\s*[:—-]?\s*/i, "")
-    .replace(/^(doslov|afterword|epilog|epilogue)\s*[:—-]?\s*/i, "")
-    .replace(/^(poděkování|podekovani|acknowledgement|acknowledgment|thanks)\s*[:—-]?\s*/i, "")
-    .trim();
+function readMarkupTag(line: string): WorkBlockType | null {
+  const match = line.trim().match(/^::([a-z_]+)$/);
+  if (!match) return null;
+
+  return MARKUP_TAG_TO_BLOCK_TYPE[match[1]] ?? null;
+}
+
+function hasRecognizedMarkup(text: string) {
+  return text.split("\n").some((line) => readMarkupTag(line) !== null);
+}
+
+function normalizeContentForType(type: WorkBlockType, content: string) {
+  if (type === "separator") {
+    const separator = compactInlineText(content);
+    return separator || "* * *";
+  }
+
+  if (
+    type === "poem" ||
+    type === "letter" ||
+    type === "newspaper_article" ||
+    type === "dedication" ||
+    type === "acknowledgement" ||
+    type === "image"
+  ) {
+    return content.trim();
+  }
+
+  return compactInlineText(content);
+}
+
+function createMarkedBlocks(type: WorkBlockType, content: string): WorkBlock[] {
+  const cleaned = content.trim();
+
+  if (type === "separator") {
+    return [createBlock("separator", normalizeContentForType("separator", cleaned), "Parser: vloženo podle ARTales značky ::separator.")];
+  }
+
+  if (!cleaned) return [];
+
+  // Even if AI forgets to split a long prose section into several ::paragraph blocks,
+  // keep the clean model: one real paragraph = one ARTales paragraph block.
+  if (type === "paragraph") {
+    return splitIntoParagraphCandidates(cleaned).map((paragraph) =>
+      createBlock("paragraph", compactInlineText(paragraph), "Parser: vloženo podle ARTales značky ::paragraph."),
+    );
+  }
+
+  return [
+    createBlock(
+      type,
+      normalizeContentForType(type, cleaned),
+      `Parser: vloženo podle ARTales značky ::${type}.`,
+    ),
+  ];
+}
+
+function parseMarkedTextToWorkBlocks(text: string): WorkBlock[] {
+  const blocks: WorkBlock[] = [];
+  const lines = text.split("\n");
+
+  let currentType: WorkBlockType | null = null;
+  let buffer: string[] = [];
+
+  function flush() {
+    if (!currentType) return;
+    blocks.push(...createMarkedBlocks(currentType, buffer.join("\n")));
+    buffer = [];
+  }
+
+  for (const line of lines) {
+    const tag = readMarkupTag(line);
+
+    if (tag) {
+      flush();
+      currentType = tag;
+      buffer = [];
+      continue;
+    }
+
+    if (!currentType) {
+      // Text before the first marker is not thrown away. It becomes conservative paragraph text.
+      if (line.trim()) buffer.push(line);
+      continue;
+    }
+
+    buffer.push(line);
+  }
+
+  if (!currentType && buffer.join("\n").trim()) {
+    return splitIntoParagraphCandidates(buffer.join("\n")).map((paragraph) =>
+      createBlock("paragraph", compactInlineText(paragraph), "Parser: text před první značkou převeden jako odstavec."),
+    );
+  }
+
+  flush();
+
+  return blocks.filter((block) => block.content.trim() !== "" || block.type === "separator");
 }
 
 function isSeparator(lines: string[]) {
   if (lines.length !== 1) return false;
-  return /^(\*\s*){3,}$/.test(lines[0]) || /^[-—–]{3,}$/.test(lines[0]) || /^§{1,3}$/.test(lines[0]);
+  return /^(\*\s*){3,}$/.test(lines[0]) || /^[-—–]{3,}$/.test(lines[0]);
 }
 
-function detectImage(lines: string[]): Detection | null {
+function isBookPart(lines: string[]) {
+  if (lines.length > 2) return false;
   const text = compactInlineText(lines.join("\n"));
-  const match = text.match(/^\[(obrázek|obrazek|image|illustration|ilustrace)\s*:\s*(.+)\]$/i);
-  if (!match) return null;
 
-  return {
-    type: "image",
-    content: match[2].trim(),
-    fields: {
-      image_request: match[2].trim(),
-      caption: "",
-    },
-    note: note("střední", "rozpoznáno podle značky [obrázek: ...]"),
-  };
+  return (
+    /^(část|cast|part|book|kniha)\b/i.test(text) &&
+    text.length <= 90
+  );
 }
 
-function detectFrontBackMatter(lines: string[]): Detection | null {
-  if (lines.length > 8) return null;
+function isStrongPrefaceHeading(lines: string[]) {
+  if (lines.length !== 1) return null;
+  const text = lines[0].trim();
 
-  const text = compactInlineText(lines.join("\n"));
-  const normalized = text.toLowerCase();
-
-  const make = (type: WorkBlockType, reason: string, strip = true): Detection => ({
-    type,
-    content: strip ? stripBlockLabel(lines.join("\n")).trim() || text : text,
-    note: note("vysoká", reason),
-  });
-
-  if (/^(věnování|venovani|dedication)\b/i.test(text)) {
-    return make("dedication", "rozpoznáno podle nadpisu věnování");
-  }
-
-  if (/^(předmluva|predmluva|preface)\b/i.test(text)) {
-    return make("preface", "rozpoznáno podle nadpisu předmluva");
-  }
-
-  if (/^(doslov|afterword|epilog|epilogue)\b/i.test(text)) {
-    return make("afterword", "rozpoznáno podle nadpisu doslov / epilog");
-  }
-
-  if (/^(poděkování|podekovani|acknowledgement|acknowledgment|thanks)\b/i.test(text)) {
-    return make("acknowledgement", "rozpoznáno podle nadpisu poděkování");
-  }
-
-  if (["věnování", "venovani", "dedication"].includes(normalized)) {
-    return { type: "dedication", content: text, note: note("vysoká", "samostatný nadpis věnování") };
-  }
-
-  if (["předmluva", "predmluva", "preface"].includes(normalized)) {
-    return { type: "preface", content: text, note: note("vysoká", "samostatný nadpis předmluva") };
-  }
-
-  if (["doslov", "afterword", "epilog", "epilogue"].includes(normalized)) {
-    return { type: "afterword", content: text, note: note("vysoká", "samostatný nadpis doslov / epilog") };
-  }
-
-  if (["poděkování", "podekovani", "acknowledgement", "acknowledgment"].includes(normalized)) {
-    return { type: "acknowledgement", content: text, note: note("vysoká", "samostatný nadpis poděkování") };
-  }
+  if (/^(předmluva|predmluva|preface)$/i.test(text)) return "preface" as const;
+  if (/^(doslov|afterword)$/i.test(text)) return "afterword" as const;
+  if (/^(věnování|venovani|dedication)$/i.test(text)) return "dedication" as const;
+  if (/^(poděkování|podekovani|acknowledgement|acknowledgments)$/i.test(text)) return "acknowledgement" as const;
 
   return null;
 }
 
-function detectBookPart(lines: string[]): Detection | null {
-  if (lines.length > 2) return null;
-  const text = compactInlineText(lines.join("\n"));
-
-  if (/^(část|cast|part|book|kniha)\b/i.test(text) && text.length <= 100) {
-    return { type: "book_part", content: text, note: note("vysoká", "rozpoznáno jako část knihy") };
-  }
-
-  return null;
-}
-
-function detectChapter(lines: string[], index: number): Detection | null {
-  if (lines.length > 2) return null;
+function isChapterHeading(lines: string[], index: number) {
+  if (lines.length > 2) return false;
 
   const text = compactInlineText(lines.join("\n"));
-  if (!text || text.length > 140) return null;
+  if (!text || text.length > 120) return false;
 
-  if (/^(kapitola|chapter)\s+([0-9ivxlcdm]+|[a-zá-ž]+)\b/i.test(text)) {
-    return { type: "chapter", content: text, note: note("vysoká", "rozpoznáno podle nadpisu kapitoly") };
-  }
+  if (/^(kapitola|chapter)\s+([0-9ivxlcdm]+|[a-z]+)\b/i.test(text)) return true;
+  if (/^(prolog|epilog|úvod|uvod)$/i.test(text)) return true;
+  if (/^[IVXLCDM]{1,8}\.?$/i.test(text)) return true;
+  if (/^\d{1,3}\.?$/.test(text)) return true;
+  if (/^\d{1,3}[.)]\s+\S+/.test(text)) return true;
 
-  if (/^(prolog|prologue|úvod|uvod|introduction)$/i.test(text)) {
-    return { type: "chapter", content: text, note: note("vysoká", "rozpoznáno jako úvodní kapitola / prolog") };
-  }
-
-  if (/^[IVXLCDM]{1,8}\.?$/i.test(text) || /^\d{1,3}\.?$/.test(text)) {
-    return { type: "chapter", content: text, note: note("střední", "samostatné číslo / římská číslice může být kapitola") };
-  }
-
-  if (/^\d{1,3}[.)]\s+\S+/.test(text)) {
-    return { type: "chapter", content: text, note: note("střední", "číslovaný krátký nadpis") };
-  }
-
-  const looksLikeOpeningTitle =
+  const looksLikeTitle =
     index === 0 &&
     text.length <= 80 &&
     !/[.!?…]$/.test(text) &&
     text.split(/\s+/).length <= 10;
 
-  if (looksLikeOpeningTitle) {
-    return { type: "headline", content: text, note: note("nízká", "první krátký neukončený řádek může být titulek") };
-  }
-
-  return null;
+  return looksLikeTitle;
 }
 
-function detectHeadline(lines: string[]): Detection | null {
-  if (lines.length !== 1) return null;
-  const text = lines[0];
-  if (text.length < 3 || text.length > 90) return null;
-  if (/[.!?…]$/.test(text)) return null;
-  if (text.split(/\s+/).length > 12) return null;
-
-  if (/^(poznámka|poznamka|note|zpráva|zprava|report|oznámení|oznameni)\b/i.test(text)) {
-    return null;
-  }
-
-  const mostlyUppercase = text.length > 5 && text === text.toLocaleUpperCase("cs-CZ");
-  if (mostlyUppercase || /^[-–—]?[A-ZÁČĎÉĚÍŇÓŘŠŤÚŮÝŽ]/.test(text)) {
-    return { type: "headline", content: text, note: note("nízká", "krátký samostatný řádek bez tečky může být titulek") };
-  }
-
-  return null;
-}
-
-function detectPlaceLine(lines: string[]): Detection | null {
-  if (lines.length !== 1) return null;
+function isPlaceLine(lines: string[]) {
+  if (lines.length !== 1) return false;
   const text = lines[0];
 
-  const hasYearOrDate = /\b(1[5-9]\d{2}|20\d{2})\b/.test(text) || /\b\d{1,2}\.\s*\d{1,2}\.\s*\d{2,4}\b/.test(text);
-  const looksLikePlace = /^[A-ZÁČĎÉĚÍŇÓŘŠŤÚŮÝŽ][^.!?]{1,70},\s*[^!?]{2,60}\.?$/.test(text);
-
-  if (text.length <= 110 && (hasYearOrDate || looksLikePlace) && !/[!?]$/.test(text)) {
-    return { type: "place_line", content: text, note: note("střední", "krátký řádek vypadá jako místo / datace") };
-  }
-
-  return null;
+  return (
+    text.length <= 90 &&
+    (/\b(1[5-9]\d{2}|20\d{2})\b/.test(text) || /,\s*[A-ZÁČĎÉĚÍŇÓŘŠŤÚŮÝŽa-záčďéěíňóřšťúůýž]+\.?$/.test(text)) &&
+    !/[!?]$/.test(text)
+  );
 }
 
-function detectFootnote(lines: string[]): Detection | null {
+function isQuote(lines: string[]) {
   const text = compactInlineText(lines.join("\n"));
-  if (/^(\[\d+\]|\d+\)|\d+\.|\*)\s+\S+/.test(text) && text.length <= 900) {
-    return { type: "footnote", content: text, note: note("střední", "rozpoznáno podle značení poznámky pod čarou") };
-  }
+  if (text.length > 500) return false;
 
-  return null;
+  return (
+    /^([„“\"'‚‘’»«]|—\s*)/.test(text) &&
+    /([“\"'‘’»«]|\.)$/.test(text)
+  );
 }
 
-function detectNote(lines: string[]): Detection | null {
-  const text = compactInlineText(lines.join("\n"));
-  if (/^(poznámka|poznamka|note|pozn\.?)\s*[:—-]\s+\S+/i.test(text)) {
-    return { type: "note", content: text.replace(/^(poznámka|poznamka|note|pozn\.?)\s*[:—-]\s*/i, "").trim(), note: note("vysoká", "rozpoznáno podle značky poznámka") };
-  }
-
-  if (/^\((poznámka|poznamka|note)\s*[:—-].+\)$/i.test(text)) {
-    return { type: "note", content: text.replace(/^\(|\)$/g, ""), note: note("střední", "text vypadá jako vložená poznámka") };
-  }
-
-  return null;
-}
-
-function detectQuote(lines: string[]): Detection | null {
-  const text = compactInlineText(lines.join("\n"));
-  if (text.length > 700) return null;
-
-  if (/^([„“"'‚‘’»«]|—\s*)/.test(text) && /([“"'‘’»«]|[.!?…])$/.test(text)) {
-    return { type: "quote", content: text, note: note("střední", "text začíná jako citace / motto") };
-  }
-
-  if (lines.length > 1 && lines.every((line) => /^>\s*/.test(line))) {
-    return { type: "quote", content: lines.map((line) => line.replace(/^>\s*/, "")).join("\n"), note: note("vysoká", "rozpoznáno podle markdown značky citace") };
-  }
-
-  return null;
-}
-
-function detectPoem(lines: string[]): Detection | null {
-  if (lines.length < 3 || lines.length > 60) return null;
+function isLikelyPoem(lines: string[]) {
+  if (lines.length < 3) return false;
+  if (lines.length > 40) return false;
 
   const averageLength = lines.reduce((sum, line) => sum + line.length, 0) / lines.length;
-  const shortLines = lines.filter((line) => line.length <= 72).length;
+  const shortLines = lines.filter((line) => line.length <= 70).length;
   const terminalPunctuation = lines.filter((line) => /[.!?…]$/.test(line)).length;
-  const commaEnding = lines.filter((line) => /[,;:]$/.test(line)).length;
 
-  const likelyPoem = averageLength <= 60 && shortLines / lines.length >= 0.82 && terminalPunctuation / lines.length < 0.78;
-  const stanzaLike = lines.length >= 4 && averageLength <= 52 && commaEnding >= 1;
-
-  if (likelyPoem || stanzaLike) {
-    return { type: "poem", content: lines.join("\n"), note: note("střední", "krátké víceřádkové členění vypadá jako veršovaný text") };
-  }
-
-  return null;
-}
-
-function detectLetter(lines: string[]): Detection | null {
-  if (lines.length < 2 || lines.length > 80) return null;
-
-  const first = lines[0];
-  const second = lines[1] ?? "";
-  const last = lines[lines.length - 1] ?? "";
-  const startsWithPlace = Boolean(detectPlaceLine([first]));
-  const hasGreeting = /^(mil[ýáe]|drah[ýáe]|vážen[ýáe]|ctěn[ýáe]|dear|my dear)\b/i.test(startsWithPlace ? second : first);
-  const hasSignature = /^(s úctou|s pozdravem|tvůj|tvoje|váš|vaše|yours|sincerely|faithfully)\b/i.test(last) || /^[A-ZÁČĎÉĚÍŇÓŘŠŤÚŮÝŽ][a-zá-ž]+\.?$/.test(last);
-
-  if (hasGreeting || (startsWithPlace && lines.length >= 4 && hasSignature)) {
-    const placeYear = startsWithPlace ? first : "";
-    const bodyLines = startsWithPlace ? lines.slice(1) : lines;
-    const dateSignature = hasSignature ? last : "";
-    const body = hasSignature ? bodyLines.slice(0, -1).join("\n") : bodyLines.join("\n");
-
-    return {
-      type: "letter",
-      content: body,
-      fields: {
-        place_year: placeYear,
-        body,
-        date_signature: dateSignature,
-      },
-      note: note("střední", "blok vypadá jako dopis podle oslovení, datace nebo podpisu"),
-    };
-  }
-
-  return null;
-}
-
-function detectNewspaperArticle(lines: string[]): Detection | null {
-  const text = lines.join("\n");
-  const first = lines[0] ?? "";
-  const second = lines[1] ?? "";
-
-  if (/^(noviny|newspaper|článek|clanek|zpráva|zprava|tisková zpráva|tiskova zprava)\s*[:—-]/i.test(first)) {
-    return { type: "newspaper_article", content: text.replace(/^(noviny|newspaper|článek|clanek|zpráva|zprava|tisková zpráva|tiskova zprava)\s*[:—-]\s*/i, ""), note: note("vysoká", "rozpoznáno podle označení novinového článku") };
-  }
-
-  const hasDateline = /^[A-ZÁČĎÉĚÍŇÓŘŠŤÚŮÝŽ][^.!?]{2,50},\s*\d{1,2}\.?\s*[a-zá-ž]+\s*(1[5-9]\d{2}|20\d{2})/i.test(second);
-  const headlineLike = first.length <= 100 && first.length >= 5 && !/[.!?…]$/.test(first);
-
-  if (lines.length >= 3 && headlineLike && hasDateline) {
-    return { type: "newspaper_article", content: text, note: note("střední", "nadpis a datace připomínají novinový článek") };
-  }
-
-  return null;
-}
-
-function detectParagraph(candidate: string): Detection {
-  return { type: "paragraph", content: compactInlineText(candidate) };
+  return averageLength <= 58 && shortLines / lines.length >= 0.8 && terminalPunctuation / lines.length < 0.75;
 }
 
 function blockFromCandidate(candidate: string, index: number): WorkBlock {
@@ -392,53 +342,48 @@ function blockFromCandidate(candidate: string, index: number): WorkBlock {
     return createBlock("paragraph", "");
   }
 
-  const detectors: Array<() => Detection | null> = [
-    () => isSeparator(lines) ? { type: "separator", content: "* * *", note: note("vysoká", "rozpoznaný textový předěl") } : null,
-    () => detectImage(lines),
-    () => detectFrontBackMatter(lines),
-    () => detectBookPart(lines),
-    () => detectChapter(lines, index),
-    () => detectPlaceLine(lines),
-    () => detectFootnote(lines),
-    () => detectNote(lines),
-    () => detectNewspaperArticle(lines),
-    () => detectLetter(lines),
-    () => detectPoem(lines),
-    () => detectQuote(lines),
-    () => detectHeadline(lines),
-  ];
-
-  for (const detector of detectors) {
-    const detected = detector();
-    if (detected) {
-      return createBlock(detected.type, detected.content, detected.note, detected.fields);
-    }
+  if (isSeparator(lines)) {
+    return createBlock("separator", "* * *", "Parser: rozpoznaný předěl.");
   }
 
-  const paragraph = detectParagraph(candidate);
-  return createBlock(paragraph.type, paragraph.content, paragraph.note, paragraph.fields);
+  const strongIntroBlock = isStrongPrefaceHeading(lines);
+  if (strongIntroBlock) {
+    return createBlock(strongIntroBlock, compactInlineText(candidate), "Parser: rozpoznaný jasný úvodní/závěrečný blok.");
+  }
+
+  if (isBookPart(lines)) {
+    return createBlock("book_part", compactInlineText(candidate), "Parser: rozpoznaná část knihy.");
+  }
+
+  if (isChapterHeading(lines, index)) {
+    return createBlock("chapter", compactInlineText(candidate), "Parser: rozpoznaný nadpis / kapitola.");
+  }
+
+  if (isPlaceLine(lines)) {
+    return createBlock("place_line", compactInlineText(candidate), "Parser: možná datace / místo.");
+  }
+
+  if (isLikelyPoem(lines)) {
+    return createBlock("poem", lines.join("\n"), "Parser: pravděpodobně veršovaný blok. Zkontrolovat ručně.");
+  }
+
+  if (isQuote(lines)) {
+    return createBlock("quote", compactInlineText(candidate), "Parser: pravděpodobná citace / motto.");
+  }
+
+  return createBlock("paragraph", compactInlineText(candidate));
 }
 
-function calculateStats(blocks: WorkBlock[]): ParsedWorkBlocksResult["stats"] {
+function calculateStats(blocks: WorkBlock[], usedMarkup: boolean): ParsedWorkBlocksResult["stats"] {
   return {
     totalBlocks: blocks.length,
-    bookParts: blocks.filter((block) => block.type === "book_part").length,
-    chapters: blocks.filter((block) => block.type === "chapter").length,
-    headlines: blocks.filter((block) => block.type === "headline").length,
+    chapters: blocks.filter((block) => block.type === "chapter" || block.type === "book_part").length,
     paragraphs: blocks.filter((block) => block.type === "paragraph").length,
-    quotes: blocks.filter((block) => block.type === "quote").length,
     poems: blocks.filter((block) => block.type === "poem").length,
-    letters: blocks.filter((block) => block.type === "letter").length,
-    newspaperArticles: blocks.filter((block) => block.type === "newspaper_article").length,
-    placeLines: blocks.filter((block) => block.type === "place_line").length,
     separators: blocks.filter((block) => block.type === "separator").length,
-    notes: blocks.filter((block) => block.type === "note").length,
-    footnotes: blocks.filter((block) => block.type === "footnote").length,
-    dedications: blocks.filter((block) => block.type === "dedication").length,
-    prefaces: blocks.filter((block) => block.type === "preface").length,
-    afterwords: blocks.filter((block) => block.type === "afterword").length,
-    acknowledgements: blocks.filter((block) => block.type === "acknowledgement").length,
-    images: blocks.filter((block) => block.type === "image").length,
+    quotes: blocks.filter((block) => block.type === "quote").length,
+    placeLines: blocks.filter((block) => block.type === "place_line").length,
+    markedBlocks: usedMarkup ? blocks.length : 0,
   };
 }
 
@@ -448,17 +393,21 @@ export function parseRawTextToWorkBlocks(rawText: string): ParsedWorkBlocksResul
   if (!text) {
     return {
       blocks: [],
-      stats: calculateStats([]),
+      usedMarkup: false,
+      stats: calculateStats([], false),
     };
   }
 
-  const candidates = splitIntoParagraphCandidates(text);
-  const blocks = candidates
-    .map((candidate, index) => blockFromCandidate(candidate, index))
-    .filter((block) => block.content.trim() !== "" || block.type === "separator" || block.type === "image");
+  const usedMarkup = hasRecognizedMarkup(text);
+  const blocks = usedMarkup
+    ? parseMarkedTextToWorkBlocks(text)
+    : splitIntoParagraphCandidates(text)
+        .map((candidate, index) => blockFromCandidate(candidate, index))
+        .filter((block) => block.content.trim() !== "");
 
   return {
     blocks,
-    stats: calculateStats(blocks),
+    usedMarkup,
+    stats: calculateStats(blocks, usedMarkup),
   };
 }
