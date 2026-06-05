@@ -34,3 +34,16 @@ You can check out [the Next.js GitHub repository](https://github.com/vercel/next
 The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
 
 Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+
+## ARTales mail / site URL
+
+Production canonical URL: `https://artales.net`.
+
+Local and production app links are built through `lib/appUrl.ts`; set `NEXT_PUBLIC_SITE_URL` in Vercel and local `.env.local`.
+
+Mail setup and Supabase template copy live in:
+
+- `docs/MAIL_SETUP.md`
+- `docs/SUPABASE_EMAIL_TEMPLATES.md`
+- `docs/RESEND_ROADMAP.md`
+
