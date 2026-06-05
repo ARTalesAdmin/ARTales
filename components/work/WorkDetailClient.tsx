@@ -4,6 +4,12 @@ import WorkCoverImage from "@/components/work/WorkCoverImage";
 import PublicHeader from "@/components/public/PublicHeader";
 import ReaderWorkActions from "@/components/reader/ReaderWorkActions";
 import { getPublicDictionary } from "@/lib/i18n/public";
+import {
+  formatProductPrice,
+  getPrimaryProductPrice,
+  getProductAccessNote,
+  type WorkProductOffer,
+} from "@/lib/products";
 
 type WorkDetailClientProps = {
   work: WorkDetailItem;
@@ -16,24 +22,64 @@ type WorkDetailClientProps = {
   isSignedIn: boolean;
   isSaved: boolean;
   welcomeUnlockAvailable: boolean;
+  products: WorkProductOffer[];
 };
 
-function ComingSoonBadge() {
-  const t = getPublicDictionary().common;
+
+function ProductOptions({ products, canReadFull }: { products: WorkProductOffer[]; canReadFull: boolean }) {
+  if (products.length === 0) {
+    return (
+      <section className="artales-product-panel">
+        <p className="artales-product-panel__eyebrow">Access options</p>
+        <h2>Products are being prepared</h2>
+        <p>
+          This title does not have a public product catalogue yet. Online access can still be granted by welcome unlock or admin tools.
+        </p>
+      </section>
+    );
+  }
 
   return (
-    <span
-      style={{
-        marginLeft: "8px",
-        fontSize: "11px",
-        fontWeight: 800,
-        letterSpacing: "0.06em",
-        textTransform: "uppercase",
-        color: "rgba(13, 21, 40, 0.58)",
-      }}
-    >
-      {t.comingSoon}
-    </span>
+    <section className="artales-product-panel">
+      <div className="artales-product-panel__header">
+        <div>
+          <p className="artales-product-panel__eyebrow">Access options</p>
+          <h2>Choose how to read</h2>
+        </div>
+        {canReadFull ? <span className="artales-product-badge">In your library</span> : null}
+      </div>
+
+      <div className="artales-product-grid">
+        {products.map((product) => {
+          const price = getPrimaryProductPrice(product);
+          const comingSoon = !product.checkoutEnabled || product.availability !== "available";
+
+          return (
+            <article key={product.id} className="artales-product-card">
+              <div className="artales-product-card__topline">
+                <h3>{product.title}</h3>
+                <span>{formatProductPrice(price)}</span>
+              </div>
+              <p>{product.description}</p>
+              <p className="artales-product-card__note">{getProductAccessNote(product)}</p>
+              {product.type === "online_unlock" && canReadFull ? (
+                <Link className="artales-button-secondary" href="#reader-actions">
+                  Read online
+                </Link>
+              ) : comingSoon ? (
+                <Link className="artales-button-muted" href="/checkout/coming-soon" aria-disabled="true">
+                  Checkout coming soon
+                </Link>
+              ) : (
+                <Link className="artales-button" href="/checkout/coming-soon">
+                  Continue
+                </Link>
+              )}
+            </article>
+          );
+        })}
+      </div>
+    </section>
   );
 }
 
@@ -65,6 +111,7 @@ export default function WorkDetailClient({
   isSignedIn,
   isSaved,
   welcomeUnlockAvailable,
+  products,
 }: WorkDetailClientProps) {
   const { common, public: t } = getPublicDictionary();
   const authorName = work.author?.name ?? t.unknownAuthor;
@@ -189,7 +236,8 @@ export default function WorkDetailClient({
               </p>
             ) : null}
 
-            <ReaderWorkActions
+            <div id="reader-actions">
+              <ReaderWorkActions
               slug={work.slug}
               workId={workId}
               isSignedIn={isSignedIn}
@@ -201,25 +249,9 @@ export default function WorkDetailClient({
               saveForLaterLabel={t.saveForLater}
               canReadFull={canReadFull}
             />
-
-            <div
-              style={{
-                display: "flex",
-                gap: "10px",
-                flexWrap: "wrap",
-                marginTop: "12px",
-              }}
-            >
-              <span className="artales-button-muted">
-                {t.buyPdf} <ComingSoonBadge />
-              </span>
-              <span className="artales-button-muted">
-                {t.buyEpub} <ComingSoonBadge />
-              </span>
-              <span className="artales-button-muted">
-                {t.audiobook} <ComingSoonBadge />
-              </span>
             </div>
+
+            <ProductOptions products={products} canReadFull={canReadFull} />
           </div>
         </section>
 

@@ -5,6 +5,7 @@ import { getLanguageLabel } from "@/lib/dictionaries/language";
 import { getStatusLabel } from "@/lib/dictionaries/status";
 import { getCurrentProfile } from "@/lib/auth";
 import { canOpenFullReader, getWelcomeUnlockStatus, isWorkSavedForUser } from "@/lib/entitlements";
+import { getWorkProductOffers } from "@/lib/products";
 
 type PageProps = {
   params: Promise<{ slug: string }>;
@@ -66,7 +67,10 @@ export default async function WorkDetail({ params }: PageProps) {
   const profile = await getCurrentProfile();
   const canOpenFull = await canOpenFullReader(profile, work.id);
   const welcomeUnlock = profile && profile.role === "reader" ? await getWelcomeUnlockStatus(profile.id) : { available: false, used: false };
-  const isSaved = profile ? await isWorkSavedForUser(profile.id, work.id) : false;
+  const [isSaved, products] = await Promise.all([
+    profile ? isWorkSavedForUser(profile.id, work.id) : Promise.resolve(false),
+    getWorkProductOffers(work.id),
+  ]);
 
   return (
     <WorkDetailClient
@@ -80,6 +84,7 @@ export default async function WorkDetail({ params }: PageProps) {
       isSignedIn={Boolean(profile)}
       isSaved={isSaved}
       welcomeUnlockAvailable={!canOpenFull && welcomeUnlock.available}
+      products={products}
     />
   );
 }
