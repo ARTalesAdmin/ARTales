@@ -2,7 +2,7 @@
 
 import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
-import { normalizeLocale, type SupportedLocale } from "@/lib/i18n/config";
+import { normalizeLocale } from "@/lib/i18n/config";
 
 export async function setInterfaceLocale(formData: FormData): Promise<void> {
   const locale = normalizeLocale(String(formData.get("locale") ?? "")) ?? "en";
@@ -33,8 +33,4 @@ export async function setInterfaceLocale(formData: FormData): Promise<void> {
   }
 
   redirect("/");
-}
-
-export function getLocaleLabel(locale: SupportedLocale) {
-  return locale === "cs" ? "Čeština" : "English";
 }
