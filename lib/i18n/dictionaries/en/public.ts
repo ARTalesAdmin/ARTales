@@ -7,6 +7,8 @@ export const enPublic = {
   collections: "Collections",
   authors: "Authors",
   memberZone: "Member zone",
+  myAccount: "My account",
+  signIn: "Sign in",
   noPublishedWorks: "No published works are available yet.",
   openDetail: "Open detail",
   backToGallery: "Back to Gallery",

@@ -21,12 +21,54 @@ export type FeedbackItem = {
   body: string;
   status: string;
   createdAt: string;
+  acknowledgedAt?: string | null;
+  acknowledgedByUserId?: string | null;
 };
 
 export type CommunityInboxItem = FeedbackItem & {
   userId: string | null;
   userEmail: string | null;
   userHandle: string | null;
+};
+
+
+type AuthorRelation = {
+  id?: string | null;
+  name?: string | null;
+  slug?: string | null;
+};
+
+type WorkRelation = {
+  id?: string | null;
+  title?: string | null;
+  slug?: string | null;
+};
+
+type ProfileRelation = {
+  id?: string | null;
+  email?: string | null;
+  handle?: string | null;
+};
+
+type AuthorFollowRow = {
+  id?: string | null;
+  notification_level?: string | null;
+  created_at?: string | null;
+  authors?: AuthorRelation | AuthorRelation[] | null;
+};
+
+type FeedbackRow = {
+  id?: string | null;
+  user_id?: string | null;
+  work_id?: string | null;
+  feedback_type?: string | null;
+  body?: string | null;
+  status?: string | null;
+  created_at?: string | null;
+  acknowledged_at?: string | null;
+  acknowledged_by_user_id?: string | null;
+  works?: WorkRelation | WorkRelation[] | null;
+  profiles?: ProfileRelation | ProfileRelation[] | null;
 };
 
 function normalizeRelation<T>(value: T | T[] | null | undefined): T | null {
@@ -94,7 +136,7 @@ export async function getReaderCommunitySummary(userId: string) {
   if (follows.error) console.error("Community follows load failed:", follows.error);
   if (feedback.error) console.error("Community feedback load failed:", feedback.error);
 
-  const followedAuthors: FollowedAuthorItem[] = (follows.data ?? []).map((row: any) => {
+  const followedAuthors: FollowedAuthorItem[] = ((follows.data ?? []) as AuthorFollowRow[]).map((row) => {
     const author = normalizeRelation(row.authors);
     return {
       id: String(row.id),
@@ -106,7 +148,7 @@ export async function getReaderCommunitySummary(userId: string) {
     };
   }).filter((item: FollowedAuthorItem) => item.slug);
 
-  const feedbackItems: FeedbackItem[] = (feedback.data ?? []).map((row: any) => {
+  const feedbackItems: FeedbackItem[] = ((feedback.data ?? []) as FeedbackRow[]).map((row) => {
     const work = normalizeRelation(row.works);
     return {
       id: String(row.id),
@@ -141,6 +183,8 @@ export async function getCommunityInbox(limit = 50): Promise<CommunityInboxItem[
       body,
       status,
       created_at,
+      acknowledged_at,
+      acknowledged_by_user_id,
       works:work_id (
         id,
         title,
@@ -160,7 +204,7 @@ export async function getCommunityInbox(limit = 50): Promise<CommunityInboxItem[
     return [];
   }
 
-  return (data ?? []).map((row: any) => {
+  return ((data ?? []) as FeedbackRow[]).map((row) => {
     const work = normalizeRelation(row.works);
     const profile = normalizeRelation(row.profiles);
     return {
@@ -175,6 +219,8 @@ export async function getCommunityInbox(limit = 50): Promise<CommunityInboxItem[
       body: String(row.body ?? ""),
       status: String(row.status ?? "new"),
       createdAt: String(row.created_at),
+      acknowledgedAt: row.acknowledged_at == null ? null : String(row.acknowledged_at),
+      acknowledgedByUserId: row.acknowledged_by_user_id == null ? null : String(row.acknowledged_by_user_id),
     };
   });
 }
@@ -192,6 +238,6 @@ export function getFeedbackTypeLabel(type: string) {
     case "comment":
       return "Komentář";
     default:
-      return "Obecná zpětná vazba";
+      return "Obecný podnět";
   }
 }

@@ -1,14 +1,16 @@
 import Link from "next/link";
 import { requireCompletedAccountProfile } from "@/lib/account";
 import { getReaderLibrarySummary, getReaderUnlockedWorks } from "@/lib/entitlements";
+import { getReaderCommunitySummary } from "@/lib/community";
 
 export const dynamic = "force-dynamic";
 
 export default async function AccountLibraryPage() {
   const profile = await requireCompletedAccountProfile("/account/library");
-  const [summary, unlockedWorks] = await Promise.all([
+  const [summary, unlockedWorks, communitySummary] = await Promise.all([
     getReaderLibrarySummary(profile.id),
     getReaderUnlockedWorks(profile.id),
+    getReaderCommunitySummary(profile.id),
   ]);
 
   return (
@@ -87,6 +89,34 @@ export default async function AccountLibraryPage() {
           <p className="artales-account-muted">PDF: {summary.pdfDownloads} · EPUB: {summary.epubDownloads}</p>
         </article>
       </div>
+
+
+
+      <section className="artales-account-panel artales-community-section">
+        <div className="artales-admin-dashboard__section-header">
+          <div>
+            <p className="artales-account-card__label">Followed authors</p>
+            <h2>Your author watchlist</h2>
+          </div>
+          <Link className="artales-button-secondary" href="/account/community">Manage follows</Link>
+        </div>
+        {communitySummary.followedAuthors.length === 0 ? (
+          <p>Follow authors from their author pages. They will appear here and later feed new-release notifications.</p>
+        ) : (
+          <div className="artales-community-follow-preview">
+            {communitySummary.followedAuthors.slice(0, 4).map((author) => (
+              <Link key={author.id} className="artales-community-follow-pill" href={`/author/${author.slug}`}>
+                {author.name}
+              </Link>
+            ))}
+            {communitySummary.followedAuthors.length > 4 ? (
+              <Link className="artales-community-follow-pill" href="/account/community">
+                +{communitySummary.followedAuthors.length - 4} more
+              </Link>
+            ) : null}
+          </div>
+        )}
+      </section>
 
       <section className="artales-account-panel">
         <h2>Unlocked online titles</h2>

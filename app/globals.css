@@ -1578,3 +1578,42 @@ body {
     flex-direction: column;
   }
 }
+
+
+/* v0.9.7d – follow management and feedback triage */
+.artales-community-actions {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.65rem;
+  justify-content: flex-end;
+}
+
+.artales-community-actions form {
+  margin: 0;
+}
+
+.artales-community-follow-preview {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.65rem;
+  margin-top: 0.8rem;
+}
+
+.artales-community-follow-pill {
+  background: rgba(217, 183, 110, 0.16);
+  border: 1px solid rgba(13, 21, 40, 0.14);
+  border-radius: 999px;
+  color: var(--artales-ink);
+  font-weight: 850;
+  padding: 0.55rem 0.8rem;
+  text-decoration: none;
+}
+
+.artales-community-follow-pill:hover {
+  background: rgba(217, 183, 110, 0.28);
+}
+
+.artales-community-feedback-row--new {
+  background: rgba(217, 183, 110, 0.08);
+}

@@ -4,4 +4,9 @@ export const csPublic = {
   galleryTitle: "Galerie ARTales",
   galleryIntro:
     "Procházej původní díla, překlady a kurátorsky zpracované edice. ARTales vzniká jako literární publikační a čtecí platforma.",
+  collections: "Kolekce",
+  authors: "Autoři",
+  memberZone: "Interní zóna",
+  myAccount: "Můj účet",
+  signIn: "Přihlášení",
 }

@@ -24,11 +24,12 @@ export default async function AccountSettingsPage({ searchParams }: PageProps) {
 
       <form action={updateReaderPreferences} className="artales-account-form">
         <label>
-          <span>Preferred language</span>
+          <span>Interface language</span>
           <select name="preferred_locale" defaultValue={profile.preferred_locale ?? "en"}>
             <option value="en">English</option>
-            <option value="cs">Czech</option>
+            <option value="cs">Čeština</option>
           </select>
+          <small>Used by localized public/account surfaces. Localization is gradual, so some pages may still keep their current language.</small>
         </label>
 
         <label>

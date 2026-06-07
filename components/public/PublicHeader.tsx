@@ -66,7 +66,7 @@ export default async function PublicHeader({ active }: PublicHeaderProps) {
         {hasInternalAccess ? (
           <>
             <Link className="artales-public-link" href="/account">
-              My account
+              {t.myAccount}
             </Link>
             <Link
               className="artales-public-link artales-public-link--primary"
@@ -80,14 +80,14 @@ export default async function PublicHeader({ active }: PublicHeaderProps) {
             className="artales-public-link artales-public-link--primary"
             href="/account"
           >
-            My account
+            {t.myAccount}
           </Link>
         ) : (
           <Link
             className="artales-public-link artales-public-link--primary"
             href="/login"
           >
-            Sign in
+            {t.signIn}
           </Link>
         )}
       </nav>
