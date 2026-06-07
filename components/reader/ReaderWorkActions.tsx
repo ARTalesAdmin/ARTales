@@ -64,15 +64,19 @@ export default function ReaderWorkActions({
   }
 
   const fullReaderHref = canReadFull ? `/reader/${slug}?mode=full` : "/account/membership";
+  const primaryLabel = canReadFull ? readOnlineLabel : readPreviewLabel;
+  const primaryHref = canReadFull ? fullReaderHref : `/reader/${slug}?mode=preview`;
 
   return (
     <div className="artales-reader-work-actions">
-      <Link className="artales-button" href={`/reader/${slug}?mode=preview`}>
-        {readPreviewLabel}
+      <Link className="artales-button" href={primaryHref}>
+        {primaryLabel}
       </Link>
-      <Link className="artales-button-secondary" href={fullReaderHref}>
-        {readOnlineLabel}
-      </Link>
+      {canReadFull ? (
+        <Link className="artales-button-secondary" href={`/reader/${slug}?mode=preview`}>
+          {readPreviewLabel}
+        </Link>
+      ) : null}
       {welcomeUnlockAvailable ? (
         <Link className="artales-button-secondary artales-button-secondary--accent" href={`/account/unlock/${slug}`}>
           Use welcome unlock

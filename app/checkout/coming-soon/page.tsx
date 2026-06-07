@@ -9,16 +9,27 @@ export default function CheckoutComingSoonPage() {
       <PublicHeader active="gallery" />
       <main className="artales-checkout-coming-soon">
         <p className="artales-product-panel__eyebrow">ARTales checkout</p>
-        <h1>Payments are coming soon</h1>
+        <h1>Checkout is not enabled yet</h1>
         <p>
-          Product and access options are now being prepared in ARTales, but real checkout is not enabled yet. You can still use welcome unlocks or admin-granted access while the payment layer is being built.
+          This product and access model is already prepared in ARTales, but real payments are still disabled while the launch setup is being finalized.
         </p>
+        <p>
+          You can still read previews, use your welcome unlock, access titles already in your library, or return to the membership overview.
+        </p>
+        <div className="artales-checkout-coming-soon__status">
+          <span>Products prepared</span>
+          <span>Payments pending</span>
+          <span>Reader entitlements active</span>
+        </div>
         <div className="artales-account-actions">
           <Link className="artales-button" href="/gallery">
             Back to gallery
           </Link>
+          <Link className="artales-button-secondary" href="/account/library">
+            My library
+          </Link>
           <Link className="artales-button-secondary" href="/account/membership">
-            View membership options
+            Membership options
           </Link>
         </div>
       </main>

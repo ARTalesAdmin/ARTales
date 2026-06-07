@@ -23,7 +23,101 @@ type WorkDetailClientProps = {
   isSaved: boolean;
   welcomeUnlockAvailable: boolean;
   products: WorkProductOffer[];
+  viewerRole: string | null;
 };
+
+
+type AccessStatusCardProps = {
+  isSignedIn: boolean;
+  canReadFull: boolean;
+  welcomeUnlockAvailable: boolean;
+  viewerRole: string | null;
+  slug: string;
+};
+
+function isInternalRole(role: string | null) {
+  return role === "admin" || role === "editor" || role === "member";
+}
+
+function AccessStatusCard({
+  isSignedIn,
+  canReadFull,
+  welcomeUnlockAvailable,
+  viewerRole,
+  slug,
+}: AccessStatusCardProps) {
+  const internalAccess = isInternalRole(viewerRole);
+
+  if (internalAccess) {
+    return (
+      <section className="artales-access-card artales-access-card--internal">
+        <p className="artales-access-card__eyebrow">Internal access</p>
+        <h2>Full reader access is enabled for your workspace role.</h2>
+        <p>
+          Product options below are shown as the public reader catalogue. Your member/editor/admin access is handled separately from purchases.
+        </p>
+        <Link className="artales-button-secondary" href={`/reader/${slug}?mode=full`}>
+          Open full reader
+        </Link>
+      </section>
+    );
+  }
+
+  if (canReadFull) {
+    return (
+      <section className="artales-access-card artales-access-card--owned">
+        <p className="artales-access-card__eyebrow">In your library</p>
+        <h2>You have online access to this title.</h2>
+        <p>
+          This work is available for full online reading from your ARTales library.
+        </p>
+        <Link className="artales-button" href={`/reader/${slug}?mode=full`}>
+          Read now
+        </Link>
+      </section>
+    );
+  }
+
+  if (!isSignedIn) {
+    return (
+      <section className="artales-access-card">
+        <p className="artales-access-card__eyebrow">Preview access</p>
+        <h2>You are reading the public preview.</h2>
+        <p>
+          Create a free reader account to save titles, use your welcome unlock and build your ARTales library.
+        </p>
+        <div className="artales-access-card__actions">
+          <Link className="artales-button" href="/register">
+            Create free account
+          </Link>
+          <Link className="artales-button-secondary" href="/login">
+            Sign in
+          </Link>
+        </div>
+      </section>
+    );
+  }
+
+  return (
+    <section className="artales-access-card">
+      <p className="artales-access-card__eyebrow">Preview access</p>
+      <h2>This title is not in your library yet.</h2>
+      <p>
+        You can read the preview now. Full online access can be added through your one-time welcome unlock or future purchase options.
+      </p>
+      <div className="artales-access-card__actions">
+        {welcomeUnlockAvailable ? (
+          <Link className="artales-button" href={`/account/unlock/${slug}`}>
+            Use welcome unlock
+          </Link>
+        ) : null}
+        <Link className="artales-button-secondary" href="/account/membership">
+          View membership options
+        </Link>
+      </div>
+    </section>
+  );
+}
 
 
 function ProductOptions({ products, canReadFull }: { products: WorkProductOffer[]; canReadFull: boolean }) {
@@ -31,7 +125,7 @@ function ProductOptions({ products, canReadFull }: { products: WorkProductOffer[
     return (
       <section className="artales-product-panel">
         <p className="artales-product-panel__eyebrow">Access options</p>
-        <h2>Products are being prepared</h2>
+        <h2>Access products are being prepared</h2>
         <p>
           This title does not have a public product catalogue yet. Online access can still be granted by welcome unlock or admin tools.
         </p>
@@ -53,18 +147,25 @@ function ProductOptions({ products, canReadFull }: { products: WorkProductOffer[
         {products.map((product) => {
           const price = getPrimaryProductPrice(product);
           const comingSoon = !product.checkoutEnabled || product.availability !== "available";
+          const isOnlineOwned = product.type === "online_unlock" && canReadFull;
+          const statusLabel = isOnlineOwned
+            ? "Already unlocked"
+            : comingSoon
+              ? "Coming soon"
+              : "Available";
 
           return (
-            <article key={product.id} className="artales-product-card">
+            <article key={product.id} className={isOnlineOwned ? "artales-product-card artales-product-card--owned" : "artales-product-card"}>
               <div className="artales-product-card__topline">
                 <h3>{product.title}</h3>
                 <span>{formatProductPrice(price)}</span>
               </div>
               <p>{product.description}</p>
+              <p className="artales-product-card__status">{statusLabel}</p>
               <p className="artales-product-card__note">{getProductAccessNote(product)}</p>
-              {product.type === "online_unlock" && canReadFull ? (
+              {isOnlineOwned ? (
                 <Link className="artales-button-secondary" href="#reader-actions">
-                  Read online
+                  Read now
                 </Link>
               ) : comingSoon ? (
                 <Link className="artales-button-muted" href="/checkout/coming-soon" aria-disabled="true">
@@ -112,6 +213,7 @@ export default function WorkDetailClient({
   isSaved,
   welcomeUnlockAvailable,
   products,
+  viewerRole,
 }: WorkDetailClientProps) {
   const { common, public: t } = getPublicDictionary();
   const authorName = work.author?.name ?? t.unknownAuthor;
@@ -235,6 +337,14 @@ export default function WorkDetailClient({
                 </Link>
               </p>
             ) : null}
+
+            <AccessStatusCard
+              isSignedIn={isSignedIn}
+              canReadFull={canReadFull}
+              welcomeUnlockAvailable={welcomeUnlockAvailable}
+              viewerRole={viewerRole}
+              slug={work.slug}
+            />
 
             <div id="reader-actions">
               <ReaderWorkActions

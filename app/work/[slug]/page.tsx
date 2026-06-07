@@ -85,6 +85,7 @@ export default async function WorkDetail({ params }: PageProps) {
       isSaved={isSaved}
       welcomeUnlockAvailable={!canOpenFull && welcomeUnlock.available}
       products={products}
+      viewerRole={profile?.role ?? null}
     />
   );
 }
