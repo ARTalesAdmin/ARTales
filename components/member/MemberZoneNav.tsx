@@ -21,6 +21,7 @@ export default function MemberZoneNav() {
     { href: "/member/collections", label: member.collections },
     { href: "/member/submissions", label: "Příspěvky" },
     { href: "/member/entitlements", label: "Nároky čtenářů" },
+    { href: "/member/community", label: "Komunitní procesor" },
     { href: "/member/admin/dashboard", label: "Admin přehled" },
     { href: "/member/invites", label: "Pozvánky" },
   ];

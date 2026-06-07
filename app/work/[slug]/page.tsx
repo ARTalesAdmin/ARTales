@@ -9,6 +9,7 @@ import { getWorkProductOffers } from "@/lib/products";
 
 type PageProps = {
   params: Promise<{ slug: string }>;
+  searchParams?: Promise<{ feedback?: string }>;
 };
 
 function getOriginLabel(originType: string) {
@@ -41,8 +42,9 @@ function getSourceLabel(sourceLabel: string) {
   }
 }
 
-export default async function WorkDetail({ params }: PageProps) {
+export default async function WorkDetail({ params, searchParams }: PageProps) {
   const { slug } = await params;
+  const { feedback } = searchParams ? await searchParams : {};
   const work = await getWorkBySlug(slug);
 
   if (!work) {
@@ -86,6 +88,7 @@ export default async function WorkDetail({ params }: PageProps) {
       welcomeUnlockAvailable={!canOpenFull && welcomeUnlock.available}
       products={products}
       viewerRole={profile?.role ?? null}
+      feedbackStatus={feedback ?? null}
     />
   );
 }

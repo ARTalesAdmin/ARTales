@@ -72,6 +72,16 @@ export default async function AccountPage() {
           </p>
           <Link href="/account/settings">Open settings</Link>
         </article>
+
+
+        <article className="artales-account-card">
+          <p className="artales-account-card__label">Community</p>
+          <h2>Authors & feedback</h2>
+          <p>
+            Follow authors, review your editorial feedback and prepare future community notifications.
+          </p>
+          <Link href="/account/community">Open community</Link>
+        </article>
       </div>
     </section>
   );

@@ -2,6 +2,8 @@ import Link from "next/link";
 import ArtalesBrand from "@/components/brand/ArtalesBrand";
 import { getCurrentProfile } from "@/lib/auth";
 import { getPublicDictionary } from "@/lib/i18n/public";
+import { getCookieLocale, resolveProfileLocale } from "@/lib/i18n/server";
+import LocaleSwitcher from "@/components/i18n/LocaleSwitcher";
 import { canAccessMemberZone } from "@/lib/permissions";
 import PageViewTracker from "@/components/analytics/PageViewTracker";
 
@@ -19,8 +21,10 @@ type PublicHeaderProps = {
 };
 
 export default async function PublicHeader({ active }: PublicHeaderProps) {
-  const { public: t } = getPublicDictionary();
+  const cookieLocale = await getCookieLocale();
   const profile = await getCurrentProfile();
+  const currentLocale = resolveProfileLocale(profile, cookieLocale);
+  const { public: t } = getPublicDictionary(currentLocale);
   const hasInternalAccess = canAccessMemberZone(profile);
   const isSignedIn = Boolean(profile);
 
@@ -56,6 +60,8 @@ export default async function PublicHeader({ active }: PublicHeaderProps) {
         >
           {t.authors}
         </Link>
+
+        <LocaleSwitcher currentLocale={currentLocale} compact />
 
         {hasInternalAccess ? (
           <>

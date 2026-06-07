@@ -4,9 +4,13 @@ import { getLanguageLabel, getLanguageLabels } from "@/lib/dictionaries/language
 import PublicHeader from "@/components/public/PublicHeader"
 import WorkCoverImage from "@/components/work/WorkCoverImage"
 import { getPublicDictionary } from "@/lib/i18n/public"
+import { getCurrentProfile } from "@/lib/auth"
+import { isAuthorFollowedByUser } from "@/lib/community"
+import AuthorFollowPanel from "@/components/community/AuthorFollowPanel"
 
 type PageProps = {
   params: Promise<{ slug: string }>
+  searchParams?: Promise<{ follow?: string }>
 }
 
 function getAuthorTypeLabel(authorType: string) {
@@ -24,9 +28,11 @@ function getAuthorTypeLabel(authorType: string) {
   }
 }
 
-export default async function AuthorDetail({ params }: PageProps) {
+export default async function AuthorDetail({ params, searchParams }: PageProps) {
   const { slug } = await params
+  const { follow } = searchParams ? await searchParams : {}
   const author = await getAuthorBySlug(slug)
+  const profile = await getCurrentProfile()
   const { common, public: t } = getPublicDictionary()
 
   if (!author) {
@@ -73,6 +79,8 @@ export default async function AuthorDetail({ params }: PageProps) {
       </div>
     )
   }
+
+  const isFollowing = await isAuthorFollowedByUser(profile?.id, author.id)
 
   const primaryLanguageLabel = getLanguageLabel(author.primary_language, "public")
   const writingLanguageLabels = getLanguageLabels(author.writing_languages, "public")
@@ -170,6 +178,31 @@ export default async function AuthorDetail({ params }: PageProps) {
           >
             {author.bio ?? t.authorBioMissing}
           </p>
+
+          {follow === "ok" ? (
+            <p className="artales-account-success" style={{ marginTop: "18px" }}>
+              Author followed. Future release notifications will use this signal.
+            </p>
+          ) : null}
+          {follow === "removed" ? (
+            <p className="artales-account-success" style={{ marginTop: "18px" }}>
+              Author removed from your followed list.
+            </p>
+          ) : null}
+          {follow === "error" ? (
+            <p className="artales-account-alert" style={{ marginTop: "18px" }}>
+              Follow preference could not be saved. Try again.
+            </p>
+          ) : null}
+
+          <div style={{ marginTop: "24px" }}>
+            <AuthorFollowPanel
+              authorId={author.id}
+              slug={author.slug}
+              isSignedIn={Boolean(profile)}
+              isFollowing={isFollowing}
+            />
+          </div>
         </section>
 
         <section>

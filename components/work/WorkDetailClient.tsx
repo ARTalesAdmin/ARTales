@@ -3,6 +3,7 @@ import type { WorkDetailItem } from "@/lib/dbWorks";
 import WorkCoverImage from "@/components/work/WorkCoverImage";
 import PublicHeader from "@/components/public/PublicHeader";
 import ReaderWorkActions from "@/components/reader/ReaderWorkActions";
+import WorkFeedbackPanel from "@/components/community/WorkFeedbackPanel";
 import { getPublicDictionary } from "@/lib/i18n/public";
 import {
   formatProductPrice,
@@ -24,6 +25,7 @@ type WorkDetailClientProps = {
   welcomeUnlockAvailable: boolean;
   products: WorkProductOffer[];
   viewerRole: string | null;
+  feedbackStatus?: string | null;
 };
 
 
@@ -214,6 +216,7 @@ export default function WorkDetailClient({
   welcomeUnlockAvailable,
   products,
   viewerRole,
+  feedbackStatus,
 }: WorkDetailClientProps) {
   const { common, public: t } = getPublicDictionary();
   const authorName = work.author?.name ?? t.unknownAuthor;
@@ -362,6 +365,24 @@ export default function WorkDetailClient({
             </div>
 
             <ProductOptions products={products} canReadFull={canReadFull} />
+
+            {feedbackStatus === "sent" ? (
+              <p className="artales-account-success" style={{ marginTop: "18px" }}>
+                Feedback sent. Thank you — the ARTales team will review it.
+              </p>
+            ) : null}
+            {feedbackStatus === "invalid" ? (
+              <p className="artales-account-alert" style={{ marginTop: "18px" }}>
+                Feedback must be between 3 and 4000 characters.
+              </p>
+            ) : null}
+            {feedbackStatus === "error" ? (
+              <p className="artales-account-alert" style={{ marginTop: "18px" }}>
+                Feedback could not be saved. Try again later.
+              </p>
+            ) : null}
+
+            <WorkFeedbackPanel workId={workId} slug={work.slug} isSignedIn={isSignedIn} />
           </div>
         </section>
 

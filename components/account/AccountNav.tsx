@@ -8,6 +8,7 @@ const accountLinks = [
   { href: "/account/profile", label: "Profile" },
   { href: "/account/security", label: "Security" },
   { href: "/account/settings", label: "Reader settings" },
+  { href: "/account/community", label: "Community" },
   { href: "/account/membership", label: "Membership" },
 ];
 

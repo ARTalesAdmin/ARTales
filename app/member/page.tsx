@@ -83,6 +83,9 @@ export default async function MemberPage() {
           <Link className="artales-button-secondary" href="/member/entitlements">
             Nároky čtenářů
           </Link>
+          <Link className="artales-button-secondary" href="/member/community">
+            Komunitní procesor
+          </Link>
           {role === "admin" ? (
             <Link className="artales-button-secondary" href="/member/admin/dashboard">
               Admin přehled
