@@ -60,3 +60,13 @@ export async function requireSubmissionReviewer() {
 
   return profile;
 }
+
+export async function requireAdmin() {
+  const profile = await requireAuthenticatedProfile();
+
+  if (profile.role !== "admin") {
+    redirect("/member?error=admin_required");
+  }
+
+  return profile;
+}

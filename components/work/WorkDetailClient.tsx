@@ -168,11 +168,11 @@ function ProductOptions({ products, canReadFull }: { products: WorkProductOffer[
                   Read now
                 </Link>
               ) : comingSoon ? (
-                <Link className="artales-button-muted" href="/checkout/coming-soon" aria-disabled="true">
+                <Link className="artales-button-muted" href={`/checkout/coming-soon?product=${product.id}&work=${product.workId}`} aria-disabled="true">
                   Checkout coming soon
                 </Link>
               ) : (
-                <Link className="artales-button" href="/checkout/coming-soon">
+                <Link className="artales-button" href={`/checkout/coming-soon?product=${product.id}&work=${product.workId}`}>
                   Continue
                 </Link>
               )}

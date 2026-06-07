@@ -1,9 +1,27 @@
 import Link from "next/link";
 import PublicHeader from "@/components/public/PublicHeader";
+import { createPurchaseIntent } from "@/lib/purchases";
 
 export const dynamic = "force-dynamic";
 
-export default function CheckoutComingSoonPage() {
+type PageProps = {
+  searchParams?: Promise<{ product?: string; work?: string }>;
+};
+
+export default async function CheckoutComingSoonPage({ searchParams }: PageProps) {
+  const params = await searchParams;
+  const productId = params?.product ?? null;
+  const workId = params?.work ?? null;
+
+  if (productId || workId) {
+    await createPurchaseIntent({
+      productId,
+      workId,
+      sourceContext: "checkout_coming_soon",
+      metadata: { route: "/checkout/coming-soon" },
+    });
+  }
+
   return (
     <div className="artales-public-shell">
       <PublicHeader active="gallery" />
@@ -14,10 +32,11 @@ export default function CheckoutComingSoonPage() {
           This product and access model is already prepared in ARTales, but real payments are still disabled while the launch setup is being finalized.
         </p>
         <p>
-          You can still read previews, use your welcome unlock, access titles already in your library, or return to the membership overview.
+          Your interest has been recorded anonymously or with your reader account if you are signed in. This helps us decide what to launch first.
         </p>
         <div className="artales-checkout-coming-soon__status">
           <span>Products prepared</span>
+          <span>Purchase interest captured</span>
           <span>Payments pending</span>
           <span>Reader entitlements active</span>
         </div>

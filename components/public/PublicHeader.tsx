@@ -3,6 +3,7 @@ import ArtalesBrand from "@/components/brand/ArtalesBrand";
 import { getCurrentProfile } from "@/lib/auth";
 import { getPublicDictionary } from "@/lib/i18n/public";
 import { canAccessMemberZone } from "@/lib/permissions";
+import PageViewTracker from "@/components/analytics/PageViewTracker";
 
 export const dynamic = "force-dynamic";
 
@@ -24,6 +25,8 @@ export default async function PublicHeader({ active }: PublicHeaderProps) {
   const isSignedIn = Boolean(profile);
 
   return (
+    <>
+    <PageViewTracker />
     <header className="artales-public-header">
       <ArtalesBrand variant="dark" size="md" showMark />
       <nav
@@ -83,5 +86,6 @@ export default async function PublicHeader({ active }: PublicHeaderProps) {
         )}
       </nav>
     </header>
+    </>
   );
 }
