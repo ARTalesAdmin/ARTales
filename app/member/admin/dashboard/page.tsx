@@ -38,10 +38,10 @@ export default async function AdminDashboardPage({ searchParams }: PageProps) {
     <main className="artales-admin-dashboard">
       <div className="artales-admin-dashboard__header">
         <div>
-          <p className="artales-admin-dashboard__eyebrow">Admin · účetní přehled</p>
+          <p className="artales-admin-dashboard__eyebrow">Admin · analytika a účetní přehled</p>
           <h1>Centrální dashboard</h1>
           <p>
-            Přehled návštěv, účtů, nákupního zájmu, objednávek, plateb a nároků. Teď je to analyticko-účetní základ; příjmy se začnou plnit až po reálné platební bráně.
+            Raw eventy zůstávají jako hrubý puls systému. Nad nimi se teď ukazují sessions, prostředí, čtení děl, nákupní zájem a základy budoucích autorských KPI.
           </p>
         </div>
         <div className="artales-admin-dashboard__actions">
@@ -60,15 +60,33 @@ export default async function AdminDashboardPage({ searchParams }: PageProps) {
       </div>
 
       <section className="artales-admin-stat-grid" aria-label="Hlavní metriky">
-        <StatCard label="Návštěvy" value={metrics.visits} note="měřeno od v0.9.6" />
-        <StatCard label="Účty celkem" value={metrics.accountsTotal} />
-        <StatCard label="Zájem o nákup" value={metrics.purchaseIntents} note="kliknutí na checkout placeholder" />
+        <StatCard label="Raw page views" value={metrics.rawPageViews} note="všechny page eventy" />
+        <StatCard label="Unique sessions" value={metrics.uniqueSessions} note="orientační návštěvy" />
+        <StatCard label="Aktivní přihlášení" value={metrics.activeSignedInUsers} note="unikátní user_id" />
+        <StatCard label="Veřejné views" value={metrics.publicViews} />
+        <StatCard label="Reader opens" value={metrics.readerOpens} note="otevření readeru" />
+        <StatCard label="Zájem o nákup" value={metrics.purchaseIntents} note="kliknutí na checkout/product CTA" />
         <StatCard label="Objednávky" value={metrics.ordersTotal} />
-        <StatCard label="Zaplacené objednávky" value={metrics.paidOrders} />
         <StatCard label="Přijato plateb" value={metrics.paymentsReceivedFormatted} note="zatím 0 před checkoutem" />
       </section>
 
       <section className="artales-admin-dashboard__columns">
+        <article className="artales-member-panel artales-admin-dashboard__panel">
+          <h2>Aktivita podle prostředí</h2>
+          {metrics.environmentCounts.length === 0 ? (
+            <p>Zatím nejsou žádná data.</p>
+          ) : (
+            <dl className="artales-admin-metric-list">
+              {metrics.environmentCounts.map((item) => (
+                <div key={item.environment}>
+                  <dt>{item.label}</dt>
+                  <dd>{item.count}</dd>
+                </div>
+              ))}
+            </dl>
+          )}
+        </article>
+
         <article className="artales-member-panel artales-admin-dashboard__panel">
           <h2>Účty podle rolí</h2>
           {metrics.accountsByRole.length === 0 ? (
@@ -86,13 +104,19 @@ export default async function AdminDashboardPage({ searchParams }: PageProps) {
         </article>
 
         <article className="artales-member-panel artales-admin-dashboard__panel">
-          <h2>Zakoupené / připravené typy</h2>
-          <dl className="artales-admin-metric-list">
-            <div><dt>Online reads</dt><dd>{metrics.onlineReadsPurchased}</dd></div>
-            <div><dt>PDF</dt><dd>{metrics.pdfsPurchased}</dd></div>
-            <div><dt>EPUB</dt><dd>{metrics.epubsPurchased}</dd></div>
-            <div><dt>Knihy / print</dt><dd>{metrics.booksPurchased}</dd></div>
-          </dl>
+          <h2>Zájem podle produktů</h2>
+          {metrics.productInterest.length === 0 ? (
+            <p>Zatím nejsou zachycené žádné produktové kliky.</p>
+          ) : (
+            <dl className="artales-admin-metric-list">
+              {metrics.productInterest.map((item) => (
+                <div key={item.productType}>
+                  <dt>{item.productType}</dt>
+                  <dd>{item.count}</dd>
+                </div>
+              ))}
+            </dl>
+          )}
         </article>
 
         <article className="artales-member-panel artales-admin-dashboard__panel">
@@ -103,13 +127,59 @@ export default async function AdminDashboardPage({ searchParams }: PageProps) {
             <div><dt>EPUB</dt><dd>{metrics.entitlementsEpub}</dd></div>
           </dl>
         </article>
+      </section>
 
-        <article className="artales-member-panel artales-admin-dashboard__panel">
-          <h2>Další vrstva</h2>
-          <p>
-            Později sem přibude income/outcome, odměny za práci, náklady na produkci, Resend e-maily, platební provider a exporty pro účetnictví.
-          </p>
-        </article>
+      <section className="artales-member-panel artales-admin-dashboard__panel artales-admin-dashboard__wide-panel">
+        <div className="artales-admin-dashboard__section-header">
+          <div>
+            <h2>Nejaktivnější díla</h2>
+            <p>
+              Základ pro budoucí autorské přehledy: detail, otevření readeru, unikátní sessions, unlocky a nákupní zájem.
+            </p>
+          </div>
+        </div>
+
+        {metrics.topWorks.length === 0 ? (
+          <p>Zatím nejsou work-level data. Otevři detail díla a reader, aby se začala plnit.</p>
+        ) : (
+          <div className="artales-admin-table-wrap">
+            <table className="artales-admin-table">
+              <thead>
+                <tr>
+                  <th>Dílo</th>
+                  <th>Autor</th>
+                  <th>Detail</th>
+                  <th>Reader</th>
+                  <th>Sessions</th>
+                  <th>Unlocks</th>
+                  <th>Zájem</th>
+                </tr>
+              </thead>
+              <tbody>
+                {metrics.topWorks.map((work) => (
+                  <tr key={work.slug}>
+                    <td>
+                      <Link href={`/work/${work.slug}`}>{work.title}</Link>
+                    </td>
+                    <td>{work.authorName ?? "—"}</td>
+                    <td>{work.detailViews}</td>
+                    <td>{work.readerOpens}</td>
+                    <td>{work.uniqueSessions}</td>
+                    <td>{work.unlocks}</td>
+                    <td>{work.purchaseIntents}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </section>
+
+      <section className="artales-member-panel artales-admin-dashboard__panel artales-admin-dashboard__wide-panel">
+        <h2>Interpretace metrik</h2>
+        <p>
+          Raw page views jsou hrubý signál aktivity, ne přesný počet čtenářů. Reader opens lépe ukazují čtenářský záměr, ale ne čas strávený čtením. Přesný čas, heartbeat, autor dashboard a provizní KPI patří do další analytické vrstvy.
+        </p>
       </section>
     </main>
   );

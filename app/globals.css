@@ -1396,3 +1396,60 @@ body {
     margin-top: 16px;
   }
 }
+
+.artales-admin-dashboard__wide-panel {
+  margin-top: 18px;
+}
+
+.artales-admin-dashboard__section-header {
+  align-items: flex-start;
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 12px;
+}
+
+.artales-admin-dashboard__section-header p {
+  color: #6f6258;
+  margin: 6px 0 0;
+}
+
+.artales-admin-table-wrap {
+  overflow-x: auto;
+}
+
+.artales-admin-table {
+  border-collapse: collapse;
+  font-size: 0.92rem;
+  min-width: 760px;
+  width: 100%;
+}
+
+.artales-admin-table th,
+.artales-admin-table td {
+  border-bottom: 1px solid rgba(13, 21, 40, 0.1);
+  padding: 10px 12px;
+  text-align: left;
+  vertical-align: top;
+}
+
+.artales-admin-table th {
+  color: #66584b;
+  font-size: 0.76rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.artales-admin-table td:not(:first-child) {
+  white-space: nowrap;
+}
+
+.artales-admin-table a {
+  color: #7d5415;
+  font-weight: 850;
+  text-decoration: none;
+}
+
+.artales-admin-table a:hover {
+  text-decoration: underline;
+}

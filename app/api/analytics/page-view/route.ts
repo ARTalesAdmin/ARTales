@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
+import { classifyPageView } from "@/lib/analytics";
 
 export async function POST(request: Request) {
   try {
@@ -10,6 +11,11 @@ export async function POST(request: Request) {
     const referrer = body.referrer ? String(body.referrer).slice(0, 500) : null;
 
     if (!path || path.startsWith("/api/")) {
+      return NextResponse.json({ ok: true });
+    }
+
+    const classification = classifyPageView(path);
+    if (classification.eventType === "api_ignored") {
       return NextResponse.json({ ok: true });
     }
 
@@ -23,6 +29,10 @@ export async function POST(request: Request) {
       path,
       referrer,
       user_agent: request.headers.get("user-agent")?.slice(0, 500) ?? null,
+      environment: classification.environment,
+      event_type: classification.eventType,
+      entity_type: classification.entityType,
+      entity_slug: classification.entitySlug,
     });
 
     return NextResponse.json({ ok: true });
