@@ -5,12 +5,14 @@ import PublicHeader from "@/components/public/PublicHeader";
 import ReaderWorkActions from "@/components/reader/ReaderWorkActions";
 import WorkFeedbackPanel from "@/components/community/WorkFeedbackPanel";
 import { getPublicDictionary } from "@/lib/i18n/public";
+import type { SupportedLocale } from "@/lib/i18n/config";
 import {
   formatProductPrice,
   getPrimaryProductPrice,
-  getProductAccessNote,
   type WorkProductOffer,
+  type ProductType,
 } from "@/lib/products";
+import { getProductSurfaceItems, isDownloadProduct } from "@/lib/productDelivery";
 
 type WorkDetailClientProps = {
   work: WorkDetailItem;
@@ -26,8 +28,11 @@ type WorkDetailClientProps = {
   products: WorkProductOffer[];
   viewerRole: string | null;
   feedbackStatus?: string | null;
+  locale: SupportedLocale;
 };
 
+
+type WorkPublicLabels = ReturnType<typeof getPublicDictionary>["public"];
 
 type AccessStatusCardProps = {
   isSignedIn: boolean;
@@ -35,6 +40,7 @@ type AccessStatusCardProps = {
   welcomeUnlockAvailable: boolean;
   viewerRole: string | null;
   slug: string;
+  labels: WorkPublicLabels;
 };
 
 function isInternalRole(role: string | null) {
@@ -47,19 +53,18 @@ function AccessStatusCard({
   welcomeUnlockAvailable,
   viewerRole,
   slug,
+  labels,
 }: AccessStatusCardProps) {
   const internalAccess = isInternalRole(viewerRole);
 
   if (internalAccess) {
     return (
       <section className="artales-access-card artales-access-card--internal">
-        <p className="artales-access-card__eyebrow">Internal access</p>
-        <h2>Full reader access is enabled for your workspace role.</h2>
-        <p>
-          Product options below are shown as the public reader catalogue. Your member/editor/admin access is handled separately from purchases.
-        </p>
+        <p className="artales-access-card__eyebrow">{labels.accessInternalEyebrow}</p>
+        <h2>{labels.accessInternalTitle}</h2>
+        <p>{labels.accessInternalText}</p>
         <Link className="artales-button-secondary" href={`/reader/${slug}?mode=full`}>
-          Open full reader
+          {labels.openFullReader}
         </Link>
       </section>
     );
@@ -68,13 +73,11 @@ function AccessStatusCard({
   if (canReadFull) {
     return (
       <section className="artales-access-card artales-access-card--owned">
-        <p className="artales-access-card__eyebrow">In your library</p>
-        <h2>You have online access to this title.</h2>
-        <p>
-          This work is available for full online reading from your ARTales library.
-        </p>
+        <p className="artales-access-card__eyebrow">{labels.accessLibraryEyebrow}</p>
+        <h2>{labels.accessLibraryTitle}</h2>
+        <p>{labels.accessLibraryText}</p>
         <Link className="artales-button" href={`/reader/${slug}?mode=full`}>
-          Read now
+          {labels.readNow}
         </Link>
       </section>
     );
@@ -83,17 +86,15 @@ function AccessStatusCard({
   if (!isSignedIn) {
     return (
       <section className="artales-access-card">
-        <p className="artales-access-card__eyebrow">Preview access</p>
-        <h2>You are reading the public preview.</h2>
-        <p>
-          Create a free reader account to save titles, use your welcome unlock and build your ARTales library.
-        </p>
+        <p className="artales-access-card__eyebrow">{labels.accessPreviewEyebrow}</p>
+        <h2>{labels.accessGuestTitle}</h2>
+        <p>{labels.accessGuestText}</p>
         <div className="artales-access-card__actions">
           <Link className="artales-button" href="/register">
-            Create free account
+            {labels.createFreeAccount}
           </Link>
           <Link className="artales-button-secondary" href="/login">
-            Sign in
+            {labels.signIn}
           </Link>
         </div>
       </section>
@@ -102,35 +103,76 @@ function AccessStatusCard({
 
   return (
     <section className="artales-access-card">
-      <p className="artales-access-card__eyebrow">Preview access</p>
-      <h2>This title is not in your library yet.</h2>
-      <p>
-        You can read the preview now. Full online access can be added through your one-time welcome unlock or future purchase options.
-      </p>
+      <p className="artales-access-card__eyebrow">{labels.accessPreviewEyebrow}</p>
+      <h2>{labels.accessReaderTitle}</h2>
+      <p>{labels.accessReaderText}</p>
       <div className="artales-access-card__actions">
         {welcomeUnlockAvailable ? (
           <Link className="artales-button" href={`/account/unlock/${slug}`}>
-            Use welcome unlock
+            {labels.useWelcomeUnlock}
           </Link>
         ) : null}
         <Link className="artales-button-secondary" href="/account/membership">
-          View membership options
+          {labels.viewMembershipOptions}
         </Link>
       </div>
     </section>
   );
 }
 
+function getProductTitle(type: ProductType, labels: WorkPublicLabels) {
+  switch (type) {
+    case "online_unlock":
+      return labels.productOnlineTitle;
+    case "pdf_download":
+      return labels.productPdfTitle;
+    case "epub_download":
+      return labels.productEpubTitle;
+    case "pdf_epub_bundle":
+      return labels.productBundleTitle;
+    case "print":
+      return labels.productPrintTitle;
+    default:
+      return labels.productAccessTitle;
+  }
+}
 
-function ProductOptions({ products, canReadFull }: { products: WorkProductOffer[]; canReadFull: boolean }) {
-  if (products.length === 0) {
+function getProductStatusLabel(status: string, labels: WorkPublicLabels) {
+  switch (status) {
+    case "unlocked":
+      return labels.statusUnlocked;
+    case "available":
+      return labels.statusAvailable;
+    case "preparing":
+      return labels.statusPreparing;
+    case "coming_later":
+      return labels.statusComingLater;
+    case "not_available":
+      return labels.statusNotAvailable;
+    default:
+      return labels.statusComingLater;
+  }
+}
+
+function ProductOptions({
+  products,
+  canReadFull,
+  slug,
+  labels,
+}: {
+  products: WorkProductOffer[];
+  canReadFull: boolean;
+  slug: string;
+  labels: WorkPublicLabels;
+}) {
+  const surfaceItems = getProductSurfaceItems(products, canReadFull);
+
+  if (surfaceItems.length === 0) {
     return (
-      <section className="artales-product-panel">
-        <p className="artales-product-panel__eyebrow">Access options</p>
-        <h2>Access products are being prepared</h2>
-        <p>
-          This title does not have a public product catalogue yet. Online access can still be granted by welcome unlock or admin tools.
-        </p>
+      <section className="artales-product-panel artales-product-panel--quiet">
+        <p className="artales-product-panel__eyebrow">{labels.productDeliveryLabel}</p>
+        <h2>{labels.productDeliveryPreparingTitle}</h2>
+        <p>{labels.productDeliveryPreparingText}</p>
       </section>
     );
   }
@@ -139,44 +181,38 @@ function ProductOptions({ products, canReadFull }: { products: WorkProductOffer[
     <section className="artales-product-panel">
       <div className="artales-product-panel__header">
         <div>
-          <p className="artales-product-panel__eyebrow">Access options</p>
-          <h2>Choose how to read</h2>
+          <p className="artales-product-panel__eyebrow">{labels.productDeliveryLabel}</p>
+          <h2>{labels.productDeliveryTitle}</h2>
+          <p className="artales-product-panel__intro">{labels.productDeliveryText}</p>
         </div>
-        {canReadFull ? <span className="artales-product-badge">In your library</span> : null}
+        {canReadFull ? <span className="artales-product-badge">{labels.statusUnlocked}</span> : null}
       </div>
 
-      <div className="artales-product-grid">
-        {products.map((product) => {
-          const price = getPrimaryProductPrice(product);
-          const comingSoon = !product.checkoutEnabled || product.availability !== "available";
-          const isOnlineOwned = product.type === "online_unlock" && canReadFull;
-          const statusLabel = isOnlineOwned
-            ? "Already unlocked"
-            : comingSoon
-              ? "Coming soon"
-              : "Available";
+      <div className="artales-product-grid artales-product-grid--delivery">
+        {surfaceItems.map((item) => {
+          const product = item.product;
+          const price = product ? getPrimaryProductPrice(product) : null;
+          const title = product?.title || getProductTitle(item.key, labels);
+          const description = product?.description || (isDownloadProduct(item.key) ? labels.productDownloadLaterText : labels.productOnlineText);
 
           return (
-            <article key={product.id} className={isOnlineOwned ? "artales-product-card artales-product-card--owned" : "artales-product-card"}>
+            <article key={item.key} className={item.status === "unlocked" ? "artales-product-card artales-product-card--owned" : "artales-product-card"}>
               <div className="artales-product-card__topline">
-                <h3>{product.title}</h3>
+                <h3>{title}</h3>
                 <span>{formatProductPrice(price)}</span>
               </div>
-              <p>{product.description}</p>
-              <p className="artales-product-card__status">{statusLabel}</p>
-              <p className="artales-product-card__note">{getProductAccessNote(product)}</p>
-              {isOnlineOwned ? (
-                <Link className="artales-button-secondary" href="#reader-actions">
-                  Read now
+              <p>{description}</p>
+              <p className="artales-product-card__status">{getProductStatusLabel(item.status, labels)}</p>
+              {item.status === "unlocked" ? (
+                <Link className="artales-button-secondary" href={`/reader/${slug}?mode=full`}>
+                  {labels.readNow}
                 </Link>
-              ) : comingSoon ? (
-                <Link className="artales-button-muted" href={`/checkout/coming-soon?product=${product.id}&work=${product.workId}`} aria-disabled="true">
-                  Checkout coming soon
+              ) : item.status === "available" && product ? (
+                <Link className="artales-button" href={`/checkout/coming-soon?product=${product.id}&work=${product.workId}`}>
+                  {labels.continueAccess}
                 </Link>
               ) : (
-                <Link className="artales-button" href={`/checkout/coming-soon?product=${product.id}&work=${product.workId}`}>
-                  Continue
-                </Link>
+                <p className="artales-product-card__note">{labels.productNoActionNote}</p>
               )}
             </article>
           );
@@ -217,8 +253,9 @@ export default function WorkDetailClient({
   products,
   viewerRole,
   feedbackStatus,
+  locale,
 }: WorkDetailClientProps) {
-  const { common, public: t } = getPublicDictionary();
+  const { common, public: t } = getPublicDictionary(locale);
   const authorName = work.author?.name ?? t.unknownAuthor;
   const publicIsbnVisible =
     Boolean(work.isbn) &&
@@ -347,6 +384,7 @@ export default function WorkDetailClient({
               welcomeUnlockAvailable={welcomeUnlockAvailable}
               viewerRole={viewerRole}
               slug={work.slug}
+              labels={t}
             />
 
             <div id="reader-actions">
@@ -364,21 +402,21 @@ export default function WorkDetailClient({
             />
             </div>
 
-            <ProductOptions products={products} canReadFull={canReadFull} />
+            <ProductOptions products={products} canReadFull={canReadFull} slug={work.slug} labels={t} />
 
             {feedbackStatus === "sent" ? (
               <p className="artales-account-success" style={{ marginTop: "18px" }}>
-                Feedback sent. Thank you — the ARTales team will review it.
+                {t.feedbackSent}
               </p>
             ) : null}
             {feedbackStatus === "invalid" ? (
               <p className="artales-account-alert" style={{ marginTop: "18px" }}>
-                Feedback must be between 3 and 4000 characters.
+                {t.feedbackInvalid}
               </p>
             ) : null}
             {feedbackStatus === "error" ? (
               <p className="artales-account-alert" style={{ marginTop: "18px" }}>
-                Feedback could not be saved. Try again later.
+                {t.feedbackError}
               </p>
             ) : null}
 

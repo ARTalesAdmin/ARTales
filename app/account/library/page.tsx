@@ -68,6 +68,21 @@ export default async function AccountLibraryPage() {
         </section>
       ) : null}
 
+
+      <section className="artales-account-panel artales-account-delivery-panel">
+        <p className="artales-account-card__label">{dictionary.deliveryLabel}</p>
+        <h2>{dictionary.deliveryTitle}</h2>
+        <p>{dictionary.deliveryText}</p>
+        <div className="artales-account-model-grid">
+          {dictionary.deliveryItems.map((item) => (
+            <article key={item.title}>
+              <h3>{item.title}</h3>
+              <p>{item.text}</p>
+            </article>
+          ))}
+        </div>
+      </section>
+
       <div className="artales-account-grid artales-account-library-tools">
         <article className="artales-account-card">
           <p className="artales-account-card__label">{dictionary.savedLabel}</p>

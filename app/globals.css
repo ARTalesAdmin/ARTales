@@ -1859,3 +1859,148 @@ body {
     justify-content: flex-start;
   }
 }
+
+/* v0.10.0 — product surface cleanup and delivery foundation */
+.artales-public-main {
+  color: var(--artales-ink);
+  font-family: var(--font-artales-sans);
+  line-height: 1.6;
+  margin: 0 auto;
+  max-width: 1180px;
+  padding: 52px 32px 68px;
+}
+
+.artales-public-kicker {
+  color: #8a6a2d;
+  font-size: 13px;
+  font-weight: 900;
+  letter-spacing: 0.16em;
+  margin: 0 0 12px;
+  text-transform: uppercase;
+}
+
+.artales-public-kicker--small {
+  font-size: 12px;
+  letter-spacing: 0.12em;
+  margin-bottom: 8px;
+}
+
+.artales-gallery-hero {
+  margin-bottom: 38px;
+}
+
+.artales-gallery-hero h1 {
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: clamp(44px, 7vw, 78px);
+  letter-spacing: -0.045em;
+  line-height: 1.02;
+  margin: 0 0 16px;
+}
+
+.artales-gallery-hero p:not(.artales-public-kicker) {
+  color: #3f362f;
+  font-size: 19px;
+  margin: 0 0 24px;
+  max-width: 780px;
+}
+
+.artales-gallery-hero__actions,
+.artales-gallery-card__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.artales-gallery-grid {
+  display: grid;
+  gap: 22px;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+}
+
+.artales-gallery-card {
+  background: rgba(255, 255, 255, 0.62);
+  border: 1px solid rgba(13, 21, 40, 0.1);
+  border-radius: 24px;
+  box-shadow: 0 18px 45px rgba(13, 21, 40, 0.08);
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 18px;
+}
+
+.artales-gallery-card__body {
+  display: grid;
+  gap: 10px;
+}
+
+.artales-gallery-card h2 {
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 29px;
+  letter-spacing: -0.035em;
+  line-height: 1.12;
+  margin: 0;
+}
+
+.artales-gallery-card h2 a {
+  color: var(--artales-ink);
+  text-decoration: none;
+}
+
+.artales-gallery-card__subtitle,
+.artales-gallery-card__summary,
+.artales-gallery-card__meta {
+  color: #5f5247;
+  margin: 0;
+}
+
+.artales-gallery-card__summary {
+  color: #3f362f;
+}
+
+.artales-gallery-card__meta {
+  display: grid;
+  gap: 4px;
+  font-size: 0.95rem;
+}
+
+.artales-delivery-strip {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.artales-delivery-strip span {
+  background: rgba(13, 21, 40, 0.06);
+  border: 1px solid rgba(13, 21, 40, 0.1);
+  border-radius: 999px;
+  color: rgba(13, 21, 40, 0.72);
+  font-size: 0.76rem;
+  font-weight: 850;
+  letter-spacing: 0.06em;
+  padding: 5px 9px;
+  text-transform: uppercase;
+}
+
+.artales-product-panel--quiet {
+  box-shadow: none;
+}
+
+.artales-product-panel__intro {
+  color: #5f5247;
+  margin: 8px 0 0;
+  max-width: 720px;
+}
+
+.artales-product-grid--delivery {
+  grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+}
+
+.artales-account-delivery-panel {
+  margin: 24px 0;
+}
+
+.artales-account-delivery-panel > p:not(.artales-account-card__label) {
+  color: #5f5247;
+  margin-top: 0;
+}

@@ -6,24 +6,26 @@ import { getStatusLabel } from "@/lib/dictionaries/status";
 import { getCurrentProfile } from "@/lib/auth";
 import { canOpenFullReader, getWelcomeUnlockStatus, isWorkSavedForUser } from "@/lib/entitlements";
 import { getWorkProductOffers } from "@/lib/products";
+import { getCookieLocale, resolveProfileLocale } from "@/lib/i18n/server";
+import { getPublicDictionary } from "@/lib/i18n/public";
 
 type PageProps = {
   params: Promise<{ slug: string }>;
   searchParams?: Promise<{ feedback?: string }>;
 };
 
-function getOriginLabel(originType: string) {
+function getOriginLabel(originType: string, labels: ReturnType<typeof getPublicDictionary>["public"]) {
   switch (originType) {
     case "public_domain":
-      return "Public domain edition";
+      return labels.publicDomain;
     case "original":
-      return "Original work";
+      return labels.original;
     case "translation":
-      return "Translation";
+      return labels.translation;
     case "other":
-      return "Literary edition";
+      return labels.otherLayer;
     default:
-      return "Literary work";
+      return labels.literaryWork;
   }
 }
 
@@ -67,6 +69,9 @@ export default async function WorkDetail({ params, searchParams }: PageProps) {
     work.canonical_language;
   const statusLabel = getStatusLabel(work.status, "public") ?? work.status;
   const profile = await getCurrentProfile();
+  const cookieLocale = await getCookieLocale();
+  const locale = resolveProfileLocale(profile, cookieLocale);
+  const publicLabels = getPublicDictionary(locale).public;
   const canOpenFull = await canOpenFullReader(profile, work.id);
   const welcomeUnlock = profile && profile.role === "reader" ? await getWelcomeUnlockStatus(profile.id) : { available: false, used: false };
   const [isSaved, products] = await Promise.all([
@@ -79,7 +84,7 @@ export default async function WorkDetail({ params, searchParams }: PageProps) {
       work={work}
       languageLabel={languageLabel}
       statusLabel={statusLabel}
-      originLabel={getOriginLabel(work.origin_type)}
+      originLabel={getOriginLabel(work.origin_type, publicLabels)}
       sourceLabel={getSourceLabel(work.source_label)}
       canReadFull={canOpenFull}
       workId={work.id}
@@ -89,6 +94,7 @@ export default async function WorkDetail({ params, searchParams }: PageProps) {
       products={products}
       viewerRole={profile?.role ?? null}
       feedbackStatus={feedback ?? null}
+      locale={locale}
     />
   );
 }
