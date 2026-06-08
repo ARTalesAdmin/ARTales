@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import Image from "next/image";
 import ArtalesBrand from "@/components/brand/ArtalesBrand";
 import { getPublicStorageImageUrl } from "@/lib/storageImages";
@@ -13,22 +13,23 @@ type WorkCoverImageProps = {
   variant?: "detail" | "card";
 };
 
-export default function WorkCoverImage({
+function WorkCoverImageFrame({
   title,
-  imagePath,
+  imageUrl,
   alt,
   caption,
-  variant = "detail",
-}: WorkCoverImageProps) {
-  const imageUrl = getPublicStorageImageUrl(imagePath);
+  variant,
+}: {
+  title: string;
+  imageUrl: string | null;
+  alt?: string | null;
+  caption?: string | null;
+  variant: "detail" | "card";
+}) {
   const [hasImageError, setHasImageError] = useState(false);
   const isCard = variant === "card";
   const minHeight = isCard ? 270 : 460;
   const shouldShowImage = Boolean(imageUrl) && !hasImageError;
-
-  useEffect(() => {
-    setHasImageError(false);
-  }, [imageUrl]);
 
   return (
     <figure
@@ -118,7 +119,6 @@ export default function WorkCoverImage({
           </div>
         )}
       </div>
-
       {caption && !isCard ? (
         <figcaption
           style={{
@@ -131,5 +131,26 @@ export default function WorkCoverImage({
         </figcaption>
       ) : null}
     </figure>
+  );
+}
+
+export default function WorkCoverImage({
+  title,
+  imagePath,
+  alt,
+  caption,
+  variant = "detail",
+}: WorkCoverImageProps) {
+  const imageUrl = getPublicStorageImageUrl(imagePath);
+
+  return (
+    <WorkCoverImageFrame
+      key={imageUrl ?? "artales-cover-placeholder"}
+      title={title}
+      imageUrl={imageUrl}
+      alt={alt}
+      caption={caption}
+      variant={variant}
+    />
   );
 }

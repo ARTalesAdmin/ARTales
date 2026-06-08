@@ -39,9 +39,18 @@ export default function ReaderWorkActions({
   const [isPending, startTransition] = useTransition();
 
   useEffect(() => {
-    const progress = loadReaderProgress(slug);
-    setHasProgress(Boolean(progress && progress.scrollY > 0));
-    setSaved(isSignedIn ? isSaved : isWorkSaved(slug));
+    let cancelled = false;
+    const frame = window.requestAnimationFrame(() => {
+      if (cancelled) return;
+      const progress = loadReaderProgress(slug);
+      setHasProgress(Boolean(progress && progress.scrollY > 0));
+      setSaved(isSignedIn ? isSaved : isWorkSaved(slug));
+    });
+
+    return () => {
+      cancelled = true;
+      window.cancelAnimationFrame(frame);
+    };
   }, [isSaved, isSignedIn, slug]);
 
   function toggleSaved() {

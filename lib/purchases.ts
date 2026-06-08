@@ -34,6 +34,17 @@ type WorkAnalyticsItem = {
   purchaseIntents: number;
 };
 
+type DashboardWorkLookupRow = {
+  id: string;
+  slug: string;
+  title: string | null;
+  authors?: { name?: string | null } | { name?: string | null }[] | null;
+};
+
+type ProductInterestRow = {
+  products?: { product_type?: string | null } | { product_type?: string | null }[] | null;
+};
+
 export type AdminDashboardMetrics = {
   range: DashboardRange;
   rangeLabel: string;
@@ -222,8 +233,8 @@ async function getTopWorks(params: {
     if (error) console.error("Dashboard works lookup failed:", error);
 
     const workIdToSlug = new Map<string, string>();
-    for (const row of works ?? []) {
-      const work = row as any;
+    for (const row of (works ?? []) as DashboardWorkLookupRow[]) {
+      const work = row;
       const slug = String(work.slug);
       const item = workMap.get(slug);
       if (!item) continue;
@@ -366,8 +377,8 @@ export async function getAdminDashboardMetrics(range: DashboardRange): Promise<A
   if (productInterestError) console.error("Dashboard product interest failed:", productInterestError);
 
   const productInterestMap = new Map<string, number>();
-  for (const row of productInterestRows ?? []) {
-    const product = Array.isArray((row as any).products) ? (row as any).products[0] : (row as any).products;
+  for (const row of (productInterestRows ?? []) as ProductInterestRow[]) {
+    const product = Array.isArray(row.products) ? row.products[0] : row.products;
     const productType = product?.product_type ? String(product.product_type) : "unknown";
     productInterestMap.set(productType, (productInterestMap.get(productType) ?? 0) + 1);
   }

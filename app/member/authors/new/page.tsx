@@ -296,7 +296,7 @@ export default async function NewAuthorPage({ searchParams }: PageProps) {
               }}
             />
             <p style={{ margin: "8px 0 0 0", fontSize: "14px", opacity: 0.75 }}>
-              Nepovinné pole. Zatím volný text. Psát anglicky "United Kingdom" namísto "Anglie".
+              Nepovinné pole. Zatím volný text. Psát anglicky &ldquo;United Kingdom&rdquo; namísto &ldquo;Anglie&rdquo;.
             </p>
           </div>
 

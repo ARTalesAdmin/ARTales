@@ -192,15 +192,6 @@ export default function WorkEditorForm(props: Props) {
     },
   ];
 
-  const currentSnapshot = useMemo(
-    () =>
-      stableStringify({
-        form: formState,
-        blocks,
-      }),
-    [formState, blocks],
-  );
-
   const initialSnapshot = useMemo(
     () =>
       stableStringify({

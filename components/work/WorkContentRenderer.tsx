@@ -176,6 +176,7 @@ function renderBlock({ block, index, footnoteNumberByBlockId }: RenderBlockProps
           className={`artales-block artales-image artales-image--${alignment} artales-image--${size}`}
           data-block-type={block.type}
         >
+          {/* eslint-disable-next-line @next/next/no-img-element -- Rich text images use Supabase Storage URLs and keep their natural aspect ratio. */}
           <img src={imageUrl} alt={alt} loading="lazy" />
           {caption ? <figcaption>{caption}</figcaption> : null}
         </figure>

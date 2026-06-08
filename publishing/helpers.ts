@@ -2,6 +2,8 @@ import { editions } from "./editions"
 import { products } from "./products"
 import { collections } from "./collections"
 import { collectionLinks } from "./collectionLinks"
+import { works } from "@/core/works"
+import type { Work } from "@/core/types"
 
 export function getEditionsByWorkId(workId: string) {
   return editions.filter((edition) => edition.workId === workId)
@@ -41,12 +43,10 @@ export function getCollectionsByWorkId(workId: string) {
   )
 }
 
-export function getWorksByCollectionId(collectionId: string) {
-  const { works } = require("@/core/works")
-
+export function getWorksByCollectionId(collectionId: string): Work[] {
   const matchedWorkIds = collectionLinks
-    .filter((link: any) => link.collectionId === collectionId)
-    .map((link: any) => link.workId)
+    .filter((link) => link.collectionId === collectionId)
+    .map((link) => link.workId)
 
-  return works.filter((work: any) => matchedWorkIds.includes(work.id))
+  return works.filter((work) => matchedWorkIds.includes(work.id))
 }
