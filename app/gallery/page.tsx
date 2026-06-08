@@ -79,12 +79,14 @@ export default async function GalleryPage() {
                         <Link href={`/work/${work.slug}`}>{work.title}</Link>
                       </h2>
 
-                      {work.subtitle ? <p className="artales-gallery-card__subtitle">{work.subtitle}</p> : null}
+                      <p className={work.subtitle ? "artales-gallery-card__subtitle" : "artales-gallery-card__subtitle artales-gallery-card__subtitle--empty"}>
+                        {work.subtitle || "\u00a0"}
+                      </p>
 
                       <div className="artales-gallery-card__meta">
                         <span>
                           {common.author}: {work.author ? (
-                            <Link href={`/author/${work.author.slug}`}>{work.author.name}</Link>
+                            <Link className="artales-gallery-card__author-link" href={`/author/${work.author.slug}`}>{work.author.name}</Link>
                           ) : (
                             t.unknownAuthor
                           )}
@@ -98,15 +100,12 @@ export default async function GalleryPage() {
                       </div>
 
                       <p className="artales-gallery-card__summary">{work.summary}</p>
-
-                      <div className="artales-delivery-strip" aria-label={t.productDeliveryLabel}>
-                        <span>{t.deliveryPreview}</span>
-                        <span>{t.deliveryOnlineReader}</span>
-                        <span>{t.deliveryDigitalEditionsLater}</span>
-                      </div>
                     </div>
 
                     <div className="artales-gallery-card__actions">
+                      <Link className="artales-button" href={`/reader/${work.slug}`}>
+                        {t.readPreview}
+                      </Link>
                       <Link className="artales-button-secondary" href={`/work/${work.slug}`}>
                         {t.openDetail}
                       </Link>

@@ -292,7 +292,7 @@ export default function WorkDetailClient({
             marginBottom: "42px",
           }}
         >
-          <aside>
+          <aside className="artales-work-detail-sidebar">
             <WorkCoverImage
               title={work.title}
               imagePath={work.cover_image_path}
@@ -300,6 +300,38 @@ export default function WorkDetailClient({
               caption={work.cover_image_caption}
               variant="detail"
             />
+
+            <div className="artales-work-detail-facts" aria-label={t.aboutThisEdition}>
+              <p className="artales-public-kicker artales-public-kicker--small">{t.aboutThisEdition}</p>
+              <dl>
+                <div>
+                  <dt>{common.author}</dt>
+                  <dd>
+                    {work.author ? (
+                      <Link href={`/author/${work.author.slug}`}>{work.author.name}</Link>
+                    ) : (
+                      t.unknownAuthor
+                    )}
+                  </dd>
+                </div>
+                {work.collection ? (
+                  <div>
+                    <dt>{common.collection}</dt>
+                    <dd>
+                      <Link href={`/collections/${work.collection.slug}`}>{work.collection.title}</Link>
+                    </dd>
+                  </div>
+                ) : null}
+                <div>
+                  <dt>{common.language}</dt>
+                  <dd>{work.edition_language ? editionLanguage : languageLabel}</dd>
+                </div>
+                <div>
+                  <dt>{t.editionType}</dt>
+                  <dd>{originLabel}</dd>
+                </div>
+              </dl>
+            </div>
           </aside>
 
           <div>
@@ -389,17 +421,17 @@ export default function WorkDetailClient({
 
             <div id="reader-actions">
               <ReaderWorkActions
-              slug={work.slug}
-              workId={workId}
-              isSignedIn={isSignedIn}
-              isSaved={isSaved}
-              welcomeUnlockAvailable={welcomeUnlockAvailable}
-              readPreviewLabel={t.readPreview}
-              readOnlineLabel={t.readOnline}
-              continueReadingLabel={t.continueReading}
-              saveForLaterLabel={t.saveForLater}
-              canReadFull={canReadFull}
-            />
+                slug={work.slug}
+                workId={workId}
+                isSignedIn={isSignedIn}
+                isSaved={isSaved}
+                welcomeUnlockAvailable={welcomeUnlockAvailable}
+                readPreviewLabel={t.readPreview}
+                readOnlineLabel={t.readOnline}
+                continueReadingLabel={t.continueReading}
+                saveForLaterLabel={t.saveForLater}
+                canReadFull={canReadFull}
+              />
             </div>
 
             <ProductOptions products={products} canReadFull={canReadFull} slug={work.slug} labels={t} />

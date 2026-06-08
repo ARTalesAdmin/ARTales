@@ -2004,3 +2004,106 @@ body {
   color: #5f5247;
   margin-top: 0;
 }
+
+/* v0.10.0a — product surface polish hotfix */
+.artales-gallery-card {
+  min-height: 100%;
+}
+
+.artales-gallery-card__body {
+  flex: 1;
+  grid-template-rows: auto minmax(4.1rem, auto) minmax(1.35rem, auto) minmax(4.6rem, auto) minmax(4.8rem, auto);
+}
+
+.artales-gallery-card__subtitle {
+  min-height: 1.35rem;
+}
+
+.artales-gallery-card__meta {
+  min-height: 4.6rem;
+}
+
+.artales-gallery-card__summary {
+  display: -webkit-box;
+  min-height: 4.8rem;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+}
+
+.artales-gallery-card__author-link {
+  color: var(--artales-ink);
+  font-weight: 900;
+  text-decoration: underline;
+  text-decoration-color: rgba(138, 106, 45, 0.38);
+  text-underline-offset: 0.16em;
+}
+
+.artales-gallery-card__meta a:not(.artales-gallery-card__author-link) {
+  color: var(--artales-ink);
+  font-weight: 750;
+  text-decoration: underline;
+  text-decoration-color: rgba(13, 21, 40, 0.18);
+  text-underline-offset: 0.16em;
+}
+
+.artales-gallery-card__actions {
+  margin-top: auto;
+}
+
+.artales-work-detail-sidebar {
+  display: grid;
+  gap: 18px;
+}
+
+.artales-work-detail-facts {
+  background: rgba(255, 255, 255, 0.58);
+  border: 1px solid rgba(13, 21, 40, 0.11);
+  border-radius: 22px;
+  box-shadow: 0 14px 34px rgba(13, 21, 40, 0.07);
+  padding: 18px;
+}
+
+.artales-work-detail-facts dl {
+  display: grid;
+  gap: 12px;
+  margin: 0;
+}
+
+.artales-work-detail-facts dl > div {
+  display: grid;
+  gap: 3px;
+}
+
+.artales-work-detail-facts dt {
+  color: rgba(13, 21, 40, 0.58);
+  font-size: 0.75rem;
+  font-weight: 900;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.artales-work-detail-facts dd {
+  color: var(--artales-ink);
+  font-weight: 800;
+  margin: 0;
+}
+
+.artales-work-detail-facts a {
+  color: var(--artales-ink);
+  text-decoration: underline;
+  text-decoration-color: rgba(138, 106, 45, 0.42);
+  text-underline-offset: 0.16em;
+}
+
+@media (max-width: 820px) {
+  .artales-gallery-card__body {
+    grid-template-rows: none;
+  }
+
+  .artales-gallery-card__subtitle,
+  .artales-gallery-card__meta,
+  .artales-gallery-card__summary {
+    min-height: 0;
+  }
+}
