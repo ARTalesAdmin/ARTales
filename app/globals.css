@@ -1617,3 +1617,77 @@ body {
 .artales-community-feedback-row--new {
   background: rgba(217, 183, 110, 0.08);
 }
+
+/* v0.9.8 — reader library and account polish */
+.artales-account-library-page .artales-account-stat-grid {
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+}
+
+.artales-account-library-tools {
+  margin: 24px 0;
+}
+
+.artales-account-card--compact-cta {
+  border-color: rgba(138, 100, 31, 0.24);
+  background: rgba(255, 250, 239, 0.9);
+}
+
+.artales-account-library-watchlist {
+  margin-bottom: 24px;
+}
+
+.artales-account-library-unlocked {
+  margin-top: 24px;
+}
+
+.artales-account-library-card-grid {
+  display: grid;
+  gap: 14px;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  margin-top: 18px;
+}
+
+.artales-account-library-card {
+  background: rgba(255, 255, 255, 0.78);
+  border: 1px solid rgba(13, 21, 40, 0.12);
+  border-radius: 22px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  justify-content: space-between;
+  min-height: 220px;
+  padding: 20px;
+}
+
+.artales-account-library-card h3 {
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 1.45rem;
+  letter-spacing: -0.035em;
+  line-height: 1.12;
+  margin: 5px 0 7px;
+}
+
+.artales-account-library-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 14px;
+}
+
+.artales-account-library-badges span {
+  background: rgba(13, 21, 40, 0.07);
+  border: 1px solid rgba(13, 21, 40, 0.1);
+  border-radius: 999px;
+  color: rgba(13, 21, 40, 0.72);
+  font-size: 0.78rem;
+  font-weight: 850;
+  letter-spacing: 0.06em;
+  padding: 5px 9px;
+  text-transform: uppercase;
+}
+
+.artales-account-library-card__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}

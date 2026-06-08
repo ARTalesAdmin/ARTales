@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { requireCompletedAccountProfile } from "@/lib/account";
 import { getShortDisplayName } from "@/lib/displayName";
+import { getPublicDictionary } from "@/lib/i18n/public";
+import { getCookieLocale, resolveProfileLocale } from "@/lib/i18n/server";
 import { logoutFromAccount } from "./actions";
 
 export const dynamic = "force-dynamic";
@@ -8,79 +10,62 @@ export const dynamic = "force-dynamic";
 export default async function AccountPage() {
   const profile = await requireCompletedAccountProfile("/account");
   const shortName = getShortDisplayName(profile);
+  const cookieLocale = await getCookieLocale();
+  const locale = resolveProfileLocale(profile, cookieLocale);
+  const dictionary = getPublicDictionary(locale).account.overview;
 
   return (
     <section className="artales-account-page">
-      <p className="artales-account-kicker">ARTales reader account</p>
-      <h1>Welcome, {shortName}</h1>
-      <p className="artales-account-lede">
-        Your personal ARTales space for reading, saved titles, reader settings
-        and future membership tools.
-      </p>
+      <p className="artales-account-kicker">{dictionary.kicker}</p>
+      <h1>{dictionary.titlePrefix}, {shortName}</h1>
+      <p className="artales-account-lede">{dictionary.lede}</p>
 
       <form action={logoutFromAccount} className="artales-account-logout">
         <button type="submit" className="artales-button-secondary">
-          Sign out
+          {dictionary.signOut}
         </button>
       </form>
 
       <div className="artales-account-grid">
         <article className="artales-account-card artales-account-card--featured">
-          <p className="artales-account-card__label">Current role</p>
+          <p className="artales-account-card__label">{dictionary.currentRoleLabel}</p>
           <h2>{profile.role}</h2>
-          <p>
-            You are signed in as a registered ARTales reader. Full membership,
-            credits and purchases will connect here in the commerce layer.
-          </p>
+          <p>{dictionary.currentRoleText}</p>
         </article>
 
         <article className="artales-account-card">
-          <p className="artales-account-card__label">Library</p>
-          <h2>My works</h2>
-          <p>
-            Saved works, unlocked titles and downloads will live in your
-            library.
-          </p>
-          <Link href="/account/library">Open library</Link>
+          <p className="artales-account-card__label">{dictionary.libraryLabel}</p>
+          <h2>{dictionary.libraryTitle}</h2>
+          <p>{dictionary.libraryText}</p>
+          <Link href="/account/library">{dictionary.libraryCta}</Link>
         </article>
 
         <article className="artales-account-card">
-          <p className="artales-account-card__label">Profile</p>
+          <p className="artales-account-card__label">{dictionary.profileLabel}</p>
           <h2>@{profile.handle}</h2>
-          <p>
-            Edit your display name and handle used by ARTales reader and future
-            contribution records.
-          </p>
-          <Link href="/account/profile">Edit profile</Link>
+          <p>{dictionary.profileText}</p>
+          <Link href="/account/profile">{dictionary.profileCta}</Link>
         </article>
 
         <article className="artales-account-card">
-          <p className="artales-account-card__label">Security</p>
-          <h2>Password</h2>
-          <p>
-            Change your password or send yourself a password reset e-mail.
-          </p>
-          <Link href="/account/security">Open security</Link>
+          <p className="artales-account-card__label">{dictionary.securityLabel}</p>
+          <h2>{dictionary.securityTitle}</h2>
+          <p>{dictionary.securityText}</p>
+          <Link href="/account/security">{dictionary.securityCta}</Link>
         </article>
 
         <article className="artales-account-card">
-          <p className="artales-account-card__label">Reader settings</p>
-          <h2>Comfort first</h2>
-          <p>
-            Set your default theme, width, density and collapsed controls
-            preference.
-          </p>
-          <Link href="/account/settings">Open settings</Link>
+          <p className="artales-account-card__label">{dictionary.settingsLabel}</p>
+          <h2>{dictionary.settingsTitle}</h2>
+          <p>{dictionary.settingsText}</p>
+          <Link href="/account/settings">{dictionary.settingsCta}</Link>
         </article>
 
-
         <article className="artales-account-card">
-          <p className="artales-account-card__label">Community</p>
-          <h2>Authors & feedback</h2>
-          <p>
-            Follow authors, review your editorial feedback and prepare future community notifications.
-          </p>
-          <Link href="/account/community">Open community</Link>
+          <p className="artales-account-card__label">{dictionary.communityLabel}</p>
+          <h2>{dictionary.communityTitle}</h2>
+          <p>{dictionary.communityText}</p>
+          <Link href="/account/community">{dictionary.communityCta}</Link>
         </article>
       </div>
     </section>

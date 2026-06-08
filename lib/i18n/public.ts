@@ -4,12 +4,15 @@ import { enPublic } from "./dictionaries/en/public"
 import { enReader } from "./dictionaries/en/reader"
 import { csCommon } from "./dictionaries/cs/common"
 import { csPublic } from "./dictionaries/cs/public"
+import { enAccount } from "./dictionaries/en/account"
+import { csAccount } from "./dictionaries/cs/account"
 
 const publicDictionaries = {
   en: {
     common: enCommon,
     public: enPublic,
     reader: enReader,
+    account: enAccount,
   },
   cs: {
     common: csCommon,
@@ -18,6 +21,7 @@ const publicDictionaries = {
       ...csPublic,
     },
     reader: enReader,
+    account: csAccount,
   },
 } as const
 

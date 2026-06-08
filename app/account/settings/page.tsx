@@ -1,4 +1,6 @@
 import { requireCompletedAccountProfile } from "@/lib/account";
+import { getPublicDictionary } from "@/lib/i18n/public";
+import { getCookieLocale, resolveProfileLocale } from "@/lib/i18n/server";
 import { updateReaderPreferences } from "./actions";
 
 export const dynamic = "force-dynamic";
@@ -10,56 +12,57 @@ type PageProps = {
 export default async function AccountSettingsPage({ searchParams }: PageProps) {
   const profile = await requireCompletedAccountProfile("/account/settings");
   const { error, success } = await searchParams;
+  const cookieLocale = await getCookieLocale();
+  const locale = resolveProfileLocale(profile, cookieLocale);
+  const dictionary = getPublicDictionary(locale).account.settings;
 
   return (
     <section className="artales-account-page artales-account-page--narrow">
-      <p className="artales-account-kicker">Reader settings</p>
-      <h1>Your reading defaults</h1>
-      <p className="artales-account-lede">
-        These settings prepare the future profile-backed reader preferences. The reader still keeps a local fallback on each device.
-      </p>
+      <p className="artales-account-kicker">{dictionary.kicker}</p>
+      <h1>{dictionary.title}</h1>
+      <p className="artales-account-lede">{dictionary.lede}</p>
 
-      {error === "save" ? <p className="artales-account-alert">Reader settings could not be saved. Try again.</p> : null}
-      {success === "settings" ? <p className="artales-account-success">Reader settings saved.</p> : null}
+      {error === "save" ? <p className="artales-account-alert">{dictionary.saveError}</p> : null}
+      {success === "settings" ? <p className="artales-account-success">{dictionary.saveSuccess}</p> : null}
 
       <form action={updateReaderPreferences} className="artales-account-form">
         <label>
-          <span>Interface language</span>
+          <span>{dictionary.interfaceLanguage}</span>
           <select name="preferred_locale" defaultValue={profile.preferred_locale ?? "en"}>
             <option value="en">English</option>
             <option value="cs">Čeština</option>
           </select>
-          <small>Used by localized public/account surfaces. Localization is gradual, so some pages may still keep their current language.</small>
+          <small>{dictionary.interfaceLanguageHelp}</small>
         </label>
 
         <label>
-          <span>Reader theme</span>
+          <span>{dictionary.readerTheme}</span>
           <select name="reader_theme" defaultValue={profile.reader_theme ?? "light"}>
-            <option value="light">Light</option>
-            <option value="script">Script / warm paper</option>
-            <option value="dark">Dark</option>
+            <option value="light">{dictionary.themeLight}</option>
+            <option value="script">{dictionary.themeScript}</option>
+            <option value="dark">{dictionary.themeDark}</option>
           </select>
         </label>
 
         <label>
-          <span>Reading width</span>
+          <span>{dictionary.readingWidth}</span>
           <select name="reader_width" defaultValue={profile.reader_width ?? "normal"}>
-            <option value="narrow">Narrow</option>
-            <option value="normal">Normal</option>
-            <option value="wide">Wide</option>
+            <option value="narrow">{dictionary.widthNarrow}</option>
+            <option value="normal">{dictionary.widthNormal}</option>
+            <option value="wide">{dictionary.widthWide}</option>
           </select>
         </label>
 
         <label>
-          <span>Text density</span>
+          <span>{dictionary.textDensity}</span>
           <select name="reader_density" defaultValue={profile.reader_density ?? "comfortable"}>
-            <option value="comfortable">Comfortable</option>
-            <option value="compact">Compact</option>
+            <option value="comfortable">{dictionary.densityComfortable}</option>
+            <option value="compact">{dictionary.densityCompact}</option>
           </select>
         </label>
 
         <label>
-          <span>Font scale</span>
+          <span>{dictionary.fontScale}</span>
           <input
             name="reader_font_scale"
             type="number"
@@ -76,10 +79,10 @@ export default async function AccountSettingsPage({ searchParams }: PageProps) {
             type="checkbox"
             defaultChecked={Boolean(profile.reader_controls_collapsed)}
           />
-          <span>Keep detailed reader controls collapsed by default</span>
+          <span>{dictionary.collapseControls}</span>
         </label>
 
-        <button type="submit" className="artales-account-submit">Save reader settings</button>
+        <button type="submit" className="artales-account-submit">{dictionary.save}</button>
       </form>
     </section>
   );
