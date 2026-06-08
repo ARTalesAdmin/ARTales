@@ -1697,3 +1697,165 @@ body {
   flex-wrap: wrap;
   gap: 10px;
 }
+
+/* v0.9.10 — reader community hub and membership preview polish */
+.artales-account-empty-state {
+  background: rgba(255, 250, 240, 0.76);
+  border: 1px dashed rgba(13, 21, 40, 0.22);
+  border-radius: 20px;
+  padding: 20px;
+}
+
+.artales-account-empty-state h3 {
+  font-family: Georgia, "Times New Roman", serif;
+  margin: 0 0 8px;
+}
+
+.artales-account-actions--left {
+  justify-content: flex-start;
+}
+
+.artales-account-community-stats {
+  margin: 24px 0;
+}
+
+.artales-account-community-membrane {
+  background:
+    radial-gradient(circle at top right, rgba(217, 183, 110, 0.18), transparent 16rem),
+    rgba(255, 253, 247, 0.92);
+}
+
+.artales-button-secondary--danger {
+  color: #7f2b22;
+}
+
+.artales-account-roadmap-grid,
+.artales-account-model-grid,
+.artales-account-flow-grid {
+  display: grid;
+  gap: 14px;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  margin-top: 18px;
+}
+
+.artales-account-roadmap-card h3,
+.artales-account-model-grid h3,
+.artales-account-flow-grid h3 {
+  font-family: Georgia, "Times New Roman", serif;
+  margin: 0 0 7px;
+}
+
+.artales-account-roadmap-card span,
+.artales-account-flow-grid span {
+  background: rgba(217, 183, 110, 0.18);
+  border: 1px solid rgba(13, 21, 40, 0.1);
+  border-radius: 999px;
+  color: #74531c;
+  display: inline-flex;
+  font-size: 0.72rem;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  margin-bottom: 10px;
+  padding: 5px 9px;
+  text-transform: uppercase;
+}
+
+.artales-account-model-grid article,
+.artales-account-flow-grid article {
+  background: rgba(255, 250, 240, 0.72);
+  border: 1px solid rgba(13, 21, 40, 0.1);
+  border-radius: 18px;
+  padding: 16px;
+}
+
+.artales-account-role-path {
+  background: var(--artales-ink);
+  color: #fff8e5;
+}
+
+.artales-account-role-path h2,
+.artales-account-role-path .artales-account-card__label {
+  color: #fff8e5;
+}
+
+.artales-account-role-steps {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  margin-top: 18px;
+}
+
+.artales-account-role-steps article {
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 18px;
+  padding: 16px;
+}
+
+.artales-account-role-steps span {
+  color: var(--artales-gold-soft);
+  display: block;
+  font-size: 0.75rem;
+  font-weight: 900;
+  letter-spacing: 0.12em;
+  margin-bottom: 10px;
+}
+
+.artales-account-role-steps strong {
+  display: block;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 1.14rem;
+  margin-bottom: 6px;
+}
+
+.artales-account-role-steps p,
+.artales-account-role-path p {
+  color: rgba(255, 248, 229, 0.78);
+}
+
+.artales-account-membership-hero {
+  align-items: center;
+  display: flex;
+  gap: 24px;
+  justify-content: space-between;
+}
+
+.artales-account-membership-price-strip {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  justify-content: flex-end;
+  min-width: 160px;
+}
+
+.artales-account-membership-price-strip span {
+  align-items: center;
+  background: var(--artales-ink);
+  border-radius: 999px;
+  color: #fff8e5;
+  display: inline-flex;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 1.15rem;
+  font-weight: 800;
+  justify-content: center;
+  min-width: 54px;
+  padding: 10px 12px;
+}
+
+.artales-account-membership-grid {
+  margin-top: 24px;
+}
+
+.artales-account-overview-flow {
+  margin-top: 24px;
+}
+
+@media (max-width: 720px) {
+  .artales-account-membership-hero {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .artales-account-membership-price-strip {
+    justify-content: flex-start;
+  }
+}

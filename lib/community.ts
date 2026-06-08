@@ -225,19 +225,26 @@ export async function getCommunityInbox(limit = 50): Promise<CommunityInboxItem[
   });
 }
 
-export function getFeedbackTypeLabel(type: string) {
-  switch (type) {
-    case "correction":
-      return "Oprava / chyba";
-    case "translation":
-      return "Překlad";
-    case "formatting":
-      return "Formátování";
-    case "rights":
-      return "Práva / zdroj";
-    case "comment":
-      return "Komentář";
-    default:
-      return "Obecný podnět";
-  }
+export function getFeedbackTypeLabel(type: string, locale: "en" | "cs" = "cs") {
+  const labels = {
+    cs: {
+      correction: "Oprava / chyba",
+      translation: "Překlad",
+      formatting: "Formátování",
+      rights: "Práva / zdroj",
+      comment: "Komentář",
+      general: "Obecný podnět",
+    },
+    en: {
+      correction: "Correction / issue",
+      translation: "Translation",
+      formatting: "Formatting",
+      rights: "Rights / source",
+      comment: "Comment",
+      general: "General signal",
+    },
+  } as const;
+
+  const activeLabels = labels[locale] ?? labels.cs;
+  return activeLabels[type as keyof typeof activeLabels] ?? activeLabels.general;
 }

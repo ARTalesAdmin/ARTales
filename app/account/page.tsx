@@ -67,7 +67,28 @@ export default async function AccountPage() {
           <p>{dictionary.communityText}</p>
           <Link href="/account/community">{dictionary.communityCta}</Link>
         </article>
+
+        <article className="artales-account-card artales-account-card--compact-cta">
+          <p className="artales-account-card__label">{dictionary.membershipLabel}</p>
+          <h2>{dictionary.membershipTitle}</h2>
+          <p>{dictionary.membershipText}</p>
+          <Link href="/account/membership">{dictionary.membershipCta}</Link>
+        </article>
       </div>
+
+      <section className="artales-account-panel artales-account-overview-flow">
+        <p className="artales-account-card__label">{dictionary.flowLabel}</p>
+        <h2>{dictionary.flowTitle}</h2>
+        <div className="artales-account-flow-grid">
+          {dictionary.flowItems.map((item) => (
+            <article key={item.title}>
+              <span>{item.index}</span>
+              <h3>{item.title}</h3>
+              <p>{item.text}</p>
+            </article>
+          ))}
+        </div>
+      </section>
     </section>
   );
 }

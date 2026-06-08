@@ -1,74 +1,102 @@
 import Link from "next/link";
 import { requireCompletedAccountProfile } from "@/lib/account";
-import {
-  INTRO_PROMO_COPY,
-  MEMBERSHIP_TIERS,
-  formatEuro,
-  getUnlockLabel,
-} from "@/lib/membership";
+import { MEMBERSHIP_TIERS, formatEuro } from "@/lib/membership";
+import { getPublicDictionary } from "@/lib/i18n/public";
+import { getCookieLocale, resolveProfileLocale } from "@/lib/i18n/server";
 
 export const dynamic = "force-dynamic";
 
+type MembershipTierDictionary = {
+  name: string;
+  description: string;
+  badge?: string;
+  unlocks: string;
+  credits: string;
+  prices: string;
+};
+
 export default async function AccountMembershipPage() {
   const profile = await requireCompletedAccountProfile("/account/membership");
+  const cookieLocale = await getCookieLocale();
+  const locale = resolveProfileLocale(profile, cookieLocale);
+  const dictionary = getPublicDictionary(locale).account.membership;
+  const tierCopy = dictionary.tiers as Record<string, MembershipTierDictionary>;
 
   return (
-    <section className="artales-account-page">
-      <p className="artales-account-kicker">Membership</p>
-      <h1>ARTales membership</h1>
+    <section className="artales-account-page artales-account-membership-page">
+      <p className="artales-account-kicker">{dictionary.kicker}</p>
+      <h1>{dictionary.title}</h1>
       <p className="artales-account-lede">
-        You are currently on the <strong>Free Reader</strong> account layer. v0.9 starts the entitlement foundation: online unlocks, reader library and AT Credits are prepared before payments go live.
+        {dictionary.ledePrefix} <strong>{dictionary.freeReader}</strong>. {dictionary.ledeSuffix}
       </p>
 
-      <section className="artales-account-promo-panel">
-        <p className="artales-account-card__label">Launch offer</p>
-        <h2>First 3 months / first 100 readers</h2>
-        <p>
-          Introductory membership prices are planned as <strong>€1 / €2 / €4</strong> for Basic, Plus and Library. Later standard pricing is planned as <strong>€2 / €4 / €7</strong>.
-        </p>
-        <p className="artales-account-muted">
-          {INTRO_PROMO_COPY} Payment activation is not part of this patch yet; this page prepares the public/account copy and pricing logic.
-        </p>
+      <section className="artales-account-promo-panel artales-account-membership-hero">
+        <div>
+          <p className="artales-account-card__label">{dictionary.launchOfferLabel}</p>
+          <h2>{dictionary.launchOfferTitle}</h2>
+          <p>{dictionary.launchOfferText}</p>
+          <p className="artales-account-muted">{dictionary.paymentNotice}</p>
+        </div>
+        <div className="artales-account-membership-price-strip" aria-label={dictionary.launchOfferLabel}>
+          <span>€1</span>
+          <span>€2</span>
+          <span>€4</span>
+        </div>
       </section>
 
-      <div className="artales-account-tier-grid">
-        {MEMBERSHIP_TIERS.map((tier) => (
-          <article key={tier.code} className="artales-account-card artales-account-tier-card">
-            <div className="artales-account-tier-card__topline">
-              <p className="artales-account-card__label">{tier.name}</p>
-              {tier.badge ? <span className="artales-account-badge">{tier.badge}</span> : null}
-            </div>
-            <h2>{formatEuro(tier.introPrice)} <span>/ month</span></h2>
-            {tier.futurePrice > tier.introPrice ? (
-              <p className="artales-account-muted">
-                Later planned price: {formatEuro(tier.futurePrice)} / month
-              </p>
-            ) : (
-              <p className="artales-account-muted">Free account layer.</p>
-            )}
-            <p>{tier.description}</p>
-            <ul className="artales-account-feature-list">
-              <li>{getUnlockLabel(tier.monthlyOnlineUnlocks)}</li>
-              <li>{tier.monthlyAtCredits} AT Credits / month</li>
-              <li>{tier.code === "library" ? "Best member prices" : tier.code === "free_reader" ? "Reader tools and settings" : "Member prices"}</li>
-            </ul>
-          </article>
-        ))}
+      <div className="artales-account-tier-grid artales-account-membership-grid">
+        {MEMBERSHIP_TIERS.map((tier) => {
+          const copy = tierCopy[tier.code];
+          return (
+            <article key={tier.code} className="artales-account-card artales-account-tier-card">
+              <div className="artales-account-tier-card__topline">
+                <p className="artales-account-card__label">{copy.name}</p>
+                {copy.badge ? <span className="artales-account-badge">{copy.badge}</span> : null}
+              </div>
+              <h2>{formatEuro(tier.introPrice)} <span>{dictionary.perMonth}</span></h2>
+              {tier.futurePrice > tier.introPrice ? (
+                <p className="artales-account-muted">
+                  {dictionary.laterPrice}: {formatEuro(tier.futurePrice)} {dictionary.perMonth}
+                </p>
+              ) : (
+                <p className="artales-account-muted">{dictionary.freeLayer}</p>
+              )}
+              <p>{copy.description}</p>
+              <ul className="artales-account-feature-list">
+                <li>{copy.unlocks}</li>
+                <li>{copy.credits}</li>
+                <li>{copy.prices}</li>
+              </ul>
+            </article>
+          );
+        })}
       </div>
 
-      <section className="artales-account-panel">
-        <h2>What this means now</h2>
+      <section className="artales-account-panel artales-community-section">
+        <p className="artales-account-card__label">{dictionary.modelLabel}</p>
+        <h2>{dictionary.modelTitle}</h2>
+        <div className="artales-account-model-grid">
+          {dictionary.modelPoints.map((point) => (
+            <article key={point.title}>
+              <h3>{point.title}</h3>
+              <p>{point.text}</p>
+            </article>
+          ))}
+        </div>
+      </section>
+
+      <section className="artales-account-panel artales-community-section">
+        <p className="artales-account-card__label">{dictionary.currentStateLabel}</p>
+        <h2>{dictionary.currentStateTitle}</h2>
         <p>
-          Account identity is active for <strong>{profile.email}</strong>. The v0.9 entitlement layer creates the structure for online reading access, future PDF/EPUB products, subscription benefits and AT Credits.
+          {dictionary.identityPrefix} <strong>{profile.email}</strong>. {dictionary.identitySuffix}
         </p>
-        <p>
-          Payments are still disabled. Until product/payment activation, access can be granted only by system logic or later by admin/manual tools.
-        </p>
+        <p>{dictionary.paymentsDisabled}</p>
       </section>
 
       <div className="artales-account-actions">
-        <Link className="artales-button" href="/gallery">Explore works</Link>
-        <Link className="artales-button-secondary" href="/account/library">Open my library</Link>
+        <Link className="artales-button" href="/gallery">{dictionary.exploreWorks}</Link>
+        <Link className="artales-button-secondary" href="/account/library">{dictionary.openLibrary}</Link>
       </div>
     </section>
   );
