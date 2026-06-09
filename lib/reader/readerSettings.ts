@@ -44,7 +44,7 @@ export const defaultReaderSettings: ReaderSettings = {
   theme: "light",
   density: "comfortable",
   layoutMode: "scroll",
-  pageFit: "screen",
+  pageFit: "paper",
   controlsCollapsed: false,
 };
 
@@ -78,9 +78,10 @@ export function normalizeReaderSettings(value: unknown): ReaderSettings {
   )
     ? (raw.layoutMode as ReaderLayoutModeId)
     : defaultReaderSettings.layoutMode;
-  const pageFit = readerPageFitIds.includes(raw.pageFit as ReaderPageFitId)
-    ? (raw.pageFit as ReaderPageFitId)
-    : defaultReaderSettings.pageFit;
+  // v0.10.3b: keep the stored field for backward compatibility, but normalize
+  // legacy/screen values to the stable paper layout. The public Page size
+  // control was removed because the screen-fit mode was confusing in real use.
+  const pageFit: ReaderPageFitId = "paper";
 
   return {
     fontScale: clampReaderFontScale(

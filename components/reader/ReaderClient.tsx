@@ -26,7 +26,6 @@ import {
   type ReaderDensityId,
   type ReaderLayoutModeId,
   type ReaderSettings,
-  type ReaderPageFitId,
   type ReaderThemeId,
   type ReaderWidthId,
 } from "@/lib/reader/readerSettings";
@@ -70,18 +69,6 @@ function getSpreadStartPage(pageIndex: number) {
   return Math.max(0, pageIndex - (pageIndex % 2));
 }
 
-function formatPageRange(
-  pageIndex: number,
-  pageCount: number,
-  isSpreadMode: boolean,
-  labels: ReturnType<typeof getPublicDictionary>["reader"],
-) {
-  const currentPage = Math.min(pageIndex + 1, pageCount);
-  if (!isSpreadMode) return `${labels.page} ${currentPage} / ${pageCount}`;
-
-  const spreadEndPage = Math.min(pageIndex + 2, pageCount);
-  return `${labels.pages} ${currentPage}${spreadEndPage > currentPage ? `–${spreadEndPage}` : ""} / ${pageCount}`;
-}
 
 export default function ReaderClient({
   slug,
@@ -114,7 +101,6 @@ export default function ReaderClient({
   const pageStep = isSpreadMode ? 2 : 1;
   const detailHref = `/work/${slug}`;
   const fullHref = `/reader/${slug}?mode=full`;
-  const previewHref = `/reader/${slug}?mode=preview`;
   const readerPages = useMemo(
     () => paginateReaderBlocks(blocks, settings),
     [blocks, settings],
@@ -385,15 +371,13 @@ export default function ReaderClient({
     }
   }
 
-  function handlePageFitChange(pageFit: ReaderPageFitId) {
-    setSettings((current) => ({ ...current, pageFit }));
-  }
-
-
 
   async function handleToggleFocusMode() {
     const nextFocusMode = !isFocusMode;
     setIsFocusMode(nextFocusMode);
+    if (nextFocusMode) {
+      setSettings((current) => ({ ...current, controlsCollapsed: true }));
+    }
 
     if (typeof document === "undefined") return;
 
@@ -561,7 +545,6 @@ export default function ReaderClient({
     );
   }
 
-  const pageNavLabel = formatPageRange(normalizedPageIndex, pageCount, isSpreadMode, labels);
 
   return (
     <main
@@ -574,7 +557,6 @@ export default function ReaderClient({
         detailHref={detailHref}
         mode={mode}
         fullHref={fullHref}
-        previewHref={previewHref}
         progressPercent={progressPercent}
         pageIndex={normalizedPageIndex}
         pageCount={pageCount}
@@ -588,7 +570,6 @@ export default function ReaderClient({
           updateSettings({ density })
         }
         onLayoutModeChange={handleLayoutModeChange}
-        onPageFitChange={handlePageFitChange}
         onToggleControls={handleToggleControls}
         onBookmark={handleBookmark}
         onGoToBookmark={handleGoToBookmark}
@@ -648,26 +629,6 @@ export default function ReaderClient({
             >
               ›
             </button>
-            <nav
-              className="artales-reader-page-nav"
-              aria-label={labels.pageModeNavigation}
-            >
-            <button
-              type="button"
-              onClick={goToPreviousPage}
-              disabled={normalizedPageIndex <= 0}
-            >
-              ← {labels.previous}
-            </button>
-            <span>{pageNavLabel}</span>
-            <button
-              type="button"
-              onClick={goToNextPage}
-              disabled={normalizedPageIndex >= pageCount - pageStep}
-            >
-              {labels.next} →
-            </button>
-          </nav>
           </>
         ) : null}
       </section>

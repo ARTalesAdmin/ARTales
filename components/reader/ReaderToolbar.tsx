@@ -6,7 +6,6 @@ import type { ReaderBookmark } from "@/lib/reader/readerStorage";
 import type {
   ReaderDensityId,
   ReaderLayoutModeId,
-  ReaderPageFitId,
   ReaderSettings,
   ReaderThemeId,
   ReaderWidthId,
@@ -21,7 +20,6 @@ type ReaderToolbarProps = {
   detailHref: string;
   mode: "preview" | "full";
   fullHref: string;
-  previewHref: string;
   progressPercent: number;
   pageIndex: number;
   pageCount: number;
@@ -33,7 +31,6 @@ type ReaderToolbarProps = {
   onWidthChange: (width: ReaderWidthId) => void;
   onDensityChange: (density: ReaderDensityId) => void;
   onLayoutModeChange: (layoutMode: ReaderLayoutModeId) => void;
-  onPageFitChange: (pageFit: ReaderPageFitId) => void;
   onToggleControls: () => void;
   onBookmark: () => void;
   onGoToBookmark: () => void;
@@ -61,7 +58,6 @@ export default function ReaderToolbar({
   detailHref,
   mode,
   fullHref,
-  previewHref,
   progressPercent,
   pageIndex,
   pageCount,
@@ -73,7 +69,6 @@ export default function ReaderToolbar({
   onWidthChange,
   onDensityChange,
   onLayoutModeChange,
-  onPageFitChange,
   onToggleControls,
   onBookmark,
   onGoToBookmark,
@@ -118,6 +113,21 @@ export default function ReaderToolbar({
               <div style={{ width: `${progress}%` }} />
             </div>
           </div>
+          <button
+            type="button"
+            className="artales-reader-top-button"
+            onClick={onBookmark}
+          >
+            {bookmark ? labels.updateBookmark : labels.bookmark}
+          </button>
+          <button
+            type="button"
+            className="artales-reader-top-button artales-reader-top-button--focus"
+            onClick={onToggleFocusMode}
+            aria-pressed={isFocusMode}
+          >
+            {isFocusMode ? labels.exitFocusMode : labels.enterFocusMode}
+          </button>
           <button
             type="button"
             className="artales-reader-settings-toggle"
@@ -172,19 +182,6 @@ export default function ReaderToolbar({
             </label>
 
             <label className="artales-reader-select-label">
-              {labels.pageFit}
-              <select
-                value={settings.pageFit}
-                onChange={(event) =>
-                  onPageFitChange(event.target.value as ReaderPageFitId)
-                }
-              >
-                <option value="screen">{labels.pageFitScreen}</option>
-                <option value="paper">{labels.pageFitPaper}</option>
-              </select>
-            </label>
-
-            <label className="artales-reader-select-label">
               {labels.theme}
               <select
                 value={settings.theme}
@@ -230,20 +227,6 @@ export default function ReaderToolbar({
             className="artales-reader-toolbar__action-row"
             aria-label={labels.readerActions}
           >
-            <button
-              type="button"
-              className="artales-reader-ghost-button"
-              onClick={onBookmark}
-            >
-              {bookmark ? labels.updateBookmark : labels.bookmark}
-            </button>
-            <button
-              type="button"
-              className="artales-reader-ghost-button"
-              onClick={onToggleFocusMode}
-            >
-              {isFocusMode ? labels.exitFocusMode : labels.enterFocusMode}
-            </button>
             {bookmark ? (
               <>
                 <button
@@ -267,11 +250,7 @@ export default function ReaderToolbar({
               <Link className="artales-reader-primary-link" href={fullHref}>
                 {labels.continueReading}
               </Link>
-            ) : (
-              <Link className="artales-reader-ghost-link" href={previewHref}>
-                {labels.preview}
-              </Link>
-            )}
+            ) : null}
             <Link className="artales-reader-exit-link" href={detailHref}>
               × {labels.exitReader}
             </Link>
