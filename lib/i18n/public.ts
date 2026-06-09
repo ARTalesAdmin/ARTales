@@ -2,6 +2,7 @@ import { defaultPublicLocale, type SupportedLocale } from "./config"
 import { enCommon } from "./dictionaries/en/common"
 import { enPublic } from "./dictionaries/en/public"
 import { enReader } from "./dictionaries/en/reader"
+import { csReader } from "./dictionaries/cs/reader"
 import { csCommon } from "./dictionaries/cs/common"
 import { csPublic } from "./dictionaries/cs/public"
 import { enAccount } from "./dictionaries/en/account"
@@ -20,7 +21,7 @@ const publicDictionaries = {
       ...enPublic,
       ...csPublic,
     },
-    reader: enReader,
+    reader: csReader,
     account: csAccount,
   },
 } as const

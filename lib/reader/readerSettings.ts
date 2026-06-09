@@ -10,6 +10,9 @@ export type ReaderDensityId = (typeof readerDensityIds)[number];
 export const readerLayoutModeIds = ["scroll", "page", "spread"] as const;
 export type ReaderLayoutModeId = (typeof readerLayoutModeIds)[number];
 
+export const readerPageFitIds = ["screen", "paper"] as const;
+export type ReaderPageFitId = (typeof readerPageFitIds)[number];
+
 export type ReaderSettings = {
   fontScale: number;
   width: ReaderWidthId;
@@ -21,6 +24,12 @@ export type ReaderSettings = {
    * dual-page/book-spread work. Spread mode renders two adjacent page sheets on wider screens and falls back to the same sliced page data.
    */
   layoutMode: ReaderLayoutModeId;
+  /**
+   * Page/spread visual sizing. Screen keeps the page responsive between the
+   * toolbar and the viewport; paper keeps a more stable A-series sheet feel,
+   * even if the reader surface needs more vertical room.
+   */
+  pageFit: ReaderPageFitId;
   /**
    * Local reader preference. Later this can move to user profile preferences.
    * When true, the persistent reader top bar stays visible, but detailed
@@ -35,6 +44,7 @@ export const defaultReaderSettings: ReaderSettings = {
   theme: "light",
   density: "comfortable",
   layoutMode: "scroll",
+  pageFit: "screen",
   controlsCollapsed: false,
 };
 
@@ -68,6 +78,9 @@ export function normalizeReaderSettings(value: unknown): ReaderSettings {
   )
     ? (raw.layoutMode as ReaderLayoutModeId)
     : defaultReaderSettings.layoutMode;
+  const pageFit = readerPageFitIds.includes(raw.pageFit as ReaderPageFitId)
+    ? (raw.pageFit as ReaderPageFitId)
+    : defaultReaderSettings.pageFit;
 
   return {
     fontScale: clampReaderFontScale(
@@ -77,6 +90,7 @@ export function normalizeReaderSettings(value: unknown): ReaderSettings {
     theme,
     density,
     layoutMode,
+    pageFit,
     controlsCollapsed: Boolean(raw.controlsCollapsed),
   };
 }

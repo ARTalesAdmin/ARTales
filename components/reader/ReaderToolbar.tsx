@@ -6,10 +6,14 @@ import type { ReaderBookmark } from "@/lib/reader/readerStorage";
 import type {
   ReaderDensityId,
   ReaderLayoutModeId,
+  ReaderPageFitId,
   ReaderSettings,
   ReaderThemeId,
   ReaderWidthId,
 } from "@/lib/reader/readerSettings";
+import type { getPublicDictionary } from "@/lib/i18n/public";
+
+type ReaderLabels = ReturnType<typeof getPublicDictionary>["reader"];
 
 type ReaderToolbarProps = {
   title: string;
@@ -22,17 +26,32 @@ type ReaderToolbarProps = {
   pageIndex: number;
   pageCount: number;
   settings: ReaderSettings;
+  labels: ReaderLabels;
   bookmark: ReaderBookmark | null;
   onFontDelta: (delta: number) => void;
   onThemeChange: (theme: ReaderThemeId) => void;
   onWidthChange: (width: ReaderWidthId) => void;
   onDensityChange: (density: ReaderDensityId) => void;
   onLayoutModeChange: (layoutMode: ReaderLayoutModeId) => void;
+  onPageFitChange: (pageFit: ReaderPageFitId) => void;
   onToggleControls: () => void;
   onBookmark: () => void;
   onGoToBookmark: () => void;
   onClearBookmark: () => void;
 };
+
+function formatPageRange(
+  pageIndex: number,
+  pageCount: number,
+  isSpreadMode: boolean,
+  labels: ReaderLabels,
+) {
+  const currentPage = Math.min(pageIndex + 1, pageCount);
+  if (!isSpreadMode) return `${labels.page} ${currentPage} / ${pageCount}`;
+
+  const spreadEndPage = Math.min(pageIndex + 2, pageCount);
+  return `${labels.pages} ${currentPage}${spreadEndPage > currentPage ? `–${spreadEndPage}` : ""} / ${pageCount}`;
+}
 
 export default function ReaderToolbar({
   title,
@@ -45,12 +64,14 @@ export default function ReaderToolbar({
   pageIndex,
   pageCount,
   settings,
+  labels,
   bookmark,
   onFontDelta,
   onThemeChange,
   onWidthChange,
   onDensityChange,
   onLayoutModeChange,
+  onPageFitChange,
   onToggleControls,
   onBookmark,
   onGoToBookmark,
@@ -61,11 +82,7 @@ export default function ReaderToolbar({
   const controlsId = "artales-reader-settings-panel";
   const isPagedMode = settings.layoutMode === "page" || settings.layoutMode === "spread";
   const isSpreadMode = settings.layoutMode === "spread";
-  const currentPage = Math.min(pageIndex + 1, pageCount);
-  const spreadEndPage = Math.min(pageIndex + 2, pageCount);
-  const pageLabel = isSpreadMode
-    ? `Pages ${currentPage}${spreadEndPage > currentPage ? `–${spreadEndPage}` : ""} / ${pageCount}`
-    : `Page ${currentPage} / ${pageCount}`;
+  const pageLabel = formatPageRange(pageIndex, pageCount, isSpreadMode, labels);
 
   return (
     <header className="artales-reader-toolbar">
@@ -74,11 +91,11 @@ export default function ReaderToolbar({
           <ArtalesBrand variant={brandVariant} size="sm" showMark />
           <div className="artales-reader-toolbar__title-wrap">
             <p className="artales-reader-toolbar__mode">
-              {mode === "preview" ? "Preview" : "Online reader"}
+              {mode === "preview" ? labels.preview : labels.onlineReader}
             </p>
             <h1 className="artales-reader-toolbar__title">{title}</h1>
             {authorName ? (
-              <p className="artales-reader-toolbar__author">by {authorName}</p>
+              <p className="artales-reader-toolbar__author">{authorName}</p>
             ) : null}
           </div>
         </div>
@@ -88,8 +105,8 @@ export default function ReaderToolbar({
             className="artales-reader-progress artales-reader-progress--top"
             aria-label={
               isPagedMode
-                ? `${pageLabel}, reading progress ${progress}%`
-                : `Reading progress ${progress}%`
+                ? `${pageLabel}, ${labels.readingProgress} ${progress}%`
+                : `${labels.readingProgress} ${progress}%`
             }
           >
             <span>{isPagedMode ? pageLabel : `${progress}%`}</span>
@@ -107,7 +124,7 @@ export default function ReaderToolbar({
             <span aria-hidden="true">
               {settings.controlsCollapsed ? "▾" : "▴"}
             </span>
-            Reader settings
+            {settings.controlsCollapsed ? labels.showSettings : labels.hideSettings}
           </button>
         </div>
       </div>
@@ -116,13 +133,13 @@ export default function ReaderToolbar({
         <div id={controlsId} className="artales-reader-toolbar__settings-panel">
           <div
             className="artales-reader-toolbar__controls"
-            aria-label="Reader controls"
+            aria-label={labels.readerControls}
           >
-            <div className="artales-reader-control-group" aria-label="Text size">
+            <div className="artales-reader-control-group" aria-label={labels.textSize}>
               <button
                 type="button"
                 onClick={() => onFontDelta(-0.05)}
-                aria-label="Decrease font size"
+                aria-label={labels.decreaseFontSize}
               >
                 A-
               </button>
@@ -130,78 +147,91 @@ export default function ReaderToolbar({
               <button
                 type="button"
                 onClick={() => onFontDelta(0.05)}
-                aria-label="Increase font size"
+                aria-label={labels.increaseFontSize}
               >
                 A+
               </button>
             </div>
 
             <label className="artales-reader-select-label">
-              Mode
+              {labels.mode}
               <select
                 value={settings.layoutMode}
                 onChange={(event) =>
                   onLayoutModeChange(event.target.value as ReaderLayoutModeId)
                 }
               >
-                <option value="scroll">Scroll</option>
-                <option value="page">Page</option>
-                <option value="spread">Book spread</option>
+                <option value="scroll">{labels.modeScroll}</option>
+                <option value="page">{labels.modePage}</option>
+                <option value="spread">{labels.modeSpread}</option>
               </select>
             </label>
 
             <label className="artales-reader-select-label">
-              Theme
+              {labels.pageFit}
+              <select
+                value={settings.pageFit}
+                onChange={(event) =>
+                  onPageFitChange(event.target.value as ReaderPageFitId)
+                }
+              >
+                <option value="screen">{labels.pageFitScreen}</option>
+                <option value="paper">{labels.pageFitPaper}</option>
+              </select>
+            </label>
+
+            <label className="artales-reader-select-label">
+              {labels.theme}
               <select
                 value={settings.theme}
                 onChange={(event) =>
                   onThemeChange(event.target.value as ReaderThemeId)
                 }
               >
-                <option value="light">Light</option>
-                <option value="script">Script</option>
-                <option value="dark">Dark</option>
+                <option value="light">{labels.themeLight}</option>
+                <option value="script">{labels.themeScript}</option>
+                <option value="dark">{labels.themeDark}</option>
               </select>
             </label>
 
             <label className="artales-reader-select-label">
-              Width
+              {labels.width}
               <select
                 value={settings.width}
                 onChange={(event) =>
                   onWidthChange(event.target.value as ReaderWidthId)
                 }
               >
-                <option value="narrow">Narrow</option>
-                <option value="normal">Normal</option>
-                <option value="wide">Wide</option>
+                <option value="narrow">{labels.widthNarrow}</option>
+                <option value="normal">{labels.widthNormal}</option>
+                <option value="wide">{labels.widthWide}</option>
               </select>
             </label>
 
             <label className="artales-reader-select-label">
-              Density
+              {labels.density}
               <select
                 value={settings.density}
                 onChange={(event) =>
                   onDensityChange(event.target.value as ReaderDensityId)
                 }
               >
-                <option value="comfortable">Comfort</option>
-                <option value="compact">Compact</option>
+                <option value="comfortable">{labels.densityComfort}</option>
+                <option value="compact">{labels.densityCompact}</option>
               </select>
             </label>
           </div>
 
           <div
             className="artales-reader-toolbar__action-row"
-            aria-label="Reader actions"
+            aria-label={labels.readerActions}
           >
             <button
               type="button"
               className="artales-reader-ghost-button"
               onClick={onBookmark}
             >
-              {bookmark ? "Update bookmark" : "Bookmark"}
+              {bookmark ? labels.updateBookmark : labels.bookmark}
             </button>
             {bookmark ? (
               <>
@@ -210,29 +240,29 @@ export default function ReaderToolbar({
                   className="artales-reader-ghost-button"
                   onClick={onGoToBookmark}
                 >
-                  Go to bookmark
+                  {labels.goToBookmark}
                 </button>
                 <button
                   type="button"
                   className="artales-reader-ghost-button"
                   onClick={onClearBookmark}
                 >
-                  Clear bookmark
+                  {labels.clearBookmark}
                 </button>
               </>
             ) : null}
 
             {mode === "preview" ? (
               <Link className="artales-reader-primary-link" href={fullHref}>
-                Continue reading
+                {labels.continueReading}
               </Link>
             ) : (
               <Link className="artales-reader-ghost-link" href={previewHref}>
-                Preview
+                {labels.preview}
               </Link>
             )}
             <Link className="artales-reader-exit-link" href={detailHref}>
-              × Exit
+              × {labels.exitReader}
             </Link>
           </div>
         </div>

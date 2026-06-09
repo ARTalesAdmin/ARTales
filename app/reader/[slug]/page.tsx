@@ -4,6 +4,7 @@ import { getWorkBySlug } from "@/lib/dbWorks";
 import { getPreviewBlocks, getPreviewFallbackContent } from "@/lib/workPreview";
 import { getCurrentProfile } from "@/lib/auth";
 import { canOpenFullReader } from "@/lib/entitlements";
+import { getCookieLocale, resolveProfileLocale } from "@/lib/i18n/server";
 
 type ReaderPageProps = {
   params: Promise<{ slug: string }>;
@@ -26,6 +27,8 @@ export default async function ReaderPage({
 
   const readerMode = mode === "full" ? "full" : "preview";
   const profile = await getCurrentProfile();
+  const cookieLocale = await getCookieLocale();
+  const locale = resolveProfileLocale(profile, cookieLocale);
 
   const canOpenFull = await canOpenFullReader(profile, work.id);
 
@@ -52,6 +55,7 @@ export default async function ReaderPage({
       mode={readerMode}
       blocks={blocks}
       fallbackContent={fallbackContent}
+      locale={locale}
     />
   );
 }

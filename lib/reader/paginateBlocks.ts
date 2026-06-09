@@ -18,12 +18,13 @@ function getPageBudget(settings: ReaderSettings) {
   const widthMultiplier =
     settings.width === "wide" ? 1.08 : settings.width === "narrow" ? 0.86 : 1;
   const densityMultiplier = settings.density === "compact" ? 1.08 : 0.94;
+  const fitMultiplier = settings.pageFit === "paper" ? 1.03 : 0.98;
   const fontMultiplier = Math.max(0.68, Math.min(1.18, 1 / settings.fontScale));
 
   // Conservative text capacity for one visible paper sheet. The page UI has
   // a header/footer safe area, so the paginator must leave margin instead of
   // trying to fill the sheet to the last pixel.
-  return Math.round(1220 * widthMultiplier * densityMultiplier * fontMultiplier);
+  return Math.round(1220 * widthMultiplier * densityMultiplier * fitMultiplier * fontMultiplier);
 }
 
 function getBlockText(block: WorkBlock) {
