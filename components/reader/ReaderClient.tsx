@@ -400,6 +400,13 @@ export default function ReaderClient({
             </button>
           ) : null}
 
+          {isPageMode ? (
+            <header className="artales-reader__page-header" aria-hidden="true">
+              <span>{title}</span>
+              <span>{Math.min(pageIndex + 1, pageCount)}</span>
+            </header>
+          ) : null}
+
           <div ref={pageContentRef} className="artales-reader__page-content">
             {mode === "preview" && (!isPageMode || pageIndex === 0) ? (
               <p className="artales-reader__preview-note">

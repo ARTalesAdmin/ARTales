@@ -16,13 +16,14 @@ const KEEP_TOGETHER_BLOCKS = new Set<WorkBlock["type"]>([
 
 function getPageBudget(settings: ReaderSettings) {
   const widthMultiplier =
-    settings.width === "wide" ? 1.16 : settings.width === "narrow" ? 0.9 : 1;
-  const densityMultiplier = settings.density === "compact" ? 1.12 : 1;
-  const fontMultiplier = Math.max(0.72, Math.min(1.24, 1 / settings.fontScale));
+    settings.width === "wide" ? 1.08 : settings.width === "narrow" ? 0.86 : 1;
+  const densityMultiplier = settings.density === "compact" ? 1.08 : 0.94;
+  const fontMultiplier = Math.max(0.68, Math.min(1.18, 1 / settings.fontScale));
 
-  return Math.round(
-    1850 * widthMultiplier * densityMultiplier * fontMultiplier,
-  );
+  // Conservative text capacity for one visible paper sheet. The page UI has
+  // a header/footer safe area, so the paginator must leave margin instead of
+  // trying to fill the sheet to the last pixel.
+  return Math.round(1220 * widthMultiplier * densityMultiplier * fontMultiplier);
 }
 
 function getBlockText(block: WorkBlock) {
@@ -55,6 +56,58 @@ function splitSentences(text: string) {
   return (matches ?? [normalized]).map((part) => part.trim()).filter(Boolean);
 }
 
+function splitBySoftPunctuation(text: string, maxLength: number) {
+  const normalized = normalizeWhitespace(text);
+  if (normalized.length <= maxLength) return [normalized];
+
+  const pieces = normalized
+    .split(/(?<=[,;:—–-])[ ]+/g)
+    .map((part) => part.trim())
+    .filter(Boolean);
+
+  if (pieces.length <= 1) {
+    return splitByWordLimit(normalized, maxLength);
+  }
+
+  const chunks: string[] = [];
+  let current = "";
+
+  for (const piece of pieces) {
+    const candidate = current ? `${current} ${piece}` : piece;
+    if (candidate.length > maxLength && current) {
+      chunks.push(current);
+      current = piece;
+    } else if (candidate.length > maxLength) {
+      chunks.push(...splitByWordLimit(candidate, maxLength));
+      current = "";
+    } else {
+      current = candidate;
+    }
+  }
+
+  if (current) chunks.push(current);
+  return chunks;
+}
+
+function splitByWordLimit(text: string, maxLength: number) {
+  const words = normalizeWhitespace(text).split(" ").filter(Boolean);
+  const chunks: string[] = [];
+  let current = "";
+
+  for (const word of words) {
+    const candidate = current ? `${current} ${word}` : word;
+    if (candidate.length > maxLength && current) {
+      chunks.push(current);
+      current = word;
+    } else {
+      current = candidate;
+    }
+  }
+
+  if (current) chunks.push(current);
+  return chunks;
+}
+
 function splitLines(text: string) {
   return text
     .replace(/\r\n/g, "\n")
@@ -65,18 +118,25 @@ function splitLines(text: string) {
 
 function splitLongText(text: string, maxLength: number) {
   const sentences = splitSentences(text);
-  if (sentences.length <= 1) return [text];
+  if (sentences.length <= 1) return splitBySoftPunctuation(text, maxLength);
 
   const chunks: string[] = [];
   let current = "";
 
   for (const sentence of sentences) {
-    const candidate = current ? `${current} ${sentence}` : sentence;
-    if (candidate.length > maxLength && current) {
-      chunks.push(current);
-      current = sentence;
-    } else {
-      current = candidate;
+    const sentenceParts = splitBySoftPunctuation(sentence, maxLength);
+
+    for (const part of sentenceParts) {
+      const candidate = current ? `${current} ${part}` : part;
+      if (candidate.length > maxLength && current) {
+        chunks.push(current);
+        current = part;
+      } else if (candidate.length > maxLength) {
+        chunks.push(...splitByWordLimit(candidate, maxLength));
+        current = "";
+      } else {
+        current = candidate;
+      }
     }
   }
 
@@ -131,7 +191,7 @@ function splitBlock(block: WorkBlock, budget: number): WorkBlock[] {
   }
 
   const paragraphs = splitParagraphs(text);
-  const chunkLimit = Math.max(620, Math.round(budget * 0.58));
+  const chunkLimit = Math.max(360, Math.round(budget * 0.42));
   const chunks: WorkBlock[] = [];
 
   for (const [paragraphIndex, paragraph] of paragraphs.entries()) {
@@ -148,32 +208,34 @@ function splitBlock(block: WorkBlock, budget: number): WorkBlock[] {
 
 function getBlockWeight(block: WorkBlock) {
   const text = getBlockText(block);
-  const base = Math.max(80, text.length);
+  const base = Math.max(60, text.length);
 
   switch (block.type) {
     case "book_part":
-      return Math.max(420, base * 2.4);
+      return Math.max(520, base * 2.6);
     case "chapter":
-      return Math.max(320, base * 2.1);
+      return Math.max(420, base * 2.2);
     case "headline":
-      return Math.max(240, base * 1.7);
+      return Math.max(280, base * 1.9);
     case "quote":
+      return base * 1.28 + 120;
     case "letter":
+      return base * 1.32 + 180;
     case "newspaper_article":
-      return base * 1.25;
+      return base * 1.28 + 180;
     case "poem":
-      return base * 1.35;
+      return base * 1.42 + 140;
     case "separator":
-      return 260;
+      return 280;
     case "image":
-      return 860;
+      return 920;
     case "note":
     case "footnote":
-      return base * 1.2;
+      return base * 1.26 + 120;
     case "place_line":
-      return 180;
+      return 210;
     default:
-      return base;
+      return base + 90;
   }
 }
 
@@ -191,8 +253,8 @@ export function paginateReaderBlocks(
   settings: ReaderSettings,
 ): ReaderPage[] {
   const budget = getPageBudget(settings);
-  const softBudget = Math.round(budget * 0.9);
-  const maxBudget = Math.round(budget * 1.04);
+  const softBudget = Math.round(budget * 0.82);
+  const maxBudget = Math.round(budget * 0.96);
   const splitBlocks = blocks.flatMap((block) => splitBlock(block, budget));
   const pages: ReaderPage[] = [];
   let currentBlocks: WorkBlock[] = [];
