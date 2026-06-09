@@ -28,6 +28,7 @@ import {
   type ReaderThemeId,
   type ReaderWidthId,
 } from "@/lib/reader/readerSettings";
+import { paginateReaderBlocks } from "@/lib/reader/paginateBlocks";
 import ReaderToolbar from "./ReaderToolbar";
 import "./reader.css";
 
@@ -73,10 +74,10 @@ export default function ReaderClient({
   );
   const [progressPercent, setProgressPercent] = useState(0);
   const [pageIndex, setPageIndex] = useState(0);
-  const [pageCount, setPageCount] = useState(1);
-  const [pageHeight, setPageHeight] = useState(1);
   const [bookmark, setBookmark] = useState<ReaderBookmark | null>(null);
-  const [bookmarkMarkerTop, setBookmarkMarkerTop] = useState<number | null>(null);
+  const [bookmarkMarkerTop, setBookmarkMarkerTop] = useState<number | null>(
+    null,
+  );
   const restoredInitialPosition = useRef(false);
   const restoredPagePosition = useRef(false);
   const paperRef = useRef<HTMLElement | null>(null);
@@ -86,6 +87,13 @@ export default function ReaderClient({
   const detailHref = `/work/${slug}`;
   const fullHref = `/reader/${slug}?mode=full`;
   const previewHref = `/reader/${slug}?mode=preview`;
+  const readerPages = useMemo(
+    () => paginateReaderBlocks(blocks, settings),
+    [blocks, settings],
+  );
+  const pageCount = readerPages.length;
+  const activePage =
+    readerPages[Math.min(pageIndex, pageCount - 1)] ?? readerPages[0];
 
   useEffect(() => {
     saveReaderSettings(settings);
@@ -95,65 +103,49 @@ export default function ReaderClient({
     setBookmark(loadReaderBookmark(slug));
   }, [slug]);
 
-  const recalculatePages = useCallback(() => {
-    if (!paperRef.current || !pageContentRef.current) {
-      setPageHeight(1);
-      setPageCount(1);
-      setPageIndex(0);
-      return;
-    }
-
-    const nextPageHeight = Math.max(1, paperRef.current.clientHeight);
-    const nextContentHeight = Math.max(
-      nextPageHeight,
-      pageContentRef.current.scrollHeight,
-    );
-    const nextPageCount = Math.max(
-      1,
-      Math.ceil(nextContentHeight / nextPageHeight),
-    );
-
-    setPageHeight(nextPageHeight);
-    setPageCount(nextPageCount);
-    setPageIndex((current) => Math.min(current, nextPageCount - 1));
-  }, []);
-
   useEffect(() => {
-    recalculatePages();
-    if (typeof ResizeObserver === "undefined") {
-      window.addEventListener("resize", recalculatePages);
-      return () => window.removeEventListener("resize", recalculatePages);
-    }
+    setPageIndex((current) => Math.min(current, Math.max(0, pageCount - 1)));
+  }, [pageCount]);
 
-    const observer = new ResizeObserver(() => recalculatePages());
-    if (paperRef.current) observer.observe(paperRef.current);
-    if (pageContentRef.current) observer.observe(pageContentRef.current);
-    window.addEventListener("resize", recalculatePages);
+  const recalculateBookmarkMarker = useCallback(
+    (nextBookmark: ReaderBookmark | null) => {
+      if (
+        !nextBookmark ||
+        typeof window === "undefined" ||
+        !paperRef.current ||
+        isPageMode
+      ) {
+        setBookmarkMarkerTop(null);
+        return;
+      }
 
-    return () => {
-      observer.disconnect();
-      window.removeEventListener("resize", recalculatePages);
-    };
-  }, [recalculatePages, settings.fontScale, settings.width, settings.density, isPageMode]);
+      const paperTop =
+        paperRef.current.getBoundingClientRect().top + window.scrollY;
+      const readingOffset = Math.min(
+        180,
+        Math.max(86, window.innerHeight * 0.16),
+      );
+      const approximateDocumentY = nextBookmark.scrollY + readingOffset;
+      const maxTop = Math.max(0, paperRef.current.scrollHeight - 24);
+      const nextTop = Math.max(
+        0,
+        Math.min(maxTop, approximateDocumentY - paperTop),
+      );
 
-  const recalculateBookmarkMarker = useCallback((nextBookmark: ReaderBookmark | null) => {
-    if (!nextBookmark || typeof window === "undefined" || !paperRef.current || isPageMode) {
-      setBookmarkMarkerTop(null);
-      return;
-    }
-
-    const paperTop = paperRef.current.getBoundingClientRect().top + window.scrollY;
-    const readingOffset = Math.min(180, Math.max(86, window.innerHeight * 0.16));
-    const approximateDocumentY = nextBookmark.scrollY + readingOffset;
-    const maxTop = Math.max(0, paperRef.current.scrollHeight - 24);
-    const nextTop = Math.max(0, Math.min(maxTop, approximateDocumentY - paperTop));
-
-    setBookmarkMarkerTop(nextTop);
-  }, [isPageMode]);
+      setBookmarkMarkerTop(nextTop);
+    },
+    [isPageMode],
+  );
 
   useEffect(() => {
     recalculateBookmarkMarker(bookmark);
-  }, [bookmark, recalculateBookmarkMarker, settings.fontScale, settings.width, settings.density]);
+  }, [
+    bookmark,
+    recalculateBookmarkMarker,
+    settings.fontScale,
+    settings.width,
+    settings.density,
+  ]);
 
   useEffect(() => {
     const onResize = () => recalculateBookmarkMarker(bookmark);
@@ -240,7 +232,7 @@ export default function ReaderClient({
       saveReaderProgress({
         slug,
         mode,
-        scrollY: pageIndex * pageHeight,
+        scrollY: pageIndex,
         pageIndex,
         pageCount,
         progressPercent: nextProgress,
@@ -248,7 +240,7 @@ export default function ReaderClient({
         updatedAt: new Date().toISOString(),
       });
     }
-  }, [isPageMode, mode, pageCount, pageHeight, pageIndex, slug]);
+  }, [isPageMode, mode, pageCount, pageIndex, slug]);
 
   useEffect(() => {
     if (!isPageMode) return;
@@ -276,16 +268,6 @@ export default function ReaderClient({
         "--reader-font-scale": settings.fontScale.toString(),
       }) as CSSProperties,
     [settings.fontScale],
-  );
-
-  const pageContentStyle = useMemo(
-    () =>
-      ({
-        transform: isPageMode
-          ? `translateY(-${pageIndex * pageHeight}px)`
-          : undefined,
-      }) as CSSProperties,
-    [isPageMode, pageHeight, pageIndex],
   );
 
   const updateSettings = useCallback((patch: Partial<ReaderSettings>) => {
@@ -320,7 +302,7 @@ export default function ReaderClient({
       const nextBookmark: ReaderBookmark = {
         slug,
         mode,
-        scrollY: pageIndex * pageHeight,
+        scrollY: pageIndex,
         progressPercent: nextProgress,
         pageIndex,
         pageCount,
@@ -418,12 +400,8 @@ export default function ReaderClient({
             </button>
           ) : null}
 
-          <div
-            ref={pageContentRef}
-            className="artales-reader__page-content"
-            style={pageContentStyle}
-          >
-            {mode === "preview" ? (
+          <div ref={pageContentRef} className="artales-reader__page-content">
+            {mode === "preview" && (!isPageMode || pageIndex === 0) ? (
               <p className="artales-reader__preview-note">
                 This is a short preview. Continue to the full online reader when
                 you are ready.
@@ -431,14 +409,17 @@ export default function ReaderClient({
             ) : null}
 
             <WorkContentRenderer
-              blocks={blocks}
-              fallbackContent={fallbackContent}
+              blocks={isPageMode ? activePage.blocks : blocks}
+              fallbackContent={isPageMode ? null : fallbackContent}
               formatPreset={
-                settings.density === "compact" ? "readerCompact" : "readerComfort"
+                settings.density === "compact"
+                  ? "readerCompact"
+                  : "readerComfort"
               }
             />
 
-            {mode === "preview" ? (
+            {mode === "preview" &&
+            (!isPageMode || pageIndex >= pageCount - 1) ? (
               <div className="artales-reader__preview-cta">
                 <p>This preview is intentionally short.</p>
                 <a className="artales-button" href={fullHref}>
@@ -447,6 +428,15 @@ export default function ReaderClient({
               </div>
             ) : null}
           </div>
+
+          {isPageMode ? (
+            <footer
+              className="artales-reader__page-footer"
+              aria-label="Reader page number"
+            >
+              <span>{Math.min(pageIndex + 1, pageCount)}</span>
+            </footer>
+          ) : null}
         </article>
 
         {isPageMode ? (

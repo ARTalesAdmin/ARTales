@@ -1,7 +1,11 @@
 .artales-reader {
   --reader-font-scale: 1;
   --reader-outer-bg:
-    radial-gradient(circle at top, rgba(217, 183, 110, 0.22), transparent 32rem),
+    radial-gradient(
+      circle at top,
+      rgba(217, 183, 110, 0.22),
+      transparent 32rem
+    ),
     linear-gradient(180deg, #f4ead7 0%, #dbc59d 100%);
   --reader-toolbar-bg: rgba(255, 250, 240, 0.86);
   --reader-toolbar-border: rgba(13, 21, 40, 0.12);
@@ -28,7 +32,11 @@
 
 .artales-reader--theme-light {
   --reader-outer-bg:
-    radial-gradient(circle at top, rgba(217, 183, 110, 0.18), transparent 34rem),
+    radial-gradient(
+      circle at top,
+      rgba(217, 183, 110, 0.18),
+      transparent 34rem
+    ),
     linear-gradient(180deg, #f7f1e6 0%, #e7d4a0 100%);
   --reader-toolbar-bg: rgba(255, 250, 240, 0.9);
   --reader-toolbar-border: rgba(13, 21, 40, 0.12);
@@ -51,7 +59,11 @@
 
 .artales-reader--theme-script {
   --reader-outer-bg:
-    radial-gradient(circle at top left, rgba(171, 118, 44, 0.2), transparent 34rem),
+    radial-gradient(
+      circle at top left,
+      rgba(171, 118, 44, 0.2),
+      transparent 34rem
+    ),
     linear-gradient(180deg, #e9d8b9 0%, #c9a979 100%);
   --reader-toolbar-bg: rgba(67, 43, 25, 0.86);
   --reader-toolbar-border: rgba(249, 230, 186, 0.22);
@@ -74,7 +86,11 @@
 
 .artales-reader--theme-dark {
   --reader-outer-bg:
-    radial-gradient(circle at top, rgba(217, 183, 110, 0.16), transparent 34rem),
+    radial-gradient(
+      circle at top,
+      rgba(217, 183, 110, 0.16),
+      transparent 34rem
+    ),
     linear-gradient(180deg, #05070b 0%, #0b1324 100%);
   --reader-toolbar-bg: rgba(5, 7, 11, 0.84);
   --reader-toolbar-border: rgba(241, 216, 157, 0.18);
@@ -374,7 +390,8 @@
   border: 0;
   border-left: 5px solid var(--reader-bookmark);
   border-radius: 0 999px 999px 0;
-  box-shadow: 0 10px 28px color-mix(in srgb, var(--reader-bookmark) 28%, transparent);
+  box-shadow: 0 10px 28px
+    color-mix(in srgb, var(--reader-bookmark) 28%, transparent);
   color: var(--reader-accent-strong);
   cursor: pointer;
   display: flex;
@@ -394,7 +411,11 @@
 }
 
 .artales-reader__bookmark-marker::before {
-  background: radial-gradient(circle, var(--reader-bookmark) 0 2px, transparent 2.6px);
+  background: radial-gradient(
+    circle,
+    var(--reader-bookmark) 0 2px,
+    transparent 2.6px
+  );
   content: "";
   height: 6px;
   margin-right: 8px;
@@ -562,11 +583,13 @@
   padding-top: clamp(18px, 3vw, 34px);
 }
 
-.artales-reader--layout-page.artales-reader--width-narrow .artales-reader__paper {
+.artales-reader--layout-page.artales-reader--width-narrow
+  .artales-reader__paper {
   max-width: 620px;
 }
 
-.artales-reader--layout-page.artales-reader--width-normal .artales-reader__paper {
+.artales-reader--layout-page.artales-reader--width-normal
+  .artales-reader__paper {
   max-width: 700px;
 }
 
@@ -644,5 +667,70 @@
   .artales-reader-page-nav span {
     order: -1;
     width: 100%;
+  }
+}
+
+/* v0.10.1b — paged reader renders real page slices, not a clipped scroll viewport. */
+.artales-reader--layout-page .artales-reader__paper--paged {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding-bottom: clamp(34px, 4vw, 50px);
+}
+
+.artales-reader--layout-page .artales-reader__page-content {
+  flex: 1 1 auto;
+  min-height: 0;
+  transform: none;
+}
+
+.artales-reader--layout-page
+  .artales-reader__page-content
+  .artales-work-content {
+  max-width: 100%;
+}
+
+.artales-reader__page-footer {
+  align-items: center;
+  border-top: 1px solid
+    color-mix(in srgb, var(--reader-paper-border) 72%, transparent);
+  color: var(--reader-paper-muted);
+  display: flex;
+  flex: 0 0 auto;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 12px;
+  justify-content: center;
+  letter-spacing: 0.08em;
+  margin-top: clamp(18px, 3vw, 34px);
+  padding-top: 12px;
+}
+
+.artales-reader__page-footer span {
+  align-items: center;
+  display: inline-flex;
+  justify-content: center;
+  min-width: 24px;
+}
+
+.artales-reader--layout-page .artales-book-part,
+.artales-reader--layout-page .artales-chapter {
+  page-break-after: avoid;
+}
+
+.artales-reader--layout-page .artales-paragraph p,
+.artales-reader--layout-page .artales-quote p,
+.artales-reader--layout-page .artales-letter p,
+.artales-reader--layout-page .artales-newspaper p {
+  orphans: 3;
+  widows: 3;
+}
+
+@media (max-width: 640px) {
+  .artales-reader--layout-page .artales-reader__paper--paged {
+    padding-bottom: 26px;
+  }
+
+  .artales-reader__page-footer {
+    margin-top: 18px;
   }
 }
