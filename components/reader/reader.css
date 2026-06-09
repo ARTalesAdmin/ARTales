@@ -1236,3 +1236,90 @@
     padding-top: 78px;
   }
 }
+
+/* v0.10.3c — focus/settings/bookmark correction.
+   Focus must not hide the settings panel permanently and must not change
+   page dimensions in a way that invalidates the paginator output. */
+.artales-reader-bookmark-actions {
+  align-items: center;
+  display: inline-flex;
+  flex: 0 1 auto;
+  gap: 6px;
+  min-width: 0;
+}
+
+.artales-reader-top-button--subtle {
+  opacity: 0.78;
+}
+
+.artales-reader-top-button--subtle:hover,
+.artales-reader-top-button--subtle:focus-visible {
+  opacity: 1;
+}
+
+.artales-reader--focus .artales-reader-toolbar__settings-panel {
+  display: grid;
+  max-height: calc(100vh - 82px);
+}
+
+.artales-reader--focus.artales-reader--layout-page .artales-reader__stage,
+.artales-reader--focus.artales-reader--layout-spread .artales-reader__stage {
+  align-items: center;
+  display: flex;
+  justify-content: center;
+  min-height: 100vh;
+  padding: 86px clamp(24px, 4vw, 64px) 34px;
+}
+
+.artales-reader--focus.artales-reader--layout-page .artales-reader__paper--paged {
+  padding: clamp(54px, 5.6vw, 78px) clamp(38px, 7vw, 88px);
+  width: min(700px, calc(100vw - 96px));
+}
+
+.artales-reader--focus.artales-reader--layout-page.artales-reader--width-narrow
+  .artales-reader__paper--paged {
+  width: min(620px, calc(100vw - 96px));
+}
+
+.artales-reader--focus.artales-reader--layout-page.artales-reader--width-wide
+  .artales-reader__paper--paged {
+  width: min(780px, calc(100vw - 96px));
+}
+
+.artales-reader--focus.artales-reader--layout-spread .artales-reader__spread {
+  max-width: min(1460px, calc(100vw - 128px));
+}
+
+.artales-reader--focus.artales-reader--layout-spread .artales-reader__paper--paged {
+  padding: clamp(54px, 5.6vw, 78px) clamp(38px, 7vw, 88px);
+}
+
+@media (max-width: 980px) {
+  .artales-reader-bookmark-actions {
+    flex-wrap: wrap;
+  }
+
+  .artales-reader--focus.artales-reader--layout-page .artales-reader__paper--paged,
+  .artales-reader--focus.artales-reader--layout-spread .artales-reader__paper--paged {
+    width: min(700px, calc(100vw - 32px));
+  }
+
+  .artales-reader--focus.artales-reader--layout-spread .artales-reader__spread {
+    max-width: min(700px, calc(100vw - 32px));
+  }
+}
+
+@media (max-width: 640px) {
+  .artales-reader-bookmark-actions {
+    width: 100%;
+  }
+
+  .artales-reader-bookmark-actions .artales-reader-top-button {
+    flex: 1 1 30%;
+  }
+
+  .artales-reader--focus.artales-reader--layout-page .artales-reader__stage,
+  .artales-reader--focus.artales-reader--layout-spread .artales-reader__stage {
+    padding: 86px 10px 28px;
+  }
+}

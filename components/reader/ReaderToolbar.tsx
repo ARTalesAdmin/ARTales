@@ -113,13 +113,39 @@ export default function ReaderToolbar({
               <div style={{ width: `${progress}%` }} />
             </div>
           </div>
-          <button
-            type="button"
-            className="artales-reader-top-button"
-            onClick={onBookmark}
-          >
-            {bookmark ? labels.updateBookmark : labels.bookmark}
-          </button>
+          {!bookmark ? (
+            <button
+              type="button"
+              className="artales-reader-top-button"
+              onClick={onBookmark}
+            >
+              {labels.bookmark}
+            </button>
+          ) : (
+            <div className="artales-reader-bookmark-actions" aria-label={labels.artalesBookmark}>
+              <button
+                type="button"
+                className="artales-reader-top-button"
+                onClick={onGoToBookmark}
+              >
+                {labels.goToBookmark}
+              </button>
+              <button
+                type="button"
+                className="artales-reader-top-button"
+                onClick={onBookmark}
+              >
+                {labels.updateBookmark}
+              </button>
+              <button
+                type="button"
+                className="artales-reader-top-button artales-reader-top-button--subtle"
+                onClick={onClearBookmark}
+              >
+                {labels.clearBookmark}
+              </button>
+            </div>
+          )}
           <button
             type="button"
             className="artales-reader-top-button artales-reader-top-button--focus"
