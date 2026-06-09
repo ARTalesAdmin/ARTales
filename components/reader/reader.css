@@ -1009,3 +1009,122 @@
     width: min(100%, calc(100vw - 20px));
   }
 }
+
+/* v0.10.3a — reader toolbar overflow, fixed page footer, focus mode. */
+.artales-reader-toolbar__settings-panel {
+  max-height: min(58vh, 460px);
+  overflow-y: auto;
+  padding-right: 2px;
+  scrollbar-width: thin;
+}
+
+.artales-reader-toolbar__controls {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(148px, 1fr));
+  justify-content: stretch;
+  max-width: none;
+  overflow-x: visible;
+  white-space: normal;
+  width: 100%;
+}
+
+.artales-reader-toolbar__action-row {
+  flex-wrap: wrap;
+  justify-content: flex-start;
+  overflow-x: visible;
+  white-space: normal;
+}
+
+.artales-reader-control-group,
+.artales-reader-select-label {
+  justify-content: space-between;
+  min-width: 0;
+  width: 100%;
+}
+
+.artales-reader-select-label select {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.artales-reader--layout-page .artales-reader__paper--paged,
+.artales-reader--layout-spread .artales-reader__paper--paged {
+  display: grid;
+  grid-template-rows: 32px minmax(0, 1fr) 34px;
+  padding-bottom: clamp(32px, 4vw, 48px);
+  row-gap: clamp(10px, 1.8vw, 18px);
+}
+
+.artales-reader--layout-page .artales-reader__page-content,
+.artales-reader--layout-spread .artales-reader__page-content {
+  align-self: stretch;
+  min-height: 0;
+  overflow: hidden;
+  transform: none;
+}
+
+.artales-reader--layout-page .artales-reader__page-footer,
+.artales-reader--layout-spread .artales-reader__page-footer {
+  align-self: end;
+  height: 34px;
+  min-height: 34px;
+  padding-top: 9px;
+}
+
+.artales-reader--layout-page .artales-reader__page-header,
+.artales-reader--layout-spread .artales-reader__page-header {
+  height: 32px;
+  min-height: 32px;
+  padding-bottom: 8px;
+}
+
+.artales-reader--focus {
+  min-height: 100vh;
+}
+
+.artales-reader--focus .artales-reader-toolbar {
+  left: 0;
+  position: fixed;
+  right: 0;
+  top: 0;
+  z-index: 30;
+}
+
+.artales-reader--focus .artales-reader-toolbar__settings-panel {
+  max-height: calc(100vh - 86px);
+}
+
+.artales-reader--focus .artales-reader__stage {
+  padding-top: clamp(92px, 13vh, 150px);
+}
+
+.artales-reader--focus.artales-reader--layout-page .artales-reader__stage,
+.artales-reader--focus.artales-reader--layout-spread .artales-reader__stage {
+  min-height: 100vh;
+}
+
+.artales-reader--focus.artales-reader--pagefit-screen.artales-reader--layout-page
+  .artales-reader__paper--paged,
+.artales-reader--focus.artales-reader--pagefit-screen.artales-reader--layout-spread
+  .artales-reader__paper--paged {
+  max-height: calc(100vh - 176px);
+}
+
+@media (max-width: 640px) {
+  .artales-reader-toolbar__settings-panel {
+    max-height: 62vh;
+  }
+
+  .artales-reader-toolbar__controls {
+    grid-template-columns: 1fr;
+  }
+
+  .artales-reader--layout-page .artales-reader__paper--paged,
+  .artales-reader--layout-spread .artales-reader__paper--paged {
+    grid-template-rows: 28px minmax(0, 1fr) 32px;
+  }
+
+  .artales-reader--focus .artales-reader__stage {
+    padding-top: 104px;
+  }
+}

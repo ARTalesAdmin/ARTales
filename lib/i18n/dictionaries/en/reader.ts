@@ -53,4 +53,6 @@ export const enReader = {
   pageNumber: "Reader page number",
   goToSavedBookmark: "Go to saved bookmark",
   artalesBookmark: "ARTales bookmark",
+  enterFocusMode: "Focus mode",
+  exitFocusMode: "Exit focus",
 }

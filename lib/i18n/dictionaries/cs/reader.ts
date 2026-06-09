@@ -53,4 +53,6 @@ export const csReader = {
   pageNumber: "Číslo stránky",
   goToSavedBookmark: "Přejít na uloženou záložku",
   artalesBookmark: "Záložka ARTales",
+  enterFocusMode: "Režim čtení",
+  exitFocusMode: "Ukončit režim čtení",
 }

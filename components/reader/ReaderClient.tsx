@@ -102,6 +102,7 @@ export default function ReaderClient({
     null,
   );
   const [turnDirection, setTurnDirection] = useState<"next" | "previous" | null>(null);
+  const [isFocusMode, setIsFocusMode] = useState(false);
   const restoredInitialPosition = useRef(false);
   const restoredPagePosition = useRef(false);
   const paperRef = useRef<HTMLElement | null>(null);
@@ -126,6 +127,21 @@ export default function ReaderClient({
   useEffect(() => {
     saveReaderSettings(settings);
   }, [settings]);
+
+  useEffect(() => {
+    if (typeof document === "undefined") return;
+
+    const handleFullscreenChange = () => {
+      if (!document.fullscreenElement) {
+        setIsFocusMode(false);
+      }
+    };
+
+    document.addEventListener("fullscreenchange", handleFullscreenChange);
+    return () => {
+      document.removeEventListener("fullscreenchange", handleFullscreenChange);
+    };
+  }, []);
 
   useEffect(() => {
     setBookmark(loadReaderBookmark(slug));
@@ -374,6 +390,24 @@ export default function ReaderClient({
   }
 
 
+
+  async function handleToggleFocusMode() {
+    const nextFocusMode = !isFocusMode;
+    setIsFocusMode(nextFocusMode);
+
+    if (typeof document === "undefined") return;
+
+    try {
+      if (nextFocusMode && !document.fullscreenElement) {
+        await document.documentElement.requestFullscreen?.();
+      } else if (!nextFocusMode && document.fullscreenElement) {
+        await document.exitFullscreen?.();
+      }
+    } catch {
+      // Browser fullscreen can be blocked; the CSS focus mode still applies.
+    }
+  }
+
   function handleBookmark() {
     if (isPagedMode) {
       const nextProgress = getPageProgress(normalizedPageIndex, pageCount);
@@ -531,7 +565,7 @@ export default function ReaderClient({
 
   return (
     <main
-      className={`artales-reader artales-reader--theme-${settings.theme} artales-reader--width-${settings.width} artales-reader--density-${settings.density} artales-reader--layout-${settings.layoutMode} artales-reader--pagefit-${settings.pageFit}${turnDirection ? ` artales-reader--turn-${turnDirection}` : ""}`}
+      className={`artales-reader artales-reader--theme-${settings.theme} artales-reader--width-${settings.width} artales-reader--density-${settings.density} artales-reader--layout-${settings.layoutMode} artales-reader--pagefit-${settings.pageFit}${isFocusMode ? " artales-reader--focus" : ""}${turnDirection ? ` artales-reader--turn-${turnDirection}` : ""}`}
       style={readerStyle}
     >
       <ReaderToolbar
@@ -559,6 +593,8 @@ export default function ReaderClient({
         onBookmark={handleBookmark}
         onGoToBookmark={handleGoToBookmark}
         onClearBookmark={handleClearBookmark}
+        isFocusMode={isFocusMode}
+        onToggleFocusMode={handleToggleFocusMode}
       />
 
       <section className="artales-reader__stage">

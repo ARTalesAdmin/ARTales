@@ -38,6 +38,8 @@ type ReaderToolbarProps = {
   onBookmark: () => void;
   onGoToBookmark: () => void;
   onClearBookmark: () => void;
+  isFocusMode: boolean;
+  onToggleFocusMode: () => void;
 };
 
 function formatPageRange(
@@ -76,6 +78,8 @@ export default function ReaderToolbar({
   onBookmark,
   onGoToBookmark,
   onClearBookmark,
+  isFocusMode,
+  onToggleFocusMode,
 }: ReaderToolbarProps) {
   const progress = Math.max(0, Math.min(100, Math.round(progressPercent)));
   const brandVariant = settings.theme === "dark" ? "light" : "dark";
@@ -232,6 +236,13 @@ export default function ReaderToolbar({
               onClick={onBookmark}
             >
               {bookmark ? labels.updateBookmark : labels.bookmark}
+            </button>
+            <button
+              type="button"
+              className="artales-reader-ghost-button"
+              onClick={onToggleFocusMode}
+            >
+              {isFocusMode ? labels.exitFocusMode : labels.enterFocusMode}
             </button>
             {bookmark ? (
               <>
