@@ -14,17 +14,19 @@ const KEEP_TOGETHER_BLOCKS = new Set<WorkBlock["type"]>([
   "image",
 ]);
 
+const TERMINAL_PUNCTUATION = new Set([".", "!", "?", "…"]);
+const CLOSING_MARKS = new Set(["\"", "'", "”", "’", ")", "]", "}", "»", "›"]);
+
 function getPageBudget(settings: ReaderSettings) {
   const widthMultiplier =
-    settings.width === "wide" ? 1.08 : settings.width === "narrow" ? 0.86 : 1;
-  const densityMultiplier = settings.density === "compact" ? 1.08 : 0.94;
-  const fitMultiplier = settings.pageFit === "paper" ? 1.03 : 0.98;
+    settings.width === "wide" ? 1.1 : settings.width === "narrow" ? 0.88 : 1;
+  const densityMultiplier = settings.density === "compact" ? 1.12 : 0.98;
   const fontMultiplier = Math.max(0.68, Math.min(1.18, 1 / settings.fontScale));
 
-  // Conservative text capacity for one visible paper sheet. The page UI has
-  // a header/footer safe area, so the paginator must leave margin instead of
-  // trying to fill the sheet to the last pixel.
-  return Math.round(1220 * widthMultiplier * densityMultiplier * fitMultiplier * fontMultiplier);
+  // Slightly fuller than the first foundation paginator, but still below a
+  // hard visual overflow threshold. The actual page UI keeps a header/footer
+  // safe area; this budget is a text-flow approximation, not pixel-perfect PDF.
+  return Math.round(1280 * widthMultiplier * densityMultiplier * fontMultiplier);
 }
 
 function getBlockText(block: WorkBlock) {
@@ -49,45 +51,59 @@ function splitParagraphs(text: string) {
     .filter(Boolean);
 }
 
+function isTerminalSentenceEnding(text: string) {
+  const trimmed = text.trim();
+  if (!trimmed) return false;
+
+  let index = trimmed.length - 1;
+  while (index >= 0 && CLOSING_MARKS.has(trimmed[index])) index -= 1;
+
+  return index >= 0 && TERMINAL_PUNCTUATION.has(trimmed[index]);
+}
+
+function readClosingMarks(text: string, startIndex: number) {
+  let index = startIndex;
+  while (index < text.length && CLOSING_MARKS.has(text[index])) index += 1;
+  return index;
+}
+
+function isSentenceBoundary(text: string, punctuationIndex: number) {
+  const afterClosers = readClosingMarks(text, punctuationIndex + 1);
+  const nextChar = text[afterClosers];
+
+  // Direct speech often has punctuation inside quotation marks followed by a
+  // comma and a speech tag: „Přesně tak!“, řekl Karel. Do not split there.
+  if (nextChar === ",") return false;
+
+  return afterClosers >= text.length || /\s/.test(nextChar);
+}
+
 function splitSentences(text: string) {
   const normalized = normalizeWhitespace(text);
   if (!normalized) return [];
 
-  const matches = normalized.match(/[^.!?…]+[.!?…]+["'”’)]*|[^.!?…]+$/g);
-  return (matches ?? [normalized]).map((part) => part.trim()).filter(Boolean);
-}
+  const sentences: string[] = [];
+  let start = 0;
+  let index = 0;
 
-function splitBySoftPunctuation(text: string, maxLength: number) {
-  const normalized = normalizeWhitespace(text);
-  if (normalized.length <= maxLength) return [normalized];
-
-  const pieces = normalized
-    .split(/(?<=[,;:—–-])[ ]+/g)
-    .map((part) => part.trim())
-    .filter(Boolean);
-
-  if (pieces.length <= 1) {
-    return splitByWordLimit(normalized, maxLength);
-  }
-
-  const chunks: string[] = [];
-  let current = "";
-
-  for (const piece of pieces) {
-    const candidate = current ? `${current} ${piece}` : piece;
-    if (candidate.length > maxLength && current) {
-      chunks.push(current);
-      current = piece;
-    } else if (candidate.length > maxLength) {
-      chunks.push(...splitByWordLimit(candidate, maxLength));
-      current = "";
-    } else {
-      current = candidate;
+  while (index < normalized.length) {
+    const char = normalized[index];
+    if (TERMINAL_PUNCTUATION.has(char) && isSentenceBoundary(normalized, index)) {
+      const end = readClosingMarks(normalized, index + 1);
+      const sentence = normalized.slice(start, end).trim();
+      if (sentence) sentences.push(sentence);
+      start = end;
+      while (start < normalized.length && /\s/.test(normalized[start])) start += 1;
+      index = start;
+      continue;
     }
+    index += 1;
   }
 
-  if (current) chunks.push(current);
-  return chunks;
+  const rest = normalized.slice(start).trim();
+  if (rest) sentences.push(rest);
+
+  return sentences.length > 0 ? sentences : [normalized];
 }
 
 function splitByWordLimit(text: string, maxLength: number) {
@@ -119,25 +135,24 @@ function splitLines(text: string) {
 
 function splitLongText(text: string, maxLength: number) {
   const sentences = splitSentences(text);
-  if (sentences.length <= 1) return splitBySoftPunctuation(text, maxLength);
+  if (sentences.length <= 1) {
+    // Prefer an oversized complete sentence to a prettier page that ends mid-
+    // sentence. Only fall back to word chunks when there is no terminal ending.
+    return isTerminalSentenceEnding(text) ? [normalizeWhitespace(text)] : splitByWordLimit(text, maxLength);
+  }
 
   const chunks: string[] = [];
   let current = "";
 
   for (const sentence of sentences) {
-    const sentenceParts = splitBySoftPunctuation(sentence, maxLength);
+    const normalizedSentence = normalizeWhitespace(sentence);
+    const candidate = current ? `${current} ${normalizedSentence}` : normalizedSentence;
 
-    for (const part of sentenceParts) {
-      const candidate = current ? `${current} ${part}` : part;
-      if (candidate.length > maxLength && current) {
-        chunks.push(current);
-        current = part;
-      } else if (candidate.length > maxLength) {
-        chunks.push(...splitByWordLimit(candidate, maxLength));
-        current = "";
-      } else {
-        current = candidate;
-      }
+    if (candidate.length > maxLength && current) {
+      chunks.push(current);
+      current = normalizedSentence;
+    } else {
+      current = candidate;
     }
   }
 
@@ -177,7 +192,7 @@ function splitBlock(block: WorkBlock, budget: number): WorkBlock[] {
     const lines = splitLines(text);
     if (lines.length <= 1) return [block];
 
-    const lineBudget = Math.max(8, Math.floor(budget / 150));
+    const lineBudget = Math.max(10, Math.floor(budget / 135));
     const chunks: WorkBlock[] = [];
     for (let index = 0; index < lines.length; index += lineBudget) {
       chunks.push(
@@ -192,7 +207,7 @@ function splitBlock(block: WorkBlock, budget: number): WorkBlock[] {
   }
 
   const paragraphs = splitParagraphs(text);
-  const chunkLimit = Math.max(360, Math.round(budget * 0.42));
+  const chunkLimit = Math.max(520, Math.round(budget * 0.5));
   const chunks: WorkBlock[] = [];
 
   for (const [paragraphIndex, paragraph] of paragraphs.entries()) {
@@ -240,6 +255,19 @@ function getBlockWeight(block: WorkBlock) {
   }
 }
 
+function blockEndsAtSentenceBoundary(block: WorkBlock) {
+  if (PAGE_BREAK_BLOCKS.has(block.type) || KEEP_TOGETHER_BLOCKS.has(block.type)) return false;
+  return isTerminalSentenceEnding(getBlockText(block));
+}
+
+function pageEndsAtSentenceBoundary(blocks: WorkBlock[]) {
+  const lastTextBlock = [...blocks]
+    .reverse()
+    .find((block) => getBlockText(block).length > 0);
+
+  return lastTextBlock ? blockEndsAtSentenceBoundary(lastTextBlock) : false;
+}
+
 function pushPage(
   pages: ReaderPage[],
   blocks: WorkBlock[],
@@ -254,8 +282,8 @@ export function paginateReaderBlocks(
   settings: ReaderSettings,
 ): ReaderPage[] {
   const budget = getPageBudget(settings);
-  const softBudget = Math.round(budget * 0.82);
-  const maxBudget = Math.round(budget * 0.96);
+  const softBudget = Math.round(budget * 0.9);
+  const maxBudget = Math.round(budget * 1.08);
   const splitBlocks = blocks.flatMap((block) => splitBlock(block, budget));
   const pages: ReaderPage[] = [];
   let currentBlocks: WorkBlock[] = [];
@@ -263,9 +291,11 @@ export function paginateReaderBlocks(
 
   for (const block of splitBlocks) {
     const weight = getBlockWeight(block);
+    const nextWouldOverflow = currentBlocks.length > 0 && currentWeight + weight > maxBudget;
     const shouldStartNewPage =
       currentBlocks.length > 0 &&
-      (PAGE_BREAK_BLOCKS.has(block.type) || currentWeight + weight > maxBudget);
+      (PAGE_BREAK_BLOCKS.has(block.type) ||
+        (nextWouldOverflow && pageEndsAtSentenceBoundary(currentBlocks)));
 
     if (shouldStartNewPage) {
       pushPage(pages, currentBlocks, currentWeight);
@@ -276,7 +306,7 @@ export function paginateReaderBlocks(
     currentBlocks.push(block);
     currentWeight += weight;
 
-    if (currentWeight >= softBudget) {
+    if (currentWeight >= softBudget && pageEndsAtSentenceBoundary(currentBlocks)) {
       pushPage(pages, currentBlocks, currentWeight);
       currentBlocks = [];
       currentWeight = 0;
