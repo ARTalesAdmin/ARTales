@@ -59,8 +59,13 @@ export default function ReaderToolbar({
   const progress = Math.max(0, Math.min(100, Math.round(progressPercent)));
   const brandVariant = settings.theme === "dark" ? "light" : "dark";
   const controlsId = "artales-reader-settings-panel";
-  const isPageMode = settings.layoutMode === "page";
-  const pageLabel = `Page ${Math.min(pageIndex + 1, pageCount)} / ${pageCount}`;
+  const isPagedMode = settings.layoutMode === "page" || settings.layoutMode === "spread";
+  const isSpreadMode = settings.layoutMode === "spread";
+  const currentPage = Math.min(pageIndex + 1, pageCount);
+  const spreadEndPage = Math.min(pageIndex + 2, pageCount);
+  const pageLabel = isSpreadMode
+    ? `Pages ${currentPage}${spreadEndPage > currentPage ? `–${spreadEndPage}` : ""} / ${pageCount}`
+    : `Page ${currentPage} / ${pageCount}`;
 
   return (
     <header className="artales-reader-toolbar">
@@ -82,12 +87,12 @@ export default function ReaderToolbar({
           <div
             className="artales-reader-progress artales-reader-progress--top"
             aria-label={
-              isPageMode
+              isPagedMode
                 ? `${pageLabel}, reading progress ${progress}%`
                 : `Reading progress ${progress}%`
             }
           >
-            <span>{isPageMode ? pageLabel : `${progress}%`}</span>
+            <span>{isPagedMode ? pageLabel : `${progress}%`}</span>
             <div className="artales-reader-progress__track">
               <div style={{ width: `${progress}%` }} />
             </div>
@@ -141,6 +146,7 @@ export default function ReaderToolbar({
               >
                 <option value="scroll">Scroll</option>
                 <option value="page">Page</option>
+                <option value="spread">Book spread</option>
               </select>
             </label>
 

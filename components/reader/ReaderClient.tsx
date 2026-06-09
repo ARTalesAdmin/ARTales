@@ -7,6 +7,7 @@ import {
   useRef,
   useState,
   type CSSProperties,
+  type ReactNode,
 } from "react";
 import WorkContentRenderer from "@/components/work/WorkContentRenderer";
 import type { WorkBlock } from "@/lib/blocks";
@@ -28,7 +29,7 @@ import {
   type ReaderThemeId,
   type ReaderWidthId,
 } from "@/lib/reader/readerSettings";
-import { paginateReaderBlocks } from "@/lib/reader/paginateBlocks";
+import { paginateReaderBlocks, type ReaderPage } from "@/lib/reader/paginateBlocks";
 import ReaderToolbar from "./ReaderToolbar";
 import "./reader.css";
 
@@ -61,6 +62,18 @@ function getPageProgress(pageIndex: number, pageCount: number) {
   return Math.max(0, Math.min(100, (pageIndex / (pageCount - 1)) * 100));
 }
 
+function getSpreadStartPage(pageIndex: number) {
+  return Math.max(0, pageIndex - (pageIndex % 2));
+}
+
+function formatPageRange(pageIndex: number, pageCount: number, isSpreadMode: boolean) {
+  const currentPage = Math.min(pageIndex + 1, pageCount);
+  if (!isSpreadMode) return `Page ${currentPage} / ${pageCount}`;
+
+  const spreadEndPage = Math.min(pageIndex + 2, pageCount);
+  return `Pages ${currentPage}${spreadEndPage > currentPage ? `–${spreadEndPage}` : ""} / ${pageCount}`;
+}
+
 export default function ReaderClient({
   slug,
   title,
@@ -81,9 +94,10 @@ export default function ReaderClient({
   const restoredInitialPosition = useRef(false);
   const restoredPagePosition = useRef(false);
   const paperRef = useRef<HTMLElement | null>(null);
-  const pageContentRef = useRef<HTMLDivElement | null>(null);
 
-  const isPageMode = settings.layoutMode === "page";
+  const isPagedMode = settings.layoutMode === "page" || settings.layoutMode === "spread";
+  const isSpreadMode = settings.layoutMode === "spread";
+  const pageStep = isSpreadMode ? 2 : 1;
   const detailHref = `/work/${slug}`;
   const fullHref = `/reader/${slug}?mode=full`;
   const previewHref = `/reader/${slug}?mode=preview`;
@@ -92,8 +106,9 @@ export default function ReaderClient({
     [blocks, settings],
   );
   const pageCount = readerPages.length;
+  const normalizedPageIndex = isSpreadMode ? getSpreadStartPage(pageIndex) : pageIndex;
   const activePage =
-    readerPages[Math.min(pageIndex, pageCount - 1)] ?? readerPages[0];
+    readerPages[Math.min(normalizedPageIndex, pageCount - 1)] ?? readerPages[0];
 
   useEffect(() => {
     saveReaderSettings(settings);
@@ -107,13 +122,18 @@ export default function ReaderClient({
     setPageIndex((current) => Math.min(current, Math.max(0, pageCount - 1)));
   }, [pageCount]);
 
+  useEffect(() => {
+    if (!isSpreadMode) return;
+    setPageIndex((current) => getSpreadStartPage(current));
+  }, [isSpreadMode]);
+
   const recalculateBookmarkMarker = useCallback(
     (nextBookmark: ReaderBookmark | null) => {
       if (
         !nextBookmark ||
         typeof window === "undefined" ||
         !paperRef.current ||
-        isPageMode
+        isPagedMode
       ) {
         setBookmarkMarkerTop(null);
         return;
@@ -134,7 +154,7 @@ export default function ReaderClient({
 
       setBookmarkMarkerTop(nextTop);
     },
-    [isPageMode],
+    [isPagedMode],
   );
 
   useEffect(() => {
@@ -156,37 +176,41 @@ export default function ReaderClient({
   useEffect(() => {
     if (restoredInitialPosition.current) return;
     restoredInitialPosition.current = true;
-    if (mode !== "full" || isPageMode) return;
+    if (mode !== "full" || isPagedMode) return;
 
     const saved = loadReaderProgress(slug);
-    if (!saved || saved.scrollY <= 0 || saved.layoutMode === "page") return;
+    if (!saved || saved.scrollY <= 0 || saved.layoutMode === "page" || saved.layoutMode === "spread") return;
 
     const timeout = window.setTimeout(() => {
       window.scrollTo({ top: saved.scrollY, behavior: "smooth" });
     }, 220);
 
     return () => window.clearTimeout(timeout);
-  }, [isPageMode, mode, slug]);
+  }, [isPagedMode, mode, slug]);
 
   useEffect(() => {
     if (restoredPagePosition.current) return;
-    if (mode !== "full" || !isPageMode || pageCount <= 1) return;
+    if (mode !== "full" || !isPagedMode || pageCount <= 1) return;
     restoredPagePosition.current = true;
 
     const saved = loadReaderProgress(slug);
-    if (saved?.layoutMode !== "page" || typeof saved.pageIndex !== "number") {
+    if (
+      (saved?.layoutMode !== "page" && saved?.layoutMode !== "spread") ||
+      typeof saved.pageIndex !== "number"
+    ) {
       return;
     }
 
-    setPageIndex(Math.max(0, Math.min(pageCount - 1, saved.pageIndex)));
-  }, [isPageMode, mode, pageCount, slug]);
+    const restoredIndex = Math.max(0, Math.min(pageCount - 1, saved.pageIndex));
+    setPageIndex(isSpreadMode ? getSpreadStartPage(restoredIndex) : restoredIndex);
+  }, [isPagedMode, isSpreadMode, mode, pageCount, slug]);
 
   useEffect(() => {
     let frame = 0;
     let timeout = 0;
 
     const persist = () => {
-      if (isPageMode) return;
+      if (isPagedMode) return;
       const progress = getScrollProgress();
       setProgressPercent(progress.progressPercent);
       if (mode === "full") {
@@ -202,7 +226,7 @@ export default function ReaderClient({
     };
 
     const onScroll = () => {
-      if (isPageMode) return;
+      if (isPagedMode) return;
       window.cancelAnimationFrame(frame);
       frame = window.requestAnimationFrame(() => {
         const progress = getScrollProgress();
@@ -222,45 +246,45 @@ export default function ReaderClient({
       window.removeEventListener("scroll", onScroll);
       window.removeEventListener("resize", onScroll);
     };
-  }, [isPageMode, mode, slug]);
+  }, [isPagedMode, mode, slug]);
 
   useEffect(() => {
-    if (!isPageMode) return;
-    const nextProgress = getPageProgress(pageIndex, pageCount);
+    if (!isPagedMode) return;
+    const nextProgress = getPageProgress(normalizedPageIndex, pageCount);
     setProgressPercent(nextProgress);
     if (mode === "full") {
       saveReaderProgress({
         slug,
         mode,
-        scrollY: pageIndex,
-        pageIndex,
+        scrollY: normalizedPageIndex,
+        pageIndex: normalizedPageIndex,
         pageCount,
         progressPercent: nextProgress,
-        layoutMode: "page",
+        layoutMode: settings.layoutMode,
         updatedAt: new Date().toISOString(),
       });
     }
-  }, [isPageMode, mode, pageCount, pageIndex, slug]);
+  }, [isPagedMode, mode, normalizedPageIndex, pageCount, settings.layoutMode, slug]);
 
   useEffect(() => {
-    if (!isPageMode) return;
+    if (!isPagedMode) return;
 
     const onKeyDown = (event: KeyboardEvent) => {
       const target = event.target as HTMLElement | null;
       if (target?.closest("input, textarea, select, button, a")) return;
       if (event.key === "ArrowRight" || event.key === "PageDown") {
         event.preventDefault();
-        setPageIndex((current) => Math.min(pageCount - 1, current + 1));
+        setPageIndex((current) => Math.min(pageCount - 1, current + pageStep));
       }
       if (event.key === "ArrowLeft" || event.key === "PageUp") {
         event.preventDefault();
-        setPageIndex((current) => Math.max(0, current - 1));
+        setPageIndex((current) => Math.max(0, current - pageStep));
       }
     };
 
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [isPageMode, pageCount]);
+  }, [isPagedMode, pageCount, pageStep]);
 
   const readerStyle = useMemo(
     () =>
@@ -290,23 +314,27 @@ export default function ReaderClient({
 
   function handleLayoutModeChange(layoutMode: ReaderLayoutModeId) {
     setSettings((current) => ({ ...current, layoutMode }));
-    if (layoutMode === "page") {
-      setPageIndex((current) => Math.min(current, pageCount - 1));
+    if (layoutMode === "page" || layoutMode === "spread") {
+      setPageIndex((current) =>
+        layoutMode === "spread"
+          ? getSpreadStartPage(Math.min(current, pageCount - 1))
+          : Math.min(current, pageCount - 1),
+      );
       window.scrollTo({ top: 0, behavior: "smooth" });
     }
   }
 
   function handleBookmark() {
-    if (isPageMode) {
-      const nextProgress = getPageProgress(pageIndex, pageCount);
+    if (isPagedMode) {
+      const nextProgress = getPageProgress(normalizedPageIndex, pageCount);
       const nextBookmark: ReaderBookmark = {
         slug,
         mode,
-        scrollY: pageIndex,
+        scrollY: normalizedPageIndex,
         progressPercent: nextProgress,
-        pageIndex,
+        pageIndex: normalizedPageIndex,
         pageCount,
-        layoutMode: "page",
+        layoutMode: settings.layoutMode,
         createdAt: new Date().toISOString(),
       };
       saveReaderBookmark(nextBookmark);
@@ -331,8 +359,9 @@ export default function ReaderClient({
 
   function handleGoToBookmark() {
     if (!bookmark) return;
-    if (isPageMode && typeof bookmark.pageIndex === "number") {
-      setPageIndex(Math.max(0, Math.min(pageCount - 1, bookmark.pageIndex)));
+    if (isPagedMode && typeof bookmark.pageIndex === "number") {
+      const nextIndex = Math.max(0, Math.min(pageCount - 1, bookmark.pageIndex));
+      setPageIndex(isSpreadMode ? getSpreadStartPage(nextIndex) : nextIndex);
       return;
     }
     window.scrollTo({ top: bookmark.scrollY, behavior: "smooth" });
@@ -345,12 +374,119 @@ export default function ReaderClient({
   }
 
   function goToPreviousPage() {
-    setPageIndex((current) => Math.max(0, current - 1));
+    setPageIndex((current) => Math.max(0, current - pageStep));
   }
 
   function goToNextPage() {
-    setPageIndex((current) => Math.min(pageCount - 1, current + 1));
+    setPageIndex((current) => Math.min(pageCount - 1, current + pageStep));
   }
+
+  function renderPageContent(page: ReaderPage | undefined, pageNumber: number) {
+    return (
+      <>
+        {mode === "preview" && pageNumber === 0 ? (
+          <p className="artales-reader__preview-note">
+            This is a short preview. Continue to the full online reader when you
+            are ready.
+          </p>
+        ) : null}
+
+        <WorkContentRenderer
+          blocks={page?.blocks ?? []}
+          fallbackContent={null}
+          formatPreset={
+            settings.density === "compact" ? "readerCompact" : "readerComfort"
+          }
+        />
+
+        {mode === "preview" && pageNumber >= pageCount - 1 ? (
+          <div className="artales-reader__preview-cta">
+            <p>This preview is intentionally short.</p>
+            <a className="artales-button" href={fullHref}>
+              Continue reading
+            </a>
+          </div>
+        ) : null}
+      </>
+    );
+  }
+
+  function renderPagedPaper(
+    pageNumber: number,
+    page: ReaderPage | undefined,
+    extraClassName = "",
+    children?: ReactNode,
+  ) {
+    const safePageNumber = Math.min(pageNumber + 1, pageCount);
+    return (
+      <article
+        className={`artales-reader__paper artales-reader__paper--paged ${extraClassName}`.trim()}
+      >
+        <header className="artales-reader__page-header" aria-hidden="true">
+          <span>{title}</span>
+          <span>{safePageNumber}</span>
+        </header>
+        <div className="artales-reader__page-content">
+          {children ?? renderPageContent(page, pageNumber)}
+        </div>
+        <footer
+          className="artales-reader__page-footer"
+          aria-label="Reader page number"
+        >
+          <span>{safePageNumber}</span>
+        </footer>
+      </article>
+    );
+  }
+
+  function renderScrollPaper() {
+    return (
+      <article className="artales-reader__paper" ref={paperRef}>
+        {bookmark && bookmarkMarkerTop != null ? (
+          <button
+            type="button"
+            className="artales-reader__bookmark-marker"
+            style={{ top: `${bookmarkMarkerTop}px` }}
+            onClick={handleGoToBookmark}
+            aria-label="Go to saved bookmark"
+            title="Go to bookmark"
+          >
+            <span>ARTales bookmark</span>
+          </button>
+        ) : null}
+
+        <div className="artales-reader__page-content">
+          {mode === "preview" ? (
+            <p className="artales-reader__preview-note">
+              This is a short preview. Continue to the full online reader when
+              you are ready.
+            </p>
+          ) : null}
+
+          <WorkContentRenderer
+            blocks={blocks}
+            fallbackContent={fallbackContent}
+            formatPreset={
+              settings.density === "compact"
+                ? "readerCompact"
+                : "readerComfort"
+            }
+          />
+
+          {mode === "preview" ? (
+            <div className="artales-reader__preview-cta">
+              <p>This preview is intentionally short.</p>
+              <a className="artales-button" href={fullHref}>
+                Continue reading
+              </a>
+            </div>
+          ) : null}
+        </div>
+      </article>
+    );
+  }
+
+  const pageNavLabel = formatPageRange(normalizedPageIndex, pageCount, isSpreadMode);
 
   return (
     <main
@@ -365,7 +501,7 @@ export default function ReaderClient({
         fullHref={fullHref}
         previewHref={previewHref}
         progressPercent={progressPercent}
-        pageIndex={pageIndex}
+        pageIndex={normalizedPageIndex}
         pageCount={pageCount}
         settings={settings}
         bookmark={bookmark}
@@ -383,70 +519,35 @@ export default function ReaderClient({
       />
 
       <section className="artales-reader__stage">
-        <article
-          className={`artales-reader__paper${isPageMode ? " artales-reader__paper--paged" : ""}`}
-          ref={paperRef}
-        >
-          {!isPageMode && bookmark && bookmarkMarkerTop != null ? (
-            <button
-              type="button"
-              className="artales-reader__bookmark-marker"
-              style={{ top: `${bookmarkMarkerTop}px` }}
-              onClick={handleGoToBookmark}
-              aria-label="Go to saved bookmark"
-              title="Go to bookmark"
-            >
-              <span>ARTales bookmark</span>
-            </button>
-          ) : null}
+        {!isPagedMode ? renderScrollPaper() : null}
 
-          {isPageMode ? (
-            <header className="artales-reader__page-header" aria-hidden="true">
-              <span>{title}</span>
-              <span>{Math.min(pageIndex + 1, pageCount)}</span>
-            </header>
-          ) : null}
+        {settings.layoutMode === "page"
+          ? renderPagedPaper(normalizedPageIndex, activePage)
+          : null}
 
-          <div ref={pageContentRef} className="artales-reader__page-content">
-            {mode === "preview" && (!isPageMode || pageIndex === 0) ? (
-              <p className="artales-reader__preview-note">
-                This is a short preview. Continue to the full online reader when
-                you are ready.
-              </p>
-            ) : null}
-
-            <WorkContentRenderer
-              blocks={isPageMode ? activePage.blocks : blocks}
-              fallbackContent={isPageMode ? null : fallbackContent}
-              formatPreset={
-                settings.density === "compact"
-                  ? "readerCompact"
-                  : "readerComfort"
-              }
-            />
-
-            {mode === "preview" &&
-            (!isPageMode || pageIndex >= pageCount - 1) ? (
-              <div className="artales-reader__preview-cta">
-                <p>This preview is intentionally short.</p>
-                <a className="artales-button" href={fullHref}>
-                  Continue reading
-                </a>
-              </div>
-            ) : null}
+        {isSpreadMode ? (
+          <div className="artales-reader__spread">
+            {renderPagedPaper(
+              normalizedPageIndex,
+              readerPages[normalizedPageIndex],
+              "artales-reader__paper--spread-left",
+            )}
+            {normalizedPageIndex + 1 < pageCount
+              ? renderPagedPaper(
+                  normalizedPageIndex + 1,
+                  readerPages[normalizedPageIndex + 1],
+                  "artales-reader__paper--spread-right",
+                )
+              : renderPagedPaper(
+                  normalizedPageIndex,
+                  undefined,
+                  "artales-reader__paper--spread-right artales-reader__paper--blank",
+                  <div className="artales-reader__blank-page" aria-hidden="true" />,
+                )}
           </div>
+        ) : null}
 
-          {isPageMode ? (
-            <footer
-              className="artales-reader__page-footer"
-              aria-label="Reader page number"
-            >
-              <span>{Math.min(pageIndex + 1, pageCount)}</span>
-            </footer>
-          ) : null}
-        </article>
-
-        {isPageMode ? (
+        {isPagedMode ? (
           <nav
             className="artales-reader-page-nav"
             aria-label="Page mode navigation"
@@ -454,17 +555,15 @@ export default function ReaderClient({
             <button
               type="button"
               onClick={goToPreviousPage}
-              disabled={pageIndex <= 0}
+              disabled={normalizedPageIndex <= 0}
             >
               ← Previous
             </button>
-            <span>
-              Page {Math.min(pageIndex + 1, pageCount)} / {pageCount}
-            </span>
+            <span>{pageNavLabel}</span>
             <button
               type="button"
               onClick={goToNextPage}
-              disabled={pageIndex >= pageCount - 1}
+              disabled={normalizedPageIndex >= pageCount - pageStep}
             >
               Next →
             </button>

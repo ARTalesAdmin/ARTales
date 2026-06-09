@@ -7,7 +7,7 @@ export type ReaderWidthId = (typeof readerWidthIds)[number];
 export const readerDensityIds = ["comfortable", "compact"] as const;
 export type ReaderDensityId = (typeof readerDensityIds)[number];
 
-export const readerLayoutModeIds = ["scroll", "page"] as const;
+export const readerLayoutModeIds = ["scroll", "page", "spread"] as const;
 export type ReaderLayoutModeId = (typeof readerLayoutModeIds)[number];
 
 export type ReaderSettings = {
@@ -18,7 +18,7 @@ export type ReaderSettings = {
   /**
    * Display mode for online reading. Scroll stays the stable default/fallback;
    * page mode is a viewport-based reading layer and a foundation for later
-   * dual-page/book-spread work.
+   * dual-page/book-spread work. Spread mode renders two adjacent page sheets on wider screens and falls back to the same sliced page data.
    */
   layoutMode: ReaderLayoutModeId;
   /**

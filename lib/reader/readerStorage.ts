@@ -11,7 +11,7 @@ export type ReaderProgress = {
   scrollY: number;
   pageIndex?: number;
   pageCount?: number;
-  layoutMode?: "scroll" | "page";
+  layoutMode?: "scroll" | "page" | "spread";
   updatedAt: string;
 };
 
@@ -22,7 +22,7 @@ export type ReaderBookmark = {
   scrollY: number;
   pageIndex?: number;
   pageCount?: number;
-  layoutMode?: "scroll" | "page";
+  layoutMode?: "scroll" | "page" | "spread";
   createdAt: string;
 };
 
