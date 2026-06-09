@@ -354,6 +354,7 @@
   border: 1px solid var(--reader-paper-border);
   border-radius: 30px;
   box-shadow: var(--reader-paper-shadow);
+  box-sizing: border-box;
   color: var(--reader-paper-text);
   margin: 0 auto;
   min-height: min(82vh, 1120px);
@@ -546,9 +547,10 @@
 }
 
 .artales-reader__paper--paged {
-  height: clamp(520px, 72vh, 880px);
+  aspect-ratio: 1 / 1.414;
   min-height: 0;
   overflow: hidden;
+  padding: clamp(54px, 5.6vw, 78px) clamp(38px, 7vw, 88px);
 }
 
 .artales-reader__paper--paged .artales-reader__page-content {
@@ -557,6 +559,19 @@
 
 .artales-reader--layout-page .artales-reader__stage {
   padding-bottom: clamp(24px, 5vw, 58px);
+  padding-top: clamp(18px, 3vw, 34px);
+}
+
+.artales-reader--layout-page.artales-reader--width-narrow .artales-reader__paper {
+  max-width: 620px;
+}
+
+.artales-reader--layout-page.artales-reader--width-normal .artales-reader__paper {
+  max-width: 700px;
+}
+
+.artales-reader--layout-page.artales-reader--width-wide .artales-reader__paper {
+  max-width: 780px;
 }
 
 .artales-reader-page-nav {
@@ -608,9 +623,14 @@
 
 @media (max-width: 640px) {
   .artales-reader__paper--paged {
+    aspect-ratio: 1 / 1.414;
     border-bottom: 1px solid var(--reader-paper-border);
-    height: calc(100vh - 182px);
-    min-height: 420px;
+    border-left: 1px solid var(--reader-paper-border);
+    border-radius: 20px;
+    border-right: 1px solid var(--reader-paper-border);
+    margin-left: 10px;
+    margin-right: 10px;
+    padding: 32px 24px;
   }
 
   .artales-reader-page-nav {
