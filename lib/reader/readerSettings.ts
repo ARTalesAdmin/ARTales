@@ -7,11 +7,20 @@ export type ReaderWidthId = (typeof readerWidthIds)[number];
 export const readerDensityIds = ["comfortable", "compact"] as const;
 export type ReaderDensityId = (typeof readerDensityIds)[number];
 
+export const readerLayoutModeIds = ["scroll", "page"] as const;
+export type ReaderLayoutModeId = (typeof readerLayoutModeIds)[number];
+
 export type ReaderSettings = {
   fontScale: number;
   width: ReaderWidthId;
   theme: ReaderThemeId;
   density: ReaderDensityId;
+  /**
+   * Display mode for online reading. Scroll stays the stable default/fallback;
+   * page mode is a viewport-based reading layer and a foundation for later
+   * dual-page/book-spread work.
+   */
+  layoutMode: ReaderLayoutModeId;
   /**
    * Local reader preference. Later this can move to user profile preferences.
    * When true, the persistent reader top bar stays visible, but detailed
@@ -25,6 +34,7 @@ export const defaultReaderSettings: ReaderSettings = {
   width: "normal",
   theme: "light",
   density: "comfortable",
+  layoutMode: "scroll",
   controlsCollapsed: false,
 };
 
@@ -53,6 +63,11 @@ export function normalizeReaderSettings(value: unknown): ReaderSettings {
   const density = readerDensityIds.includes(raw.density as ReaderDensityId)
     ? (raw.density as ReaderDensityId)
     : defaultReaderSettings.density;
+  const layoutMode = readerLayoutModeIds.includes(
+    raw.layoutMode as ReaderLayoutModeId,
+  )
+    ? (raw.layoutMode as ReaderLayoutModeId)
+    : defaultReaderSettings.layoutMode;
 
   return {
     fontScale: clampReaderFontScale(
@@ -61,6 +76,7 @@ export function normalizeReaderSettings(value: unknown): ReaderSettings {
     width,
     theme,
     density,
+    layoutMode,
     controlsCollapsed: Boolean(raw.controlsCollapsed),
   };
 }

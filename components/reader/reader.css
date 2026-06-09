@@ -539,3 +539,90 @@
     gap: 6px;
   }
 }
+
+.artales-reader__page-content {
+  transition: transform 180ms ease;
+  will-change: auto;
+}
+
+.artales-reader__paper--paged {
+  height: clamp(520px, 72vh, 880px);
+  min-height: 0;
+  overflow: hidden;
+}
+
+.artales-reader__paper--paged .artales-reader__page-content {
+  will-change: transform;
+}
+
+.artales-reader--layout-page .artales-reader__stage {
+  padding-bottom: clamp(24px, 5vw, 58px);
+}
+
+.artales-reader-page-nav {
+  align-items: center;
+  background: color-mix(in srgb, var(--reader-toolbar-bg) 88%, transparent);
+  border: 1px solid var(--reader-toolbar-border);
+  border-radius: 999px;
+  box-shadow: 0 18px 50px rgba(13, 21, 40, 0.12);
+  color: var(--reader-toolbar-text);
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+  margin: 18px auto 0;
+  padding: 8px;
+  width: fit-content;
+}
+
+.artales-reader-page-nav button {
+  appearance: none;
+  background: var(--reader-control-bg);
+  border: 1px solid var(--reader-control-border);
+  border-radius: 999px;
+  color: var(--reader-control-text);
+  cursor: pointer;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 900;
+  min-height: 36px;
+  padding: 0.48rem 0.86rem;
+}
+
+.artales-reader-page-nav button:disabled {
+  cursor: not-allowed;
+  opacity: 0.42;
+}
+
+.artales-reader-page-nav span {
+  color: var(--reader-toolbar-muted);
+  font-size: 12px;
+  font-weight: 900;
+  min-width: 92px;
+  text-align: center;
+  white-space: nowrap;
+}
+
+.artales-reader--theme-dark .artales-reader-page-nav {
+  box-shadow: 0 18px 60px rgba(0, 0, 0, 0.28);
+}
+
+@media (max-width: 640px) {
+  .artales-reader__paper--paged {
+    border-bottom: 1px solid var(--reader-paper-border);
+    height: calc(100vh - 182px);
+    min-height: 420px;
+  }
+
+  .artales-reader-page-nav {
+    border-radius: 22px;
+    flex-wrap: wrap;
+    margin-left: 12px;
+    margin-right: 12px;
+    width: auto;
+  }
+
+  .artales-reader-page-nav span {
+    order: -1;
+    width: 100%;
+  }
+}

@@ -9,6 +9,9 @@ export type ReaderProgress = {
   mode: "preview" | "full";
   progressPercent: number;
   scrollY: number;
+  pageIndex?: number;
+  pageCount?: number;
+  layoutMode?: "scroll" | "page";
   updatedAt: string;
 };
 
@@ -17,6 +20,9 @@ export type ReaderBookmark = {
   mode: "preview" | "full";
   progressPercent: number;
   scrollY: number;
+  pageIndex?: number;
+  pageCount?: number;
+  layoutMode?: "scroll" | "page";
   createdAt: string;
 };
 

@@ -5,6 +5,7 @@ import ArtalesBrand from "@/components/brand/ArtalesBrand";
 import type { ReaderBookmark } from "@/lib/reader/readerStorage";
 import type {
   ReaderDensityId,
+  ReaderLayoutModeId,
   ReaderSettings,
   ReaderThemeId,
   ReaderWidthId,
@@ -18,12 +19,15 @@ type ReaderToolbarProps = {
   fullHref: string;
   previewHref: string;
   progressPercent: number;
+  pageIndex: number;
+  pageCount: number;
   settings: ReaderSettings;
   bookmark: ReaderBookmark | null;
   onFontDelta: (delta: number) => void;
   onThemeChange: (theme: ReaderThemeId) => void;
   onWidthChange: (width: ReaderWidthId) => void;
   onDensityChange: (density: ReaderDensityId) => void;
+  onLayoutModeChange: (layoutMode: ReaderLayoutModeId) => void;
   onToggleControls: () => void;
   onBookmark: () => void;
   onGoToBookmark: () => void;
@@ -38,12 +42,15 @@ export default function ReaderToolbar({
   fullHref,
   previewHref,
   progressPercent,
+  pageIndex,
+  pageCount,
   settings,
   bookmark,
   onFontDelta,
   onThemeChange,
   onWidthChange,
   onDensityChange,
+  onLayoutModeChange,
   onToggleControls,
   onBookmark,
   onGoToBookmark,
@@ -52,6 +59,8 @@ export default function ReaderToolbar({
   const progress = Math.max(0, Math.min(100, Math.round(progressPercent)));
   const brandVariant = settings.theme === "dark" ? "light" : "dark";
   const controlsId = "artales-reader-settings-panel";
+  const isPageMode = settings.layoutMode === "page";
+  const pageLabel = `Page ${Math.min(pageIndex + 1, pageCount)} / ${pageCount}`;
 
   return (
     <header className="artales-reader-toolbar">
@@ -72,9 +81,13 @@ export default function ReaderToolbar({
         <div className="artales-reader-toolbar__top-actions">
           <div
             className="artales-reader-progress artales-reader-progress--top"
-            aria-label={`Reading progress ${progress}%`}
+            aria-label={
+              isPageMode
+                ? `${pageLabel}, reading progress ${progress}%`
+                : `Reading progress ${progress}%`
+            }
           >
-            <span>{progress}%</span>
+            <span>{isPageMode ? pageLabel : `${progress}%`}</span>
             <div className="artales-reader-progress__track">
               <div style={{ width: `${progress}%` }} />
             </div>
@@ -117,6 +130,19 @@ export default function ReaderToolbar({
                 A+
               </button>
             </div>
+
+            <label className="artales-reader-select-label">
+              Mode
+              <select
+                value={settings.layoutMode}
+                onChange={(event) =>
+                  onLayoutModeChange(event.target.value as ReaderLayoutModeId)
+                }
+              >
+                <option value="scroll">Scroll</option>
+                <option value="page">Page</option>
+              </select>
+            </label>
 
             <label className="artales-reader-select-label">
               Theme
