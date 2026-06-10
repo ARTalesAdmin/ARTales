@@ -1,8 +1,17 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { WORK_BLOCK_TYPE_META, createEmptyBlock, type WorkBlock } from "@/lib/blocks";
+import { createClient as createBrowserSupabaseClient } from "@/lib/supabase/client";
+import { slugify } from "@/lib/slug";
+import {
+  ARTALES_IMAGES_BUCKET,
+  WORK_COVER_MAX_UPLOAD_BYTES,
+  buildWorkCoverStoragePath,
+  isAllowedArtalesImageMimeType,
+} from "@/lib/storageImages";
+import WorkCoverImage from "@/components/work/WorkCoverImage";
 import {
   ARTALES_TEXT_PREPROCESSOR_PROMPT,
   parseRawTextToWorkBlocks,
@@ -138,6 +147,10 @@ export default function WorkEditorForm(props: Props) {
   const [parserInput, setParserInput] = useState("");
   const [parserResult, setParserResult] = useState<ParsedWorkBlocksResult | null>(null);
   const [parserMessage, setParserMessage] = useState<string | null>(null);
+  const [coverUploadMessage, setCoverUploadMessage] = useState<string | null>(null);
+  const [coverUploadError, setCoverUploadError] = useState<string | null>(null);
+  const [isCoverUploading, setIsCoverUploading] = useState(false);
+  const coverInputRef = useRef<HTMLInputElement | null>(null);
 
   const summaryLength = formState.summary.trim().length;
   const hasBlocks = blocks.some((block) => {
@@ -481,6 +494,69 @@ export default function WorkEditorForm(props: Props) {
     setParserInput("");
     setParserResult(null);
     setParserMessage(null);
+  }
+
+  async function uploadCoverImage(file: File | null) {
+    setCoverUploadMessage(null);
+    setCoverUploadError(null);
+
+    if (!file) return;
+
+    if (!isAllowedArtalesImageMimeType(file.type)) {
+      setCoverUploadError("Podporované formáty jsou JPG, PNG a WebP.");
+      return;
+    }
+
+    if (file.size > WORK_COVER_MAX_UPLOAD_BYTES) {
+      setCoverUploadError("Soubor je příliš velký. Maximální velikost obálky je 5 MB.");
+      return;
+    }
+
+    const workSlug = slugify(formState.slug || formState.title);
+
+    if (!workSlug) {
+      setCoverUploadError("Nejdřív vyplň název nebo slug díla. Podle něj se vytvoří bezpečná cesta obrázku.");
+      return;
+    }
+
+    setIsCoverUploading(true);
+
+    try {
+      const supabase = createBrowserSupabaseClient();
+      const storagePath = buildWorkCoverStoragePath({
+        workSlug,
+        fileName: file.name,
+        mimeType: file.type,
+      });
+
+      const { error } = await supabase.storage
+        .from(ARTALES_IMAGES_BUCKET)
+        .upload(storagePath, file, {
+          cacheControl: "31536000",
+          contentType: file.type,
+          upsert: true,
+        });
+
+      if (error) {
+        setCoverUploadError(`Obálku se nepodařilo nahrát: ${error.message}`);
+        return;
+      }
+
+      setFormState((prev) => ({
+        ...prev,
+        cover_image_path: storagePath,
+        cover_image_alt:
+          prev.cover_image_alt.trim() ||
+          (prev.title.trim() ? `Obálka díla ${prev.title.trim()}` : "Obálka díla"),
+      }));
+      setCoverUploadMessage("Obálka byla nahrána. Ulož dílo, aby se změna propsala do databáze.");
+
+      if (coverInputRef.current) {
+        coverInputRef.current.value = "";
+      }
+    } finally {
+      setIsCoverUploading(false);
+    }
   }
 
   return (
@@ -1128,147 +1204,213 @@ export default function WorkEditorForm(props: Props) {
               background: "#fbfaf7",
             }}
           >
-            <h3 style={{ margin: 0 }}>Obálka / veřejný vizuál</h3>
-
             <div>
-              <label
-                htmlFor="cover_image_request"
-                style={{
-                  display: "block",
-                  marginBottom: "8px",
-                  fontWeight: 600,
-                }}
-              >
-                Název souboru obálky / poznámka
-              </label>
-              <input
-                id="cover_image_request"
-                name="cover_image_request"
-                type="text"
-                value={formState.cover_image_request}
-                onChange={(e) =>
-                  setFormState((prev) => ({
-                    ...prev,
-                    cover_image_request: e.target.value,
-                  }))
-                }
-                placeholder="např. phantom-cover-final.jpg nebo použít tmavou obálku z disku"
-                style={{
-                  width: "100%",
-                  padding: "12px 14px",
-                  border: "1px solid #ccc",
-                  fontSize: "16px",
-                }}
-              />
-              <p
-                style={{ margin: "8px 0 0 0", fontSize: "14px", opacity: 0.75 }}
-              >
-                Pro běžné editory: nahraj obrázek do sdílené složky a sem napiš
-                přesný název souboru nebo poznámku. Technické vložení do systému
-                a cesta níže se doplní později správcem.
+              <h3 style={{ margin: 0 }}>Obálka / veřejný vizuál</h3>
+              <p style={{ margin: "8px 0 0", fontSize: "14px", opacity: 0.75 }}>
+                Nahraj veřejnou obálku přímo do ARTales Storage. Podporované
+                formáty: JPG, PNG, WebP. Maximální velikost pro obálku je 5 MB.
               </p>
             </div>
 
-            <div>
-              <label
-                htmlFor="cover_image_path"
-                style={{
-                  display: "block",
-                  marginBottom: "8px",
-                  fontWeight: 600,
-                }}
-              >
-                Technická cesta obálky (doplňuje správce)
-              </label>
-              <input
-                id="cover_image_path"
-                name="cover_image_path"
-                type="text"
-                value={formState.cover_image_path}
-                onChange={(e) =>
-                  setFormState((prev) => ({
-                    ...prev,
-                    cover_image_path: e.target.value,
-                  }))
-                }
-                placeholder="works/{work_id}/cover/cover.webp"
-                style={{
-                  width: "100%",
-                  padding: "12px 14px",
-                  border: "1px solid #ccc",
-                  fontSize: "16px",
-                }}
-              />
-              <p
-                style={{ margin: "8px 0 0 0", fontSize: "14px", opacity: 0.75 }}
-              >
-                Běžný editor toto pole nemusí řešit. Sem se vkládá až technická
-                cesta po nahrání obrázku do interního úložiště.
-              </p>
-            </div>
+            <input
+              ref={coverInputRef}
+              type="file"
+              accept="image/jpeg,image/png,image/webp"
+              onChange={(event) => {
+                void uploadCoverImage(event.target.files?.[0] ?? null);
+              }}
+              style={{ display: "none" }}
+            />
 
-            <div>
-              <label
-                htmlFor="cover_image_alt"
-                style={{
-                  display: "block",
-                  marginBottom: "8px",
-                  fontWeight: 600,
-                }}
-              >
-                Alt text obálky
-              </label>
-              <input
-                id="cover_image_alt"
-                name="cover_image_alt"
-                type="text"
-                value={formState.cover_image_alt}
-                onChange={(e) =>
-                  setFormState((prev) => ({
-                    ...prev,
-                    cover_image_alt: e.target.value,
-                  }))
-                }
-                placeholder="Krátký popis obrázku pro přístupnost a SEO"
-                style={{
-                  width: "100%",
-                  padding: "12px 14px",
-                  border: "1px solid #ccc",
-                  fontSize: "16px",
-                }}
-              />
-            </div>
+            <input
+              type="hidden"
+              name="cover_image_path"
+              value={formState.cover_image_path}
+            />
 
-            <div>
-              <label
-                htmlFor="cover_image_caption"
-                style={{
-                  display: "block",
-                  marginBottom: "8px",
-                  fontWeight: 600,
-                }}
-              >
-                Popisek / kredit obálky
-              </label>
-              <input
-                id="cover_image_caption"
-                name="cover_image_caption"
-                type="text"
-                value={formState.cover_image_caption}
-                onChange={(e) =>
-                  setFormState((prev) => ({
-                    ...prev,
-                    cover_image_caption: e.target.value,
-                  }))
-                }
-                placeholder="Nepovinný veřejný popisek nebo kredit obrázku"
-                style={{
-                  width: "100%",
-                  padding: "12px 14px",
-                  border: "1px solid #ccc",
-                  fontSize: "16px",
-                }}
-              />
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "minmax(180px, 240px) 1fr",
+                gap: "18px",
+                alignItems: "start",
+              }}
+            >
+              <div>
+                <WorkCoverImage
+                  title={formState.title || "ARTales"}
+                  imagePath={formState.cover_image_path}
+                  alt={formState.cover_image_alt}
+                  caption={formState.cover_image_caption}
+                  variant="card"
+                />
+              </div>
+
+              <div style={{ display: "grid", gap: "14px" }}>
+                <div style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
+                  <button
+                    type="button"
+                    disabled={isCoverUploading}
+                    onClick={() => coverInputRef.current?.click()}
+                    style={{
+                      border: "1px solid #111827",
+                      background: isCoverUploading ? "#6b7280" : "#111827",
+                      color: "#fff",
+                      borderRadius: "999px",
+                      padding: "10px 15px",
+                      cursor: isCoverUploading ? "wait" : "pointer",
+                      fontWeight: 700,
+                    }}
+                  >
+                    {isCoverUploading ? "Nahrávám obálku…" : "Nahrát obálku"}
+                  </button>
+
+                  {formState.cover_image_path ? (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setFormState((prev) => ({
+                          ...prev,
+                          cover_image_path: "",
+                        }));
+                        setCoverUploadMessage("Obálka byla odebrána z formuláře. Ulož dílo, aby se změna propsala do databáze.");
+                        setCoverUploadError(null);
+                      }}
+                      style={{
+                        border: "1px solid rgba(13, 21, 40, 0.22)",
+                        background: "#fffefb",
+                        color: "#111827",
+                        borderRadius: "999px",
+                        padding: "10px 15px",
+                        cursor: "pointer",
+                        fontWeight: 700,
+                      }}
+                    >
+                      Odebrat obálku
+                    </button>
+                  ) : null}
+                </div>
+
+                {coverUploadError ? (
+                  <p style={{ margin: 0, color: "#9f1239", fontSize: "14px" }}>
+                    {coverUploadError}
+                  </p>
+                ) : null}
+
+                {coverUploadMessage ? (
+                  <p style={{ margin: 0, color: "#166534", fontSize: "14px" }}>
+                    {coverUploadMessage}
+                  </p>
+                ) : null}
+
+                {formState.cover_image_path ? (
+                  <p style={{ margin: 0, fontSize: "13px", opacity: 0.72 }}>
+                    Obálka je připravená v ARTales Storage. Technickou cestu není
+                    potřeba ručně upravovat. Po nahrání nezapomeň dílo uložit.
+                  </p>
+                ) : (
+                  <p style={{ margin: 0, fontSize: "13px", opacity: 0.72 }}>
+                    Pokud obálka zatím není hotová, můžeš níže nechat interní
+                    poznámku pro tým. Veřejně se použije až nahraný obrázek.
+                  </p>
+                )}
+
+                <div>
+                  <label
+                    htmlFor="cover_image_request"
+                    style={{
+                      display: "block",
+                      marginBottom: "8px",
+                      fontWeight: 600,
+                    }}
+                  >
+                    Interní poznámka k obálce
+                  </label>
+                  <input
+                    id="cover_image_request"
+                    name="cover_image_request"
+                    type="text"
+                    value={formState.cover_image_request}
+                    onChange={(e) =>
+                      setFormState((prev) => ({
+                        ...prev,
+                        cover_image_request: e.target.value,
+                      }))
+                    }
+                    placeholder="např. tmavá obálka, gotická atmosféra, připravuje Ivana"
+                    style={{
+                      width: "100%",
+                      padding: "12px 14px",
+                      border: "1px solid #ccc",
+                      fontSize: "16px",
+                    }}
+                  />
+                </div>
+
+                <div>
+                  <label
+                    htmlFor="cover_image_alt"
+                    style={{
+                      display: "block",
+                      marginBottom: "8px",
+                      fontWeight: 600,
+                    }}
+                  >
+                    Alt text obálky
+                  </label>
+                  <input
+                    id="cover_image_alt"
+                    name="cover_image_alt"
+                    type="text"
+                    value={formState.cover_image_alt}
+                    onChange={(e) =>
+                      setFormState((prev) => ({
+                        ...prev,
+                        cover_image_alt: e.target.value,
+                      }))
+                    }
+                    placeholder="Krátký popis obrázku pro přístupnost a SEO"
+                    style={{
+                      width: "100%",
+                      padding: "12px 14px",
+                      border: "1px solid #ccc",
+                      fontSize: "16px",
+                    }}
+                  />
+                </div>
+
+                <div>
+                  <label
+                    htmlFor="cover_image_caption"
+                    style={{
+                      display: "block",
+                      marginBottom: "8px",
+                      fontWeight: 600,
+                    }}
+                  >
+                    Popisek / kredit obálky
+                  </label>
+                  <input
+                    id="cover_image_caption"
+                    name="cover_image_caption"
+                    type="text"
+                    value={formState.cover_image_caption}
+                    onChange={(e) =>
+                      setFormState((prev) => ({
+                        ...prev,
+                        cover_image_caption: e.target.value,
+                      }))
+                    }
+                    placeholder="Nepovinný veřejný popisek nebo kredit obrázku"
+                    style={{
+                      width: "100%",
+                      padding: "12px 14px",
+                      border: "1px solid #ccc",
+                      fontSize: "16px",
+                    }}
+                  />
+                </div>
+              </div>
             </div>
           </section>
         </section>

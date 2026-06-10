@@ -40,3 +40,53 @@ export function getPublicStorageImageUrl(path?: string | null): string | null {
     normalizedPath
   )}`
 }
+
+export const WORK_COVER_MAX_UPLOAD_BYTES = 5 * 1024 * 1024
+
+export const ARTALES_IMAGE_UPLOAD_MIME_TYPES = [
+  "image/jpeg",
+  "image/png",
+  "image/webp",
+] as const
+
+export function isAllowedArtalesImageMimeType(type: string) {
+  return ARTALES_IMAGE_UPLOAD_MIME_TYPES.includes(
+    type as (typeof ARTALES_IMAGE_UPLOAD_MIME_TYPES)[number]
+  )
+}
+
+function getExtensionFromMimeType(type: string) {
+  if (type === "image/png") return "png"
+  if (type === "image/webp") return "webp"
+  return "jpg"
+}
+
+function safeStorageSegment(value: string) {
+  const normalized = value
+    .trim()
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9-]+/g, "-")
+    .replace(/-+/g, "-")
+    .replace(/^-|-$/g, "")
+
+  return normalized || "draft"
+}
+
+export function buildWorkCoverStoragePath({
+  workSlug,
+  fileName,
+  mimeType,
+}: {
+  workSlug: string
+  fileName: string
+  mimeType: string
+}) {
+  const slugSegment = safeStorageSegment(workSlug)
+  const baseName = safeStorageSegment(fileName.replace(/\.[^.]+$/, ""))
+  const extension = getExtensionFromMimeType(mimeType)
+  const stamp = new Date().toISOString().replace(/[^0-9]/g, "").slice(0, 14)
+
+  return `works/${slugSegment}/cover/${stamp}-${baseName}.${extension}`
+}
