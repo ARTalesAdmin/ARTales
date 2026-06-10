@@ -151,6 +151,7 @@ export default function WorkEditorForm(props: Props) {
   const [coverUploadError, setCoverUploadError] = useState<string | null>(null);
   const [isCoverUploading, setIsCoverUploading] = useState(false);
   const coverInputRef = useRef<HTMLInputElement | null>(null);
+  const uploadedCoverPathsRef = useRef<Set<string>>(new Set());
 
   const summaryLength = formState.summary.trim().length;
   const hasBlocks = blocks.some((block) => {
@@ -496,6 +497,23 @@ export default function WorkEditorForm(props: Props) {
     setParserMessage(null);
   }
 
+  async function removeUnsavedCoverUpload(path: string) {
+    if (!uploadedCoverPathsRef.current.has(path)) return;
+
+    try {
+      const supabase = createBrowserSupabaseClient();
+      const { error } = await supabase.storage
+        .from(ARTALES_IMAGES_BUCKET)
+        .remove([path]);
+
+      if (!error) {
+        uploadedCoverPathsRef.current.delete(path);
+      }
+    } catch {
+      // Best-effort cleanup only. A failed cleanup must not block editing.
+    }
+  }
+
   async function uploadCoverImage(file: File | null) {
     setCoverUploadMessage(null);
     setCoverUploadError(null);
@@ -523,6 +541,7 @@ export default function WorkEditorForm(props: Props) {
 
     try {
       const supabase = createBrowserSupabaseClient();
+      const previousPath = formState.cover_image_path;
       const storagePath = buildWorkCoverStoragePath({
         workSlug,
         fileName: file.name,
@@ -540,6 +559,12 @@ export default function WorkEditorForm(props: Props) {
       if (error) {
         setCoverUploadError(`Obálku se nepodařilo nahrát: ${error.message}`);
         return;
+      }
+
+      uploadedCoverPathsRef.current.add(storagePath);
+
+      if (previousPath && previousPath !== storagePath) {
+        await removeUnsavedCoverUpload(previousPath);
       }
 
       setFormState((prev) => ({
@@ -1269,12 +1294,18 @@ export default function WorkEditorForm(props: Props) {
                     <button
                       type="button"
                       onClick={() => {
+                        const removedPath = formState.cover_image_path;
+
                         setFormState((prev) => ({
                           ...prev,
                           cover_image_path: "",
                         }));
                         setCoverUploadMessage("Obálka byla odebrána z formuláře. Ulož dílo, aby se změna propsala do databáze.");
                         setCoverUploadError(null);
+
+                        if (removedPath) {
+                          void removeUnsavedCoverUpload(removedPath);
+                        }
                       }}
                       style={{
                         border: "1px solid rgba(13, 21, 40, 0.22)",
@@ -1306,7 +1337,9 @@ export default function WorkEditorForm(props: Props) {
                 {formState.cover_image_path ? (
                   <p style={{ margin: 0, fontSize: "13px", opacity: 0.72 }}>
                     Obálka je připravená v ARTales Storage. Technickou cestu není
-                    potřeba ručně upravovat. Po nahrání nezapomeň dílo uložit.
+                    potřeba ručně upravovat. Další nahrání stejného formátu nahradí
+                    aktuální soubor místo vytváření další kopie. Po nahrání nezapomeň
+                    dílo uložit.
                   </p>
                 ) : (
                   <p style={{ margin: 0, fontSize: "13px", opacity: 0.72 }}>

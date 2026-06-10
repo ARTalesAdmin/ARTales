@@ -76,17 +76,20 @@ function safeStorageSegment(value: string) {
 
 export function buildWorkCoverStoragePath({
   workSlug,
-  fileName,
   mimeType,
 }: {
   workSlug: string
-  fileName: string
+  fileName?: string
   mimeType: string
 }) {
   const slugSegment = safeStorageSegment(workSlug)
-  const baseName = safeStorageSegment(fileName.replace(/\.[^.]+$/, ""))
   const extension = getExtensionFromMimeType(mimeType)
-  const stamp = new Date().toISOString().replace(/[^0-9]/g, "").slice(0, 14)
 
-  return `works/${slugSegment}/cover/${stamp}-${baseName}.${extension}`
+  return `works/${slugSegment}/cover/cover.${extension}`
+}
+
+export function isWorkCoverStoragePath(path?: string | null) {
+  const normalizedPath = normalizeStoragePath(path)
+
+  return Boolean(normalizedPath?.match(/^works\/[^/]+\/cover\/[^/]+$/))
 }

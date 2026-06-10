@@ -28,7 +28,7 @@ function WorkCoverImageFrame({
 }) {
   const [hasImageError, setHasImageError] = useState(false);
   const isCard = variant === "card";
-  const minHeight = isCard ? 270 : 460;
+  const coverClassName = `artales-work-cover artales-work-cover--${variant}`;
   const shouldShowImage = Boolean(imageUrl) && !hasImageError;
 
   return (
@@ -41,18 +41,11 @@ function WorkCoverImageFrame({
     >
       <div
         aria-label={shouldShowImage ? undefined : "Work cover placeholder"}
+        className={coverClassName}
         style={{
-          position: "relative",
-          minHeight: `${minHeight}px`,
-          overflow: "hidden",
-          border: "1px solid rgba(217, 183, 110, 0.3)",
-          borderRadius: isCard ? "18px" : "24px",
           background: shouldShowImage
             ? "#f3eadc"
             : "radial-gradient(circle at top, rgba(217, 183, 110, 0.34), transparent 18rem), linear-gradient(145deg, #fff8e8 0%, #ead9b8 100%)",
-          boxShadow: isCard
-            ? "0 14px 34px rgba(5, 7, 12, 0.12)"
-            : "0 24px 70px rgba(5, 7, 12, 0.22)",
         }}
       >
         {shouldShowImage && imageUrl ? (
@@ -74,7 +67,7 @@ function WorkCoverImageFrame({
         ) : (
           <div
             style={{
-              minHeight: `${minHeight}px`,
+              minHeight: "100%",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
