@@ -225,6 +225,12 @@ export default async function EditCollectionPage({
           </label>
         </section>
 
+        <p style={{ margin: "0", fontSize: "14px" }}>
+          <Link className="artales-editor-help-link" href="/member/resources#collection-cover">
+            Otevřít collection cover standard a prompt
+          </Link>
+        </p>
+
         <EditorialImageUploadField
           kind="collection-cover"
           title={(values.title || "ARTales kolekce")}

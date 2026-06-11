@@ -185,6 +185,12 @@ export default async function NewCollectionPage({ searchParams }: PageProps) {
           </label>
         </section>
 
+        <p style={{ margin: "0", fontSize: "14px" }}>
+          <Link className="artales-editor-help-link" href="/member/resources#collection-cover">
+            Otevřít collection cover standard a prompt
+          </Link>
+        </p>
+
         <EditorialImageUploadField
           kind="collection-cover"
           title={(defaults.title || "ARTales kolekce")}

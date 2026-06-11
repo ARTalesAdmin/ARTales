@@ -1302,6 +1302,11 @@ export default function WorkEditorForm(props: Props) {
                 Nahraj veřejnou obálku přímo do ARTales Storage. Podporované
                 formáty: JPG, PNG, WebP. Maximální velikost pro obálku je 5 MB.
               </p>
+              <p style={{ margin: "10px 0 0", fontSize: "14px" }}>
+                <Link className="artales-editor-help-link" href="/member/resources#work-cover">
+                  Otevřít cover standard a prompt
+                </Link>
+              </p>
             </div>
 
             <input
@@ -1549,6 +1554,11 @@ export default function WorkEditorForm(props: Props) {
             <p style={{ margin: "8px 0 0 0", opacity: 0.78 }}>
               Doporučený model: jeden skutečný odstavec = jeden blok Odstavec.
               Výsledek vždy zkontroluj v editoru před uložením díla.
+            </p>
+            <p style={{ margin: "10px 0 0", fontSize: "14px" }}>
+              <Link className="artales-editor-help-link" href="/member/resources#parser">
+                Otevřít pravidla parseru a aktuální AI prompt
+              </Link>
             </p>
           </div>
 

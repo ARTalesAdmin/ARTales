@@ -242,6 +242,12 @@ export default async function EditAuthorPage({
           </div>
         </section>
 
+        <p style={{ margin: "0", fontSize: "14px" }}>
+          <Link className="artales-editor-help-link" href="/member/resources#author-portrait">
+            Otevřít author portrait standard a prompt
+          </Link>
+        </p>
+
         <EditorialImageUploadField
           kind="author-portrait"
           title={(values.name || "ARTales autor")}

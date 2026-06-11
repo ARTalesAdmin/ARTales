@@ -2028,6 +2028,7 @@ body {
   min-height: 4.8rem;
   overflow: hidden;
   -webkit-box-orient: vertical;
+  line-clamp: 3;
   -webkit-line-clamp: 3;
 }
 
@@ -2222,5 +2223,146 @@ body {
 
   .artales-author-card-portrait {
     max-width: 140px;
+  }
+}
+
+.artales-resource-page {
+  display: grid;
+  gap: 22px;
+  margin: 0 auto;
+  max-width: 1100px;
+  padding: clamp(24px, 5vw, 56px);
+}
+
+.artales-resource-hero {
+  align-items: end;
+  display: grid;
+  gap: 18px;
+  grid-template-columns: minmax(0, 1fr) auto;
+}
+
+.artales-resource-hero h1 {
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: clamp(2.3rem, 5vw, 4.2rem);
+  letter-spacing: -0.055em;
+  line-height: 0.98;
+  margin: 0 0 12px;
+}
+
+.artales-resource-hero p {
+  color: rgba(23, 19, 15, 0.74);
+  font-size: 1.05rem;
+  line-height: 1.65;
+  margin: 0;
+  max-width: 780px;
+}
+
+.artales-resource-hero__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  justify-content: flex-end;
+}
+
+.artales-resource-eyebrow {
+  color: #8a641f;
+  font-size: 0.78rem;
+  font-weight: 900;
+  letter-spacing: 0.14em;
+  margin: 0 0 8px;
+  text-transform: uppercase;
+}
+
+.artales-resource-index {
+  padding: 20px;
+}
+
+.artales-resource-index h2 {
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 1.45rem;
+  margin: 0 0 12px;
+}
+
+.artales-resource-index div {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.artales-resource-index a {
+  background: rgba(13, 21, 40, 0.05);
+  border: 1px solid rgba(13, 21, 40, 0.12);
+  border-radius: 999px;
+  color: var(--artales-ink);
+  font-weight: 800;
+  padding: 0.65rem 0.9rem;
+  text-decoration: none;
+}
+
+.artales-resource-card {
+  display: grid;
+  gap: 16px;
+  padding: clamp(20px, 4vw, 28px);
+}
+
+.artales-resource-card__header h2 {
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: clamp(1.7rem, 3vw, 2.4rem);
+  letter-spacing: -0.035em;
+  margin: 0 0 10px;
+}
+
+.artales-resource-card__header p {
+  color: rgba(23, 19, 15, 0.72);
+  line-height: 1.65;
+  margin: 0;
+  max-width: 820px;
+}
+
+.artales-resource-specs {
+  background: rgba(246, 238, 219, 0.62);
+  border: 1px solid rgba(13, 21, 40, 0.1);
+  border-radius: 18px;
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 16px 18px 16px 34px;
+}
+
+.artales-resource-specs li {
+  line-height: 1.55;
+}
+
+.artales-resource-prompt {
+  background: #101521;
+  border: 1px solid rgba(217, 183, 110, 0.25);
+  border-radius: 18px;
+  color: #f8f2e8;
+  font-family: var(--font-artales-mono);
+  font-size: 0.86rem;
+  line-height: 1.58;
+  margin: 0;
+  max-height: 520px;
+  overflow: auto;
+  padding: 18px;
+  white-space: pre-wrap;
+}
+
+.artales-editor-help-link {
+  color: #6f5424;
+  font-size: 0.92rem;
+  font-weight: 800;
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 3px;
+}
+
+@media (max-width: 760px) {
+  .artales-resource-hero {
+    grid-template-columns: 1fr;
+  }
+
+  .artales-resource-hero__actions {
+    justify-content: flex-start;
   }
 }
