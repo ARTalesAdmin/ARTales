@@ -4,6 +4,7 @@ import { isStatusCode } from "@/lib/dictionaries/status"
 import {
   sanitizeWorkBlocks,
   validateWorkBlocks,
+  getUnresolvedImageBlocks,
   flattenBlocksToPlainText,
   type WorkBlock,
 } from "@/lib/blocks"
@@ -170,6 +171,10 @@ export function validateWorkFormValues(values: WorkFormValues): string | null {
 
   if (blocksError) {
     return blocksError
+  }
+
+  if (values.status === "published" && getUnresolvedImageBlocks(values.content_blocks).length > 0) {
+    return "image_blocks_missing_assets"
   }
 
   return null

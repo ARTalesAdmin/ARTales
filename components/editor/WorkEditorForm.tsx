@@ -2,7 +2,12 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { WORK_BLOCK_TYPE_META, createEmptyBlock, type WorkBlock } from "@/lib/blocks";
+import {
+  WORK_BLOCK_TYPE_META,
+  createEmptyBlock,
+  getUnresolvedImageBlocks,
+  type WorkBlock,
+} from "@/lib/blocks";
 import { createClient as createBrowserSupabaseClient } from "@/lib/supabase/client";
 import { slugify } from "@/lib/slug";
 import {
@@ -205,6 +210,13 @@ export default function WorkEditorForm(props: Props) {
       done: formState.isbn_status.trim() !== "",
     },
   ];
+
+  const unresolvedImageBlocks = getUnresolvedImageBlocks(blocks);
+
+  function scrollToSaveActions() {
+    const element = document.getElementById("work-editor-save-actions");
+    element?.scrollIntoView({ behavior: "smooth", block: "center" });
+  }
 
   const initialSnapshot = useMemo(
     () =>
@@ -697,6 +709,61 @@ export default function WorkEditorForm(props: Props) {
       </section>
 
       <form action={action} style={{ display: "grid", gap: "22px" }}>
+        <section
+          className="artales-member-panel"
+          style={{
+            border: "1px solid rgba(13, 21, 40, 0.14)",
+            background: "#fffdf8",
+            borderRadius: "18px",
+            padding: "16px",
+            display: "flex",
+            gap: "12px",
+            flexWrap: "wrap",
+            alignItems: "center",
+            justifyContent: "space-between",
+          }}
+        >
+          <div>
+            <strong>Rychlé uložení</strong>
+            <p style={{ margin: "4px 0 0", fontSize: "13px", opacity: 0.75 }}>
+              U dlouhých děl nemusíš sjíždět až na konec formuláře.
+              {unresolvedImageBlocks.length > 0
+                ? ` Nevyřešené image bloky: ${unresolvedImageBlocks.length}. Draft uložit lze, publikaci zastaví.`
+                : ""}
+            </p>
+          </div>
+
+          <div style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
+            <button
+              type="submit"
+              style={{
+                padding: "10px 15px",
+                border: "1px solid #111",
+                background: "#111",
+                color: "#fff",
+                cursor: "pointer",
+                fontWeight: 700,
+              }}
+            >
+              Uložit dílo
+            </button>
+            <button
+              type="button"
+              onClick={scrollToSaveActions}
+              style={{
+                padding: "10px 15px",
+                border: "1px solid rgba(13, 21, 40, 0.22)",
+                background: "#fffefb",
+                color: "#111",
+                cursor: "pointer",
+                fontWeight: 700,
+              }}
+            >
+              Přejít na konec ↓
+            </button>
+          </div>
+        </section>
+
         <section
           className="artales-member-panel"
           style={{
@@ -1613,6 +1680,7 @@ export default function WorkEditorForm(props: Props) {
                 <span className="artales-parser-stat">Předěly: {parserResult.stats.separators}</span>
                 <span className="artales-parser-stat">Citace: {parserResult.stats.quotes}</span>
                 <span className="artales-parser-stat">Datace: {parserResult.stats.placeLines}</span>
+                <span className="artales-parser-stat">Obrázky: {parserResult.stats.images}</span>
                 {parserResult.usedMarkup ? (
                   <span className="artales-parser-stat">ARTales značky: použity</span>
                 ) : null}
@@ -1635,7 +1703,11 @@ export default function WorkEditorForm(props: Props) {
                       {block.editor_note ? ` · ${block.editor_note}` : ""}
                     </p>
                     <p style={{ margin: 0, whiteSpace: "pre-wrap" }}>
-                      {block.content.length > 260 ? `${block.content.slice(0, 260)}…` : block.content}
+                      {block.type === "image"
+                        ? String(block.fields?.source_note ?? block.fields?.image_request ?? block.fields?.caption ?? "Image placeholder")
+                        : block.content.length > 260
+                          ? `${block.content.slice(0, 260)}…`
+                          : block.content}
                     </p>
                   </div>
                 ))}
@@ -1649,7 +1721,12 @@ export default function WorkEditorForm(props: Props) {
           ) : null}
         </section>
 
-        <WorkBlocksEditor blocks={blocks} setBlocks={setBlocks} />
+        <WorkBlocksEditor
+          blocks={blocks}
+          setBlocks={setBlocks}
+          workSlug={formState.slug || slug || ""}
+          workTitle={formState.title}
+        />
 
         <input
           type="hidden"
@@ -1657,7 +1734,10 @@ export default function WorkEditorForm(props: Props) {
           value={JSON.stringify(blocks)}
         />
 
-        <div style={{ display: "flex", gap: "12px", flexWrap: "wrap" }}>
+        <div
+          id="work-editor-save-actions"
+          style={{ display: "flex", gap: "12px", flexWrap: "wrap" }}
+        >
           <button
             type="submit"
             style={{

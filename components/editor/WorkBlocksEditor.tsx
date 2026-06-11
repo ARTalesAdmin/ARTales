@@ -1,16 +1,27 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import {
   createEmptyBlock,
   getWorkBlockTypeOptions,
   type WorkBlock,
   type WorkBlockType,
 } from "@/lib/blocks";
+import StorageImageDisplay from "@/components/media/StorageImageDisplay";
+import { createClient as createBrowserSupabaseClient } from "@/lib/supabase/client";
+import {
+  ARTALES_IMAGES_BUCKET,
+  ARTALES_IMAGE_MAX_UPLOAD_BYTES,
+  buildWorkInlineImageStoragePath,
+  isAllowedArtalesImageMimeType,
+} from "@/lib/storageImages";
+import { slugify } from "@/lib/slug";
 
 type Props = {
   blocks: WorkBlock[];
   setBlocks: React.Dispatch<React.SetStateAction<WorkBlock[]>>;
+  workSlug?: string;
+  workTitle?: string;
 };
 
 type ImageFieldName =
@@ -19,7 +30,8 @@ type ImageFieldName =
   | "alt"
   | "caption"
   | "alignment"
-  | "size";
+  | "size"
+  | "source_note";
 
 function getBlockTitle(block: WorkBlock, index: number) {
   const prefix = `${index + 1}.`;
@@ -51,11 +63,18 @@ function getBlockTitle(block: WorkBlock, index: number) {
   return `${prefix} ${text ? text.slice(0, 46) : "Prázdný blok"}`;
 }
 
-export default function WorkBlocksEditor({ blocks, setBlocks }: Props) {
+export default function WorkBlocksEditor({
+  blocks,
+  setBlocks,
+  workSlug = "",
+  workTitle = "",
+}: Props) {
   const blockTypeOptions = useMemo(() => getWorkBlockTypeOptions(), []);
   const [highlightedBlockId, setHighlightedBlockId] = useState<string | null>(
     null,
   );
+  const [imageUploadState, setImageUploadState] = useState<Record<string, { isUploading?: boolean; message?: string; error?: string }>>({});
+  const uploadedInlineImagePathsRef = useRef<Set<string>>(new Set());
 
   function normalizeBlockForType(
     block: WorkBlock,
@@ -86,6 +105,7 @@ export default function WorkBlocksEditor({ blocks, setBlocks }: Props) {
           caption: block.fields?.caption ?? "",
           alignment: block.fields?.alignment ?? "center",
           size: block.fields?.size ?? "normal",
+          source_note: block.fields?.source_note ?? "",
         },
       };
     }
@@ -153,6 +173,7 @@ export default function WorkBlocksEditor({ blocks, setBlocks }: Props) {
           caption: block.fields?.caption ?? "",
           alignment: block.fields?.alignment ?? "center",
           size: block.fields?.size ?? "normal",
+          source_note: block.fields?.source_note ?? "",
           [fieldName]: value,
         };
 
@@ -166,6 +187,116 @@ export default function WorkBlocksEditor({ blocks, setBlocks }: Props) {
         };
       }),
     );
+  }
+
+  function setImageUploadPatch(
+    blockId: string,
+    patch: { isUploading?: boolean; message?: string; error?: string },
+  ) {
+    setImageUploadState((prev) => ({
+      ...prev,
+      [blockId]: { ...(prev[blockId] ?? {}), ...patch },
+    }));
+  }
+
+  async function removeUnsavedInlineImage(path: string) {
+    if (!uploadedInlineImagePathsRef.current.has(path)) return;
+
+    try {
+      const supabase = createBrowserSupabaseClient();
+      const { error } = await supabase.storage
+        .from(ARTALES_IMAGES_BUCKET)
+        .remove([path]);
+
+      if (!error) {
+        uploadedInlineImagePathsRef.current.delete(path);
+      }
+    } catch {
+      // Best-effort cleanup only. A failed cleanup must not block editing.
+    }
+  }
+
+  async function uploadInlineImage(index: number, file: File | null) {
+    const block = blocks[index];
+    if (!block || block.type !== "image") return;
+
+    setImageUploadPatch(block.id, { error: undefined, message: undefined });
+
+    if (!file) return;
+
+    if (!isAllowedArtalesImageMimeType(file.type)) {
+      setImageUploadPatch(block.id, {
+        error: "Podporované formáty jsou JPG, PNG a WebP.",
+      });
+      return;
+    }
+
+    if (file.size > ARTALES_IMAGE_MAX_UPLOAD_BYTES) {
+      setImageUploadPatch(block.id, {
+        error: "Soubor je příliš velký. Maximální velikost obrázku je 5 MB.",
+      });
+      return;
+    }
+
+    const slug = slugify(workSlug || workTitle);
+
+    if (!slug) {
+      setImageUploadPatch(block.id, {
+        error: "Nejdřív vyplň název nebo slug díla. Podle něj se vytvoří cesta obrázku.",
+      });
+      return;
+    }
+
+    setImageUploadPatch(block.id, { isUploading: true });
+
+    try {
+      const previousPath = String(block.fields?.storage_path ?? block.content ?? "").trim();
+      const storagePath = buildWorkInlineImageStoragePath({
+        workSlug: slug,
+        blockId: block.id,
+        mimeType: file.type,
+      });
+      const supabase = createBrowserSupabaseClient();
+
+      const { error } = await supabase.storage
+        .from(ARTALES_IMAGES_BUCKET)
+        .upload(storagePath, file, {
+          cacheControl: "31536000",
+          contentType: file.type,
+          upsert: true,
+        });
+
+      if (error) {
+        setImageUploadPatch(block.id, {
+          isUploading: false,
+          error: `Obrázek se nepodařilo nahrát: ${error.message}`,
+        });
+        return;
+      }
+
+      uploadedInlineImagePathsRef.current.add(storagePath);
+
+      if (previousPath && previousPath !== storagePath) {
+        await removeUnsavedInlineImage(previousPath);
+      }
+
+      updateImageField(index, "storage_path", storagePath);
+
+      const currentAlt = String(block.fields?.alt ?? "").trim();
+      if (!currentAlt) {
+        updateImageField(index, "alt",
+          workTitle.trim() ? `Ilustrace k dílu ${workTitle.trim()}` : "Ilustrace v díle",
+        );
+      }
+
+      setImageUploadPatch(block.id, {
+        isUploading: false,
+        message: "Obrázek byl nahrán. Ulož dílo, aby se změna propsala do databáze.",
+        error: undefined,
+      });
+    } finally {
+      setImageUploadPatch(block.id, { isUploading: false });
+    }
   }
 
   function addBlock(type: WorkBlockType = "paragraph") {
@@ -279,9 +410,10 @@ export default function WorkBlocksEditor({ blocks, setBlocks }: Props) {
       <div>
         <h2 style={{ marginTop: 0, marginBottom: "8px" }}>Obsahové bloky</h2>
         <p style={{ margin: 0, opacity: 0.8 }}>
-          Skládej text z předdefinovaných bloků. U obrázků běžný editor vyplňuje
-          hlavně název souboru / poznámku. Technickou cestu k obrázku doplňuje
-          správce až po nahrání souboru do systému.
+          Skládej text z předdefinovaných bloků. Obrázkový blok je samostatný
+          celek mezi odstavci: editor může rovnou nahrát soubor, doplnit alt
+          text, popisek a kredit. Prázdný image blok lze uložit jako draft,
+          ale před zveřejněním je potřeba obrázky doplnit.
         </p>
       </div>
 
@@ -508,93 +640,155 @@ export default function WorkBlocksEditor({ blocks, setBlocks }: Props) {
                   </>
                 ) : isImage ? (
                   <>
-                    <div
-                      style={{
-                        border: "1px solid rgba(199, 163, 90, 0.32)",
-                        borderRadius: "16px",
-                        background: "#fff7e8",
-                        boxShadow: "inset 0 1px 0 rgba(255, 255, 255, 0.9)",
-                        padding: "14px",
-                      }}
-                    >
-                      <strong>Workflow obrázku</strong>
-                      <p
-                        style={{
-                          margin: "8px 0 0",
-                          fontSize: "14px",
-                          opacity: 0.78,
-                        }}
-                      >
-                        Editor nahraje soubor do sdílené složky a sem zapíše
-                        přesný název souboru nebo krátkou poznámku. Správce
-                        později obrázek technicky vloží a doplní cestu níže.
-                      </p>
-                    </div>
+                    {(() => {
+                      const imagePath = String(
+                        block.fields?.storage_path ?? block.content ?? "",
+                      ).trim();
+                      const imageCaption = String(block.fields?.caption ?? "").trim();
+                      const imageAlt = String(block.fields?.alt ?? "").trim();
+                      const sourceNote = String(block.fields?.source_note ?? block.fields?.image_request ?? "").trim();
+                      const uploadState = imageUploadState[block.id] ?? {};
+
+                      return (
+                        <div
+                          style={{
+                            border: imagePath
+                              ? "1px solid rgba(91, 132, 82, 0.3)"
+                              : "1px solid rgba(199, 163, 90, 0.38)",
+                            borderRadius: "16px",
+                            background: imagePath ? "#f4fff0" : "#fff7e8",
+                            boxShadow: "inset 0 1px 0 rgba(255, 255, 255, 0.9)",
+                            padding: "14px",
+                            display: "grid",
+                            gap: "12px",
+                          }}
+                        >
+                          <div>
+                            <strong>Obrázek v díle</strong>
+                            <p
+                              style={{
+                                margin: "8px 0 0",
+                                fontSize: "14px",
+                                opacity: 0.78,
+                              }}
+                            >
+                              Obrázek se ukládá do ARTales Storage a v textu zůstává
+                              jako samostatný image blok. Draft lze uložit i bez
+                              obrázku; zveřejnění ale prázdný image blok zastaví.
+                            </p>
+                          </div>
+
+                          <input
+                            id={`block-image-upload-${block.id}`}
+                            type="file"
+                            accept="image/jpeg,image/png,image/webp"
+                            onChange={(event) => {
+                              void uploadInlineImage(index, event.target.files?.[0] ?? null);
+                              event.currentTarget.value = "";
+                            }}
+                            style={{ display: "none" }}
+                          />
+
+                          <div
+                            style={{
+                              display: "grid",
+                              gridTemplateColumns: "minmax(180px, 280px) minmax(0, 1fr)",
+                              gap: "14px",
+                              alignItems: "start",
+                            }}
+                          >
+                            <StorageImageDisplay
+                              title={imageCaption || sourceNote || "Obrázek v díle"}
+                              imagePath={imagePath}
+                              alt={imageAlt}
+                              caption={imageCaption}
+                              variant="editor-preview"
+                            />
+
+                            <div style={{ display: "grid", gap: "10px" }}>
+                              <div style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
+                                <button
+                                  type="button"
+                                  disabled={Boolean(uploadState.isUploading)}
+                                  onClick={() =>
+                                    document.getElementById(`block-image-upload-${block.id}`)?.click()
+                                  }
+                                  style={{
+                                    ...editorButtonStyle,
+                                    border: "1px solid #0d1528",
+                                    background: uploadState.isUploading ? "#6b7280" : "#0d1528",
+                                    color: "#fff",
+                                    cursor: uploadState.isUploading ? "wait" : "pointer",
+                                  }}
+                                >
+                                  {uploadState.isUploading ? "Nahrávám…" : imagePath ? "Nahrát jiný obrázek" : "Nahrát obrázek"}
+                                </button>
+
+                                {imagePath ? (
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      const removedPath = imagePath;
+                                      updateImageField(index, "storage_path", "");
+                                      setImageUploadPatch(block.id, {
+                                        message: "Obrázek byl odebrán z bloku. Ulož dílo, aby se změna propsala do databáze.",
+                                        error: undefined,
+                                      });
+                                      void removeUnsavedInlineImage(removedPath);
+                                    }}
+                                    style={editorButtonStyle}
+                                  >
+                                    Odebrat z bloku
+                                  </button>
+                                ) : null}
+                              </div>
+
+                              {uploadState.error ? (
+                                <p style={{ margin: 0, color: "#9f1239", fontSize: "14px" }}>
+                                  {uploadState.error}
+                                </p>
+                              ) : null}
+
+                              {uploadState.message ? (
+                                <p style={{ margin: 0, color: "#166534", fontSize: "14px" }}>
+                                  {uploadState.message}
+                                </p>
+                              ) : null}
+
+                              {!imagePath ? (
+                                <p style={{ margin: 0, color: "#8a4b10", fontSize: "14px" }}>
+                                  Chybí obrázek. Draft můžeš uložit, ale před zveřejněním
+                                  prosím doplň obrázky.
+                                </p>
+                              ) : null}
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })()}
 
                     <div>
                       <label
-                        htmlFor={`block-image-request-${block.id}`}
+                        htmlFor={`block-image-source-note-${block.id}`}
                         style={{
                           display: "block",
                           marginBottom: "6px",
                           fontWeight: 600,
                         }}
                       >
-                        Název souboru / poznámka pro obrázek
+                        Poznámka / původní označení obrázku
                       </label>
                       <input
-                        id={`block-image-request-${block.id}`}
+                        id={`block-image-source-note-${block.id}`}
                         type="text"
-                        value={String(block.fields?.image_request ?? "")}
-                        onChange={(e) =>
-                          updateImageField(
-                            index,
-                            "image_request",
-                            e.target.value,
-                          )
-                        }
-                        placeholder="např. phantom-opera-cover-reference.jpg nebo Obrázek opery po 3. odstavci"
+                        value={String(block.fields?.source_note ?? block.fields?.image_request ?? "")}
+                        onChange={(e) => {
+                          updateImageField(index, "source_note", e.target.value);
+                          updateImageField(index, "image_request", e.target.value);
+                        }}
+                        placeholder="Např. Obrázek 2 – Mapa okolí / místo obrázku z parseru"
                         style={fieldStyle}
                       />
-                    </div>
-
-                    <div>
-                      <label
-                        htmlFor={`block-image-storage-${block.id}`}
-                        style={{
-                          display: "block",
-                          marginBottom: "6px",
-                          fontWeight: 600,
-                        }}
-                      >
-                        Technická cesta obrázku (doplňuje správce)
-                      </label>
-                      <input
-                        id={`block-image-storage-${block.id}`}
-                        type="text"
-                        value={String(
-                          block.fields?.storage_path ?? block.content ?? "",
-                        )}
-                        onChange={(e) =>
-                          updateImageField(
-                            index,
-                            "storage_path",
-                            e.target.value,
-                          )
-                        }
-                        placeholder="works/{work_id}/images/image-001.webp"
-                        style={fieldStyle}
-                      />
-                      <p
-                        style={{
-                          margin: "8px 0 0",
-                          fontSize: "14px",
-                          opacity: 0.72,
-                        }}
-                      >
-                        Běžný editor toto pole nemusí řešit. Slouží pro pozdější
-                        napojení na interní úložiště obrázků.
-                      </p>
                     </div>
 
                     <div>
@@ -641,65 +835,6 @@ export default function WorkBlocksEditor({ blocks, setBlocks }: Props) {
                         placeholder="Nepovinný veřejný popisek nebo kredit"
                         style={fieldStyle}
                       />
-                    </div>
-
-                    <div
-                      style={{
-                        display: "grid",
-                        gridTemplateColumns: "1fr 1fr",
-                        gap: "12px",
-                      }}
-                    >
-                      <div>
-                        <label
-                          htmlFor={`block-image-alignment-${block.id}`}
-                          style={{
-                            display: "block",
-                            marginBottom: "6px",
-                            fontWeight: 600,
-                          }}
-                        >
-                          Zarovnání
-                        </label>
-                        <select
-                          id={`block-image-alignment-${block.id}`}
-                          value={String(block.fields?.alignment ?? "center")}
-                          onChange={(e) =>
-                            updateImageField(index, "alignment", e.target.value)
-                          }
-                          style={compactFieldStyle}
-                        >
-                          <option value="center">Na střed</option>
-                          <option value="left">Vlevo</option>
-                          <option value="right">Vpravo</option>
-                          <option value="wide">Široce</option>
-                        </select>
-                      </div>
-
-                      <div>
-                        <label
-                          htmlFor={`block-image-size-${block.id}`}
-                          style={{
-                            display: "block",
-                            marginBottom: "6px",
-                            fontWeight: 600,
-                          }}
-                        >
-                          Velikost
-                        </label>
-                        <select
-                          id={`block-image-size-${block.id}`}
-                          value={String(block.fields?.size ?? "normal")}
-                          onChange={(e) =>
-                            updateImageField(index, "size", e.target.value)
-                          }
-                          style={compactFieldStyle}
-                        >
-                          <option value="normal">Normální</option>
-                          <option value="wide">Široká</option>
-                          <option value="full">Na šířku čtecí plochy</option>
-                        </select>
-                      </div>
                     </div>
                   </>
                 ) : (

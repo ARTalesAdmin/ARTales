@@ -115,6 +115,22 @@ export function buildCollectionCoverStoragePath({
   return `collections/${slugSegment}/cover/cover.${extension}`
 }
 
+export function buildWorkInlineImageStoragePath({
+  workSlug,
+  blockId,
+  mimeType,
+}: {
+  workSlug: string
+  blockId: string
+  mimeType: string
+}) {
+  const slugSegment = safeStorageSegment(workSlug)
+  const blockSegment = safeStorageSegment(blockId)
+  const extension = getExtensionFromMimeType(mimeType)
+
+  return `works/${slugSegment}/inline/${blockSegment}.${extension}`
+}
+
 export function isWorkCoverStoragePath(path?: string | null) {
   const normalizedPath = normalizeStoragePath(path)
 

@@ -27,6 +27,7 @@ Tvůj jediný úkol je připravit literární text pro import do ARTales editoru
 ZÁKLADNÍ PRAVIDLA:
 - Neměň obsah textu.
 - Neopravuj styl, pravopis, interpunkci, archaické výrazy ani formulace autora.
+- Pokud je část textu v originále kurzívou, zachovej ji inline značkou <em>...</em>. Nepoužívej Markdown hvězdičky.
 - Nezkracuj.
 - Neparafrázuj.
 - Nedoplňuj vlastní komentáře.
@@ -69,6 +70,13 @@ METODIKA:
 - Oddělovače typu * * * nebo --- označ jako ::separator.
 - Poznámku označ jako ::note.
 - Poznámku pod čarou označ jako ::footnote.
+- Obrázek, ilustraci, mapu, tabuli nebo jasné místo pro obrázek označ jako ::image. Do bloku napiš původní popisek, název obrázku nebo stručnou poznámku. Obrázek nesmí z textu zmizet, i když samotný soubor zatím není k dispozici.
+
+PŘÍMÁ ŘEČ VS. CITACE:
+- Běžná přímá řeč a dialog v próze zůstávají ::paragraph.
+- Věta v uvozovkách uvnitř odstavce není automaticky ::quote.
+- ::quote použij pouze pro skutečně vyčleněnou citaci, motto, epigraf nebo samostatný citovaný blok mimo běžné vyprávění.
+- Pokud si nejsi jistý, zda jde o dialog nebo citaci, použij raději ::paragraph.
 
 FORMÁT VÝSTUPU:
 - Značka vždy určuje typ následujícího bloku.
@@ -93,7 +101,10 @@ Druhý odstavec textu.
 ::poem
 První verš
 druhý verš
-třetí verš`;
+třetí verš
+
+::image
+Obrázek 1 – mapa okolí. Editor později nahraje soubor.`;
 
 export type ParsedWorkBlocksResult = {
   blocks: WorkBlock[];
@@ -106,6 +117,7 @@ export type ParsedWorkBlocksResult = {
     separators: number;
     quotes: number;
     placeLines: number;
+    images: number;
     markedBlocks: number;
   };
 };
@@ -118,6 +130,28 @@ function createBlock(type: WorkBlockType, content: string, editorNote?: string):
     type,
     content: content.trim(),
     editor_note: editorNote ?? null,
+  };
+}
+
+function createImagePlaceholderBlock(content: string, editorNote?: string): WorkBlock {
+  const cleaned = content.trim();
+
+  return {
+    id: typeof crypto !== "undefined" && "randomUUID" in crypto
+      ? crypto.randomUUID()
+      : `parsed-image-${Date.now()}-${Math.random().toString(16).slice(2)}`,
+    type: "image",
+    content: "",
+    editor_note: editorNote ?? "Parser: placeholder obrázku. Nahraj asset před publikací.",
+    fields: {
+      image_request: cleaned,
+      storage_path: "",
+      alt: "",
+      caption: cleaned,
+      alignment: "center",
+      size: "normal",
+      source_note: cleaned || "Parser označil místo pro obrázek.",
+    },
   };
 }
 
@@ -193,6 +227,10 @@ function createMarkedBlocks(type: WorkBlockType, content: string): WorkBlock[] {
     return [createBlock("separator", normalizeContentForType("separator", cleaned), "Parser: vloženo podle ARTales značky ::separator.")];
   }
 
+  if (type === "image") {
+    return [createImagePlaceholderBlock(cleaned, "Parser: vloženo podle ARTales značky ::image. Nahraj obrázek před publikací.")];
+  }
+
   if (!cleaned) return [];
 
   // Even if AI forgets to split a long prose section into several ::paragraph blocks,
@@ -252,7 +290,7 @@ function parseMarkedTextToWorkBlocks(text: string): WorkBlock[] {
 
   flush();
 
-  return blocks.filter((block) => block.content.trim() !== "" || block.type === "separator");
+  return blocks.filter((block) => block.content.trim() !== "" || block.type === "separator" || block.type === "image");
 }
 
 function isSeparator(lines: string[]) {
@@ -318,10 +356,26 @@ function isQuote(lines: string[]) {
   const text = compactInlineText(lines.join("\n"));
   if (text.length > 500) return false;
 
-  return (
+  const looksLikeDialogue =
     /^([„“\"'‚‘’»«]|—\s*)/.test(text) &&
-    /([“\"'‘’»«]|\.)$/.test(text)
-  );
+    /[,!?…][“\"'‘’»«]?\s+(řekl|řekla|pravil|pravila|odpověděl|odpověděla|zeptal|zeptala|zvolal|zvolala|said|asked|answered|replied)\b/i.test(text);
+
+  if (looksLikeDialogue) return false;
+
+  const looksLikeEpigraph =
+    lines.length <= 4 &&
+    (/^([„“\"'‚‘’»«])/.test(text) || /[“\"'‘’»«]$/.test(text)) &&
+    !/[.!?…][“\"'‘’»«]?\s+[a-záčďéěíňóřšťúůýž]/.test(text);
+
+  return looksLikeEpigraph;
+}
+
+function isImagePlaceholder(lines: string[]) {
+  if (lines.length > 4) return false;
+  const text = compactInlineText(lines.join("\n"));
+
+  return /^(obrázek|obrazek|ilustrace|mapa|tabule|figure|fig\.|image|illustration|plate)\b/i.test(text) ||
+    /^\[(obrázek|obrazek|ilustrace|image|figure)[^\]]*\]$/i.test(text);
 }
 
 function isLikelyPoem(lines: string[]) {
@@ -344,6 +398,10 @@ function blockFromCandidate(candidate: string, index: number): WorkBlock {
 
   if (isSeparator(lines)) {
     return createBlock("separator", "* * *", "Parser: rozpoznaný předěl.");
+  }
+
+  if (isImagePlaceholder(lines)) {
+    return createImagePlaceholderBlock(candidate, "Parser: rozpoznané místo pro obrázek. Nahraj asset před publikací.");
   }
 
   const strongIntroBlock = isStrongPrefaceHeading(lines);
@@ -383,6 +441,7 @@ function calculateStats(blocks: WorkBlock[], usedMarkup: boolean): ParsedWorkBlo
     separators: blocks.filter((block) => block.type === "separator").length,
     quotes: blocks.filter((block) => block.type === "quote").length,
     placeLines: blocks.filter((block) => block.type === "place_line").length,
+    images: blocks.filter((block) => block.type === "image").length,
     markedBlocks: usedMarkup ? blocks.length : 0,
   };
 }
@@ -403,7 +462,7 @@ export function parseRawTextToWorkBlocks(rawText: string): ParsedWorkBlocksResul
     ? parseMarkedTextToWorkBlocks(text)
     : splitIntoParagraphCandidates(text)
         .map((candidate, index) => blockFromCandidate(candidate, index))
-        .filter((block) => block.content.trim() !== "");
+        .filter((block) => block.content.trim() !== "" || block.type === "image");
 
   return {
     blocks,

@@ -140,7 +140,7 @@ export const WORK_BLOCK_TYPE_META: Record<
   image: {
     internalLabel: "Obrázek",
     internalHelp:
-      "Obrázek nebo ilustrace. Editor vyplní hlavně název souboru / poznámku; technickou cestu doplní správce po nahrání.",
+      "Samostatný obrázek nebo ilustrace mezi bloky. Editor může nahrát soubor přímo v bloku; prázdný obrázek lze uložit jako draft, ale ne publikovat.",
     publicLabel: "Image",
     preservesLineBreaks: false,
   },
@@ -186,6 +186,7 @@ export function createEmptyBlock(type: WorkBlockType = "chapter"): WorkBlock {
         caption: "",
         alignment: "center",
         size: "normal",
+        source_note: "",
       },
     }
   }
@@ -252,6 +253,7 @@ function normalizeImageBlock(candidate: Record<string, unknown>): WorkBlock {
   const imageRequest = normalizeContent(rawFields.image_request ?? "")
   const alt = normalizeContent(rawFields.alt ?? "")
   const caption = normalizeContent(rawFields.caption ?? "")
+  const sourceNote = normalizeContent(rawFields.source_note ?? rawFields.image_request ?? "")
   const rawAlignment = normalizeContent(rawFields.alignment ?? "center")
   const rawSize = normalizeContent(rawFields.size ?? "normal")
 
@@ -277,6 +279,7 @@ function normalizeImageBlock(candidate: Record<string, unknown>): WorkBlock {
       caption,
       alignment,
       size,
+      source_note: sourceNote,
     },
   }
 }
@@ -316,6 +319,14 @@ export function sanitizeWorkBlocks(input: unknown): WorkBlock[] {
       } satisfies WorkBlock
     })
     .filter((block): block is WorkBlock => block !== null)
+}
+
+export function getUnresolvedImageBlocks(blocks: WorkBlock[]): WorkBlock[] {
+  return blocks.filter((block) => {
+    if (block.type !== "image") return false
+
+    return String(block.fields?.storage_path ?? block.content ?? "").trim() === ""
+  })
 }
 
 export function validateWorkBlocks(blocks: WorkBlock[]): string | null {

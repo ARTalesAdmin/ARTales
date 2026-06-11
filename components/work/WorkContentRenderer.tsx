@@ -1,3 +1,4 @@
+import type { ReactNode } from "react"
 import type { WorkBlock } from "@/lib/blocks"
 import { WORK_BLOCK_TYPE_META } from "@/lib/blocks"
 import { getBlockFormatPreset, type BlockFormatPresetId } from "@/lib/rendering/blockFormats"
@@ -45,6 +46,28 @@ function splitParagraphs(text: string): string[] {
     .filter(Boolean)
 }
 
+function renderInlineRichText(text: string) {
+  const parts: ReactNode[] = []
+  const pattern = /<em>([^]*?)<\/em>/gi
+  let lastIndex = 0
+  let match: RegExpExecArray | null
+
+  while ((match = pattern.exec(text)) !== null) {
+    if (match.index > lastIndex) {
+      parts.push(text.slice(lastIndex, match.index))
+    }
+
+    parts.push(<em key={`em-${match.index}`}>{match[1]}</em>)
+    lastIndex = match.index + match[0].length
+  }
+
+  if (lastIndex < text.length) {
+    parts.push(text.slice(lastIndex))
+  }
+
+  return parts.length > 0 ? parts : text
+}
+
 function renderMultiParagraphText(text: string, className?: string) {
   const paragraphs = splitParagraphs(text)
 
@@ -52,7 +75,7 @@ function renderMultiParagraphText(text: string, className?: string) {
 
   return paragraphs.map((paragraph, index) => (
     <p key={index} className={className}>
-      {paragraph}
+      {renderInlineRichText(paragraph)}
     </p>
   ))
 }
@@ -202,7 +225,7 @@ function renderBlock({ block, index, footnoteNumberByBlockId }: RenderBlockProps
           data-block-type={block.type}
         >
           <sup>{number}</sup>
-          <span>{text}</span>
+          <span>{renderInlineRichText(text)}</span>
         </aside>
       )
     }
@@ -296,7 +319,7 @@ export default function WorkContentRenderer({
           <ol>
             {footnoteBlocks.map((block, index) => (
               <li key={getStableBlockKey(block, index)} id={`footnote-${index + 1}`}>
-                {getBlockText(block)}
+                {renderInlineRichText(getBlockText(block))}
               </li>
             ))}
           </ol>
