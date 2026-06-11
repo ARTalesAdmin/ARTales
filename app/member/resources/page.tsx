@@ -1,4 +1,4 @@
-import Link from "next/link";
+import { ResourcePromptBlock } from "@/components/member/ResourcePromptBlock";
 import { requireEditorOrAdmin } from "@/lib/guards";
 import { ARTALES_TEXT_PREPROCESSOR_PROMPT } from "@/lib/textParser";
 
@@ -101,8 +101,6 @@ type MaterialCardProps = {
   description: string;
   specs: string[];
   prompt: string;
-  relatedHref?: string;
-  relatedLabel?: string;
 };
 
 function MaterialCard({
@@ -112,8 +110,6 @@ function MaterialCard({
   description,
   specs,
   prompt,
-  relatedHref,
-  relatedLabel,
 }: MaterialCardProps) {
   return (
     <article id={id} className="artales-member-panel artales-resource-card">
@@ -129,13 +125,7 @@ function MaterialCard({
         ))}
       </ul>
 
-      <pre className="artales-resource-prompt"><code>{prompt}</code></pre>
-
-      {relatedHref && relatedLabel ? (
-        <Link className="artales-button-secondary" href={relatedHref}>
-          {relatedLabel}
-        </Link>
-      ) : null}
+      <ResourcePromptBlock label="Prompt pro AI" prompt={prompt} />
     </article>
   );
 }
@@ -155,17 +145,7 @@ export default async function MemberResourcesPage() {
             připravují různí lidé.
           </p>
         </div>
-        <div className="artales-resource-hero__actions">
-          <Link className="artales-button-secondary" href="/member/works/new">
-            Nové dílo
-          </Link>
-          <Link className="artales-button-secondary" href="/member/authors/new">
-            Nový autor
-          </Link>
-          <Link className="artales-button-secondary" href="/member/collections/new">
-            Nová kolekce
-          </Link>
-        </div>
+
       </div>
 
       <section className="artales-member-panel artales-resource-index">
@@ -190,8 +170,6 @@ export default async function MemberResourcesPage() {
           "Jedna primární obálka na dílo; varianty až později",
         ]}
         prompt={workCoverPrompt}
-        relatedHref="/member/works/new"
-        relatedLabel="Použít u nového díla"
       />
 
       <MaterialCard
@@ -206,8 +184,6 @@ export default async function MemberResourcesPage() {
           "U historických autorů používat jen legálně čisté/public domain zdroje nebo vlastní symbolický avatar",
         ]}
         prompt={authorPortraitPrompt}
-        relatedHref="/member/authors/new"
-        relatedLabel="Použít u nového autora"
       />
 
       <MaterialCard
@@ -222,8 +198,6 @@ export default async function MemberResourcesPage() {
           "Bez drobného textu; kolekce nesmí přebíjet jednotlivá díla",
         ]}
         prompt={collectionCoverPrompt}
-        relatedHref="/member/collections/new"
-        relatedLabel="Použít u nové kolekce"
       />
 
       <article id="parser" className="artales-member-panel artales-resource-card">
@@ -244,11 +218,7 @@ export default async function MemberResourcesPage() {
           <li>Obrázky označit jako image placeholder; asset doplní editor.</li>
         </ul>
 
-        <pre className="artales-resource-prompt"><code>{ARTALES_TEXT_PREPROCESSOR_PROMPT}</code></pre>
-
-        <Link className="artales-button-secondary" href="/member/works/new#raw_text_parser">
-          Otevřít parser v editoru díla
-        </Link>
+        <ResourcePromptBlock label="Prompt pro AI parser" prompt={ARTALES_TEXT_PREPROCESSOR_PROMPT} />
       </article>
     </main>
   );

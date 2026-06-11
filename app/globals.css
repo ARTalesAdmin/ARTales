@@ -2366,3 +2366,24 @@ body {
     justify-content: flex-start;
   }
 }
+
+.artales-resource-prompt-block {
+  display: grid;
+  gap: 10px;
+}
+
+.artales-resource-prompt-block__header {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  justify-content: space-between;
+}
+
+.artales-resource-prompt-block__header span {
+  color: rgba(23, 19, 15, 0.72);
+  font-size: 0.88rem;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
