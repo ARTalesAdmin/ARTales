@@ -1,4 +1,5 @@
 import Link from "next/link"
+import EditorialImageUploadField from "@/components/media/EditorialImageUploadField"
 import { notFound } from "next/navigation"
 import { requireEditorOrAdmin } from "@/lib/guards"
 import { getCollectionForEditBySlug } from "@/lib/dbCollections"
@@ -223,6 +224,31 @@ export default async function EditCollectionPage({
             Kolekce je veřejně viditelná
           </label>
         </section>
+
+        <EditorialImageUploadField
+          kind="collection-cover"
+          title={(values.title || "ARTales kolekce")}
+          slugInputId="slug"
+          titleInputId="title"
+          pathName="cover_image_path"
+          altName="cover_image_alt"
+          captionName="cover_image_caption"
+          initialPath={values.cover_image_path}
+          initialAlt={values.cover_image_alt}
+          initialCaption={values.cover_image_caption}
+          heading="Cover kolekce"
+          description="Nahraj veřejný vizuál kolekce přímo do ARTales Storage. Podporované formáty: JPG, PNG, WebP. Maximální velikost je 5 MB."
+          uploadLabel="Nahrát cover kolekce"
+          uploadingLabel="Nahrávám cover…"
+          removeLabel="Odebrat cover"
+          emptyHint="Pokud cover zatím není hotový, kolekce se veřejně zobrazí se standardním ARTales placeholderem."
+          readyHint="Cover kolekce je připravený v ARTales Storage. Další nahrání stejného formátu nahradí aktuální soubor."
+          altLabel="Alt text coveru"
+          altPlaceholder="Krátký popis obrázku pro přístupnost a SEO"
+          captionLabel="Popisek / kredit coveru"
+          captionPlaceholder="Nepovinný veřejný popisek nebo kredit obrázku"
+          defaultAltPrefix="Cover kolekce"
+        />
 
         <div style={{ display: "flex", gap: "12px", flexWrap: "wrap" }}>
           <button

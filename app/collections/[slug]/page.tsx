@@ -4,6 +4,7 @@ import { getLanguageLabel } from "@/lib/dictionaries/language"
 import PublicHeader from "@/components/public/PublicHeader"
 import WorkCoverImage from "@/components/work/WorkCoverImage"
 import ArtalesBrand from "@/components/brand/ArtalesBrand"
+import StorageImageDisplay from "@/components/media/StorageImageDisplay"
 import { getPublicDictionary } from "@/lib/i18n/public"
 
 type PageProps = {
@@ -151,16 +152,26 @@ export default async function CollectionDetail({ params }: PageProps) {
               display: "flex",
               justifyContent: "center",
               minHeight: "320px",
-              padding: "32px",
+              padding: "28px",
               textAlign: "center",
             }}
           >
-            <div>
-              <ArtalesBrand href="" variant="dark" size="lg" showMark />
-              <p style={{ color: "#5f5247", margin: "22px auto 0", maxWidth: "260px" }}>
-                {t.collectionVisualPlaceholder}
-              </p>
-            </div>
+            {collection.cover_image_path ? (
+              <StorageImageDisplay
+                title={collection.title}
+                imagePath={collection.cover_image_path}
+                alt={collection.cover_image_alt}
+                caption={collection.cover_image_caption}
+                variant="collection-cover"
+              />
+            ) : (
+              <div>
+                <ArtalesBrand href="" variant="dark" size="lg" showMark />
+                <p style={{ color: "#5f5247", margin: "22px auto 0", maxWidth: "260px" }}>
+                  {t.collectionVisualPlaceholder}
+                </p>
+              </div>
+            )}
           </aside>
         </section>
 

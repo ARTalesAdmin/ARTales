@@ -11,6 +11,9 @@ export type AuthorFormValues = {
   slug: string
   author_type: "person" | "collective" | "unknown"
   bio: string
+  portrait_image_path: string
+  portrait_image_alt: string
+  portrait_image_caption: string
   birth_year: string
   death_year: string
   country: string
@@ -25,6 +28,9 @@ export function getDefaultAuthorFormValues(): AuthorFormValues {
     slug: "",
     author_type: "person",
     bio: "",
+    portrait_image_path: "",
+    portrait_image_alt: "",
+    portrait_image_caption: "",
     birth_year: "",
     death_year: "",
     country: "",
@@ -40,6 +46,9 @@ export function mapAuthorToFormValues(author: AuthorEditItem): AuthorFormValues 
     slug: author.slug,
     author_type: author.author_type,
     bio: author.bio ?? "",
+    portrait_image_path: author.portrait_image_path ?? "",
+    portrait_image_alt: author.portrait_image_alt ?? "",
+    portrait_image_caption: author.portrait_image_caption ?? "",
     birth_year: author.birth_year?.toString() ?? "",
     death_year: author.death_year?.toString() ?? "",
     country: author.country ?? "",
@@ -65,6 +74,9 @@ export function parseAuthorFormData(formData: FormData): AuthorFormValues {
       | "collective"
       | "unknown",
     bio: String(formData.get("bio") ?? "").trim(),
+    portrait_image_path: String(formData.get("portrait_image_path") ?? "").trim(),
+    portrait_image_alt: String(formData.get("portrait_image_alt") ?? "").trim(),
+    portrait_image_caption: String(formData.get("portrait_image_caption") ?? "").trim(),
     birth_year: String(formData.get("birth_year") ?? "").trim(),
     death_year: String(formData.get("death_year") ?? "").trim(),
     country: String(formData.get("country") ?? "").trim(),
@@ -131,6 +143,9 @@ export function mapAuthorFormValuesToInsertPayload(
     slug: values.slug,
     author_type: values.author_type,
     bio: toNullableString(values.bio),
+    portrait_image_path: toNullableString(values.portrait_image_path),
+    portrait_image_alt: toNullableString(values.portrait_image_alt),
+    portrait_image_caption: toNullableString(values.portrait_image_caption),
     birth_year: toNullableNumber(values.birth_year),
     death_year: toNullableNumber(values.death_year),
     country: toNullableString(values.country),
@@ -151,6 +166,9 @@ export function mapAuthorFormValuesToUpdatePayload(
     slug: values.slug,
     author_type: values.author_type,
     bio: toNullableString(values.bio),
+    portrait_image_path: toNullableString(values.portrait_image_path),
+    portrait_image_alt: toNullableString(values.portrait_image_alt),
+    portrait_image_caption: toNullableString(values.portrait_image_caption),
     birth_year: toNullableNumber(values.birth_year),
     death_year: toNullableNumber(values.death_year),
     country: toNullableString(values.country),

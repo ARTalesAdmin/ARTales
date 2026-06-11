@@ -2,6 +2,7 @@ import Link from "next/link"
 import { getAuthorBySlug } from "@/lib/dbAuthors"
 import { getLanguageLabel, getLanguageLabels } from "@/lib/dictionaries/language"
 import PublicHeader from "@/components/public/PublicHeader"
+import StorageImageDisplay from "@/components/media/StorageImageDisplay"
 import WorkCoverImage from "@/components/work/WorkCoverImage"
 import { getPublicDictionary } from "@/lib/i18n/public"
 import { getCurrentProfile } from "@/lib/auth"
@@ -120,8 +121,10 @@ export default async function AuthorDetail({ params, searchParams }: PageProps) 
             padding: "clamp(28px, 5vw, 52px)",
           }}
         >
-          <p
-            style={{
+          <div className="artales-author-hero">
+            <div>
+              <p
+                style={{
               color: "#8a6a2d",
               fontSize: "13px",
               fontWeight: 800,
@@ -202,6 +205,18 @@ export default async function AuthorDetail({ params, searchParams }: PageProps) 
               isSignedIn={Boolean(profile)}
               isFollowing={isFollowing}
             />
+          </div>
+            </div>
+
+            <aside>
+              <StorageImageDisplay
+                title={author.name}
+                imagePath={author.portrait_image_path}
+                alt={author.portrait_image_alt}
+                caption={author.portrait_image_caption}
+                variant="author-portrait"
+              />
+            </aside>
           </div>
         </section>
 

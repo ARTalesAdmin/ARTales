@@ -1,5 +1,6 @@
 import Link from "next/link";
 import PublicHeader from "@/components/public/PublicHeader";
+import StorageImageDisplay from "@/components/media/StorageImageDisplay";
 import { getAuthorsForPublicGallery } from "@/lib/dbAuthors";
 import { getLanguageLabel } from "@/lib/dictionaries/language";
 import { getPublicDictionary } from "@/lib/i18n/public";
@@ -114,6 +115,16 @@ export default async function AuthorsPage() {
                     padding: "22px",
                   }}
                 >
+                  <div className="artales-author-card-portrait">
+                    <StorageImageDisplay
+                      title={author.name}
+                      imagePath={author.portrait_image_path}
+                      alt={author.portrait_image_alt}
+                      caption={author.portrait_image_caption}
+                      variant="author-portrait"
+                    />
+                  </div>
+
                   <p
                     style={{
                       color: "#8a6a2d",

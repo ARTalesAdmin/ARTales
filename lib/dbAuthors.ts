@@ -10,6 +10,9 @@ export type AuthorDetailItem = {
   slug: string
   author_type: AuthorType
   bio: string | null
+  portrait_image_path: string | null
+  portrait_image_alt: string | null
+  portrait_image_caption: string | null
   birth_year: number | null
   death_year: number | null
   country: string | null
@@ -24,6 +27,9 @@ export type AuthorListItem = {
   name: string
   slug: string
   author_type: AuthorType
+  portrait_image_path: string | null
+  portrait_image_alt: string | null
+  portrait_image_caption: string | null
   birth_year: number | null
   death_year: number | null
   country: string | null
@@ -38,6 +44,9 @@ export type AuthorEditItem = {
   slug: string
   author_type: AuthorType
   bio: string | null
+  portrait_image_path: string | null
+  portrait_image_alt: string | null
+  portrait_image_caption: string | null
   birth_year: number | null
   death_year: number | null
   country: string | null
@@ -52,6 +61,9 @@ type RawAuthorRow = {
   slug: unknown
   author_type: unknown
   bio: unknown
+  portrait_image_path: unknown
+  portrait_image_alt: unknown
+  portrait_image_caption: unknown
   birth_year: unknown
   death_year: unknown
   country: unknown
@@ -67,6 +79,14 @@ function mapRawAuthor(row: RawAuthorRow): AuthorEditItem {
     slug: String(row.slug),
     author_type: row.author_type as AuthorType,
     bio: row.bio == null ? null : String(row.bio),
+    portrait_image_path:
+      row.portrait_image_path == null ? null : String(row.portrait_image_path),
+    portrait_image_alt:
+      row.portrait_image_alt == null ? null : String(row.portrait_image_alt),
+    portrait_image_caption:
+      row.portrait_image_caption == null
+        ? null
+        : String(row.portrait_image_caption),
     birth_year: row.birth_year == null ? null : Number(row.birth_year),
     death_year: row.death_year == null ? null : Number(row.death_year),
     country: row.country == null ? null : String(row.country),
@@ -90,6 +110,9 @@ export async function getAuthorBySlug(
       slug,
       author_type,
       bio,
+      portrait_image_path,
+      portrait_image_alt,
+      portrait_image_caption,
       birth_year,
       death_year,
       country,
@@ -128,6 +151,9 @@ export async function getAuthorsForMember(): Promise<AuthorListItem[]> {
       name,
       slug,
       author_type,
+      portrait_image_path,
+      portrait_image_alt,
+      portrait_image_caption,
       birth_year,
       death_year,
       country,
@@ -150,6 +176,9 @@ export async function getAuthorsForMember(): Promise<AuthorListItem[]> {
       name: mapped.name,
       slug: mapped.slug,
       author_type: mapped.author_type,
+      portrait_image_path: mapped.portrait_image_path,
+      portrait_image_alt: mapped.portrait_image_alt,
+      portrait_image_caption: mapped.portrait_image_caption,
       birth_year: mapped.birth_year,
       death_year: mapped.death_year,
       country: mapped.country,
@@ -173,6 +202,9 @@ export async function getAuthorForEditBySlug(
       slug,
       author_type,
       bio,
+      portrait_image_path,
+      portrait_image_alt,
+      portrait_image_caption,
       birth_year,
       death_year,
       country,
@@ -200,6 +232,9 @@ export async function getAuthorsForPublicGallery(): Promise<AuthorListItem[]> {
       name,
       slug,
       author_type,
+      portrait_image_path,
+      portrait_image_alt,
+      portrait_image_caption,
       birth_year,
       death_year,
       country,
@@ -223,6 +258,9 @@ export async function getAuthorsForPublicGallery(): Promise<AuthorListItem[]> {
       name: mapped.name,
       slug: mapped.slug,
       author_type: mapped.author_type,
+      portrait_image_path: mapped.portrait_image_path,
+      portrait_image_alt: mapped.portrait_image_alt,
+      portrait_image_caption: mapped.portrait_image_caption,
       birth_year: mapped.birth_year,
       death_year: mapped.death_year,
       country: mapped.country,

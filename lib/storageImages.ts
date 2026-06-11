@@ -41,7 +41,8 @@ export function getPublicStorageImageUrl(path?: string | null): string | null {
   )}`
 }
 
-export const WORK_COVER_MAX_UPLOAD_BYTES = 5 * 1024 * 1024
+export const ARTALES_IMAGE_MAX_UPLOAD_BYTES = 5 * 1024 * 1024
+export const WORK_COVER_MAX_UPLOAD_BYTES = ARTALES_IMAGE_MAX_UPLOAD_BYTES
 
 export const ARTALES_IMAGE_UPLOAD_MIME_TYPES = [
   "image/jpeg",
@@ -55,13 +56,13 @@ export function isAllowedArtalesImageMimeType(type: string) {
   )
 }
 
-function getExtensionFromMimeType(type: string) {
+export function getExtensionFromMimeType(type: string) {
   if (type === "image/png") return "png"
   if (type === "image/webp") return "webp"
   return "jpg"
 }
 
-function safeStorageSegment(value: string) {
+export function safeStorageSegment(value: string) {
   const normalized = value
     .trim()
     .toLowerCase()
@@ -86,6 +87,32 @@ export function buildWorkCoverStoragePath({
   const extension = getExtensionFromMimeType(mimeType)
 
   return `works/${slugSegment}/cover/cover.${extension}`
+}
+
+export function buildAuthorPortraitStoragePath({
+  authorSlug,
+  mimeType,
+}: {
+  authorSlug: string
+  mimeType: string
+}) {
+  const slugSegment = safeStorageSegment(authorSlug)
+  const extension = getExtensionFromMimeType(mimeType)
+
+  return `authors/${slugSegment}/portrait/portrait.${extension}`
+}
+
+export function buildCollectionCoverStoragePath({
+  collectionSlug,
+  mimeType,
+}: {
+  collectionSlug: string
+  mimeType: string
+}) {
+  const slugSegment = safeStorageSegment(collectionSlug)
+  const extension = getExtensionFromMimeType(mimeType)
+
+  return `collections/${slugSegment}/cover/cover.${extension}`
 }
 
 export function isWorkCoverStoragePath(path?: string | null) {

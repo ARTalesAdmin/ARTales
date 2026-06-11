@@ -4,6 +4,7 @@ import { getAuthorForEditBySlug } from "@/lib/dbAuthors"
 import { mapAuthorToFormValues } from "@/lib/forms/authorForm"
 import { updateAuthor } from "@/lib/actions/authors"
 import { getLanguageOptions } from "@/lib/dictionaries/language"
+import EditorialImageUploadField from "@/components/media/EditorialImageUploadField"
 
 type PageProps = {
   params: Promise<{ slug: string }>
@@ -240,6 +241,31 @@ export default async function EditAuthorPage({
             />
           </div>
         </section>
+
+        <EditorialImageUploadField
+          kind="author-portrait"
+          title={(values.name || "ARTales autor")}
+          slugInputId="slug"
+          titleInputId="name"
+          pathName="portrait_image_path"
+          altName="portrait_image_alt"
+          captionName="portrait_image_caption"
+          initialPath={values.portrait_image_path}
+          initialAlt={values.portrait_image_alt}
+          initialCaption={values.portrait_image_caption}
+          heading="Portrét autora"
+          description="Nahraj veřejný portrét autora přímo do ARTales Storage. Podporované formáty: JPG, PNG, WebP. Maximální velikost je 5 MB."
+          uploadLabel="Nahrát portrét"
+          uploadingLabel="Nahrávám portrét…"
+          removeLabel="Odebrat portrét"
+          emptyHint="Pokud portrét zatím není hotový, autor se veřejně zobrazí bez obrázku."
+          readyHint="Portrét je připravený v ARTales Storage. Další nahrání stejného formátu nahradí aktuální soubor."
+          altLabel="Alt text portrétu"
+          altPlaceholder="Krátký popis portrétu pro přístupnost a SEO"
+          captionLabel="Popisek / kredit portrétu"
+          captionPlaceholder="Nepovinný veřejný popisek nebo kredit obrázku"
+          defaultAltPrefix="Portrét autora"
+        />
 
         <section
           style={{

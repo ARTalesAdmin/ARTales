@@ -10,6 +10,9 @@ export type CollectionDetailItem = {
   title: string
   slug: string
   description: string | null
+  cover_image_path: string | null
+  cover_image_alt: string | null
+  cover_image_caption: string | null
   is_public_visible: boolean
   works: GalleryWorkItem[]
 }
@@ -19,6 +22,9 @@ export type CollectionListItem = {
   title: string
   slug: string
   description: string | null
+  cover_image_path: string | null
+  cover_image_alt: string | null
+  cover_image_caption: string | null
   is_public_visible: boolean
 }
 
@@ -27,6 +33,9 @@ export type CollectionEditItem = {
   title: string
   slug: string
   description: string | null
+  cover_image_path: string | null
+  cover_image_alt: string | null
+  cover_image_caption: string | null
   is_public_visible: boolean
 }
 
@@ -35,6 +44,9 @@ type RawCollectionRow = {
   title: unknown
   slug: unknown
   description: unknown
+  cover_image_path: unknown
+  cover_image_alt: unknown
+  cover_image_caption: unknown
   is_public_visible: unknown
 }
 
@@ -44,6 +56,12 @@ function mapRawCollection(row: RawCollectionRow): CollectionEditItem {
     title: String(row.title),
     slug: String(row.slug),
     description: row.description == null ? null : String(row.description),
+    cover_image_path:
+      row.cover_image_path == null ? null : String(row.cover_image_path),
+    cover_image_alt:
+      row.cover_image_alt == null ? null : String(row.cover_image_alt),
+    cover_image_caption:
+      row.cover_image_caption == null ? null : String(row.cover_image_caption),
     is_public_visible: Boolean(row.is_public_visible),
   }
 }
@@ -58,6 +76,9 @@ export async function getCollectionBySlug(
       title,
       slug,
       description,
+      cover_image_path,
+      cover_image_alt,
+      cover_image_caption,
       is_public_visible
     `)
     .eq("slug", slug)
@@ -91,6 +112,9 @@ export async function getCollectionsForMember(): Promise<CollectionListItem[]> {
       title,
       slug,
       description,
+      cover_image_path,
+      cover_image_alt,
+      cover_image_caption,
       is_public_visible
     `)
     .order("title", { ascending: true })
@@ -108,6 +132,9 @@ export async function getCollectionsForMember(): Promise<CollectionListItem[]> {
       title: mapped.title,
       slug: mapped.slug,
       description: mapped.description,
+      cover_image_path: mapped.cover_image_path,
+      cover_image_alt: mapped.cover_image_alt,
+      cover_image_caption: mapped.cover_image_caption,
       is_public_visible: mapped.is_public_visible,
     }
   })
@@ -125,6 +152,9 @@ export async function getCollectionForEditBySlug(
       title,
       slug,
       description,
+      cover_image_path,
+      cover_image_alt,
+      cover_image_caption,
       is_public_visible
     `)
     .eq("slug", slug)
@@ -147,6 +177,9 @@ export async function getCollectionsForPublicGallery(): Promise<CollectionListIt
       title,
       slug,
       description,
+      cover_image_path,
+      cover_image_alt,
+      cover_image_caption,
       is_public_visible
     `)
     .eq("is_public_visible", true)
@@ -165,6 +198,9 @@ export async function getCollectionsForPublicGallery(): Promise<CollectionListIt
       title: mapped.title,
       slug: mapped.slug,
       description: mapped.description,
+      cover_image_path: mapped.cover_image_path,
+      cover_image_alt: mapped.cover_image_alt,
+      cover_image_caption: mapped.cover_image_caption,
       is_public_visible: mapped.is_public_visible,
     };
   });

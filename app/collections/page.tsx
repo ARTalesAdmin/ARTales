@@ -1,5 +1,6 @@
 import Link from "next/link";
 import PublicHeader from "@/components/public/PublicHeader";
+import StorageImageDisplay from "@/components/media/StorageImageDisplay";
 import { getCollectionsForPublicGallery } from "@/lib/dbCollections";
 import { getPublicDictionary } from "@/lib/i18n/public";
 
@@ -86,6 +87,16 @@ export default async function CollectionsPage() {
                   padding: "24px",
                 }}
               >
+                <div className="artales-collection-card-cover">
+                  <StorageImageDisplay
+                    title={collection.title}
+                    imagePath={collection.cover_image_path}
+                    alt={collection.cover_image_alt}
+                    caption={collection.cover_image_caption}
+                    variant="collection-cover"
+                  />
+                </div>
+
                 <p
                   style={{
                     color: "#8a6a2d",
