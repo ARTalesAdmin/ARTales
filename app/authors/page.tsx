@@ -4,11 +4,11 @@ import StorageImageDisplay from "@/components/media/StorageImageDisplay";
 import { getAuthorsForPublicGallery } from "@/lib/dbAuthors";
 import { getLanguageLabel } from "@/lib/dictionaries/language";
 import { getPublicDictionary } from "@/lib/i18n/public";
+import { getCookieLocale } from "@/lib/i18n/server";
 
 export const dynamic = "force-dynamic";
 
-function getAuthorTypeLabel(type: string) {
-  const { public: t } = getPublicDictionary();
+function getAuthorTypeLabel(type: string, t: ReturnType<typeof getPublicDictionary>["public"]) {
 
   switch (type) {
     case "person":
@@ -26,8 +26,11 @@ function formatYears(birthYear: number | null, deathYear: number | null) {
 }
 
 export default async function AuthorsPage() {
-  const authors = await getAuthorsForPublicGallery();
-  const { common, public: t } = getPublicDictionary();
+  const [authors, locale] = await Promise.all([
+    getAuthorsForPublicGallery(),
+    getCookieLocale(),
+  ]);
+  const { common, public: t } = getPublicDictionary(locale);
 
   return (
     <div className="artales-public-shell">
@@ -135,7 +138,7 @@ export default async function AuthorsPage() {
                       textTransform: "uppercase",
                     }}
                   >
-                    {getAuthorTypeLabel(author.author_type)}
+                    {getAuthorTypeLabel(author.author_type, t)}
                   </p>
 
                   <h2

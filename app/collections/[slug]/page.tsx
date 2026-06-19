@@ -125,14 +125,24 @@ export default async function CollectionDetailPage({ params }: PageProps) {
 
         <section style={{ display: "grid", gap: "18px" }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: "16px", flexWrap: "wrap" }}>
-            <h2 style={{ margin: 0, fontSize: "1.8rem", color: "#20160f" }}>{t.worksInCollection}</h2>
+            <h2
+              style={{
+                fontFamily: "Georgia, 'Times New Roman', serif",
+                fontSize: "clamp(30px, 4vw, 46px)",
+                letterSpacing: "-0.035em",
+                lineHeight: 1.08,
+                margin: 0,
+              }}
+            >
+              {t.worksInCollection}
+            </h2>
             <span style={{ color: "rgba(42, 30, 22, 0.7)" }}>{`${collection.works.length} ${t.publishedWorks.toLowerCase()}`}</span>
           </div>
 
           {collection.works.length === 0 ? (
             <p style={{ margin: 0, color: "rgba(42, 30, 22, 0.78)" }}>{t.collectionNoWorks}</p>
           ) : (
-            <div className="artales-gallery-grid">
+            <div className="artales-related-work-grid">
               {collection.works.map((work) => {
                 const workCoverImageUrl = getPublicStorageImageUrl(work.cover_image_path);
 

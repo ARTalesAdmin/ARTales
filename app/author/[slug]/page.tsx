@@ -5,6 +5,7 @@ import PublicHeader from "@/components/public/PublicHeader"
 import StorageImageDisplay from "@/components/media/StorageImageDisplay"
 import WorkCoverImage from "@/components/work/WorkCoverImage"
 import { getPublicDictionary } from "@/lib/i18n/public"
+import { getCookieLocale } from "@/lib/i18n/server"
 import { getCurrentProfile } from "@/lib/auth"
 import { isAuthorFollowedByUser } from "@/lib/community"
 import AuthorFollowPanel from "@/components/community/AuthorFollowPanel"
@@ -14,8 +15,7 @@ type PageProps = {
   searchParams?: Promise<{ follow?: string }>
 }
 
-function getAuthorTypeLabel(authorType: string) {
-  const { public: t } = getPublicDictionary()
+function getAuthorTypeLabel(authorType: string, t: ReturnType<typeof getPublicDictionary>["public"]) {
 
   switch (authorType) {
     case "person":
@@ -33,8 +33,8 @@ export default async function AuthorDetail({ params, searchParams }: PageProps) 
   const { slug } = await params
   const { follow } = searchParams ? await searchParams : {}
   const author = await getAuthorBySlug(slug)
-  const profile = await getCurrentProfile()
-  const { common, public: t } = getPublicDictionary()
+  const [profile, locale] = await Promise.all([getCurrentProfile(), getCookieLocale()])
+  const { common, public: t } = getPublicDictionary(locale)
 
   if (!author) {
     return (
@@ -133,7 +133,7 @@ export default async function AuthorDetail({ params, searchParams }: PageProps) 
               textTransform: "uppercase",
             }}
           >
-            {getAuthorTypeLabel(author.author_type)}
+            {getAuthorTypeLabel(author.author_type, t)}
           </p>
 
           <h1
@@ -167,7 +167,7 @@ export default async function AuthorDetail({ params, searchParams }: PageProps) 
               <span><strong>{t.primaryLanguage}:</strong> {primaryLanguageLabel}</span>
             ) : null}
             {writingLanguageLabels.length > 0 ? (
-              <span><strong>Writing languages:</strong> {writingLanguageLabels.join(", ")}</span>
+              <span><strong>{common.language}:</strong> {writingLanguageLabels.join(", ")}</span>
             ) : null}
           </div>
 
@@ -236,27 +236,9 @@ export default async function AuthorDetail({ params, searchParams }: PageProps) 
           {author.works.length === 0 ? (
             <p style={{ color: "#5f5247" }}>{t.authorNoWorks}</p>
           ) : (
-            <div
-              style={{
-                display: "grid",
-                gap: "22px",
-                gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))",
-              }}
-            >
+            <div className="artales-related-work-grid">
               {author.works.map((work) => (
-                <article
-                  key={work.id}
-                  style={{
-                    background: "rgba(255, 255, 255, 0.58)",
-                    border: "1px solid rgba(13, 21, 40, 0.1)",
-                    borderRadius: "24px",
-                    boxShadow: "0 18px 45px rgba(13, 21, 40, 0.08)",
-                    display: "flex",
-                    flexDirection: "column",
-                    gap: "16px",
-                    padding: "18px",
-                  }}
-                >
+                <article key={work.id} className="artales-gallery-card">
                   <Link href={`/work/${work.slug}`} aria-label={`Open ${work.title}`}>
                     <WorkCoverImage
                       title={work.title}
@@ -267,44 +249,34 @@ export default async function AuthorDetail({ params, searchParams }: PageProps) 
                     />
                   </Link>
 
-                  <div>
-                    <h3
-                      style={{
-                        fontFamily: "Georgia, 'Times New Roman', serif",
-                        fontSize: "29px",
-                        lineHeight: 1.12,
-                        margin: "0 0 8px",
-                      }}
-                    >
-                      <Link
-                        href={`/work/${work.slug}`}
-                        style={{ color: "var(--artales-ink)", textDecoration: "none" }}
-                      >
+                  <div className="artales-gallery-card__body">
+                    <h2>
+                      <Link href={`/work/${work.slug}`}>
                         {work.title}
                       </Link>
-                    </h3>
+                    </h2>
 
-                    {work.subtitle ? (
-                      <p style={{ color: "#5f5247", margin: "0 0 8px" }}>
-                        {work.subtitle}
-                      </p>
-                    ) : null}
-
-                    <p style={{ color: "#3f362f", margin: "0 0 12px" }}>
-                      {work.summary}
+                    <p className={work.subtitle ? "artales-gallery-card__subtitle" : "artales-gallery-card__subtitle artales-gallery-card__subtitle--empty"}>
+                      {work.subtitle || "\u00a0"}
                     </p>
 
                     {work.collection ? (
-                      <p style={{ margin: 0 }}>
-                        <strong>{common.collection}:</strong>{" "}
-                        <Link href={`/kolekce/${work.collection.slug}`}>
-                          {work.collection.title}
-                        </Link>
+                      <p className="artales-gallery-card__meta">
+                        <span>
+                          {common.collection}:{" "}
+                          <Link href={`/collections/${work.collection.slug}`}>
+                            {work.collection.title}
+                          </Link>
+                        </span>
                       </p>
                     ) : null}
+
+                    <p className="artales-gallery-card__summary">
+                      {work.summary}
+                    </p>
                   </div>
 
-                  <div style={{ marginTop: "auto" }}>
+                  <div className="artales-gallery-card__actions">
                     <Link className="artales-button-secondary" href={`/work/${work.slug}`}>
                       {t.openDetail}
                     </Link>

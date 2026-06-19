@@ -73,6 +73,27 @@ export const csPublic = {
   deliveryOnlineReader: "Online reader",
   deliveryDigitalEditionsLater: "PDF/EPUB později",
 
+  homeEyebrow: "Živé knihy, strukturované edice",
+  homeTitle: "Knihy nemají končit jako ploché soubory.",
+  homeIntro:
+    "ARTales je literární platforma pro živé knihy: strukturovaná knihovna, ediční dílna a čtečka, kde se texty mohou rozvíjet do edic, překladů, formátů, kolekcí a budoucích členských vrstev.",
+  homePrimaryCta: "Vstoupit do galerie",
+  homeSecondaryCta: "Vyzkoušet reader",
+  homeBrandNote:
+    "Dnes veřejná čtecí plocha; pod ní připravené ediční, jazykové, přístupové a komunitní vrstvy.",
+  homeCardEditionsTitle: "Živé edice",
+  homeCardEditionsText:
+    "Dílo není jen textový blok. Může nést kapitoly, básně, dopisy, poznámky, obrázky, metadata, zdroje, kredity a historii edice.",
+  homeCardReaderTitle: "Struktura pro čtenáře",
+  homeCardReaderText:
+    "Stejná bloková struktura může sloužit veřejnému readeru, budoucím PDF/EPUB exportům i interním edičním workflow.",
+  homeCardExpansionTitle: "Stavěno po vrstvách",
+  homeCardExpansionText:
+    "ARTales počítá s účty, členstvím, vícejazyčným rozhraním, edičními rolemi, placenými formáty a kurátorskými kolekcemi.",
+  homeDevelopmentNote:
+    "ARTales je v aktivním vývoji. Veřejné plochy se postupně ladí pro češtinu i angličtinu; interní ediční nástroje jsou nyní primárně česky.",
+
+
   author: "Autor",
   authorsTitle: "Autoři ARTales",
   authorsEyebrow: "Literární hlasy",

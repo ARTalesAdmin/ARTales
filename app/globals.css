@@ -2387,3 +2387,22 @@ body {
   letter-spacing: 0.08em;
   text-transform: uppercase;
 }
+
+
+/* v0.10.7g — compact related work grids */
+.artales-related-work-grid {
+  display: grid;
+  gap: 22px;
+  grid-template-columns: repeat(auto-fill, minmax(250px, 320px));
+  justify-content: start;
+}
+
+.artales-related-work-grid .artales-gallery-card {
+  width: 100%;
+}
+
+@media (max-width: 720px) {
+  .artales-related-work-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

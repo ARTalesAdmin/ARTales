@@ -2,9 +2,11 @@ import Link from "next/link"
 import ArtalesBrand from "@/components/brand/ArtalesBrand"
 import PublicHeader from "@/components/public/PublicHeader"
 import { getPublicDictionary } from "@/lib/i18n/public"
+import { getCookieLocale } from "@/lib/i18n/server"
 
-export default function Home() {
-  const { public: t } = getPublicDictionary()
+export default async function Home() {
+  const locale = await getCookieLocale()
+  const { public: t } = getPublicDictionary(locale)
 
   return (
     <div className="artales-public-shell">

@@ -16,58 +16,13 @@ export default async function CollectionsPage() {
   return (
     <div className="artales-public-shell">
       <PublicHeader active="collection" />
-      <main
-        style={{
-          minHeight: "100vh",
-          padding: "48px 24px 80px",
-          background:
-            "linear-gradient(180deg, #f5f0e5 0%, rgba(255,255,255,0.96) 220px, #f7f4ed 100%)",
-        }}
-      >
-        <section style={{ maxWidth: "1120px", margin: "0 auto" }}>
-        <header
-          style={{
-            display: "grid",
-            gap: "16px",
-            marginBottom: "36px",
-          }}
-        >
-          <p
-            style={{
-              margin: 0,
-              fontSize: "12px",
-              letterSpacing: "0.12em",
-              textTransform: "uppercase",
-              color: "rgba(56, 43, 30, 0.78)",
-              fontWeight: 700,
-            }}
-          >
-            {t.collectionsEyebrow}
-          </p>
-
-          <h1
-            style={{
-              margin: 0,
-              fontSize: "clamp(2.4rem, 5vw, 4.2rem)",
-              lineHeight: 1.05,
-              color: "#22170f",
-            }}
-          >
-            {t.collectionsTitle}
-          </h1>
-
-          <p
-            style={{
-              margin: 0,
-              maxWidth: "760px",
-              fontSize: "1.05rem",
-              lineHeight: 1.75,
-              color: "rgba(42, 30, 22, 0.82)",
-            }}
-          >
-            {t.collectionsIntro}
-          </p>
-        </header>
+      <main className="artales-public-main">
+        <section>
+          <header className="artales-gallery-hero">
+            <p className="artales-public-kicker">{t.collectionsEyebrow}</p>
+            <h1>{t.collectionsTitle}</h1>
+            <p>{t.collectionsIntro}</p>
+          </header>
 
         {collections.length === 0 ? (
           <p style={{ color: "rgba(42, 30, 22, 0.82)" }}>{t.noPublicCollections}</p>
