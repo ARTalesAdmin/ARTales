@@ -90,6 +90,7 @@ export const enPublic = {
     "The collection description has not been added yet.",
   browseCollectionWorks: "Browse works in this collection",
   collectionVisualPlaceholder: "Collection visual",
+  curatorNote: "Curator note",
   worksInCollection: "Works in this collection",
   collectionNoWorks:
     "This collection does not contain any published works yet.",

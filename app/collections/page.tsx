@@ -4,6 +4,7 @@ import { getCollectionsForPublicGallery } from "@/lib/dbCollections";
 import { getCookieLocale } from "@/lib/i18n/server";
 import { getPublicDictionary } from "@/lib/i18n/public";
 import { pickLocalizedText } from "@/lib/localizedContent";
+import { getPublicStorageImageUrl } from "@/lib/storageImages";
 
 export default async function CollectionsPage() {
   const [collections, locale] = await Promise.all([
@@ -71,13 +72,7 @@ export default async function CollectionsPage() {
         {collections.length === 0 ? (
           <p style={{ color: "rgba(42, 30, 22, 0.82)" }}>{t.noPublicCollections}</p>
         ) : (
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))",
-              gap: "24px",
-            }}
-          >
+          <div className="artales-gallery-grid">
             {collections.map((collection) => {
               const title =
                 pickLocalizedText(locale, {
@@ -94,62 +89,61 @@ export default async function CollectionsPage() {
                 en: collection.description_en,
                 fallback: collection.description,
               });
+              const coverImageUrl = getPublicStorageImageUrl(collection.cover_image_path);
 
               return (
-                <article
-                  key={collection.id}
-                  style={{
-                    display: "flex",
-                    flexDirection: "column",
-                    background: "rgba(255,255,255,0.92)",
-                    borderRadius: "26px",
-                    overflow: "hidden",
-                    border: "1px solid rgba(68, 50, 34, 0.11)",
-                    boxShadow: "0 18px 40px rgba(36, 24, 16, 0.08)",
-                  }}
-                >
-                  <div
-                    style={{
-                      alignItems: "center",
-                      aspectRatio: "3 / 2",
-                      background: collection.cover_image_path
-                        ? `linear-gradient(rgba(23, 16, 10, 0.08), rgba(23, 16, 10, 0.14)), url(${collection.cover_image_path}) center/cover`
-                        : "linear-gradient(135deg, rgba(130, 101, 78, 0.26), rgba(61, 47, 34, 0.12))",
-                      color: "rgba(42, 30, 22, 0.58)",
-                      display: "grid",
-                      fontFamily: "Georgia, 'Times New Roman', serif",
-                      fontSize: "1.2rem",
-                      letterSpacing: "0.08em",
-                      placeItems: "center",
-                      textTransform: "uppercase",
-                    }}
-                    aria-hidden="true"
+                <article key={collection.id} className="artales-gallery-card">
+                  <Link
+                    href={`/collections/${collection.slug}`}
+                    aria-label={`${t.openCollection}: ${title}`}
+                    style={{ display: "block", textDecoration: "none" }}
                   >
-                    {collection.cover_image_path ? null : "ARTales"}
-                  </div>
-
-                  <div style={{ padding: "22px 22px 24px", display: "grid", gap: "12px" }}>
-                    <div style={{ display: "grid", gap: "6px" }}>
-                      <h2 style={{ margin: 0, fontSize: "1.55rem", lineHeight: 1.2, color: "#1f150e" }}>
-                        <Link href={`/collections/${collection.slug}`} style={{ color: "inherit", textDecoration: "none" }}>
-                          {title}
-                        </Link>
-                      </h2>
-                      {subtitle ? (
-                        <p style={{ margin: 0, color: "rgba(42, 30, 22, 0.74)", fontSize: "0.96rem" }}>{subtitle}</p>
-                      ) : null}
+                    <div
+                      style={{
+                        alignItems: "center",
+                        aspectRatio: "3 / 2",
+                        background: coverImageUrl
+                          ? `linear-gradient(rgba(23, 16, 10, 0.08), rgba(23, 16, 10, 0.14)), url(${coverImageUrl}) center/cover`
+                          : "radial-gradient(circle at top, rgba(217, 183, 110, 0.34), transparent 18rem), linear-gradient(145deg, #fff8e8 0%, #ead9b8 100%)",
+                        border: "1px solid rgba(217, 183, 110, 0.3)",
+                        borderRadius: "18px",
+                        boxShadow: "0 14px 34px rgba(5, 7, 12, 0.12)",
+                        color: "rgba(13, 21, 40, 0.58)",
+                        display: "grid",
+                        fontFamily: "Georgia, 'Times New Roman', serif",
+                        fontSize: "1.05rem",
+                        letterSpacing: "0.12em",
+                        overflow: "hidden",
+                        placeItems: "center",
+                        textAlign: "center",
+                        textTransform: "uppercase",
+                      }}
+                    >
+                      {coverImageUrl ? null : "ARTales"}
                     </div>
+                  </Link>
 
-                    <p style={{ margin: 0, color: "rgba(42, 30, 22, 0.82)", lineHeight: 1.7 }}>
+                  <div className="artales-gallery-card__body">
+                    <p className="artales-public-kicker artales-public-kicker--small">
+                      {collection.collection_type}
+                    </p>
+
+                    <h2>
+                      <Link href={`/collections/${collection.slug}`}>
+                        {title}
+                      </Link>
+                    </h2>
+
+                    <p className={subtitle ? "artales-gallery-card__subtitle" : "artales-gallery-card__subtitle artales-gallery-card__subtitle--empty"}>
+                      {subtitle || "\u00a0"}
+                    </p>
+
+                    <p className="artales-gallery-card__summary">
                       {description || t.collectionDescriptionMissing}
                     </p>
 
-                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: "auto", gap: "12px" }}>
-                      <span style={{ fontSize: "0.78rem", textTransform: "uppercase", letterSpacing: "0.08em", color: "rgba(42, 30, 22, 0.56)" }}>
-                        {collection.collection_type}
-                      </span>
-
-                      <Link href={`/collections/${collection.slug}`} style={{ textDecoration: "none", fontWeight: 600, color: "#24170f" }}>
+                    <div className="artales-gallery-card__actions">
+                      <Link className="artales-button-secondary" href={`/collections/${collection.slug}`}>
                         {t.openCollection}
                       </Link>
                     </div>

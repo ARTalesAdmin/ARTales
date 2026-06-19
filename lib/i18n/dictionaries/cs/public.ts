@@ -107,6 +107,7 @@ export const csPublic = {
   collectionDescriptionMissing: "Popis kolekce zatím nebyl doplněn.",
   browseCollectionWorks: "Procházet díla v kolekci",
   collectionVisualPlaceholder: "Vizuál kolekce",
+  curatorNote: "Kurátorská poznámka",
   worksInCollection: "Díla v této kolekci",
   collectionNoWorks: "Tato kolekce zatím neobsahuje žádná publikovaná díla.",
 }
