@@ -39,6 +39,7 @@ export type WorkFormValues = {
   status: string
   primary_author_id: string
   collection_id: string
+  tag_ids: string[]
   content_blocks: WorkBlock[]
   content_plain_text: string
 }
@@ -105,6 +106,7 @@ export function parseWorkFormData(formData: FormData): WorkFormValues {
     status: String(formData.get("status") ?? "").trim(),
     primary_author_id: String(formData.get("primary_author_id") ?? "").trim(),
     collection_id: String(formData.get("collection_id") ?? "").trim(),
+    tag_ids: formData.getAll("tag_ids").map((value) => String(value).trim()).filter(Boolean),
     content_blocks,
     content_plain_text,
   }
@@ -123,7 +125,7 @@ export function validateWorkFormValues(values: WorkFormValues): string | null {
     return "slug_invalid"
   }
 
-    if (!values.summary) {
+  if (!values.summary) {
     return "summary_missing"
   }
 

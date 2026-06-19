@@ -35,6 +35,7 @@ type Props = {
     summary: string;
     primary_author_id: string;
     collection_id: string;
+    tag_ids: string[];
     canonical_language: string;
     status: string;
     origin_type: string;
@@ -63,6 +64,7 @@ type Props = {
 
   authors: { id: string; name: string }[];
   collections: { id: string; title: string }[];
+  tags: { id: string; slug: string; label_cs: string; label_en: string | null; type: string }[];
   languageOptions: { value: string; label: string }[];
   statusOptions: { value: string; label: string }[];
 
@@ -88,6 +90,7 @@ export default function WorkEditorForm(props: Props) {
     initialData,
     authors,
     collections,
+    tags,
     languageOptions,
     statusOptions,
     action,
@@ -114,6 +117,7 @@ export default function WorkEditorForm(props: Props) {
     summary: initialData.summary,
     primary_author_id: initialData.primary_author_id,
     collection_id: initialData.collection_id,
+    tag_ids: initialData.tag_ids,
     canonical_language: initialData.canonical_language,
     status: initialData.status,
     origin_type: initialData.origin_type,
@@ -213,6 +217,21 @@ export default function WorkEditorForm(props: Props) {
 
   const unresolvedImageBlocks = getUnresolvedImageBlocks(blocks);
 
+  const tagGroups = useMemo(() => {
+    const groups = new Map<string, { id: string; slug: string; label_cs: string; label_en: string | null; type: string }[]>();
+
+    tags.forEach((tag) => {
+      const current = groups.get(tag.type) ?? [];
+      current.push(tag);
+      groups.set(tag.type, current);
+    });
+
+    return Array.from(groups.entries()).map(([type, items]) => ({
+      type,
+      items,
+    }));
+  }, [tags]);
+
   function scrollToSaveActions() {
     const element = document.getElementById("work-editor-save-actions");
     element?.scrollIntoView({ behavior: "smooth", block: "center" });
@@ -228,6 +247,7 @@ export default function WorkEditorForm(props: Props) {
           summary: initialData.summary,
           primary_author_id: initialData.primary_author_id,
           collection_id: initialData.collection_id,
+          tag_ids: initialData.tag_ids,
           canonical_language: initialData.canonical_language,
           status: initialData.status,
           origin_type: initialData.origin_type,
@@ -294,6 +314,7 @@ export default function WorkEditorForm(props: Props) {
           summary: parsedForm.summary ?? "",
           primary_author_id: forcedAuthorId,
           collection_id: parsedForm.collection_id ?? "",
+          tag_ids: Array.isArray(parsedForm.tag_ids) ? parsedForm.tag_ids : [],
           canonical_language: parsedForm.canonical_language ?? "cs",
           status: parsedForm.status ?? "draft",
           origin_type: parsedForm.origin_type ?? "original",
@@ -414,6 +435,7 @@ export default function WorkEditorForm(props: Props) {
           summary: parsed.form.summary ?? "",
           primary_author_id: parsed.form.primary_author_id ?? "",
           collection_id: parsed.form.collection_id ?? "",
+          tag_ids: Array.isArray(parsed.form.tag_ids) ? parsed.form.tag_ids : [],
           canonical_language: parsed.form.canonical_language ?? "cs",
           status: parsed.form.status ?? "draft",
           origin_type: parsed.form.origin_type ?? "original",
@@ -988,6 +1010,89 @@ export default function WorkEditorForm(props: Props) {
             </select>
             <p style={{ margin: "8px 0 0 0", fontSize: "14px", opacity: 0.75 }}>
               Nepovinné zařazení díla do kolekce.
+            </p>
+          </div>
+
+          <div
+            style={{
+              border: "1px solid rgba(13, 21, 40, 0.14)",
+              borderRadius: "16px",
+              padding: "16px",
+              background: "rgba(255, 255, 255, 0.55)",
+            }}
+          >
+            <p style={{ display: "block", marginBottom: "10px", fontWeight: 600 }}>
+              Tagy díla
+            </p>
+
+            {tagGroups.length === 0 ? (
+              <p style={{ margin: 0, fontSize: "14px", opacity: 0.75 }}>
+                Zatím nejsou založené žádné tagy. Nejprve je vytvoř v editoru tagů.
+              </p>
+            ) : (
+              <div style={{ display: "grid", gap: "14px" }}>
+                {tagGroups.map((group) => (
+                  <section key={group.type}>
+                    <p
+                      style={{
+                        margin: "0 0 8px 0",
+                        fontSize: "12px",
+                        letterSpacing: "0.08em",
+                        textTransform: "uppercase",
+                        opacity: 0.7,
+                        fontWeight: 700,
+                      }}
+                    >
+                      {group.type}
+                    </p>
+                    <div style={{ display: "flex", flexWrap: "wrap", gap: "8px" }}>
+                      {group.items.map((tag) => {
+                        const checked = formState.tag_ids.includes(tag.id);
+                        const label = tag.label_cs || tag.label_en || tag.slug;
+
+                        return (
+                          <label
+                            key={tag.id}
+                            style={{
+                              display: "inline-flex",
+                              alignItems: "center",
+                              gap: "8px",
+                              padding: "8px 12px",
+                              borderRadius: "999px",
+                              border: checked
+                                ? "1px solid rgba(13, 21, 40, 0.75)"
+                                : "1px solid rgba(13, 21, 40, 0.18)",
+                              background: checked ? "rgba(13, 21, 40, 0.08)" : "#fffefb",
+                              cursor: "pointer",
+                              fontSize: "14px",
+                            }}
+                          >
+                            <input
+                              type="checkbox"
+                              name="tag_ids"
+                              value={tag.id}
+                              checked={checked}
+                              onChange={() =>
+                                setFormState((prev) => ({
+                                  ...prev,
+                                  tag_ids: checked
+                                    ? prev.tag_ids.filter((id) => id !== tag.id)
+                                    : [...prev.tag_ids, tag.id],
+                                }))
+                              }
+                            />
+                            <span>{label}</span>
+                          </label>
+                        );
+                      })}
+                    </div>
+                  </section>
+                ))}
+              </div>
+            )}
+
+            <p style={{ margin: "10px 0 0 0", fontSize: "14px", opacity: 0.75 }}>
+              Technická vrstva pro filtrování a budoucí vyhledávání. Tagy jsou vícenásobné.
             </p>
           </div>
 

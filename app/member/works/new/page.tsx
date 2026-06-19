@@ -4,6 +4,7 @@ import { createWork } from "@/lib/actions/works"
 import { createClient } from "@/lib/supabase/server"
 import { getCollectionsForMember } from "@/lib/dbCollections"
 import { getLanguageOptions } from "@/lib/dictionaries/language"
+import { getTagsForMember } from "@/lib/dbTags"
 import { getStatusOptions } from "@/lib/dictionaries/status"
 import WorkEditorForm from "@/components/editor/WorkEditorForm"
 
@@ -69,7 +70,10 @@ export default async function NewWorkPage({ searchParams }: PageProps) {
 
   const languageOptions = getLanguageOptions("internal")
   const statusOptions = getStatusOptions("internal")
-  const collections = await getCollectionsForMember()
+  const [collections, tags] = await Promise.all([
+    getCollectionsForMember(),
+    getTagsForMember(),
+  ])
 
   const { data: authorsData, error: authorsError } = await supabase
     .from("authors")
@@ -161,6 +165,7 @@ export default async function NewWorkPage({ searchParams }: PageProps) {
           summary: "",
           primary_author_id: "",
           collection_id: "",
+          tag_ids: [],
           canonical_language: "cs",
           status: "draft",
           origin_type: "original",
@@ -189,8 +194,9 @@ export default async function NewWorkPage({ searchParams }: PageProps) {
         authors={authors}
         collections={collections.map((collection) => ({
           id: collection.id,
-          title: collection.title,
+          title: collection.title_cs ?? collection.title_en ?? collection.title,
         }))}
+        tags={tags}
         languageOptions={languageOptions}
         statusOptions={statusOptions}
         action={createWork}

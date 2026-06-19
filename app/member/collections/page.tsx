@@ -132,7 +132,7 @@ export default async function MemberCollectionsPage() {
                 }}
               >
                 <Link
-                  href={`/kolekce/${collection.slug}`}
+                  href={`/collections/${collection.slug}`}
                   style={{
                     padding: "10px 14px",
                     border: "1px solid #ccc",

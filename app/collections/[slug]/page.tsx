@@ -1,289 +1,186 @@
-import Link from "next/link"
-import { getCollectionBySlug } from "@/lib/dbCollections"
-import { getLanguageLabel } from "@/lib/dictionaries/language"
-import PublicHeader from "@/components/public/PublicHeader"
-import WorkCoverImage from "@/components/work/WorkCoverImage"
-import ArtalesBrand from "@/components/brand/ArtalesBrand"
-import StorageImageDisplay from "@/components/media/StorageImageDisplay"
-import { getPublicDictionary } from "@/lib/i18n/public"
+import Link from "next/link";
+import { notFound } from "next/navigation";
+import { getCollectionBySlug } from "@/lib/dbCollections";
+import { getCookieLocale } from "@/lib/i18n/server";
+import { getPublicDictionary } from "@/lib/i18n/public";
+import { pickLocalizedText } from "@/lib/localizedContent";
 
 type PageProps = {
-  params: Promise<{ slug: string }>
-}
+  params: Promise<{ slug: string }>;
+};
 
-export default async function CollectionDetail({ params }: PageProps) {
-  const { slug } = await params
-  const collection = await getCollectionBySlug(slug)
-  const { common, public: t } = getPublicDictionary()
+export default async function CollectionDetailPage({ params }: PageProps) {
+  const { slug } = await params;
+  const [collection, locale] = await Promise.all([
+    getCollectionBySlug(slug),
+    getCookieLocale(),
+  ]);
 
   if (!collection) {
-    return (
-      <div className="artales-public-shell">
-        <PublicHeader active="collection" />
-        <main
-          style={{
-            color: "var(--artales-ink)",
-            fontFamily: "Arial, Helvetica, sans-serif",
-            lineHeight: 1.6,
-            margin: "0 auto",
-            maxWidth: "900px",
-            padding: "64px 24px",
-          }}
-        >
-          <p style={{ margin: "0 0 22px" }}>
-            <Link href="/gallery" style={{ color: "#5f5247" }}>
-              {"<- "}{t.backToGallery}
-            </Link>
-          </p>
-          <section
-            style={{
-              background: "rgba(255, 255, 255, 0.55)",
-              border: "1px solid rgba(13, 21, 40, 0.12)",
-              borderRadius: "28px",
-              boxShadow: "0 22px 60px rgba(13, 21, 40, 0.08)",
-              padding: "32px",
-            }}
-          >
-            <h1
-              style={{
-                fontFamily: "Georgia, 'Times New Roman', serif",
-                fontSize: "clamp(36px, 6vw, 64px)",
-                lineHeight: 1.04,
-                margin: "0 0 14px",
-              }}
-            >
-              {t.collectionNotFoundTitle}
-            </h1>
-            <p style={{ color: "#3f362f", margin: 0 }}>{t.collectionNotFoundText}</p>
-          </section>
-        </main>
-      </div>
-    )
+    notFound();
   }
 
-  return (
-    <div className="artales-public-shell">
-      <PublicHeader active="collection" />
+  const { common, public: t } = getPublicDictionary(locale);
+  const title =
+    pickLocalizedText(locale, {
+      cs: collection.title_cs,
+      en: collection.title_en,
+      fallback: collection.title,
+    }) ?? collection.title;
+  const subtitle = pickLocalizedText(locale, {
+    cs: collection.subtitle_cs,
+    en: collection.subtitle_en,
+  });
+  const description = pickLocalizedText(locale, {
+    cs: collection.description_cs,
+    en: collection.description_en,
+    fallback: collection.description,
+  });
+  const curatorNote = pickLocalizedText(locale, {
+    cs: collection.curator_note_cs,
+    en: collection.curator_note_en,
+  });
 
-      <main
-        style={{
-          color: "var(--artales-ink)",
-          fontFamily: "Arial, Helvetica, sans-serif",
-          lineHeight: 1.6,
-          margin: "0 auto",
-          maxWidth: "1180px",
-          padding: "42px 24px 68px",
-        }}
-      >
-        <p style={{ margin: "0 0 22px" }}>
-          <Link href="/gallery" style={{ color: "#5f5247" }}>
-            {"<- "}{t.backToGallery}
-          </Link>
+  return (
+    <main
+      style={{
+        minHeight: "100vh",
+        padding: "48px 24px 80px",
+        background:
+          "linear-gradient(180deg, #f4efe5 0%, rgba(255,255,255,0.97) 260px, #f7f4ee 100%)",
+      }}
+    >
+      <section style={{ maxWidth: "1140px", margin: "0 auto", display: "grid", gap: "28px" }}>
+        <p style={{ margin: 0 }}>
+          <Link href="/collections">{`${common.back} · ${t.collections}`}</Link>
         </p>
 
-        <section
+        <header
           style={{
-            alignItems: "stretch",
             display: "grid",
-            gap: "clamp(24px, 5vw, 52px)",
-            gridTemplateColumns: "minmax(0, 1fr) minmax(240px, 330px)",
-            marginBottom: "42px",
+            gap: "18px",
+            padding: "28px",
+            borderRadius: "28px",
+            background: collection.cover_image_path
+              ? `linear-gradient(135deg, rgba(24, 16, 11, 0.62), rgba(24, 16, 11, 0.42)), url(${collection.cover_image_path}) center/cover`
+              : "linear-gradient(135deg, rgba(70, 52, 35, 0.92), rgba(104, 80, 59, 0.78))",
+            color: "#fffaf4",
           }}
-          className="artales-home-hero"
         >
-          <div
-            style={{
-              background: "rgba(255, 255, 255, 0.58)",
-              border: "1px solid rgba(13, 21, 40, 0.1)",
-              borderRadius: "32px",
-              boxShadow: "0 24px 70px rgba(13, 21, 40, 0.08)",
-              padding: "clamp(28px, 5vw, 52px)",
-            }}
-          >
-            <p
-              style={{
-                color: "#8a6a2d",
-                fontSize: "13px",
-                fontWeight: 800,
-                letterSpacing: "0.16em",
-                margin: "0 0 12px",
-                textTransform: "uppercase",
-              }}
-            >
-              {t.collection}
-            </p>
+          <p style={{ margin: 0, fontSize: "12px", textTransform: "uppercase", letterSpacing: "0.12em", opacity: 0.82 }}>
+            {t.collectionsEyebrow}
+          </p>
+          <div style={{ display: "grid", gap: "8px", maxWidth: "820px" }}>
+            <h1 style={{ margin: 0, fontSize: "clamp(2.2rem, 5vw, 4.2rem)", lineHeight: 1.05 }}>{title}</h1>
+            {subtitle ? <p style={{ margin: 0, fontSize: "1.08rem", opacity: 0.9 }}>{subtitle}</p> : null}
+          </div>
+          {description ? (
+            <p style={{ margin: 0, maxWidth: "860px", lineHeight: 1.8, color: "rgba(255,250,244,0.92)" }}>{description}</p>
+          ) : null}
+          {curatorNote ? (
+            <div style={{ maxWidth: "860px", paddingTop: "8px", borderTop: "1px solid rgba(255,250,244,0.18)" }}>
+              <p style={{ margin: "0 0 6px 0", fontSize: "12px", textTransform: "uppercase", letterSpacing: "0.12em", opacity: 0.78 }}>
+                Curator note
+              </p>
+              <p style={{ margin: 0, lineHeight: 1.8, color: "rgba(255,250,244,0.94)" }}>{curatorNote}</p>
+            </div>
+          ) : null}
+        </header>
 
-            <h1
-              style={{
-                fontFamily: "Georgia, 'Times New Roman', serif",
-                fontSize: "clamp(44px, 7vw, 82px)",
-                letterSpacing: "-0.05em",
-                lineHeight: 1,
-                margin: "0 0 18px",
-              }}
-            >
-              {collection.title}
-            </h1>
-
-            <p
-              style={{
-                color: "#3f362f",
-                fontSize: "18px",
-                margin: "0 0 24px",
-                maxWidth: "820px",
-              }}
-            >
-              {collection.description ?? t.collectionDescriptionMissing}
-            </p>
-
-            <a className="artales-button" href="#collection-works">
-              {t.browseCollectionWorks}
-            </a>
+        <section style={{ display: "grid", gap: "18px" }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: "16px", flexWrap: "wrap" }}>
+            <h2 style={{ margin: 0, fontSize: "1.8rem", color: "#20160f" }}>{t.worksInCollection}</h2>
+            <span style={{ color: "rgba(42, 30, 22, 0.7)" }}>{`${collection.works.length} ${t.publishedWorks.toLowerCase()}`}</span>
           </div>
 
-          <aside
-            style={{
-              alignItems: "center",
-              background:
-                "linear-gradient(180deg, rgba(255,255,255,0.62), rgba(255,255,255,0.34))",
-              border: "1px solid rgba(13, 21, 40, 0.12)",
-              borderRadius: "32px",
-              boxShadow: "0 24px 70px rgba(13, 21, 40, 0.08)",
-              display: "flex",
-              justifyContent: "center",
-              minHeight: "320px",
-              padding: "28px",
-              textAlign: "center",
-            }}
-          >
-            {collection.cover_image_path ? (
-              <StorageImageDisplay
-                title={collection.title}
-                imagePath={collection.cover_image_path}
-                alt={collection.cover_image_alt}
-                caption={collection.cover_image_caption}
-                variant="collection-cover"
-              />
-            ) : (
-              <div>
-                <ArtalesBrand href="" variant="dark" size="lg" showMark />
-                <p style={{ color: "#5f5247", margin: "22px auto 0", maxWidth: "260px" }}>
-                  {t.collectionVisualPlaceholder}
-                </p>
-              </div>
-            )}
-          </aside>
-        </section>
-
-        <section id="collection-works">
-          <h2
-            style={{
-              fontFamily: "Georgia, 'Times New Roman', serif",
-              fontSize: "clamp(32px, 5vw, 52px)",
-              letterSpacing: "-0.035em",
-              lineHeight: 1.06,
-              margin: "0 0 22px",
-            }}
-          >
-            {t.worksInCollection}
-          </h2>
-
           {collection.works.length === 0 ? (
-            <p style={{ color: "#5f5247" }}>{t.collectionNoWorks}</p>
+            <p style={{ margin: 0, color: "rgba(42, 30, 22, 0.78)" }}>{t.collectionNoWorks}</p>
           ) : (
             <div
               style={{
                 display: "grid",
-                gap: "22px",
-                gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))",
+                gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))",
+                gap: "24px",
               }}
             >
-              {collection.works.map((work) => {
-                const languageLabel = getLanguageLabel(
-                  work.canonical_language,
-                  "public"
-                )
-
-                return (
-                  <article
-                    key={work.id}
-                    style={{
-                      background: "rgba(255, 255, 255, 0.58)",
-                      border: "1px solid rgba(13, 21, 40, 0.1)",
-                      borderRadius: "24px",
-                      boxShadow: "0 18px 45px rgba(13, 21, 40, 0.08)",
-                      display: "flex",
-                      flexDirection: "column",
-                      gap: "16px",
-                      padding: "18px",
-                    }}
-                  >
-                    <Link href={`/work/${work.slug}`} aria-label={`Open ${work.title}`}>
-                      <WorkCoverImage
-                        title={work.title}
-                        imagePath={work.cover_image_path}
-                        alt={work.cover_image_alt}
-                        caption={work.cover_image_caption}
-                        variant="card"
-                      />
+              {collection.works.map((work) => (
+                <article
+                  key={work.id}
+                  style={{
+                    display: "grid",
+                    gap: "12px",
+                    padding: "18px",
+                    borderRadius: "22px",
+                    background: "rgba(255, 255, 255, 0.92)",
+                    border: "1px solid rgba(68, 50, 34, 0.11)",
+                    boxShadow: "0 16px 34px rgba(36, 24, 16, 0.07)",
+                  }}
+                >
+                  {work.cover_image_path ? (
+                    <Link
+                      href={`/work/${work.slug}`}
+                      style={{
+                        display: "block",
+                        aspectRatio: "2 / 3",
+                        borderRadius: "16px",
+                        overflow: "hidden",
+                        background: `url(${work.cover_image_path}) center/cover`,
+                      }}
+                      aria-label={work.title}
+                    />
+                  ) : (
+                    <Link
+                      href={`/work/${work.slug}`}
+                      style={{
+                        display: "grid",
+                        placeItems: "center",
+                        aspectRatio: "2 / 3",
+                        borderRadius: "16px",
+                        background:
+                          "linear-gradient(135deg, rgba(130, 101, 78, 0.20), rgba(61, 47, 34, 0.10))",
+                        color: "rgba(42, 30, 22, 0.62)",
+                        textDecoration: "none",
+                        textAlign: "center",
+                        padding: "18px",
+                      }}
+                    >
+                      ARTales
                     </Link>
+                  )}
 
-                    <div>
-                      <h3
-                        style={{
-                          fontFamily: "Georgia, 'Times New Roman', serif",
-                          fontSize: "29px",
-                          lineHeight: 1.12,
-                          margin: "0 0 8px",
-                        }}
+                  <div style={{ display: "grid", gap: "8px" }}>
+                    <h3 style={{ margin: 0, fontSize: "1.18rem", lineHeight: 1.25 }}>
+                      <Link
+                        href={`/work/${work.slug}`}
+                        style={{ color: "#20160f", textDecoration: "none" }}
                       >
-                        <Link
-                          href={`/work/${work.slug}`}
-                          style={{ color: "var(--artales-ink)", textDecoration: "none" }}
-                        >
-                          {work.title}
-                        </Link>
-                      </h3>
-
-                      <p style={{ margin: "0 0 8px" }}>
-                        <strong>{common.author}:</strong>{" "}
-                        {work.author ? (
-                          <Link href={`/autor/${work.author.slug}`}>
-                            {work.author.name}
-                          </Link>
-                        ) : (
-                          t.unknownAuthor
-                        )}
-                      </p>
-
-                      {work.subtitle ? (
-                        <p style={{ color: "#5f5247", margin: "0 0 8px" }}>
-                          {work.subtitle}
-                        </p>
-                      ) : null}
-
-                      <p style={{ color: "#3f362f", margin: "0 0 12px" }}>
-                        {work.summary}
-                      </p>
-
-                      <p style={{ color: "#5f5247", margin: 0 }}>
-                        <strong>{common.language}:</strong>{" "}
-                        {languageLabel ?? work.canonical_language}
-                      </p>
-                    </div>
-
-                    <div style={{ marginTop: "auto" }}>
-                      <Link className="artales-button-secondary" href={`/work/${work.slug}`}>
-                        {t.openDetail}
+                        {work.title}
                       </Link>
-                    </div>
-                  </article>
-                )
-              })}
+                    </h3>
+
+                    {work.author ? (
+                      <p style={{ margin: 0, color: "rgba(42, 30, 22, 0.68)", fontSize: "0.92rem" }}>
+                        {work.author.name}
+                      </p>
+                    ) : null}
+
+                    <p
+                      style={{
+                        margin: 0,
+                        color: "rgba(42, 30, 22, 0.78)",
+                        lineHeight: 1.55,
+                        fontSize: "0.94rem",
+                      }}
+                    >
+                      {work.summary}
+                    </p>
+                  </div>
+                </article>
+              ))}
             </div>
           )}
         </section>
-      </main>
-    </div>
-  )
+      </section>
+    </main>
+  );
 }

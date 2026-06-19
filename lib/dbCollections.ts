@@ -10,6 +10,17 @@ export type CollectionDetailItem = {
   title: string
   slug: string
   description: string | null
+  title_cs: string | null
+  title_en: string | null
+  subtitle_cs: string | null
+  subtitle_en: string | null
+  description_cs: string | null
+  description_en: string | null
+  curator_note_cs: string | null
+  curator_note_en: string | null
+  collection_type: string
+  is_featured: boolean
+  sort_order: number
   cover_image_path: string | null
   cover_image_alt: string | null
   cover_image_caption: string | null
@@ -22,6 +33,15 @@ export type CollectionListItem = {
   title: string
   slug: string
   description: string | null
+  title_cs: string | null
+  title_en: string | null
+  subtitle_cs: string | null
+  subtitle_en: string | null
+  description_cs: string | null
+  description_en: string | null
+  collection_type: string
+  is_featured: boolean
+  sort_order: number
   cover_image_path: string | null
   cover_image_alt: string | null
   cover_image_caption: string | null
@@ -33,10 +53,27 @@ export type CollectionEditItem = {
   title: string
   slug: string
   description: string | null
+  title_cs: string | null
+  title_en: string | null
+  subtitle_cs: string | null
+  subtitle_en: string | null
+  description_cs: string | null
+  description_en: string | null
+  curator_note_cs: string | null
+  curator_note_en: string | null
+  collection_type: string
+  is_featured: boolean
+  sort_order: number
   cover_image_path: string | null
   cover_image_alt: string | null
   cover_image_caption: string | null
   is_public_visible: boolean
+}
+
+export type CollectionWorkAssignment = {
+  work_id: string
+  sort_order: number
+  is_primary: boolean
 }
 
 type RawCollectionRow = {
@@ -44,6 +81,17 @@ type RawCollectionRow = {
   title: unknown
   slug: unknown
   description: unknown
+  title_cs: unknown
+  title_en: unknown
+  subtitle_cs: unknown
+  subtitle_en: unknown
+  description_cs: unknown
+  description_en: unknown
+  curator_note_cs: unknown
+  curator_note_en: unknown
+  collection_type: unknown
+  is_featured: unknown
+  sort_order: unknown
   cover_image_path: unknown
   cover_image_alt: unknown
   cover_image_caption: unknown
@@ -56,6 +104,22 @@ function mapRawCollection(row: RawCollectionRow): CollectionEditItem {
     title: String(row.title),
     slug: String(row.slug),
     description: row.description == null ? null : String(row.description),
+    title_cs: row.title_cs == null ? null : String(row.title_cs),
+    title_en: row.title_en == null ? null : String(row.title_en),
+    subtitle_cs: row.subtitle_cs == null ? null : String(row.subtitle_cs),
+    subtitle_en: row.subtitle_en == null ? null : String(row.subtitle_en),
+    description_cs:
+      row.description_cs == null ? null : String(row.description_cs),
+    description_en:
+      row.description_en == null ? null : String(row.description_en),
+    curator_note_cs:
+      row.curator_note_cs == null ? null : String(row.curator_note_cs),
+    curator_note_en:
+      row.curator_note_en == null ? null : String(row.curator_note_en),
+    collection_type:
+      row.collection_type == null ? "curated" : String(row.collection_type),
+    is_featured: Boolean(row.is_featured),
+    sort_order: Number(row.sort_order ?? 100),
     cover_image_path:
       row.cover_image_path == null ? null : String(row.cover_image_path),
     cover_image_alt:
@@ -66,21 +130,34 @@ function mapRawCollection(row: RawCollectionRow): CollectionEditItem {
   }
 }
 
+const COLLECTION_SELECT = `
+  id,
+  title,
+  slug,
+  description,
+  title_cs,
+  title_en,
+  subtitle_cs,
+  subtitle_en,
+  description_cs,
+  description_en,
+  curator_note_cs,
+  curator_note_en,
+  collection_type,
+  is_featured,
+  sort_order,
+  cover_image_path,
+  cover_image_alt,
+  cover_image_caption,
+  is_public_visible
+`
+
 export async function getCollectionBySlug(
   slug: string
 ): Promise<CollectionDetailItem | null> {
   const { data, error } = await supabase
     .from("collections")
-    .select(`
-      id,
-      title,
-      slug,
-      description,
-      cover_image_path,
-      cover_image_alt,
-      cover_image_caption,
-      is_public_visible
-    `)
+    .select(COLLECTION_SELECT)
     .eq("slug", slug)
     .eq("is_public_visible", true)
     .maybeSingle()
@@ -107,37 +184,16 @@ export async function getCollectionsForMember(): Promise<CollectionListItem[]> {
 
   const { data, error } = await supabaseServer
     .from("collections")
-    .select(`
-      id,
-      title,
-      slug,
-      description,
-      cover_image_path,
-      cover_image_alt,
-      cover_image_caption,
-      is_public_visible
-    `)
-    .order("title", { ascending: true })
+    .select(COLLECTION_SELECT)
+    .order("sort_order", { ascending: true })
+    .order("title_cs", { ascending: true })
 
   if (error) {
     console.error("DB error in getCollectionsForMember:", error)
     throw new Error(`Failed to load collections: ${error.message}`)
   }
 
-  return ((data ?? []) as RawCollectionRow[]).map((row) => {
-    const mapped = mapRawCollection(row)
-
-    return {
-      id: mapped.id,
-      title: mapped.title,
-      slug: mapped.slug,
-      description: mapped.description,
-      cover_image_path: mapped.cover_image_path,
-      cover_image_alt: mapped.cover_image_alt,
-      cover_image_caption: mapped.cover_image_caption,
-      is_public_visible: mapped.is_public_visible,
-    }
-  })
+  return ((data ?? []) as RawCollectionRow[]).map((row) => mapRawCollection(row))
 }
 
 export async function getCollectionForEditBySlug(
@@ -147,16 +203,7 @@ export async function getCollectionForEditBySlug(
 
   const { data, error } = await supabaseServer
     .from("collections")
-    .select(`
-      id,
-      title,
-      slug,
-      description,
-      cover_image_path,
-      cover_image_alt,
-      cover_image_caption,
-      is_public_visible
-    `)
+    .select(COLLECTION_SELECT)
     .eq("slug", slug)
     .maybeSingle()
 
@@ -169,39 +216,45 @@ export async function getCollectionForEditBySlug(
 
   return mapRawCollection(data as RawCollectionRow)
 }
+
 export async function getCollectionsForPublicGallery(): Promise<CollectionListItem[]> {
   const { data, error } = await supabase
     .from("collections")
-    .select(`
-      id,
-      title,
-      slug,
-      description,
-      cover_image_path,
-      cover_image_alt,
-      cover_image_caption,
-      is_public_visible
-    `)
+    .select(COLLECTION_SELECT)
     .eq("is_public_visible", true)
-    .order("title", { ascending: true });
+    .order("sort_order", { ascending: true })
+    .order("title_en", { ascending: true })
 
   if (error) {
-    console.error("DB error in getCollectionsForPublicGallery:", error);
-    throw new Error(`Failed to load public collections: ${error.message}`);
+    console.error("DB error in getCollectionsForPublicGallery:", error)
+    throw new Error(`Failed to load public collections: ${error.message}`)
   }
 
-  return ((data ?? []) as RawCollectionRow[]).map((row) => {
-    const mapped = mapRawCollection(row);
+  return ((data ?? []) as RawCollectionRow[]).map((row) => mapRawCollection(row))
+}
 
-    return {
-      id: mapped.id,
-      title: mapped.title,
-      slug: mapped.slug,
-      description: mapped.description,
-      cover_image_path: mapped.cover_image_path,
-      cover_image_alt: mapped.cover_image_alt,
-      cover_image_caption: mapped.cover_image_caption,
-      is_public_visible: mapped.is_public_visible,
-    };
-  });
+export async function getCollectionWorkAssignments(
+  collectionId: string
+): Promise<CollectionWorkAssignment[]> {
+  const supabaseServer = await createClient()
+
+  const { data, error } = await supabaseServer
+    .from("work_collections")
+    .select(`work_id, sort_order, is_primary`)
+    .eq("collection_id", collectionId)
+
+  if (error) {
+    console.error("DB error in getCollectionWorkAssignments:", error)
+    throw new Error(`Failed to load collection assignments: ${error.message}`)
+  }
+
+  return ((data ?? []) as {
+    work_id: unknown
+    sort_order: unknown
+    is_primary: unknown
+  }[]).map((row) => ({
+    work_id: String(row.work_id),
+    sort_order: Number(row.sort_order ?? 100),
+    is_primary: Boolean(row.is_primary),
+  }))
 }

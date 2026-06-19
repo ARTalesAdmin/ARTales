@@ -6,6 +6,7 @@ import { createClient } from "@/lib/supabase/server"
 import { getCollectionsForMember } from "@/lib/dbCollections"
 import { getWorkForEditBySlug } from "@/lib/dbWorks"
 import { getLanguageOptions } from "@/lib/dictionaries/language"
+import { getTagsForMember } from "@/lib/dbTags"
 import { getStatusOptions } from "@/lib/dictionaries/status"
 import WorkEditorForm from "@/components/editor/WorkEditorForm"
 
@@ -101,7 +102,10 @@ export default async function EditWorkPage({
   }
 
   const authors = (authorsData ?? []) as { id: string; name: string }[]
-  const collections = await getCollectionsForMember()
+  const [collections, tags] = await Promise.all([
+    getCollectionsForMember(),
+    getTagsForMember(),
+  ])
   const languageOptions = getLanguageOptions("internal")
   const statusOptions = getStatusOptions("internal")
 
@@ -211,6 +215,7 @@ export default async function EditWorkPage({
           summary: work.summary,
           primary_author_id: work.primary_author_id ?? "",
           collection_id: work.collection_id ?? "",
+          tag_ids: work.tag_ids,
           canonical_language: work.canonical_language,
           status: work.status,
           origin_type: work.origin_type,
@@ -239,8 +244,9 @@ export default async function EditWorkPage({
         authors={authors}
         collections={collections.map((collection) => ({
           id: collection.id,
-          title: collection.title,
+          title: collection.title_cs ?? collection.title_en ?? collection.title,
         }))}
+        tags={tags}
         languageOptions={languageOptions}
         statusOptions={statusOptions}
         action={updateWorkWithSlug}

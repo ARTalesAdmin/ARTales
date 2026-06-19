@@ -1,6 +1,7 @@
 import { supabase } from "./supabase"
 import { createClient } from "@/lib/supabase/server"
 import { sanitizeWorkBlocks, type WorkBlock } from "@/lib/blocks"
+import type { TagType } from "@/lib/tagTypes"
 
 export type WorkOriginType =
   | "public_domain"
@@ -24,6 +25,18 @@ export type WorkCollectionRef = {
   title: string
   slug: string
   description?: string | null
+  title_cs?: string | null
+  title_en?: string | null
+  description_cs?: string | null
+  description_en?: string | null
+} | null
+
+export type WorkTagRef = {
+  id: string
+  slug: string
+  label_cs: string
+  label_en: string | null
+  type: TagType
 } | null
 
 export type GalleryWorkItem = {
@@ -37,6 +50,7 @@ export type GalleryWorkItem = {
   status: WorkStatus
   author: WorkAuthorRef
   collection: WorkCollectionRef
+  collections: WorkCollectionRef[]
   cover_image_request: string | null
   cover_image_path: string | null
   cover_image_alt: string | null
@@ -72,6 +86,8 @@ export type WorkDetailItem = {
   status: WorkStatus
   author: WorkAuthorRef
   collection: WorkCollectionRef
+  collections: WorkCollectionRef[]
+  tags: WorkTagRef[]
   cover_image_request: string | null
   cover_image_path: string | null
   cover_image_alt: string | null
@@ -130,6 +146,8 @@ export type WorkEditItem = {
   status: WorkStatus
   primary_author_id: string | null
   collection_id: string | null
+  collection_ids: string[]
+  tag_ids: string[]
   content: string
   content_blocks: WorkBlock[]
   cover_image_request: string | null
@@ -154,6 +172,23 @@ type RawRelationCollection =
       title: unknown
       slug: unknown
       description?: unknown
+      title_cs?: unknown
+      title_en?: unknown
+      description_cs?: unknown
+      description_en?: unknown
+      is_public_visible?: unknown
+    }
+  | null
+  | undefined
+
+type RawRelationTag =
+  | {
+      id: unknown
+      slug: unknown
+      label_cs: unknown
+      label_en?: unknown
+      type: unknown
+      is_public_visible?: unknown
     }
   | null
   | undefined
@@ -273,6 +308,28 @@ function normalizeCollectionRelation(
     slug: String(relation.slug),
     description:
       relation.description == null ? null : String(relation.description),
+    title_cs: relation.title_cs == null ? null : String(relation.title_cs),
+    title_en: relation.title_en == null ? null : String(relation.title_en),
+    description_cs:
+      relation.description_cs == null ? null : String(relation.description_cs),
+    description_en:
+      relation.description_en == null ? null : String(relation.description_en),
+  }
+}
+
+function normalizeTagRelation(
+  value: RawRelationTag | RawRelationTag[] | undefined
+): WorkTagRef {
+  const relation = Array.isArray(value) ? value[0] : value
+
+  if (!relation) return null
+
+  return {
+    id: String(relation.id),
+    slug: String(relation.slug),
+    label_cs: String(relation.label_cs),
+    label_en: relation.label_en == null ? null : String(relation.label_en),
+    type: String(relation.type) as TagType,
   }
 }
 
@@ -288,12 +345,15 @@ function mapGalleryWork(row: RawGalleryWorkRow): GalleryWorkItem {
     status: row.status as WorkStatus,
     cover_image_request:
       row.cover_image_request == null ? null : String(row.cover_image_request),
-    cover_image_path: row.cover_image_path == null ? null : String(row.cover_image_path),
-    cover_image_alt: row.cover_image_alt == null ? null : String(row.cover_image_alt),
+    cover_image_path:
+      row.cover_image_path == null ? null : String(row.cover_image_path),
+    cover_image_alt:
+      row.cover_image_alt == null ? null : String(row.cover_image_alt),
     cover_image_caption:
       row.cover_image_caption == null ? null : String(row.cover_image_caption),
     author: normalizeAuthorRelation(row.authors),
     collection: normalizeCollectionRelation(row.collections),
+    collections: [],
   }
 }
 
@@ -312,33 +372,155 @@ function mapWorkDetail(row: RawWorkDetailRow): WorkDetailItem {
     source_reference:
       row.source_reference == null ? null : String(row.source_reference),
     edition_title: row.edition_title == null ? null : String(row.edition_title),
-    edition_version: row.edition_version == null ? null : String(row.edition_version),
-    edition_language: row.edition_language == null ? null : String(row.edition_language),
-    original_language: row.original_language == null ? null : String(row.original_language),
-    edition_source_url: row.edition_source_url == null ? null : String(row.edition_source_url),
-    edition_license: row.edition_license == null ? null : String(row.edition_license),
-    edition_publisher: row.edition_publisher == null ? null : String(row.edition_publisher),
-    publication_year: row.publication_year == null ? null : String(row.publication_year),
+    edition_version:
+      row.edition_version == null ? null : String(row.edition_version),
+    edition_language:
+      row.edition_language == null ? null : String(row.edition_language),
+    original_language:
+      row.original_language == null ? null : String(row.original_language),
+    edition_source_url:
+      row.edition_source_url == null ? null : String(row.edition_source_url),
+    edition_license:
+      row.edition_license == null ? null : String(row.edition_license),
+    edition_publisher:
+      row.edition_publisher == null ? null : String(row.edition_publisher),
+    publication_year:
+      row.publication_year == null ? null : String(row.publication_year),
     isbn: row.isbn == null ? null : String(row.isbn),
     isbn_status: row.isbn_status == null ? "not_required" : String(row.isbn_status),
     isbn_note: row.isbn_note == null ? null : String(row.isbn_note),
-    edition_note_public: row.edition_note_public == null ? null : String(row.edition_note_public),
-    edition_note_internal: row.edition_note_internal == null ? null : String(row.edition_note_internal),
-    contributor_summary: row.contributor_summary == null ? null : String(row.contributor_summary),
+    edition_note_public:
+      row.edition_note_public == null ? null : String(row.edition_note_public),
+    edition_note_internal:
+      row.edition_note_internal == null ? null : String(row.edition_note_internal),
+    contributor_summary:
+      row.contributor_summary == null ? null : String(row.contributor_summary),
     status: row.status as WorkStatus,
     cover_image_request:
       row.cover_image_request == null ? null : String(row.cover_image_request),
-    cover_image_path: row.cover_image_path == null ? null : String(row.cover_image_path),
-    cover_image_alt: row.cover_image_alt == null ? null : String(row.cover_image_alt),
+    cover_image_path:
+      row.cover_image_path == null ? null : String(row.cover_image_path),
+    cover_image_alt:
+      row.cover_image_alt == null ? null : String(row.cover_image_alt),
     cover_image_caption:
       row.cover_image_caption == null ? null : String(row.cover_image_caption),
     author: normalizeAuthorRelation(row.authors),
     collection: normalizeCollectionRelation(row.collections),
+    collections: [],
+    tags: [],
   }
 }
 
 function mapRawContentBlocks(value: unknown): WorkBlock[] {
   return sanitizeWorkBlocks(value)
+}
+
+type SupabaseLike = typeof supabase | Awaited<ReturnType<typeof createClient>>
+
+async function getCollectionRelationsMap(
+  client: SupabaseLike,
+  workIds: string[],
+  publicOnly = false
+): Promise<Map<string, WorkCollectionRef[]>> {
+  const map = new Map<string, WorkCollectionRef[]>()
+  if (workIds.length === 0) return map
+
+  const { data, error } = await client
+    .from("work_collections")
+    .select(`
+      work_id,
+      sort_order,
+      collections:collection_id (
+        id,
+        title,
+        slug,
+        description,
+        title_cs,
+        title_en,
+        description_cs,
+        description_en,
+        is_public_visible
+      )
+    `)
+    .in("work_id", workIds)
+    .order("sort_order", { ascending: true })
+
+  if (error) {
+    console.error("DB error in getCollectionRelationsMap:", error)
+    throw new Error(`Failed to load work collections: ${error.message}`)
+  }
+
+  ;((data ?? []) as { work_id: unknown; collections?: RawRelationCollection | RawRelationCollection[] }[]).forEach(
+    (row) => {
+      const collection = normalizeCollectionRelation(row.collections)
+      if (!collection) return
+      if (publicOnly) {
+        const raw = Array.isArray(row.collections) ? row.collections[0] : row.collections
+        if (raw && raw.is_public_visible === false) return
+      }
+      const workId = String(row.work_id)
+      const current = map.get(workId) ?? []
+      current.push(collection)
+      map.set(workId, current)
+    }
+  )
+
+  return map
+}
+
+async function getTagRelationsMap(
+  client: SupabaseLike,
+  workIds: string[],
+  publicOnly = false
+): Promise<Map<string, WorkTagRef[]>> {
+  const map = new Map<string, WorkTagRef[]>()
+  if (workIds.length === 0) return map
+
+  const { data, error } = await client
+    .from("work_tags")
+    .select(`
+      work_id,
+      sort_order,
+      tags:tag_id (
+        id,
+        slug,
+        label_cs,
+        label_en,
+        type,
+        is_public_visible
+      )
+    `)
+    .in("work_id", workIds)
+    .order("sort_order", { ascending: true })
+
+  if (error) {
+    console.error("DB error in getTagRelationsMap:", error)
+    throw new Error(`Failed to load work tags: ${error.message}`)
+  }
+
+  ;((data ?? []) as { work_id: unknown; tags?: RawRelationTag | RawRelationTag[] }[]).forEach(
+    (row) => {
+      const tag = normalizeTagRelation(row.tags)
+      if (!tag) return
+      if (publicOnly) {
+        const raw = Array.isArray(row.tags) ? row.tags[0] : row.tags
+        if (raw && raw.is_public_visible === false) return
+      }
+      const workId = String(row.work_id)
+      const current = map.get(workId) ?? []
+      current.push(tag)
+      map.set(workId, current)
+    }
+  )
+
+  return map
+}
+
+function firstCollection(
+  primary: WorkCollectionRef,
+  collections: WorkCollectionRef[]
+): WorkCollectionRef {
+  return primary ?? collections[0] ?? null
 }
 
 export async function getWorksForGallery(): Promise<GalleryWorkItem[]> {
@@ -365,7 +547,12 @@ export async function getWorksForGallery(): Promise<GalleryWorkItem[]> {
       collections:collection_id (
         id,
         title,
-        slug
+        slug,
+        description,
+        title_cs,
+        title_en,
+        description_cs,
+        description_en
       )
     `)
     .eq("status", "published")
@@ -376,7 +563,21 @@ export async function getWorksForGallery(): Promise<GalleryWorkItem[]> {
     throw new Error(`Failed to load gallery works: ${error.message}`)
   }
 
-  return (data ?? []).map((row) => mapGalleryWork(row as RawGalleryWorkRow))
+  const works = (data ?? []).map((row) => mapGalleryWork(row as RawGalleryWorkRow))
+  const collectionsMap = await getCollectionRelationsMap(
+    supabase,
+    works.map((work) => work.id),
+    true
+  )
+
+  return works.map((work) => {
+    const collections = collectionsMap.get(work.id) ?? (work.collection ? [work.collection] : [])
+    return {
+      ...work,
+      collections,
+      collection: firstCollection(work.collection, collections),
+    }
+  })
 }
 
 export async function getWorkBySlug(
@@ -425,7 +626,11 @@ export async function getWorkBySlug(
         id,
         title,
         slug,
-        description
+        description,
+        title_cs,
+        title_en,
+        description_cs,
+        description_en
       )
     `)
     .eq("slug", slug)
@@ -439,7 +644,19 @@ export async function getWorkBySlug(
 
   if (!data) return null
 
-  return mapWorkDetail(data as RawWorkDetailRow)
+  const item = mapWorkDetail(data as RawWorkDetailRow)
+  const [collectionsMap, tagsMap] = await Promise.all([
+    getCollectionRelationsMap(supabase, [item.id], true),
+    getTagRelationsMap(supabase, [item.id], true),
+  ])
+  const collections = collectionsMap.get(item.id) ?? (item.collection ? [item.collection] : [])
+
+  return {
+    ...item,
+    collection: firstCollection(item.collection, collections),
+    collections,
+    tags: tagsMap.get(item.id) ?? [],
+  }
 }
 
 export async function getPublishedWorksByAuthorId(
@@ -468,7 +685,12 @@ export async function getPublishedWorksByAuthorId(
       collections:collection_id (
         id,
         title,
-        slug
+        slug,
+        description,
+        title_cs,
+        title_en,
+        description_cs,
+        description_en
       )
     `)
     .eq("primary_author_id", authorId)
@@ -480,48 +702,90 @@ export async function getPublishedWorksByAuthorId(
     throw new Error(`Failed to load author's works: ${error.message}`)
   }
 
-  return (data ?? []).map((row) => mapGalleryWork(row as RawGalleryWorkRow))
+  const works = (data ?? []).map((row) => mapGalleryWork(row as RawGalleryWorkRow))
+  const collectionsMap = await getCollectionRelationsMap(
+    supabase,
+    works.map((work) => work.id),
+    true
+  )
+
+  return works.map((work) => {
+    const collections = collectionsMap.get(work.id) ?? (work.collection ? [work.collection] : [])
+    return {
+      ...work,
+      collections,
+      collection: firstCollection(work.collection, collections),
+    }
+  })
 }
 
 export async function getPublishedWorksByCollectionId(
   collectionId: string
 ): Promise<GalleryWorkItem[]> {
   const { data, error } = await supabase
-    .from("works")
+    .from("work_collections")
     .select(`
-      id,
-      title,
-      slug,
-      subtitle,
-      summary,
-      canonical_language,
-      origin_type,
-      status,
-      cover_image_request,
-      cover_image_path,
-      cover_image_alt,
-      cover_image_caption,
-      authors:primary_author_id (
-        id,
-        name,
-        slug
-      ),
-      collections:collection_id (
+      sort_order,
+      works:work_id!inner (
         id,
         title,
-        slug
+        slug,
+        subtitle,
+        summary,
+        canonical_language,
+        origin_type,
+        status,
+        cover_image_request,
+        cover_image_path,
+        cover_image_alt,
+        cover_image_caption,
+        authors:primary_author_id (
+          id,
+          name,
+          slug
+        ),
+        collections:collection_id (
+          id,
+          title,
+          slug,
+          description,
+          title_cs,
+          title_en,
+          description_cs,
+          description_en
+        )
       )
     `)
     .eq("collection_id", collectionId)
-    .eq("status", "published")
-    .order("published_at", { ascending: false })
+    .eq("works.status", "published")
+    .order("sort_order", { ascending: true })
 
   if (error) {
     console.error("DB error in getPublishedWorksByCollectionId:", error)
     throw new Error(`Failed to load collection works: ${error.message}`)
   }
 
-  return (data ?? []).map((row) => mapGalleryWork(row as RawGalleryWorkRow))
+  const works = ((data ?? []) as { works?: RawGalleryWorkRow | RawGalleryWorkRow[] }[])
+    .map((row) => {
+      const workRow = Array.isArray(row.works) ? row.works[0] : row.works
+      return workRow ? mapGalleryWork(workRow) : null
+    })
+    .filter((item): item is GalleryWorkItem => item !== null)
+
+  const collectionsMap = await getCollectionRelationsMap(
+    supabase,
+    works.map((work) => work.id),
+    true
+  )
+
+  return works.map((work) => {
+    const collections = collectionsMap.get(work.id) ?? (work.collection ? [work.collection] : [])
+    return {
+      ...work,
+      collections,
+      collection: firstCollection(work.collection, collections),
+    }
+  })
 }
 
 export async function getWorksForMember(): Promise<MemberWorkListItem[]> {
@@ -571,8 +835,10 @@ export async function getWorksForMember(): Promise<MemberWorkListItem[]> {
     origin_type: String(row.origin_type) as WorkOriginType,
     cover_image_request:
       row.cover_image_request == null ? null : String(row.cover_image_request),
-    cover_image_path: row.cover_image_path == null ? null : String(row.cover_image_path),
-    cover_image_alt: row.cover_image_alt == null ? null : String(row.cover_image_alt),
+    cover_image_path:
+      row.cover_image_path == null ? null : String(row.cover_image_path),
+    cover_image_alt:
+      row.cover_image_alt == null ? null : String(row.cover_image_alt),
     cover_image_caption:
       row.cover_image_caption == null ? null : String(row.cover_image_caption),
     author: (() => {
@@ -650,9 +916,16 @@ export async function getWorkForEditBySlug(
   if (!data) return null
 
   const row = data as RawWorkEditRow
+  const id = String(row.id)
+  const [collectionsMap, tagsMap] = await Promise.all([
+    getCollectionRelationsMap(supabaseServer, [id], false),
+    getTagRelationsMap(supabaseServer, [id], false),
+  ])
+  const collectionIds = (collectionsMap.get(id) ?? []).map((collection) => collection?.id).filter(Boolean) as string[]
+  const tagIds = (tagsMap.get(id) ?? []).map((tag) => tag?.id).filter(Boolean) as string[]
 
   return {
-    id: String(row.id),
+    id,
     title: String(row.title),
     slug: String(row.slug),
     subtitle: row.subtitle == null ? null : String(row.subtitle),
@@ -680,13 +953,19 @@ export async function getWorkForEditBySlug(
     primary_author_id:
       row.primary_author_id == null ? null : String(row.primary_author_id),
     collection_id:
-      row.collection_id == null ? null : String(row.collection_id),
+      row.collection_id == null
+        ? collectionIds[0] ?? null
+        : String(row.collection_id),
+    collection_ids: collectionIds,
+    tag_ids: tagIds,
     content: String(row.content ?? ""),
     content_blocks: mapRawContentBlocks(row.content_blocks),
     cover_image_request:
       row.cover_image_request == null ? null : String(row.cover_image_request),
-    cover_image_path: row.cover_image_path == null ? null : String(row.cover_image_path),
-    cover_image_alt: row.cover_image_alt == null ? null : String(row.cover_image_alt),
+    cover_image_path:
+      row.cover_image_path == null ? null : String(row.cover_image_path),
+    cover_image_alt:
+      row.cover_image_alt == null ? null : String(row.cover_image_alt),
     cover_image_caption:
       row.cover_image_caption == null ? null : String(row.cover_image_caption),
   }

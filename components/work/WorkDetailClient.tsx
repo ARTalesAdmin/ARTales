@@ -13,6 +13,7 @@ import {
   type ProductType,
 } from "@/lib/products";
 import { getProductSurfaceItems, isDownloadProduct } from "@/lib/productDelivery";
+import { pickLocalizedText } from "@/lib/localizedContent";
 
 type WorkDetailClientProps = {
   work: WorkDetailItem;
@@ -261,6 +262,34 @@ export default function WorkDetailClient({
     Boolean(work.isbn) &&
     (work.isbn_status === "assigned" || work.isbn_status === "external");
   const editionLanguage = work.edition_language || work.canonical_language;
+  const localizedCollections = work.collections
+    .filter((collection): collection is NonNullable<typeof collection> => Boolean(collection))
+    .map((collection) => ({
+      ...collection,
+      displayTitle:
+        pickLocalizedText(locale, {
+          cs: collection.title_cs,
+          en: collection.title_en,
+          fallback: collection.title,
+        }) ?? collection.title,
+      displayDescription: pickLocalizedText(locale, {
+        cs: collection.description_cs,
+        en: collection.description_en,
+        fallback: collection.description ?? null,
+      }),
+    }));
+  const primaryCollection = localizedCollections[0] ?? null;
+  const localizedTags = work.tags
+    .filter((tag): tag is NonNullable<typeof tag> => Boolean(tag))
+    .map((tag) => ({
+      ...tag,
+      displayLabel:
+        pickLocalizedText(locale, {
+          cs: tag.label_cs,
+          en: tag.label_en,
+          fallback: tag.label_cs,
+        }) ?? tag.label_cs,
+    }));
 
   return (
     <div className="artales-public-shell">
@@ -314,11 +343,16 @@ export default function WorkDetailClient({
                     )}
                   </dd>
                 </div>
-                {work.collection ? (
+                {primaryCollection ? (
                   <div>
                     <dt>{common.collection}</dt>
                     <dd>
-                      <Link href={`/collections/${work.collection.slug}`}>{work.collection.title}</Link>
+                      {localizedCollections.map((collection, index) => (
+                        <span key={collection.id}>
+                          {index > 0 ? ", " : ""}
+                          <Link href={`/collections/${collection.slug}`}>{collection.displayTitle}</Link>
+                        </span>
+                      ))}
                     </dd>
                   </div>
                 ) : null}
@@ -398,16 +432,37 @@ export default function WorkDetailClient({
               {work.summary}
             </p>
 
-            {work.collection ? (
-              <p style={{ margin: "0 0 24px", color: "#5f5247" }}>
-                {t.partOf}{" "}
-                <Link
-                  href={`/collections/${work.collection.slug}`}
-                  style={{ color: "var(--artales-ink)", fontWeight: 800 }}
-                >
-                  {work.collection.title}
-                </Link>
-              </p>
+            {primaryCollection ? (
+              <div style={{ display: "grid", gap: "12px", margin: "0 0 24px" }}>
+                <p style={{ margin: 0, color: "#5f5247" }}>
+                  {t.partOf}{" "}
+                  {localizedCollections.map((collection, index) => (
+                    <span key={collection.id}>
+                      {index > 0 ? ", " : ""}
+                      <Link href={`/collections/${collection.slug}`} style={{ color: "var(--artales-ink)", fontWeight: 800 }}>
+                        {collection.displayTitle}
+                      </Link>
+                    </span>
+                  ))}
+                </p>
+                {localizedTags.length > 0 ? (
+                  <div style={{ display: "flex", flexWrap: "wrap", gap: "8px" }}>
+                    {localizedTags.map((tag) => (
+                      <span key={tag.id} style={{ padding: "6px 10px", borderRadius: "999px", background: "rgba(13, 21, 40, 0.08)", color: "#3f362f", fontSize: "14px" }}>
+                        {tag.displayLabel}
+                      </span>
+                    ))}
+                  </div>
+                ) : null}
+              </div>
+            ) : localizedTags.length > 0 ? (
+              <div style={{ display: "flex", flexWrap: "wrap", gap: "8px", margin: "0 0 24px" }}>
+                {localizedTags.map((tag) => (
+                  <span key={tag.id} style={{ padding: "6px 10px", borderRadius: "999px", background: "rgba(13, 21, 40, 0.08)", color: "#3f362f", fontSize: "14px" }}>
+                    {tag.displayLabel}
+                  </span>
+                ))}
+              </div>
             ) : null}
 
             <AccessStatusCard
@@ -621,7 +676,7 @@ export default function WorkDetailClient({
           </section>
         ) : null}
 
-        {work.collection?.description ? (
+        {primaryCollection?.displayDescription ? (
           <section style={{ marginBottom: "34px", maxWidth: "780px" }}>
             <h2
               style={{
@@ -632,8 +687,11 @@ export default function WorkDetailClient({
             >
               {t.aboutCollection}
             </h2>
+            <p style={{ margin: "0 0 10px 0", color: "#3f362f", fontWeight: 700 }}>
+              {primaryCollection.displayTitle}
+            </p>
             <p style={{ margin: 0, color: "#3f362f" }}>
-              {work.collection.description}
+              {primaryCollection.displayDescription}
             </p>
           </section>
         ) : null}
