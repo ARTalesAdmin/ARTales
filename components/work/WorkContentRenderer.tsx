@@ -10,6 +10,7 @@ type Props = {
   fallbackContent?: string | null
   className?: string
   formatPreset?: BlockFormatPresetId
+  footnotesLabel?: string
 }
 
 type RenderBlockProps = {
@@ -271,6 +272,7 @@ export default function WorkContentRenderer({
   fallbackContent,
   className,
   formatPreset = "defaultReader",
+  footnotesLabel = "Footnotes",
 }: Props) {
   const preset = getBlockFormatPreset(formatPreset)
   const safeBlocks = Array.isArray(blocks) ? blocks : []
@@ -314,8 +316,8 @@ export default function WorkContentRenderer({
       )}
 
       {footnoteBlocks.length > 0 ? (
-        <section className="artales-footnotes" aria-label="Footnotes">
-          <h3>Footnotes</h3>
+        <section className="artales-footnotes" aria-label={footnotesLabel}>
+          <h3>{footnotesLabel}</h3>
           <ol>
             {footnoteBlocks.map((block, index) => (
               <li key={getStableBlockKey(block, index)} id={`footnote-${index + 1}`}>

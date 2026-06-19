@@ -54,5 +54,6 @@ export const enReader = {
   goToSavedBookmark: "Go to saved bookmark",
   artalesBookmark: "ARTales bookmark",
   enterFocusMode: "Focus mode",
+  footnotes: "Footnotes",
   exitFocusMode: "Exit focus",
 }

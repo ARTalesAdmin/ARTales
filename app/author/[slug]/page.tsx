@@ -184,17 +184,17 @@ export default async function AuthorDetail({ params, searchParams }: PageProps) 
 
           {follow === "ok" ? (
             <p className="artales-account-success" style={{ marginTop: "18px" }}>
-              Author followed. Future release notifications will use this signal.
+              {t.authorFollowSaved}
             </p>
           ) : null}
           {follow === "removed" ? (
             <p className="artales-account-success" style={{ marginTop: "18px" }}>
-              Author removed from your followed list.
+              {t.authorFollowRemoved}
             </p>
           ) : null}
           {follow === "error" ? (
             <p className="artales-account-alert" style={{ marginTop: "18px" }}>
-              Follow preference could not be saved. Try again.
+              {t.authorFollowError}
             </p>
           ) : null}
 
@@ -204,6 +204,7 @@ export default async function AuthorDetail({ params, searchParams }: PageProps) 
               slug={author.slug}
               isSignedIn={Boolean(profile)}
               isFollowing={isFollowing}
+              labels={t}
             />
           </div>
             </div>
@@ -239,7 +240,7 @@ export default async function AuthorDetail({ params, searchParams }: PageProps) 
             <div className="artales-related-work-grid">
               {author.works.map((work) => (
                 <article key={work.id} className="artales-gallery-card">
-                  <Link href={`/work/${work.slug}`} aria-label={`Open ${work.title}`}>
+                  <Link href={`/work/${work.slug}`} aria-label={`${t.openDetail}: ${work.title}`}>
                     <WorkCoverImage
                       title={work.title}
                       imagePath={work.cover_image_path}

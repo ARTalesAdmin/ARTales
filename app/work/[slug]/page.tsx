@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { getWorkBySlug } from "@/lib/dbWorks";
 import WorkDetailClient from "@/components/work/WorkDetailClient";
+import PublicHeader from "@/components/public/PublicHeader";
 import { getLanguageLabel } from "@/lib/dictionaries/language";
 import { getStatusLabel } from "@/lib/dictionaries/status";
 import { getCurrentProfile } from "@/lib/auth";
@@ -29,16 +30,16 @@ function getOriginLabel(originType: string, labels: ReturnType<typeof getPublicD
   }
 }
 
-function getSourceLabel(sourceLabel: string) {
+function getSourceLabel(sourceLabel: string, labels: ReturnType<typeof getPublicDictionary>["public"]) {
   switch (sourceLabel) {
     case "gutenberg":
       return "Project Gutenberg";
     case "web":
-      return "Web source";
+      return labels.sourceWeb;
     case "manual":
-      return "Manual editorial input";
+      return labels.sourceManual;
     case "original":
-      return "Original source";
+      return labels.sourceOriginal;
     default:
       return sourceLabel;
   }
@@ -47,20 +48,26 @@ function getSourceLabel(sourceLabel: string) {
 export default async function WorkDetail({ params, searchParams }: PageProps) {
   const { slug } = await params;
   const { feedback } = searchParams ? await searchParams : {};
-  const work = await getWorkBySlug(slug);
+  const [work, profile, cookieLocale] = await Promise.all([
+    getWorkBySlug(slug),
+    getCurrentProfile(),
+    getCookieLocale(),
+  ]);
+  const locale = resolveProfileLocale(profile, cookieLocale);
+  const { public: publicLabels } = getPublicDictionary(locale);
 
   if (!work) {
     return (
-      <main style={{ padding: "40px", fontFamily: "serif" }}>
-        <h1>Work not found</h1>
-        <p>
-          The requested ARTales work does not exist or is not publicly available
-          yet.
-        </p>
-        <p>
-          <Link href="/gallery">Back to Gallery</Link>
-        </p>
-      </main>
+      <div className="artales-public-shell">
+        <PublicHeader active="work" />
+        <main className="artales-public-main">
+          <h1>{publicLabels.workNotFoundTitle}</h1>
+          <p>{publicLabels.workNotFoundText}</p>
+          <p>
+            <Link href="/gallery">{publicLabels.backToGallery}</Link>
+          </p>
+        </main>
+      </div>
     );
   }
 
@@ -68,10 +75,6 @@ export default async function WorkDetail({ params, searchParams }: PageProps) {
     getLanguageLabel(work.canonical_language, "public") ??
     work.canonical_language;
   const statusLabel = getStatusLabel(work.status, "public") ?? work.status;
-  const profile = await getCurrentProfile();
-  const cookieLocale = await getCookieLocale();
-  const locale = resolveProfileLocale(profile, cookieLocale);
-  const publicLabels = getPublicDictionary(locale).public;
   const canOpenFull = await canOpenFullReader(profile, work.id);
   const welcomeUnlock = profile && profile.role === "reader" ? await getWelcomeUnlockStatus(profile.id) : { available: false, used: false };
   const [isSaved, products] = await Promise.all([
@@ -85,7 +88,7 @@ export default async function WorkDetail({ params, searchParams }: PageProps) {
       languageLabel={languageLabel}
       statusLabel={statusLabel}
       originLabel={getOriginLabel(work.origin_type, publicLabels)}
-      sourceLabel={getSourceLabel(work.source_label)}
+      sourceLabel={getSourceLabel(work.source_label, publicLabels)}
       canReadFull={canOpenFull}
       workId={work.id}
       isSignedIn={Boolean(profile)}

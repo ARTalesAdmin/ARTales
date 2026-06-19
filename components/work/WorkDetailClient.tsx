@@ -223,20 +223,20 @@ function ProductOptions({
   );
 }
 
-function normalizeIsbnStatus(status: string | null | undefined) {
+function normalizeIsbnStatus(status: string | null | undefined, labels: WorkPublicLabels) {
   switch (status) {
     case "assigned":
-      return "Assigned";
+      return labels.isbnAssigned;
     case "external":
-      return "External";
+      return labels.isbnExternal;
     case "planned":
-      return "Planned";
+      return labels.isbnPlanned;
     case "requested":
-      return "Requested";
+      return labels.isbnRequested;
     case "not_applicable":
-      return "Not applicable";
+      return labels.isbnNotApplicable;
     default:
-      return "Not required";
+      return labels.isbnNotRequired;
   }
 }
 
@@ -507,7 +507,7 @@ export default function WorkDetailClient({
               </p>
             ) : null}
 
-            <WorkFeedbackPanel workId={workId} slug={work.slug} isSignedIn={isSignedIn} />
+            <WorkFeedbackPanel workId={workId} slug={work.slug} isSignedIn={isSignedIn} labels={t} />
           </div>
         </section>
 
@@ -545,14 +545,14 @@ export default function WorkDetailClient({
 
               {work.edition_title ? (
                 <>
-                  <dt style={{ fontWeight: 800 }}>Edition</dt>
+                  <dt style={{ fontWeight: 800 }}>{t.edition}</dt>
                   <dd style={{ margin: 0 }}>{work.edition_title}</dd>
                 </>
               ) : null}
 
               {work.edition_version ? (
                 <>
-                  <dt style={{ fontWeight: 800 }}>Version</dt>
+                  <dt style={{ fontWeight: 800 }}>{t.version}</dt>
                   <dd style={{ margin: 0 }}>{work.edition_version}</dd>
                 </>
               ) : null}
@@ -564,7 +564,7 @@ export default function WorkDetailClient({
 
               {work.original_language ? (
                 <>
-                  <dt style={{ fontWeight: 800 }}>Original language</dt>
+                  <dt style={{ fontWeight: 800 }}>{t.originalLanguage}</dt>
                   <dd style={{ margin: 0 }}>{work.original_language}</dd>
                 </>
               ) : null}
@@ -574,21 +574,21 @@ export default function WorkDetailClient({
 
               {work.edition_publisher ? (
                 <>
-                  <dt style={{ fontWeight: 800 }}>Publisher / imprint</dt>
+                  <dt style={{ fontWeight: 800 }}>{t.publisherImprint}</dt>
                   <dd style={{ margin: 0 }}>{work.edition_publisher}</dd>
                 </>
               ) : null}
 
               {work.publication_year ? (
                 <>
-                  <dt style={{ fontWeight: 800 }}>Publication year</dt>
+                  <dt style={{ fontWeight: 800 }}>{t.publicationYear}</dt>
                   <dd style={{ margin: 0 }}>{work.publication_year}</dd>
                 </>
               ) : null}
 
               {work.edition_license ? (
                 <>
-                  <dt style={{ fontWeight: 800 }}>License / rights</dt>
+                  <dt style={{ fontWeight: 800 }}>{t.licenseRights}</dt>
                   <dd style={{ margin: 0 }}>{work.edition_license}</dd>
                 </>
               ) : null}
@@ -598,7 +598,7 @@ export default function WorkDetailClient({
 
               {work.edition_source_url ? (
                 <>
-                  <dt style={{ fontWeight: 800 }}>Source URL</dt>
+                  <dt style={{ fontWeight: 800 }}>{t.sourceUrl}</dt>
                   <dd style={{ margin: 0 }}>
                     <a
                       href={work.edition_source_url}
@@ -621,7 +621,7 @@ export default function WorkDetailClient({
 
               {work.contributor_summary ? (
                 <>
-                  <dt style={{ fontWeight: 800 }}>Contributors</dt>
+                  <dt style={{ fontWeight: 800 }}>{t.contributors}</dt>
                   <dd style={{ margin: 0, whiteSpace: "pre-wrap" }}>
                     {work.contributor_summary}
                   </dd>
@@ -630,7 +630,7 @@ export default function WorkDetailClient({
 
               {work.edition_note_public ? (
                 <>
-                  <dt style={{ fontWeight: 800 }}>Edition note</dt>
+                  <dt style={{ fontWeight: 800 }}>{t.editionNote}</dt>
                   <dd style={{ margin: 0, whiteSpace: "pre-wrap" }}>
                     {work.edition_note_public}
                   </dd>
@@ -648,9 +648,9 @@ export default function WorkDetailClient({
               work.isbn_status !== "not_required" &&
               !publicIsbnVisible ? (
                 <>
-                  <dt style={{ fontWeight: 800 }}>ISBN status</dt>
+                  <dt style={{ fontWeight: 800 }}>{t.isbnStatus}</dt>
                   <dd style={{ margin: 0 }}>
-                    {normalizeIsbnStatus(work.isbn_status)}
+                    {normalizeIsbnStatus(work.isbn_status, t)}
                   </dd>
                 </>
               ) : null}

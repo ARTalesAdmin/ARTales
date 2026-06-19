@@ -457,6 +457,7 @@ export default function ReaderClient({
           formatPreset={
             settings.density === "compact" ? "readerCompact" : "readerComfort"
           }
+          footnotesLabel={labels.footnotes}
         />
 
         {mode === "preview" && pageNumber >= pageCount - 1 ? (
@@ -530,6 +531,7 @@ export default function ReaderClient({
                 ? "readerCompact"
                 : "readerComfort"
             }
+            footnotesLabel={labels.footnotes}
           />
 
           {mode === "preview" ? (

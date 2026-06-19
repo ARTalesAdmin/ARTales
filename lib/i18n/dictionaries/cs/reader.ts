@@ -54,5 +54,6 @@ export const csReader = {
   goToSavedBookmark: "Přejít na uloženou záložku",
   artalesBookmark: "Záložka ARTales",
   enterFocusMode: "Režim čtení",
+  footnotes: "Poznámky pod čarou",
   exitFocusMode: "Ukončit režim čtení",
 }

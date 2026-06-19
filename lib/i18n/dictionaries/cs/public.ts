@@ -73,25 +73,25 @@ export const csPublic = {
   deliveryOnlineReader: "Online reader",
   deliveryDigitalEditionsLater: "PDF/EPUB později",
 
-  homeEyebrow: "Živé knihy, strukturované edice",
-  homeTitle: "Knihy nemají končit jako ploché soubory.",
+  homeEyebrow: "Kurátorská literatura, živé edice",
+  homeTitle: "Literární prostor pro texty, které si zaslouží víc než plochý soubor.",
   homeIntro:
-    "ARTales je literární platforma pro živé knihy: strukturovaná knihovna, ediční dílna a čtečka, kde se texty mohou rozvíjet do edic, překladů, formátů, kolekcí a budoucích členských vrstev.",
-  homePrimaryCta: "Vstoupit do galerie",
-  homeSecondaryCta: "Vyzkoušet reader",
+    "ARTales propojuje veřejnou knihovnu, ediční dílnu a čtečku. Díla tu nejsou jen nahrané texty: mohou mít strukturu, kontext, poznámky, obrazy, překlady, kolekce a později i vlastní čtenářské a členské vrstvy.",
+  homePrimaryCta: "Procházet galerii",
+  homeSecondaryCta: "Vyzkoušet čtečku",
   homeBrandNote:
-    "Dnes veřejná čtecí plocha; pod ní připravené ediční, jazykové, přístupové a komunitní vrstvy.",
-  homeCardEditionsTitle: "Živé edice",
+    "ARTales začíná jako elegantní čtecí plocha. Pod ní postupně roste ediční, jazyková, přístupová a komunitní vrstva.",
+  homeCardEditionsTitle: "Edice, které drží tvar",
   homeCardEditionsText:
-    "Dílo není jen textový blok. Může nést kapitoly, básně, dopisy, poznámky, obrázky, metadata, zdroje, kredity a historii edice.",
-  homeCardReaderTitle: "Struktura pro čtenáře",
+    "Každé dílo může nést kapitoly, básně, dopisy, poznámky, obrazový materiál, zdroje, kredity i ediční historii — ne jen jeden dlouhý textový blok.",
+  homeCardReaderTitle: "Čtečka jako literární prostor",
   homeCardReaderText:
-    "Stejná bloková struktura může sloužit veřejnému readeru, budoucím PDF/EPUB exportům i interním edičním workflow.",
-  homeCardExpansionTitle: "Stavěno po vrstvách",
+    "Reader má být klidný, čitelný a soustředěný. Stejná struktura zároveň připravuje cestu pro PDF/EPUB exporty a další ediční práci.",
+  homeCardExpansionTitle: "Připraveno růst",
   homeCardExpansionText:
-    "ARTales počítá s účty, členstvím, vícejazyčným rozhraním, edičními rolemi, placenými formáty a kurátorskými kolekcemi.",
+    "Platforma počítá s účty, členstvím, vícejazyčným rozhraním, kurátorskými kolekcemi, autorskými profily a budoucím komunitním procesorem.",
   homeDevelopmentNote:
-    "ARTales je v aktivním vývoji. Veřejné plochy se postupně ladí pro češtinu i angličtinu; interní ediční nástroje jsou nyní primárně česky.",
+    "ARTales je v aktivním vývoji. Veřejná část se ladí pro čtenáře, interní část pro ediční tým a další vrstvy se budou otevírat postupně.",
 
 
   author: "Autor",
@@ -115,9 +115,9 @@ export const csPublic = {
   authorNoWorks: "Tento autor zatím nemá v galerii žádná publikovaná díla.",
 
   collectionsTitle: "Kolekce ARTales",
-  collectionsEyebrow: "Kurátorské literární galerie",
+  collectionsEyebrow: "Kurátorské literární trasy",
   collectionsIntro:
-    "Kolekce ARTales nejsou žánrové police. Jsou to kurátorské trasy napříč díly, atmosférami, tématy a čtenářským zážitkem.",
+    "Kolekce ARTales nejsou žánrové police. Jsou to kurátorské galerie a čtenářské trasy napříč atmosférami, motivy, obdobími a typy zážitku.",
   noPublicCollections: "Zatím nejsou dostupné žádné veřejné kolekce.",
   openCollection: "Otevřít kolekci",
 
@@ -131,4 +131,68 @@ export const csPublic = {
   curatorNote: "Kurátorská poznámka",
   worksInCollection: "Díla v této kolekci",
   collectionNoWorks: "Tato kolekce zatím neobsahuje žádná publikovaná díla.",
+
+  workNotFoundTitle: "Dílo nenalezeno",
+  workNotFoundText:
+    "Požadované dílo v ARTales neexistuje nebo zatím není veřejně dostupné.",
+  sourceWeb: "Webový zdroj",
+  sourceManual: "Ruční ediční vstup",
+  sourceOriginal: "Původní zdroj",
+  edition: "Edice",
+  version: "Verze",
+  originalLanguage: "Původní jazyk",
+  publisherImprint: "Vydavatel / imprint",
+  publicationYear: "Rok vydání",
+  licenseRights: "Licence / práva",
+  sourceUrl: "URL zdroje",
+  contributors: "Přispěvatelé",
+  editionNote: "Ediční poznámka",
+  isbnStatus: "Stav ISBN",
+  isbnAssigned: "Přiděleno",
+  isbnExternal: "Externí",
+  isbnPlanned: "Plánováno",
+  isbnRequested: "Zažádáno",
+  isbnNotApplicable: "Nevztahuje se",
+  isbnNotRequired: "Není vyžadováno",
+  authorFollowEyebrow: "Sledování autora",
+  authorFollowTitleOn: "Sleduješ tohoto autora",
+  authorFollowTitleOff: "Sledovat autora",
+  authorFollowText:
+    "Sledování autorů připravuje budoucí upozornění na nové edice, autorské přehledy a čtenářské signály.",
+  followAuthor: "Sledovat autora",
+  unfollowAuthor: "Přestat sledovat",
+  signInToFollow: "Přihlásit se a sledovat",
+  authorFollowSaved: "Autor byl přidán do sledovaných. Tento signál půjde později využít pro upozornění na nové edice.",
+  authorFollowRemoved: "Autor byl odebrán ze sledovaných.",
+  authorFollowError: "Nastavení sledování se nepodařilo uložit. Zkus to prosím znovu.",
+  readerSignalEyebrow: "Čtenářský signál",
+  readerSignalTitle: "Pomoz ARTales zpracovat toto dílo",
+  readerSignalText:
+    "Pošli soukromý podnět ediční vrstvě ARTales: opravu, poznámku ke zdroji, návrh k překladu, problém s formátováním, čtenářskou reakci nebo nápad na komunitní zapojení. Nejde o veřejnou diskuzi.",
+  readerSignalCommunityText:
+    "Užitečné podněty se později mohou stát součástí komunitního procesoru ARTales: oprav, překladů, učení, reputace, kreditů a budoucích edičních rolí.",
+  signalType: "Typ podnětu",
+  signalTypeGeneral: "Čtenářský signál",
+  signalTypeCorrection: "Oprava / překlep",
+  signalTypeTranslation: "Návrh k překladu",
+  signalTypeFormatting: "Formátování / problém ve čtečce",
+  signalTypeRights: "Práva / poznámka ke zdroji",
+  signalTypeComment: "Soukromá ediční poznámka",
+  signalNote: "Poznámka",
+  signalPlaceholder:
+    "Napiš soukromý podnět pro ARTales. Než se cokoli dostane k autorovi nebo širší komunitě, projde to ediční vrstvou.",
+  sendSignal: "Odeslat podnět",
+  signInToSendSignal: "Přihlásit se a poslat podnět",
+  checkoutEyebrow: "ARTales checkout",
+  checkoutComingSoonTitle: "Platby zatím nejsou spuštěné",
+  checkoutComingSoonText:
+    "Produktový a přístupový model je v ARTales připravený, ale skutečné platby zůstávají vypnuté, dokud nedokončíme launch nastavení.",
+  checkoutInterestText:
+    "Tvůj zájem jsme zaznamenali anonymně nebo k tvému čtenářskému účtu, pokud jsi přihlášený. Pomáhá nám to rozhodnout, co spustit jako první.",
+  checkoutProductsPrepared: "Produkty připraveny",
+  checkoutInterestCaptured: "Zájem zaznamenán",
+  checkoutPaymentsPending: "Platby čekají",
+  checkoutEntitlementsActive: "Přístupy aktivní",
+  myLibrary: "Moje knihovna",
+  membershipOptions: "Možnosti členství",
 }
