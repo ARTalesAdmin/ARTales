@@ -1,4 +1,5 @@
 import Link from "next/link";
+import PublicHeader from "@/components/public/PublicHeader";
 import { notFound } from "next/navigation";
 import { getCollectionBySlug } from "@/lib/dbCollections";
 import { getCookieLocale } from "@/lib/i18n/server";
@@ -42,15 +43,17 @@ export default async function CollectionDetailPage({ params }: PageProps) {
   });
 
   return (
-    <main
-      style={{
-        minHeight: "100vh",
-        padding: "48px 24px 80px",
-        background:
-          "linear-gradient(180deg, #f4efe5 0%, rgba(255,255,255,0.97) 260px, #f7f4ee 100%)",
-      }}
-    >
-      <section style={{ maxWidth: "1140px", margin: "0 auto", display: "grid", gap: "28px" }}>
+    <div className="artales-public-shell">
+      <PublicHeader active="collection" />
+      <main
+        style={{
+          minHeight: "100vh",
+          padding: "48px 24px 80px",
+          background:
+            "linear-gradient(180deg, #f4efe5 0%, rgba(255,255,255,0.97) 260px, #f7f4ee 100%)",
+        }}
+      >
+        <section style={{ maxWidth: "1140px", margin: "0 auto", display: "grid", gap: "28px" }}>
         <p style={{ margin: 0 }}>
           <Link href="/collections">{`${common.back} · ${t.collections}`}</Link>
         </p>
@@ -180,7 +183,8 @@ export default async function CollectionDetailPage({ params }: PageProps) {
             </div>
           )}
         </section>
-      </section>
-    </main>
+        </section>
+      </main>
+    </div>
   );
 }

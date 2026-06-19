@@ -1,4 +1,5 @@
 import Link from "next/link";
+import PublicHeader from "@/components/public/PublicHeader";
 import { getCollectionsForPublicGallery } from "@/lib/dbCollections";
 import { getCookieLocale } from "@/lib/i18n/server";
 import { getPublicDictionary } from "@/lib/i18n/public";
@@ -12,15 +13,17 @@ export default async function CollectionsPage() {
   const { public: t } = getPublicDictionary(locale);
 
   return (
-    <main
-      style={{
-        minHeight: "100vh",
-        padding: "48px 24px 80px",
-        background:
-          "linear-gradient(180deg, #f5f0e5 0%, rgba(255,255,255,0.96) 220px, #f7f4ed 100%)",
-      }}
-    >
-      <section style={{ maxWidth: "1120px", margin: "0 auto" }}>
+    <div className="artales-public-shell">
+      <PublicHeader active="collection" />
+      <main
+        style={{
+          minHeight: "100vh",
+          padding: "48px 24px 80px",
+          background:
+            "linear-gradient(180deg, #f5f0e5 0%, rgba(255,255,255,0.96) 220px, #f7f4ed 100%)",
+        }}
+      >
+        <section style={{ maxWidth: "1120px", margin: "0 auto" }}>
         <header
           style={{
             display: "grid",
@@ -107,13 +110,23 @@ export default async function CollectionsPage() {
                 >
                   <div
                     style={{
+                      alignItems: "center",
                       aspectRatio: "3 / 2",
                       background: collection.cover_image_path
                         ? `linear-gradient(rgba(23, 16, 10, 0.08), rgba(23, 16, 10, 0.14)), url(${collection.cover_image_path}) center/cover`
                         : "linear-gradient(135deg, rgba(130, 101, 78, 0.26), rgba(61, 47, 34, 0.12))",
+                      color: "rgba(42, 30, 22, 0.58)",
+                      display: "grid",
+                      fontFamily: "Georgia, 'Times New Roman', serif",
+                      fontSize: "1.2rem",
+                      letterSpacing: "0.08em",
+                      placeItems: "center",
+                      textTransform: "uppercase",
                     }}
                     aria-hidden="true"
-                  />
+                  >
+                    {collection.cover_image_path ? null : "ARTales"}
+                  </div>
 
                   <div style={{ padding: "22px 22px 24px", display: "grid", gap: "12px" }}>
                     <div style={{ display: "grid", gap: "6px" }}>
@@ -146,7 +159,8 @@ export default async function CollectionsPage() {
             })}
           </div>
         )}
-      </section>
-    </main>
+        </section>
+      </main>
+    </div>
   );
 }

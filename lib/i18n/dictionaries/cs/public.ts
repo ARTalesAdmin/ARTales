@@ -72,4 +72,41 @@ export const csPublic = {
   deliveryPreview: "Ukázka dostupná",
   deliveryOnlineReader: "Online reader",
   deliveryDigitalEditionsLater: "PDF/EPUB později",
+
+  author: "Autor",
+  authorsTitle: "Autoři ARTales",
+  authorsEyebrow: "Literární hlasy",
+  authorsIntro:
+    "Procházej autory, překladatele, kolektivy a zdrojové hlasy zastoupené v edicích ARTales.",
+  noPublicAuthors: "Zatím nejsou dostupní žádní veřejní autoři.",
+  openAuthor: "Otevřít autora",
+  authorNotFoundTitle: "Autor nenalezen",
+  authorNotFoundText:
+    "Požadovaný autor v ARTales neexistuje nebo zatím není veřejně viditelný.",
+  authorTypePerson: "Osoba",
+  authorTypeCollective: "Kolektiv",
+  authorTypeUnknown: "Neznámý autor",
+  years: "Roky",
+  country: "Země",
+  primaryLanguage: "Primární jazyk",
+  authorBioMissing: "Biografie autora zatím nebyla doplněna.",
+  publishedWorks: "Publikovaná díla",
+  authorNoWorks: "Tento autor zatím nemá v galerii žádná publikovaná díla.",
+
+  collectionsTitle: "Kolekce ARTales",
+  collectionsEyebrow: "Kurátorské literární galerie",
+  collectionsIntro:
+    "Kolekce ARTales nejsou žánrové police. Jsou to kurátorské trasy napříč díly, atmosférami, tématy a čtenářským zážitkem.",
+  noPublicCollections: "Zatím nejsou dostupné žádné veřejné kolekce.",
+  openCollection: "Otevřít kolekci",
+
+  collection: "Kolekce",
+  collectionNotFoundTitle: "Kolekce nenalezena",
+  collectionNotFoundText:
+    "Tato kolekce v ARTales neexistuje nebo zatím není veřejně viditelná.",
+  collectionDescriptionMissing: "Popis kolekce zatím nebyl doplněn.",
+  browseCollectionWorks: "Procházet díla v kolekci",
+  collectionVisualPlaceholder: "Vizuál kolekce",
+  worksInCollection: "Díla v této kolekci",
+  collectionNoWorks: "Tato kolekce zatím neobsahuje žádná publikovaná díla.",
 }
