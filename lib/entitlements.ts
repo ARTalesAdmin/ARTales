@@ -394,7 +394,7 @@ export async function getReaderUnlockedWorks(userId: string): Promise<ReaderUnlo
     return [];
   }
 
-  const rows = (data ?? []).map((row) => {
+  const rows: Array<ReaderUnlockedWork | null> = (data ?? []).map((row) => {
     const rawRow = row as EntitlementWorkRow;
     const work = firstRelation(rawRow.works);
 
@@ -430,6 +430,15 @@ export async function getReaderUnlockedWorks(userId: string): Promise<ReaderUnlo
             slug: String(collection.slug),
           }
         : null,
+      collections: collection
+        ? [
+            {
+              id: String(collection.id),
+              title: String(collection.title),
+              slug: String(collection.slug),
+            },
+          ]
+        : [],
       entitlementSource: String(rawRow.source ?? "unknown"),
       entitlementCreatedAt: String(rawRow.created_at),
       entitlementExpiresAt: rawRow.expires_at == null ? null : String(rawRow.expires_at),
