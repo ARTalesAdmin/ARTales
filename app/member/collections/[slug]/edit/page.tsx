@@ -1,4 +1,5 @@
 import Link from "next/link";
+import EditorialImageUploadField from "@/components/media/EditorialImageUploadField";
 import { notFound } from "next/navigation";
 import { requireEditorOrAdmin } from "@/lib/guards";
 import { getCollectionForEditBySlug, getCollectionWorkAssignments } from "@/lib/dbCollections";
@@ -104,11 +105,32 @@ export default async function EditCollectionPage({ params, searchParams }: PageP
 
         <section style={{ border: "1px solid #ddd", padding: "24px", display: "grid", gap: "18px" }}>
           <h2 style={{ margin: 0, fontSize: "26px" }}>Vizuál a publikace</h2>
-          <Field id="cover_image_path" label="Cover image path / URL" defaultValue={defaults.cover_image_path} />
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px" }}>
-            <Field id="cover_image_alt" label="Alt text" defaultValue={defaults.cover_image_alt} />
-            <Field id="cover_image_caption" label="Caption" defaultValue={defaults.cover_image_caption} />
-          </div>
+
+          <EditorialImageUploadField
+            kind="collection-cover"
+            title={defaults.title_cs || defaults.title_en || "ARTales kolekce"}
+            slugInputId="slug"
+            titleInputId="title_cs"
+            pathName="cover_image_path"
+            altName="cover_image_alt"
+            captionName="cover_image_caption"
+            initialPath={defaults.cover_image_path}
+            initialAlt={defaults.cover_image_alt}
+            initialCaption={defaults.cover_image_caption}
+            heading="Cover kolekce"
+            description="Nahraj veřejný vizuál kolekce přímo do ARTales Storage. Doporučený poměr je 3:2, master 1800 × 1200 px."
+            uploadLabel="Nahrát cover kolekce"
+            uploadingLabel="Nahrávám cover…"
+            removeLabel="Odebrat cover"
+            emptyHint="Pokud cover zatím není hotový, veřejná kolekce použije decentní ARTales fallback."
+            readyHint="Cover kolekce je připravený v ARTales Storage. Ulož kolekci, aby se cesta propsala do databáze."
+            altLabel="Alt text coveru"
+            altPlaceholder="Krátký popis obrázku pro přístupnost a SEO"
+            captionLabel="Popisek / kredit coveru"
+            captionPlaceholder="Nepovinný veřejný popisek nebo kredit obrázku"
+            defaultAltPrefix="Cover kolekce"
+          />
+
           <div style={{ display: "flex", gap: "18px", flexWrap: "wrap" }}>
             <label style={{ display: "flex", alignItems: "center", gap: "10px", fontWeight: 600 }}><input type="checkbox" name="is_featured" defaultChecked={defaults.is_featured} /> Doporučená / featured kolekce</label>
             <label style={{ display: "flex", alignItems: "center", gap: "10px", fontWeight: 600 }}><input type="checkbox" name="is_public_visible" defaultChecked={defaults.is_public_visible} /> Veřejně viditelná</label>
