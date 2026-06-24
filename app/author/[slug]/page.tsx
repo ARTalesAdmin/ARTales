@@ -40,16 +40,7 @@ export default async function AuthorDetail({ params, searchParams }: PageProps) 
     return (
       <div className="artales-public-shell">
         <PublicHeader active="author" />
-        <main
-          style={{
-            color: "var(--artales-ink)",
-            fontFamily: "Arial, Helvetica, sans-serif",
-            lineHeight: 1.6,
-            margin: "0 auto",
-            maxWidth: "900px",
-            padding: "64px 24px",
-          }}
-        >
+        <main className="artales-public-main artales-author-detail-main artales-public-main--narrow">
           <p style={{ margin: "0 0 22px" }}>
             <Link href="/gallery" style={{ color: "#5f5247" }}>
               {"<- "}{t.backToGallery}
@@ -95,16 +86,7 @@ export default async function AuthorDetail({ params, searchParams }: PageProps) 
     <div className="artales-public-shell">
       <PublicHeader active="author" />
 
-      <main
-        style={{
-          color: "var(--artales-ink)",
-          fontFamily: "Arial, Helvetica, sans-serif",
-          lineHeight: 1.6,
-          margin: "0 auto",
-          maxWidth: "1180px",
-          padding: "42px 24px 68px",
-        }}
-      >
+      <main className="artales-public-main artales-author-detail-main">
         <p style={{ margin: "0 0 22px" }}>
           <Link href="/gallery" style={{ color: "#5f5247" }}>
             {"<- "}{t.backToGallery}
@@ -112,6 +94,7 @@ export default async function AuthorDetail({ params, searchParams }: PageProps) 
         </p>
 
         <section
+          className="artales-author-detail-card"
           style={{
             background: "rgba(255, 255, 255, 0.58)",
             border: "1px solid rgba(13, 21, 40, 0.1)",

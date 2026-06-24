@@ -54,7 +54,7 @@ export default async function CollectionDetailPage({ params }: PageProps) {
         </p>
 
         <header
-          className="artales-gallery-hero"
+          className="artales-gallery-hero artales-collection-detail-hero"
           style={{
             alignItems: "center",
             display: "grid",

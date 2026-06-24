@@ -13,6 +13,7 @@ export default async function Home() {
       <PublicHeader active="home" />
 
       <main
+        className="artales-home-main"
         style={{
           color: "var(--artales-ink)",
           fontFamily: "Arial, Helvetica, sans-serif",

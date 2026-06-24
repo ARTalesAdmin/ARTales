@@ -295,16 +295,7 @@ export default function WorkDetailClient({
     <div className="artales-public-shell">
       <PublicHeader active="work" />
 
-      <main
-        style={{
-          padding: "42px 24px 64px",
-          fontFamily: "Arial, Helvetica, sans-serif",
-          lineHeight: 1.6,
-          maxWidth: "1180px",
-          margin: "0 auto",
-          color: "var(--artales-ink)",
-        }}
-      >
+      <main className="artales-public-main artales-work-detail-main">
         <p style={{ margin: "0 0 22px" }}>
           <Link href="/gallery" style={{ color: "#5f5247" }}>
             {"<- "}
@@ -313,6 +304,7 @@ export default function WorkDetailClient({
         </p>
 
         <section
+          className="artales-work-detail-hero"
           style={{
             display: "grid",
             gridTemplateColumns: "minmax(220px, 340px) minmax(0, 1fr)",
