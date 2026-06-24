@@ -587,7 +587,7 @@ export default function WorkEditorForm(props: Props) {
         .upload(storagePath, file, {
           cacheControl: "31536000",
           contentType: file.type,
-          upsert: true,
+          upsert: false,
         });
 
       if (error) {

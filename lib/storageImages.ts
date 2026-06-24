@@ -75,44 +75,62 @@ export function safeStorageSegment(value: string) {
   return normalized || "draft"
 }
 
+export function createStorageVersionSegment() {
+  const randomSegment =
+    typeof crypto !== "undefined" && "randomUUID" in crypto
+      ? crypto.randomUUID().slice(0, 8)
+      : Math.random().toString(36).slice(2, 10)
+
+  return `${Date.now()}-${randomSegment}`
+}
+
 export function buildWorkCoverStoragePath({
   workSlug,
   mimeType,
+  version = createStorageVersionSegment(),
 }: {
   workSlug: string
   fileName?: string
   mimeType: string
+  version?: string
 }) {
   const slugSegment = safeStorageSegment(workSlug)
+  const versionSegment = safeStorageSegment(version)
   const extension = getExtensionFromMimeType(mimeType)
 
-  return `works/${slugSegment}/cover/cover.${extension}`
+  return `works/${slugSegment}/cover/cover-${versionSegment}.${extension}`
 }
 
 export function buildAuthorPortraitStoragePath({
   authorSlug,
   mimeType,
+  version = createStorageVersionSegment(),
 }: {
   authorSlug: string
   mimeType: string
+  version?: string
 }) {
   const slugSegment = safeStorageSegment(authorSlug)
+  const versionSegment = safeStorageSegment(version)
   const extension = getExtensionFromMimeType(mimeType)
 
-  return `authors/${slugSegment}/portrait/portrait.${extension}`
+  return `authors/${slugSegment}/portrait/portrait-${versionSegment}.${extension}`
 }
 
 export function buildCollectionCoverStoragePath({
   collectionSlug,
   mimeType,
+  version = createStorageVersionSegment(),
 }: {
   collectionSlug: string
   mimeType: string
+  version?: string
 }) {
   const slugSegment = safeStorageSegment(collectionSlug)
+  const versionSegment = safeStorageSegment(version)
   const extension = getExtensionFromMimeType(mimeType)
 
-  return `collections/${slugSegment}/cover/cover.${extension}`
+  return `collections/${slugSegment}/cover/cover-${versionSegment}.${extension}`
 }
 
 export function buildWorkInlineImageStoragePath({

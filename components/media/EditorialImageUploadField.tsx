@@ -164,7 +164,7 @@ export default function EditorialImageUploadField({
         .upload(storagePath, file, {
           cacheControl: "31536000",
           contentType: file.type,
-          upsert: true,
+          upsert: false,
         })
 
       if (uploadError) {
