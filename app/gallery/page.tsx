@@ -55,24 +55,11 @@ export default async function GalleryPage() {
                   en: work.title_en,
                   fallback: work.title,
                 }) ?? work.title
-                const subtitle = pickLocalizedText(locale, {
-                  cs: work.subtitle_cs,
-                  en: work.subtitle_en,
-                  fallback: work.subtitle,
-                })
                 const summary = pickLocalizedText(locale, {
                   cs: work.summary_cs,
                   en: work.summary_en,
                   fallback: work.summary,
                 }) ?? work.summary
-                const collectionTitle = work.collection
-                  ? pickLocalizedText(locale, {
-                      cs: work.collection.title_cs,
-                      en: work.collection.title_en,
-                      fallback: work.collection.title,
-                    }) ?? work.collection.title
-                  : null
-
                 return (
                   <article key={work.id} className="artales-gallery-card">
                     <Link href={`/work/${work.slug}`} aria-label={`${t.openDetail}: ${title}`}>
@@ -94,10 +81,6 @@ export default async function GalleryPage() {
                         <Link href={`/work/${work.slug}`}>{title}</Link>
                       </h2>
 
-                      <p className={subtitle ? "artales-gallery-card__subtitle" : "artales-gallery-card__subtitle artales-gallery-card__subtitle--empty"}>
-                        {subtitle || "\u00a0"}
-                      </p>
-
                       <div className="artales-gallery-card__meta">
                         <span>
                           {common.author}: {work.author ? (
@@ -106,12 +89,10 @@ export default async function GalleryPage() {
                             t.unknownAuthor
                           )}
                         </span>
-                        {work.collection ? (
-                          <span>
-                            {common.collection}: <Link href={`/collections/${work.collection.slug}`}>{collectionTitle}</Link>
-                          </span>
-                        ) : null}
-                        <span>{common.language}: {languageLabel ?? work.canonical_language}</span>
+                      </div>
+
+                      <div className="artales-gallery-card__chips" aria-label={common.language}>
+                        <span>{languageLabel ?? work.canonical_language}</span>
                       </div>
 
                       <p className="artales-gallery-card__summary">{summary}</p>

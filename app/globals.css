@@ -2922,6 +2922,7 @@ body {
   }
 }
 
+
 /* v0.10.8o — gallery desktop card rhythm polish.
    The gallery cards previously inherited reserved grid rows intended for
    perfectly equal cards. On desktop this created visible empty bands between
@@ -2953,3 +2954,55 @@ body {
     margin-top: 6px;
   }
 }
+
+
+/* v0.10.8p — simplified gallery cards for stable desktop rhythm.
+   Gallery cards are now a decision surface, not a full metadata catalogue:
+   no subtitle, no collection list, language as a small chip. */
+.artales-gallery-card__chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+  margin: 0;
+}
+
+.artales-gallery-card__chips span {
+  background: rgba(13, 21, 40, 0.06);
+  border: 1px solid rgba(13, 21, 40, 0.1);
+  border-radius: 999px;
+  color: rgba(13, 21, 40, 0.72);
+  font-size: 0.76rem;
+  font-weight: 850;
+  letter-spacing: 0.06em;
+  line-height: 1;
+  padding: 7px 10px;
+  text-transform: uppercase;
+}
+
+@media (min-width: 821px) {
+  .artales-gallery-grid .artales-gallery-card__body {
+    gap: 9px;
+    grid-template-rows: auto minmax(2.05rem, auto) auto minmax(4.8rem, auto);
+  }
+
+  .artales-gallery-grid .artales-gallery-card h2 {
+    min-height: 2.35em;
+  }
+
+  .artales-gallery-grid .artales-gallery-card__meta {
+    align-content: start;
+    min-height: 2.05rem;
+  }
+
+  .artales-gallery-grid .artales-gallery-card__summary {
+    margin-top: 4px;
+  }
+}
+
+@media (max-width: 820px) {
+  .artales-gallery-card__chips span {
+    font-size: 0.72rem;
+    padding: 6px 9px;
+  }
+}
+
