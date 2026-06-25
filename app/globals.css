@@ -2922,3 +2922,36 @@ body {
   }
 }
 
+
+/* v0.10.8o — gallery desktop card rhythm polish.
+   The gallery cards previously inherited reserved grid rows intended for
+   perfectly equal cards. On desktop this created visible empty bands between
+   the title, metadata and summary, especially for works without subtitles. */
+@media (min-width: 821px) {
+  .artales-gallery-grid .artales-gallery-card__body {
+    gap: 8px;
+    grid-template-rows: auto auto auto auto auto;
+  }
+
+  .artales-gallery-grid .artales-gallery-card h2 {
+    min-height: 2.35em;
+  }
+
+  .artales-gallery-grid .artales-gallery-card__subtitle {
+    min-height: 0;
+  }
+
+  .artales-gallery-grid .artales-gallery-card__subtitle--empty {
+    display: none;
+  }
+
+  .artales-gallery-grid .artales-gallery-card__meta {
+    margin-top: 2px;
+    min-height: 0;
+  }
+
+  .artales-gallery-grid .artales-gallery-card__summary {
+    margin-top: 6px;
+  }
+}
+
