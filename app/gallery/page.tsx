@@ -37,14 +37,6 @@ export default async function GalleryPage() {
           <h1>{t.galleryTitle}</h1>
           <p>{t.galleryIntro}</p>
 
-          <div className="artales-gallery-hero__actions">
-            <Link className="artales-button-secondary" href="/collections">
-              {t.collections}
-            </Link>
-            <Link className="artales-button-secondary" href="/authors">
-              {t.authors}
-            </Link>
-          </div>
         </section>
 
         <section>

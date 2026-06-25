@@ -1,6 +1,7 @@
 import Link from "next/link"
 import { getAuthorBySlug } from "@/lib/dbAuthors"
-import { getLanguageLabel, getLanguageLabels } from "@/lib/dictionaries/language"
+import { getLocalizedLanguageLabel, getLocalizedLanguageLabels } from "@/lib/dictionaries/language"
+import { getCountryLabel } from "@/lib/dictionaries/country"
 import PublicHeader from "@/components/public/PublicHeader"
 import StorageImageDisplay from "@/components/media/StorageImageDisplay"
 import WorkCoverImage from "@/components/work/WorkCoverImage"
@@ -74,8 +75,9 @@ export default async function AuthorDetail({ params, searchParams }: PageProps) 
 
   const isFollowing = await isAuthorFollowedByUser(profile?.id, author.id)
 
-  const primaryLanguageLabel = getLanguageLabel(author.primary_language, "public")
-  const writingLanguageLabels = getLanguageLabels(author.writing_languages, "public")
+  const countryLabel = getCountryLabel(author.country, locale)
+  const primaryLanguageLabel = getLocalizedLanguageLabel(author.primary_language, locale)
+  const writingLanguageLabels = getLocalizedLanguageLabels(author.writing_languages, locale)
 
   const years =
     author.birth_year || author.death_year
@@ -143,8 +145,8 @@ export default async function AuthorDetail({ params, searchParams }: PageProps) 
             {years ? (
               <span><strong>{t.years}:</strong> {years}</span>
             ) : null}
-            {author.country ? (
-              <span><strong>{t.country}:</strong> {author.country}</span>
+            {countryLabel ? (
+              <span><strong>{t.country}:</strong> {countryLabel}</span>
             ) : null}
             {primaryLanguageLabel ? (
               <span><strong>{t.primaryLanguage}:</strong> {primaryLanguageLabel}</span>

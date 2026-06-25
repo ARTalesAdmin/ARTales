@@ -2821,3 +2821,35 @@ body {
     grid-template-columns: none;
   }
 }
+
+
+/* v0.10.8h — gallery cleanup, author portraits and public metadata localization polish */
+.artales-author-card .artales-author-card-portrait {
+  align-self: center;
+  margin-bottom: 2px;
+  width: min(132px, 46vw);
+}
+
+.artales-author-card .artales-storage-image--author .artales-storage-image__frame {
+  background: linear-gradient(145deg, rgba(255, 247, 224, 0.96), rgba(243, 225, 178, 0.78));
+  box-shadow: 0 14px 34px rgba(13, 21, 40, 0.12);
+}
+
+.artales-author-card .artales-storage-image__placeholder {
+  min-height: 0;
+  padding: 16px;
+}
+
+.artales-author-card .artales-storage-image__placeholder .artales-brand__wordmark {
+  display: none;
+}
+
+.artales-author-card .artales-storage-image__placeholder span {
+  display: none;
+}
+
+@media (max-width: 640px) {
+  .artales-author-card .artales-author-card-portrait {
+    width: 108px;
+  }
+}

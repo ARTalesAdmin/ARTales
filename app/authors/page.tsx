@@ -2,7 +2,8 @@ import Link from "next/link";
 import PublicHeader from "@/components/public/PublicHeader";
 import StorageImageDisplay from "@/components/media/StorageImageDisplay";
 import { getAuthorsForPublicGallery } from "@/lib/dbAuthors";
-import { getLanguageLabel } from "@/lib/dictionaries/language";
+import { getLocalizedLanguageLabel } from "@/lib/dictionaries/language";
+import { getCountryLabel } from "@/lib/dictionaries/country";
 import { getPublicDictionary } from "@/lib/i18n/public";
 import { getCookieLocale } from "@/lib/i18n/server";
 
@@ -49,28 +50,19 @@ export default async function AuthorsPage() {
           <section className="artales-author-grid">
             {authors.map((author) => {
               const years = formatYears(author.birth_year, author.death_year);
+              const countryLabel = getCountryLabel(author.country, locale);
               const primaryLanguage = author.primary_language
-                ? getLanguageLabel(author.primary_language, "public") ??
+                ? getLocalizedLanguageLabel(author.primary_language, locale) ??
                   author.primary_language
                 : null;
               const writingLanguages = author.writing_languages
-                .map((language) => getLanguageLabel(language, "public") ?? language)
+                .map((language) =>
+                  getLocalizedLanguageLabel(language, locale) ?? language
+                )
                 .join(", ");
 
               return (
-                <article
-                  key={author.id}
-                  style={{
-                    background: "rgba(255, 255, 255, 0.64)",
-                    border: "1px solid rgba(13, 21, 40, 0.12)",
-                    borderRadius: "24px",
-                    boxShadow: "0 18px 45px rgba(13, 21, 40, 0.08)",
-                    display: "flex",
-                    flexDirection: "column",
-                    gap: "12px",
-                    padding: "22px",
-                  }}
-                >
+                <article key={author.id} className="artales-author-card">
                   <div className="artales-author-card-portrait">
                     <StorageImageDisplay
                       title={author.name}
@@ -116,9 +108,9 @@ export default async function AuthorsPage() {
                     </p>
                   ) : null}
 
-                  {author.country ? (
+                  {countryLabel ? (
                     <p style={{ color: "#5f5247", margin: 0 }}>
-                      <strong>{t.country}:</strong> {author.country}
+                      <strong>{t.country}:</strong> {countryLabel}
                     </p>
                   ) : null}
 

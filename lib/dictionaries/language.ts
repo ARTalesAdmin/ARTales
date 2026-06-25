@@ -1,3 +1,5 @@
+import type { SupportedLocale } from "@/lib/i18n/config"
+
 export const LANGUAGE_DICTIONARY = {
   cs: {
     publicLabel: "Czech",
@@ -110,4 +112,24 @@ export function getLanguageOptions(context: "internal" | "public") {
         ? LANGUAGE_DICTIONARY[code].publicLabel
         : LANGUAGE_DICTIONARY[code].internalLabel,
   }))
+}
+
+export function getLocalizedLanguageLabel(
+  value: string | null | undefined,
+  locale: SupportedLocale
+): string | null {
+  if (!value) return null
+
+  return getLanguageLabel(value, locale === "cs" ? "internal" : "public")
+}
+
+export function getLocalizedLanguageLabels(
+  values: string[] | null | undefined,
+  locale: SupportedLocale
+): string[] {
+  if (!Array.isArray(values)) return []
+
+  return values
+    .map((value) => getLocalizedLanguageLabel(value, locale))
+    .filter((label): label is string => Boolean(label))
 }
