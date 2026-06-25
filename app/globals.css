@@ -2655,3 +2655,169 @@ body {
     border-radius: 18px;
   }
 }
+
+/* v0.10.8g — public mobile navigation and home ordering polish */
+.artales-public-header .artales-brand-link {
+  flex: 0 0 auto;
+}
+
+.artales-public-header .artales-brand {
+  min-width: 0;
+}
+
+.artales-public-header__nav {
+  justify-content: flex-end;
+}
+
+.artales-public-header__nav .artales-locale-switcher {
+  flex: 0 0 auto;
+}
+
+.artales-home-brand-panel {
+  min-width: 0;
+}
+
+@media (max-width: 860px) {
+  .artales-public-header {
+    align-items: center;
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 10px;
+    padding-bottom: 10px;
+  }
+
+  .artales-public-header .artales-brand-link,
+  .artales-public-header .artales-brand {
+    max-width: 100%;
+    width: auto;
+  }
+
+  .artales-public-header__nav {
+    display: flex;
+    flex-wrap: nowrap;
+    gap: 8px;
+    justify-content: flex-start;
+    margin-inline: -4px;
+    overflow-x: auto;
+    padding: 2px 4px 8px;
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+    width: calc(100% + 8px);
+  }
+
+  .artales-public-header__nav::-webkit-scrollbar {
+    display: none;
+  }
+
+  .artales-public-header__nav .artales-public-link,
+  .artales-public-header__nav a,
+  .artales-public-header__nav button {
+    align-items: center;
+    display: inline-flex;
+    flex: 0 0 auto;
+    justify-content: center;
+    min-height: 38px;
+    text-align: center;
+    white-space: nowrap;
+  }
+
+  .artales-public-header__nav .artales-locale-switcher {
+    flex: 0 0 auto;
+  }
+
+  .artales-home-hero {
+    grid-template-columns: 1fr !important;
+  }
+
+  .artales-home-brand-panel {
+    margin-inline: auto;
+    max-width: 520px;
+    width: 100%;
+  }
+}
+
+@media (max-width: 640px) {
+  .artales-public-header {
+    gap: 8px;
+    padding-bottom: 8px;
+  }
+
+  .artales-public-header .artales-brand__mark {
+    width: 24px;
+  }
+
+  .artales-public-header .artales-brand__wordmark {
+    max-width: 136px;
+  }
+
+  .artales-public-header__nav {
+    grid-template-columns: none;
+  }
+
+  .artales-public-header__nav .artales-public-link,
+  .artales-public-header__nav a,
+  .artales-public-header__nav button {
+    min-height: 36px;
+  }
+
+  .artales-public-link {
+    border: 1px solid rgba(13, 21, 40, 0.12);
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.48);
+    padding: 0.5rem 0.72rem;
+  }
+
+  .artales-public-link--primary {
+    background: rgba(13, 21, 40, 0.92);
+    border-color: rgba(13, 21, 40, 0.92);
+    color: #fff;
+  }
+
+  .artales-locale-switcher {
+    background: rgba(255, 255, 255, 0.42);
+    border: 1px solid rgba(13, 21, 40, 0.12);
+    border-radius: 999px;
+    padding: 2px;
+  }
+
+  .artales-locale-switcher__button {
+    min-height: 32px;
+    padding: 0.34rem 0.52rem;
+  }
+
+  .artales-home-main {
+    padding-top: 26px !important;
+  }
+
+  .artales-home-hero {
+    gap: 20px !important;
+    margin-bottom: 32px !important;
+  }
+
+  .artales-home-brand-panel {
+    display: none;
+  }
+
+  .artales-home-feature-grid {
+    gap: 14px !important;
+    grid-template-columns: 1fr !important;
+    margin-bottom: 36px !important;
+  }
+
+  .artales-home-feature-card {
+    border-radius: 20px !important;
+    padding: 18px !important;
+  }
+
+  .artales-home-footnote {
+    display: block !important;
+    padding-top: 18px !important;
+  }
+}
+
+@media (max-width: 420px) {
+  .artales-public-header__nav {
+    display: flex;
+    grid-template-columns: none;
+  }
+}

@@ -82,6 +82,7 @@ export default async function Home() {
           </div>
 
           <aside
+            className="artales-home-brand-panel"
             style={{
               background:
                 "linear-gradient(180deg, rgba(255,255,255,0.62), rgba(255,255,255,0.34))",
@@ -107,6 +108,7 @@ export default async function Home() {
         </section>
 
         <section
+          className="artales-home-feature-grid"
           style={{
             display: "grid",
             gap: "18px",
@@ -130,6 +132,7 @@ export default async function Home() {
           ].map((item) => (
             <article
               key={item.title}
+              className="artales-home-feature-card"
               style={{
                 background: "rgba(255, 255, 255, 0.52)",
                 border: "1px solid rgba(13, 21, 40, 0.1)",
@@ -154,6 +157,7 @@ export default async function Home() {
         </section>
 
         <section
+          className="artales-home-footnote"
           style={{
             borderTop: "1px solid rgba(13, 21, 40, 0.14)",
             display: "flex",
