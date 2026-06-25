@@ -145,6 +145,16 @@ export default async function CollectionDetailPage({ params }: PageProps) {
             <div className="artales-related-work-grid">
               {collection.works.map((work) => {
                 const workCoverImageUrl = getPublicStorageImageUrl(work.cover_image_path);
+                const workTitle = pickLocalizedText(locale, {
+                  cs: work.title_cs,
+                  en: work.title_en,
+                  fallback: work.title,
+                }) ?? work.title;
+                const workSummary = pickLocalizedText(locale, {
+                  cs: work.summary_cs,
+                  en: work.summary_en,
+                  fallback: work.summary,
+                }) ?? work.summary;
 
                 return (
                 <article key={work.id} className="artales-gallery-card">
@@ -159,7 +169,7 @@ export default async function CollectionDetailPage({ params }: PageProps) {
                         background: `url(${workCoverImageUrl}) center/cover`,
                         boxShadow: "0 14px 34px rgba(5, 7, 12, 0.12)",
                       }}
-                      aria-label={work.title}
+                      aria-label={workTitle}
                     />
                   ) : (
                     <Link
@@ -184,7 +194,7 @@ export default async function CollectionDetailPage({ params }: PageProps) {
                   <div className="artales-gallery-card__body">
                     <h2>
                       <Link href={`/work/${work.slug}`}>
-                        {work.title}
+                        {workTitle}
                       </Link>
                     </h2>
 
@@ -193,7 +203,7 @@ export default async function CollectionDetailPage({ params }: PageProps) {
                     </p>
 
                     <p className="artales-gallery-card__summary">
-                      {work.summary}
+                      {workSummary}
                     </p>
 
                     <div className="artales-gallery-card__actions">

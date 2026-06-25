@@ -210,9 +210,15 @@ export default async function EditWorkPage({
         slug={slug}
         initialData={{
           title: work.title,
+          title_cs: work.title_cs ?? "",
+          title_en: work.title_en ?? work.title,
           slug: work.slug,
           subtitle: work.subtitle ?? "",
+          subtitle_cs: work.subtitle_cs ?? "",
+          subtitle_en: work.subtitle_en ?? work.subtitle ?? "",
           summary: work.summary,
+          summary_cs: work.summary_cs ?? "",
+          summary_en: work.summary_en ?? work.summary,
           primary_author_id: work.primary_author_id ?? "",
           collection_id: work.collection_id ?? "",
           tag_ids: work.tag_ids,

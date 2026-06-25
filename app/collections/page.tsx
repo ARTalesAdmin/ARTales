@@ -5,6 +5,7 @@ import { getCookieLocale } from "@/lib/i18n/server";
 import { getPublicDictionary } from "@/lib/i18n/public";
 import { pickLocalizedText } from "@/lib/localizedContent";
 import { getPublicStorageImageUrl } from "@/lib/storageImages";
+import { getLocalizedCollectionTypeLabel } from "@/lib/collectionTypes";
 
 export default async function CollectionsPage() {
   const [collections, locale] = await Promise.all([
@@ -80,7 +81,7 @@ export default async function CollectionsPage() {
 
                   <div className="artales-gallery-card__body">
                     <p className="artales-public-kicker artales-public-kicker--small">
-                      {collection.collection_type}
+                      {getLocalizedCollectionTypeLabel(collection.collection_type, locale)}
                     </p>
 
                     <h2>

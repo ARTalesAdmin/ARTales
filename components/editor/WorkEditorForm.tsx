@@ -30,9 +30,15 @@ type Props = {
 
   initialData: {
     title: string;
+    title_cs: string;
+    title_en: string;
     slug: string;
     subtitle: string;
+    subtitle_cs: string;
+    subtitle_en: string;
     summary: string;
+    summary_cs: string;
+    summary_en: string;
     primary_author_id: string;
     collection_id: string;
     tag_ids: string[];
@@ -112,9 +118,15 @@ export default function WorkEditorForm(props: Props) {
 
   const [formState, setFormState] = useState({
     title: initialData.title,
+    title_cs: initialData.title_cs,
+    title_en: initialData.title_en,
     slug: initialData.slug,
     subtitle: initialData.subtitle,
+    subtitle_cs: initialData.subtitle_cs,
+    subtitle_en: initialData.subtitle_en,
     summary: initialData.summary,
+    summary_cs: initialData.summary_cs,
+    summary_en: initialData.summary_en,
     primary_author_id: initialData.primary_author_id,
     collection_id: initialData.collection_id,
     tag_ids: initialData.tag_ids,
@@ -309,9 +321,15 @@ export default function WorkEditorForm(props: Props) {
       if (forcedAuthorId) {
         const nextFormState = {
           title: parsedForm.title ?? "",
+          title_cs: parsedForm.title_cs ?? "",
+          title_en: parsedForm.title_en ?? "",
           slug: parsedForm.slug ?? "",
           subtitle: parsedForm.subtitle ?? "",
+          subtitle_cs: parsedForm.subtitle_cs ?? "",
+          subtitle_en: parsedForm.subtitle_en ?? "",
           summary: parsedForm.summary ?? "",
+          summary_cs: parsedForm.summary_cs ?? "",
+          summary_en: parsedForm.summary_en ?? "",
           primary_author_id: forcedAuthorId,
           collection_id: parsedForm.collection_id ?? "",
           tag_ids: Array.isArray(parsedForm.tag_ids) ? parsedForm.tag_ids : [],
@@ -430,9 +448,15 @@ export default function WorkEditorForm(props: Props) {
       if (parsed.form) {
         setFormState({
           title: parsed.form.title ?? "",
+          title_cs: parsed.form.title_cs ?? "",
+          title_en: parsed.form.title_en ?? "",
           slug: parsed.form.slug ?? "",
           subtitle: parsed.form.subtitle ?? "",
+          subtitle_cs: parsed.form.subtitle_cs ?? "",
+          subtitle_en: parsed.form.subtitle_en ?? "",
           summary: parsed.form.summary ?? "",
+          summary_cs: parsed.form.summary_cs ?? "",
+          summary_en: parsed.form.summary_en ?? "",
           primary_author_id: parsed.form.primary_author_id ?? "",
           collection_id: parsed.form.collection_id ?? "",
           tag_ids: Array.isArray(parsed.form.tag_ids) ? parsed.form.tag_ids : [],
@@ -920,6 +944,58 @@ export default function WorkEditorForm(props: Props) {
               znaků.
             </p>
           </div>
+
+          <section
+            style={{
+              border: "1px solid rgba(217, 183, 110, 0.28)",
+              background: "rgba(255, 248, 232, 0.48)",
+              borderRadius: "18px",
+              padding: "16px",
+              display: "grid",
+              gap: "14px",
+            }}
+          >
+            <div>
+              <h3 style={{ margin: 0 }}>Veřejná lokalizace metadat</h3>
+              <p style={{ margin: "8px 0 0", fontSize: "14px", opacity: 0.75 }}>
+                Vyplň čtenářské názvy a anotace pro veřejnou CZ/EN vrstvu. Pokud
+                některé pole chybí, web použije druhý jazyk nebo hlavní legacy pole výše.
+              </p>
+            </div>
+
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: "14px" }}>
+              <div>
+                <label htmlFor="title_cs" style={{ display: "block", marginBottom: "8px", fontWeight: 600 }}>Název (CZ)</label>
+                <input id="title_cs" name="title_cs" type="text" value={formState.title_cs} onChange={(e) => setFormState((prev) => ({ ...prev, title_cs: e.target.value }))} placeholder="Český veřejný název" style={{ width: "100%", padding: "12px 14px", border: "1px solid rgba(13, 21, 40, 0.22)", background: "#fffefb", borderRadius: "12px", fontSize: "16px" }} />
+              </div>
+              <div>
+                <label htmlFor="title_en" style={{ display: "block", marginBottom: "8px", fontWeight: 600 }}>Title (EN)</label>
+                <input id="title_en" name="title_en" type="text" value={formState.title_en} onChange={(e) => setFormState((prev) => ({ ...prev, title_en: e.target.value }))} placeholder="English public title" style={{ width: "100%", padding: "12px 14px", border: "1px solid rgba(13, 21, 40, 0.22)", background: "#fffefb", borderRadius: "12px", fontSize: "16px" }} />
+              </div>
+            </div>
+
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: "14px" }}>
+              <div>
+                <label htmlFor="subtitle_cs" style={{ display: "block", marginBottom: "8px", fontWeight: 600 }}>Podnázev (CZ)</label>
+                <input id="subtitle_cs" name="subtitle_cs" type="text" value={formState.subtitle_cs} onChange={(e) => setFormState((prev) => ({ ...prev, subtitle_cs: e.target.value }))} placeholder="Český podnázev" style={{ width: "100%", padding: "12px 14px", border: "1px solid rgba(13, 21, 40, 0.22)", background: "#fffefb", borderRadius: "12px", fontSize: "16px" }} />
+              </div>
+              <div>
+                <label htmlFor="subtitle_en" style={{ display: "block", marginBottom: "8px", fontWeight: 600 }}>Subtitle (EN)</label>
+                <input id="subtitle_en" name="subtitle_en" type="text" value={formState.subtitle_en} onChange={(e) => setFormState((prev) => ({ ...prev, subtitle_en: e.target.value }))} placeholder="English subtitle" style={{ width: "100%", padding: "12px 14px", border: "1px solid rgba(13, 21, 40, 0.22)", background: "#fffefb", borderRadius: "12px", fontSize: "16px" }} />
+              </div>
+            </div>
+
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: "14px" }}>
+              <div>
+                <label htmlFor="summary_cs" style={{ display: "block", marginBottom: "8px", fontWeight: 600 }}>Anotace (CZ)</label>
+                <textarea id="summary_cs" name="summary_cs" rows={4} value={formState.summary_cs} onChange={(e) => setFormState((prev) => ({ ...prev, summary_cs: e.target.value }))} placeholder="Česká veřejná anotace" style={{ width: "100%", padding: "12px 14px", border: "1px solid rgba(13, 21, 40, 0.22)", background: "#fffefb", borderRadius: "12px", fontSize: "16px", resize: "vertical" }} />
+              </div>
+              <div>
+                <label htmlFor="summary_en" style={{ display: "block", marginBottom: "8px", fontWeight: 600 }}>Annotation (EN)</label>
+                <textarea id="summary_en" name="summary_en" rows={4} value={formState.summary_en} onChange={(e) => setFormState((prev) => ({ ...prev, summary_en: e.target.value }))} placeholder="English public annotation" style={{ width: "100%", padding: "12px 14px", border: "1px solid rgba(13, 21, 40, 0.22)", background: "#fffefb", borderRadius: "12px", fontSize: "16px", resize: "vertical" }} />
+              </div>
+            </div>
+          </section>
 
           <div>
             <label

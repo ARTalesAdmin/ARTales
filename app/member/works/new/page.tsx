@@ -160,9 +160,15 @@ export default async function NewWorkPage({ searchParams }: PageProps) {
         mode="new"
         initialData={{
           title: "",
+          title_cs: "",
+          title_en: "",
           slug: "",
           subtitle: "",
+          subtitle_cs: "",
+          subtitle_en: "",
           summary: "",
+          summary_cs: "",
+          summary_en: "",
           primary_author_id: "",
           collection_id: "",
           tag_ids: [],

@@ -11,9 +11,15 @@ import {
 
 export type WorkFormValues = {
   title: string
+  title_cs: string
+  title_en: string
   slug: string
   subtitle: string
+  subtitle_cs: string
+  subtitle_en: string
   summary: string
+  summary_cs: string
+  summary_en: string
   canonical_language: string
   origin_type: "public_domain" | "original" | "translation" | "other"
   source_label: "gutenberg" | "web" | "manual" | "original"
@@ -78,9 +84,15 @@ export function parseWorkFormData(formData: FormData): WorkFormValues {
 
   return {
     title,
+    title_cs: String(formData.get("title_cs") ?? "").trim(),
+    title_en: String(formData.get("title_en") ?? "").trim(),
     slug: rawSlug ? slugify(rawSlug) : slugify(title),
     subtitle: String(formData.get("subtitle") ?? "").trim(),
+    subtitle_cs: String(formData.get("subtitle_cs") ?? "").trim(),
+    subtitle_en: String(formData.get("subtitle_en") ?? "").trim(),
     summary: String(formData.get("summary") ?? "").trim(),
+    summary_cs: String(formData.get("summary_cs") ?? "").trim(),
+    summary_en: String(formData.get("summary_en") ?? "").trim(),
     canonical_language: String(formData.get("canonical_language") ?? "").trim(),
     origin_type: String(formData.get("origin_type") ?? "").trim() as WorkFormValues["origin_type"],
     source_label: String(formData.get("source_label") ?? "").trim() as WorkFormValues["source_label"],
@@ -188,9 +200,15 @@ export function mapWorkFormValuesToInsertPayload(
 ) {
   return {
     title: values.title,
+    title_cs: toNullableString(values.title_cs),
+    title_en: toNullableString(values.title_en),
     slug: values.slug,
     subtitle: toNullableString(values.subtitle),
+    subtitle_cs: toNullableString(values.subtitle_cs),
+    subtitle_en: toNullableString(values.subtitle_en),
     summary: values.summary,
+    summary_cs: toNullableString(values.summary_cs),
+    summary_en: toNullableString(values.summary_en),
     content: values.content_plain_text,
     content_blocks: values.content_blocks,
     canonical_language: values.canonical_language,
@@ -229,9 +247,15 @@ export function mapWorkFormValuesToUpdatePayload(
 ) {
   return {
     title: values.title,
+    title_cs: toNullableString(values.title_cs),
+    title_en: toNullableString(values.title_en),
     slug: values.slug,
     subtitle: toNullableString(values.subtitle),
+    subtitle_cs: toNullableString(values.subtitle_cs),
+    subtitle_en: toNullableString(values.subtitle_en),
     summary: values.summary,
+    summary_cs: toNullableString(values.summary_cs),
+    summary_en: toNullableString(values.summary_en),
     content: values.content_plain_text,
     content_blocks: values.content_blocks,
     canonical_language: values.canonical_language,

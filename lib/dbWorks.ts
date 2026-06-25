@@ -42,9 +42,15 @@ export type WorkTagRef = {
 export type GalleryWorkItem = {
   id: string
   title: string
+  title_cs: string | null
+  title_en: string | null
   slug: string
   subtitle: string | null
+  subtitle_cs: string | null
+  subtitle_en: string | null
   summary: string
+  summary_cs: string | null
+  summary_en: string | null
   canonical_language: string
   origin_type: WorkOriginType
   status: WorkStatus
@@ -60,9 +66,15 @@ export type GalleryWorkItem = {
 export type WorkDetailItem = {
   id: string
   title: string
+  title_cs: string | null
+  title_en: string | null
   slug: string
   subtitle: string | null
+  subtitle_cs: string | null
+  subtitle_en: string | null
   summary: string
+  summary_cs: string | null
+  summary_en: string | null
   content: string
   content_blocks: WorkBlock[]
   canonical_language: string
@@ -97,9 +109,15 @@ export type WorkDetailItem = {
 export type MemberWorkListItem = {
   id: string
   title: string
+  title_cs: string | null
+  title_en: string | null
   slug: string
   subtitle: string | null
+  subtitle_cs: string | null
+  subtitle_en: string | null
   summary: string
+  summary_cs: string | null
+  summary_en: string | null
   canonical_language: string
   status: WorkStatus
   origin_type: WorkOriginType
@@ -122,9 +140,15 @@ export type MemberWorkListItem = {
 export type WorkEditItem = {
   id: string
   title: string
+  title_cs: string | null
+  title_en: string | null
   slug: string
   subtitle: string | null
+  subtitle_cs: string | null
+  subtitle_en: string | null
   summary: string
+  summary_cs: string | null
+  summary_en: string | null
   canonical_language: string
   origin_type: WorkOriginType
   source_label: WorkSourceLabel
@@ -196,9 +220,15 @@ type RawRelationTag =
 type RawGalleryWorkRow = {
   id: unknown
   title: unknown
+  title_cs: unknown
+  title_en: unknown
   slug: unknown
   subtitle: unknown
+  subtitle_cs: unknown
+  subtitle_en: unknown
   summary: unknown
+  summary_cs: unknown
+  summary_en: unknown
   canonical_language: unknown
   origin_type: unknown
   status: unknown
@@ -213,9 +243,15 @@ type RawGalleryWorkRow = {
 type RawWorkDetailRow = {
   id: unknown
   title: unknown
+  title_cs: unknown
+  title_en: unknown
   slug: unknown
   subtitle: unknown
+  subtitle_cs: unknown
+  subtitle_en: unknown
   summary: unknown
+  summary_cs: unknown
+  summary_en: unknown
   content: unknown
   content_blocks: unknown
   canonical_language: unknown
@@ -248,9 +284,15 @@ type RawWorkDetailRow = {
 type RawWorkEditRow = {
   id: unknown
   title: unknown
+  title_cs: unknown
+  title_en: unknown
   slug: unknown
   subtitle: unknown
+  subtitle_cs: unknown
+  subtitle_en: unknown
   summary: unknown
+  summary_cs: unknown
+  summary_en: unknown
   canonical_language: unknown
   origin_type: unknown
   source_label: unknown
@@ -337,9 +379,15 @@ function mapGalleryWork(row: RawGalleryWorkRow): GalleryWorkItem {
   return {
     id: String(row.id),
     title: String(row.title),
+    title_cs: row.title_cs == null ? null : String(row.title_cs),
+    title_en: row.title_en == null ? null : String(row.title_en),
     slug: String(row.slug),
     subtitle: row.subtitle == null ? null : String(row.subtitle),
+    subtitle_cs: row.subtitle_cs == null ? null : String(row.subtitle_cs),
+    subtitle_en: row.subtitle_en == null ? null : String(row.subtitle_en),
     summary: String(row.summary),
+    summary_cs: row.summary_cs == null ? null : String(row.summary_cs),
+    summary_en: row.summary_en == null ? null : String(row.summary_en),
     canonical_language: String(row.canonical_language),
     origin_type: row.origin_type as WorkOriginType,
     status: row.status as WorkStatus,
@@ -361,9 +409,15 @@ function mapWorkDetail(row: RawWorkDetailRow): WorkDetailItem {
   return {
     id: String(row.id),
     title: String(row.title),
+    title_cs: row.title_cs == null ? null : String(row.title_cs),
+    title_en: row.title_en == null ? null : String(row.title_en),
     slug: String(row.slug),
     subtitle: row.subtitle == null ? null : String(row.subtitle),
+    subtitle_cs: row.subtitle_cs == null ? null : String(row.subtitle_cs),
+    subtitle_en: row.subtitle_en == null ? null : String(row.subtitle_en),
     summary: String(row.summary),
+    summary_cs: row.summary_cs == null ? null : String(row.summary_cs),
+    summary_en: row.summary_en == null ? null : String(row.summary_en),
     content: String(row.content),
     content_blocks: mapRawContentBlocks(row.content_blocks),
     canonical_language: String(row.canonical_language),
@@ -529,9 +583,15 @@ export async function getWorksForGallery(): Promise<GalleryWorkItem[]> {
     .select(`
       id,
       title,
+      title_cs,
+      title_en,
       slug,
       subtitle,
+      subtitle_cs,
+      subtitle_en,
       summary,
+      summary_cs,
+      summary_en,
       canonical_language,
       origin_type,
       status,
@@ -588,9 +648,15 @@ export async function getWorkBySlug(
     .select(`
       id,
       title,
+      title_cs,
+      title_en,
       slug,
       subtitle,
+      subtitle_cs,
+      subtitle_en,
       summary,
+      summary_cs,
+      summary_en,
       content,
       content_blocks,
       canonical_language,
@@ -667,9 +733,15 @@ export async function getPublishedWorksByAuthorId(
     .select(`
       id,
       title,
+      title_cs,
+      title_en,
       slug,
       subtitle,
+      subtitle_cs,
+      subtitle_en,
       summary,
+      summary_cs,
+      summary_en,
       canonical_language,
       origin_type,
       status,
@@ -729,9 +801,15 @@ export async function getPublishedWorksByCollectionId(
       works:work_id!inner (
         id,
         title,
+        title_cs,
+        title_en,
         slug,
         subtitle,
+        subtitle_cs,
+        subtitle_en,
         summary,
+        summary_cs,
+        summary_en,
         canonical_language,
         origin_type,
         status,
@@ -765,7 +843,7 @@ export async function getPublishedWorksByCollectionId(
     throw new Error(`Failed to load collection works: ${error.message}`)
   }
 
-  const works = ((data ?? []) as { works?: RawGalleryWorkRow | RawGalleryWorkRow[] }[])
+  const works = ((data ?? []) as unknown as { works?: RawGalleryWorkRow | RawGalleryWorkRow[] }[])
     .map((row) => {
       const workRow = Array.isArray(row.works) ? row.works[0] : row.works
       return workRow ? mapGalleryWork(workRow) : null
@@ -796,9 +874,15 @@ export async function getWorksForMember(): Promise<MemberWorkListItem[]> {
     .select(`
       id,
       title,
+      title_cs,
+      title_en,
       slug,
       subtitle,
+      subtitle_cs,
+      subtitle_en,
       summary,
+      summary_cs,
+      summary_en,
       canonical_language,
       status,
       origin_type,
@@ -827,9 +911,15 @@ export async function getWorksForMember(): Promise<MemberWorkListItem[]> {
   return ((data ?? []) as RawGalleryWorkRow[]).map((row) => ({
     id: String(row.id),
     title: String(row.title),
+    title_cs: row.title_cs == null ? null : String(row.title_cs),
+    title_en: row.title_en == null ? null : String(row.title_en),
     slug: String(row.slug),
     subtitle: row.subtitle == null ? null : String(row.subtitle),
+    subtitle_cs: row.subtitle_cs == null ? null : String(row.subtitle_cs),
+    subtitle_en: row.subtitle_en == null ? null : String(row.subtitle_en),
     summary: String(row.summary ?? ""),
+    summary_cs: row.summary_cs == null ? null : String(row.summary_cs),
+    summary_en: row.summary_en == null ? null : String(row.summary_en),
     canonical_language: String(row.canonical_language),
     status: String(row.status) as WorkStatus,
     origin_type: String(row.origin_type) as WorkOriginType,
@@ -874,9 +964,15 @@ export async function getWorkForEditBySlug(
     .select(`
       id,
       title,
+      title_cs,
+      title_en,
       slug,
       subtitle,
+      subtitle_cs,
+      subtitle_en,
       summary,
+      summary_cs,
+      summary_en,
       canonical_language,
       origin_type,
       source_label,
@@ -927,9 +1023,15 @@ export async function getWorkForEditBySlug(
   return {
     id,
     title: String(row.title),
+    title_cs: row.title_cs == null ? null : String(row.title_cs),
+    title_en: row.title_en == null ? null : String(row.title_en),
     slug: String(row.slug),
     subtitle: row.subtitle == null ? null : String(row.subtitle),
+    subtitle_cs: row.subtitle_cs == null ? null : String(row.subtitle_cs),
+    subtitle_en: row.subtitle_en == null ? null : String(row.subtitle_en),
     summary: String(row.summary ?? ""),
+    summary_cs: row.summary_cs == null ? null : String(row.summary_cs),
+    summary_en: row.summary_en == null ? null : String(row.summary_en),
     canonical_language: String(row.canonical_language),
     origin_type: String(row.origin_type) as WorkOriginType,
     source_label: String(row.source_label) as WorkSourceLabel,

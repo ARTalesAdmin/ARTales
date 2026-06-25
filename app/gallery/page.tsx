@@ -1,10 +1,11 @@
 import Link from "next/link"
 import { getWorksForGallery } from "@/lib/dbWorks"
-import { getLanguageLabel } from "@/lib/dictionaries/language"
+import { getLocalizedLanguageLabel } from "@/lib/dictionaries/language"
 import WorkCoverImage from "@/components/work/WorkCoverImage"
 import PublicHeader from "@/components/public/PublicHeader"
 import { getPublicDictionary } from "@/lib/i18n/public"
 import { getCookieLocale } from "@/lib/i18n/server"
+import { pickLocalizedText } from "@/lib/localizedContent"
 
 export const dynamic = "force-dynamic"
 
@@ -45,16 +46,38 @@ export default async function GalleryPage() {
           ) : (
             <div className="artales-gallery-grid">
               {works.map((work) => {
-                const languageLabel = getLanguageLabel(
+                const languageLabel = getLocalizedLanguageLabel(
                   work.canonical_language,
-                  "public"
+                  locale
                 )
+                const title = pickLocalizedText(locale, {
+                  cs: work.title_cs,
+                  en: work.title_en,
+                  fallback: work.title,
+                }) ?? work.title
+                const subtitle = pickLocalizedText(locale, {
+                  cs: work.subtitle_cs,
+                  en: work.subtitle_en,
+                  fallback: work.subtitle,
+                })
+                const summary = pickLocalizedText(locale, {
+                  cs: work.summary_cs,
+                  en: work.summary_en,
+                  fallback: work.summary,
+                }) ?? work.summary
+                const collectionTitle = work.collection
+                  ? pickLocalizedText(locale, {
+                      cs: work.collection.title_cs,
+                      en: work.collection.title_en,
+                      fallback: work.collection.title,
+                    }) ?? work.collection.title
+                  : null
 
                 return (
                   <article key={work.id} className="artales-gallery-card">
-                    <Link href={`/work/${work.slug}`} aria-label={`${t.openDetail}: ${work.title}`}>
+                    <Link href={`/work/${work.slug}`} aria-label={`${t.openDetail}: ${title}`}>
                       <WorkCoverImage
-                        title={work.title}
+                        title={title}
                         imagePath={work.cover_image_path}
                         alt={work.cover_image_alt}
                         caption={work.cover_image_caption}
@@ -68,11 +91,11 @@ export default async function GalleryPage() {
                       </p>
 
                       <h2>
-                        <Link href={`/work/${work.slug}`}>{work.title}</Link>
+                        <Link href={`/work/${work.slug}`}>{title}</Link>
                       </h2>
 
-                      <p className={work.subtitle ? "artales-gallery-card__subtitle" : "artales-gallery-card__subtitle artales-gallery-card__subtitle--empty"}>
-                        {work.subtitle || "\u00a0"}
+                      <p className={subtitle ? "artales-gallery-card__subtitle" : "artales-gallery-card__subtitle artales-gallery-card__subtitle--empty"}>
+                        {subtitle || "\u00a0"}
                       </p>
 
                       <div className="artales-gallery-card__meta">
@@ -85,13 +108,13 @@ export default async function GalleryPage() {
                         </span>
                         {work.collection ? (
                           <span>
-                            {common.collection}: <Link href={`/collections/${work.collection.slug}`}>{work.collection.title}</Link>
+                            {common.collection}: <Link href={`/collections/${work.collection.slug}`}>{collectionTitle}</Link>
                           </span>
                         ) : null}
                         <span>{common.language}: {languageLabel ?? work.canonical_language}</span>
                       </div>
 
-                      <p className="artales-gallery-card__summary">{work.summary}</p>
+                      <p className="artales-gallery-card__summary">{summary}</p>
                     </div>
 
                     <div className="artales-gallery-card__actions">

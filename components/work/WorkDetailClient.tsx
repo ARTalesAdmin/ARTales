@@ -14,6 +14,7 @@ import {
 } from "@/lib/products";
 import { getProductSurfaceItems, isDownloadProduct } from "@/lib/productDelivery";
 import { pickLocalizedText } from "@/lib/localizedContent";
+import { getLocalizedLanguageLabel } from "@/lib/dictionaries/language";
 
 type WorkDetailClientProps = {
   work: WorkDetailItem;
@@ -258,10 +259,26 @@ export default function WorkDetailClient({
 }: WorkDetailClientProps) {
   const { common, public: t } = getPublicDictionary(locale);
   const authorName = work.author?.name ?? t.unknownAuthor;
+  const title = pickLocalizedText(locale, {
+    cs: work.title_cs,
+    en: work.title_en,
+    fallback: work.title,
+  }) ?? work.title;
+  const subtitle = pickLocalizedText(locale, {
+    cs: work.subtitle_cs,
+    en: work.subtitle_en,
+    fallback: work.subtitle,
+  });
+  const summary = pickLocalizedText(locale, {
+    cs: work.summary_cs,
+    en: work.summary_en,
+    fallback: work.summary,
+  }) ?? work.summary;
   const publicIsbnVisible =
     Boolean(work.isbn) &&
     (work.isbn_status === "assigned" || work.isbn_status === "external");
-  const editionLanguage = work.edition_language || work.canonical_language;
+  const editionLanguage = getLocalizedLanguageLabel(work.edition_language || work.canonical_language, locale) ?? languageLabel;
+  const originalLanguage = getLocalizedLanguageLabel(work.original_language, locale) ?? work.original_language;
   const localizedCollections = work.collections
     .filter((collection): collection is NonNullable<typeof collection> => Boolean(collection))
     .map((collection) => ({
@@ -315,7 +332,7 @@ export default function WorkDetailClient({
         >
           <aside className="artales-work-detail-sidebar">
             <WorkCoverImage
-              title={work.title}
+              title={title}
               imagePath={work.cover_image_path}
               alt={work.cover_image_alt}
               caption={work.cover_image_caption}
@@ -350,7 +367,7 @@ export default function WorkDetailClient({
                 ) : null}
                 <div>
                   <dt>{common.language}</dt>
-                  <dd>{work.edition_language ? editionLanguage : languageLabel}</dd>
+                  <dd>{editionLanguage}</dd>
                 </div>
                 <div>
                   <dt>{t.editionType}</dt>
@@ -384,10 +401,10 @@ export default function WorkDetailClient({
                 color: "var(--artales-ink)",
               }}
             >
-              {work.title}
+              {title}
             </h1>
 
-            {work.subtitle ? (
+            {subtitle ? (
               <p
                 style={{
                   margin: "0 0 12px",
@@ -395,7 +412,7 @@ export default function WorkDetailClient({
                   color: "#5f5247",
                 }}
               >
-                {work.subtitle}
+                {subtitle}
               </p>
             ) : null}
 
@@ -421,7 +438,7 @@ export default function WorkDetailClient({
                 color: "#3f362f",
               }}
             >
-              {work.summary}
+              {summary}
             </p>
 
             {primaryCollection ? (
@@ -551,13 +568,13 @@ export default function WorkDetailClient({
 
               <dt style={{ fontWeight: 800 }}>{common.language}</dt>
               <dd style={{ margin: 0 }}>
-                {work.edition_language ? editionLanguage : languageLabel}
+                {editionLanguage}
               </dd>
 
               {work.original_language ? (
                 <>
                   <dt style={{ fontWeight: 800 }}>{t.originalLanguage}</dt>
-                  <dd style={{ margin: 0 }}>{work.original_language}</dd>
+                  <dd style={{ margin: 0 }}>{originalLanguage}</dd>
                 </>
               ) : null}
 

@@ -19,3 +19,25 @@ export function getCollectionTypeLabel(value: string): string {
     value
   )
 }
+
+export function getLocalizedCollectionTypeLabel(
+  value: string,
+  locale: "cs" | "en"
+): string {
+  switch (value) {
+    case "curated":
+      return locale === "cs" ? "Kurátorská" : "Curated"
+    case "seasonal":
+      return locale === "cs" ? "Sezónní" : "Seasonal"
+    case "authorial":
+      return locale === "cs" ? "Autorská" : "Authorial"
+    case "editorial":
+      return locale === "cs" ? "Ediční" : "Editorial"
+    case "school_library":
+      return locale === "cs" ? "Škola / knihovna" : "School / library"
+    case "community":
+      return locale === "cs" ? "Komunitní" : "Community"
+    default:
+      return value
+  }
+}

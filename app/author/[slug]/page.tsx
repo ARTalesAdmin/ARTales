@@ -10,6 +10,7 @@ import { getCookieLocale } from "@/lib/i18n/server"
 import { getCurrentProfile } from "@/lib/auth"
 import { isAuthorFollowedByUser } from "@/lib/community"
 import AuthorFollowPanel from "@/components/community/AuthorFollowPanel"
+import { pickLocalizedText } from "@/lib/localizedContent"
 
 type PageProps = {
   params: Promise<{ slug: string }>
@@ -223,11 +224,35 @@ export default async function AuthorDetail({ params, searchParams }: PageProps) 
             <p style={{ color: "#5f5247" }}>{t.authorNoWorks}</p>
           ) : (
             <div className="artales-related-work-grid">
-              {author.works.map((work) => (
+              {author.works.map((work) => {
+                const title = pickLocalizedText(locale, {
+                  cs: work.title_cs,
+                  en: work.title_en,
+                  fallback: work.title,
+                }) ?? work.title;
+                const subtitle = pickLocalizedText(locale, {
+                  cs: work.subtitle_cs,
+                  en: work.subtitle_en,
+                  fallback: work.subtitle,
+                });
+                const summary = pickLocalizedText(locale, {
+                  cs: work.summary_cs,
+                  en: work.summary_en,
+                  fallback: work.summary,
+                }) ?? work.summary;
+                const collectionTitle = work.collection
+                  ? pickLocalizedText(locale, {
+                      cs: work.collection.title_cs,
+                      en: work.collection.title_en,
+                      fallback: work.collection.title,
+                    }) ?? work.collection.title
+                  : null;
+
+                return (
                 <article key={work.id} className="artales-gallery-card">
-                  <Link href={`/work/${work.slug}`} aria-label={`${t.openDetail}: ${work.title}`}>
+                  <Link href={`/work/${work.slug}`} aria-label={`${t.openDetail}: ${title}`}>
                     <WorkCoverImage
-                      title={work.title}
+                      title={title}
                       imagePath={work.cover_image_path}
                       alt={work.cover_image_alt}
                       caption={work.cover_image_caption}
@@ -238,12 +263,12 @@ export default async function AuthorDetail({ params, searchParams }: PageProps) 
                   <div className="artales-gallery-card__body">
                     <h2>
                       <Link href={`/work/${work.slug}`}>
-                        {work.title}
+                        {title}
                       </Link>
                     </h2>
 
-                    <p className={work.subtitle ? "artales-gallery-card__subtitle" : "artales-gallery-card__subtitle artales-gallery-card__subtitle--empty"}>
-                      {work.subtitle || "\u00a0"}
+                    <p className={subtitle ? "artales-gallery-card__subtitle" : "artales-gallery-card__subtitle artales-gallery-card__subtitle--empty"}>
+                      {subtitle || "\u00a0"}
                     </p>
 
                     {work.collection ? (
@@ -251,14 +276,14 @@ export default async function AuthorDetail({ params, searchParams }: PageProps) 
                         <span>
                           {common.collection}:{" "}
                           <Link href={`/collections/${work.collection.slug}`}>
-                            {work.collection.title}
+                            {collectionTitle}
                           </Link>
                         </span>
                       </p>
                     ) : null}
 
                     <p className="artales-gallery-card__summary">
-                      {work.summary}
+                      {summary}
                     </p>
                   </div>
 
@@ -268,7 +293,8 @@ export default async function AuthorDetail({ params, searchParams }: PageProps) 
                     </Link>
                   </div>
                 </article>
-              ))}
+                );
+              })}
             </div>
           )}
         </section>

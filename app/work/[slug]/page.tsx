@@ -2,7 +2,7 @@ import Link from "next/link";
 import { getWorkBySlug } from "@/lib/dbWorks";
 import WorkDetailClient from "@/components/work/WorkDetailClient";
 import PublicHeader from "@/components/public/PublicHeader";
-import { getLanguageLabel } from "@/lib/dictionaries/language";
+import { getLocalizedLanguageLabel } from "@/lib/dictionaries/language";
 import { getStatusLabel } from "@/lib/dictionaries/status";
 import { getCurrentProfile } from "@/lib/auth";
 import { canOpenFullReader, getWelcomeUnlockStatus, isWorkSavedForUser } from "@/lib/entitlements";
@@ -72,7 +72,7 @@ export default async function WorkDetail({ params, searchParams }: PageProps) {
   }
 
   const languageLabel =
-    getLanguageLabel(work.canonical_language, "public") ??
+    getLocalizedLanguageLabel(work.canonical_language, locale) ??
     work.canonical_language;
   const statusLabel = getStatusLabel(work.status, "public") ?? work.status;
   const canOpenFull = await canOpenFullReader(profile, work.id);
