@@ -66,9 +66,15 @@ export type EntitlementRequestItem = {
 type EntitlementWorkRelation = {
   id: unknown;
   title: unknown;
+  title_cs: unknown;
+  title_en: unknown;
   slug: unknown;
   subtitle: unknown;
+  subtitle_cs: unknown;
+  subtitle_en: unknown;
   summary: unknown;
+  summary_cs: unknown;
+  summary_en: unknown;
   canonical_language: unknown;
   origin_type: unknown;
   status: unknown;
@@ -92,13 +98,23 @@ type EntitlementWorkRelation = {
     | {
         id: unknown;
         title: unknown;
+        title_cs?: unknown;
+        title_en?: unknown;
         slug: unknown;
+        description?: unknown;
+        description_cs?: unknown;
+        description_en?: unknown;
       }
     | null
     | Array<{
         id: unknown;
         title: unknown;
+        title_cs?: unknown;
+        title_en?: unknown;
         slug: unknown;
+        description?: unknown;
+        description_cs?: unknown;
+        description_en?: unknown;
       }>;
 };
 
@@ -362,9 +378,15 @@ export async function getReaderUnlockedWorks(userId: string): Promise<ReaderUnlo
       works:work_id (
         id,
         title,
+        title_cs,
+        title_en,
         slug,
         subtitle,
+        subtitle_cs,
+        subtitle_en,
         summary,
+        summary_cs,
+        summary_en,
         canonical_language,
         origin_type,
         status,
@@ -380,7 +402,12 @@ export async function getReaderUnlockedWorks(userId: string): Promise<ReaderUnlo
         collections:collection_id (
           id,
           title,
-          slug
+          title_cs,
+          title_en,
+          slug,
+          description,
+          description_cs,
+          description_en
         )
       )
     `)
@@ -406,9 +433,15 @@ export async function getReaderUnlockedWorks(userId: string): Promise<ReaderUnlo
     return {
       id: String(work.id),
       title: String(work.title),
+      title_cs: work.title_cs == null ? null : String(work.title_cs),
+      title_en: work.title_en == null ? null : String(work.title_en),
       slug: String(work.slug),
       subtitle: work.subtitle == null ? null : String(work.subtitle),
+      subtitle_cs: work.subtitle_cs == null ? null : String(work.subtitle_cs),
+      subtitle_en: work.subtitle_en == null ? null : String(work.subtitle_en),
       summary: String(work.summary ?? ""),
+      summary_cs: work.summary_cs == null ? null : String(work.summary_cs),
+      summary_en: work.summary_en == null ? null : String(work.summary_en),
       canonical_language: String(work.canonical_language),
       origin_type: String(work.origin_type) as GalleryWorkItem["origin_type"],
       status: String(work.status) as GalleryWorkItem["status"],
@@ -427,7 +460,12 @@ export async function getReaderUnlockedWorks(userId: string): Promise<ReaderUnlo
         ? {
             id: String(collection.id),
             title: String(collection.title),
+            title_cs: collection.title_cs == null ? null : String(collection.title_cs),
+            title_en: collection.title_en == null ? null : String(collection.title_en),
             slug: String(collection.slug),
+            description: collection.description == null ? null : String(collection.description),
+            description_cs: collection.description_cs == null ? null : String(collection.description_cs),
+            description_en: collection.description_en == null ? null : String(collection.description_en),
           }
         : null,
       collections: collection
@@ -435,7 +473,12 @@ export async function getReaderUnlockedWorks(userId: string): Promise<ReaderUnlo
             {
               id: String(collection.id),
               title: String(collection.title),
+              title_cs: collection.title_cs == null ? null : String(collection.title_cs),
+              title_en: collection.title_en == null ? null : String(collection.title_en),
               slug: String(collection.slug),
+              description: collection.description == null ? null : String(collection.description),
+              description_cs: collection.description_cs == null ? null : String(collection.description_cs),
+              description_en: collection.description_en == null ? null : String(collection.description_en),
             },
           ]
         : [],
