@@ -2922,7 +2922,6 @@ body {
   }
 }
 
-
 /* v0.10.8o — gallery desktop card rhythm polish.
    The gallery cards previously inherited reserved grid rows intended for
    perfectly equal cards. On desktop this created visible empty bands between
@@ -2954,4 +2953,3 @@ body {
     margin-top: 6px;
   }
 }
-
