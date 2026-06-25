@@ -2853,3 +2853,72 @@ body {
     width: 108px;
   }
 }
+
+
+/* v0.10.8l — author detail work cards desktop polish.
+   On desktop, author-detail work cards are more horizontal and readable;
+   mobile keeps the compact stacked cards that already tested well. */
+@media (min-width: 721px) {
+  .artales-author-work-grid {
+    grid-template-columns: repeat(auto-fit, minmax(420px, 1fr));
+  }
+
+  .artales-author-work-card {
+    align-items: start;
+    display: grid;
+    gap: 16px;
+    grid-template-columns: minmax(118px, 148px) minmax(0, 1fr);
+    padding: 16px;
+  }
+
+  .artales-author-work-card .artales-author-work-card__cover {
+    display: block;
+  }
+
+  .artales-author-work-card .artales-storage-image,
+  .artales-author-work-card .artales-work-cover {
+    margin: 0;
+  }
+
+  .artales-author-work-card__body {
+    align-content: start;
+    display: grid;
+    gap: 7px;
+    grid-template-rows: none;
+    min-width: 0;
+  }
+
+  .artales-author-work-card__body h2 {
+    font-size: clamp(24px, 2.4vw, 32px);
+    line-height: 1.08;
+  }
+
+  .artales-author-work-card__meta {
+    align-items: baseline;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0 4px;
+    font-size: 0.9rem;
+    min-height: 0;
+  }
+
+  .artales-author-work-card__summary {
+    -webkit-line-clamp: unset;
+    display: block;
+    line-clamp: unset;
+    min-height: 0;
+    overflow: visible;
+  }
+
+  .artales-author-work-card__actions {
+    margin-top: 4px;
+  }
+}
+
+@media (max-width: 720px) {
+  .artales-author-work-card__summary {
+    -webkit-line-clamp: 3;
+    line-clamp: 3;
+  }
+}
+

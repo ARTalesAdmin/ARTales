@@ -223,7 +223,7 @@ export default async function AuthorDetail({ params, searchParams }: PageProps) 
           {author.works.length === 0 ? (
             <p style={{ color: "#5f5247" }}>{t.authorNoWorks}</p>
           ) : (
-            <div className="artales-related-work-grid">
+            <div className="artales-related-work-grid artales-author-work-grid">
               {author.works.map((work) => {
                 const title = pickLocalizedText(locale, {
                   cs: work.title_cs,
@@ -240,17 +240,22 @@ export default async function AuthorDetail({ params, searchParams }: PageProps) 
                   en: work.summary_en,
                   fallback: work.summary,
                 }) ?? work.summary;
-                const collectionTitle = work.collection
-                  ? pickLocalizedText(locale, {
-                      cs: work.collection.title_cs,
-                      en: work.collection.title_en,
-                      fallback: work.collection.title,
-                    }) ?? work.collection.title
-                  : null;
+                const baseCollections = (work.collections ?? []).filter(
+                  (collection): collection is NonNullable<typeof collection> =>
+                    collection !== null
+                );
+                const primaryCollection = work.collection;
+                const displayCollections =
+                  primaryCollection &&
+                  !baseCollections.some(
+                    (collection) => collection.id === primaryCollection.id
+                  )
+                    ? [...baseCollections, primaryCollection]
+                    : baseCollections;
 
                 return (
-                <article key={work.id} className="artales-gallery-card">
-                  <Link href={`/work/${work.slug}`} aria-label={`${t.openDetail}: ${title}`}>
+                <article key={work.id} className="artales-gallery-card artales-author-work-card">
+                  <Link className="artales-author-work-card__cover" href={`/work/${work.slug}`} aria-label={`${t.openDetail}: ${title}`}>
                     <WorkCoverImage
                       title={title}
                       imagePath={work.cover_image_path}
@@ -260,37 +265,51 @@ export default async function AuthorDetail({ params, searchParams }: PageProps) 
                     />
                   </Link>
 
-                  <div className="artales-gallery-card__body">
+                  <div className="artales-gallery-card__body artales-author-work-card__body">
                     <h2>
                       <Link href={`/work/${work.slug}`}>
                         {title}
                       </Link>
                     </h2>
 
-                    <p className={subtitle ? "artales-gallery-card__subtitle" : "artales-gallery-card__subtitle artales-gallery-card__subtitle--empty"}>
-                      {subtitle || "\u00a0"}
-                    </p>
-
-                    {work.collection ? (
-                      <p className="artales-gallery-card__meta">
-                        <span>
-                          {common.collection}:{" "}
-                          <Link href={`/collections/${work.collection.slug}`}>
-                            {collectionTitle}
-                          </Link>
-                        </span>
+                    {subtitle ? (
+                      <p className="artales-gallery-card__subtitle">
+                        {subtitle}
                       </p>
                     ) : null}
 
-                    <p className="artales-gallery-card__summary">
+                    {displayCollections.length > 0 ? (
+                      <p className="artales-gallery-card__meta artales-author-work-card__meta">
+                        <span>{common.collection}: </span>
+                        {displayCollections.slice(0, 3).map((collection, index) => {
+                          const collectionTitle =
+                            pickLocalizedText(locale, {
+                              cs: collection.title_cs,
+                              en: collection.title_en,
+                              fallback: collection.title,
+                            }) ?? collection.title;
+
+                          return (
+                            <span key={collection.id}>
+                              {index > 0 ? ", " : ""}
+                              <Link href={`/collections/${collection.slug}`}>
+                                {collectionTitle}
+                              </Link>
+                            </span>
+                          );
+                        })}
+                      </p>
+                    ) : null}
+
+                    <p className="artales-gallery-card__summary artales-author-work-card__summary">
                       {summary}
                     </p>
-                  </div>
 
-                  <div className="artales-gallery-card__actions">
-                    <Link className="artales-button-secondary" href={`/work/${work.slug}`}>
-                      {t.openDetail}
-                    </Link>
+                    <div className="artales-gallery-card__actions artales-author-work-card__actions">
+                      <Link className="artales-button-secondary" href={`/work/${work.slug}`}>
+                        {t.openDetail}
+                      </Link>
+                    </div>
                   </div>
                 </article>
                 );
