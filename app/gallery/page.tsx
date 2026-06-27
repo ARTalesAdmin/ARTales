@@ -91,9 +91,9 @@ export default async function GalleryPage() {
                         </span>
                       </div>
 
-                      <div className="artales-gallery-card__chips" aria-label={common.language}>
-                        <span>{languageLabel ?? work.canonical_language}</span>
-                      </div>
+                      <p className="artales-gallery-card__language">
+                        {common.language}: {languageLabel ?? work.canonical_language}
+                      </p>
 
                       <p className="artales-gallery-card__summary">{summary}</p>
                     </div>

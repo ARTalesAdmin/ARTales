@@ -1,9 +1,7 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
-  <rect width="512" height="512" rx="108" fill="#0d1528"/>
-  <rect x="22" y="22" width="468" height="468" rx="92" fill="none" stroke="#d9b76e" stroke-width="14"/>
-  <path d="M256 64C194 142 150 220 160 306c7 62 47 101 78 121-18-42-9-86 18-130 27 44 36 88 18 130 31-20 71-59 78-121C362 220 318 142 256 64Z" fill="none" stroke="#d9b76e" stroke-width="20" stroke-linejoin="round"/>
-  <text x="256" y="238" text-anchor="middle" font-family="Georgia,serif" font-size="130" font-weight="700" fill="#f3d78f">A</text>
-  <text x="256" y="350" text-anchor="middle" font-family="Georgia,serif" font-size="154" font-weight="700" fill="#d9b76e">T</text>
-  <path d="M256 356v88" stroke="#d9b76e" stroke-width="12" stroke-linecap="round"/>
-  <circle cx="256" cy="382" r="13" fill="#0d1528" stroke="#d9b76e" stroke-width="8"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="ARTales">
+  <rect x="24" y="24" width="464" height="464" rx="104" fill="#101e33"/>
+  <rect x="26" y="26" width="460" height="460" rx="102" fill="none" stroke="#c99b42" stroke-width="10"/>
+  <path d="M256 74 C322 173 371 252 371 335 C371 410 321 454 256 454 C191 454 141 410 141 335 C141 252 190 173 256 74 Z" fill="none" stroke="#e8c477" stroke-width="19" stroke-linejoin="round"/>
+  <path d="M256 112 L164 380 M256 112 L348 380 M202 282 H310" fill="none" stroke="#f2d89b" stroke-width="20" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M184 380 H328" stroke="#f2d89b" stroke-width="20" stroke-linecap="round"/>
 </svg>

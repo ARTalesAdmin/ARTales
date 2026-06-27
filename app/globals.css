@@ -3012,3 +3012,73 @@ body {
 .artales-storage-image--author .artales-storage-image__frame {
   border-radius: 22px;
 }
+
+
+/* v0.10.8r — gallery language + author work card polish.
+   Language returns as a normal metadata line in gallery cards. Author-detail
+   work cards get a cleaner editorial row layout on desktop. */
+.artales-gallery-card__language {
+  color: #5f5247;
+  font-size: 0.95rem;
+  margin: 0;
+}
+
+@media (min-width: 821px) {
+  .artales-gallery-grid .artales-gallery-card__body {
+    gap: 8px;
+    grid-template-rows: auto minmax(2.05rem, auto) auto minmax(4.8rem, auto);
+  }
+
+  .artales-gallery-grid .artales-gallery-card__language {
+    min-height: 1.55rem;
+  }
+}
+
+@media (min-width: 721px) {
+  .artales-author-work-grid {
+    gap: 18px;
+    grid-template-columns: 1fr;
+  }
+
+  .artales-author-work-card {
+    align-items: start;
+    grid-template-columns: 132px minmax(0, 1fr);
+    min-height: 0;
+    padding: 16px;
+  }
+
+  .artales-author-work-card .artales-storage-image__frame,
+  .artales-author-work-card .artales-work-cover,
+  .artales-author-work-card img {
+    max-height: 210px;
+  }
+
+  .artales-author-work-card__body {
+    gap: 6px;
+    padding-top: 1px;
+  }
+
+  .artales-author-work-card__body h2 {
+    font-size: clamp(25px, 2.25vw, 34px);
+    line-height: 1.06;
+    margin-bottom: 2px;
+  }
+
+  .artales-author-work-card__meta {
+    color: #6a5d52;
+    font-size: 0.92rem;
+    margin: 0 0 4px;
+  }
+
+  .artales-author-work-card__summary {
+    color: #3f362f;
+    font-size: 1rem;
+    line-height: 1.62;
+    max-width: 880px;
+  }
+
+  .artales-author-work-card__actions {
+    margin-top: 8px;
+  }
+}
+
