@@ -3006,3 +3006,9 @@ body {
   }
 }
 
+/* v0.10.8q — author portraits square polish.
+   Keeps the same visual footprint as the previous circle, but uses the full
+   square frame so portraits/avatar details are less cropped. */
+.artales-storage-image--author .artales-storage-image__frame {
+  border-radius: 22px;
+}
