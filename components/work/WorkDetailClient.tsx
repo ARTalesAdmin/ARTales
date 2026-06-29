@@ -159,12 +159,38 @@ function getProductStatusLabel(status: string, labels: WorkPublicLabels) {
 function isPlaceholderProductTitle(value: string | null | undefined) {
   if (!value) return true;
 
-  const normalized = value.trim().toLowerCase();
+  const normalized = value
+    .trim()
+    .toLowerCase()
+    .replace(/[._-]+/g, " ")
+    .replace(/\s+/g, " ");
+
   return (
     normalized === "coming soon" ||
     normalized === "coming later" ||
     normalized === "not available" ||
-    normalized === "available soon"
+    normalized === "available soon" ||
+    normalized.includes("coming soon") ||
+    normalized.includes("coming later") ||
+    normalized.includes("available soon")
+  );
+}
+
+function isPlaceholderProductDescription(value: string | null | undefined) {
+  if (!value) return true;
+
+  const normalized = value
+    .trim()
+    .toLowerCase()
+    .replace(/[._-]+/g, " ")
+    .replace(/\s+/g, " ");
+
+  return (
+    normalized === "coming soon" ||
+    normalized === "coming later" ||
+    normalized === "not available" ||
+    normalized.includes("coming soon") ||
+    normalized.includes("coming later")
   );
 }
 
@@ -229,7 +255,11 @@ function ProductOptions({
           const title = isPlaceholderProductTitle(product?.title)
             ? getProductTitle(item.key, labels)
             : product!.title;
-          const description = product?.description || (isDownloadProduct(item.key) ? labels.productDownloadLaterText : labels.productOnlineText);
+          const description = isPlaceholderProductDescription(product?.description)
+            ? isDownloadProduct(item.key)
+              ? labels.productDownloadLaterText
+              : labels.productOnlineText
+            : product!.description;
 
           return (
             <article key={item.key} className={item.status === "unlocked" ? "artales-product-card artales-product-card--owned" : "artales-product-card"}>
