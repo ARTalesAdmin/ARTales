@@ -17,7 +17,8 @@ type PublicHeaderProps = {
     | "author"
     | "collection"
     | "work"
-    | "reader";
+    | "reader"
+    | "legal";
 };
 
 export default async function PublicHeader({ active }: PublicHeaderProps) {

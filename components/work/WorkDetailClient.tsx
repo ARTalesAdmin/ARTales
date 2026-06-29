@@ -277,8 +277,35 @@ export default function WorkDetailClient({
   const publicIsbnVisible =
     Boolean(work.isbn) &&
     (work.isbn_status === "assigned" || work.isbn_status === "external");
-  const editionLanguage = getLocalizedLanguageLabel(work.edition_language || work.canonical_language, locale) ?? languageLabel;
-  const originalLanguage = getLocalizedLanguageLabel(work.original_language, locale) ?? work.original_language;
+  const editionLanguageCode = work.edition_language || work.canonical_language;
+  const originalLanguageCode =
+    work.original_language || (work.origin_type === "translation" ? null : editionLanguageCode);
+  const editionLanguage =
+    getLocalizedLanguageLabel(editionLanguageCode, locale) ?? languageLabel;
+  const originalLanguage =
+    getLocalizedLanguageLabel(originalLanguageCode, locale) ?? originalLanguageCode;
+  const isOriginalLanguageEdition =
+    Boolean(originalLanguageCode) && editionLanguageCode === originalLanguageCode;
+  const languageVersionLabel =
+    locale === "cs"
+      ? isOriginalLanguageEdition
+        ? "Původní jazyková verze"
+        : "Jazyková verze"
+      : isOriginalLanguageEdition
+        ? "Original-language version"
+        : "Language version";
+  const languageVersionText =
+    locale === "cs"
+      ? isOriginalLanguageEdition
+        ? "Tato edice je vedena jako původní jazyková verze díla."
+        : originalLanguage
+          ? `Tato edice je jazyková verze díla. Původní jazyk: ${originalLanguage}.`
+          : "Tato edice je jazyková verze díla."
+      : isOriginalLanguageEdition
+        ? "This edition is marked as the original-language version of the work."
+        : originalLanguage
+          ? `This edition is a language version of the work. Original language: ${originalLanguage}.`
+          : "This edition is a language version of the work.";
   const localizedCollections = work.collections
     .filter((collection): collection is NonNullable<typeof collection> => Boolean(collection))
     .map((collection) => ({
@@ -367,8 +394,18 @@ export default function WorkDetailClient({
                 ) : null}
                 <div>
                   <dt>{common.language}</dt>
-                  <dd>{editionLanguage}</dd>
+                  <dd>
+                    <span className={isOriginalLanguageEdition ? "artales-edition-language-pill artales-edition-language-pill--original" : "artales-edition-language-pill"}>
+                      {editionLanguage}
+                    </span>
+                  </dd>
                 </div>
+                {originalLanguage && !isOriginalLanguageEdition ? (
+                  <div>
+                    <dt>{locale === "cs" ? "Původní jazyk" : "Original language"}</dt>
+                    <dd>{originalLanguage}</dd>
+                  </div>
+                ) : null}
                 <div>
                   <dt>{t.editionType}</dt>
                   <dd>{originLabel}</dd>
@@ -440,6 +477,11 @@ export default function WorkDetailClient({
             >
               {summary}
             </p>
+
+            <div className={isOriginalLanguageEdition ? "artales-edition-language-note artales-edition-language-note--original" : "artales-edition-language-note"}>
+              <p className="artales-public-kicker artales-public-kicker--small">{languageVersionLabel}</p>
+              <p>{languageVersionText}</p>
+            </div>
 
             {primaryCollection ? (
               <div style={{ display: "grid", gap: "12px", margin: "0 0 24px" }}>
