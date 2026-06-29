@@ -156,6 +156,38 @@ function getProductStatusLabel(status: string, labels: WorkPublicLabels) {
   }
 }
 
+function isPlaceholderProductTitle(value: string | null | undefined) {
+  if (!value) return true;
+
+  const normalized = value.trim().toLowerCase();
+  return (
+    normalized === "coming soon" ||
+    normalized === "coming later" ||
+    normalized === "not available" ||
+    normalized === "available soon"
+  );
+}
+
+function resolveEditionLanguageCode(
+  rawLanguageCode: string | null | undefined,
+  work: WorkDetailItem
+) {
+  const normalized = rawLanguageCode?.trim() || null;
+
+  // Early imports used the UI locale as the default work language. Until all
+  // rows are normalized in DB, English public-domain metadata is a stronger
+  // signal than an accidental "cs" language code.
+  if (
+    normalized === "cs" &&
+    !work.title_cs &&
+    Boolean(work.title_en || work.title)
+  ) {
+    return "en";
+  }
+
+  return normalized;
+}
+
 function ProductOptions({
   products,
   canReadFull,
@@ -194,7 +226,9 @@ function ProductOptions({
         {surfaceItems.map((item) => {
           const product = item.product;
           const price = product ? getPrimaryProductPrice(product) : null;
-          const title = product?.title || getProductTitle(item.key, labels);
+          const title = isPlaceholderProductTitle(product?.title)
+            ? getProductTitle(item.key, labels)
+            : product!.title;
           const description = product?.description || (isDownloadProduct(item.key) ? labels.productDownloadLaterText : labels.productOnlineText);
 
           return (
@@ -277,8 +311,10 @@ export default function WorkDetailClient({
   const publicIsbnVisible =
     Boolean(work.isbn) &&
     (work.isbn_status === "assigned" || work.isbn_status === "external");
-  const editionLanguageCode = work.edition_language || work.canonical_language;
-  const originalLanguageCode = work.original_language;
+  const editionLanguageCode =
+    resolveEditionLanguageCode(work.edition_language || work.canonical_language, work) ||
+    work.canonical_language;
+  const originalLanguageCode = resolveEditionLanguageCode(work.original_language, work);
   const editionLanguage =
     getLocalizedLanguageLabel(editionLanguageCode, locale) ?? languageLabel;
   const originalLanguage =

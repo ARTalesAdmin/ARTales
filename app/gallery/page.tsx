@@ -46,8 +46,12 @@ export default async function GalleryPage() {
           ) : (
             <div className="artales-gallery-grid">
               {works.map((work) => {
+                const displayLanguageCode =
+                  work.canonical_language === "cs" && !work.title_cs && Boolean(work.title_en || work.title)
+                    ? "en"
+                    : work.canonical_language
                 const languageLabel = getLocalizedLanguageLabel(
-                  work.canonical_language,
+                  displayLanguageCode,
                   locale
                 )
                 const title = pickLocalizedText(locale, {
@@ -92,7 +96,7 @@ export default async function GalleryPage() {
                       </div>
 
                       <p className="artales-gallery-card__language">
-                        {common.language}: {languageLabel ?? work.canonical_language}
+                        {common.language}: {languageLabel ?? displayLanguageCode}
                       </p>
 
                       <p className="artales-gallery-card__summary">{summary}</p>

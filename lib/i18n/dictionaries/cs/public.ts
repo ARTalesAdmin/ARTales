@@ -47,7 +47,7 @@ export const csPublic = {
   statusUnlocked: "V knihovně",
   statusAvailable: "Dostupné",
   statusPreparing: "Připravuje se",
-  statusComingLater: "Později",
+  statusComingLater: "Připravujeme",
   statusNotAvailable: "Zatím nedostupné",
   continueAccess: "Pokračovat",
   readNow: "Číst teď",
@@ -183,7 +183,7 @@ export const csPublic = {
     "Napiš soukromý podnět pro ARTales. Než se cokoli dostane k autorovi nebo širší komunitě, projde to ediční vrstvou.",
   sendSignal: "Odeslat podnět",
   signInToSendSignal: "Přihlásit se a poslat podnět",
-  checkoutEyebrow: "ARTales checkout",
+  checkoutEyebrow: "Objednávka ARTales",
   checkoutComingSoonTitle: "Platby zatím nejsou spuštěné",
   checkoutComingSoonText:
     "Produktový a přístupový model je v ARTales připravený, ale skutečné platby zůstávají vypnuté, dokud nedokončíme launch nastavení.",
