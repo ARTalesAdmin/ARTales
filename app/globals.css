@@ -3213,3 +3213,34 @@ body {
   background: rgba(217, 183, 110, 0.2);
   border-color: rgba(138, 106, 45, 0.28);
 }
+
+
+/* v0.10.9c — gallery card gap correction.
+   Keep title alignment across cards, but remove the large forced spaces between
+   author/language/summary after the earlier standardization pass. */
+@media (min-width: 821px) {
+  .artales-gallery-grid .artales-gallery-card__body {
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+    grid-template-rows: none;
+  }
+
+  .artales-gallery-grid .artales-gallery-card h2 {
+    min-height: 2.35em;
+    margin-bottom: 0;
+  }
+
+  .artales-gallery-grid .artales-gallery-card__meta {
+    min-height: 0;
+  }
+
+  .artales-gallery-grid .artales-gallery-card__language {
+    min-height: 0;
+    margin: 0;
+  }
+
+  .artales-gallery-grid .artales-gallery-card__summary {
+    margin-top: 2px;
+  }
+}

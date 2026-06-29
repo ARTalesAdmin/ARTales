@@ -62,6 +62,14 @@ export default async function PublicHeader({ active }: PublicHeaderProps) {
           {t.authors}
         </Link>
 
+        <Link
+          className="artales-public-link"
+          href="/legal"
+          aria-current={active === "legal" ? "page" : undefined}
+        >
+          {currentLocale === "cs" ? "Info" : "Info"}
+        </Link>
+
         <LocaleSwitcher currentLocale={currentLocale} compact />
 
         {hasInternalAccess ? (
