@@ -79,6 +79,9 @@ type Props = {
   forcedAuthorId?: string;
 };
 
+const MAX_LOCAL_DRAFT_CHARS = 900_000;
+const LARGE_WORK_BLOCK_COUNT = 80;
+
 function getStorageKey(mode: "new" | "edit", slug?: string) {
   return mode === "new"
     ? "artales-work-draft-new"
@@ -87,6 +90,38 @@ function getStorageKey(mode: "new" | "edit", slug?: string) {
 
 function stableStringify(value: unknown) {
   return JSON.stringify(value);
+}
+
+function estimateBlocksStorageChars(blocks: WorkBlock[]) {
+  return blocks.reduce((total, block) => {
+    const fieldsSize = block.fields
+      ? Object.values(block.fields).reduce(
+          (sum, value) => sum + String(value ?? "").length,
+          0,
+        )
+      : 0;
+
+    return (
+      total +
+      block.id.length +
+      block.type.length +
+      block.content.length +
+      String(block.editor_note ?? "").length +
+      fieldsSize +
+      160
+    );
+  }, 0);
+}
+
+function shouldDisableLocalAutosave(blocks: WorkBlock[]) {
+  return (
+    blocks.length > LARGE_WORK_BLOCK_COUNT ||
+    estimateBlocksStorageChars(blocks) > MAX_LOCAL_DRAFT_CHARS
+  );
+}
+
+function getLocalAutosaveDisabledMessage() {
+  return "Lokální autosave je pro toto velké dílo preventivně vypnutý. Prohlížečové úložiště u románů často nestačí a může shodit editor, proto ukládej změny hlavním tlačítkem Uložit.";
 }
 
 function isStorageQuotaError(error: unknown) {
@@ -197,6 +232,20 @@ export default function WorkEditorForm(props: Props) {
     initialData.blocks.length > 0
       ? initialData.blocks
       : [createEmptyBlock("chapter")],
+  );
+
+  const initialAutosaveDisabled = useMemo(
+    () =>
+      shouldDisableLocalAutosave(
+        initialData.blocks.length > 0
+          ? initialData.blocks
+          : [createEmptyBlock("chapter")],
+      ),
+    [initialData.blocks],
+  );
+  const currentAutosaveDisabled = useMemo(
+    () => shouldDisableLocalAutosave(blocks),
+    [blocks],
   );
 
   const [hasDraft, setHasDraft] = useState(false);
@@ -332,6 +381,16 @@ export default function WorkEditorForm(props: Props) {
   );
 
   useEffect(() => {
+    if (initialAutosaveDisabled) {
+      removeLocalDraft(storageKey);
+      setHasDraft(false);
+      setLastSaved(null);
+      setAutosaveEnabled(false);
+      setAutosaveWarning(getLocalAutosaveDisabledMessage());
+      setDraftLoaded(true);
+      return;
+    }
+
     const raw = readLocalDraft(storageKey);
 
     if (!raw) {
@@ -441,10 +500,21 @@ export default function WorkEditorForm(props: Props) {
     } finally {
       setDraftLoaded(true);
     }
-  }, [storageKey, initialSnapshot, forcedAuthorId]);
+  }, [storageKey, initialSnapshot, forcedAuthorId, initialAutosaveDisabled]);
 
   useEffect(() => {
-    if (!draftLoaded || !autosaveEnabled) return;
+    if (!draftLoaded) return;
+
+    if (currentAutosaveDisabled) {
+      removeLocalDraft(storageKey);
+      setHasDraft(false);
+      setLastSaved(null);
+      setAutosaveWarning(getLocalAutosaveDisabledMessage());
+      setAutosaveEnabled(false);
+      return;
+    }
+
+    if (!autosaveEnabled) return;
 
     const payload = {
       form: formState,
@@ -466,7 +536,7 @@ export default function WorkEditorForm(props: Props) {
         : "Lokální autosave není v tomto prohlížeči dostupný. Ukládej prosím ručně tlačítkem Uložit.",
     );
     setAutosaveEnabled(false);
-  }, [formState, blocks, storageKey, draftLoaded, autosaveEnabled]);
+  }, [formState, blocks, storageKey, draftLoaded, autosaveEnabled, currentAutosaveDisabled]);
 
   useEffect(() => {
     if (!forcedAuthorId || !draftLoaded) return;
@@ -475,6 +545,15 @@ export default function WorkEditorForm(props: Props) {
       ...prev,
       primary_author_id: forcedAuthorId,
     }));
+
+    if (currentAutosaveDisabled) {
+      removeLocalDraft(storageKey);
+      setHasDraft(false);
+      setLastSaved(null);
+      setAutosaveWarning(getLocalAutosaveDisabledMessage());
+      setAutosaveEnabled(false);
+      return;
+    }
 
     const raw = readLocalDraft(storageKey);
     if (!raw) return;
@@ -507,9 +586,10 @@ export default function WorkEditorForm(props: Props) {
     } catch {
       // ignore broken draft
     }
-  }, [forcedAuthorId, storageKey, draftLoaded]);
+  }, [forcedAuthorId, storageKey, draftLoaded, currentAutosaveDisabled]);
 
   function restoreDraft() {
+    let restoredBlocks: WorkBlock[] | null = null;
     const raw = readLocalDraft(storageKey);
     if (!raw) {
       setHasDraft(false);
@@ -562,6 +642,7 @@ export default function WorkEditorForm(props: Props) {
       }
 
       if (Array.isArray(parsed.blocks)) {
+        restoredBlocks = parsed.blocks;
         setBlocks(parsed.blocks);
       }
 
@@ -571,6 +652,15 @@ export default function WorkEditorForm(props: Props) {
     }
 
     setHasDraft(false);
+
+    if (shouldDisableLocalAutosave(restoredBlocks ?? blocks)) {
+      removeLocalDraft(storageKey);
+      setLastSaved(null);
+      setAutosaveWarning(getLocalAutosaveDisabledMessage());
+      setAutosaveEnabled(false);
+      return;
+    }
+
     setAutosaveWarning(null);
     setAutosaveEnabled(true);
   }
@@ -579,6 +669,13 @@ export default function WorkEditorForm(props: Props) {
     removeLocalDraft(storageKey);
     setHasDraft(false);
     setLastSaved(null);
+
+    if (currentAutosaveDisabled) {
+      setAutosaveWarning(getLocalAutosaveDisabledMessage());
+      setAutosaveEnabled(false);
+      return;
+    }
+
     setAutosaveWarning(null);
     setAutosaveEnabled(true);
   }
@@ -601,7 +698,9 @@ export default function WorkEditorForm(props: Props) {
     if (!parserResult || parserResult.blocks.length === 0) return;
 
     const shouldReplace = window.confirm(
-      "Nahradit současné bloky výsledkem parseru? Aktuální bloky zůstanou zachované jen v lokálním autosave, dokud dílo znovu neuložíš.",
+      currentAutosaveDisabled
+        ? "Nahradit současné bloky výsledkem parseru? U tohoto velkého díla je lokální autosave vypnutý, proto před pokračováním zvaž ruční uložení aktuální verze."
+        : "Nahradit současné bloky výsledkem parseru? Aktuální bloky zůstanou zachované jen v lokálním autosave, dokud dílo znovu neuložíš.",
     );
 
     if (!shouldReplace) return;

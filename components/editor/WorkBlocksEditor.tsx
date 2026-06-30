@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   createEmptyBlock,
   getWorkBlockTypeOptions,
@@ -23,6 +23,8 @@ type Props = {
   workSlug?: string;
   workTitle?: string;
 };
+
+const LARGE_WORK_BLOCK_COUNT = 80;
 
 type ImageFieldName =
   | "image_request"
@@ -74,7 +76,36 @@ export default function WorkBlocksEditor({
     null,
   );
   const [imageUploadState, setImageUploadState] = useState<Record<string, { isUploading?: boolean; message?: string; error?: string }>>({});
+  const [activeLargeBlockId, setActiveLargeBlockId] = useState<string | null>(
+    blocks[0]?.id ?? null,
+  );
   const uploadedInlineImagePathsRef = useRef<Set<string>>(new Set());
+
+  const isLargeWorkMode = blocks.length > LARGE_WORK_BLOCK_COUNT;
+  const visibleBlockEntries = useMemo(() => {
+    if (!isLargeWorkMode) {
+      return blocks.map((block, index) => ({ block, index }));
+    }
+
+    const activeIndex = blocks.findIndex(
+      (block) => block.id === activeLargeBlockId,
+    );
+    const safeIndex = activeIndex >= 0 ? activeIndex : 0;
+    const block = blocks[safeIndex];
+
+    return block ? [{ block, index: safeIndex }] : [];
+  }, [activeLargeBlockId, blocks, isLargeWorkMode]);
+
+  useEffect(() => {
+    if (blocks.length === 0) {
+      setActiveLargeBlockId(null);
+      return;
+    }
+
+    if (!activeLargeBlockId || !blocks.some((block) => block.id === activeLargeBlockId)) {
+      setActiveLargeBlockId(blocks[0]?.id ?? null);
+    }
+  }, [activeLargeBlockId, blocks]);
 
   function normalizeBlockForType(
     block: WorkBlock,
@@ -387,6 +418,17 @@ export default function WorkBlocksEditor({
   }
 
   function scrollToBlock(blockId: string) {
+    if (isLargeWorkMode) {
+      setActiveLargeBlockId(blockId);
+      window.setTimeout(() => {
+        const element = document.getElementById(`work-block-editor-${blockId}`);
+        element?.scrollIntoView({ behavior: "smooth", block: "start" });
+        setHighlightedBlockId(blockId);
+        window.setTimeout(() => setHighlightedBlockId(null), 1600);
+      }, 0);
+      return;
+    }
+
     const element = document.getElementById(`work-block-editor-${blockId}`);
     if (!element) return;
 
@@ -415,6 +457,25 @@ export default function WorkBlocksEditor({
           text, popisek a kredit. Prázdný image blok lze uložit jako draft,
           ale před zveřejněním je potřeba obrázky doplnit.
         </p>
+        {isLargeWorkMode ? (
+          <div
+            role="status"
+            style={{
+              border: "1px solid rgba(199, 163, 90, 0.42)",
+              borderRadius: "16px",
+              background: "#fff8ed",
+              color: "#4a3218",
+              marginTop: "14px",
+              padding: "12px 14px",
+              fontSize: "14px",
+              lineHeight: 1.5,
+            }}
+          >
+            Velké dílo: editor zobrazuje vždy jen jeden vybraný blok.
+            Celý obsah se uloží najednou tlačítkem Uložit, ale stránka
+            nemusí současně renderovat všechny bloky románu.
+          </div>
+        ) : null}
       </div>
 
       <div
@@ -426,7 +487,7 @@ export default function WorkBlocksEditor({
         }}
       >
         <div style={{ display: "grid", gap: "16px" }}>
-          {blocks.map((block, index) => {
+          {visibleBlockEntries.map(({ block, index }) => {
             const selectedTypeMeta =
               blockTypeOptions.find((option) => option.value === block.type) ??
               blockTypeOptions[0];
@@ -949,12 +1010,16 @@ export default function WorkBlocksEditor({
                   type="button"
                   onClick={() => scrollToBlock(block.id)}
                   style={{
-                    background: "transparent",
+                    background:
+                      isLargeWorkMode && block.id === activeLargeBlockId
+                        ? "rgba(199, 163, 90, 0.16)"
+                        : "transparent",
                     border: 0,
+                    borderRadius: "8px",
                     color: "#241f19",
                     cursor: "pointer",
                     font: "inherit",
-                    padding: "4px 0",
+                    padding: "4px 6px",
                     textAlign: "left",
                     textDecoration: "underline",
                   }}
