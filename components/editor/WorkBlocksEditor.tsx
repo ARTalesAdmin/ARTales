@@ -25,6 +25,7 @@ type Props = {
 };
 
 const LARGE_WORK_BLOCK_COUNT = 80;
+const LARGE_WORK_PAGE_SIZE = 10;
 
 type ImageFieldName =
   | "image_request"
@@ -75,37 +76,37 @@ export default function WorkBlocksEditor({
   const [highlightedBlockId, setHighlightedBlockId] = useState<string | null>(
     null,
   );
-  const [imageUploadState, setImageUploadState] = useState<Record<string, { isUploading?: boolean; message?: string; error?: string }>>({});
-  const [activeLargeBlockId, setActiveLargeBlockId] = useState<string | null>(
-    blocks[0]?.id ?? null,
-  );
+  const [imageUploadState, setImageUploadState] = useState<
+    Record<string, { isUploading?: boolean; message?: string; error?: string }>
+  >({});
+  const [largeWorkPageIndex, setLargeWorkPageIndex] = useState(0);
   const uploadedInlineImagePathsRef = useRef<Set<string>>(new Set());
 
   const isLargeWorkMode = blocks.length > LARGE_WORK_BLOCK_COUNT;
+  const largeWorkPageCount = Math.max(
+    1,
+    Math.ceil(blocks.length / LARGE_WORK_PAGE_SIZE),
+  );
+  const safeLargeWorkPageIndex = Math.min(
+    largeWorkPageIndex,
+    largeWorkPageCount - 1,
+  );
   const visibleBlockEntries = useMemo(() => {
     if (!isLargeWorkMode) {
       return blocks.map((block, index) => ({ block, index }));
     }
 
-    const activeIndex = blocks.findIndex(
-      (block) => block.id === activeLargeBlockId,
-    );
-    const safeIndex = activeIndex >= 0 ? activeIndex : 0;
-    const block = blocks[safeIndex];
-
-    return block ? [{ block, index: safeIndex }] : [];
-  }, [activeLargeBlockId, blocks, isLargeWorkMode]);
+    const startIndex = safeLargeWorkPageIndex * LARGE_WORK_PAGE_SIZE;
+    return blocks
+      .slice(startIndex, startIndex + LARGE_WORK_PAGE_SIZE)
+      .map((block, offset) => ({ block, index: startIndex + offset }));
+  }, [blocks, isLargeWorkMode, safeLargeWorkPageIndex]);
 
   useEffect(() => {
-    if (blocks.length === 0) {
-      setActiveLargeBlockId(null);
-      return;
+    if (largeWorkPageIndex !== safeLargeWorkPageIndex) {
+      setLargeWorkPageIndex(safeLargeWorkPageIndex);
     }
-
-    if (!activeLargeBlockId || !blocks.some((block) => block.id === activeLargeBlockId)) {
-      setActiveLargeBlockId(blocks[0]?.id ?? null);
-    }
-  }, [activeLargeBlockId, blocks]);
+  }, [largeWorkPageIndex, safeLargeWorkPageIndex]);
 
   function normalizeBlockForType(
     block: WorkBlock,
@@ -273,7 +274,8 @@ export default function WorkBlocksEditor({
 
     if (!slug) {
       setImageUploadPatch(block.id, {
-        error: "Nejdřív vyplň název nebo slug díla. Podle něj se vytvoří cesta obrázku.",
+        error:
+          "Nejdřív vyplň název nebo slug díla. Podle něj se vytvoří cesta obrázku.",
       });
       return;
     }
@@ -281,7 +283,9 @@ export default function WorkBlocksEditor({
     setImageUploadPatch(block.id, { isUploading: true });
 
     try {
-      const previousPath = String(block.fields?.storage_path ?? block.content ?? "").trim();
+      const previousPath = String(
+        block.fields?.storage_path ?? block.content ?? "",
+      ).trim();
       const storagePath = buildWorkInlineImageStoragePath({
         workSlug: slug,
         blockId: block.id,
@@ -315,14 +319,19 @@ export default function WorkBlocksEditor({
 
       const currentAlt = String(block.fields?.alt ?? "").trim();
       if (!currentAlt) {
-        updateImageField(index, "alt",
-          workTitle.trim() ? `Ilustrace k dílu ${workTitle.trim()}` : "Ilustrace v díle",
+        updateImageField(
+          index,
+          "alt",
+          workTitle.trim()
+            ? `Ilustrace k dílu ${workTitle.trim()}`
+            : "Ilustrace v díle",
         );
       }
 
       setImageUploadPatch(block.id, {
         isUploading: false,
-        message: "Obrázek byl nahrán. Ulož dílo, aby se změna propsala do databáze.",
+        message:
+          "Obrázek byl nahrán. Ulož dílo, aby se změna propsala do databáze.",
         error: undefined,
       });
     } finally {
@@ -419,13 +428,17 @@ export default function WorkBlocksEditor({
 
   function scrollToBlock(blockId: string) {
     if (isLargeWorkMode) {
-      setActiveLargeBlockId(blockId);
+      const blockIndex = blocks.findIndex((block) => block.id === blockId);
+      if (blockIndex < 0) return;
+
+      setLargeWorkPageIndex(Math.floor(blockIndex / LARGE_WORK_PAGE_SIZE));
+      setHighlightedBlockId(blockId);
       window.setTimeout(() => {
-        const element = document.getElementById(`work-block-editor-${blockId}`);
-        element?.scrollIntoView({ behavior: "smooth", block: "start" });
-        setHighlightedBlockId(blockId);
-        window.setTimeout(() => setHighlightedBlockId(null), 1600);
+        document
+          .getElementById(`work-block-editor-${blockId}`)
+          ?.scrollIntoView({ behavior: "smooth", block: "start" });
       }, 0);
+      window.setTimeout(() => setHighlightedBlockId(null), 1600);
       return;
     }
 
@@ -454,8 +467,8 @@ export default function WorkBlocksEditor({
         <p style={{ margin: 0, opacity: 0.8 }}>
           Skládej text z předdefinovaných bloků. Obrázkový blok je samostatný
           celek mezi odstavci: editor může rovnou nahrát soubor, doplnit alt
-          text, popisek a kredit. Prázdný image blok lze uložit jako draft,
-          ale před zveřejněním je potřeba obrázky doplnit.
+          text, popisek a kredit. Prázdný image blok lze uložit jako draft, ale
+          před zveřejněním je potřeba obrázky doplnit.
         </p>
         {isLargeWorkMode ? (
           <div
@@ -471,9 +484,9 @@ export default function WorkBlocksEditor({
               lineHeight: 1.5,
             }}
           >
-            Velké dílo: editor zobrazuje vždy jen jeden vybraný blok.
-            Celý obsah se uloží najednou tlačítkem Uložit, ale stránka
-            nemusí současně renderovat všechny bloky románu.
+            Velké dílo: editor zobrazuje vždy jen dávku 10 bloků. Celý obsah se
+            uloží najednou tlačítkem Uložit, ale stránka nemusí současně
+            renderovat všechny bloky románu.
           </div>
         ) : null}
       </div>
@@ -487,6 +500,70 @@ export default function WorkBlocksEditor({
         }}
       >
         <div style={{ display: "grid", gap: "16px" }}>
+          {isLargeWorkMode ? (
+            <div
+              style={{
+                border: "1px solid rgba(13, 21, 40, 0.14)",
+                borderRadius: "16px",
+                background: "#fffdf8",
+                padding: "12px 14px",
+                display: "flex",
+                gap: "10px",
+                flexWrap: "wrap",
+                alignItems: "center",
+                justifyContent: "space-between",
+              }}
+            >
+              <strong>
+                Bloky {safeLargeWorkPageIndex * LARGE_WORK_PAGE_SIZE + 1}–
+                {Math.min(
+                  (safeLargeWorkPageIndex + 1) * LARGE_WORK_PAGE_SIZE,
+                  blocks.length,
+                )}{" "}
+                z {blocks.length}
+              </strong>
+              <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
+                <button
+                  type="button"
+                  disabled={safeLargeWorkPageIndex <= 0}
+                  onClick={() =>
+                    setLargeWorkPageIndex((current) => Math.max(0, current - 1))
+                  }
+                  style={{
+                    ...editorButtonStyle,
+                    opacity: safeLargeWorkPageIndex <= 0 ? 0.45 : 1,
+                    cursor:
+                      safeLargeWorkPageIndex <= 0 ? "not-allowed" : "pointer",
+                  }}
+                >
+                  ← Předchozích 10
+                </button>
+                <button
+                  type="button"
+                  disabled={safeLargeWorkPageIndex >= largeWorkPageCount - 1}
+                  onClick={() =>
+                    setLargeWorkPageIndex((current) =>
+                      Math.min(largeWorkPageCount - 1, current + 1),
+                    )
+                  }
+                  style={{
+                    ...editorButtonStyle,
+                    opacity:
+                      safeLargeWorkPageIndex >= largeWorkPageCount - 1
+                        ? 0.45
+                        : 1,
+                    cursor:
+                      safeLargeWorkPageIndex >= largeWorkPageCount - 1
+                        ? "not-allowed"
+                        : "pointer",
+                  }}
+                >
+                  Dalších 10 →
+                </button>
+              </div>
+            </div>
+          ) : null}
+
           {visibleBlockEntries.map(({ block, index }) => {
             const selectedTypeMeta =
               blockTypeOptions.find((option) => option.value === block.type) ??
@@ -705,9 +782,15 @@ export default function WorkBlocksEditor({
                       const imagePath = String(
                         block.fields?.storage_path ?? block.content ?? "",
                       ).trim();
-                      const imageCaption = String(block.fields?.caption ?? "").trim();
+                      const imageCaption = String(
+                        block.fields?.caption ?? "",
+                      ).trim();
                       const imageAlt = String(block.fields?.alt ?? "").trim();
-                      const sourceNote = String(block.fields?.source_note ?? block.fields?.image_request ?? "").trim();
+                      const sourceNote = String(
+                        block.fields?.source_note ??
+                          block.fields?.image_request ??
+                          "",
+                      ).trim();
                       const uploadState = imageUploadState[block.id] ?? {};
 
                       return (
@@ -733,9 +816,10 @@ export default function WorkBlocksEditor({
                                 opacity: 0.78,
                               }}
                             >
-                              Obrázek se ukládá do ARTales Storage a v textu zůstává
-                              jako samostatný image blok. Draft lze uložit i bez
-                              obrázku; zveřejnění ale prázdný image blok zastaví.
+                              Obrázek se ukládá do ARTales Storage a v textu
+                              zůstává jako samostatný image blok. Draft lze
+                              uložit i bez obrázku; zveřejnění ale prázdný image
+                              blok zastaví.
                             </p>
                           </div>
 
@@ -744,7 +828,10 @@ export default function WorkBlocksEditor({
                             type="file"
                             accept="image/jpeg,image/png,image/webp"
                             onChange={(event) => {
-                              void uploadInlineImage(index, event.target.files?.[0] ?? null);
+                              void uploadInlineImage(
+                                index,
+                                event.target.files?.[0] ?? null,
+                              );
                               event.currentTarget.value = "";
                             }}
                             style={{ display: "none" }}
@@ -753,13 +840,16 @@ export default function WorkBlocksEditor({
                           <div
                             style={{
                               display: "grid",
-                              gridTemplateColumns: "minmax(180px, 280px) minmax(0, 1fr)",
+                              gridTemplateColumns:
+                                "minmax(180px, 280px) minmax(0, 1fr)",
                               gap: "14px",
                               alignItems: "start",
                             }}
                           >
                             <StorageImageDisplay
-                              title={imageCaption || sourceNote || "Obrázek v díle"}
+                              title={
+                                imageCaption || sourceNote || "Obrázek v díle"
+                              }
                               imagePath={imagePath}
                               alt={imageAlt}
                               caption={imageCaption}
@@ -767,22 +857,40 @@ export default function WorkBlocksEditor({
                             />
 
                             <div style={{ display: "grid", gap: "10px" }}>
-                              <div style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
+                              <div
+                                style={{
+                                  display: "flex",
+                                  gap: "10px",
+                                  flexWrap: "wrap",
+                                }}
+                              >
                                 <button
                                   type="button"
                                   disabled={Boolean(uploadState.isUploading)}
                                   onClick={() =>
-                                    document.getElementById(`block-image-upload-${block.id}`)?.click()
+                                    document
+                                      .getElementById(
+                                        `block-image-upload-${block.id}`,
+                                      )
+                                      ?.click()
                                   }
                                   style={{
                                     ...editorButtonStyle,
                                     border: "1px solid #0d1528",
-                                    background: uploadState.isUploading ? "#6b7280" : "#0d1528",
+                                    background: uploadState.isUploading
+                                      ? "#6b7280"
+                                      : "#0d1528",
                                     color: "#fff",
-                                    cursor: uploadState.isUploading ? "wait" : "pointer",
+                                    cursor: uploadState.isUploading
+                                      ? "wait"
+                                      : "pointer",
                                   }}
                                 >
-                                  {uploadState.isUploading ? "Nahrávám…" : imagePath ? "Nahrát jiný obrázek" : "Nahrát obrázek"}
+                                  {uploadState.isUploading
+                                    ? "Nahrávám…"
+                                    : imagePath
+                                      ? "Nahrát jiný obrázek"
+                                      : "Nahrát obrázek"}
                                 </button>
 
                                 {imagePath ? (
@@ -790,12 +898,19 @@ export default function WorkBlocksEditor({
                                     type="button"
                                     onClick={() => {
                                       const removedPath = imagePath;
-                                      updateImageField(index, "storage_path", "");
+                                      updateImageField(
+                                        index,
+                                        "storage_path",
+                                        "",
+                                      );
                                       setImageUploadPatch(block.id, {
-                                        message: "Obrázek byl odebrán z bloku. Ulož dílo, aby se změna propsala do databáze.",
+                                        message:
+                                          "Obrázek byl odebrán z bloku. Ulož dílo, aby se změna propsala do databáze.",
                                         error: undefined,
                                       });
-                                      void removeUnsavedInlineImage(removedPath);
+                                      void removeUnsavedInlineImage(
+                                        removedPath,
+                                      );
                                     }}
                                     style={editorButtonStyle}
                                   >
@@ -805,21 +920,39 @@ export default function WorkBlocksEditor({
                               </div>
 
                               {uploadState.error ? (
-                                <p style={{ margin: 0, color: "#9f1239", fontSize: "14px" }}>
+                                <p
+                                  style={{
+                                    margin: 0,
+                                    color: "#9f1239",
+                                    fontSize: "14px",
+                                  }}
+                                >
                                   {uploadState.error}
                                 </p>
                               ) : null}
 
                               {uploadState.message ? (
-                                <p style={{ margin: 0, color: "#166534", fontSize: "14px" }}>
+                                <p
+                                  style={{
+                                    margin: 0,
+                                    color: "#166534",
+                                    fontSize: "14px",
+                                  }}
+                                >
                                   {uploadState.message}
                                 </p>
                               ) : null}
 
                               {!imagePath ? (
-                                <p style={{ margin: 0, color: "#8a4b10", fontSize: "14px" }}>
-                                  Chybí obrázek. Draft můžeš uložit, ale před zveřejněním
-                                  prosím doplň obrázky.
+                                <p
+                                  style={{
+                                    margin: 0,
+                                    color: "#8a4b10",
+                                    fontSize: "14px",
+                                  }}
+                                >
+                                  Chybí obrázek. Draft můžeš uložit, ale před
+                                  zveřejněním prosím doplň obrázky.
                                 </p>
                               ) : null}
                             </div>
@@ -842,10 +975,22 @@ export default function WorkBlocksEditor({
                       <input
                         id={`block-image-source-note-${block.id}`}
                         type="text"
-                        value={String(block.fields?.source_note ?? block.fields?.image_request ?? "")}
+                        value={String(
+                          block.fields?.source_note ??
+                            block.fields?.image_request ??
+                            "",
+                        )}
                         onChange={(e) => {
-                          updateImageField(index, "source_note", e.target.value);
-                          updateImageField(index, "image_request", e.target.value);
+                          updateImageField(
+                            index,
+                            "source_note",
+                            e.target.value,
+                          );
+                          updateImageField(
+                            index,
+                            "image_request",
+                            e.target.value,
+                          );
                         }}
                         placeholder="Např. Obrázek 2 – Mapa okolí / místo obrázku z parseru"
                         style={fieldStyle}
@@ -994,7 +1139,7 @@ export default function WorkBlocksEditor({
         >
           <h3 style={{ margin: "0 0 10px" }}>Navigace bloků</h3>
           <p style={{ margin: "0 0 12px", fontSize: "13px", opacity: 0.72 }}>
-            Klikni na položku a editor skočí na daný blok.
+            Klikni na položku a editor otevře dávku, ve které blok leží.
           </p>
           <ol
             style={{
@@ -1011,7 +1156,9 @@ export default function WorkBlocksEditor({
                   onClick={() => scrollToBlock(block.id)}
                   style={{
                     background:
-                      isLargeWorkMode && block.id === activeLargeBlockId
+                      isLargeWorkMode &&
+                      Math.floor(index / LARGE_WORK_PAGE_SIZE) ===
+                        safeLargeWorkPageIndex
                         ? "rgba(199, 163, 90, 0.16)"
                         : "transparent",
                     border: 0,
