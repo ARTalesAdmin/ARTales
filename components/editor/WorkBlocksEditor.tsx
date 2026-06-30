@@ -25,7 +25,10 @@ type Props = {
 };
 
 const LARGE_WORK_BLOCK_COUNT = 80;
-const LARGE_WORK_PAGE_SIZE = 10;
+const LARGE_WORK_CONTEXT_BEFORE = 5;
+const LARGE_WORK_CONTEXT_AFTER = 5;
+const LARGE_WORK_SMALL_JUMP = 10;
+const LARGE_WORK_LARGE_JUMP = 100;
 
 type ImageFieldName =
   | "image_request"
@@ -36,35 +39,92 @@ type ImageFieldName =
   | "size"
   | "source_note";
 
-function getBlockTitle(block: WorkBlock, index: number) {
-  const prefix = `${index + 1}.`;
+function collapseWhitespace(value: string) {
+  return value.replace(/\s+/g, " ").trim();
+}
 
-  if (
-    block.type === "book_part" ||
-    block.type === "chapter" ||
-    block.type === "headline"
-  ) {
-    const text = block.content.trim();
-    return `${prefix} ${text || "Bez názvu"}`;
-  }
-
+function getBlockTextLength(block: WorkBlock) {
   if (block.type === "letter") {
-    const place = String(block.fields?.place_year ?? "").trim();
-    const body = String(block.fields?.body ?? block.content ?? "").trim();
-    return `${prefix} Dopis${place ? `: ${place}` : body ? `: ${body.slice(0, 42)}` : ""}`;
+    return String(block.fields?.body ?? block.content ?? "").length;
   }
 
   if (block.type === "image") {
-    const request = String(block.fields?.image_request ?? "").trim();
-    const caption = String(block.fields?.caption ?? "").trim();
-    return `${prefix} Obrázek${caption ? `: ${caption.slice(0, 42)}` : request ? `: ${request.slice(0, 42)}` : ""}`;
+    return String(
+      block.fields?.caption ??
+        block.fields?.source_note ??
+        block.fields?.image_request ??
+        block.content ??
+        "",
+    ).length;
   }
 
-  if (block.type === "separator") return `${prefix} Předěl · * * *`;
-
-  const text = block.content.trim();
-  return `${prefix} ${text ? text.slice(0, 46) : "Prázdný blok"}`;
+  return String(block.content ?? "").length;
 }
+
+function getBlockShortPreview(block: WorkBlock, maxLength = 52) {
+  const raw =
+    block.type === "letter"
+      ? String(block.fields?.place_year ?? block.fields?.body ?? block.content ?? "")
+      : block.type === "image"
+        ? String(
+            block.fields?.caption ??
+              block.fields?.source_note ??
+              block.fields?.image_request ??
+              block.content ??
+              "",
+          )
+        : String(block.content ?? "");
+
+  const text = collapseWhitespace(raw);
+  if (!text) return "";
+  return text.length > maxLength ? `${text.slice(0, maxLength - 1)}…` : text;
+}
+
+function getBlockNavigationLabel(block: WorkBlock, index: number) {
+  const prefix = `#${index + 1}`;
+  const length = getBlockTextLength(block);
+
+  if (block.type === "book_part") {
+    return `${prefix} · část${getBlockShortPreview(block) ? ` · ${getBlockShortPreview(block)}` : ""}`;
+  }
+
+  if (block.type === "chapter") {
+    return `${prefix} · kapitola${getBlockShortPreview(block) ? ` · ${getBlockShortPreview(block)}` : ""}`;
+  }
+
+  if (block.type === "headline") {
+    return `${prefix} · titulek${getBlockShortPreview(block) ? ` · ${getBlockShortPreview(block)}` : ""}`;
+  }
+
+  if (block.type === "letter") {
+    const place = collapseWhitespace(String(block.fields?.place_year ?? ""));
+    return `${prefix} · dopis${place ? ` · ${place}` : ""} · ${length} znaků`;
+  }
+
+  if (block.type === "image") {
+    const preview = getBlockShortPreview(block, 38);
+    return `${prefix} · obrázek${preview ? ` · ${preview}` : ""}`;
+  }
+
+  if (block.type === "separator") return `${prefix} · předěl`;
+  if (block.type === "quote") return `${prefix} · citace · ${length} znaků`;
+  if (block.type === "poem") return `${prefix} · báseň · ${length} znaků`;
+  if (block.type === "newspaper_article") {
+    return `${prefix} · novinový článek · ${length} znaků`;
+  }
+  if (block.type === "place_line") return `${prefix} · místo / datace`;
+  if (block.type === "note") return `${prefix} · poznámka · ${length} znaků`;
+  if (block.type === "footnote") return `${prefix} · poznámka pod čarou`;
+  if (block.type === "dedication") return `${prefix} · věnování · ${length} znaků`;
+  if (block.type === "preface") return `${prefix} · předmluva · ${length} znaků`;
+  if (block.type === "afterword") return `${prefix} · doslov · ${length} znaků`;
+  if (block.type === "acknowledgement") {
+    return `${prefix} · poděkování · ${length} znaků`;
+  }
+
+  return `${prefix} · odstavec · ${length} znaků`;
+}
+
 
 export default function WorkBlocksEditor({
   blocks,
@@ -79,34 +139,40 @@ export default function WorkBlocksEditor({
   const [imageUploadState, setImageUploadState] = useState<
     Record<string, { isUploading?: boolean; message?: string; error?: string }>
   >({});
-  const [largeWorkPageIndex, setLargeWorkPageIndex] = useState(0);
+  const [activeLargeBlockIndex, setActiveLargeBlockIndex] = useState(0);
+  const [largeWorkJumpInput, setLargeWorkJumpInput] = useState("");
   const uploadedInlineImagePathsRef = useRef<Set<string>>(new Set());
 
   const isLargeWorkMode = blocks.length > LARGE_WORK_BLOCK_COUNT;
-  const largeWorkPageCount = Math.max(
-    1,
-    Math.ceil(blocks.length / LARGE_WORK_PAGE_SIZE),
+  const lastBlockIndex = Math.max(0, blocks.length - 1);
+  const safeActiveLargeBlockIndex = Math.min(
+    Math.max(0, activeLargeBlockIndex),
+    lastBlockIndex,
   );
-  const safeLargeWorkPageIndex = Math.min(
-    largeWorkPageIndex,
-    largeWorkPageCount - 1,
-  );
+  const visibleStartIndex = isLargeWorkMode
+    ? Math.max(0, safeActiveLargeBlockIndex - LARGE_WORK_CONTEXT_BEFORE)
+    : 0;
+  const visibleEndIndex = isLargeWorkMode
+    ? Math.min(
+        blocks.length,
+        safeActiveLargeBlockIndex + LARGE_WORK_CONTEXT_AFTER + 1,
+      )
+    : blocks.length;
   const visibleBlockEntries = useMemo(() => {
     if (!isLargeWorkMode) {
       return blocks.map((block, index) => ({ block, index }));
     }
 
-    const startIndex = safeLargeWorkPageIndex * LARGE_WORK_PAGE_SIZE;
     return blocks
-      .slice(startIndex, startIndex + LARGE_WORK_PAGE_SIZE)
-      .map((block, offset) => ({ block, index: startIndex + offset }));
-  }, [blocks, isLargeWorkMode, safeLargeWorkPageIndex]);
+      .slice(visibleStartIndex, visibleEndIndex)
+      .map((block, offset) => ({ block, index: visibleStartIndex + offset }));
+  }, [blocks, isLargeWorkMode, visibleEndIndex, visibleStartIndex]);
 
   useEffect(() => {
-    if (largeWorkPageIndex !== safeLargeWorkPageIndex) {
-      setLargeWorkPageIndex(safeLargeWorkPageIndex);
+    if (activeLargeBlockIndex !== safeActiveLargeBlockIndex) {
+      setActiveLargeBlockIndex(safeActiveLargeBlockIndex);
     }
-  }, [largeWorkPageIndex, safeLargeWorkPageIndex]);
+  }, [activeLargeBlockIndex, safeActiveLargeBlockIndex]);
 
   function normalizeBlockForType(
     block: WorkBlock,
@@ -426,19 +492,43 @@ export default function WorkBlocksEditor({
     });
   }
 
+  function clampBlockIndex(index: number) {
+    return Math.min(Math.max(0, index), Math.max(0, blocks.length - 1));
+  }
+
+  function focusLargeWorkBlock(index: number, shouldScroll = true) {
+    const nextIndex = clampBlockIndex(index);
+    const block = blocks[nextIndex];
+    if (!block) return;
+
+    setActiveLargeBlockIndex(nextIndex);
+    setHighlightedBlockId(block.id);
+
+    if (shouldScroll) {
+      window.setTimeout(() => {
+        document
+          .getElementById(`work-block-editor-${block.id}`)
+          ?.scrollIntoView({ behavior: "smooth", block: "center" });
+      }, 0);
+    }
+
+    window.setTimeout(() => setHighlightedBlockId(null), 1600);
+  }
+
+  function jumpToTypedBlock() {
+    const parsed = Number.parseInt(largeWorkJumpInput, 10);
+    if (!Number.isFinite(parsed)) return;
+
+    focusLargeWorkBlock(parsed - 1);
+    setLargeWorkJumpInput("");
+  }
+
   function scrollToBlock(blockId: string) {
     if (isLargeWorkMode) {
       const blockIndex = blocks.findIndex((block) => block.id === blockId);
       if (blockIndex < 0) return;
 
-      setLargeWorkPageIndex(Math.floor(blockIndex / LARGE_WORK_PAGE_SIZE));
-      setHighlightedBlockId(blockId);
-      window.setTimeout(() => {
-        document
-          .getElementById(`work-block-editor-${blockId}`)
-          ?.scrollIntoView({ behavior: "smooth", block: "start" });
-      }, 0);
-      window.setTimeout(() => setHighlightedBlockId(null), 1600);
+      focusLargeWorkBlock(blockIndex);
       return;
     }
 
@@ -484,9 +574,9 @@ export default function WorkBlocksEditor({
               lineHeight: 1.5,
             }}
           >
-            Velké dílo: editor zobrazuje vždy jen dávku 10 bloků. Celý obsah se
-            uloží najednou tlačítkem Uložit, ale stránka nemusí současně
-            renderovat všechny bloky románu.
+            Velké dílo: editor zobrazuje aktivní blok a několik bloků před
+            ním i za ním. Celý obsah se uloží najednou tlačítkem Uložit, ale
+            stránka nemusí současně renderovat všechny bloky románu.
           </div>
         ) : null}
       </div>
@@ -507,60 +597,177 @@ export default function WorkBlocksEditor({
                 borderRadius: "16px",
                 background: "#fffdf8",
                 padding: "12px 14px",
-                display: "flex",
-                gap: "10px",
-                flexWrap: "wrap",
-                alignItems: "center",
-                justifyContent: "space-between",
+                display: "grid",
+                gap: "12px",
               }}
             >
-              <strong>
-                Bloky {safeLargeWorkPageIndex * LARGE_WORK_PAGE_SIZE + 1}–
-                {Math.min(
-                  (safeLargeWorkPageIndex + 1) * LARGE_WORK_PAGE_SIZE,
-                  blocks.length,
-                )}{" "}
-                z {blocks.length}
-              </strong>
-              <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
-                <button
-                  type="button"
-                  disabled={safeLargeWorkPageIndex <= 0}
-                  onClick={() =>
-                    setLargeWorkPageIndex((current) => Math.max(0, current - 1))
-                  }
-                  style={{
-                    ...editorButtonStyle,
-                    opacity: safeLargeWorkPageIndex <= 0 ? 0.45 : 1,
-                    cursor:
-                      safeLargeWorkPageIndex <= 0 ? "not-allowed" : "pointer",
-                  }}
-                >
-                  ← Předchozích 10
-                </button>
-                <button
-                  type="button"
-                  disabled={safeLargeWorkPageIndex >= largeWorkPageCount - 1}
-                  onClick={() =>
-                    setLargeWorkPageIndex((current) =>
-                      Math.min(largeWorkPageCount - 1, current + 1),
-                    )
-                  }
-                  style={{
-                    ...editorButtonStyle,
-                    opacity:
-                      safeLargeWorkPageIndex >= largeWorkPageCount - 1
-                        ? 0.45
-                        : 1,
-                    cursor:
-                      safeLargeWorkPageIndex >= largeWorkPageCount - 1
-                        ? "not-allowed"
-                        : "pointer",
-                  }}
-                >
-                  Dalších 10 →
-                </button>
+              <div
+                style={{
+                  display: "flex",
+                  gap: "10px",
+                  flexWrap: "wrap",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                }}
+              >
+                <strong>
+                  Aktivní blok {safeActiveLargeBlockIndex + 1} z {blocks.length}
+                  {" · "}
+                  zobrazeno {visibleStartIndex + 1}–{visibleEndIndex}
+                </strong>
+                <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
+                  <button
+                    type="button"
+                    disabled={safeActiveLargeBlockIndex <= 0}
+                    onClick={() =>
+                      focusLargeWorkBlock(
+                        safeActiveLargeBlockIndex - LARGE_WORK_LARGE_JUMP,
+                      )
+                    }
+                    style={{
+                      ...editorButtonStyle,
+                      opacity: safeActiveLargeBlockIndex <= 0 ? 0.45 : 1,
+                      cursor:
+                        safeActiveLargeBlockIndex <= 0
+                          ? "not-allowed"
+                          : "pointer",
+                    }}
+                  >
+                    O 100 zpět
+                  </button>
+                  <button
+                    type="button"
+                    disabled={safeActiveLargeBlockIndex <= 0}
+                    onClick={() =>
+                      focusLargeWorkBlock(
+                        safeActiveLargeBlockIndex - LARGE_WORK_SMALL_JUMP,
+                      )
+                    }
+                    style={{
+                      ...editorButtonStyle,
+                      opacity: safeActiveLargeBlockIndex <= 0 ? 0.45 : 1,
+                      cursor:
+                        safeActiveLargeBlockIndex <= 0
+                          ? "not-allowed"
+                          : "pointer",
+                    }}
+                  >
+                    O 10 zpět
+                  </button>
+                  <button
+                    type="button"
+                    disabled={safeActiveLargeBlockIndex <= 0}
+                    onClick={() =>
+                      focusLargeWorkBlock(safeActiveLargeBlockIndex - 1)
+                    }
+                    style={{
+                      ...editorButtonStyle,
+                      opacity: safeActiveLargeBlockIndex <= 0 ? 0.45 : 1,
+                      cursor:
+                        safeActiveLargeBlockIndex <= 0
+                          ? "not-allowed"
+                          : "pointer",
+                    }}
+                  >
+                    Předchozí blok
+                  </button>
+                  <button
+                    type="button"
+                    disabled={safeActiveLargeBlockIndex >= lastBlockIndex}
+                    onClick={() =>
+                      focusLargeWorkBlock(safeActiveLargeBlockIndex + 1)
+                    }
+                    style={{
+                      ...editorButtonStyle,
+                      opacity:
+                        safeActiveLargeBlockIndex >= lastBlockIndex ? 0.45 : 1,
+                      cursor:
+                        safeActiveLargeBlockIndex >= lastBlockIndex
+                          ? "not-allowed"
+                          : "pointer",
+                    }}
+                  >
+                    Další blok
+                  </button>
+                  <button
+                    type="button"
+                    disabled={safeActiveLargeBlockIndex >= lastBlockIndex}
+                    onClick={() =>
+                      focusLargeWorkBlock(
+                        safeActiveLargeBlockIndex + LARGE_WORK_SMALL_JUMP,
+                      )
+                    }
+                    style={{
+                      ...editorButtonStyle,
+                      opacity:
+                        safeActiveLargeBlockIndex >= lastBlockIndex ? 0.45 : 1,
+                      cursor:
+                        safeActiveLargeBlockIndex >= lastBlockIndex
+                          ? "not-allowed"
+                          : "pointer",
+                    }}
+                  >
+                    O 10 dál
+                  </button>
+                  <button
+                    type="button"
+                    disabled={safeActiveLargeBlockIndex >= lastBlockIndex}
+                    onClick={() =>
+                      focusLargeWorkBlock(
+                        safeActiveLargeBlockIndex + LARGE_WORK_LARGE_JUMP,
+                      )
+                    }
+                    style={{
+                      ...editorButtonStyle,
+                      opacity:
+                        safeActiveLargeBlockIndex >= lastBlockIndex ? 0.45 : 1,
+                      cursor:
+                        safeActiveLargeBlockIndex >= lastBlockIndex
+                          ? "not-allowed"
+                          : "pointer",
+                    }}
+                  >
+                    O 100 dál
+                  </button>
+                </div>
               </div>
+
+              <form
+                onSubmit={(event) => {
+                  event.preventDefault();
+                  jumpToTypedBlock();
+                }}
+                style={{
+                  display: "flex",
+                  gap: "8px",
+                  flexWrap: "wrap",
+                  alignItems: "center",
+                }}
+              >
+                <label
+                  htmlFor="large-work-jump-block"
+                  style={{ fontSize: "13px", fontWeight: 700 }}
+                >
+                  Přejít na blok
+                </label>
+                <input
+                  id="large-work-jump-block"
+                  type="number"
+                  min={1}
+                  max={blocks.length}
+                  value={largeWorkJumpInput}
+                  onChange={(event) => setLargeWorkJumpInput(event.target.value)}
+                  placeholder={`1–${blocks.length}`}
+                  style={{
+                    ...compactFieldStyle,
+                    width: "120px",
+                    padding: "8px 10px",
+                  }}
+                />
+                <button type="submit" style={editorButtonStyle}>
+                  Přejít
+                </button>
+              </form>
             </div>
           ) : null}
 
@@ -572,6 +779,8 @@ export default function WorkBlocksEditor({
             const isLetter = block.type === "letter";
             const isImage = block.type === "image";
             const isSeparator = block.type === "separator";
+            const isActiveLargeBlock =
+              isLargeWorkMode && index === safeActiveLargeBlockIndex;
             const isHighlighted = highlightedBlockId === block.id;
 
             return (
@@ -579,14 +788,16 @@ export default function WorkBlocksEditor({
                 key={block.id}
                 id={`work-block-editor-${block.id}`}
                 style={{
-                  border: isHighlighted
-                    ? "2px solid #c7a35a"
-                    : "1px solid rgba(13, 21, 40, 0.16)",
+                  border:
+                    isHighlighted || isActiveLargeBlock
+                      ? "2px solid #c7a35a"
+                      : "1px solid rgba(13, 21, 40, 0.16)",
                   borderRadius: "20px",
                   background: "#fffdf8",
-                  boxShadow: isHighlighted
-                    ? "0 0 0 4px rgba(199, 163, 90, 0.16), 0 14px 34px rgba(13, 21, 40, 0.09)"
-                    : "0 10px 26px rgba(13, 21, 40, 0.06)",
+                  boxShadow:
+                    isHighlighted || isActiveLargeBlock
+                      ? "0 0 0 4px rgba(199, 163, 90, 0.16), 0 14px 34px rgba(13, 21, 40, 0.09)"
+                      : "0 10px 26px rgba(13, 21, 40, 0.06)",
                   padding: "18px",
                   display: "grid",
                   gap: "12px",
@@ -605,6 +816,7 @@ export default function WorkBlocksEditor({
                 >
                   <strong>
                     Blok {index + 1}: {selectedTypeMeta.label}
+                    {isActiveLargeBlock ? " · aktivní" : ""}
                   </strong>
 
                   <div
@@ -1139,7 +1351,7 @@ export default function WorkBlocksEditor({
         >
           <h3 style={{ margin: "0 0 10px" }}>Navigace bloků</h3>
           <p style={{ margin: "0 0 12px", fontSize: "13px", opacity: 0.72 }}>
-            Klikni na položku a editor otevře dávku, ve které blok leží.
+            Klikni na položku a editor otevře daný blok i jeho okolí.
           </p>
           <ol
             style={{
@@ -1156,11 +1368,13 @@ export default function WorkBlocksEditor({
                   onClick={() => scrollToBlock(block.id)}
                   style={{
                     background:
-                      isLargeWorkMode &&
-                      Math.floor(index / LARGE_WORK_PAGE_SIZE) ===
-                        safeLargeWorkPageIndex
-                        ? "rgba(199, 163, 90, 0.16)"
-                        : "transparent",
+                      isLargeWorkMode && index === safeActiveLargeBlockIndex
+                        ? "rgba(199, 163, 90, 0.22)"
+                        : isLargeWorkMode &&
+                            index >= visibleStartIndex &&
+                            index < visibleEndIndex
+                          ? "rgba(199, 163, 90, 0.1)"
+                          : "transparent",
                     border: 0,
                     borderRadius: "8px",
                     color: "#241f19",
@@ -1171,7 +1385,7 @@ export default function WorkBlocksEditor({
                     textDecoration: "underline",
                   }}
                 >
-                  {getBlockTitle(block, index)}
+                  {getBlockNavigationLabel(block, index)}
                 </button>
               </li>
             ))}
