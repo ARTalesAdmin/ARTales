@@ -61,70 +61,79 @@ function getBlockTextLength(block: WorkBlock) {
   return String(block.content ?? "").length;
 }
 
-function getBlockShortPreview(block: WorkBlock, maxLength = 52) {
-  const raw =
-    block.type === "letter"
-      ? String(block.fields?.place_year ?? block.fields?.body ?? block.content ?? "")
-      : block.type === "image"
-        ? String(
-            block.fields?.caption ??
-              block.fields?.source_note ??
-              block.fields?.image_request ??
-              block.content ??
-              "",
-          )
-        : String(block.content ?? "");
-
-  const text = collapseWhitespace(raw);
-  if (!text) return "";
-  return text.length > maxLength ? `${text.slice(0, maxLength - 1)}…` : text;
-}
-
-function getBlockNavigationLabel(block: WorkBlock, index: number) {
-  const prefix = `#${index + 1}`;
-  const length = getBlockTextLength(block);
-
-  if (block.type === "book_part") {
-    return `${prefix} · část${getBlockShortPreview(block) ? ` · ${getBlockShortPreview(block)}` : ""}`;
-  }
-
-  if (block.type === "chapter") {
-    return `${prefix} · kapitola${getBlockShortPreview(block) ? ` · ${getBlockShortPreview(block)}` : ""}`;
-  }
-
-  if (block.type === "headline") {
-    return `${prefix} · titulek${getBlockShortPreview(block) ? ` · ${getBlockShortPreview(block)}` : ""}`;
-  }
-
+function getBlockPreviewSource(block: WorkBlock) {
   if (block.type === "letter") {
-    const place = collapseWhitespace(String(block.fields?.place_year ?? ""));
-    return `${prefix} · dopis${place ? ` · ${place}` : ""} · ${length} znaků`;
+    return String(block.fields?.body ?? block.content ?? block.fields?.place_year ?? "");
   }
 
   if (block.type === "image") {
-    const preview = getBlockShortPreview(block, 38);
-    return `${prefix} · obrázek${preview ? ` · ${preview}` : ""}`;
+    return String(
+      block.fields?.caption ??
+        block.fields?.source_note ??
+        block.fields?.image_request ??
+        block.content ??
+        "",
+    );
   }
 
-  if (block.type === "separator") return `${prefix} · předěl`;
-  if (block.type === "quote") return `${prefix} · citace · ${length} znaků`;
-  if (block.type === "poem") return `${prefix} · báseň · ${length} znaků`;
-  if (block.type === "newspaper_article") {
-    return `${prefix} · novinový článek · ${length} znaků`;
-  }
-  if (block.type === "place_line") return `${prefix} · místo / datace`;
-  if (block.type === "note") return `${prefix} · poznámka · ${length} znaků`;
-  if (block.type === "footnote") return `${prefix} · poznámka pod čarou`;
-  if (block.type === "dedication") return `${prefix} · věnování · ${length} znaků`;
-  if (block.type === "preface") return `${prefix} · předmluva · ${length} znaků`;
-  if (block.type === "afterword") return `${prefix} · doslov · ${length} znaků`;
-  if (block.type === "acknowledgement") {
-    return `${prefix} · poděkování · ${length} znaků`;
-  }
-
-  return `${prefix} · odstavec · ${length} znaků`;
+  return String(block.content ?? "");
 }
 
+function getBlockFirstLinePreview(block: WorkBlock, maxLength = 78) {
+  const firstLine = getBlockPreviewSource(block)
+    .split(/\r?\n/)
+    .map((line) => collapseWhitespace(line))
+    .find(Boolean);
+
+  if (!firstLine) {
+    if (block.type === "separator") return "* * *";
+    return "Bez textového náhledu";
+  }
+
+  return firstLine.length > maxLength
+    ? `${firstLine.slice(0, maxLength - 1)}…`
+    : firstLine;
+}
+
+function getBlockTypeName(block: WorkBlock) {
+  if (block.type === "book_part") return "část";
+  if (block.type === "chapter") return "kapitola";
+  if (block.type === "headline") return "titulek";
+  if (block.type === "letter") return "dopis";
+  if (block.type === "image") return "obrázek";
+  if (block.type === "separator") return "předěl";
+  if (block.type === "quote") return "citace";
+  if (block.type === "poem") return "báseň";
+  if (block.type === "newspaper_article") return "novinový článek";
+  if (block.type === "place_line") return "místo / datace";
+  if (block.type === "note") return "poznámka";
+  if (block.type === "footnote") return "poznámka pod čarou";
+  if (block.type === "dedication") return "věnování";
+  if (block.type === "preface") return "předmluva";
+  if (block.type === "afterword") return "doslov";
+  if (block.type === "acknowledgement") return "poděkování";
+  return "odstavec";
+}
+
+function isOutlineBlock(block: WorkBlock) {
+  return (
+    block.type === "book_part" ||
+    block.type === "chapter" ||
+    block.type === "headline"
+  );
+}
+
+function getBlockNavigationMeta(block: WorkBlock, index: number) {
+  const length = getBlockTextLength(block);
+  const typeName = getBlockTypeName(block);
+
+  if (block.type === "separator") return `#${index + 1} · ${typeName}`;
+  if (block.type === "image") return `#${index + 1} · ${typeName}`;
+  if (block.type === "place_line") return `#${index + 1} · ${typeName}`;
+  if (block.type === "footnote") return `#${index + 1} · ${typeName}`;
+
+  return `#${index + 1} · ${typeName} · ${length} znaků`;
+}
 
 export default function WorkBlocksEditor({
   blocks,
@@ -141,6 +150,7 @@ export default function WorkBlocksEditor({
   >({});
   const [activeLargeBlockIndex, setActiveLargeBlockIndex] = useState(0);
   const [largeWorkJumpInput, setLargeWorkJumpInput] = useState("");
+  const pendingLargeWorkScrollBlockIdRef = useRef<string | null>(null);
   const uploadedInlineImagePathsRef = useRef<Set<string>>(new Set());
 
   const isLargeWorkMode = blocks.length > LARGE_WORK_BLOCK_COUNT;
@@ -173,6 +183,19 @@ export default function WorkBlocksEditor({
       setActiveLargeBlockIndex(safeActiveLargeBlockIndex);
     }
   }, [activeLargeBlockIndex, safeActiveLargeBlockIndex]);
+
+  useEffect(() => {
+    const blockId = pendingLargeWorkScrollBlockIdRef.current;
+    if (!blockId) return;
+
+    pendingLargeWorkScrollBlockIdRef.current = null;
+
+    window.requestAnimationFrame(() => {
+      document
+        .getElementById(`work-block-editor-${blockId}`)
+        ?.scrollIntoView({ behavior: "smooth", block: "center" });
+    });
+  }, [safeActiveLargeBlockIndex, visibleEndIndex, visibleStartIndex]);
 
   function normalizeBlockForType(
     block: WorkBlock,
@@ -505,11 +528,7 @@ export default function WorkBlocksEditor({
     setHighlightedBlockId(block.id);
 
     if (shouldScroll) {
-      window.setTimeout(() => {
-        document
-          .getElementById(`work-block-editor-${block.id}`)
-          ?.scrollIntoView({ behavior: "smooth", block: "center" });
-      }, 0);
+      pendingLargeWorkScrollBlockIdRef.current = block.id;
     }
 
     window.setTimeout(() => setHighlightedBlockId(null), 1600);
@@ -732,11 +751,7 @@ export default function WorkBlocksEditor({
                 </div>
               </div>
 
-              <form
-                onSubmit={(event) => {
-                  event.preventDefault();
-                  jumpToTypedBlock();
-                }}
+              <div
                 style={{
                   display: "flex",
                   gap: "8px",
@@ -757,6 +772,12 @@ export default function WorkBlocksEditor({
                   max={blocks.length}
                   value={largeWorkJumpInput}
                   onChange={(event) => setLargeWorkJumpInput(event.target.value)}
+                  onKeyDown={(event) => {
+                    if (event.key === "Enter") {
+                      event.preventDefault();
+                      jumpToTypedBlock();
+                    }
+                  }}
                   placeholder={`1–${blocks.length}`}
                   style={{
                     ...compactFieldStyle,
@@ -764,10 +785,14 @@ export default function WorkBlocksEditor({
                     padding: "8px 10px",
                   }}
                 />
-                <button type="submit" style={editorButtonStyle}>
+                <button
+                  type="button"
+                  onClick={jumpToTypedBlock}
+                  style={editorButtonStyle}
+                >
                   Přejít
                 </button>
-              </form>
+              </div>
             </div>
           ) : null}
 
@@ -1356,39 +1381,80 @@ export default function WorkBlocksEditor({
           <ol
             style={{
               display: "grid",
-              gap: "6px",
+              gap: "7px",
+              listStyle: "none",
               margin: 0,
-              paddingLeft: "20px",
+              paddingLeft: 0,
             }}
           >
-            {blocks.map((block, index) => (
-              <li key={block.id}>
-                <button
-                  type="button"
-                  onClick={() => scrollToBlock(block.id)}
+            {blocks.map((block, index) => {
+              const isActiveNavigationBlock =
+                isLargeWorkMode && index === safeActiveLargeBlockIndex;
+              const isVisibleNavigationBlock =
+                isLargeWorkMode &&
+                index >= visibleStartIndex &&
+                index < visibleEndIndex;
+              const isOutlineNavigationBlock = isOutlineBlock(block);
+              const navigationPreview = getBlockFirstLinePreview(block);
+
+              return (
+                <li
+                  key={block.id}
                   style={{
-                    background:
-                      isLargeWorkMode && index === safeActiveLargeBlockIndex
-                        ? "rgba(199, 163, 90, 0.22)"
-                        : isLargeWorkMode &&
-                            index >= visibleStartIndex &&
-                            index < visibleEndIndex
-                          ? "rgba(199, 163, 90, 0.1)"
-                          : "transparent",
-                    border: 0,
-                    borderRadius: "8px",
-                    color: "#241f19",
-                    cursor: "pointer",
-                    font: "inherit",
-                    padding: "4px 6px",
-                    textAlign: "left",
-                    textDecoration: "underline",
+                    marginLeft: isOutlineNavigationBlock ? 0 : "14px",
                   }}
                 >
-                  {getBlockNavigationLabel(block, index)}
-                </button>
-              </li>
-            ))}
+                  <button
+                    type="button"
+                    onClick={() => scrollToBlock(block.id)}
+                    style={{
+                      width: "100%",
+                      background: isActiveNavigationBlock
+                        ? "rgba(199, 163, 90, 0.24)"
+                        : isVisibleNavigationBlock
+                          ? "rgba(199, 163, 90, 0.1)"
+                          : isOutlineNavigationBlock
+                            ? "#fff7e8"
+                            : "transparent",
+                      border: 0,
+                      borderLeft: isOutlineNavigationBlock
+                        ? "4px solid #c7a35a"
+                        : "2px solid rgba(13, 21, 40, 0.12)",
+                      borderRadius: "8px",
+                      color: "#241f19",
+                      cursor: "pointer",
+                      display: "grid",
+                      font: "inherit",
+                      gap: "2px",
+                      padding: "6px 8px",
+                      textAlign: "left",
+                    }}
+                  >
+                    <span
+                      style={{
+                        fontSize: "12px",
+                        fontWeight: isOutlineNavigationBlock ? 800 : 700,
+                        letterSpacing: "0.01em",
+                        opacity: 0.82,
+                      }}
+                    >
+                      {getBlockNavigationMeta(block, index)}
+                      {isActiveNavigationBlock ? " · aktivní" : ""}
+                    </span>
+                    <span
+                      style={{
+                        fontSize: isOutlineNavigationBlock ? "13px" : "12px",
+                        fontWeight: isOutlineNavigationBlock ? 800 : 500,
+                        lineHeight: 1.35,
+                        opacity: navigationPreview === "Bez textového náhledu" ? 0.55 : 0.9,
+                      }}
+                    >
+                      {navigationPreview}
+                    </span>
+                  </button>
+                </li>
+              );
+            })}
           </ol>
         </aside>
       </div>
