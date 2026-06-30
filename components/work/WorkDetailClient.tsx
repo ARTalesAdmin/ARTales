@@ -298,7 +298,7 @@ function ProductOptions({
                   {labels.readNow}
                 </Link>
               ) : item.status === "available" && product ? (
-                <Link className="artales-button" href={`/checkout/coming-soon?product=${product.id}&work=${product.workId}`}>
+                <Link className="artales-button" href="/checkout/credits">
                   {labels.continueAccess}
                 </Link>
               ) : (

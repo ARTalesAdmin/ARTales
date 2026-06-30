@@ -3244,3 +3244,158 @@ body {
     margin-top: 2px;
   }
 }
+
+/* ARTales v0.10.12a-rev — manual QR credit/support checkout */
+.artales-credit-checkout {
+  max-width: 1180px;
+}
+
+.artales-credit-package-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 1rem;
+  margin-top: 1.5rem;
+}
+
+.artales-credit-package-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  min-height: 100%;
+  padding: 1.25rem;
+  border: 1px solid rgba(120, 91, 54, 0.22);
+  border-radius: 1.25rem;
+  background: rgba(255, 252, 245, 0.82);
+  box-shadow: 0 16px 36px rgba(45, 34, 22, 0.08);
+}
+
+.artales-credit-package-card h2 {
+  margin: 0;
+}
+
+.artales-credit-package-card p {
+  margin: 0;
+}
+
+.artales-credit-package-card > strong {
+  display: block;
+  margin-top: auto;
+  font-size: clamp(1.35rem, 3vw, 1.8rem);
+  color: var(--artales-ink, #2d2216);
+}
+
+.artales-credit-package-card__badge {
+  align-self: flex-start;
+  padding: 0.25rem 0.6rem;
+  border-radius: 999px;
+  background: rgba(144, 95, 36, 0.14);
+  color: #6e461b;
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+.artales-credit-package-card__form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin-top: 0.5rem;
+}
+
+.artales-credit-package-card__form label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  color: rgba(45, 34, 22, 0.72);
+  font-size: 0.86rem;
+  font-weight: 700;
+}
+
+.artales-credit-package-card__form select {
+  width: 100%;
+  min-height: 2.5rem;
+  border: 1px solid rgba(120, 91, 54, 0.28);
+  border-radius: 0.8rem;
+  background: rgba(255, 255, 255, 0.82);
+  color: var(--artales-ink, #2d2216);
+  padding: 0.55rem 0.75rem;
+}
+
+.artales-qr-payment-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 1rem;
+  margin: 1.5rem 0;
+}
+
+.artales-qr-payment-card {
+  padding: 1rem;
+  border: 1px solid rgba(120, 91, 54, 0.2);
+  border-radius: 1rem;
+  background: rgba(255, 252, 245, 0.76);
+}
+
+.artales-qr-payment-card strong {
+  display: block;
+  font-size: clamp(1.2rem, 2.5vw, 1.65rem);
+  color: var(--artales-ink, #2d2216);
+}
+
+.artales-qr-payment-card span {
+  display: block;
+  margin-top: 0.35rem;
+  color: rgba(45, 34, 22, 0.68);
+}
+
+.artales-qr-payment-card--highlight {
+  border-color: rgba(144, 95, 36, 0.34);
+  background: rgba(255, 247, 231, 0.92);
+}
+
+.artales-qr-payment-panel {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 1.5rem;
+  align-items: center;
+}
+
+.artales-qr-payment-image {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+  align-items: center;
+  max-width: 280px;
+  text-align: center;
+  color: rgba(45, 34, 22, 0.66);
+  font-size: 0.9rem;
+}
+
+.artales-qr-payment-image img {
+  border-radius: 1rem;
+  background: white;
+  padding: 0.75rem;
+  box-shadow: 0 12px 28px rgba(45, 34, 22, 0.12);
+}
+
+.artales-qr-payment-image--empty {
+  min-height: 220px;
+  justify-content: center;
+  padding: 1rem;
+  border: 1px dashed rgba(120, 91, 54, 0.35);
+  border-radius: 1rem;
+}
+
+.artales-qr-eu-note {
+  margin-top: 1.25rem;
+}
+
+@media (max-width: 760px) {
+  .artales-qr-payment-panel {
+    grid-template-columns: 1fr;
+  }
+
+  .artales-qr-payment-image {
+    max-width: none;
+  }
+}
