@@ -89,6 +89,44 @@ function stableStringify(value: unknown) {
   return JSON.stringify(value);
 }
 
+function isStorageQuotaError(error: unknown) {
+  return (
+    error instanceof DOMException &&
+    (error.name === "QuotaExceededError" ||
+      error.name === "NS_ERROR_DOM_QUOTA_REACHED" ||
+      error.code === 22 ||
+      error.code === 1014)
+  );
+}
+
+function readLocalDraft(storageKey: string) {
+  try {
+    return localStorage.getItem(storageKey);
+  } catch {
+    return null;
+  }
+}
+
+function removeLocalDraft(storageKey: string) {
+  try {
+    localStorage.removeItem(storageKey);
+  } catch {
+    // Storage access can fail in strict/private browser modes.
+  }
+}
+
+function writeLocalDraft(storageKey: string, payload: unknown) {
+  try {
+    localStorage.setItem(storageKey, JSON.stringify(payload));
+    return { ok: true as const };
+  } catch (error) {
+    return {
+      ok: false as const,
+      reason: isStorageQuotaError(error) ? "quota" : "unavailable",
+    };
+  }
+}
+
 export default function WorkEditorForm(props: Props) {
   const {
     mode,
@@ -112,7 +150,7 @@ export default function WorkEditorForm(props: Props) {
     if (clearDraftKeys.length === 0) return;
 
     clearDraftKeys.forEach((key) => {
-      localStorage.removeItem(key);
+      removeLocalDraft(key);
     });
   }, [clearDraftKeys]);
 
@@ -165,6 +203,7 @@ export default function WorkEditorForm(props: Props) {
   const [lastSaved, setLastSaved] = useState<string | null>(null);
   const [draftLoaded, setDraftLoaded] = useState(false);
   const [autosaveEnabled, setAutosaveEnabled] = useState(false);
+  const [autosaveWarning, setAutosaveWarning] = useState<string | null>(null);
   const [parserInput, setParserInput] = useState("");
   const [parserResult, setParserResult] = useState<ParsedWorkBlocksResult | null>(null);
   const [parserMessage, setParserMessage] = useState<string | null>(null);
@@ -293,7 +332,7 @@ export default function WorkEditorForm(props: Props) {
   );
 
   useEffect(() => {
-    const raw = localStorage.getItem(storageKey);
+    const raw = readLocalDraft(storageKey);
 
     if (!raw) {
       setDraftLoaded(true);
@@ -312,7 +351,7 @@ export default function WorkEditorForm(props: Props) {
       });
 
       if (draftSnapshot === initialSnapshot) {
-        localStorage.removeItem(storageKey);
+        removeLocalDraft(storageKey);
         setAutosaveEnabled(true);
         return;
       }
@@ -374,17 +413,30 @@ export default function WorkEditorForm(props: Props) {
           updated_at: new Date().toISOString(),
         };
 
-        localStorage.setItem(storageKey, JSON.stringify(nextPayload));
-        setLastSaved(nextPayload.updated_at);
+        const writeResult = writeLocalDraft(storageKey, nextPayload);
+
+        if (writeResult.ok) {
+          setLastSaved(nextPayload.updated_at);
+          setAutosaveWarning(null);
+          setAutosaveEnabled(true);
+        } else {
+          setLastSaved(null);
+          setAutosaveWarning(
+            writeResult.reason === "quota"
+              ? "Lokální autosave je pro toto velké dílo vypnutý, protože návrh je příliš velký pro úložiště prohlížeče. Ukládej prosím ručně tlačítkem Uložit."
+              : "Lokální autosave není v tomto prohlížeči dostupný. Ukládej prosím ručně tlačítkem Uložit.",
+          );
+          setAutosaveEnabled(false);
+        }
+
         setHasDraft(false);
-        setAutosaveEnabled(true);
         return;
       }
 
       setHasDraft(true);
       setLastSaved(parsed.updated_at ?? null);
     } catch {
-      localStorage.removeItem(storageKey);
+      removeLocalDraft(storageKey);
       setAutosaveEnabled(true);
     } finally {
       setDraftLoaded(true);
@@ -400,8 +452,20 @@ export default function WorkEditorForm(props: Props) {
       updated_at: new Date().toISOString(),
     };
 
-    localStorage.setItem(storageKey, JSON.stringify(payload));
-    setLastSaved(payload.updated_at);
+    const writeResult = writeLocalDraft(storageKey, payload);
+
+    if (writeResult.ok) {
+      setLastSaved(payload.updated_at);
+      setAutosaveWarning(null);
+      return;
+    }
+
+    setAutosaveWarning(
+      writeResult.reason === "quota"
+        ? "Lokální autosave je pro toto velké dílo vypnutý, protože návrh je příliš velký pro úložiště prohlížeče. Ukládej prosím ručně tlačítkem Uložit."
+        : "Lokální autosave není v tomto prohlížeči dostupný. Ukládej prosím ručně tlačítkem Uložit.",
+    );
+    setAutosaveEnabled(false);
   }, [formState, blocks, storageKey, draftLoaded, autosaveEnabled]);
 
   useEffect(() => {
@@ -412,7 +476,7 @@ export default function WorkEditorForm(props: Props) {
       primary_author_id: forcedAuthorId,
     }));
 
-    const raw = localStorage.getItem(storageKey);
+    const raw = readLocalDraft(storageKey);
     if (!raw) return;
 
     try {
@@ -427,15 +491,26 @@ export default function WorkEditorForm(props: Props) {
         updated_at: new Date().toISOString(),
       };
 
-      localStorage.setItem(storageKey, JSON.stringify(next));
-      setLastSaved(next.updated_at);
+      const writeResult = writeLocalDraft(storageKey, next);
+
+      if (writeResult.ok) {
+        setLastSaved(next.updated_at);
+        setAutosaveWarning(null);
+      } else {
+        setAutosaveWarning(
+          writeResult.reason === "quota"
+            ? "Lokální autosave je pro toto velké dílo vypnutý, protože návrh je příliš velký pro úložiště prohlížeče. Ukládej prosím ručně tlačítkem Uložit."
+            : "Lokální autosave není v tomto prohlížeči dostupný. Ukládej prosím ručně tlačítkem Uložit.",
+        );
+        setAutosaveEnabled(false);
+      }
     } catch {
       // ignore broken draft
     }
   }, [forcedAuthorId, storageKey, draftLoaded]);
 
   function restoreDraft() {
-    const raw = localStorage.getItem(storageKey);
+    const raw = readLocalDraft(storageKey);
     if (!raw) {
       setHasDraft(false);
       setAutosaveEnabled(true);
@@ -496,13 +571,15 @@ export default function WorkEditorForm(props: Props) {
     }
 
     setHasDraft(false);
+    setAutosaveWarning(null);
     setAutosaveEnabled(true);
   }
 
   function discardDraft() {
-    localStorage.removeItem(storageKey);
+    removeLocalDraft(storageKey);
     setHasDraft(false);
     setLastSaved(null);
+    setAutosaveWarning(null);
     setAutosaveEnabled(true);
   }
 
@@ -696,6 +773,23 @@ export default function WorkEditorForm(props: Props) {
               Zahodit návrh
             </button>
           </div>
+        </div>
+      ) : null}
+
+      {autosaveWarning ? (
+        <div
+          role="status"
+          style={{
+            border: "1px solid #e0c39a",
+            padding: "14px 16px",
+            marginBottom: "20px",
+            background: "#fff8ed",
+            color: "#4a3218",
+          }}
+        >
+          <p style={{ margin: 0, fontSize: "14px", lineHeight: 1.5 }}>
+            {autosaveWarning}
+          </p>
         </div>
       ) : null}
 
