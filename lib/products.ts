@@ -99,8 +99,11 @@ export const DEFAULT_PRODUCT_COPY: Record<ProductType, { title: string; descript
   },
 };
 
-export function formatProductPrice(price: WorkProductPrice | null | undefined) {
-  if (!price) return "Coming soon";
+export function formatProductPrice(
+  price: WorkProductPrice | null | undefined,
+  fallbackLabel = "Coming soon"
+) {
+  if (!price) return fallbackLabel;
 
   const amount = price.amountCents / 100;
 

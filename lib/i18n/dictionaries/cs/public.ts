@@ -44,6 +44,7 @@ export const csPublic = {
   productOnlineText: "Čtení díla v online čtečce ARTales.",
   productDownloadLaterText: "Stahovatelný ediční soubor. Tlačítko pro stažení se objeví až po přípravě oficiálního exportu.",
   productNoActionNote: "Teď není potřeba žádná akce.",
+  productPricePreparing: "Cena se připravuje",
   statusUnlocked: "V knihovně",
   statusAvailable: "Dostupné",
   statusPreparing: "Připravuje se",

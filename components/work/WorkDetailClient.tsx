@@ -7,6 +7,8 @@ import WorkFeedbackPanel from "@/components/community/WorkFeedbackPanel";
 import { getPublicDictionary } from "@/lib/i18n/public";
 import type { SupportedLocale } from "@/lib/i18n/config";
 import {
+  DEFAULT_PRODUCT_COPY,
+  PRODUCT_TYPE_LABELS,
   formatProductPrice,
   getPrimaryProductPrice,
   type WorkProductOffer,
@@ -156,14 +158,17 @@ function getProductStatusLabel(status: string, labels: WorkPublicLabels) {
   }
 }
 
-function isPlaceholderProductTitle(value: string | null | undefined) {
-  if (!value) return true;
-
-  const normalized = value
+function normalizePlaceholderText(value: string | null | undefined) {
+  return String(value ?? "")
     .trim()
     .toLowerCase()
     .replace(/[._-]+/g, " ")
     .replace(/\s+/g, " ");
+}
+
+function isComingSoonPlaceholder(value: string | null | undefined) {
+  const normalized = normalizePlaceholderText(value);
+  if (!normalized) return true;
 
   return (
     normalized === "coming soon" ||
@@ -176,21 +181,40 @@ function isPlaceholderProductTitle(value: string | null | undefined) {
   );
 }
 
-function isPlaceholderProductDescription(value: string | null | undefined) {
-  if (!value) return true;
+function isPlaceholderProductTitle(
+  value: string | null | undefined,
+  type: ProductType
+) {
+  if (isComingSoonPlaceholder(value)) return true;
 
-  const normalized = value
-    .trim()
-    .toLowerCase()
-    .replace(/[._-]+/g, " ")
-    .replace(/\s+/g, " ");
+  const normalized = normalizePlaceholderText(value);
+  const genericTitles = [
+    DEFAULT_PRODUCT_COPY[type].title,
+    PRODUCT_TYPE_LABELS[type],
+    type,
+  ].map(normalizePlaceholderText);
+
+  return genericTitles.includes(normalized);
+}
+
+function isPlaceholderProductDescription(
+  value: string | null | undefined,
+  type: ProductType
+) {
+  if (isComingSoonPlaceholder(value)) return true;
+
+  const normalized = normalizePlaceholderText(value);
+  const defaultDescription = normalizePlaceholderText(DEFAULT_PRODUCT_COPY[type].description);
 
   return (
-    normalized === "coming soon" ||
-    normalized === "coming later" ||
-    normalized === "not available" ||
-    normalized.includes("coming soon") ||
-    normalized.includes("coming later")
+    normalized === defaultDescription ||
+    normalized.includes("permanent online reading access") ||
+    normalized.includes("downloadable pdf edition") ||
+    normalized.includes("downloadable epub edition") ||
+    normalized.includes("combined digital edition package") ||
+    normalized.includes("printed edition placeholder") ||
+    normalized.includes("export tooling is ready") ||
+    normalized.includes("delivery is coming")
   );
 }
 
@@ -252,20 +276,20 @@ function ProductOptions({
         {surfaceItems.map((item) => {
           const product = item.product;
           const price = product ? getPrimaryProductPrice(product) : null;
-          const title = isPlaceholderProductTitle(product?.title)
+          const title = !product || isPlaceholderProductTitle(product.title, item.key)
             ? getProductTitle(item.key, labels)
-            : product!.title;
-          const description = isPlaceholderProductDescription(product?.description)
+            : product.title;
+          const description = !product || isPlaceholderProductDescription(product.description, item.key)
             ? isDownloadProduct(item.key)
               ? labels.productDownloadLaterText
               : labels.productOnlineText
-            : product!.description;
+            : product.description;
 
           return (
             <article key={item.key} className={item.status === "unlocked" ? "artales-product-card artales-product-card--owned" : "artales-product-card"}>
               <div className="artales-product-card__topline">
                 <h3>{title}</h3>
-                <span>{formatProductPrice(price)}</span>
+                <span>{formatProductPrice(price, labels.productPricePreparing)}</span>
               </div>
               <p>{description}</p>
               <p className="artales-product-card__status">{getProductStatusLabel(item.status, labels)}</p>

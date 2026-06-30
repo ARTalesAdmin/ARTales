@@ -109,6 +109,7 @@ export const enPublic = {
   productOnlineText: "Read this work in the ARTales online reader.",
   productDownloadLaterText: "Downloadable edition file. The download button appears after the official export is ready.",
   productNoActionNote: "No action needed right now.",
+  productPricePreparing: "Price pending",
   statusUnlocked: "In your library",
   statusAvailable: "Available",
   statusPreparing: "Being prepared",
