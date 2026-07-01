@@ -3,21 +3,27 @@ import { requireCompletedAccountProfile } from "@/lib/account";
 import { getShortDisplayName } from "@/lib/displayName";
 import { getPublicDictionary } from "@/lib/i18n/public";
 import { getCookieLocale, resolveProfileLocale } from "@/lib/i18n/server";
+import { getReaderLibrarySummary } from "@/lib/entitlements";
 import { logoutFromAccount } from "./actions";
 
 export const dynamic = "force-dynamic";
 
 export default async function AccountPage() {
   const profile = await requireCompletedAccountProfile("/account");
+  const [summary, cookieLocale] = await Promise.all([
+    getReaderLibrarySummary(profile.id),
+    getCookieLocale(),
+  ]);
   const shortName = getShortDisplayName(profile);
-  const cookieLocale = await getCookieLocale();
   const locale = resolveProfileLocale(profile, cookieLocale);
   const dictionary = getPublicDictionary(locale).account.overview;
 
   return (
-    <section className="artales-account-page">
+    <section className="artales-account-page artales-account-overview-page">
       <p className="artales-account-kicker">{dictionary.kicker}</p>
-      <h1>{dictionary.titlePrefix}, {shortName}</h1>
+      <h1>
+        {dictionary.titlePrefix}, {shortName}
+      </h1>
       <p className="artales-account-lede">{dictionary.lede}</p>
 
       <form action={logoutFromAccount} className="artales-account-logout">
@@ -26,60 +32,82 @@ export default async function AccountPage() {
         </button>
       </form>
 
-      <div className="artales-account-grid">
-        <article className="artales-account-card artales-account-card--featured">
-          <p className="artales-account-card__label">{dictionary.currentRoleLabel}</p>
-          <h2>{profile.role}</h2>
-          <p>{dictionary.currentRoleText}</p>
-        </article>
+      <section className="artales-account-overview-hero">
+        <div>
+          <p className="artales-account-card__label">
+            {dictionary.primaryLabel}
+          </p>
+          <h2>{dictionary.primaryTitle}</h2>
+          <p>{dictionary.primaryText}</p>
+          <div className="artales-account-actions artales-account-actions--inline">
+            <Link className="artales-button" href="/account/library">
+              {dictionary.libraryCta}
+            </Link>
+            <Link className="artales-button-secondary" href="/gallery">
+              {dictionary.browseCta}
+            </Link>
+          </div>
+        </div>
+        <div
+          className="artales-account-overview-hero__stats"
+          aria-label={dictionary.quickStatsLabel}
+        >
+          <article>
+            <span>{dictionary.onlineCountLabel}</span>
+            <strong>{summary.onlineEntitlements}</strong>
+          </article>
+          <article>
+            <span>{dictionary.savedCountLabel}</span>
+            <strong>{summary.savedItems}</strong>
+          </article>
+          <article>
+            <span>{dictionary.creditCountLabel}</span>
+            <strong>{summary.atCreditBalance}</strong>
+          </article>
+        </div>
+      </section>
 
+      <div className="artales-account-grid artales-account-grid--focused">
         <article className="artales-account-card">
-          <p className="artales-account-card__label">{dictionary.libraryLabel}</p>
-          <h2>{dictionary.libraryTitle}</h2>
-          <p>{dictionary.libraryText}</p>
-          <Link href="/account/library">{dictionary.libraryCta}</Link>
-        </article>
-
-        <article className="artales-account-card">
-          <p className="artales-account-card__label">{dictionary.creditsLabel}</p>
+          <p className="artales-account-card__label">
+            {dictionary.creditsLabel}
+          </p>
           <h2>{dictionary.creditsTitle}</h2>
           <p>{dictionary.creditsText}</p>
-          <Link href="/account/credits">{dictionary.creditsCta}</Link>
+          <div className="artales-account-card__links">
+            <Link href="/account/credits">{dictionary.creditsCta}</Link>
+            <Link href="/checkout/credits">{dictionary.topUpCta}</Link>
+          </div>
         </article>
 
         <article className="artales-account-card">
-          <p className="artales-account-card__label">{dictionary.profileLabel}</p>
-          <h2>@{profile.handle}</h2>
-          <p>{dictionary.profileText}</p>
-          <Link href="/account/profile">{dictionary.profileCta}</Link>
+          <p className="artales-account-card__label">
+            {dictionary.supportLabel}
+          </p>
+          <h2>{dictionary.supportTitle}</h2>
+          <p>{dictionary.supportText}</p>
+          <Link href="/checkout/support">{dictionary.supportCta}</Link>
         </article>
 
         <article className="artales-account-card">
-          <p className="artales-account-card__label">{dictionary.securityLabel}</p>
-          <h2>{dictionary.securityTitle}</h2>
-          <p>{dictionary.securityText}</p>
-          <Link href="/account/security">{dictionary.securityCta}</Link>
-        </article>
-
-        <article className="artales-account-card">
-          <p className="artales-account-card__label">{dictionary.settingsLabel}</p>
+          <p className="artales-account-card__label">
+            {dictionary.settingsLabel}
+          </p>
           <h2>{dictionary.settingsTitle}</h2>
           <p>{dictionary.settingsText}</p>
           <Link href="/account/settings">{dictionary.settingsCta}</Link>
         </article>
 
-        <article className="artales-account-card">
-          <p className="artales-account-card__label">{dictionary.communityLabel}</p>
-          <h2>{dictionary.communityTitle}</h2>
-          <p>{dictionary.communityText}</p>
-          <Link href="/account/community">{dictionary.communityCta}</Link>
-        </article>
-
-        <article className="artales-account-card artales-account-card--compact-cta">
-          <p className="artales-account-card__label">{dictionary.membershipLabel}</p>
-          <h2>{dictionary.membershipTitle}</h2>
-          <p>{dictionary.membershipText}</p>
-          <Link href="/account/membership">{dictionary.membershipCta}</Link>
+        <article className="artales-account-card artales-account-card--quiet">
+          <p className="artales-account-card__label">
+            {dictionary.profileLabel}
+          </p>
+          <h2>@{profile.handle}</h2>
+          <p>{dictionary.profileText}</p>
+          <div className="artales-account-card__links">
+            <Link href="/account/profile">{dictionary.profileCta}</Link>
+            <Link href="/account/security">{dictionary.securityCta}</Link>
+          </div>
         </article>
       </div>
     </section>

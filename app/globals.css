@@ -4,7 +4,8 @@
   --background: #fbf5ea;
   --foreground: #0d1528;
   --font-artales-sans: Arial, Helvetica, sans-serif;
-  --font-artales-mono: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+  --font-artales-mono:
+    "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
 }
 
 body {
@@ -13,7 +14,10 @@ body {
   font-family: var(--font-artales-sans);
 }
 
-code, kbd, pre, samp {
+code,
+kbd,
+pre,
+samp {
   font-family: var(--font-artales-mono);
 }
 
@@ -710,7 +714,11 @@ body {
 .artales-app-shell,
 .artales-workspace-shell {
   background:
-    radial-gradient(circle at top left, rgba(217, 183, 110, 0.12), transparent 34rem),
+    radial-gradient(
+      circle at top left,
+      rgba(217, 183, 110, 0.12),
+      transparent 34rem
+    ),
     linear-gradient(180deg, #fffaf0 0%, var(--artales-paper) 100%);
   min-height: 100vh;
 }
@@ -799,7 +807,11 @@ body {
 /* v0.9.0 — entitlement/library/membership foundation */
 .artales-account-promo-panel {
   border: 1px solid rgba(184, 134, 11, 0.34);
-  background: linear-gradient(135deg, rgba(255, 248, 220, 0.96), rgba(255, 255, 255, 0.82));
+  background: linear-gradient(
+    135deg,
+    rgba(255, 248, 220, 0.96),
+    rgba(255, 255, 255, 0.82)
+  );
   border-radius: 24px;
   padding: 22px;
   box-shadow: 0 18px 44px rgba(13, 21, 40, 0.08);
@@ -808,7 +820,7 @@ body {
 
 .artales-account-promo-panel h2 {
   margin: 4px 0 10px;
-  font-family: Georgia, 'Times New Roman', serif;
+  font-family: Georgia, "Times New Roman", serif;
 }
 
 .artales-account-tier-card h2 span {
@@ -863,7 +875,7 @@ body {
   display: block;
   margin-top: 8px;
   font-size: 34px;
-  font-family: Georgia, 'Times New Roman', serif;
+  font-family: Georgia, "Times New Roman", serif;
   color: var(--artales-ink);
 }
 
@@ -886,7 +898,7 @@ body {
 
 .artales-account-list-item h3 {
   margin: 2px 0 4px;
-  font-family: Georgia, 'Times New Roman', serif;
+  font-family: Georgia, "Times New Roman", serif;
 }
 
 .artales-account-list-item p {
@@ -1585,7 +1597,6 @@ body {
   }
 }
 
-
 /* v0.9.7d – follow management and feedback triage */
 .artales-community-actions {
   align-items: center;
@@ -1721,7 +1732,11 @@ body {
 
 .artales-account-community-membrane {
   background:
-    radial-gradient(circle at top right, rgba(217, 183, 110, 0.18), transparent 16rem),
+    radial-gradient(
+      circle at top right,
+      rgba(217, 183, 110, 0.18),
+      transparent 16rem
+    ),
     rgba(255, 253, 247, 0.92);
 }
 
@@ -2012,7 +2027,10 @@ body {
 
 .artales-gallery-card__body {
   flex: 1;
-  grid-template-rows: auto minmax(4.1rem, auto) minmax(1.35rem, auto) minmax(4.6rem, auto) minmax(4.8rem, auto);
+  grid-template-rows: auto minmax(4.1rem, auto) minmax(1.35rem, auto) minmax(
+      4.6rem,
+      auto
+    ) minmax(4.8rem, auto);
 }
 
 .artales-gallery-card__subtitle {
@@ -2151,7 +2169,11 @@ body {
 
 .artales-storage-image__frame {
   align-items: center;
-  background: linear-gradient(145deg, rgba(255, 247, 224, 0.92), rgba(243, 225, 178, 0.72));
+  background: linear-gradient(
+    145deg,
+    rgba(255, 247, 224, 0.92),
+    rgba(243, 225, 178, 0.72)
+  );
   border: 1px solid rgba(217, 183, 110, 0.34);
   box-shadow: 0 16px 38px rgba(13, 21, 40, 0.12);
   display: flex;
@@ -2388,7 +2410,6 @@ body {
   text-transform: uppercase;
 }
 
-
 /* v0.10.7g — compact related work grids */
 .artales-related-work-grid {
   display: grid;
@@ -2520,7 +2541,11 @@ body {
 @media (max-width: 640px) {
   .artales-public-shell {
     background:
-      radial-gradient(circle at top left, rgba(217, 183, 110, 0.16), transparent 22rem),
+      radial-gradient(
+        circle at top left,
+        rgba(217, 183, 110, 0.16),
+        transparent 22rem
+      ),
       linear-gradient(180deg, #fffaf0 0%, var(--artales-paper) 100%);
   }
 
@@ -2822,7 +2847,6 @@ body {
   }
 }
 
-
 /* v0.10.8h — gallery cleanup, author portraits and public metadata localization polish */
 .artales-author-card .artales-author-card-portrait {
   align-self: center;
@@ -2830,8 +2854,14 @@ body {
   width: min(132px, 46vw);
 }
 
-.artales-author-card .artales-storage-image--author .artales-storage-image__frame {
-  background: linear-gradient(145deg, rgba(255, 247, 224, 0.96), rgba(243, 225, 178, 0.78));
+.artales-author-card
+  .artales-storage-image--author
+  .artales-storage-image__frame {
+  background: linear-gradient(
+    145deg,
+    rgba(255, 247, 224, 0.96),
+    rgba(243, 225, 178, 0.78)
+  );
   box-shadow: 0 14px 34px rgba(13, 21, 40, 0.12);
 }
 
@@ -2840,7 +2870,9 @@ body {
   padding: 16px;
 }
 
-.artales-author-card .artales-storage-image__placeholder .artales-brand__wordmark {
+.artales-author-card
+  .artales-storage-image__placeholder
+  .artales-brand__wordmark {
   display: none;
 }
 
@@ -2853,7 +2885,6 @@ body {
     width: 108px;
   }
 }
-
 
 /* v0.10.8l — author detail work cards desktop polish.
    On desktop, author-detail work cards are more horizontal and readable;
@@ -2922,7 +2953,6 @@ body {
   }
 }
 
-
 /* v0.10.8o — gallery desktop card rhythm polish.
    The gallery cards previously inherited reserved grid rows intended for
    perfectly equal cards. On desktop this created visible empty bands between
@@ -2954,7 +2984,6 @@ body {
     margin-top: 6px;
   }
 }
-
 
 /* v0.10.8p — simplified gallery cards for stable desktop rhythm.
    Gallery cards are now a decision surface, not a full metadata catalogue:
@@ -3012,7 +3041,6 @@ body {
 .artales-storage-image--author .artales-storage-image__frame {
   border-radius: 22px;
 }
-
 
 /* v0.10.8r — gallery language + author work card polish.
    Language returns as a normal metadata line in gallery cards. Author-detail
@@ -3081,8 +3109,6 @@ body {
     margin-top: 8px;
   }
 }
-
-
 
 /* v0.10.9 — launch legal minimum pages */
 .artales-legal-main {
@@ -3176,7 +3202,6 @@ body {
   font-size: 1.25rem;
 }
 
-
 /* v0.10.9a — work-detail language version cue */
 .artales-edition-language-note {
   background: rgba(255, 255, 255, 0.58);
@@ -3189,7 +3214,11 @@ body {
 }
 
 .artales-edition-language-note--original {
-  background: linear-gradient(135deg, rgba(217, 183, 110, 0.2), rgba(255, 255, 255, 0.62));
+  background: linear-gradient(
+    135deg,
+    rgba(217, 183, 110, 0.2),
+    rgba(255, 255, 255, 0.62)
+  );
   border-color: rgba(138, 106, 45, 0.24);
 }
 
@@ -3213,7 +3242,6 @@ body {
   background: rgba(217, 183, 110, 0.2);
   border-color: rgba(138, 106, 45, 0.28);
 }
-
 
 /* v0.10.9c — gallery card gap correction.
    Keep title alignment across cards, but remove the large forced spaces between
@@ -3453,7 +3481,10 @@ body {
 .artales-admin-payment-card__main {
   display: grid;
   gap: 14px;
-  grid-template-columns: minmax(150px, 1fr) minmax(160px, 1.2fr) minmax(150px, 1fr) minmax(130px, 0.9fr);
+  grid-template-columns: minmax(150px, 1fr) minmax(160px, 1.2fr) minmax(
+      150px,
+      1fr
+    ) minmax(130px, 0.9fr);
 }
 
 .artales-admin-payment-card__main h3 {
@@ -3670,5 +3701,213 @@ body {
 
   .artales-credit-ledger-row p:last-child {
     text-align: left;
+  }
+}
+
+/* v0.10.12e — reader account/library copy and card polish */
+.artales-account-overview-hero,
+.artales-account-library-hero {
+  background:
+    radial-gradient(
+      circle at top right,
+      rgba(217, 183, 110, 0.22),
+      transparent 18rem
+    ),
+    linear-gradient(
+      135deg,
+      rgba(255, 253, 248, 0.98),
+      rgba(245, 235, 215, 0.88)
+    );
+  border: 1px solid rgba(13, 21, 40, 0.1);
+  border-radius: 30px;
+  box-shadow: 0 24px 70px rgba(13, 21, 40, 0.1);
+  margin: 24px 0;
+  padding: clamp(22px, 4vw, 34px);
+}
+
+.artales-account-overview-hero {
+  align-items: stretch;
+  display: grid;
+  gap: 24px;
+  grid-template-columns: minmax(0, 1.35fr) minmax(260px, 0.65fr);
+}
+
+.artales-account-overview-hero h2,
+.artales-account-library-hero h2 {
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: clamp(2rem, 4vw, 3.15rem);
+  letter-spacing: -0.055em;
+  line-height: 1;
+  margin: 4px 0 12px;
+}
+
+.artales-account-overview-hero__stats {
+  display: grid;
+  gap: 12px;
+}
+
+.artales-account-overview-hero__stats article {
+  background: rgba(255, 255, 255, 0.72);
+  border: 1px solid rgba(13, 21, 40, 0.09);
+  border-radius: 20px;
+  padding: 16px;
+}
+
+.artales-account-overview-hero__stats span {
+  color: rgba(13, 21, 40, 0.58);
+  display: block;
+  font-size: 0.75rem;
+  font-weight: 900;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.artales-account-overview-hero__stats strong {
+  color: var(--artales-ink);
+  display: block;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 2.2rem;
+  margin-top: 4px;
+}
+
+.artales-account-grid--focused {
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+}
+
+.artales-account-card--quiet {
+  background: rgba(255, 255, 255, 0.66);
+}
+
+.artales-account-card__links,
+.artales-account-actions--inline {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.artales-account-card__links {
+  margin-top: 14px;
+}
+
+.artales-account-library-hero {
+  align-items: center;
+  display: grid;
+  gap: clamp(18px, 4vw, 34px);
+  grid-template-columns: minmax(0, 1fr) minmax(160px, 240px);
+}
+
+.artales-account-library-hero__copy p:not(.artales-account-card__label) {
+  max-width: 620px;
+}
+
+.artales-account-library-hero__cover {
+  text-decoration: none;
+}
+
+.artales-account-stat-grid--library {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.artales-account-book-grid {
+  display: grid;
+  gap: 18px;
+  grid-template-columns: repeat(auto-fit, minmax(310px, 1fr));
+  margin-top: 18px;
+}
+
+.artales-account-book-grid--saved {
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+}
+
+.artales-account-book-card {
+  background: rgba(255, 255, 255, 0.82);
+  border: 1px solid rgba(13, 21, 40, 0.11);
+  border-radius: 26px;
+  box-shadow: 0 16px 46px rgba(13, 21, 40, 0.075);
+  display: grid;
+  gap: 16px;
+  grid-template-columns: 118px minmax(0, 1fr);
+  min-height: 230px;
+  overflow: hidden;
+  padding: 14px;
+}
+
+.artales-account-book-card__cover {
+  display: block;
+  min-height: 178px;
+  text-decoration: none;
+}
+
+.artales-account-book-card__cover .artales-work-cover--card {
+  min-height: 178px;
+}
+
+.artales-account-book-card__body {
+  align-content: start;
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+  padding: 4px 4px 4px 0;
+}
+
+.artales-account-book-card h3 {
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 1.45rem;
+  letter-spacing: -0.04em;
+  line-height: 1.08;
+  margin: 0;
+}
+
+.artales-account-book-card h3 a {
+  color: var(--artales-ink);
+  text-decoration: none;
+}
+
+.artales-account-book-card h3 a:hover {
+  text-decoration: underline;
+}
+
+.artales-account-book-card__summary {
+  color: rgba(13, 21, 40, 0.72);
+  display: -webkit-box;
+  font-size: 0.92rem;
+  line-height: 1.5;
+  margin: 0;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+}
+
+.artales-account-book-card__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 6px;
+}
+
+@media (max-width: 860px) {
+  .artales-account-overview-hero,
+  .artales-account-library-hero {
+    grid-template-columns: 1fr;
+  }
+
+  .artales-account-library-hero__cover {
+    max-width: 220px;
+  }
+}
+
+@media (max-width: 620px) {
+  .artales-account-stat-grid--library {
+    grid-template-columns: 1fr;
+  }
+
+  .artales-account-book-card {
+    grid-template-columns: 92px minmax(0, 1fr);
+  }
+
+  .artales-account-book-card__cover,
+  .artales-account-book-card__cover .artales-work-cover--card {
+    min-height: 142px;
   }
 }

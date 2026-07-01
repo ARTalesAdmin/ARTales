@@ -10,6 +10,7 @@ export const enAccount = {
     community: "Community",
     membership: "Membership",
     credits: "Credit",
+    support: "Support ARTales",
     memberZone: "Member zone",
     gallery: "Gallery",
     ariaLabel: "Reader account navigation",
@@ -17,85 +18,129 @@ export const enAccount = {
   overview: {
     kicker: "ARTales reader account",
     titlePrefix: "Welcome",
-    lede: "Your personal ARTales space for reading, saved titles, reader settings, community participation and future membership tools.",
+    lede: "Return to reading, check your credit and manage the parts of ARTales that belong to your account.",
     signOut: "Sign out",
     currentRoleLabel: "Current role",
-    currentRoleText: "You are signed in as a registered ARTales reader. Your account already connects your library, credit, payment instructions and future membership benefits.",
+    currentRoleText:
+      "You are signed in as a registered ARTales reader. Your account already connects your library, credit, payment instructions and future membership benefits.",
     libraryLabel: "Library",
     libraryTitle: "Read & return",
-    libraryText: "Unlocked titles, saved works, download rights and reader preferences live in your library.",
+    libraryText:
+      "Unlocked titles, saved works, download rights and reader preferences live in your library.",
     libraryCta: "Open library",
     profileLabel: "Profile",
     securityLabel: "Security",
     settingsLabel: "Reader settings",
     communityLabel: "Community",
     membershipLabel: "Membership",
-    profileText: "Edit your display name and handle used by ARTales reader and future contribution records.",
+    profileText:
+      "Edit your display name and handle used by ARTales reader and future contribution records.",
     profileCta: "Edit profile",
     securityTitle: "Password",
-    securityText: "Change your password or send yourself a password reset e-mail.",
+    securityText:
+      "Change your password or send yourself a password reset e-mail.",
     securityCta: "Open security",
     settingsTitle: "Comfort first",
-    settingsText: "Set your default theme, width, density and collapsed controls preference.",
+    settingsText:
+      "Set your default theme, width, density and collapsed controls preference.",
     settingsCta: "Open settings",
     communityTitle: "Authors & signals",
-    communityText: "Follow authors, review your private reader signals and see how ARTales community participation will grow.",
+    communityText:
+      "Follow authors, review your private reader signals and see how ARTales community participation will grow.",
     communityCta: "Open community",
     membershipTitle: "Plans preview",
-    membershipText: "See the prepared Free Reader, Basic, Plus and Library model before payments go live.",
+    membershipText:
+      "See the prepared Free Reader, Basic, Plus and Library model before payments go live.",
     membershipCta: "View membership",
     creditsLabel: "Reader credit",
     creditsTitle: "Credit and payments",
-    creditsText: "Credit top-ups, ARTales support, pending QR instructions and credit history in one place.",
+    creditsText:
+      "Top up once and use credit gradually for unlocks, editions or ARTales support.",
     creditsCta: "Open credit",
+    primaryLabel: "Today in ARTales",
+    primaryTitle: "Return to reading",
+    primaryText:
+      "Your library is the main place for unlocked titles, saved books and a quick return to the reader.",
+    browseCta: "Browse gallery",
+    quickStatsLabel: "Quick account overview",
+    onlineCountLabel: "Unlocked",
+    savedCountLabel: "Saved",
+    creditCountLabel: "Credit",
+    topUpCta: "Top up",
+    supportLabel: "Support",
+    supportTitle: "Support ARTales",
+    supportText:
+      "Help us build an independent literary space, editorial care and new reader layers.",
+    supportCta: "Support",
   },
   library: {
     kicker: "My library",
-    title: "Your ARTales library",
-    lede: "Your place for online reading, saved titles, followed authors and future download editions.",
+    title: "My library",
+    lede: "Your unlocked and saved titles. A direct way back to reading, without technical notes.",
     stats: {
       online: "Online reading",
       saved: "Saved titles",
-      downloads: "Downloads",
+      downloads: "Editions",
       credits: "Reader credit",
-      welcome: "Welcome unlock",
+      welcome: "Welcome benefit",
     },
     welcomeAvailableLabel: "Free Reader benefit",
     welcomeAvailableTitle: "You have 1 welcome unlock available",
-    welcomeAvailableText: "Choose carefully: the welcome unlock permanently adds one title to your online library. On a work detail page, use the confirmation screen before it is spent.",
+    welcomeAvailableText:
+      "Choose carefully: the welcome unlock permanently adds one title to your online library. On a work detail page, use the confirmation screen before it is spent.",
     chooseTitle: "Choose a title",
     welcomeUsedLabel: "Welcome unlock",
     welcomeUsedTitle: "Already used",
-    welcomeUsedText: "Your one-time welcome unlock has already been used. The unlocked title appears in your online titles below.",
+    welcomeUsedText: "Your one-time welcome unlock has already been used.",
     savedLabel: "Saved titles",
     savedTitle: "Saved for later",
-    savedText: "Titles saved from the reader stay available on this device. Account sync can be added later without changing the reader hub.",
-    savedMeta: "Device-local for now.",
+    savedText:
+      "Saved titles are ready for later. When you are signed in, they are saved to your account.",
+    savedMeta: "Saved through your ARTales account.",
     recentLabel: "Recently read",
     recentTitleSuffix: "reading records",
-    recentText: "Reading progress and bookmarks will become more visible as the reader evolves.",
-    recentMeta: "Prepared for future cross-device reading.",
+    recentText:
+      "Open an unlocked title in one click. On the same device, the reader returns to your latest place.",
+    recentMeta: "Continue reading works in the reader on this device.",
     downloadsLabel: "Downloads",
-    downloadsTitle: "PDF / EPUB rights",
-    downloadsText: "Official PDF/EPUB editions will appear here only after export files are ready and attached to the title.",
+    downloadsTitle: "Download editions",
+    downloadsText:
+      "When an official PDF or EPUB edition is available for a title, it will appear as its own option.",
     followedAuthorsLabel: "Followed authors",
     followedAuthorsTitle: "Your author watchlist",
     manageFollows: "Manage follows",
-    noFollowedAuthors: "Follow authors from their author pages. They will appear here and later feed new-release notifications.",
+    noFollowedAuthors:
+      "Follow authors from their author pages. They will appear here and later feed new-release notifications.",
     more: "more",
-    unlockedTitle: "Unlocked online titles",
+    unlockedLabel: "Ready to read",
+    unlockedTitle: "Unlocked titles",
     readOnline: "Read online",
     openDetail: "Open detail",
     unknownAuthor: "Unknown author",
-    noUnlockedWorks: "No online titles are unlocked yet. Choose a title from the gallery and use your welcome unlock when you are ready.",
+    noUnlockedWorksTitle: "Start with your first title",
+    noUnlockedWorks:
+      "No title is unlocked yet. Choose from the gallery and start reading.",
     browseGallery: "Browse gallery",
+    findMore: "Find more",
+    savedBadge: "Saved",
+    readPreview: "Open preview",
+    noSavedWorks:
+      "No saved titles yet. Use save for later from a work detail or inside the reader.",
+    continueLabel: "Continue reading",
+    continueText:
+      "Open your latest unlocked title. On the same device, the reader returns to your latest place.",
+    continueCta: "Continue",
     viewMembership: "View membership plan",
     creditPanelLabel: "Reader credit",
-    creditPanelTitle: "Credit is ready for the paid layer",
-    creditPanelText: "After a manual bank match, top-up credit is added to your account. Later it can power work unlocks, PDF/EPUB editions, memberships or author support.",
+    creditPanelTitle: "Credit for easier reading",
+    creditPanelText:
+      "Top up once and use credit gradually. During launch, payments are confirmed manually after bank matching.",
     openCredits: "Manage credit",
+    topUpCredits: "Top up credit",
+    supportArtales: "Support ARTales",
     readerSettings: "Reader settings",
-    readerSettingsText: "Adjust interface language, reader theme, text width, density and collapsed controls.",
+    readerSettingsText:
+      "Adjust interface language, reader theme, text width, density and collapsed controls.",
     openSettings: "Open settings",
     accessOnline: "Online reading",
     accessPdf: "PDF download",
@@ -104,11 +149,21 @@ export const enAccount = {
     sourceLabel: "Access source",
     deliveryLabel: "Product delivery",
     deliveryTitle: "What your library can deliver",
-    deliveryText: "Online reading works now. PDF/EPUB downloads will be delivered as official ARTales edition files after the export layer is ready.",
+    deliveryText:
+      "Online reading works now. PDF/EPUB downloads will be delivered as official ARTales edition files after the export layer is ready.",
     deliveryItems: [
-      { title: "Online reader", text: "Unlocked titles open directly in the ARTales reader." },
-      { title: "Official PDF", text: "Stored edition file, not generated on every download." },
-      { title: "EPUB later", text: "Prepared after the PDF/export workflow stabilizes." },
+      {
+        title: "Online reader",
+        text: "Unlocked titles open directly in the ARTales reader.",
+      },
+      {
+        title: "Official PDF",
+        text: "Stored edition file, not generated on every download.",
+      },
+      {
+        title: "EPUB later",
+        text: "Prepared after the PDF/export workflow stabilizes.",
+      },
     ],
   },
   community: {
@@ -127,39 +182,76 @@ export const enAccount = {
     },
     followedAuthorsLabel: "Author watchlist",
     followedAuthorsTitle: "Followed authors",
-    followedAuthorsText: "This list will later power new-release notifications, author demand signals and personal reading recommendations.",
+    followedAuthorsText:
+      "This list will later power new-release notifications, author demand signals and personal reading recommendations.",
     findAuthors: "Find authors",
     noFollowedAuthorsTitle: "No authors followed yet",
-    noFollowedAuthorsText: "Open an author page and use Follow author. The author will appear here and in your library watchlist.",
+    noFollowedAuthorsText:
+      "Open an author page and use Follow author. The author will appear here and in your library watchlist.",
     notifications: "Notifications",
     openAuthor: "Open author",
     unfollow: "Unfollow",
     readerSignalsLabel: "Editorial membrane",
     readerSignalsTitle: "Reader signals are private by design",
-    readerSignalsText: "ARTales does not use public comment threads under works. Reader inputs go to the ARTales/editorial layer first, so useful feedback can be filtered, protected and forwarded without exposing authors to toxic public noise.",
+    readerSignalsText:
+      "ARTales does not use public comment threads under works. Reader inputs go to the ARTales/editorial layer first, so useful feedback can be filtered, protected and forwarded without exposing authors to toxic public noise.",
     browseWorks: "Browse works",
     openLibrary: "Open library",
     privateSignalsLabel: "Your inputs",
     privateSignalsTitle: "Private reader signals",
-    privateSignalsText: "Signals you send from work detail pages remain visible here as your participation history. Editors can acknowledge and triage them inside the member zone.",
+    privateSignalsText:
+      "Signals you send from work detail pages remain visible here as your participation history. Editors can acknowledge and triage them inside the member zone.",
     noSignals: "No reader signals submitted yet.",
     openWork: "Open work",
     futurePathsLabel: "Coming later",
     futurePathsTitle: "Future participation paths",
-    futurePathsText: "These are planned ARTales community processor directions, not active workflows yet.",
+    futurePathsText:
+      "These are planned ARTales community processor directions, not active workflows yet.",
     futurePaths: [
-      { label: "Corrections", status: "Planned", text: "Help improve texts, formatting and reader quality through reviewed editorial signals." },
-      { label: "Translations", status: "Planned", text: "Request, validate or help prepare translations once translation workflows are opened." },
-      { label: "Groups", status: "Planned", text: "Reading groups, schools, libraries and author communities can later work through ARTales." },
-      { label: "Credits & roles", status: "Planned", text: "Valuable participation can later connect to AT Credits, contributor records and higher ARTales roles." },
+      {
+        label: "Corrections",
+        status: "Planned",
+        text: "Help improve texts, formatting and reader quality through reviewed editorial signals.",
+      },
+      {
+        label: "Translations",
+        status: "Planned",
+        text: "Request, validate or help prepare translations once translation workflows are opened.",
+      },
+      {
+        label: "Groups",
+        status: "Planned",
+        text: "Reading groups, schools, libraries and author communities can later work through ARTales.",
+      },
+      {
+        label: "Credits & roles",
+        status: "Planned",
+        text: "Valuable participation can later connect to AT Credits, contributor records and higher ARTales roles.",
+      },
     ],
     rolePathLabel: "Reader role path",
     rolePathTitle: "From reader to contributor",
     roleSteps: [
-      { index: "01", title: "Reader", text: "Reads, saves works, follows authors and sends occasional signals." },
-      { index: "02", title: "Active reader", text: "Returns regularly, follows authors and gives useful editorial inputs." },
-      { index: "03", title: "Contributor", text: "Helps with corrections, translations, selections or community tasks." },
-      { index: "04", title: "Member / editor", text: "May later enter the internal workflow through invitation and transparent contribution history." },
+      {
+        index: "01",
+        title: "Reader",
+        text: "Reads, saves works, follows authors and sends occasional signals.",
+      },
+      {
+        index: "02",
+        title: "Active reader",
+        text: "Returns regularly, follows authors and gives useful editorial inputs.",
+      },
+      {
+        index: "03",
+        title: "Contributor",
+        text: "Helps with corrections, translations, selections or community tasks.",
+      },
+      {
+        index: "04",
+        title: "Member / editor",
+        text: "May later enter the internal workflow through invitation and transparent contribution history.",
+      },
     ],
   },
   membership: {
@@ -167,40 +259,47 @@ export const enAccount = {
     title: "ARTales membership model",
     freeReader: "Free Reader",
     ledePrefix: "You are currently on the",
-    ledeSuffix: "account layer. This page explains the planned membership structure before payments, billing periods and renewals are activated.",
+    ledeSuffix:
+      "account layer. This page explains the planned membership structure before payments, billing periods and renewals are activated.",
     launchOfferLabel: "Launch offer",
     launchOfferTitle: "First 3 months / first 100 readers",
-    launchOfferText: "Introductory membership prices are planned as €1 / €2 / €4 for Basic, Plus and Library. Later standard pricing is planned as €2 / €4 / €7.",
-    paymentNotice: "Payments are not active in this patch. The page prepares account copy and reader expectations before checkout work starts.",
+    launchOfferText:
+      "Introductory membership prices are planned as €1 / €2 / €4 for Basic, Plus and Library. Later standard pricing is planned as €2 / €4 / €7.",
+    paymentNotice:
+      "Payments are not active in this patch. The page prepares account copy and reader expectations before checkout work starts.",
     perMonth: "/ month",
     laterPrice: "Later planned price",
     freeLayer: "Free account layer.",
     tiers: {
       free_reader: {
         name: "Free Reader",
-        description: "Registered reader account with profile, reader settings and one welcome online unlock.",
+        description:
+          "Registered reader account with profile, reader settings and one welcome online unlock.",
         unlocks: "1 welcome unlock",
         credits: "0 AT Credits / month",
         prices: "Reader tools and settings",
       },
       basic: {
         name: "Basic",
-        description: "A light monthly layer for readers who want regular online reading without a full library subscription.",
+        description:
+          "A light monthly layer for readers who want regular online reading without a full library subscription.",
         unlocks: "2 permanent online unlocks / month",
         credits: "0 AT Credits / month",
         prices: "Member prices",
       },
       plus: {
         name: "Plus",
-        description: "A stronger monthly layer with more permanent unlocks and the first AT Credit benefit.",
+        description:
+          "A stronger monthly layer with more permanent unlocks and the first AT Credit benefit.",
         badge: "Best value",
         unlocks: "5 permanent online unlocks / month",
         credits: "1 AT Credit / month",
         prices: "Better member prices",
       },
-    library: {
+      library: {
         name: "Library",
-        description: "Full online reading while active, with credits and best pricing for deeper ARTales readers.",
+        description:
+          "Full online reading while active, with credits and best pricing for deeper ARTales readers.",
         badge: "Full online access",
         unlocks: "Unlimited online reading while active",
         credits: "2 AT Credits / month",
@@ -210,16 +309,30 @@ export const enAccount = {
     modelLabel: "Access model",
     modelTitle: "Important membership distinctions",
     modelPoints: [
-      { title: "Permanent unlocks", text: "Online unlocks remain attached to the reader account after they are granted or purchased." },
-      { title: "Library access", text: "Library membership means online reading while the membership is active, not permanent ownership of the whole catalog." },
-      { title: "AT Credits", text: "Credits are planned as a later value layer for unlocks, downloads, tips and community rewards." },
-      { title: "Checkout later", text: "Billing, renewals, cancellation and entitlement creation after payment need a dedicated commerce patch." },
+      {
+        title: "Permanent unlocks",
+        text: "Online unlocks remain attached to the reader account after they are granted or purchased.",
+      },
+      {
+        title: "Library access",
+        text: "Library membership means online reading while the membership is active, not permanent ownership of the whole catalog.",
+      },
+      {
+        title: "AT Credits",
+        text: "Credits are planned as a later value layer for unlocks, downloads, tips and community rewards.",
+      },
+      {
+        title: "Checkout later",
+        text: "Billing, renewals, cancellation and entitlement creation after payment need a dedicated commerce patch.",
+      },
     ],
     currentStateLabel: "Current state",
     currentStateTitle: "What works now",
     identityPrefix: "Account identity is active for",
-    identitySuffix: "The entitlement layer is prepared for online reading access, future PDF/EPUB products, subscription benefits and AT Credits.",
-    paymentsDisabled: "Payments are still disabled. Until product/payment activation, access can be granted only by system logic or admin/manual tools.",
+    identitySuffix:
+      "The entitlement layer is prepared for online reading access, future PDF/EPUB products, subscription benefits and AT Credits.",
+    paymentsDisabled:
+      "Payments are still disabled. Until product/payment activation, access can be granted only by system logic or admin/manual tools.",
     exploreWorks: "Explore works",
     openLibrary: "Open my library",
   },
@@ -228,18 +341,32 @@ export const enAccount = {
     title: "Credit and payment instructions",
     lede: "Here you can see your current credit, QR payment instructions and credit history. During launch, ARTales confirms payments manually after bank matching.",
     balanceLabel: "Current balance",
-    balanceText: "Credit is ARTales' internal value layer. After payment confirmation, it can later be used for work unlocks, PDF/EPUB editions, memberships, author support or custom services.",
+    balanceText:
+      "Credit is ARTales' internal value layer. After payment confirmation, it can later be used for work unlocks, PDF/EPUB editions, memberships, author support or custom services.",
     creditUnit: "credits",
     topUpCta: "Top up credit",
     supportCta: "Support ARTales",
     explainerCards: [
-      { label: "How it works", title: "Top up once, use gradually", text: "Instead of several tiny payments, you top up a credit package. After bank matching, the credit is added to your account and can later be spent inside ARTales." },
-      { label: "Safe launch mode", title: "A person confirms payments", text: "The QR payment prefills amount and reference. Credit or access is activated only after admin verification, so nothing is granted by accident." },
-      { label: "Project support", title: "Support is not a purchase", text: "Supporting ARTales helps fund editorial work, visuals and development. It does not unlock a work automatically and is tracked separately from credit." },
+      {
+        label: "How it works",
+        title: "Top up once, use gradually",
+        text: "Instead of several tiny payments, you top up a credit package. After bank matching, the credit is added to your account and can later be spent inside ARTales.",
+      },
+      {
+        label: "Safe launch mode",
+        title: "A person confirms payments",
+        text: "The QR payment prefills amount and reference. Credit or access is activated only after admin verification, so nothing is granted by accident.",
+      },
+      {
+        label: "Project support",
+        title: "Support is not a purchase",
+        text: "Supporting ARTales helps fund editorial work, visuals and development. It does not unlock a work automatically and is tracked separately from credit.",
+      },
     ],
     paymentsLabel: "Payment instructions",
     paymentsTitle: "Your QR payment status",
-    paymentsText: "If you have sent a payment, open the instruction and mark it as paid. The ARTales team will then match it manually with the bank account.",
+    paymentsText:
+      "If you have sent a payment, open the instruction and mark it as paid. The ARTales team will then match it manually with the bank account.",
     newPayment: "New top-up",
     noPayments: "There are no QR payment instructions yet.",
     paymentKinds: {
@@ -255,13 +382,18 @@ export const enAccount = {
       cancelled: "Cancelled",
     },
     paymentStateTexts: {
-      pending: "This instruction is waiting for payment. Open the QR detail, pay in your banking app and then you can let us know the payment was sent.",
-      reported: "You marked this payment as sent. It is now waiting for manual matching by ARTales.",
-      paidWaitingFulfillment: "Payment is marked as paid and waiting for the follow-up action.",
+      pending:
+        "This instruction is waiting for payment. Open the QR detail, pay in your banking app and then you can let us know the payment was sent.",
+      reported:
+        "You marked this payment as sent. It is now waiting for manual matching by ARTales.",
+      paidWaitingFulfillment:
+        "Payment is marked as paid and waiting for the follow-up action.",
       creditAdded: "Credit has been added to your account.",
       supportAccepted: "Support has been accepted. Thank you.",
-      cancelled: "This payment instruction was cancelled and no longer needs action.",
-      refunded: "This record was cancelled after completion. If credit had been added, it was balanced by a correction in the history.",
+      cancelled:
+        "This payment instruction was cancelled and no longer needs action.",
+      refunded:
+        "This record was cancelled after completion. If credit had been added, it was balanced by a correction in the history.",
     },
     variableSymbol: "Variable symbol",
     country: "Country",
@@ -274,7 +406,8 @@ export const enAccount = {
     notAvailable: "—",
     ledgerLabel: "Credit history",
     ledgerTitle: "Credit account movements",
-    ledgerText: "Every manual operation stays traceable: top-ups, corrections, future spending and promotional credit.",
+    ledgerText:
+      "Every manual operation stays traceable: top-ups, corrections, future spending and promotional credit.",
     noLedger: "No credit movement yet.",
     ledgerFallbackPositive: "Credit was added to the account.",
     ledgerFallbackNegative: "Credit was spent or balanced by a correction.",
@@ -290,8 +423,18 @@ export const enAccount = {
     },
     cancelledLabel: "Payment archive",
     cancelledTitle: "Cancelled instructions",
-    cancelledText: "Cancellations do not count as active payments, but remain traceable for clarity and accounting history.",
+    cancelledText:
+      "Cancellations do not count as active payments, but remain traceable for clarity and accounting history.",
     browseGallery: "Browse gallery",
+    findMore: "Find more",
+    savedBadge: "Saved",
+    readPreview: "Open preview",
+    noSavedWorks:
+      "No saved titles yet. Use save for later from a work detail or inside the reader.",
+    continueLabel: "Continue reading",
+    continueText:
+      "Open your latest unlocked title. On the same device, the reader returns to your latest place.",
+    continueCta: "Continue",
     openLibrary: "Open library",
   },
   settings: {
@@ -301,7 +444,8 @@ export const enAccount = {
     saveError: "Reader settings could not be saved. Try again.",
     saveSuccess: "Reader settings saved.",
     interfaceLanguage: "Interface language",
-    interfaceLanguageHelp: "Used by localized public/account surfaces. Localization is gradual, so some pages may still keep their current language.",
+    interfaceLanguageHelp:
+      "Used by localized public/account surfaces. Localization is gradual, so some pages may still keep their current language.",
     readerTheme: "Reader theme",
     themeLight: "Light",
     themeScript: "Script / warm paper",

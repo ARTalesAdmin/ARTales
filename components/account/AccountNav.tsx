@@ -18,6 +18,7 @@ export default async function AccountNav({
     { href: "/account", label: dictionary.overview },
     { href: "/account/library", label: dictionary.library },
     { href: "/account/credits", label: dictionary.credits },
+    { href: "/checkout/support", label: dictionary.support },
     { href: "/account/profile", label: dictionary.profile },
     { href: "/account/security", label: dictionary.security },
     { href: "/account/settings", label: dictionary.settings },
@@ -32,10 +33,7 @@ export default async function AccountNav({
       </div>
       <p className="artales-account-eyebrow">{dictionary.eyebrow}</p>
       <p className="artales-account-sidebar__hint">{dictionary.hint}</p>
-      <nav
-        className="artales-account-nav"
-        aria-label={dictionary.ariaLabel}
-      >
+      <nav className="artales-account-nav" aria-label={dictionary.ariaLabel}>
         {accountLinks.map((link) => (
           <Link
             key={link.href}

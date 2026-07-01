@@ -35,7 +35,8 @@ export type ReaderUnlockedWork = GalleryWorkItem & {
   entitlementExpiresAt: string | null;
 };
 
-export type EntitlementRequestStatus = "pending" | "approved" | "rejected" | "cancelled";
+export type EntitlementRequestStatus =
+  "pending" | "approved" | "rejected" | "cancelled";
 
 export type EntitlementRequestItem = {
   id: string;
@@ -127,6 +128,15 @@ type EntitlementWorkRow = {
   works?: EntitlementWorkRelation | EntitlementWorkRelation[] | null;
 };
 
+type LibraryItemWorkRow = {
+  id: unknown;
+  item_type: unknown;
+  source: unknown;
+  created_at: unknown;
+  updated_at: unknown;
+  works?: EntitlementWorkRelation | EntitlementWorkRelation[] | null;
+};
+
 type EntitlementRequestRawRow = {
   id: unknown;
   status: unknown;
@@ -181,8 +191,15 @@ function firstRelation<T>(value: T | T[] | null | undefined): T | null {
   return value ?? null;
 }
 
-function isKnownRequestStatus(value: string): value is EntitlementRequestStatus {
-  return value === "pending" || value === "approved" || value === "rejected" || value === "cancelled";
+function isKnownRequestStatus(
+  value: string,
+): value is EntitlementRequestStatus {
+  return (
+    value === "pending" ||
+    value === "approved" ||
+    value === "rejected" ||
+    value === "cancelled"
+  );
 }
 
 export async function hasOnlineReadEntitlement(userId: string, workId: string) {
@@ -259,7 +276,10 @@ export async function getWelcomeUnlockStatus(userId: string) {
   };
 }
 
-export async function canReadWorkOnline(userId: string | null | undefined, workId: string) {
+export async function canReadWorkOnline(
+  userId: string | null | undefined,
+  workId: string,
+) {
   if (!userId) return false;
 
   const [hasDirectEntitlement, hasLibraryMembership] = await Promise.all([
@@ -308,23 +328,23 @@ export async function setSavedWorkForUser(params: {
     return;
   }
 
-  const { error } = await admin
-    .from("reader_library_items")
-    .upsert(
-      {
-        user_id: params.userId,
-        work_id: params.workId,
-        item_type: "saved",
-        source: "account",
-        updated_at: new Date().toISOString(),
-      },
-      { onConflict: "user_id,work_id,item_type" },
-    );
+  const { error } = await admin.from("reader_library_items").upsert(
+    {
+      user_id: params.userId,
+      work_id: params.workId,
+      item_type: "saved",
+      source: "account",
+      updated_at: new Date().toISOString(),
+    },
+    { onConflict: "user_id,work_id,item_type" },
+  );
 
   if (error) throw new Error(`Failed to save work: ${error.message}`);
 }
 
-export async function getReaderLibrarySummary(userId: string): Promise<ReaderLibrarySummary> {
+export async function getReaderLibrarySummary(
+  userId: string,
+): Promise<ReaderLibrarySummary> {
   const supabase = await createClient();
 
   const [entitlements, libraryItems, credits, welcome] = await Promise.all([
@@ -344,8 +364,10 @@ export async function getReaderLibrarySummary(userId: string): Promise<ReaderLib
     getWelcomeUnlockStatus(userId),
   ]);
 
-  if (entitlements.error) console.error("Library entitlement summary failed:", entitlements.error);
-  if (libraryItems.error) console.error("Library item summary failed:", libraryItems.error);
+  if (entitlements.error)
+    console.error("Library entitlement summary failed:", entitlements.error);
+  if (libraryItems.error)
+    console.error("Library item summary failed:", libraryItems.error);
   if (credits.error) console.error("Credit summary failed:", credits.error);
 
   const entitlementRows = entitlements.data ?? [];
@@ -353,23 +375,137 @@ export async function getReaderLibrarySummary(userId: string): Promise<ReaderLib
   const creditRows = credits.data ?? [];
 
   return {
-    onlineEntitlements: entitlementRows.filter((row) => row.entitlement_type === "online_read").length,
-    pdfDownloads: entitlementRows.filter((row) => row.entitlement_type === "pdf_download").length,
-    epubDownloads: entitlementRows.filter((row) => row.entitlement_type === "epub_download").length,
+    onlineEntitlements: entitlementRows.filter(
+      (row) => row.entitlement_type === "online_read",
+    ).length,
+    pdfDownloads: entitlementRows.filter(
+      (row) => row.entitlement_type === "pdf_download",
+    ).length,
+    epubDownloads: entitlementRows.filter(
+      (row) => row.entitlement_type === "epub_download",
+    ).length,
     savedItems: itemRows.filter((row) => row.item_type === "saved").length,
     recentItems: itemRows.filter((row) => row.item_type === "recent").length,
-    atCreditBalance: creditRows.reduce((sum, row) => sum + Number(row.amount ?? 0), 0),
+    atCreditBalance: creditRows.reduce(
+      (sum, row) => sum + Number(row.amount ?? 0),
+      0,
+    ),
     welcomeUnlockAvailable: welcome.available,
     welcomeUnlockUsed: welcome.used,
   };
 }
 
-export async function getReaderUnlockedWorks(userId: string): Promise<ReaderUnlockedWork[]> {
+function mapWorkRelationToUnlockedWork({
+  work,
+  source,
+  createdAt,
+  expiresAt = null,
+}: {
+  work: EntitlementWorkRelation;
+  source: string;
+  createdAt: string;
+  expiresAt?: string | null;
+}): ReaderUnlockedWork {
+  const author = firstRelation(work.authors);
+  const collection = firstRelation(work.collections);
+
+  return {
+    id: String(work.id),
+    title: String(work.title),
+    title_cs: work.title_cs == null ? null : String(work.title_cs),
+    title_en: work.title_en == null ? null : String(work.title_en),
+    slug: String(work.slug),
+    subtitle: work.subtitle == null ? null : String(work.subtitle),
+    subtitle_cs: work.subtitle_cs == null ? null : String(work.subtitle_cs),
+    subtitle_en: work.subtitle_en == null ? null : String(work.subtitle_en),
+    summary: String(work.summary ?? ""),
+    summary_cs: work.summary_cs == null ? null : String(work.summary_cs),
+    summary_en: work.summary_en == null ? null : String(work.summary_en),
+    canonical_language: String(work.canonical_language),
+    origin_type: String(work.origin_type) as GalleryWorkItem["origin_type"],
+    status: String(work.status) as GalleryWorkItem["status"],
+    cover_image_request:
+      work.cover_image_request == null
+        ? null
+        : String(work.cover_image_request),
+    cover_image_path:
+      work.cover_image_path == null ? null : String(work.cover_image_path),
+    cover_image_alt:
+      work.cover_image_alt == null ? null : String(work.cover_image_alt),
+    cover_image_caption:
+      work.cover_image_caption == null
+        ? null
+        : String(work.cover_image_caption),
+    author: author
+      ? {
+          id: String(author.id),
+          name: String(author.name),
+          slug: String(author.slug),
+        }
+      : null,
+    collection: collection
+      ? {
+          id: String(collection.id),
+          title: String(collection.title),
+          title_cs:
+            collection.title_cs == null ? null : String(collection.title_cs),
+          title_en:
+            collection.title_en == null ? null : String(collection.title_en),
+          slug: String(collection.slug),
+          description:
+            collection.description == null
+              ? null
+              : String(collection.description),
+          description_cs:
+            collection.description_cs == null
+              ? null
+              : String(collection.description_cs),
+          description_en:
+            collection.description_en == null
+              ? null
+              : String(collection.description_en),
+        }
+      : null,
+    collections: collection
+      ? [
+          {
+            id: String(collection.id),
+            title: String(collection.title),
+            title_cs:
+              collection.title_cs == null ? null : String(collection.title_cs),
+            title_en:
+              collection.title_en == null ? null : String(collection.title_en),
+            slug: String(collection.slug),
+            description:
+              collection.description == null
+                ? null
+                : String(collection.description),
+            description_cs:
+              collection.description_cs == null
+                ? null
+                : String(collection.description_cs),
+            description_en:
+              collection.description_en == null
+                ? null
+                : String(collection.description_en),
+          },
+        ]
+      : [],
+    entitlementSource: source,
+    entitlementCreatedAt: createdAt,
+    entitlementExpiresAt: expiresAt,
+  } satisfies ReaderUnlockedWork;
+}
+
+export async function getReaderUnlockedWorks(
+  userId: string,
+): Promise<ReaderUnlockedWork[]> {
   const supabase = await createClient();
 
   const { data, error } = await supabase
     .from("reader_entitlements")
-    .select(`
+    .select(
+      `
       id,
       entitlement_type,
       source,
@@ -410,7 +546,8 @@ export async function getReaderUnlockedWorks(userId: string): Promise<ReaderUnlo
           description_en
         )
       )
-    `)
+    `,
+    )
     .eq("user_id", userId)
     .eq("entitlement_type", "online_read")
     .eq("is_active", true)
@@ -427,65 +564,89 @@ export async function getReaderUnlockedWorks(userId: string): Promise<ReaderUnlo
 
     if (!work) return null;
 
-    const author = firstRelation(work.authors);
-    const collection = firstRelation(work.collections);
+    return mapWorkRelationToUnlockedWork({
+      work,
+      source: String(rawRow.source ?? "unknown"),
+      createdAt: String(rawRow.created_at),
+      expiresAt: rawRow.expires_at == null ? null : String(rawRow.expires_at),
+    });
+  });
 
-    return {
-      id: String(work.id),
-      title: String(work.title),
-      title_cs: work.title_cs == null ? null : String(work.title_cs),
-      title_en: work.title_en == null ? null : String(work.title_en),
-      slug: String(work.slug),
-      subtitle: work.subtitle == null ? null : String(work.subtitle),
-      subtitle_cs: work.subtitle_cs == null ? null : String(work.subtitle_cs),
-      subtitle_en: work.subtitle_en == null ? null : String(work.subtitle_en),
-      summary: String(work.summary ?? ""),
-      summary_cs: work.summary_cs == null ? null : String(work.summary_cs),
-      summary_en: work.summary_en == null ? null : String(work.summary_en),
-      canonical_language: String(work.canonical_language),
-      origin_type: String(work.origin_type) as GalleryWorkItem["origin_type"],
-      status: String(work.status) as GalleryWorkItem["status"],
-      cover_image_request: work.cover_image_request == null ? null : String(work.cover_image_request),
-      cover_image_path: work.cover_image_path == null ? null : String(work.cover_image_path),
-      cover_image_alt: work.cover_image_alt == null ? null : String(work.cover_image_alt),
-      cover_image_caption: work.cover_image_caption == null ? null : String(work.cover_image_caption),
-      author: author
-        ? {
-            id: String(author.id),
-            name: String(author.name),
-            slug: String(author.slug),
-          }
-        : null,
-      collection: collection
-        ? {
-            id: String(collection.id),
-            title: String(collection.title),
-            title_cs: collection.title_cs == null ? null : String(collection.title_cs),
-            title_en: collection.title_en == null ? null : String(collection.title_en),
-            slug: String(collection.slug),
-            description: collection.description == null ? null : String(collection.description),
-            description_cs: collection.description_cs == null ? null : String(collection.description_cs),
-            description_en: collection.description_en == null ? null : String(collection.description_en),
-          }
-        : null,
-      collections: collection
-        ? [
-            {
-              id: String(collection.id),
-              title: String(collection.title),
-              title_cs: collection.title_cs == null ? null : String(collection.title_cs),
-              title_en: collection.title_en == null ? null : String(collection.title_en),
-              slug: String(collection.slug),
-              description: collection.description == null ? null : String(collection.description),
-              description_cs: collection.description_cs == null ? null : String(collection.description_cs),
-              description_en: collection.description_en == null ? null : String(collection.description_en),
-            },
-          ]
-        : [],
-      entitlementSource: String(rawRow.source ?? "unknown"),
-      entitlementCreatedAt: String(rawRow.created_at),
-      entitlementExpiresAt: rawRow.expires_at == null ? null : String(rawRow.expires_at),
-    } satisfies ReaderUnlockedWork;
+  return rows.filter((row): row is ReaderUnlockedWork => row !== null);
+}
+
+export async function getReaderSavedWorks(
+  userId: string,
+): Promise<ReaderUnlockedWork[]> {
+  const supabase = await createClient();
+
+  const { data, error } = await supabase
+    .from("reader_library_items")
+    .select(
+      `
+      id,
+      item_type,
+      source,
+      created_at,
+      updated_at,
+      works:work_id (
+        id,
+        title,
+        title_cs,
+        title_en,
+        slug,
+        subtitle,
+        subtitle_cs,
+        subtitle_en,
+        summary,
+        summary_cs,
+        summary_en,
+        canonical_language,
+        origin_type,
+        status,
+        cover_image_request,
+        cover_image_path,
+        cover_image_alt,
+        cover_image_caption,
+        authors:primary_author_id (
+          id,
+          name,
+          slug
+        ),
+        collections:collection_id (
+          id,
+          title,
+          title_cs,
+          title_en,
+          slug,
+          description,
+          description_cs,
+          description_en
+        )
+      )
+    `,
+    )
+    .eq("user_id", userId)
+    .eq("item_type", "saved")
+    .order("updated_at", { ascending: false })
+    .limit(12);
+
+  if (error) {
+    console.error("Saved works load failed:", error);
+    return [];
+  }
+
+  const rows: Array<ReaderUnlockedWork | null> = (data ?? []).map((row) => {
+    const rawRow = row as LibraryItemWorkRow;
+    const work = firstRelation(rawRow.works);
+
+    if (!work) return null;
+
+    return mapWorkRelationToUnlockedWork({
+      work,
+      source: String(rawRow.source ?? "saved"),
+      createdAt: String(rawRow.updated_at ?? rawRow.created_at),
+    });
   });
 
   return rows.filter((row): row is ReaderUnlockedWork => row !== null);
@@ -511,7 +672,9 @@ export async function grantOnlineReadEntitlement(params: {
     .maybeSingle();
 
   if (loadError) {
-    throw new Error(`Failed to inspect online read entitlement: ${loadError.message}`);
+    throw new Error(
+      `Failed to inspect online read entitlement: ${loadError.message}`,
+    );
   }
 
   if (existing?.id) {
@@ -527,7 +690,9 @@ export async function grantOnlineReadEntitlement(params: {
       .eq("id", existing.id);
 
     if (error) {
-      throw new Error(`Failed to update online read entitlement: ${error.message}`);
+      throw new Error(
+        `Failed to update online read entitlement: ${error.message}`,
+      );
     }
 
     return existing.id as string;
@@ -548,7 +713,9 @@ export async function grantOnlineReadEntitlement(params: {
     .single();
 
   if (error) {
-    throw new Error(`Failed to grant online read entitlement: ${error.message}`);
+    throw new Error(
+      `Failed to grant online read entitlement: ${error.message}`,
+    );
   }
 
   return String(data.id);
@@ -572,12 +739,15 @@ export async function grantWelcomeUnlock(params: {
   });
 }
 
-export async function listEntitlementRequests(status: EntitlementRequestStatus | "all" = "pending") {
+export async function listEntitlementRequests(
+  status: EntitlementRequestStatus | "all" = "pending",
+) {
   const admin = createAdminClient();
 
   let query = admin
     .from("reader_entitlement_requests")
-    .select(`
+    .select(
+      `
       id,
       status,
       note,
@@ -601,7 +771,8 @@ export async function listEntitlementRequests(status: EntitlementRequestStatus |
         title,
         slug
       )
-    `)
+    `,
+    )
     .order("created_at", { ascending: false })
     .limit(50);
 
@@ -634,16 +805,24 @@ export async function listEntitlementRequests(status: EntitlementRequestStatus |
         ? {
             id: String(requestedBy.id),
             email: String(requestedBy.email),
-            display_name: requestedBy.display_name == null ? null : String(requestedBy.display_name),
-            handle: requestedBy.handle == null ? null : String(requestedBy.handle),
+            display_name:
+              requestedBy.display_name == null
+                ? null
+                : String(requestedBy.display_name),
+            handle:
+              requestedBy.handle == null ? null : String(requestedBy.handle),
           }
         : null,
       target_user: targetUser
         ? {
             id: String(targetUser.id),
             email: String(targetUser.email),
-            display_name: targetUser.display_name == null ? null : String(targetUser.display_name),
-            handle: targetUser.handle == null ? null : String(targetUser.handle),
+            display_name:
+              targetUser.display_name == null
+                ? null
+                : String(targetUser.display_name),
+            handle:
+              targetUser.handle == null ? null : String(targetUser.handle),
           }
         : null,
       work: work
@@ -657,10 +836,20 @@ export async function listEntitlementRequests(status: EntitlementRequestStatus |
   });
 }
 
-export async function canOpenFullReader(profile: { id: string; role?: string | null; is_active?: boolean | null } | null | undefined, workId: string) {
+export async function canOpenFullReader(
+  profile:
+    | { id: string; role?: string | null; is_active?: boolean | null }
+    | null
+    | undefined,
+  workId: string,
+) {
   if (!profile || profile.is_active === false) return false;
 
-  if (profile.role === "admin" || profile.role === "editor" || profile.role === "member") {
+  if (
+    profile.role === "admin" ||
+    profile.role === "editor" ||
+    profile.role === "member"
+  ) {
     return true;
   }
 
