@@ -44,6 +44,9 @@ export type ManualQrOrderSummary = {
   paymentRail: string | null;
   qrPayload: string | null;
   qrImageUrl: string;
+  userReportedPaidAt: string | null;
+  userCancelledAt: string | null;
+  manualCancelledAt: string | null;
   item: {
     title: string;
     productType: string;
@@ -59,6 +62,9 @@ type OrderMetadata = {
   billing_country?: string;
   payment_rail?: string;
   credit_amount?: number;
+  user_reported_paid_at?: string;
+  user_cancelled_at?: string;
+  manual_cancelled_at?: string;
 };
 
 type OrderRow = {
@@ -247,13 +253,20 @@ function sanitizeSpdValue(value: string) {
     .slice(0, 60);
 }
 
-export function getManualQrPaymentConfig(): ManualQrPaymentConfig {
+export function getManualQrPaymentConfig(locale: SupportedLocale = "cs"): ManualQrPaymentConfig {
   const accountName = process.env.ARTALES_QR_ACCOUNT_NAME ?? "ARTales";
   const bankName = process.env.ARTALES_QR_BANK_NAME ?? "";
   const accountNumber = process.env.ARTALES_QR_ACCOUNT_NUMBER ?? "";
   const iban = (process.env.ARTALES_QR_IBAN ?? "").replace(/\s+/g, "").toUpperCase();
   const bic = (process.env.ARTALES_QR_BIC ?? "").replace(/\s+/g, "").toUpperCase();
-  const note = process.env.ARTALES_QR_PAYMENT_NOTE ?? "Kredit nebo podpora se aktivuje ručně po spárování platby.";
+  const localizedDefaultNote = locale === "en"
+    ? "Credit or support is activated manually after payment is matched."
+    : "Kredit nebo podpora se aktivuje ručně po spárování platby.";
+  const legacyNote = process.env.ARTALES_QR_PAYMENT_NOTE;
+  const localizedNote = locale === "en"
+    ? process.env.ARTALES_QR_PAYMENT_NOTE_EN
+    : process.env.ARTALES_QR_PAYMENT_NOTE_CS;
+  const note = localizedNote ?? legacyNote ?? localizedDefaultNote;
 
   return {
     accountName,
@@ -537,6 +550,9 @@ export async function getManualQrOrderSummary(userId: string, orderId: string): 
       message: paymentMessage,
     }),
     qrImageUrl: `/api/payments/qr/${encodeURIComponent(String(typedOrder.id))}`,
+    userReportedPaidAt: metadata.user_reported_paid_at ?? null,
+    userCancelledAt: metadata.user_cancelled_at ?? null,
+    manualCancelledAt: metadata.manual_cancelled_at ?? null,
     item: firstItem
       ? {
           title: firstItem.title ?? "ARTales platba",
@@ -545,4 +561,100 @@ export async function getManualQrOrderSummary(userId: string, orderId: string): 
         }
       : null,
   };
+}
+
+
+function mergeOrderMetadata(existing: Record<string, unknown> | null | undefined, next: Record<string, unknown>) {
+  return {
+    ...(existing ?? {}),
+    ...next,
+  };
+}
+
+export async function reportManualQrPaymentSent(orderId: string) {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+
+  if (!user) return { ok: false as const, reason: "not_authenticated" };
+
+  const admin = createAdminClient();
+  const { data: order, error } = await admin
+    .from("orders")
+    .select("id, user_id, status, payment_status, metadata")
+    .eq("id", orderId)
+    .eq("user_id", user.id)
+    .eq("provider", "manual_qr")
+    .maybeSingle();
+
+  if (error || !order) return { ok: false as const, reason: "not_found" };
+
+  const status = String(order.status ?? "");
+  const paymentStatus = String(order.payment_status ?? "");
+  if (["cancelled", "refunded", "fulfilled"].includes(status) || paymentStatus === "paid") {
+    return { ok: false as const, reason: "not_pending" };
+  }
+
+  const reportedAt = new Date().toISOString();
+  const { error: updateError } = await admin
+    .from("orders")
+    .update({
+      metadata: mergeOrderMetadata(order.metadata as Record<string, unknown> | null, {
+        user_reported_paid_at: reportedAt,
+      }),
+    })
+    .eq("id", orderId)
+    .eq("user_id", user.id);
+
+  if (updateError) return { ok: false as const, reason: "update_failed" };
+
+  return { ok: true as const };
+}
+
+export async function cancelManualQrOrderForUser(orderId: string) {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+
+  if (!user) return { ok: false as const, reason: "not_authenticated" };
+
+  const admin = createAdminClient();
+  const { data: order, error } = await admin
+    .from("orders")
+    .select("id, user_id, status, payment_status, metadata")
+    .eq("id", orderId)
+    .eq("user_id", user.id)
+    .eq("provider", "manual_qr")
+    .maybeSingle();
+
+  if (error || !order) return { ok: false as const, reason: "not_found" };
+
+  const status = String(order.status ?? "");
+  const paymentStatus = String(order.payment_status ?? "");
+  if (paymentStatus === "paid" || ["paid", "fulfilled", "refunded", "cancelled"].includes(status)) {
+    return { ok: false as const, reason: "not_pending" };
+  }
+
+  const cancelledAt = new Date().toISOString();
+  const [orderUpdate, itemUpdate] = await Promise.all([
+    admin
+      .from("orders")
+      .update({
+        status: "cancelled",
+        payment_status: "failed",
+        cancelled_at: cancelledAt,
+        metadata: mergeOrderMetadata(order.metadata as Record<string, unknown> | null, {
+          user_cancelled_at: cancelledAt,
+          cancellation_reason: "user_cancelled",
+        }),
+      })
+      .eq("id", orderId)
+      .eq("user_id", user.id),
+    admin
+      .from("order_items")
+      .update({ fulfillment_status: "failed" })
+      .eq("order_id", orderId),
+  ]);
+
+  if (orderUpdate.error || itemUpdate.error) return { ok: false as const, reason: "update_failed" };
+
+  return { ok: true as const };
 }

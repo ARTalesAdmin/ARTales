@@ -23,6 +23,10 @@ export type ManualQrAdminOrder = {
   itemTitle: string | null;
   itemType: string | null;
   fulfillmentStatus: string | null;
+  userReportedPaidAt: string | null;
+  userCancelledAt: string | null;
+  manualCancelledAt: string | null;
+  creditReversedAt: string | null;
 };
 
 type OrderMetadata = {
@@ -36,6 +40,12 @@ type OrderMetadata = {
   manual_paid_by_user_id?: string;
   manual_fulfilled_at?: string;
   manual_fulfilled_by_user_id?: string;
+  user_reported_paid_at?: string;
+  user_cancelled_at?: string;
+  manual_cancelled_at?: string;
+  manual_cancelled_by_user_id?: string;
+  manual_cancellation_note?: string | null;
+  manual_credit_reversed_at?: string;
 };
 
 type ItemMetadata = {
@@ -81,19 +91,43 @@ function mergeMetadata(existing: Record<string, unknown> | null | undefined, nex
   };
 }
 
-export async function listManualQrAdminOrders(): Promise<ManualQrAdminOrder[]> {
-  const admin = createAdminClient();
+export type ManualQrAdminOrderList = {
+  orders: ManualQrAdminOrder[];
+  total: number;
+  page: number;
+  pageSize: number;
+};
 
-  const { data: orders, error } = await admin
+export async function listManualQrAdminOrders(options: {
+  page?: number;
+  pageSize?: number;
+  status?: "active" | "cancelled" | "all";
+} = {}): Promise<ManualQrAdminOrderList> {
+  const admin = createAdminClient();
+  const pageSize = Math.min(Math.max(options.pageSize ?? 25, 1), 100);
+  const page = Math.max(options.page ?? 1, 1);
+  const from = (page - 1) * pageSize;
+  const to = from + pageSize - 1;
+  const statusFilter = options.status ?? "active";
+
+  let query = admin
     .from("orders")
-    .select("id, user_id, status, payment_status, total_amount_cents, currency, metadata, created_at")
-    .eq("provider", "manual_qr")
+    .select("id, user_id, status, payment_status, total_amount_cents, currency, metadata, created_at", { count: "exact" })
+    .eq("provider", "manual_qr");
+
+  if (statusFilter === "active") {
+    query = query.not("status", "in", "(cancelled,refunded)");
+  } else if (statusFilter === "cancelled") {
+    query = query.in("status", ["cancelled", "refunded"]);
+  }
+
+  const { data: orders, error, count } = await query
     .order("created_at", { ascending: false })
-    .limit(100);
+    .range(from, to);
 
   if (error) {
     console.error("Manual QR admin orders load failed:", error);
-    return [];
+    return { orders: [], total: 0, page, pageSize };
   }
 
   const orderRows = (orders ?? []) as OrderRow[];
@@ -128,7 +162,7 @@ export async function listManualQrAdminOrders(): Promise<ManualQrAdminOrder[]> {
     profileById.set(profile.id, profile);
   }
 
-  return orderRows.map((order) => {
+  const mappedOrders = orderRows.map((order) => {
     const orderMetadata = asMetadata(order.metadata);
     const item = itemByOrderId.get(order.id) ?? null;
     const itemMetadata = asMetadata(item?.metadata);
@@ -160,8 +194,14 @@ export async function listManualQrAdminOrders(): Promise<ManualQrAdminOrder[]> {
       itemTitle: item?.title ?? null,
       itemType: item?.product_type ?? null,
       fulfillmentStatus: item?.fulfillment_status ?? null,
+      userReportedPaidAt: orderMetadata.user_reported_paid_at ?? null,
+      userCancelledAt: orderMetadata.user_cancelled_at ?? null,
+      manualCancelledAt: orderMetadata.manual_cancelled_at ?? null,
+      creditReversedAt: orderMetadata.manual_credit_reversed_at ?? null,
     };
   });
+
+  return { orders: mappedOrders, total: count ?? mappedOrders.length, page, pageSize };
 }
 
 export async function markManualQrOrderPaid(params: {
@@ -289,4 +329,90 @@ export async function fulfillManualQrOrder(params: {
   if (orderUpdate.error) throw new Error(orderUpdate.error.message);
 
   return { alreadyFulfilled: false };
+}
+
+
+export async function cancelManualQrOrderAsAdmin(params: {
+  orderId: string;
+  adminUserId: string;
+  note?: string;
+}) {
+  const admin = createAdminClient();
+  const cancelledAt = new Date().toISOString();
+
+  const { data: order, error: orderError } = await admin
+    .from("orders")
+    .select("id, user_id, status, payment_status, metadata")
+    .eq("id", params.orderId)
+    .eq("provider", "manual_qr")
+    .maybeSingle();
+
+  if (orderError) throw new Error(orderError.message);
+  if (!order) throw new Error("Manual QR order not found.");
+
+  const { data: items, error: itemsError } = await admin
+    .from("order_items")
+    .select("id, product_type, fulfillment_status, metadata, title")
+    .eq("order_id", params.orderId)
+    .limit(1);
+
+  if (itemsError) throw new Error(itemsError.message);
+  const item = items?.[0] as (OrderItemRow & { title: string | null }) | undefined;
+
+  const orderMetadata = asMetadata(order.metadata as Record<string, unknown> | null);
+  const itemMetadata = asMetadata(item?.metadata);
+  const checkoutKind = String(orderMetadata.checkout_kind ?? item?.product_type ?? "");
+  const creditAmount = Number(orderMetadata.credit_amount ?? itemMetadata.credit_amount ?? 0);
+  const wasFulfilled = String(order.status ?? "") === "fulfilled" || item?.fulfillment_status === "fulfilled";
+  const alreadyReversed = Boolean(orderMetadata.manual_credit_reversed_at);
+
+  if (wasFulfilled && checkoutKind === "credit_topup" && creditAmount > 0 && !alreadyReversed) {
+    const { error: ledgerError } = await admin.from("reader_credit_ledger").insert({
+      user_id: order.user_id,
+      credit_type: "at_credit",
+      amount: -Math.abs(creditAmount),
+      source: "admin_adjustment",
+      related_work_id: null,
+      note: params.note || `Manual QR credit reversal for order ${params.orderId}.`,
+      metadata: {
+        order_id: params.orderId,
+        payment_method: "manual_qr",
+        reversed_by_user_id: params.adminUserId,
+        reversed_at: cancelledAt,
+      },
+    });
+
+    if (ledgerError) throw new Error(ledgerError.message);
+  }
+
+  const nextPaymentStatus = String(order.payment_status ?? "") === "paid" || wasFulfilled ? "refunded" : "failed";
+  const nextStatus = wasFulfilled || nextPaymentStatus === "refunded" ? "refunded" : "cancelled";
+
+  const [itemUpdate, orderUpdate] = await Promise.all([
+    item
+      ? admin
+          .from("order_items")
+          .update({ fulfillment_status: "failed" })
+          .eq("id", item.id)
+      : Promise.resolve({ error: null }),
+    admin
+      .from("orders")
+      .update({
+        status: nextStatus,
+        payment_status: nextPaymentStatus,
+        cancelled_at: cancelledAt,
+        metadata: mergeMetadata(order.metadata as Record<string, unknown> | null, {
+          manual_cancelled_at: cancelledAt,
+          manual_cancelled_by_user_id: params.adminUserId,
+          manual_cancellation_note: params.note ?? null,
+          manual_credit_reversed_at: wasFulfilled && checkoutKind === "credit_topup" && creditAmount > 0 && !alreadyReversed
+            ? cancelledAt
+            : orderMetadata.manual_credit_reversed_at ?? null,
+        }),
+      })
+      .eq("id", params.orderId),
+  ]);
+
+  if (itemUpdate.error) throw new Error(itemUpdate.error.message);
+  if (orderUpdate.error) throw new Error(orderUpdate.error.message);
 }

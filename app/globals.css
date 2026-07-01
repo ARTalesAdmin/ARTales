@@ -3399,3 +3399,125 @@ body {
     max-width: none;
   }
 }
+
+/* v0.10.12c – manual QR admin/payment UX */
+.artales-qr-payment-actions form {
+  margin: 0;
+}
+
+.artales-admin-payments-header {
+  flex-wrap: wrap;
+}
+
+.artales-admin-payments-tabs {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.artales-admin-payments-tabs a {
+  border: 1px solid rgba(13, 21, 40, 0.14);
+  border-radius: 999px;
+  color: #5f5247;
+  font-size: 0.84rem;
+  font-weight: 850;
+  padding: 8px 12px;
+  text-decoration: none;
+}
+
+.artales-admin-payments-tabs a.is-active {
+  background: var(--artales-ink);
+  border-color: var(--artales-ink);
+  color: #fff8e5;
+}
+
+.artales-admin-payment-list {
+  display: grid;
+  gap: 14px;
+}
+
+.artales-admin-payment-card {
+  background: rgba(255, 253, 248, 0.82);
+  border: 1px solid rgba(13, 21, 40, 0.12);
+  border-radius: 22px;
+  display: grid;
+  gap: 16px;
+  padding: 16px;
+}
+
+.artales-admin-payment-card--cancelled {
+  opacity: 0.72;
+}
+
+.artales-admin-payment-card__main {
+  display: grid;
+  gap: 14px;
+  grid-template-columns: minmax(150px, 1fr) minmax(160px, 1.2fr) minmax(150px, 1fr) minmax(130px, 0.9fr);
+}
+
+.artales-admin-payment-card__main h3 {
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 1.5rem;
+  margin: 0 0 6px;
+}
+
+.artales-admin-payment-card__main strong,
+.artales-admin-payment-card__main span {
+  display: block;
+}
+
+.artales-admin-payment-card__flag {
+  background: rgba(177, 127, 37, 0.13);
+  border-radius: 999px;
+  color: #7d5415;
+  display: inline-block !important;
+  font-size: 0.78rem;
+  font-weight: 850;
+  margin-top: 6px;
+  padding: 4px 8px;
+}
+
+.artales-admin-payment-card__actions {
+  border-top: 1px solid rgba(13, 21, 40, 0.09);
+  display: grid;
+  gap: 10px;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  padding-top: 14px;
+}
+
+.artales-button-secondary--danger {
+  border-color: rgba(164, 69, 60, 0.34);
+  color: #9b3328;
+}
+
+.artales-admin-pagination {
+  align-items: center;
+  display: flex;
+  gap: 14px;
+  justify-content: space-between;
+  margin-top: 18px;
+}
+
+.artales-admin-pagination span {
+  color: #5f5247;
+  font-weight: 850;
+}
+
+@media (max-width: 960px) {
+  .artales-admin-payment-card__main {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+@media (max-width: 640px) {
+  .artales-admin-payment-card__main,
+  .artales-admin-payment-card__actions {
+    grid-template-columns: 1fr;
+  }
+
+  .artales-admin-pagination {
+    align-items: stretch;
+    flex-direction: column;
+  }
+}

@@ -2,7 +2,7 @@
 
 import { redirect } from "next/navigation";
 import { requireAdmin } from "@/lib/guards";
-import { fulfillManualQrOrder, markManualQrOrderPaid } from "@/lib/manualQrAdmin";
+import { cancelManualQrOrderAsAdmin, fulfillManualQrOrder, markManualQrOrderPaid } from "@/lib/manualQrAdmin";
 
 function normalizeFormValue(value: FormDataEntryValue | null) {
   return String(value ?? "").trim();
@@ -52,4 +52,25 @@ export async function fulfillManualQrPaymentAction(formData: FormData): Promise<
   }
 
   redirect("/member/admin/payments?success=fulfilled");
+}
+
+export async function cancelManualQrPaymentAction(formData: FormData): Promise<void> {
+  const profile = await requireAdmin();
+  const orderId = normalizeFormValue(formData.get("order_id"));
+  const note = normalizeFormValue(formData.get("note"));
+
+  if (!orderId) redirect("/member/admin/payments?error=missing_order");
+
+  try {
+    await cancelManualQrOrderAsAdmin({
+      orderId,
+      adminUserId: profile.id,
+      note: note || undefined,
+    });
+  } catch (error) {
+    console.error("Manual QR cancel failed:", error);
+    redirect("/member/admin/payments?error=cancel_failed");
+  }
+
+  redirect("/member/admin/payments?success=cancelled");
 }

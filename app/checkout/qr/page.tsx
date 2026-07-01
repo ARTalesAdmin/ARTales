@@ -9,11 +9,12 @@ import {
   getManualQrOrderSummary,
   getManualQrPaymentConfig,
 } from "@/lib/manualQrPayments";
+import { cancelManualQrOrderAction, reportManualQrPaymentSentAction } from "./actions";
 
 export const dynamic = "force-dynamic";
 
 type PageProps = {
-  searchParams?: Promise<{ order?: string }>;
+  searchParams?: Promise<{ order?: string; success?: string; error?: string }>;
 };
 
 const copy = {
@@ -37,6 +38,13 @@ const copy = {
     qrMissingText: "Pro dynamické QR je potřeba nastavit IBAN. Do té doby použij údaje výše ručně.",
     configMissing: "Chybí platební konfigurace. Pro produkci nastav alespoň ARTALES_QR_IBAN.",
     manualCheck: "Ruční kontrola",
+    paidReported: "Děkujeme, platbu jsi označil/a jako odeslanou. Po připsání ji spárujeme podle VS.",
+    cancelled: "Platební pokyn byl zrušený. Pokud jsi už zaplatil/a, napiš nám prosím přes podporu.",
+    alreadyClosed: "Tento platební pokyn už není aktivní.",
+    sentPayment: "Už jsem zaplatil/a",
+    cancelPayment: "Rozmyslel/a jsem si to",
+    contactSupport: "Napsat podpoře",
+    backToCredit: "Zpět na dobití kreditu",
     whatNext: "Co se stane po platbě?",
     supportNext:
       "Podporu po přijetí označíme v adminu jako přijatou. Neotevírá žádné konkrétní dílo ani kredit, ale pomáhá financovat ARTales.",
@@ -69,6 +77,13 @@ const copy = {
     qrMissingText: "Dynamic QR requires IBAN configuration. Until then, use the manual payment details above.",
     configMissing: "Payment configuration is missing. For production, set at least ARTALES_QR_IBAN.",
     manualCheck: "Manual check",
+    paidReported: "Thank you — you marked the payment as sent. After it arrives, we will match it by the variable symbol.",
+    cancelled: "This payment instruction has been cancelled. If you already paid, please contact support.",
+    alreadyClosed: "This payment instruction is no longer active.",
+    sentPayment: "I have paid",
+    cancelPayment: "I changed my mind",
+    contactSupport: "Contact support",
+    backToCredit: "Back to credit top-up",
     whatNext: "What happens after payment?",
     supportNext:
       "After we receive it, support is marked as received in the admin area. It does not unlock a specific work or credit, but it helps fund ARTales.",
@@ -110,10 +125,19 @@ export default async function ManualQrCheckoutPage({ searchParams }: PageProps) 
 
   const [order, config] = await Promise.all([
     getManualQrOrderSummary(profile.id, params.order),
-    Promise.resolve(getManualQrPaymentConfig()),
+    Promise.resolve(getManualQrPaymentConfig(locale)),
   ]);
 
   if (!order) notFound();
+
+  const isCancelled = order.status === "cancelled" || order.status === "refunded" || Boolean(order.userCancelledAt || order.manualCancelledAt);
+  const isClosed = isCancelled || order.paymentStatus === "paid" || order.status === "fulfilled";
+  const successNotice = params.success === "reported_paid"
+    ? t.paidReported
+    : params.success === "cancelled"
+      ? t.cancelled
+      : null;
+  const errorNotice = params.error ? t.alreadyClosed : null;
 
   return (
     <div className="artales-public-shell">
@@ -122,6 +146,11 @@ export default async function ManualQrCheckoutPage({ searchParams }: PageProps) 
         <p className="artales-product-panel__eyebrow">{t.eyebrow}</p>
         <h1>{t.title}</h1>
         <p>{t.intro}</p>
+
+        {successNotice ? <div className="artales-account-notice artales-account-notice--success">{successNotice}</div> : null}
+        {errorNotice ? <div className="artales-account-notice artales-account-notice--error">{errorNotice}</div> : null}
+        {isCancelled ? <div className="artales-account-notice artales-account-notice--error">{t.alreadyClosed}</div> : null}
+        {order.userReportedPaidAt && !isClosed ? <div className="artales-account-notice artales-account-notice--success">{t.paidReported}</div> : null}
 
         <section className="artales-qr-payment-grid">
           <article className="artales-qr-payment-card artales-qr-payment-card--highlight">
@@ -154,7 +183,7 @@ export default async function ManualQrCheckoutPage({ searchParams }: PageProps) 
             <p>{config.note}</p>
           </div>
 
-          {config.isConfigured && order.qrPayload ? (
+          {config.isConfigured && order.qrPayload && !isCancelled ? (
             <div className="artales-qr-payment-image">
               <Image src={order.qrImageUrl} alt={t.qrAlt} width={240} height={240} unoptimized />
               <p>{t.qrReady}</p>
@@ -179,9 +208,22 @@ export default async function ManualQrCheckoutPage({ searchParams }: PageProps) 
           {order.kind === "support" ? <p>{t.supportNext}</p> : <p>{t.creditNext}</p>}
         </section>
 
-        <div className="artales-account-actions">
-          <Link className="artales-button" href="/account/library">{t.library}</Link>
-          <Link className="artales-button-secondary" href="/checkout/credits">{t.moreCredit}</Link>
+        <div className="artales-account-actions artales-qr-payment-actions">
+          {!isClosed ? (
+            <>
+              <form action={reportManualQrPaymentSentAction}>
+                <input type="hidden" name="order_id" value={order.id} />
+                <button className="artales-button" type="submit">{t.sentPayment}</button>
+              </form>
+              <form action={cancelManualQrOrderAction}>
+                <input type="hidden" name="order_id" value={order.id} />
+                <button className="artales-button-secondary" type="submit">{t.cancelPayment}</button>
+              </form>
+            </>
+          ) : null}
+          <Link className="artales-button-secondary" href="/legal/contact">{t.contactSupport}</Link>
+          <Link className="artales-button-secondary" href="/checkout/credits">{t.backToCredit}</Link>
+          <Link className="artales-button-secondary" href="/account/library">{t.library}</Link>
           <Link className="artales-button-secondary" href="/checkout/support">{t.support}</Link>
         </div>
       </main>
