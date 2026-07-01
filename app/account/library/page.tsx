@@ -68,6 +68,14 @@ export default async function AccountLibraryPage() {
         </section>
       ) : null}
 
+      <section className="artales-account-panel artales-credit-library-panel">
+        <div>
+          <p className="artales-account-card__label">{dictionary.creditPanelLabel}</p>
+          <h2>{dictionary.creditPanelTitle}</h2>
+          <p>{dictionary.creditPanelText}</p>
+        </div>
+        <Link className="artales-button-secondary" href="/account/credits">{dictionary.openCredits}</Link>
+      </section>
 
       <section className="artales-account-panel artales-account-delivery-panel">
         <p className="artales-account-card__label">{dictionary.deliveryLabel}</p>
@@ -173,7 +181,7 @@ export default async function AccountLibraryPage() {
 
       <div className="artales-account-actions">
         <Link className="artales-button" href="/gallery">{dictionary.browseGallery}</Link>
-        <Link className="artales-button-secondary" href="/account/membership">{dictionary.viewMembership}</Link>
+        <Link className="artales-button-secondary" href="/account/credits">{dictionary.openCredits}</Link>
       </div>
     </section>
   );

@@ -3521,3 +3521,154 @@ body {
     flex-direction: column;
   }
 }
+
+/* v0.10.12d — reader credit account polish */
+.artales-credit-hero {
+  align-items: center;
+  display: flex;
+  gap: 22px;
+  justify-content: space-between;
+  margin-bottom: 24px;
+}
+
+.artales-credit-hero h2 {
+  font-size: clamp(2.25rem, 5vw, 4rem);
+}
+
+.artales-credit-hero__actions,
+.artales-credit-payment-card__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.artales-credit-explainer-grid {
+  margin: 24px 0;
+}
+
+.artales-credit-section + .artales-credit-section {
+  margin-top: 24px;
+}
+
+.artales-credit-section--quiet {
+  background: rgba(255, 253, 248, 0.68);
+}
+
+.artales-credit-payment-grid {
+  display: grid;
+  gap: 14px;
+  margin-top: 18px;
+}
+
+.artales-credit-payment-card,
+.artales-credit-ledger-row {
+  background: rgba(255, 255, 255, 0.74);
+  border: 1px solid rgba(13, 21, 40, 0.11);
+  border-radius: 20px;
+  padding: 18px;
+}
+
+.artales-credit-payment-card__main,
+.artales-credit-ledger-row {
+  align-items: flex-start;
+  display: flex;
+  gap: 14px;
+  justify-content: space-between;
+}
+
+.artales-credit-payment-card h3,
+.artales-credit-ledger-row h3 {
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 1.45rem;
+  letter-spacing: -0.035em;
+  margin: 5px 0 6px;
+}
+
+.artales-credit-status {
+  border-radius: 999px;
+  display: inline-flex;
+  font-size: 0.76rem;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  padding: 0.42rem 0.68rem;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.artales-credit-status--pending {
+  background: rgba(217, 183, 110, 0.2);
+  border: 1px solid rgba(138, 100, 31, 0.25);
+  color: #7b571c;
+}
+
+.artales-credit-status--success {
+  background: rgba(46, 125, 79, 0.12);
+  border: 1px solid rgba(46, 125, 79, 0.24);
+  color: #246341;
+}
+
+.artales-credit-status--muted {
+  background: rgba(13, 21, 40, 0.06);
+  border: 1px solid rgba(13, 21, 40, 0.12);
+  color: rgba(13, 21, 40, 0.62);
+}
+
+.artales-credit-payment-meta {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  margin: 14px 0;
+}
+
+.artales-credit-payment-meta div {
+  background: rgba(13, 21, 40, 0.045);
+  border-radius: 14px;
+  padding: 10px 12px;
+}
+
+.artales-credit-payment-meta dt {
+  color: rgba(13, 21, 40, 0.52);
+  font-size: 0.76rem;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.artales-credit-payment-meta dd {
+  color: var(--artales-ink);
+  font-weight: 850;
+  margin: 4px 0 0;
+}
+
+.artales-credit-ledger-list {
+  display: grid;
+  gap: 12px;
+  margin-top: 18px;
+}
+
+.artales-credit-ledger-row p:last-child {
+  max-width: 580px;
+  text-align: right;
+}
+
+.artales-credit-library-panel {
+  align-items: center;
+  display: flex;
+  gap: 18px;
+  justify-content: space-between;
+  margin-bottom: 24px;
+}
+
+@media (max-width: 720px) {
+  .artales-credit-hero,
+  .artales-credit-library-panel,
+  .artales-credit-payment-card__main,
+  .artales-credit-ledger-row {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .artales-credit-ledger-row p:last-child {
+    text-align: left;
+  }
+}

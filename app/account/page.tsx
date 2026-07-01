@@ -41,6 +41,13 @@ export default async function AccountPage() {
         </article>
 
         <article className="artales-account-card">
+          <p className="artales-account-card__label">{dictionary.creditsLabel}</p>
+          <h2>{dictionary.creditsTitle}</h2>
+          <p>{dictionary.creditsText}</p>
+          <Link href="/account/credits">{dictionary.creditsCta}</Link>
+        </article>
+
+        <article className="artales-account-card">
           <p className="artales-account-card__label">{dictionary.profileLabel}</p>
           <h2>@{profile.handle}</h2>
           <p>{dictionary.profileText}</p>

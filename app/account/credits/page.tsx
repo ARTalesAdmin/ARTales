@@ -1,0 +1,239 @@
+import Link from "next/link";
+import { requireCompletedAccountProfile } from "@/lib/account";
+import { getReaderCommerceSummary, type ReaderManualQrPaymentItem, type ReaderCreditLedgerItem } from "@/lib/readerCommerce";
+import { getPublicDictionary } from "@/lib/i18n/public";
+import { getCookieLocale, resolveProfileLocale } from "@/lib/i18n/server";
+
+export const dynamic = "force-dynamic";
+
+function formatDate(value: string, locale: string) {
+  return new Intl.DateTimeFormat(locale === "cs" ? "cs-CZ" : "en-US", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+  }).format(new Date(value));
+}
+
+function getPaymentState(payment: ReaderManualQrPaymentItem, dictionary: ReturnType<typeof getPublicDictionary>["account"]["credits"]) {
+  if (["cancelled", "refunded"].includes(payment.status) || ["failed", "refunded"].includes(payment.paymentStatus)) {
+    return {
+      label: dictionary.paymentStates.cancelled,
+      className: "artales-credit-status artales-credit-status--muted",
+      text: payment.status === "refunded" ? dictionary.paymentStateTexts.refunded : dictionary.paymentStateTexts.cancelled,
+    };
+  }
+
+  if (payment.status === "fulfilled" || payment.fulfillmentStatus === "fulfilled") {
+    return {
+      label: dictionary.paymentStates.fulfilled,
+      className: "artales-credit-status artales-credit-status--success",
+      text: payment.checkoutKind === "support"
+        ? dictionary.paymentStateTexts.supportAccepted
+        : dictionary.paymentStateTexts.creditAdded,
+    };
+  }
+
+  if (payment.paymentStatus === "paid") {
+    return {
+      label: dictionary.paymentStates.paid,
+      className: "artales-credit-status artales-credit-status--success",
+      text: dictionary.paymentStateTexts.paidWaitingFulfillment,
+    };
+  }
+
+  if (payment.userReportedPaidAt) {
+    return {
+      label: dictionary.paymentStates.reported,
+      className: "artales-credit-status artales-credit-status--pending",
+      text: dictionary.paymentStateTexts.reported,
+    };
+  }
+
+  return {
+    label: dictionary.paymentStates.pending,
+    className: "artales-credit-status artales-credit-status--pending",
+    text: dictionary.paymentStateTexts.pending,
+  };
+}
+
+function getPaymentKindLabel(payment: ReaderManualQrPaymentItem, dictionary: ReturnType<typeof getPublicDictionary>["account"]["credits"]) {
+  if (payment.checkoutKind === "support") return dictionary.paymentKinds.support;
+  if (payment.checkoutKind === "credit_topup") return dictionary.paymentKinds.creditTopup;
+  return dictionary.paymentKinds.other;
+}
+
+function getLedgerSourceLabel(source: string, dictionary: ReturnType<typeof getPublicDictionary>["account"]["credits"]) {
+  if (source in dictionary.ledgerSources) {
+    return dictionary.ledgerSources[source as keyof typeof dictionary.ledgerSources];
+  }
+  return dictionary.ledgerSources.unknown;
+}
+
+function PaymentCard({
+  payment,
+  locale,
+  dictionary,
+}: {
+  payment: ReaderManualQrPaymentItem;
+  locale: string;
+  dictionary: ReturnType<typeof getPublicDictionary>["account"]["credits"];
+}) {
+  const state = getPaymentState(payment, dictionary);
+  const isActive = !["cancelled", "refunded", "fulfilled"].includes(payment.status) && payment.paymentStatus !== "paid";
+
+  return (
+    <article className="artales-credit-payment-card">
+      <div className="artales-credit-payment-card__main">
+        <div>
+          <p className="artales-account-card__label">{getPaymentKindLabel(payment, dictionary)}</p>
+          <h3>{payment.formattedAmount}</h3>
+          <p className="artales-account-muted">
+            {formatDate(payment.createdAt, locale)}
+            {payment.creditAmount ? ` · ${payment.creditAmount} ${dictionary.creditUnit}` : ""}
+          </p>
+        </div>
+        <span className={state.className}>{state.label}</span>
+      </div>
+
+      <p>{state.text}</p>
+
+      <dl className="artales-credit-payment-meta">
+        <div>
+          <dt>{dictionary.variableSymbol}</dt>
+          <dd>{payment.variableSymbol ?? dictionary.notAvailable}</dd>
+        </div>
+        <div>
+          <dt>{dictionary.country}</dt>
+          <dd>{payment.billingCountry ?? dictionary.notAvailable}</dd>
+        </div>
+        <div>
+          <dt>{dictionary.paymentRail}</dt>
+          <dd>{payment.paymentRail === "cz_domestic_qr" ? dictionary.paymentRails.cz : dictionary.paymentRails.sepa}</dd>
+        </div>
+      </dl>
+
+      {isActive ? (
+        <Link className="artales-button-secondary" href={`/checkout/qr?order=${encodeURIComponent(payment.id)}`}>
+          {dictionary.openPaymentInstruction}
+        </Link>
+      ) : null}
+    </article>
+  );
+}
+
+function LedgerRow({
+  item,
+  locale,
+  dictionary,
+}: {
+  item: ReaderCreditLedgerItem;
+  locale: string;
+  dictionary: ReturnType<typeof getPublicDictionary>["account"]["credits"];
+}) {
+  const positive = item.amount >= 0;
+  return (
+    <article className="artales-credit-ledger-row">
+      <div>
+        <p className="artales-account-card__label">{getLedgerSourceLabel(item.source, dictionary)}</p>
+        <h3>{positive ? "+" : ""}{item.amount} {dictionary.creditUnit}</h3>
+        <p className="artales-account-muted">{formatDate(item.createdAt, locale)}</p>
+      </div>
+      <p>{item.note ?? (positive ? dictionary.ledgerFallbackPositive : dictionary.ledgerFallbackNegative)}</p>
+    </article>
+  );
+}
+
+export default async function AccountCreditsPage() {
+  const profile = await requireCompletedAccountProfile("/account/credits");
+  const [commerce, cookieLocale] = await Promise.all([
+    getReaderCommerceSummary(profile.id),
+    getCookieLocale(),
+  ]);
+  const locale = resolveProfileLocale(profile, cookieLocale);
+  const dictionary = getPublicDictionary(locale).account.credits;
+  const activePayments = commerce.payments.filter((payment) => !["cancelled", "refunded"].includes(payment.status)).slice(0, 8);
+  const cancelledPayments = commerce.payments.filter((payment) => ["cancelled", "refunded"].includes(payment.status)).slice(0, 4);
+
+  return (
+    <section className="artales-account-page artales-credit-page">
+      <p className="artales-account-kicker">{dictionary.kicker}</p>
+      <h1>{dictionary.title}</h1>
+      <p className="artales-account-lede">{dictionary.lede}</p>
+
+      <section className="artales-account-promo-panel artales-credit-hero">
+        <div>
+          <p className="artales-account-card__label">{dictionary.balanceLabel}</p>
+          <h2>{commerce.creditBalance} {dictionary.creditUnit}</h2>
+          <p>{dictionary.balanceText}</p>
+        </div>
+        <div className="artales-credit-hero__actions">
+          <Link className="artales-button" href="/checkout/credits">{dictionary.topUpCta}</Link>
+          <Link className="artales-button-secondary" href="/checkout/support">{dictionary.supportCta}</Link>
+        </div>
+      </section>
+
+      <div className="artales-account-grid artales-credit-explainer-grid">
+        {dictionary.explainerCards.map((card) => (
+          <article className="artales-account-card" key={card.title}>
+            <p className="artales-account-card__label">{card.label}</p>
+            <h2>{card.title}</h2>
+            <p>{card.text}</p>
+          </article>
+        ))}
+      </div>
+
+      <section className="artales-account-panel artales-credit-section">
+        <div className="artales-admin-dashboard__section-header">
+          <div>
+            <p className="artales-account-card__label">{dictionary.paymentsLabel}</p>
+            <h2>{dictionary.paymentsTitle}</h2>
+          </div>
+          <Link className="artales-button-secondary" href="/checkout/credits">{dictionary.newPayment}</Link>
+        </div>
+        <p>{dictionary.paymentsText}</p>
+        {activePayments.length > 0 ? (
+          <div className="artales-credit-payment-grid">
+            {activePayments.map((payment) => (
+              <PaymentCard key={payment.id} payment={payment} locale={locale} dictionary={dictionary} />
+            ))}
+          </div>
+        ) : (
+          <p className="artales-account-muted">{dictionary.noPayments}</p>
+        )}
+      </section>
+
+      <section className="artales-account-panel artales-credit-section">
+        <p className="artales-account-card__label">{dictionary.ledgerLabel}</p>
+        <h2>{dictionary.ledgerTitle}</h2>
+        <p>{dictionary.ledgerText}</p>
+        {commerce.creditLedger.length > 0 ? (
+          <div className="artales-credit-ledger-list">
+            {commerce.creditLedger.slice(0, 12).map((item) => (
+              <LedgerRow key={item.id} item={item} locale={locale} dictionary={dictionary} />
+            ))}
+          </div>
+        ) : (
+          <p className="artales-account-muted">{dictionary.noLedger}</p>
+        )}
+      </section>
+
+      {cancelledPayments.length > 0 ? (
+        <section className="artales-account-panel artales-credit-section artales-credit-section--quiet">
+          <p className="artales-account-card__label">{dictionary.cancelledLabel}</p>
+          <h2>{dictionary.cancelledTitle}</h2>
+          <p>{dictionary.cancelledText}</p>
+          <div className="artales-credit-payment-grid">
+            {cancelledPayments.map((payment) => (
+              <PaymentCard key={payment.id} payment={payment} locale={locale} dictionary={dictionary} />
+            ))}
+          </div>
+        </section>
+      ) : null}
+
+      <div className="artales-account-actions">
+        <Link className="artales-button" href="/gallery">{dictionary.browseGallery}</Link>
+        <Link className="artales-button-secondary" href="/account/library">{dictionary.openLibrary}</Link>
+      </div>
+    </section>
+  );
+}

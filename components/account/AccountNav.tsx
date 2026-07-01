@@ -17,6 +17,7 @@ export default async function AccountNav({
   const accountLinks = [
     { href: "/account", label: dictionary.overview },
     { href: "/account/library", label: dictionary.library },
+    { href: "/account/credits", label: dictionary.credits },
     { href: "/account/profile", label: dictionary.profile },
     { href: "/account/security", label: dictionary.security },
     { href: "/account/settings", label: dictionary.settings },
