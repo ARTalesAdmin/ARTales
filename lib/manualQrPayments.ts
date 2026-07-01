@@ -1,11 +1,14 @@
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
+import type { SupportedLocale } from "@/lib/i18n/config";
 
 export type ManualQrCheckoutKind = "credit_topup" | "support";
 
 export type ManualQrCountry = {
   code: string;
   label: string;
+  labelCs?: string;
+  labelEn?: string;
 };
 
 export type ManualQrPackage = {
@@ -38,6 +41,7 @@ export type ManualQrOrderSummary = {
   createdAt: string;
   kind: ManualQrCheckoutKind;
   billingCountry: string | null;
+  paymentRail: string | null;
   qrPayload: string | null;
   qrImageUrl: string;
   item: {
@@ -51,7 +55,10 @@ type OrderMetadata = {
   manual_qr_reference?: string;
   manual_qr_message?: string;
   manual_qr_kind?: ManualQrCheckoutKind;
+  checkout_kind?: ManualQrCheckoutKind;
   billing_country?: string;
+  payment_rail?: string;
+  credit_amount?: number;
 };
 
 type OrderRow = {
@@ -71,38 +78,68 @@ type OrderItemRow = {
 };
 
 export const MANUAL_QR_CURRENCY = "EUR";
+export const MANUAL_QR_CZ_CURRENCY = "CZK";
+export const DEFAULT_CZK_CENTS_PER_EUR = 2500;
 
 export const MANUAL_QR_COUNTRIES: ManualQrCountry[] = [
-  { code: "AT", label: "Rakousko" },
-  { code: "BE", label: "Belgie" },
-  { code: "BG", label: "Bulharsko" },
-  { code: "HR", label: "Chorvatsko" },
-  { code: "CY", label: "Kypr" },
-  { code: "CZ", label: "Česko" },
-  { code: "DK", label: "Dánsko" },
-  { code: "EE", label: "Estonsko" },
-  { code: "FI", label: "Finsko" },
-  { code: "FR", label: "Francie" },
-  { code: "DE", label: "Německo" },
-  { code: "GR", label: "Řecko" },
-  { code: "HU", label: "Maďarsko" },
-  { code: "IE", label: "Irsko" },
-  { code: "IT", label: "Itálie" },
-  { code: "LV", label: "Lotyšsko" },
-  { code: "LT", label: "Litva" },
-  { code: "LU", label: "Lucembursko" },
-  { code: "MT", label: "Malta" },
-  { code: "NL", label: "Nizozemsko" },
-  { code: "PL", label: "Polsko" },
-  { code: "PT", label: "Portugalsko" },
-  { code: "RO", label: "Rumunsko" },
-  { code: "SK", label: "Slovensko" },
-  { code: "SI", label: "Slovinsko" },
-  { code: "ES", label: "Španělsko" },
-  { code: "SE", label: "Švédsko" },
+  { code: "AT", label: "Rakousko", labelCs: "Rakousko", labelEn: "Austria" },
+  { code: "BE", label: "Belgie", labelCs: "Belgie", labelEn: "Belgium" },
+  { code: "BG", label: "Bulharsko", labelCs: "Bulharsko", labelEn: "Bulgaria" },
+  { code: "HR", label: "Chorvatsko", labelCs: "Chorvatsko", labelEn: "Croatia" },
+  { code: "CY", label: "Kypr", labelCs: "Kypr", labelEn: "Cyprus" },
+  { code: "CZ", label: "Česko", labelCs: "Česko", labelEn: "Czechia" },
+  { code: "DK", label: "Dánsko", labelCs: "Dánsko", labelEn: "Denmark" },
+  { code: "EE", label: "Estonsko", labelCs: "Estonsko", labelEn: "Estonia" },
+  { code: "FI", label: "Finsko", labelCs: "Finsko", labelEn: "Finland" },
+  { code: "FR", label: "Francie", labelCs: "Francie", labelEn: "France" },
+  { code: "DE", label: "Německo", labelCs: "Německo", labelEn: "Germany" },
+  { code: "GR", label: "Řecko", labelCs: "Řecko", labelEn: "Greece" },
+  { code: "HU", label: "Maďarsko", labelCs: "Maďarsko", labelEn: "Hungary" },
+  { code: "IE", label: "Irsko", labelCs: "Irsko", labelEn: "Ireland" },
+  { code: "IT", label: "Itálie", labelCs: "Itálie", labelEn: "Italy" },
+  { code: "LV", label: "Lotyšsko", labelCs: "Lotyšsko", labelEn: "Latvia" },
+  { code: "LT", label: "Litva", labelCs: "Litva", labelEn: "Lithuania" },
+  { code: "LU", label: "Lucembursko", labelCs: "Lucembursko", labelEn: "Luxembourg" },
+  { code: "MT", label: "Malta", labelCs: "Malta", labelEn: "Malta" },
+  { code: "NL", label: "Nizozemsko", labelCs: "Nizozemsko", labelEn: "Netherlands" },
+  { code: "PL", label: "Polsko", labelCs: "Polsko", labelEn: "Poland" },
+  { code: "PT", label: "Portugalsko", labelCs: "Portugalsko", labelEn: "Portugal" },
+  { code: "RO", label: "Rumunsko", labelCs: "Rumunsko", labelEn: "Romania" },
+  { code: "SK", label: "Slovensko", labelCs: "Slovensko", labelEn: "Slovakia" },
+  { code: "SI", label: "Slovinsko", labelCs: "Slovinsko", labelEn: "Slovenia" },
+  { code: "ES", label: "Španělsko", labelCs: "Španělsko", labelEn: "Spain" },
+  { code: "SE", label: "Švédsko", labelCs: "Švédsko", labelEn: "Sweden" },
 ];
 
 const MANUAL_QR_COUNTRY_CODES = new Set(MANUAL_QR_COUNTRIES.map((country) => country.code));
+
+export function getManualQrCountries(locale: SupportedLocale = "cs"): ManualQrCountry[] {
+  return MANUAL_QR_COUNTRIES.map((country) => ({
+    ...country,
+    label: locale === "en" ? country.labelEn ?? country.label : country.labelCs ?? country.label,
+  }));
+}
+
+function getCzkCentsPerEur() {
+  const raw = Number.parseInt(process.env.ARTALES_QR_CZK_CENTS_PER_EUR ?? "", 10);
+  return Number.isFinite(raw) && raw > 0 ? raw : DEFAULT_CZK_CENTS_PER_EUR;
+}
+
+function resolveManualQrAmount(packageItem: ManualQrPackage, billingCountry: string) {
+  if (billingCountry === "CZ") {
+    return {
+      amountCents: Math.round((packageItem.amountCents / 100) * getCzkCentsPerEur()),
+      currency: MANUAL_QR_CZ_CURRENCY,
+      paymentRail: "cz_domestic_qr",
+    };
+  }
+
+  return {
+    amountCents: packageItem.amountCents,
+    currency: MANUAL_QR_CURRENCY,
+    paymentRail: "sepa_qr",
+  };
+}
 
 export const CREDIT_TOPUP_PACKAGES: ManualQrPackage[] = [
   {
@@ -238,7 +275,7 @@ export function formatManualPaymentAmount(amountCents: number, currency: string)
   }
 
   if (normalizedCurrency === "CZK") {
-    return `${amount.toFixed(2)} Kč`;
+    return `${new Intl.NumberFormat("cs-CZ", { maximumFractionDigits: amountCents % 100 === 0 ? 0 : 2 }).format(amount)} Kč`;
   }
 
   return `${amount.toFixed(2)} ${normalizedCurrency}`;
@@ -288,6 +325,8 @@ export async function createManualQrOrder(params: {
     return { ok: false as const, reason: "invalid_package" };
   }
 
+  const paymentAmount = resolveManualQrAmount(selectedPackage, billingCountry);
+
   const supabase = await createClient();
   const {
     data: { user },
@@ -318,10 +357,12 @@ export async function createManualQrOrder(params: {
         checkout_method: "manual_qr",
         checkout_kind: kind,
         package_code: selectedPackage.code,
-        amount_cents: selectedPackage.amountCents,
+        amount_cents: paymentAmount.amountCents,
+        base_amount_eur_cents: selectedPackage.amountCents,
         credit_amount: selectedPackage.creditAmount ?? null,
-        currency: MANUAL_QR_CURRENCY,
+        currency: paymentAmount.currency,
         billing_country: billingCountry,
+        payment_rail: paymentAmount.paymentRail,
       },
     })
     .select("id")
@@ -338,10 +379,10 @@ export async function createManualQrOrder(params: {
       user_id: user.id,
       status: "pending_payment",
       payment_status: "pending",
-      currency: MANUAL_QR_CURRENCY,
-      subtotal_amount_cents: selectedPackage.amountCents,
+      currency: paymentAmount.currency,
+      subtotal_amount_cents: paymentAmount.amountCents,
       discount_amount_cents: 0,
-      total_amount_cents: selectedPackage.amountCents,
+      total_amount_cents: paymentAmount.amountCents,
       provider: "manual_qr",
       provider_session_id: String(intent.id),
       metadata: {
@@ -352,6 +393,8 @@ export async function createManualQrOrder(params: {
         credit_amount: selectedPackage.creditAmount ?? null,
         billing_country: billingCountry,
         tax_scope: "eu_oss_launch_only",
+        payment_rail: paymentAmount.paymentRail,
+        base_amount_eur_cents: selectedPackage.amountCents,
       },
     })
     .select("id")
@@ -376,9 +419,9 @@ export async function createManualQrOrder(params: {
     product_type: kind,
     title,
     quantity: 1,
-    unit_amount_cents: selectedPackage.amountCents,
-    total_amount_cents: selectedPackage.amountCents,
-    currency: MANUAL_QR_CURRENCY,
+    unit_amount_cents: paymentAmount.amountCents,
+    total_amount_cents: paymentAmount.amountCents,
+    currency: paymentAmount.currency,
     entitlement_type: null,
     fulfillment_status: kind === "credit_topup" ? "manual_required" : "not_ready",
     metadata: {
@@ -388,6 +431,8 @@ export async function createManualQrOrder(params: {
       credit_amount: selectedPackage.creditAmount ?? null,
       billing_country: billingCountry,
       fulfillment_kind: kind === "credit_topup" ? "credit_topup" : "none",
+      payment_rail: paymentAmount.paymentRail,
+      base_amount_eur_cents: selectedPackage.amountCents,
     },
   });
 
@@ -408,6 +453,8 @@ export async function createManualQrOrder(params: {
           credit_amount: selectedPackage.creditAmount ?? null,
           billing_country: billingCountry,
           tax_scope: "eu_oss_launch_only",
+          payment_rail: paymentAmount.paymentRail,
+          base_amount_eur_cents: selectedPackage.amountCents,
           manual_qr_reference: variableSymbol,
           manual_qr_message: paymentMessage,
         },
@@ -421,10 +468,12 @@ export async function createManualQrOrder(params: {
           checkout_method: "manual_qr",
           checkout_kind: kind,
           package_code: selectedPackage.code,
-          amount_cents: selectedPackage.amountCents,
+          amount_cents: paymentAmount.amountCents,
+          base_amount_eur_cents: selectedPackage.amountCents,
           credit_amount: selectedPackage.creditAmount ?? null,
-          currency: MANUAL_QR_CURRENCY,
+          currency: paymentAmount.currency,
           billing_country: billingCountry,
+          payment_rail: paymentAmount.paymentRail,
           order_id: orderId,
         },
       })
@@ -462,10 +511,11 @@ export async function getManualQrOrderSummary(userId: string, orderId: string): 
   const typedOrder = order as OrderRow;
   const firstItem = items?.[0] as OrderItemRow | undefined;
   const metadata = (typedOrder.metadata ?? {}) as OrderMetadata;
-  const kind = metadata.manual_qr_kind === "support" ? "support" : "credit_topup";
+  const kind = metadata.manual_qr_kind === "support" || metadata.checkout_kind === "support" ? "support" : "credit_topup";
   const variableSymbol = metadata.manual_qr_reference ?? createNumericReference(String(typedOrder.id));
   const paymentMessage = metadata.manual_qr_message ?? createManualQrPaymentMessage(String(typedOrder.id), kind);
   const currency = String(typedOrder.currency ?? MANUAL_QR_CURRENCY);
+  const paymentRail = metadata.payment_rail ?? (metadata.billing_country === "CZ" ? "cz_domestic_qr" : "sepa_qr");
   const amountCents = Number(typedOrder.total_amount_cents ?? 0);
 
   return {
@@ -479,6 +529,7 @@ export async function getManualQrOrderSummary(userId: string, orderId: string): 
     createdAt: String(typedOrder.created_at),
     kind,
     billingCountry: metadata.billing_country ?? null,
+    paymentRail,
     qrPayload: createQrPaymentPayload({
       amountCents,
       currency,

@@ -90,9 +90,14 @@ export default async function MemberPage() {
             Materiály a prompty
           </Link>
           {role === "admin" ? (
-            <Link className="artales-button-secondary" href="/member/admin/dashboard">
-              Admin přehled
-            </Link>
+            <>
+              <Link className="artales-button-secondary" href="/member/admin/dashboard">
+                Admin přehled
+              </Link>
+              <Link className="artales-button-secondary" href="/member/admin/payments">
+                QR platby
+              </Link>
+            </>
           ) : null}
           {canEditContent ? (
             <>
