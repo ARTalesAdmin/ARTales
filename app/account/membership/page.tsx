@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { requireCompletedAccountProfile } from "@/lib/account";
-import { MEMBERSHIP_TIERS, formatEuro } from "@/lib/membership";
+import { MEMBERSHIP_TIERS } from "@/lib/membership";
 import { getPublicDictionary } from "@/lib/i18n/public";
 import { getCookieLocale, resolveProfileLocale } from "@/lib/i18n/server";
 
@@ -13,6 +13,7 @@ type MembershipTierDictionary = {
   unlocks: string;
   credits: string;
   prices: string;
+  monthlyPrice: string;
 };
 
 export default async function AccountMembershipPage() {
@@ -32,15 +33,15 @@ export default async function AccountMembershipPage() {
 
       <section className="artales-account-promo-panel artales-account-membership-hero">
         <div>
-          <p className="artales-account-card__label">{dictionary.launchOfferLabel}</p>
-          <h2>{dictionary.launchOfferTitle}</h2>
-          <p>{dictionary.launchOfferText}</p>
+          <p className="artales-account-card__label">{dictionary.creditModelLabel}</p>
+          <h2>{dictionary.creditModelTitle}</h2>
+          <p>{dictionary.creditModelText}</p>
           <p className="artales-account-muted">{dictionary.paymentNotice}</p>
         </div>
-        <div className="artales-account-membership-price-strip" aria-label={dictionary.launchOfferLabel}>
-          <span>€1</span>
-          <span>€2</span>
-          <span>€4</span>
+        <div className="artales-account-membership-price-strip" aria-label={dictionary.creditModelLabel}>
+          <span>1 AT</span>
+          <span>2 AT</span>
+          <span>4 AT</span>
         </div>
       </section>
 
@@ -53,14 +54,7 @@ export default async function AccountMembershipPage() {
                 <p className="artales-account-card__label">{copy.name}</p>
                 {copy.badge ? <span className="artales-account-badge">{copy.badge}</span> : null}
               </div>
-              <h2>{formatEuro(tier.introPrice)} <span>{dictionary.perMonth}</span></h2>
-              {tier.futurePrice > tier.introPrice ? (
-                <p className="artales-account-muted">
-                  {dictionary.laterPrice}: {formatEuro(tier.futurePrice)} {dictionary.perMonth}
-                </p>
-              ) : (
-                <p className="artales-account-muted">{dictionary.freeLayer}</p>
-              )}
+              <h2>{copy.monthlyPrice} <span>{dictionary.perMonth}</span></h2>
               <p>{copy.description}</p>
               <ul className="artales-account-feature-list">
                 <li>{copy.unlocks}</li>
@@ -95,7 +89,8 @@ export default async function AccountMembershipPage() {
       </section>
 
       <div className="artales-account-actions">
-        <Link className="artales-button" href="/gallery">{dictionary.exploreWorks}</Link>
+        <Link className="artales-button" href="/checkout/credits">{dictionary.topUpCredits}</Link>
+        <Link className="artales-button-secondary" href="/credits">{dictionary.creditInfo}</Link>
         <Link className="artales-button-secondary" href="/account/library">{dictionary.openLibrary}</Link>
       </div>
     </section>

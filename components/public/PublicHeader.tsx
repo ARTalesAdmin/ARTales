@@ -18,6 +18,9 @@ type PublicHeaderProps = {
     | "collection"
     | "work"
     | "reader"
+    | "credits"
+    | "support"
+    | "roadmap"
     | "legal";
 };
 
@@ -60,6 +63,22 @@ export default async function PublicHeader({ active }: PublicHeaderProps) {
           }
         >
           {t.authors}
+        </Link>
+
+        <Link
+          className="artales-public-link"
+          href="/credits"
+          aria-current={active === "credits" ? "page" : undefined}
+        >
+          {currentLocale === "cs" ? "AT kredity" : "AT Credits"}
+        </Link>
+
+        <Link
+          className="artales-public-link"
+          href="/roadmap"
+          aria-current={active === "roadmap" ? "page" : undefined}
+        >
+          {currentLocale === "cs" ? "Co se chystá" : "What’s next"}
         </Link>
 
         <Link

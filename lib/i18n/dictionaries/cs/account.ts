@@ -9,7 +9,7 @@ export const csAccount = {
     settings: "Nastavení čtení",
     community: "Komunita",
     membership: "Členství",
-    credits: "Kredit",
+    credits: "AT kredity",
     support: "Podpořit ARTales",
     memberZone: "Interní zóna",
     gallery: "Galerie",
@@ -46,7 +46,7 @@ export const csAccount = {
     communityCta: "Otevřít komunitu",
     membershipTitle: "Náhled plánů",
     membershipText:
-      "Členský model připravujeme jako další vrstvu pro pravidelné čtení a podporu platformy.",
+      "Členství bude doplňovat kreditový model pro pravidelné čtení a podporu ARTales.",
     membershipCta: "Zobrazit členství",
     creditsLabel: "Čtenářský kredit",
     creditsTitle: "Kredit a platby",
@@ -89,9 +89,9 @@ export const csAccount = {
     welcomeUsedTitle: "Už použito",
     welcomeUsedText: "Jednorázové uvítací odemčení už bylo použito.",
     savedLabel: "Uložené tituly",
-    savedTitle: "Uloženo na později",
+    savedTitle: "Uložené tituly",
     savedText:
-      "Uložené tituly jsou připravené na později. Když jsi přihlášený/á, ukládají se k účtu.",
+      "Uložené tituly máš po ruce pro klidnější výběr. Když jsi přihlášený/á, ukládají se k účtu.",
     savedMeta: "Uložené přes účet ARTales.",
     recentLabel: "Nedávno čtené",
     recentTitleSuffix: "čtenářských záznamů",
@@ -121,7 +121,7 @@ export const csAccount = {
     savedBadge: "Uloženo",
     readPreview: "Otevřít ukázku",
     noSavedWorks:
-      "Zatím sis neuložil/a žádný titul. V detailu díla nebo ve čtečce použij tlačítko uložit na později.",
+      "Zatím tu nejsou žádné uložené tituly. V detailu díla nebo ve čtečce použij tlačítko Uložit.",
     continueLabel: "Pokračovat ve čtení",
     continueText:
       "Otevři poslední odemčený titul. Čtečka se na stejném zařízení vrací k poslednímu místu.",
@@ -130,7 +130,7 @@ export const csAccount = {
     creditPanelLabel: "Čtenářský kredit",
     creditPanelTitle: "Kredit pro pohodlné čtení",
     creditPanelText:
-      "Dobij kredit jednou a používej ho postupně. V launch režimu platby potvrzujeme ručně po spárování v bance.",
+      "Dobij kredit jednou a používej ho postupně. Platby přiřazujeme bezpečně podle variabilního symbolu.",
     openCredits: "Spravovat kredit",
     topUpCredits: "Dobít kredit",
     supportArtales: "Podpořit ARTales",
@@ -248,91 +248,95 @@ export const csAccount = {
     ],
   },
   membership: {
-    kicker: "Náhled členství",
-    title: "Členský model ARTales",
+    kicker: "Členství ARTales",
+    title: "Členství a pravidelné čtení",
     freeReader: "Free Reader",
     ledePrefix: "Aktuálně jsi na vrstvě účtu",
     ledeSuffix:
-      "Tato stránka vysvětluje plánovanou strukturu členství ještě před spuštěním plateb, billing period a obnovování.",
-    launchOfferLabel: "Startovní nabídka",
-    launchOfferTitle: "První 3 měsíce / prvních 100 čtenářů",
-    launchOfferText:
-      "Úvodní členské ceny jsou plánované jako €1 / €2 / €4 pro Basic, Plus a Library. Pozdější standardní ceny jsou plánované jako €2 / €4 / €7.",
+      "Členství bude navazovat na čtenářský kredit: jednoduše, srozumitelně a bez drobných plateb u každého kroku.",
+    creditModelLabel: "Kreditový model",
+    creditModelTitle: "Členství budeme účtovat v AT kreditech",
+    creditModelText:
+      "Členství má být pohodlný způsob, jak si udržet pravidelné čtení a zároveň podporovat vznik dalších edic. Ceny proto uvádíme v AT kreditech, ne v eurech.",
     paymentNotice:
-      "Platby nejsou v tomto patchi aktivní. Stránka připravuje account copy a očekávání čtenáře před checkout větví.",
+      "Kredit si můžeš dobít samostatně. Samotné členství se aktivuje až ve chvíli, kdy bude tato vrstva otevřená pro čtenáře.",
     perMonth: "/ měsíc",
-    laterPrice: "Pozdější plánovaná cena",
-    freeLayer: "Bezplatná vrstva účtu.",
+    topUpCredits: "Dobít AT kredity",
+    creditInfo: "Jak fungují AT kredity",
     tiers: {
       free_reader: {
         name: "Free Reader",
+        monthlyPrice: "0 AT",
         description:
-          "Registrovaný čtenářský účet s profilem, nastavením čtení a jedním uvítacím online odemčením.",
-        unlocks: "1 uvítací odemčení",
-        credits: "0 AT Credits / měsíc",
-        prices: "Čtenářské nástroje a nastavení",
+          "Bezplatný čtenářský účet pro ukládání titulů, nastavení čtečky a první vstup do knihovny ARTales.",
+        unlocks: "Uvítací odemčení pro první výběr",
+        credits: "Kredit podle vlastního dobití",
+        prices: "Základní čtenářské nástroje",
       },
       basic: {
         name: "Basic",
+        monthlyPrice: "1 AT",
         description:
-          "Lehká měsíční vrstva pro čtenáře, kteří chtějí pravidelné online čtení bez plného knihovního členství.",
-        unlocks: "2 trvalá online odemčení / měsíc",
-        credits: "0 AT Credits / měsíc",
-        prices: "Member ceny",
+          "Lehká pravidelná vrstva pro čtenáře, kteří se chtějí vracet k ARTales a mít jasný rytmus odemykání.",
+        unlocks: "Menší počet online odemčení",
+        credits: "Pracuje s vlastním AT kreditem",
+        prices: "Čtenářské výhody u vybraných edic",
       },
       plus: {
         name: "Plus",
+        monthlyPrice: "2 AT",
         description:
-          "Silnější měsíční vrstva s více trvalými odemčeními a prvním AT Credit benefitem.",
+          "Vyvážená vrstva pro pravidelné čtení, hlubší knihovnu a větší podporu ediční práce.",
         badge: "Nejlepší hodnota",
-        unlocks: "5 trvalých online odemčení / měsíc",
-        credits: "1 AT Credit / měsíc",
-        prices: "Lepší member ceny",
+        unlocks: "Více online odemčení",
+        credits: "Kreditové výhody v účtu",
+        prices: "Lepší podmínky u vybraných edic",
       },
       library: {
         name: "Library",
+        monthlyPrice: "4 AT",
         description:
-          "Plné online čtení po dobu aktivního členství, kredity a nejlepší ceny pro hlubší čtenáře ARTales.",
-        badge: "Plný online přístup",
-        unlocks: "Neomezené online čtení při aktivním členství",
-        credits: "2 AT Credits / měsíc",
-        prices: "Nejlepší member ceny",
+          "Knihovní vrstva pro čtenáře, kteří chtějí ARTales používat jako dlouhodobý literární prostor.",
+        badge: "Knihovní přístup",
+        unlocks: "Nejširší online čtenářská vrstva",
+        credits: "Kreditové benefity pro další formáty",
+        prices: "Nejlepší podmínky v rámci účtu",
       },
     },
-    modelLabel: "Model přístupu",
-    modelTitle: "Důležitá rozlišení členství",
+    modelLabel: "Jak o členství přemýšlíme",
+    modelTitle: "Členství má doplňovat kredit, ne ho nahrazovat",
     modelPoints: [
       {
-        title: "Trvalá odemčení",
-        text: "Online odemčení zůstávají navázaná na čtenářský účet po přidělení nebo zakoupení.",
+        title: "Kredit je základ",
+        text: "AT kredit je jednoduchá hodnota v účtu. Umožní odemčení titulů, edice, podporu projektu a další služby.",
       },
       {
-        title: "Library přístup",
-        text: "Library členství znamená online čtení během aktivního členství, ne trvalé vlastnictví celého katalogu.",
+        title: "Členství je rytmus",
+        text: "Členství dává smysl pro pravidelné čtenáře, školy, knihovny a podporovatele, kteří chtějí ARTales používat opakovaně.",
       },
       {
-        title: "AT Credits",
-        text: "Kredity jsou plánované jako pozdější hodnotová vrstva pro odemčení, downloady, tipy a komunitní odměny.",
+        title: "Online čtení zůstává oddělené",
+        text: "Odemčený titul patří do knihovny účtu. Knihovní členství může později otevřít širší přístup po dobu aktivního členství.",
       },
       {
-        title: "Checkout později",
-        text: "Billing, obnovování, zrušení a vytvoření entitlementu po zaplacení potřebují samostatný commerce patch.",
+        title: "Podpora má své místo",
+        text: "Kredit lze použít i jako podporu projektu ARTales. Později může navázat také podpora autorů a kurátorských edic.",
       },
     ],
-    currentStateLabel: "Aktuální stav",
-    currentStateTitle: "Co funguje teď",
-    identityPrefix: "Identita účtu je aktivní pro",
+    currentStateLabel: "Stav účtu",
+    currentStateTitle: "Co můžeš používat teď",
+    identityPrefix: "Účet je aktivní pro",
     identitySuffix:
-      "Entitlement vrstva je připravená pro online čtení, budoucí PDF/EPUB produkty, členské benefity a AT Credits.",
+      "Knihovna, kredit, uložené tituly a nastavení čtení jsou navázané na tvůj čtenářský profil.",
     paymentsDisabled:
-      "Platby jsou zatím vypnuté. Do aktivace product/payment vrstvy může být přístup přidělen jen systémovou logikou nebo admin/manual nástroji.",
+      "Členství zatím neúčtujeme automaticky. Pro čtení a podporu můžeš používat AT kredity a QR platby.",
     exploreWorks: "Procházet díla",
     openLibrary: "Otevřít moji knihovnu",
   },
   credits: {
     kicker: "Čtenářský kredit",
     title: "Kredit a platební pokyny",
-    lede: "Tady vidíš svůj aktuální kredit, QR platební pokyny a historii pohybů. Platby v launch režimu potvrzuje tým ARTales ručně po spárování v bance.",
+    lede: "Tady vidíš aktuální kredit, platební pokyny a historii pohybů. Každá platba má svůj variabilní symbol, aby se dala bezpečně přiřadit k účtu.",
     balanceLabel: "Aktuální zůstatek",
     balanceText:
       "Kredit je interní hodnota ARTales. Po potvrzení platby ho můžeš použít pro budoucí odemčení titulů, PDF/EPUB edice, členství, podporu autorů nebo služby na míru.",
@@ -343,12 +347,12 @@ export const csAccount = {
       {
         label: "Jak to funguje",
         title: "Dobiješ jednou, používáš postupně",
-        text: "Místo několika mikroplateb si dobiješ kreditový balíček. Po spárování platby se kredit připíše k účtu a později ho půjde utrácet uvnitř ARTales.",
+        text: "Místo několika drobných plateb si dobiješ kreditový balíček. Po připsání platby se kredit objeví u účtu a můžeš ho používat v ARTales.",
       },
       {
-        label: "Bezpečný launch režim",
+        label: "Bezpečné přiřazení",
         title: "Platby potvrzuje člověk",
-        text: "QR platba předvyplní částku a variabilní symbol. Přístup nebo kredit se aktivuje až po kontrole v admin zóně, aby se nic nepřipsalo omylem.",
+        text: "QR platba předvyplní částku a variabilní symbol. Kredit nebo podpora se zaevidují po kontrole příchozí platby.",
       },
       {
         label: "Podpora projektu",
@@ -356,10 +360,19 @@ export const csAccount = {
         text: "Podpora ARTales pomáhá financovat ediční práci, vizuály a vývoj. Neodemkne titul automaticky a v administraci se vede odděleně od kreditu.",
       },
     ],
+    giftLabel: "Darovat kredit",
+    giftTitle: "Podpořit ARTales ze svého kreditu",
+    giftText: "Část už dobitého kreditu můžeš věnovat přímo projektu ARTales. Zůstatek se sníží a v historii zůstane jasný záznam.",
+    giftAmountLabel: "Počet kreditů",
+    giftCta: "Darovat kredit",
+    creditGiftSuccess: "Děkujeme — kredit byl převeden jako podpora ARTales.",
+    creditGiftNotEnough: "Na darování této částky nemáš dostatek kreditu.",
+    creditGiftError: "Darování kreditu se nepodařilo uložit. Zkus to prosím znovu.",
+    showCancelled: "Zobrazit archiv stornovaných pokynů",
     paymentsLabel: "Platební pokyny",
     paymentsTitle: "Stav tvých QR plateb",
     paymentsText:
-      "Pokud jsi platbu odeslal/a, můžeš otevřít platební pokyn a označit ho jako zaplacený. Tým ARTales ho pak ručně spáruje s bankou.",
+      "Otevři aktivní pokyn, zkontroluj QR údaje a dokonči platbu v bankovní aplikaci. Po připsání ji přiřadíme podle variabilního symbolu.",
     newPayment: "Nové dobití",
     noPayments: "Zatím tu nejsou žádné QR platební pokyny.",
     paymentKinds: {
@@ -376,9 +389,9 @@ export const csAccount = {
     },
     paymentStateTexts: {
       pending:
-        "Pokyn čeká na platbu. Otevři QR detail, zaplať v bankovní aplikaci a po odeslání platby nám můžeš dát vědět.",
+        "Pokyn čeká na platbu. Otevři QR detail, zkontroluj údaje a dokonči platbu v bankovní aplikaci.",
       reported:
-        "Označil/a jsi, že platba odešla. Teď čeká na ruční spárování v ARTales.",
+        "Platba čeká na přiřazení podle variabilního symbolu.",
       paidWaitingFulfillment:
         "Platba je označená jako zaplacená a čeká na dokončení navazující akce.",
       creditAdded: "Kredit byl připsán k účtu.",
@@ -422,7 +435,7 @@ export const csAccount = {
     savedBadge: "Uloženo",
     readPreview: "Otevřít ukázku",
     noSavedWorks:
-      "Zatím sis neuložil/a žádný titul. V detailu díla nebo ve čtečce použij tlačítko uložit na později.",
+      "Zatím tu nejsou žádné uložené tituly. V detailu díla nebo ve čtečce použij tlačítko Uložit.",
     continueLabel: "Pokračovat ve čtení",
     continueText:
       "Otevři poslední odemčený titul. Čtečka se na stejném zařízení vrací k poslednímu místu.",

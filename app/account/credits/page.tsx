@@ -3,6 +3,7 @@ import { requireCompletedAccountProfile } from "@/lib/account";
 import { getReaderCommerceSummary, type ReaderManualQrPaymentItem, type ReaderCreditLedgerItem } from "@/lib/readerCommerce";
 import { getPublicDictionary } from "@/lib/i18n/public";
 import { getCookieLocale, resolveProfileLocale } from "@/lib/i18n/server";
+import { giftCreditToArtales } from "./actions";
 
 export const dynamic = "force-dynamic";
 
@@ -38,14 +39,6 @@ function getPaymentState(payment: ReaderManualQrPaymentItem, dictionary: ReturnT
       label: dictionary.paymentStates.paid,
       className: "artales-credit-status artales-credit-status--success",
       text: dictionary.paymentStateTexts.paidWaitingFulfillment,
-    };
-  }
-
-  if (payment.userReportedPaidAt) {
-    return {
-      label: dictionary.paymentStates.reported,
-      className: "artales-credit-status artales-credit-status--pending",
-      text: dictionary.paymentStateTexts.reported,
     };
   }
 
@@ -143,7 +136,18 @@ function LedgerRow({
   );
 }
 
-export default async function AccountCreditsPage() {
+type PageProps = {
+  searchParams?: Promise<{ error?: string; success?: string }>;
+};
+
+function getCreditNotice(params: { error?: string; success?: string }, dictionary: ReturnType<typeof getPublicDictionary>["account"]["credits"]) {
+  if (params.success === "credit_gifted") return { kind: "success", text: dictionary.creditGiftSuccess };
+  if (params.error === "not_enough_credit") return { kind: "error", text: dictionary.creditGiftNotEnough };
+  if (params.error) return { kind: "error", text: dictionary.creditGiftError };
+  return null;
+}
+
+export default async function AccountCreditsPage({ searchParams }: PageProps) {
   const profile = await requireCompletedAccountProfile("/account/credits");
   const [commerce, cookieLocale] = await Promise.all([
     getReaderCommerceSummary(profile.id),
@@ -151,6 +155,8 @@ export default async function AccountCreditsPage() {
   ]);
   const locale = resolveProfileLocale(profile, cookieLocale);
   const dictionary = getPublicDictionary(locale).account.credits;
+  const params = (await searchParams) ?? {};
+  const notice = getCreditNotice(params, dictionary);
   const activePayments = commerce.payments.filter((payment) => !["cancelled", "refunded"].includes(payment.status)).slice(0, 8);
   const cancelledPayments = commerce.payments.filter((payment) => ["cancelled", "refunded"].includes(payment.status)).slice(0, 4);
 
@@ -159,6 +165,12 @@ export default async function AccountCreditsPage() {
       <p className="artales-account-kicker">{dictionary.kicker}</p>
       <h1>{dictionary.title}</h1>
       <p className="artales-account-lede">{dictionary.lede}</p>
+
+      {notice ? (
+        <div className={notice.kind === "success" ? "artales-account-notice artales-account-notice--success" : "artales-account-notice artales-account-notice--error"}>
+          {notice.text}
+        </div>
+      ) : null}
 
       <section className="artales-account-promo-panel artales-credit-hero">
         <div>
@@ -202,6 +214,23 @@ export default async function AccountCreditsPage() {
         )}
       </section>
 
+      <section className="artales-account-panel artales-credit-section artales-credit-gift-panel">
+        <div>
+          <p className="artales-account-card__label">{dictionary.giftLabel}</p>
+          <h2>{dictionary.giftTitle}</h2>
+          <p>{dictionary.giftText}</p>
+        </div>
+        <form action={giftCreditToArtales} className="artales-credit-gift-form">
+          <label>
+            {dictionary.giftAmountLabel}
+            <input name="amount" type="number" min="1" max={Math.max(commerce.creditBalance, 1)} defaultValue={Math.min(Math.max(commerce.creditBalance, 1), 1)} />
+          </label>
+          <button className="artales-button-secondary" type="submit" disabled={commerce.creditBalance <= 0}>
+            {dictionary.giftCta}
+          </button>
+        </form>
+      </section>
+
       <section className="artales-account-panel artales-credit-section">
         <p className="artales-account-card__label">{dictionary.ledgerLabel}</p>
         <h2>{dictionary.ledgerTitle}</h2>
@@ -222,11 +251,14 @@ export default async function AccountCreditsPage() {
           <p className="artales-account-card__label">{dictionary.cancelledLabel}</p>
           <h2>{dictionary.cancelledTitle}</h2>
           <p>{dictionary.cancelledText}</p>
-          <div className="artales-credit-payment-grid">
-            {cancelledPayments.map((payment) => (
-              <PaymentCard key={payment.id} payment={payment} locale={locale} dictionary={dictionary} />
-            ))}
-          </div>
+          <details className="artales-credit-archive-scroll">
+            <summary>{dictionary.showCancelled}</summary>
+            <div className="artales-credit-payment-grid">
+              {cancelledPayments.map((payment) => (
+                <PaymentCard key={payment.id} payment={payment} locale={locale} dictionary={dictionary} />
+              ))}
+            </div>
+          </details>
         </section>
       ) : null}
 

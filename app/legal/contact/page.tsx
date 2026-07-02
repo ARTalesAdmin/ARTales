@@ -27,10 +27,10 @@ export default async function ContactPage() {
             <>
               <p>
                 Pro běžné dotazy, opravy metadat, upozornění na chyby, právní připomínky nebo spolupráci použijte tento
-                kontaktní kanál:
+                kontaktní e-mail:
               </p>
               <p className="artales-legal-contact">
-                <a href="mailto:hello@artales.net">hello@artales.net</a>
+                <a href="mailto:artales@seznam.cz">artales@seznam.cz</a>
               </p>
               <h2>Co prosím přiložit</h2>
               <p>
@@ -42,10 +42,10 @@ export default async function ContactPage() {
             <>
               <p>
                 For general questions, metadata corrections, error reports, rights notices or collaboration, use this contact
-                channel:
+                e-mail:
               </p>
               <p className="artales-legal-contact">
-                <a href="mailto:hello@artales.net">hello@artales.net</a>
+                <a href="mailto:artales@seznam.cz">artales@seznam.cz</a>
               </p>
               <h2>What to include</h2>
               <p>

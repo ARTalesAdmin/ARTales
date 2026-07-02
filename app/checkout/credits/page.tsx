@@ -4,7 +4,6 @@ import { requireCompletedAccountProfile } from "@/lib/account";
 import { getCookieLocale, resolveProfileLocale } from "@/lib/i18n/server";
 import {
   CREDIT_TOPUP_PACKAGES,
-  formatManualPaymentAmount,
   getManualQrCountries,
 } from "@/lib/manualQrPayments";
 import { createCreditTopupOrder } from "./actions";
@@ -20,11 +19,11 @@ const copy = {
     eyebrow: "Čtenářský kredit",
     title: "Dobít kredit ARTales",
     intro:
-      "Dobij si kredit jednou QR platbou a používej ho později na online čtení, edice, členství nebo další služby ARTales. V launch fázi platbu ručně zkontrolujeme a kredit připíšeme k tvému účtu.",
-    launchLabel: "Launch omezení",
-    launchTitle: "Zatím EU / OSS režim",
+      "Dobij si kredit jednou QR platbou a používej ho postupně pro online čtení, ediční soubory, členství a další služby ARTales. Po připsání platby kredit bezpečně přiřadíme k tvému účtu.",
+    launchLabel: "Platební oblast",
+    launchTitle: "Platby přijímáme v rámci EHP",
     launchText:
-      "Kvůli jednoduchému účetnímu a daňovému startu zatím přijímáme ruční QR platby jen od zákazníků z EU. Pro Česko vytvoříme českou QR platbu v CZK; pro ostatní země EU použijeme EUR/SEPA režim.",
+      "Pro Česko připravíme českou QR platbu v korunách. Pro ostatní podporované země vytvoříme platební pokyn v eurech se SEPA údaji.",
     country: "Země zákazníka",
     submit: "Dobít tento kredit",
     support: "Chci raději podpořit ARTales",
@@ -33,7 +32,7 @@ const copy = {
     priceNote: "Cena se přepočítá podle zvolené země na další stránce.",
     errors: {
       invalid_package: "Vybraný balíček kreditu se nepodařilo načíst.",
-      unsupported_country: "Pro launch zatím přijímáme QR platby pouze od zákazníků z EU / OSS režimu.",
+      unsupported_country: "QR platby jsou teď dostupné pro podporované země v rámci EHP.",
       fallback: "Platební pokyn se nepodařilo vytvořit. Zkus to prosím znovu, nebo nás kontaktuj.",
     },
   },
@@ -41,11 +40,11 @@ const copy = {
     eyebrow: "Reader credit",
     title: "Top up ARTales credit",
     intro:
-      "Top up credit with one QR payment and use it later for online reading, editions, membership, or other ARTales services. During launch, we manually check the payment and add credit to your account.",
-    launchLabel: "Launch limitation",
-    launchTitle: "EU / OSS mode for now",
+      "Top up credit with one QR payment and use it gradually for online reading, editions, membership, and other ARTales services. After the payment arrives, we safely assign the credit to your account.",
+    launchLabel: "Payment area",
+    launchTitle: "Payments within the EEA",
     launchText:
-      "To keep accounting and tax handling manageable during launch, manual QR payments are currently limited to EU customers. Czechia uses a CZK Czech QR payment; other EU countries use EUR/SEPA mode.",
+      "Czechia receives a CZK Czech QR payment. Other supported countries receive a euro payment instruction with SEPA details.",
     country: "Customer country",
     submit: "Top up this credit",
     support: "I would rather support ARTales",
@@ -54,7 +53,7 @@ const copy = {
     priceNote: "The final payment amount is adjusted by country on the next page.",
     errors: {
       invalid_package: "The selected credit package could not be loaded.",
-      unsupported_country: "During launch, QR payments are currently available only for EU / OSS customers.",
+      unsupported_country: "QR payments are currently available for supported countries within the EEA.",
       fallback: "The payment instruction could not be created. Please try again or contact us.",
     },
   },
@@ -110,7 +109,7 @@ export default async function CreditTopupPage({ searchParams }: PageProps) {
               <p className="artales-account-card__label">{item.creditAmount} {t.credits}</p>
               <h2>{item.title}</h2>
               <p>{item.description}</p>
-              <strong>{formatManualPaymentAmount(item.amountCents, "EUR")}</strong>
+              <strong>{item.creditAmount} {t.credits}</strong>
               <p className="artales-member-muted">{t.priceNote}</p>
               <form action={createCreditTopupOrder} className="artales-credit-package-card__form">
                 <input type="hidden" name="package_code" value={item.code} />
@@ -129,6 +128,7 @@ export default async function CreditTopupPage({ searchParams }: PageProps) {
         </section>
 
         <div className="artales-account-actions">
+          <Link className="artales-button-secondary" href="/credits">{locale === "cs" ? "Jak fungují AT kredity" : "How AT Credits work"}</Link>
           <Link className="artales-button-secondary" href="/checkout/support">{t.support}</Link>
           <Link className="artales-button-secondary" href="/account/library">{t.library}</Link>
         </div>

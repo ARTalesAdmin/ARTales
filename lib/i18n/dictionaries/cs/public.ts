@@ -32,7 +32,7 @@ export const csPublic = {
   literaryWork: "Literární dílo",
   productDeliveryLabel: "Formáty čtení",
   productDeliveryTitle: "Dostupné způsoby čtení",
-  productDeliveryText: "ARTales odděluje online čtení od stahovatelných edic. Download formáty se objeví až ve chvíli, kdy bude ediční soubor připravený.",
+  productDeliveryText: "Přístup k dílům řešíme přes AT kredity. Online čtení otevře titul v knihovně účtu; ediční soubory se zobrazí jen tam, kde jsou připravené.",
   productDeliveryPreparingTitle: "Formáty čtení se připravují",
   productDeliveryPreparingText: "Titul lze zatím číst jako online ukázku. Download produkty se zobrazí po přípravě edičních souborů.",
   productAccessTitle: "Přístup",
@@ -41,8 +41,8 @@ export const csPublic = {
   productEpubTitle: "EPUB edice",
   productBundleTitle: "PDF + EPUB balíček",
   productPrintTitle: "Tištěná edice",
-  productOnlineText: "Čtení díla v online čtečce ARTales.",
-  productDownloadLaterText: "Stahovatelný ediční soubor. Tlačítko pro stažení se objeví až po přípravě oficiálního exportu.",
+  productOnlineText: "Plné online čtení díla v čtečce ARTales.",
+  productDownloadLaterText: "Ediční soubor bude dostupný jen u titulů, kde je připravená oficiální verze ARTales.",
   productNoActionNote: "Teď není potřeba žádná akce.",
   productPricePreparing: "Cena se připravuje",
   statusUnlocked: "V knihovně",
@@ -50,7 +50,7 @@ export const csPublic = {
   statusPreparing: "Připravuje se",
   statusComingLater: "Připravujeme",
   statusNotAvailable: "Zatím nedostupné",
-  continueAccess: "Pokračovat",
+  continueAccess: "Získat přístup za kredit",
   readNow: "Číst teď",
   openFullReader: "Otevřít celou čtečku",
   accessInternalEyebrow: "Interní přístup",
@@ -63,25 +63,29 @@ export const csPublic = {
   accessGuestTitle: "Čteš veřejnou ukázku.",
   accessGuestText: "Vytvoř si bezplatný čtenářský účet, ukládej tituly, použij uvítací odemčení a buduj si knihovnu ARTales.",
   accessReaderTitle: "Tento titul zatím není ve tvé knihovně.",
-  accessReaderText: "Ukázku můžeš číst hned. Plný online přístup půjde přidat uvítacím odemčením nebo pozdějšími produktovými možnostmi.",
+  accessReaderText: "Ukázku můžeš číst hned. Plný online přístup přidáš uvítacím odemčením nebo AT kreditem.",
   createFreeAccount: "Vytvořit účet zdarma",
   useWelcomeUnlock: "Použít uvítací odemčení",
   viewMembershipOptions: "Zobrazit členství",
+  viewCreditOptions: "Jak fungují AT kredity",
+  productOnlineCreditPrice: "1 AT kredit",
+  productDigitalCreditPrice: "2 AT kredity",
+  productBundleCreditPrice: "3 AT kredity",
   feedbackSent: "Podnět odeslán. Děkujeme — tým ARTales ho zpracuje.",
   feedbackInvalid: "Podnět musí mít 3 až 4000 znaků.",
   feedbackError: "Podnět se nepodařilo uložit. Zkus to prosím později.",
   deliveryPreview: "Ukázka dostupná",
   deliveryOnlineReader: "Online reader",
-  deliveryDigitalEditionsLater: "PDF/EPUB později",
+  deliveryDigitalEditionsLater: "Ediční soubory",
 
   homeEyebrow: "Kurátorská literatura, živé edice",
   homeTitle: "Literární prostor pro texty, které si zaslouží víc než plochý soubor.",
   homeIntro:
-    "ARTales propojuje veřejnou knihovnu, ediční dílnu a čtečku. Díla tu nejsou jen nahrané texty: mohou mít strukturu, kontext, poznámky, obrazy, překlady, kolekce a později i vlastní čtenářské a členské vrstvy.",
+    "ARTales je literární prostor pro čtenáře, editory a autory: propojuje kurátorskou knihovnu, klidnou čtečku a ediční péči o texty, které si zaslouží víc než plochý soubor.",
   homePrimaryCta: "Procházet galerii",
   homeSecondaryCta: "Vyzkoušet čtečku",
   homeBrandNote:
-    "ARTales začíná jako elegantní čtecí plocha. Pod ní postupně roste ediční, jazyková, přístupová a komunitní vrstva.",
+    "Stavíme místo, kde se literární dílo dá číst, chápat, vracet se k němu a časem kolem něj vytvářet další ediční a komunitní vrstvy.",
   homeCardEditionsTitle: "Edice, které drží tvar",
   homeCardEditionsText:
     "Každé dílo může nést kapitoly, básně, dopisy, poznámky, obrazový materiál, zdroje, kredity i ediční historii — ne jen jeden dlouhý textový blok.",
@@ -90,9 +94,9 @@ export const csPublic = {
     "Reader má být klidný, čitelný a soustředěný. Stejná struktura zároveň připravuje cestu pro PDF/EPUB exporty a další ediční práci.",
   homeCardExpansionTitle: "Připraveno růst",
   homeCardExpansionText:
-    "Platforma počítá s účty, členstvím, vícejazyčným rozhraním, kurátorskými kolekcemi, autorskými profily a budoucím komunitním procesorem.",
+    "Účet, knihovna, AT kredity a kurátorské kolekce dávají čtenáři jasné místo, kam se vracet a kde může podporovat další rozvoj ARTales.",
   homeDevelopmentNote:
-    "ARTales je v aktivním vývoji. Veřejná část se ladí pro čtenáře, interní část pro ediční tým a další vrstvy se budou otevírat postupně.",
+    "ARTales vzniká v Česku jako nezávislá literární platforma s důrazem na čitelnost, ediční péči a dlouhodobou hodnotu textu.",
 
 
   author: "Autor",
@@ -187,7 +191,7 @@ export const csPublic = {
   checkoutEyebrow: "Objednávka ARTales",
   checkoutComingSoonTitle: "Platby zatím nejsou spuštěné",
   checkoutComingSoonText:
-    "Produktový a přístupový model je v ARTales připravený, ale skutečné platby zůstávají vypnuté, dokud nedokončíme launch nastavení.",
+    "Přístup k titulům v ARTales stavíme kolem čtenářského účtu a AT kreditů. Pokud chceš pokračovat, dobij kredit nebo se vrať do galerie.",
   checkoutInterestText:
     "Tvůj zájem jsme zaznamenali anonymně nebo k tvému čtenářskému účtu, pokud jsi přihlášený. Pomáhá nám to rozhodnout, co spustit jako první.",
   checkoutProductsPrepared: "Produkty připraveny",

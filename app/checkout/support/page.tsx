@@ -21,10 +21,10 @@ const copy = {
     title: "Podpořit literární prostor ARTales",
     intro:
       "Podpora není nákup konkrétního díla. Pomáhá s provozem, obálkami, ediční prací, vývojem readeru a přípravou dalších vrstev platformy.",
-    noFulfillmentLabel: "Bez fulfillmentu",
-    noFulfillmentTitle: "Podpora nic automaticky neodemkne",
+    noFulfillmentLabel: "Podpora projektu",
+    noFulfillmentTitle: "Příspěvek pro rozvoj ARTales",
     noFulfillmentText:
-      "Platbu v adminu označíme jako přijatou, ale systém k ní nebude vytvářet nárok na dílo. Díky tomu se podpora neplete s objednávkami a kredity.",
+      "Podpora je dobrovolný příspěvek na literární prostor ARTales. Nejde o nákup konkrétního titulu; po připsání platby ji zaevidujeme jako podporu projektu.",
     country: "Země podporovatele",
     submit: "Podpořit touto částkou",
     credit: "Chci dobít kredit",
@@ -33,7 +33,7 @@ const copy = {
     priceNote: "Pro Česko se platba na další stránce převede do CZK QR platby.",
     errors: {
       invalid_package: "Vybraný příspěvek se nepodařilo načíst.",
-      unsupported_country: "Pro launch zatím přijímáme QR platby pouze od zákazníků z EU / OSS režimu.",
+      unsupported_country: "QR platby jsou teď dostupné pro podporované země v rámci EHP.",
       fallback: "Platební pokyn se nepodařilo vytvořit. Zkus to prosím znovu, nebo nás kontaktuj.",
     },
   },
@@ -42,10 +42,10 @@ const copy = {
     title: "Support the ARTales literary space",
     intro:
       "Support is not a purchase of a specific work. It helps cover operations, covers, editorial work, reader development, and the next layers of the platform.",
-    noFulfillmentLabel: "No fulfillment",
-    noFulfillmentTitle: "Support does not unlock anything automatically",
+    noFulfillmentLabel: "Project support",
+    noFulfillmentTitle: "A contribution to ARTales",
     noFulfillmentText:
-      "We mark the payment as received in the admin area, but the system will not create access to a specific work. This keeps support separate from orders and credits.",
+      "Support is a voluntary contribution to the ARTales literary space. It is not a purchase of a specific title; after the payment arrives, we record it as project support.",
     country: "Supporter country",
     submit: "Support with this amount",
     credit: "I want to top up credit",
@@ -54,7 +54,7 @@ const copy = {
     priceNote: "For Czechia, the next page converts the payment into a CZK Czech QR payment.",
     errors: {
       invalid_package: "The selected support amount could not be loaded.",
-      unsupported_country: "During launch, QR payments are currently available only for EU / OSS customers.",
+      unsupported_country: "QR payments are currently available for supported countries within the EEA.",
       fallback: "The payment instruction could not be created. Please try again or contact us.",
     },
   },
@@ -129,6 +129,7 @@ export default async function SupportArtalesPage({ searchParams }: PageProps) {
         </section>
 
         <div className="artales-account-actions">
+          <Link className="artales-button-secondary" href="/credits">{locale === "cs" ? "Jak fungují AT kredity" : "How AT Credits work"}</Link>
           <Link className="artales-button-secondary" href="/checkout/credits">{t.credit}</Link>
           <Link className="artales-button-secondary" href="/account/library">{t.library}</Link>
         </div>

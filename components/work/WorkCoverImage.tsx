@@ -58,57 +58,26 @@ function WorkCoverImageFrame({
                 ? "(max-width: 768px) 100vw, 320px"
                 : "(max-width: 768px) 100vw, 380px"
             }
-            style={{
-              objectFit: "cover",
-            }}
+            style={{ objectFit: "cover" }}
             priority={!isCard}
             onError={() => setHasImageError(true)}
           />
         ) : (
-          <div
-            style={{
-              minHeight: "100%",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              padding: isCard ? "22px" : "34px",
-              textAlign: "center",
-            }}
-          >
-            <div
-              style={{ display: "grid", justifyItems: "center", gap: "18px" }}
-            >
-              <ArtalesBrand
-                href=""
-                variant="dark"
-                size={isCard ? "sm" : "md"}
-                showMark
-              />
-              <div>
-                <p
-                  style={{
-                    margin: "0 0 12px",
-                    fontSize: "12px",
-                    letterSpacing: "0.16em",
-                    textTransform: "uppercase",
-                    color: "rgba(13, 21, 40, 0.58)",
-                  }}
-                >
-                  ARTales Edition
-                </p>
-                <p
-                  style={{
-                    margin: 0,
-                    fontFamily: "Georgia, 'Times New Roman', serif",
-                    fontSize: isCard ? "24px" : "31px",
-                    lineHeight: 1.13,
-                    color: "#0d1528",
-                  }}
-                >
-                  {title}
-                </p>
+          <div className={isCard ? "artales-cover-placeholder artales-cover-placeholder--card" : "artales-cover-placeholder"}>
+            {isCard ? (
+              <div className="artales-cover-placeholder__small-edition">
+                <span>ARTales</span>
+                <span>Editions</span>
               </div>
-            </div>
+            ) : (
+              <div style={{ display: "grid", justifyItems: "center", gap: "18px" }}>
+                <ArtalesBrand href="" variant="dark" size="md" showMark />
+                <div>
+                  <p className="artales-cover-placeholder__label">ARTales Editions</p>
+                  <p className="artales-cover-placeholder__title">{title}</p>
+                </div>
+              </div>
+            )}
           </div>
         )}
       </div>

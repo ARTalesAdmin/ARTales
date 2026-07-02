@@ -9,7 +9,6 @@ import type { SupportedLocale } from "@/lib/i18n/config";
 import {
   DEFAULT_PRODUCT_COPY,
   PRODUCT_TYPE_LABELS,
-  formatProductPrice,
   getPrimaryProductPrice,
   type WorkProductOffer,
   type ProductType,
@@ -138,6 +137,22 @@ function getProductTitle(type: ProductType, labels: WorkPublicLabels) {
       return labels.productPrintTitle;
     default:
       return labels.productAccessTitle;
+  }
+}
+
+function getProductCreditLabel(type: ProductType, labels: WorkPublicLabels) {
+  switch (type) {
+    case "online_unlock":
+      return labels.productOnlineCreditPrice;
+    case "pdf_download":
+    case "epub_download":
+      return labels.productDigitalCreditPrice;
+    case "pdf_epub_bundle":
+      return labels.productBundleCreditPrice;
+    case "print":
+      return labels.productPricePreparing;
+    default:
+      return labels.productPricePreparing;
   }
 }
 
@@ -289,7 +304,7 @@ function ProductOptions({
             <article key={item.key} className={item.status === "unlocked" ? "artales-product-card artales-product-card--owned" : "artales-product-card"}>
               <div className="artales-product-card__topline">
                 <h3>{title}</h3>
-                <span>{formatProductPrice(price, labels.productPricePreparing)}</span>
+                <span>{price ? getProductCreditLabel(item.key, labels) : labels.productPricePreparing}</span>
               </div>
               <p>{description}</p>
               <p className="artales-product-card__status">{getProductStatusLabel(item.status, labels)}</p>
@@ -298,7 +313,7 @@ function ProductOptions({
                   {labels.readNow}
                 </Link>
               ) : item.status === "available" && product ? (
-                <Link className="artales-button" href="/checkout/credits">
+                <Link className="artales-button" href={`/account/credits?work=${encodeURIComponent(slug)}`}>
                   {labels.continueAccess}
                 </Link>
               ) : (

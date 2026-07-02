@@ -3911,3 +3911,100 @@ body {
     min-height: 142px;
   }
 }
+
+/* v0.10.12f — customer-facing credit/library polish */
+.artales-cover-placeholder {
+  min-height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 34px;
+  text-align: center;
+}
+
+.artales-cover-placeholder--card {
+  padding: 18px;
+}
+
+.artales-cover-placeholder__label {
+  margin: 0 0 12px;
+  font-size: 12px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: rgba(13, 21, 40, 0.58);
+}
+
+.artales-cover-placeholder__title {
+  margin: 0;
+  font-family: Georgia, 'Times New Roman', serif;
+  font-size: 31px;
+  line-height: 1.13;
+  color: #0d1528;
+}
+
+.artales-cover-placeholder__small-edition {
+  display: grid;
+  gap: 4px;
+  font-family: Georgia, 'Times New Roman', serif;
+  font-size: clamp(20px, 4vw, 30px);
+  font-weight: 700;
+  line-height: 1.02;
+  letter-spacing: -0.04em;
+  color: #0d1528;
+}
+
+.artales-credit-archive-scroll {
+  max-height: 390px;
+  overflow: auto;
+  padding-right: 6px;
+}
+
+.artales-credit-gift-panel {
+  display: grid;
+  gap: 18px;
+}
+
+.artales-credit-gift-form {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: end;
+}
+
+.artales-credit-gift-form label {
+  display: grid;
+  gap: 6px;
+  min-width: 180px;
+  font-weight: 700;
+}
+
+.artales-credit-gift-form input {
+  border: 1px solid rgba(13, 21, 40, 0.18);
+  border-radius: 14px;
+  padding: 12px 14px;
+  font: inherit;
+}
+
+.artales-menu-roadmap {
+  display: grid;
+  gap: 18px;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+}
+
+.artales-menu-roadmap article {
+  position: relative;
+  overflow: hidden;
+}
+
+.artales-menu-roadmap article::before {
+  content: "";
+  position: absolute;
+  inset: 12px;
+  border: 1px solid rgba(138, 106, 45, 0.24);
+  border-radius: 18px;
+  pointer-events: none;
+}
+
+.artales-roadmap-wishlist {
+  background: linear-gradient(135deg, rgba(255,255,255,0.72), rgba(244,232,210,0.72));
+}
