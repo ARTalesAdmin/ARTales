@@ -81,8 +81,8 @@ type Props = {
 
 const MAX_LOCAL_DRAFT_CHARS = 900_000;
 const LARGE_WORK_BLOCK_COUNT = 80;
-const LARGE_WORK_SAVE_WARNING_CHARS = 6_500_000;
-const LARGE_WORK_SAVE_DANGER_CHARS = 28_000_000;
+const LARGE_WORK_SAVE_WARNING_CHARS = 2_500_000;
+const LARGE_WORK_SAVE_DANGER_CHARS = 4_000_000;
 
 function getStorageKey(mode: "new" | "edit", slug?: string) {
   return mode === "new"
@@ -128,11 +128,11 @@ function formatApproxMegabytes(chars: number) {
 
 function getLargeWorkSaveRiskMessage(chars: number) {
   if (chars >= LARGE_WORK_SAVE_DANGER_CHARS) {
-    return `Pozor: obsah díla má přibližně ${formatApproxMegabytes(chars)}. Uložení takto velkého románu může narazit na limit serveru nebo databázového API. Pokud uložení selže, rozděl vložení do menších částí a dej nám vědět.`;
+    return `Toto je velmi velké dílo (${formatApproxMegabytes(chars)}). Běžné uložení celého formuláře je preventivně vypnuté, aby nespadl prohlížeč. Pokud jen doplňuješ další text, použij tlačítko Uložit nové bloky.`;
   }
 
   if (chars >= LARGE_WORK_SAVE_WARNING_CHARS) {
-    return `Velké dílo: odesílaný obsah má přibližně ${formatApproxMegabytes(chars)}. Ukládání může chvíli trvat. Po kliknutí na Uložit prosím počkej na potvrzení.`;
+    return `Velké dílo: obsah má přibližně ${formatApproxMegabytes(chars)}. Pro doplňování dalších částí je bezpečnější ukládat jen nové bloky.`;
   }
 
   return null;
@@ -275,6 +275,7 @@ export default function WorkEditorForm(props: Props) {
   const [parserResult, setParserResult] = useState<ParsedWorkBlocksResult | null>(null);
   const [parserMessage, setParserMessage] = useState<string | null>(null);
   const [saveSubmitMessage, setSaveSubmitMessage] = useState<string | null>(null);
+  const [isAppendSaving, setIsAppendSaving] = useState(false);
   const [coverUploadMessage, setCoverUploadMessage] = useState<string | null>(null);
   const [coverUploadError, setCoverUploadError] = useState<string | null>(null);
   const [isCoverUploading, setIsCoverUploading] = useState(false);
@@ -341,6 +342,15 @@ export default function WorkEditorForm(props: Props) {
     [blocks],
   );
   const largeWorkSaveRiskMessage = getLargeWorkSaveRiskMessage(estimatedBlocksStorageChars);
+  const initialBlockIds = useMemo(
+    () => new Set(initialData.blocks.map((block) => block.id)),
+    [initialData.blocks],
+  );
+  const newBlocksForAppend = useMemo(
+    () => blocks.filter((block) => !initialBlockIds.has(block.id)),
+    [blocks, initialBlockIds],
+  );
+  const canAppendNewBlocksOnly = mode === "edit" && Boolean(slug) && newBlocksForAppend.length > 0;
 
   const tagGroups = useMemo(() => {
     const groups = new Map<string, { id: string; slug: string; label_cs: string; label_en: string | null; type: string }[]>();
@@ -791,7 +801,9 @@ export default function WorkEditorForm(props: Props) {
     if (estimatedBlocksStorageChars >= LARGE_WORK_SAVE_DANGER_CHARS) {
       event.preventDefault();
       setSaveSubmitMessage(
-        "Toto dílo je pro jednorázové uložení příliš velké. Editor ho raději neodeslal, aby nespadla aplikace. Stáhni si zálohu bloků a pokračuj menší částí textu; další krok bude robustnější ukládání bloků po dávkách.",
+        canAppendNewBlocksOnly
+          ? "Běžné uložení celého velkého díla je preventivně vypnuté. Použij prosím tlačítko Uložit nové bloky, které odešle jen nově přidanou část."
+          : "Běžné uložení celého velkého díla je preventivně vypnuté. Stáhni si zálohu bloků a rozděl další úpravy na menší části.",
       );
       scrollToSaveActions();
       return;
@@ -805,6 +817,54 @@ export default function WorkEditorForm(props: Props) {
         "Prohlížeč nedokázal připravit obsah díla k odeslání. Stáhni si zálohu bloků a zkus pracovat s menším úsekem textu.",
       );
       scrollToSaveActions();
+    }
+  }
+
+
+  async function saveNewBlocksOnly() {
+    if (!slug) {
+      setSaveSubmitMessage("Nové bloky lze samostatně uložit jen u už existujícího díla.");
+      scrollToSaveActions();
+      return;
+    }
+
+    if (newBlocksForAppend.length === 0) {
+      setSaveSubmitMessage("Nejsou připravené žádné nové bloky k samostatnému uložení.");
+      scrollToSaveActions();
+      return;
+    }
+
+    setIsAppendSaving(true);
+    setSaveSubmitMessage(`Ukládám ${newBlocksForAppend.length} nových bloků…`);
+
+    try {
+      const response = await fetch(`/api/member/works/${encodeURIComponent(slug)}/append-blocks`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ blocks: newBlocksForAppend }),
+      });
+
+      const result = (await response.json().catch(() => null)) as
+        | { ok?: boolean; message?: string; appendedCount?: number }
+        | null;
+
+      if (!response.ok || !result?.ok) {
+        setSaveSubmitMessage(
+          result?.message ?? "Nové bloky se nepodařilo uložit. Stáhni si zálohu bloků a zkus vložit menší část textu.",
+        );
+        return;
+      }
+
+      setSaveSubmitMessage(result.message ?? "Nové bloky byly uložené.");
+      window.location.href = `/member/works/${encodeURIComponent(slug)}/edit?success=work_updated`;
+    } catch {
+      setSaveSubmitMessage(
+        "Nové bloky se nepodařilo odeslat. Stáhni si zálohu bloků a zkus vložit menší část textu.",
+      );
+    } finally {
+      setIsAppendSaving(false);
     }
   }
 
@@ -2219,6 +2279,11 @@ export default function WorkEditorForm(props: Props) {
             {saveSubmitMessage ? (
               <p style={{ margin: "6px 0 0", fontWeight: 600 }}>{saveSubmitMessage}</p>
             ) : null}
+            {canAppendNewBlocksOnly ? (
+              <p style={{ margin: "6px 0 0" }}>
+                Nově přidané bloky: <strong>{newBlocksForAppend.length}</strong>. Pro dlouhá díla je bezpečnější uložit nejdřív jen tyto nové bloky a po obnovení stránky pokračovat dál.
+              </p>
+            ) : null}
           </div>
         ) : null}
 
@@ -2240,6 +2305,24 @@ export default function WorkEditorForm(props: Props) {
           >
             Uložit dílo
           </button>
+          {canAppendNewBlocksOnly ? (
+            <button
+              type="button"
+              onClick={saveNewBlocksOnly}
+              disabled={isAppendSaving}
+              style={{
+                padding: "12px 18px",
+                border: "1px solid #111",
+                background: isAppendSaving ? "rgba(17, 17, 17, 0.56)" : "#111",
+                color: "#fff",
+                cursor: isAppendSaving ? "wait" : "pointer",
+                fontSize: "15px",
+                fontWeight: 700,
+              }}
+            >
+              {isAppendSaving ? "Ukládám nové bloky…" : `Uložit nové bloky (${newBlocksForAppend.length})`}
+            </button>
+          ) : null}
           <button
             type="button"
             onClick={downloadBlocksBackup}
