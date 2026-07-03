@@ -3,7 +3,6 @@ import { getCurrentProfile } from "@/lib/auth";
 import { canEditContent } from "@/lib/permissions";
 import { createClient } from "@/lib/supabase/server";
 import {
-  flattenBlocksToPlainText,
   sanitizeWorkBlocks,
   validateWorkBlocks,
   type WorkBlock,
@@ -23,15 +22,9 @@ function toErrorResponse(message: string, status = 400) {
   return NextResponse.json({ ok: false, message }, { status });
 }
 
-function mergeBlocks(existingBlocks: WorkBlock[], appendedBlocks: WorkBlock[]) {
-  const existingIds = new Set(existingBlocks.map((block) => block.id));
-  const uniqueAppendedBlocks = appendedBlocks.filter((block) => !existingIds.has(block.id));
-
-  return {
-    mergedBlocks: [...existingBlocks, ...uniqueAppendedBlocks],
-    appendedCount: uniqueAppendedBlocks.length,
-    skippedCount: appendedBlocks.length - uniqueAppendedBlocks.length,
-  };
+function getDatabaseErrorCode(error: unknown) {
+  if (!error || typeof error !== "object") return null;
+  return "code" in error ? String((error as { code?: unknown }).code ?? "") : null;
 }
 
 export async function POST(request: Request, context: RouteContext) {
@@ -66,7 +59,7 @@ export async function POST(request: Request, context: RouteContext) {
 
   const { data: work, error: loadError } = await supabase
     .from("works")
-    .select("id, content_blocks")
+    .select("id")
     .eq("slug", slug)
     .maybeSingle();
 
@@ -79,43 +72,34 @@ export async function POST(request: Request, context: RouteContext) {
     return toErrorResponse("Dílo nebylo nalezeno.", 404);
   }
 
-  const existingBlocks = sanitizeWorkBlocks(Array.isArray(work.content_blocks) ? work.content_blocks : []);
-  const { mergedBlocks, appendedCount, skippedCount } = mergeBlocks(existingBlocks, appendedBlocks);
+  const { error: insertError } = await supabase.from("work_content_block_batches").insert({
+    work_id: work.id,
+    blocks: appendedBlocks,
+    created_by: profile?.id ?? null,
+    metadata: {
+      source: "large_work_append",
+      block_count: appendedBlocks.length,
+    },
+  });
 
-  if (appendedCount === 0) {
-    return NextResponse.json({
-      ok: true,
-      appendedCount,
-      skippedCount,
-      message: "Všechny odeslané bloky už byly u díla uložené.",
-    });
-  }
+  if (insertError) {
+    console.error("Large work append batch insert failed:", insertError);
 
-  const mergedBlocksError = validateWorkBlocks(mergedBlocks);
+    if (getDatabaseErrorCode(insertError) === "42P01") {
+      return toErrorResponse(
+        "Chybí databázová tabulka pro dávkové ukládání bloků. Spusť prosím SQL migraci z patche v0.10.12j a zkus to znovu.",
+        500,
+      );
+    }
 
-  if (mergedBlocksError) {
-    return toErrorResponse(`Výsledný obsah díla není platný: ${mergedBlocksError}`);
-  }
-
-  const { error: updateError } = await supabase
-    .from("works")
-    .update({
-      content_blocks: mergedBlocks,
-      content: flattenBlocksToPlainText(mergedBlocks),
-      updated_by: profile?.id ?? null,
-      updated_at: new Date().toISOString(),
-    })
-    .eq("id", work.id);
-
-  if (updateError) {
-    console.error("Large work append update failed:", updateError);
-    return toErrorResponse(updateError.message || "Nové bloky se nepodařilo uložit.", 500);
+    return toErrorResponse(insertError.message || "Nové bloky se nepodařilo uložit.", 500);
   }
 
   return NextResponse.json({
     ok: true,
-    appendedCount,
-    skippedCount,
-    message: `Uloženo ${appendedCount} nových bloků.${skippedCount > 0 ? ` ${skippedCount} bloků už bylo uložených.` : ""}`,
+    appendedCount: appendedBlocks.length,
+    skippedCount: 0,
+    stagedOnly: true,
+    message: `Uloženo ${appendedBlocks.length} nových bloků do dávkové vrstvy. Po obnovení stránky budou součástí editoru.`,
   });
 }

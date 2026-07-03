@@ -469,6 +469,69 @@ function mapRawContentBlocks(value: unknown): WorkBlock[] {
   return sanitizeWorkBlocks(value)
 }
 
+type RawWorkContentBlockBatchRow = {
+  blocks: unknown
+}
+
+function mergeContentBlocks(baseBlocks: WorkBlock[], appendedBlocks: WorkBlock[]) {
+  if (appendedBlocks.length === 0) return baseBlocks
+
+  const seenIds = new Set(baseBlocks.map((block) => block.id))
+  const merged = [...baseBlocks]
+
+  appendedBlocks.forEach((block) => {
+    if (seenIds.has(block.id)) return
+    seenIds.add(block.id)
+    merged.push(block)
+  })
+
+  return merged
+}
+
+function isMissingRelationError(error: unknown) {
+  if (!error || typeof error !== "object") return false
+  const code = "code" in error ? String((error as { code?: unknown }).code ?? "") : ""
+  return code === "42P01"
+}
+
+async function getAppendedContentBlocks(
+  client: SupabaseLike,
+  workId: string,
+): Promise<WorkBlock[]> {
+  const { data, error } = await client
+    .from("work_content_block_batches")
+    .select("blocks")
+    .eq("work_id", workId)
+    .order("created_at", { ascending: true })
+    .order("id", { ascending: true })
+
+  if (error) {
+    if (isMissingRelationError(error)) return []
+    console.error("DB error in getAppendedContentBlocks:", error)
+    return []
+  }
+
+  const rows = (data ?? []) as RawWorkContentBlockBatchRow[]
+
+  return rows.flatMap((row: RawWorkContentBlockBatchRow) =>
+    mapRawContentBlocks(row.blocks),
+  )
+}
+
+async function mergeAppendedBlocksForWork<T extends { id: string; content_blocks: WorkBlock[] }>(
+  client: SupabaseLike,
+  item: T,
+): Promise<T> {
+  const appendedBlocks = await getAppendedContentBlocks(client, item.id)
+
+  if (appendedBlocks.length === 0) return item
+
+  return {
+    ...item,
+    content_blocks: mergeContentBlocks(item.content_blocks, appendedBlocks),
+  }
+}
+
 type SupabaseLike = typeof supabase | Awaited<ReturnType<typeof createClient>>
 
 async function getCollectionRelationsMap(
@@ -717,12 +780,12 @@ export async function getWorkBySlug(
   ])
   const collections = collectionsMap.get(item.id) ?? (item.collection ? [item.collection] : [])
 
-  return {
+  return mergeAppendedBlocksForWork(supabase, {
     ...item,
     collection: firstCollection(item.collection, collections),
     collections,
     tags: tagsMap.get(item.id) ?? [],
-  }
+  })
 }
 
 export async function getPublishedWorksByAuthorId(
@@ -1020,7 +1083,7 @@ export async function getWorkForEditBySlug(
   const collectionIds = (collectionsMap.get(id) ?? []).map((collection) => collection?.id).filter(Boolean) as string[]
   const tagIds = (tagsMap.get(id) ?? []).map((tag) => tag?.id).filter(Boolean) as string[]
 
-  return {
+  const editItem: WorkEditItem = {
     id,
     title: String(row.title),
     title_cs: row.title_cs == null ? null : String(row.title_cs),
@@ -1071,4 +1134,6 @@ export async function getWorkForEditBySlug(
     cover_image_caption:
       row.cover_image_caption == null ? null : String(row.cover_image_caption),
   }
+
+  return mergeAppendedBlocksForWork(supabaseServer, editItem)
 }

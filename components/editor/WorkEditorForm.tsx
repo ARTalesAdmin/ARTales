@@ -83,6 +83,7 @@ const MAX_LOCAL_DRAFT_CHARS = 900_000;
 const LARGE_WORK_BLOCK_COUNT = 80;
 const LARGE_WORK_SAVE_WARNING_CHARS = 2_500_000;
 const LARGE_WORK_SAVE_DANGER_CHARS = 4_000_000;
+const APPEND_BLOCK_BATCH_SIZE = 200;
 
 function getStorageKey(mode: "new" | "edit", slug?: string) {
   return mode === "new"
@@ -834,34 +835,51 @@ export default function WorkEditorForm(props: Props) {
       return;
     }
 
+    const batches: WorkBlock[][] = [];
+
+    for (let index = 0; index < newBlocksForAppend.length; index += APPEND_BLOCK_BATCH_SIZE) {
+      batches.push(newBlocksForAppend.slice(index, index + APPEND_BLOCK_BATCH_SIZE));
+    }
+
     setIsAppendSaving(true);
-    setSaveSubmitMessage(`Ukládám ${newBlocksForAppend.length} nových bloků…`);
+
+    let savedCount = 0;
 
     try {
-      const response = await fetch(`/api/member/works/${encodeURIComponent(slug)}/append-blocks`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ blocks: newBlocksForAppend }),
-      });
-
-      const result = (await response.json().catch(() => null)) as
-        | { ok?: boolean; message?: string; appendedCount?: number }
-        | null;
-
-      if (!response.ok || !result?.ok) {
+      for (let index = 0; index < batches.length; index += 1) {
+        const batch = batches[index];
         setSaveSubmitMessage(
-          result?.message ?? "Nové bloky se nepodařilo uložit. Stáhni si zálohu bloků a zkus vložit menší část textu.",
+          `Ukládám nové bloky po dávkách: ${savedCount}/${newBlocksForAppend.length} hotovo, dávka ${index + 1}/${batches.length}…`,
         );
-        return;
+
+        const response = await fetch(`/api/member/works/${encodeURIComponent(slug)}/append-blocks`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ blocks: batch }),
+        });
+
+        const result = (await response.json().catch(() => null)) as
+          | { ok?: boolean; message?: string; appendedCount?: number }
+          | null;
+
+        if (!response.ok || !result?.ok) {
+          setSaveSubmitMessage(
+            result?.message ??
+              `Ukládání se zastavilo po ${savedCount} uložených blocích. Stáhni si zálohu bloků a obnov stránku; uložené dávky by se měly načíst zpět do editoru.`,
+          );
+          return;
+        }
+
+        savedCount += result.appendedCount ?? batch.length;
       }
 
-      setSaveSubmitMessage(result.message ?? "Nové bloky byly uložené.");
+      setSaveSubmitMessage(`Uloženo ${savedCount} nových bloků. Obnovuji editor…`);
       window.location.href = `/member/works/${encodeURIComponent(slug)}/edit?success=work_updated`;
     } catch {
       setSaveSubmitMessage(
-        "Nové bloky se nepodařilo odeslat. Stáhni si zálohu bloků a zkus vložit menší část textu.",
+        `Nové bloky se nepodařilo odeslat. Uloženo mohlo být ${savedCount} bloků. Stáhni si zálohu bloků a obnov stránku.`,
       );
     } finally {
       setIsAppendSaving(false);
