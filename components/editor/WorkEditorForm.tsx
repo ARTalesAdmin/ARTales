@@ -81,6 +81,8 @@ type Props = {
 
 const MAX_LOCAL_DRAFT_CHARS = 900_000;
 const LARGE_WORK_BLOCK_COUNT = 80;
+const LARGE_WORK_SAVE_WARNING_CHARS = 6_500_000;
+const LARGE_WORK_SAVE_DANGER_CHARS = 28_000_000;
 
 function getStorageKey(mode: "new" | "edit", slug?: string) {
   return mode === "new"
@@ -118,6 +120,22 @@ function shouldDisableLocalAutosave(blocks: WorkBlock[]) {
     blocks.length > LARGE_WORK_BLOCK_COUNT ||
     estimateBlocksStorageChars(blocks) > MAX_LOCAL_DRAFT_CHARS
   );
+}
+
+function formatApproxMegabytes(chars: number) {
+  return `${(chars / 1_000_000).toFixed(1)} MB`;
+}
+
+function getLargeWorkSaveRiskMessage(chars: number) {
+  if (chars >= LARGE_WORK_SAVE_DANGER_CHARS) {
+    return `Pozor: obsah díla má přibližně ${formatApproxMegabytes(chars)}. Uložení takto velkého románu může narazit na limit serveru nebo databázového API. Pokud uložení selže, rozděl vložení do menších částí a dej nám vědět.`;
+  }
+
+  if (chars >= LARGE_WORK_SAVE_WARNING_CHARS) {
+    return `Velké dílo: odesílaný obsah má přibližně ${formatApproxMegabytes(chars)}. Ukládání může chvíli trvat. Po kliknutí na Uložit prosím počkej na potvrzení.`;
+  }
+
+  return null;
 }
 
 function getLocalAutosaveDisabledMessage() {
@@ -316,6 +334,8 @@ export default function WorkEditorForm(props: Props) {
   ];
 
   const unresolvedImageBlocks = getUnresolvedImageBlocks(blocks);
+  const contentBlocksJson = useMemo(() => JSON.stringify(blocks), [blocks]);
+  const largeWorkSaveRiskMessage = getLargeWorkSaveRiskMessage(contentBlocksJson.length);
 
   const tagGroups = useMemo(() => {
     const groups = new Map<string, { id: string; slug: string; label_cs: string; label_en: string | null; type: string }[]>();
@@ -2115,8 +2135,23 @@ export default function WorkEditorForm(props: Props) {
         <input
           type="hidden"
           name="content_blocks_json"
-          value={JSON.stringify(blocks)}
+          value={contentBlocksJson}
         />
+
+        {largeWorkSaveRiskMessage ? (
+          <div
+            style={{
+              border: "1px solid rgba(178, 118, 40, 0.36)",
+              background: "#fff8ec",
+              borderRadius: "16px",
+              padding: "14px 16px",
+              color: "#6f4215",
+            }}
+          >
+            <strong>Ukládání velkého díla</strong>
+            <p style={{ margin: "6px 0 0" }}>{largeWorkSaveRiskMessage}</p>
+          </div>
+        ) : null}
 
         <div
           id="work-editor-save-actions"

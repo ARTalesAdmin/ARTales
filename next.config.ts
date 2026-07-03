@@ -8,8 +8,8 @@ const nextConfig = {
     serverActions: {
       // Large literary works can exceed the default 1 MB Server Action payload
       // once content_blocks are submitted from the block editor. Keep this high
-      // enough for launch editing, but not unlimited.
-      bodySizeLimit: "8mb",
+      // enough for long public-domain works, but not unlimited.
+      bodySizeLimit: "32mb",
     },
   },
   images: {
