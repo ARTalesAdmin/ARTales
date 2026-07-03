@@ -5,7 +5,6 @@ import { createClient } from "@/lib/supabase/server";
 import {
   sanitizeWorkBlocks,
   validateWorkBlocks,
-  type WorkBlock,
 } from "@/lib/blocks";
 
 export const dynamic = "force-dynamic";
@@ -16,6 +15,8 @@ type RouteContext = {
 
 type AppendBlocksPayload = {
   blocks?: unknown;
+  batchIndex?: unknown;
+  batchCount?: unknown;
 };
 
 function toErrorResponse(message: string, status = 400) {
@@ -46,6 +47,8 @@ export async function POST(request: Request, context: RouteContext) {
   }
 
   const appendedBlocks = sanitizeWorkBlocks(Array.isArray(payload.blocks) ? payload.blocks : []);
+  const batchIndex = typeof payload.batchIndex === "number" ? payload.batchIndex : null;
+  const batchCount = typeof payload.batchCount === "number" ? payload.batchCount : null;
 
   if (appendedBlocks.length === 0) {
     return toErrorResponse("Nejsou připravené žádné nové bloky k uložení.");
@@ -79,6 +82,8 @@ export async function POST(request: Request, context: RouteContext) {
     metadata: {
       source: "large_work_append",
       block_count: appendedBlocks.length,
+      batch_index: batchIndex,
+      batch_count: batchCount,
     },
   });
 
