@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import {
   WORK_BLOCK_TYPE_META,
   createEmptyBlock,
@@ -274,10 +274,12 @@ export default function WorkEditorForm(props: Props) {
   const [parserInput, setParserInput] = useState("");
   const [parserResult, setParserResult] = useState<ParsedWorkBlocksResult | null>(null);
   const [parserMessage, setParserMessage] = useState<string | null>(null);
+  const [saveSubmitMessage, setSaveSubmitMessage] = useState<string | null>(null);
   const [coverUploadMessage, setCoverUploadMessage] = useState<string | null>(null);
   const [coverUploadError, setCoverUploadError] = useState<string | null>(null);
   const [isCoverUploading, setIsCoverUploading] = useState(false);
   const coverInputRef = useRef<HTMLInputElement | null>(null);
+  const contentBlocksInputRef = useRef<HTMLInputElement | null>(null);
   const uploadedCoverPathsRef = useRef<Set<string>>(new Set());
 
   const summaryLength = formState.summary.trim().length;
@@ -334,8 +336,11 @@ export default function WorkEditorForm(props: Props) {
   ];
 
   const unresolvedImageBlocks = getUnresolvedImageBlocks(blocks);
-  const contentBlocksJson = useMemo(() => JSON.stringify(blocks), [blocks]);
-  const largeWorkSaveRiskMessage = getLargeWorkSaveRiskMessage(contentBlocksJson.length);
+  const estimatedBlocksStorageChars = useMemo(
+    () => estimateBlocksStorageChars(blocks),
+    [blocks],
+  );
+  const largeWorkSaveRiskMessage = getLargeWorkSaveRiskMessage(estimatedBlocksStorageChars);
 
   const tagGroups = useMemo(() => {
     const groups = new Map<string, { id: string; slug: string; label_cs: string; label_en: string | null; type: string }[]>();
@@ -745,6 +750,64 @@ export default function WorkEditorForm(props: Props) {
     }
   }
 
+  function downloadBlocksBackup() {
+    try {
+      const payload = JSON.stringify(
+        {
+          exported_at: new Date().toISOString(),
+          work_slug: formState.slug || slug || "work",
+          work_title: formState.title,
+          blocks,
+        },
+        null,
+        2,
+      );
+      const blob = new Blob([payload], { type: "application/json;charset=utf-8" });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      const safeSlug = slugify(formState.slug || formState.title || slug || "work");
+      link.href = url;
+      link.download = `artales-${safeSlug || "work"}-blocks-backup.json`;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(url);
+      setSaveSubmitMessage("Záloha bloků byla stažena do počítače.");
+    } catch {
+      setSaveSubmitMessage("Zálohu bloků se nepodařilo vytvořit. Zkus prosím uložit dílo nebo zmenšit vložený úsek.");
+    }
+  }
+
+  function prepareWorkSubmit(event: FormEvent<HTMLFormElement>) {
+    setSaveSubmitMessage(null);
+
+    if (!contentBlocksInputRef.current) {
+      event.preventDefault();
+      setSaveSubmitMessage("Ukládání se nepodařilo připravit. Obnov stránku a zkus to prosím znovu.");
+      scrollToSaveActions();
+      return;
+    }
+
+    if (estimatedBlocksStorageChars >= LARGE_WORK_SAVE_DANGER_CHARS) {
+      event.preventDefault();
+      setSaveSubmitMessage(
+        "Toto dílo je pro jednorázové uložení příliš velké. Editor ho raději neodeslal, aby nespadla aplikace. Stáhni si zálohu bloků a pokračuj menší částí textu; další krok bude robustnější ukládání bloků po dávkách.",
+      );
+      scrollToSaveActions();
+      return;
+    }
+
+    try {
+      contentBlocksInputRef.current.value = JSON.stringify(blocks);
+    } catch {
+      event.preventDefault();
+      setSaveSubmitMessage(
+        "Prohlížeč nedokázal připravit obsah díla k odeslání. Stáhni si zálohu bloků a zkus pracovat s menším úsekem textu.",
+      );
+      scrollToSaveActions();
+    }
+  }
+
   function clearParser() {
     setParserInput("");
     setParserResult(null);
@@ -967,7 +1030,7 @@ export default function WorkEditorForm(props: Props) {
         ) : null}
       </section>
 
-      <form action={action} style={{ display: "grid", gap: "22px" }}>
+      <form action={action} onSubmit={prepareWorkSubmit} style={{ display: "grid", gap: "22px" }}>
         <section
           className="artales-member-panel"
           style={{
@@ -2133,12 +2196,13 @@ export default function WorkEditorForm(props: Props) {
         />
 
         <input
+          ref={contentBlocksInputRef}
           type="hidden"
           name="content_blocks_json"
-          value={contentBlocksJson}
+          defaultValue="[]"
         />
 
-        {largeWorkSaveRiskMessage ? (
+        {largeWorkSaveRiskMessage || saveSubmitMessage ? (
           <div
             style={{
               border: "1px solid rgba(178, 118, 40, 0.36)",
@@ -2149,7 +2213,12 @@ export default function WorkEditorForm(props: Props) {
             }}
           >
             <strong>Ukládání velkého díla</strong>
-            <p style={{ margin: "6px 0 0" }}>{largeWorkSaveRiskMessage}</p>
+            {largeWorkSaveRiskMessage ? (
+              <p style={{ margin: "6px 0 0" }}>{largeWorkSaveRiskMessage}</p>
+            ) : null}
+            {saveSubmitMessage ? (
+              <p style={{ margin: "6px 0 0", fontWeight: 600 }}>{saveSubmitMessage}</p>
+            ) : null}
           </div>
         ) : null}
 
@@ -2170,6 +2239,21 @@ export default function WorkEditorForm(props: Props) {
             }}
           >
             Uložit dílo
+          </button>
+          <button
+            type="button"
+            onClick={downloadBlocksBackup}
+            style={{
+              padding: "12px 18px",
+              border: "1px solid rgba(17, 17, 17, 0.24)",
+              background: "#fff",
+              color: "#111",
+              cursor: "pointer",
+              fontSize: "15px",
+              fontWeight: 600,
+            }}
+          >
+            Stáhnout zálohu bloků
           </button>
         </div>
       </form>
