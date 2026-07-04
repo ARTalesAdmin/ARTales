@@ -276,6 +276,91 @@ export async function getWelcomeUnlockStatus(userId: string) {
   };
 }
 
+export const ONLINE_READ_CREDIT_COST = 1;
+
+export type CreditUnlockResult =
+  | { status: "unlocked"; entitlementId: string }
+  | { status: "already_unlocked" }
+  | { status: "insufficient_credit"; balance: number; required: number }
+  | { status: "error"; message: string };
+
+export async function getAtCreditBalance(userId: string) {
+  const admin = createAdminClient();
+
+  const { data, error } = await admin
+    .from("reader_credit_ledger")
+    .select("amount")
+    .eq("user_id", userId)
+    .eq("credit_type", "at_credit");
+
+  if (error) {
+    console.error("AT credit balance check failed:", error);
+    return 0;
+  }
+
+  return (data ?? []).reduce((sum, row) => sum + Number(row.amount ?? 0), 0);
+}
+
+export async function unlockOnlineReadWithCredit(params: {
+  userId: string;
+  workId: string;
+  slug?: string | null;
+  cost?: number;
+}): Promise<CreditUnlockResult> {
+  const cost = Math.max(1, Math.floor(params.cost ?? ONLINE_READ_CREDIT_COST));
+
+  try {
+    const alreadyUnlocked = await hasOnlineReadEntitlement(params.userId, params.workId);
+    if (alreadyUnlocked) return { status: "already_unlocked" };
+
+    const balance = await getAtCreditBalance(params.userId);
+    if (balance < cost) {
+      return { status: "insufficient_credit", balance, required: cost };
+    }
+
+    const entitlementId = await grantOnlineReadEntitlement({
+      userId: params.userId,
+      workId: params.workId,
+      source: "credit_spend",
+      grantedByUserId: null,
+      note: "Online reading unlocked with AT Credit.",
+    });
+
+    const admin = createAdminClient();
+    const now = new Date().toISOString();
+
+    const { error: ledgerError } = await admin.from("reader_credit_ledger").insert({
+      user_id: params.userId,
+      credit_type: "at_credit",
+      amount: -cost,
+      source: "credit_spend",
+      related_work_id: params.workId,
+      note: "Online reading unlocked with AT Credit.",
+      metadata: {
+        action: "online_read_unlock",
+        entitlement_id: entitlementId,
+        entitlement_type: "online_read",
+        cost,
+        slug: params.slug ?? null,
+        created_at: now,
+      },
+    });
+
+    if (ledgerError) {
+      console.error("Credit spend ledger insert failed after entitlement grant:", ledgerError);
+      return { status: "error", message: ledgerError.message };
+    }
+
+    return { status: "unlocked", entitlementId };
+  } catch (error) {
+    console.error("Credit unlock failed:", error);
+    return {
+      status: "error",
+      message: error instanceof Error ? error.message : "Unknown credit unlock error.",
+    };
+  }
+}
+
 export async function canReadWorkOnline(
   userId: string | null | undefined,
   workId: string,

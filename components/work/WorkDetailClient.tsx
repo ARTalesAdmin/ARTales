@@ -9,7 +9,6 @@ import type { SupportedLocale } from "@/lib/i18n/config";
 import {
   DEFAULT_PRODUCT_COPY,
   PRODUCT_TYPE_LABELS,
-  getPrimaryProductPrice,
   type WorkProductOffer,
   type ProductType,
 } from "@/lib/products";
@@ -93,10 +92,10 @@ function AccessStatusCard({
         <h2>{labels.accessGuestTitle}</h2>
         <p>{labels.accessGuestText}</p>
         <div className="artales-access-card__actions">
-          <Link className="artales-button" href="/register">
+          <Link className="artales-button" href={`/register?next=${encodeURIComponent(`/account/credit-unlock/${slug}`)}`}>
             {labels.createFreeAccount}
           </Link>
-          <Link className="artales-button-secondary" href="/login">
+          <Link className="artales-button-secondary" href={`/login?next=${encodeURIComponent(`/account/credit-unlock/${slug}`)}`}>
             {labels.signIn}
           </Link>
         </div>
@@ -114,9 +113,13 @@ function AccessStatusCard({
           <Link className="artales-button" href={`/account/unlock/${slug}`}>
             {labels.useWelcomeUnlock}
           </Link>
-        ) : null}
-        <Link className="artales-button-secondary" href="/account/membership">
-          {labels.viewMembershipOptions}
+        ) : (
+          <Link className="artales-button" href={`/account/credit-unlock/${slug}`}>
+            {labels.continueAccess}
+          </Link>
+        )}
+        <Link className="artales-button-secondary" href="/credits">
+          {labels.viewCreditOptions}
         </Link>
       </div>
     </section>
@@ -140,7 +143,7 @@ function getProductTitle(type: ProductType, labels: WorkPublicLabels) {
   }
 }
 
-function getProductCreditLabel(type: ProductType, labels: WorkPublicLabels) {
+function getProductCreditPriceLabel(type: ProductType, labels: WorkPublicLabels) {
   switch (type) {
     case "online_unlock":
       return labels.productOnlineCreditPrice;
@@ -149,11 +152,14 @@ function getProductCreditLabel(type: ProductType, labels: WorkPublicLabels) {
       return labels.productDigitalCreditPrice;
     case "pdf_epub_bundle":
       return labels.productBundleCreditPrice;
-    case "print":
-      return labels.productPricePreparing;
     default:
       return labels.productPricePreparing;
   }
+}
+
+function getProductActionHref(type: ProductType, slug: string) {
+  if (type === "online_unlock") return `/account/credit-unlock/${slug}`;
+  return "/credits";
 }
 
 function getProductStatusLabel(status: string, labels: WorkPublicLabels) {
@@ -290,7 +296,7 @@ function ProductOptions({
       <div className="artales-product-grid artales-product-grid--delivery">
         {surfaceItems.map((item) => {
           const product = item.product;
-          const price = product ? getPrimaryProductPrice(product) : null;
+          const priceLabel = getProductCreditPriceLabel(item.key, labels);
           const title = !product || isPlaceholderProductTitle(product.title, item.key)
             ? getProductTitle(item.key, labels)
             : product.title;
@@ -304,7 +310,7 @@ function ProductOptions({
             <article key={item.key} className={item.status === "unlocked" ? "artales-product-card artales-product-card--owned" : "artales-product-card"}>
               <div className="artales-product-card__topline">
                 <h3>{title}</h3>
-                <span>{price ? getProductCreditLabel(item.key, labels) : labels.productPricePreparing}</span>
+                <span>{priceLabel}</span>
               </div>
               <p>{description}</p>
               <p className="artales-product-card__status">{getProductStatusLabel(item.status, labels)}</p>
@@ -313,7 +319,7 @@ function ProductOptions({
                   {labels.readNow}
                 </Link>
               ) : item.status === "available" && product ? (
-                <Link className="artales-button" href={`/account/credits?work=${encodeURIComponent(slug)}`}>
+                <Link className="artales-button" href={getProductActionHref(item.key, slug)}>
                   {labels.continueAccess}
                 </Link>
               ) : (

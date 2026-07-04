@@ -3877,6 +3877,7 @@ body {
   overflow: hidden;
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 3;
+  line-clamp: 3;
 }
 
 .artales-account-book-card__actions {
@@ -4007,4 +4008,37 @@ body {
 
 .artales-roadmap-wishlist {
   background: linear-gradient(135deg, rgba(255,255,255,0.72), rgba(244,232,210,0.72));
+}
+
+/* v0.10.13a — credit unlock confirmation */
+.artales-credit-unlock-hero {
+  align-items: stretch;
+}
+
+.artales-credit-unlock-cost-card {
+  min-width: min(260px, 100%);
+  border-radius: 24px;
+  padding: 22px;
+  background: rgba(255, 255, 255, 0.68);
+  border: 1px solid rgba(138, 106, 45, 0.22);
+  display: grid;
+  gap: 8px;
+  align-content: center;
+}
+
+.artales-credit-unlock-cost-card strong {
+  font-family: Georgia, 'Times New Roman', serif;
+  font-size: clamp(34px, 5vw, 52px);
+  line-height: 1;
+  color: var(--artales-ink);
+}
+
+.artales-credit-unlock-cost-card span {
+  color: rgba(13, 21, 40, 0.68);
+  font-weight: 700;
+}
+
+.artales-credit-unlock-decision {
+  display: grid;
+  gap: 12px;
 }
