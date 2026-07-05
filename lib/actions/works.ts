@@ -131,7 +131,9 @@ export async function createWork(formData: FormData): Promise<void> {
   const supabase = await createClient()
 
   const values = parseWorkFormData(formData)
-  const validationError = validateWorkFormValues(values)
+  const validationError = validateWorkFormValues(values, {
+    skipContentBlocks: values.content_update_mode === "metadata_only",
+  })
 
   if (validationError) {
     redirect(`/member/works/new?error=${validationError}`)
@@ -185,7 +187,9 @@ export async function updateWork(
   const supabase = await createClient()
 
   const values = parseWorkFormData(formData)
-  const validationError = validateWorkFormValues(values)
+  const validationError = validateWorkFormValues(values, {
+    skipContentBlocks: values.content_update_mode === "metadata_only",
+  })
 
   if (validationError) {
     redirect(`/member/works/${originalSlug}/edit?error=${validationError}`)

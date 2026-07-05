@@ -9,7 +9,10 @@ import {
   type WorkBlock,
 } from "@/lib/blocks"
 
+export type WorkContentUpdateMode = "full" | "metadata_only"
+
 export type WorkFormValues = {
+  content_update_mode: WorkContentUpdateMode
   title: string
   title_cs: string
   title_en: string
@@ -69,6 +72,9 @@ function isSourceLabel(value: string): value is WorkFormValues["source_label"] {
 export function parseWorkFormData(formData: FormData): WorkFormValues {
   const title = String(formData.get("title") ?? "").trim()
   const rawSlug = String(formData.get("slug") ?? "").trim()
+  const rawContentUpdateMode = String(formData.get("content_update_mode") ?? "full").trim()
+  const content_update_mode: WorkContentUpdateMode =
+    rawContentUpdateMode === "metadata_only" ? "metadata_only" : "full"
   const rawBlocks = String(formData.get("content_blocks_json") ?? "[]")
 
   let parsedBlocks: unknown = []
@@ -83,6 +89,7 @@ export function parseWorkFormData(formData: FormData): WorkFormValues {
   const content_plain_text = flattenBlocksToPlainText(content_blocks)
 
   return {
+    content_update_mode,
     title,
     title_cs: String(formData.get("title_cs") ?? "").trim(),
     title_en: String(formData.get("title_en") ?? "").trim(),
@@ -124,7 +131,10 @@ export function parseWorkFormData(formData: FormData): WorkFormValues {
   }
 }
 
-export function validateWorkFormValues(values: WorkFormValues): string | null {
+export function validateWorkFormValues(
+  values: WorkFormValues,
+  options: { skipContentBlocks?: boolean } = {},
+): string | null {
   if (!values.title) {
     return "title_missing"
   }
@@ -181,14 +191,16 @@ export function validateWorkFormValues(values: WorkFormValues): string | null {
     return "isbn_missing"
   }
 
-  const blocksError = validateWorkBlocks(values.content_blocks)
+  if (!options.skipContentBlocks) {
+    const blocksError = validateWorkBlocks(values.content_blocks)
 
-  if (blocksError) {
-    return blocksError
-  }
+    if (blocksError) {
+      return blocksError
+    }
 
-  if (values.status === "published" && getUnresolvedImageBlocks(values.content_blocks).length > 0) {
-    return "image_blocks_missing_assets"
+    if (values.status === "published" && getUnresolvedImageBlocks(values.content_blocks).length > 0) {
+      return "image_blocks_missing_assets"
+    }
   }
 
   return null
@@ -245,7 +257,7 @@ export function mapWorkFormValuesToUpdatePayload(
   values: WorkFormValues,
   profileId: string
 ) {
-  return {
+  const metadataPayload = {
     title: values.title,
     title_cs: toNullableString(values.title_cs),
     title_en: toNullableString(values.title_en),
@@ -256,8 +268,6 @@ export function mapWorkFormValuesToUpdatePayload(
     summary: values.summary,
     summary_cs: toNullableString(values.summary_cs),
     summary_en: toNullableString(values.summary_en),
-    content: values.content_plain_text,
-    content_blocks: values.content_blocks,
     canonical_language: values.canonical_language,
     origin_type: values.origin_type,
     source_label: values.source_label,
@@ -284,5 +294,15 @@ export function mapWorkFormValuesToUpdatePayload(
     primary_author_id: values.primary_author_id,
     collection_id: toNullableForeignKey(values.collection_id),
     updated_by: profileId,
+  }
+
+  if (values.content_update_mode === "metadata_only") {
+    return metadataPayload
+  }
+
+  return {
+    ...metadataPayload,
+    content: values.content_plain_text,
+    content_blocks: values.content_blocks,
   }
 }

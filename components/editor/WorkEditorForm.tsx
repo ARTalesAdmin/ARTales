@@ -283,6 +283,8 @@ export default function WorkEditorForm(props: Props) {
   const [isCoverUploading, setIsCoverUploading] = useState(false);
   const coverInputRef = useRef<HTMLInputElement | null>(null);
   const contentBlocksInputRef = useRef<HTMLInputElement | null>(null);
+  const contentUpdateModeInputRef = useRef<HTMLInputElement | null>(null);
+  const suppressBeforeUnloadRef = useRef(false);
   const uploadedCoverPathsRef = useRef<Set<string>>(new Set());
 
   const summaryLength = formState.summary.trim().length;
@@ -363,6 +365,7 @@ export default function WorkEditorForm(props: Props) {
     if (!isSmartSaving) return;
 
     const handleBeforeUnload = (event: BeforeUnloadEvent) => {
+      if (suppressBeforeUnloadRef.current) return;
       event.preventDefault();
       event.returnValue = "";
     };
@@ -824,7 +827,7 @@ export default function WorkEditorForm(props: Props) {
       return;
     }
 
-    if (!contentBlocksInputRef.current) {
+    if (!contentBlocksInputRef.current || !contentUpdateModeInputRef.current) {
       event.preventDefault();
       setSaveSubmitMessage("Ukládání se nepodařilo připravit. Obnov stránku a zkus to prosím znovu.");
       scrollToSaveActions();
@@ -832,6 +835,15 @@ export default function WorkEditorForm(props: Props) {
     }
 
     if (estimatedBlocksStorageChars >= LARGE_WORK_SAVE_DANGER_CHARS) {
+      if (mode === "edit" && slug && newBlocksForAppend.length === 0) {
+        contentUpdateModeInputRef.current.value = "metadata_only";
+        contentBlocksInputRef.current.value = "[]";
+        setSaveSubmitMessage(
+          "Dílo je velmi velké, proto ukládám jen metadata a stav publikace. Obsah bloků zůstane beze změny.",
+        );
+        return;
+      }
+
       event.preventDefault();
       setSaveSubmitMessage(
         canAppendNewBlocksOnly
@@ -843,6 +855,7 @@ export default function WorkEditorForm(props: Props) {
     }
 
     try {
+      contentUpdateModeInputRef.current.value = "full";
       contentBlocksInputRef.current.value = JSON.stringify(blocks);
     } catch {
       event.preventDefault();
@@ -916,7 +929,11 @@ export default function WorkEditorForm(props: Props) {
       }
 
       setSaveSubmitMessage(`Uloženo ${savedCount} nových bloků. Obnovuji editor…`);
-      window.location.href = `/member/works/${encodeURIComponent(slug)}/edit?success=work_updated`;
+      suppressBeforeUnloadRef.current = true;
+      setIsSmartSaving(false);
+      window.setTimeout(() => {
+        window.location.href = `/member/works/${encodeURIComponent(slug)}/edit?success=work_updated`;
+      }, 50);
     } catch {
       setSaveSubmitMessage(
         `Ukládání se přerušilo. Uloženo mohlo být ${savedCount} bloků. Stáhni si zálohu bloků a obnov stránku; již uložené dávky by se měly načíst zpět.`,
@@ -2319,6 +2336,12 @@ export default function WorkEditorForm(props: Props) {
           name="content_blocks_json"
           defaultValue="[]"
         />
+        <input
+          ref={contentUpdateModeInputRef}
+          type="hidden"
+          name="content_update_mode"
+          defaultValue="full"
+        />
 
         {largeWorkSaveRiskMessage || saveSubmitMessage ? (
           <div
@@ -2340,6 +2363,11 @@ export default function WorkEditorForm(props: Props) {
             {canAppendNewBlocksOnly ? (
               <p style={{ margin: "6px 0 0" }}>
                 Nově přidané bloky: <strong>{newBlocksForAppend.length}</strong>. Hlavní tlačítko Uložit změny samo zvolí bezpečný režim; u dlouhých děl odešle nové bloky po částech.
+              </p>
+            ) : null}
+            {!canAppendNewBlocksOnly && mode === "edit" && estimatedBlocksStorageChars >= LARGE_WORK_SAVE_DANGER_CHARS ? (
+              <p style={{ margin: "6px 0 0" }}>
+                Pokud měníš jen metadata nebo status publikace, editor uloží pouze tato pole. Obsah díla se znovu neodesílá.
               </p>
             ) : null}
           </div>
