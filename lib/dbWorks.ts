@@ -494,7 +494,7 @@ function isMissingRelationError(error: unknown) {
   return code === "42P01"
 }
 
-async function getAppendedContentBlocks(
+export async function getAppendedContentBlocks(
   client: SupabaseLike,
   workId: string,
 ): Promise<WorkBlock[]> {
@@ -518,17 +518,49 @@ async function getAppendedContentBlocks(
   )
 }
 
+export async function getCombinedContentBlocksForWorkId(
+  client: SupabaseLike,
+  workId: string,
+  baseBlocks?: WorkBlock[],
+): Promise<WorkBlock[]> {
+  let resolvedBaseBlocks = baseBlocks
+
+  if (!resolvedBaseBlocks) {
+    const { data, error } = await client
+      .from("works")
+      .select("content_blocks")
+      .eq("id", workId)
+      .maybeSingle()
+
+    if (error) {
+      console.error("DB error in getCombinedContentBlocksForWorkId:", error)
+      return []
+    }
+
+    resolvedBaseBlocks = mapRawContentBlocks(
+      (data as { content_blocks?: unknown } | null)?.content_blocks,
+    )
+  }
+
+  const appendedBlocks = await getAppendedContentBlocks(client, workId)
+  return mergeContentBlocks(resolvedBaseBlocks, appendedBlocks)
+}
+
 async function mergeAppendedBlocksForWork<T extends { id: string; content_blocks: WorkBlock[] }>(
   client: SupabaseLike,
   item: T,
 ): Promise<T> {
-  const appendedBlocks = await getAppendedContentBlocks(client, item.id)
+  const contentBlocks = await getCombinedContentBlocksForWorkId(
+    client,
+    item.id,
+    item.content_blocks,
+  )
 
-  if (appendedBlocks.length === 0) return item
+  if (contentBlocks === item.content_blocks) return item
 
   return {
     ...item,
-    content_blocks: mergeContentBlocks(item.content_blocks, appendedBlocks),
+    content_blocks: contentBlocks,
   }
 }
 

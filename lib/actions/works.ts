@@ -3,6 +3,8 @@
 import { redirect } from "next/navigation"
 import { createClient } from "@/lib/supabase/server"
 import { requireEditorOrAdmin } from "@/lib/guards"
+import { getUnresolvedImageBlocks } from "@/lib/blocks"
+import { getCombinedContentBlocksForWorkId } from "@/lib/dbWorks"
 import {
   parseWorkFormData,
   validateWorkFormValues,
@@ -193,6 +195,35 @@ export async function updateWork(
 
   if (validationError) {
     redirect(`/member/works/${originalSlug}/edit?error=${validationError}`)
+  }
+
+  if (values.content_update_mode === "metadata_only" && values.status === "published") {
+    const { data: existingWork, error: existingWorkError } = await supabase
+      .from("works")
+      .select("id")
+      .eq("slug", originalSlug)
+      .maybeSingle()
+
+    if (existingWorkError) {
+      redirect(
+        `/member/works/${originalSlug}/edit?error=save_failed&db_error=${encodeDbError(
+          existingWorkError.message
+        )}`
+      )
+    }
+
+    if (!existingWork) {
+      redirect(`/member/works/${originalSlug}/edit?error=not_found`)
+    }
+
+    const combinedBlocks = await getCombinedContentBlocksForWorkId(
+      supabase,
+      String(existingWork.id),
+    )
+
+    if (getUnresolvedImageBlocks(combinedBlocks).length > 0) {
+      redirect(`/member/works/${originalSlug}/edit?error=image_blocks_missing_assets`)
+    }
   }
 
   const basePayload = mapWorkFormValuesToUpdatePayload(values, profile.id)

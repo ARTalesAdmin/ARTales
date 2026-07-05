@@ -84,6 +84,9 @@ export async function POST(request: Request, context: RouteContext) {
       block_count: appendedBlocks.length,
       batch_index: batchIndex,
       batch_count: batchCount,
+      work_slug: slug,
+      actor_profile_id: profile?.id ?? null,
+      saved_via: "smart_save",
     },
   });
 
