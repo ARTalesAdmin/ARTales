@@ -75,6 +75,14 @@ export default async function PublicHeader({ active }: PublicHeaderProps) {
 
         <Link
           className="artales-public-link"
+          href="/hall"
+          aria-current={active === "support" ? "page" : undefined}
+        >
+          {currentLocale === "cs" ? "Síň ARTales" : "ARTales Hall"}
+        </Link>
+
+        <Link
+          className="artales-public-link"
           href="/roadmap"
           aria-current={active === "roadmap" ? "page" : undefined}
         >

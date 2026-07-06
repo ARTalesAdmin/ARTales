@@ -1,8 +1,8 @@
 import Link from "next/link";
 import { requireCompletedAccountProfile } from "@/lib/account";
-import { MEMBERSHIP_TIERS } from "@/lib/membership";
 import { getPublicDictionary } from "@/lib/i18n/public";
 import { getCookieLocale, resolveProfileLocale } from "@/lib/i18n/server";
+import { MEMBERSHIP_PRICEBOOK, formatAt } from "@/lib/memberPricebook";
 
 export const dynamic = "force-dynamic";
 
@@ -13,8 +13,9 @@ type MembershipTierDictionary = {
   unlocks: string;
   credits: string;
   prices: string;
-  monthlyPrice: string;
 };
+
+const tierOrder = ["free_reader", "basic", "plus", "library"] as const;
 
 export default async function AccountMembershipPage() {
   const profile = await requireCompletedAccountProfile("/account/membership");
@@ -22,6 +23,7 @@ export default async function AccountMembershipPage() {
   const locale = resolveProfileLocale(profile, cookieLocale);
   const dictionary = getPublicDictionary(locale).account.membership;
   const tierCopy = dictionary.tiers as Record<string, MembershipTierDictionary>;
+  const isCs = locale === "cs";
 
   return (
     <section className="artales-account-page artales-account-membership-page">
@@ -39,22 +41,31 @@ export default async function AccountMembershipPage() {
           <p className="artales-account-muted">{dictionary.paymentNotice}</p>
         </div>
         <div className="artales-account-membership-price-strip" aria-label={dictionary.creditModelLabel}>
-          <span>1 AT</span>
-          <span>2 AT</span>
-          <span>4 AT</span>
+          <span>{formatAt(MEMBERSHIP_PRICEBOOK.tiers.basic.foundingAt, locale)}</span>
+          <span>{formatAt(MEMBERSHIP_PRICEBOOK.tiers.plus.foundingAt, locale)}</span>
+          <span>{formatAt(MEMBERSHIP_PRICEBOOK.tiers.library.foundingAt, locale)}</span>
         </div>
       </section>
 
       <div className="artales-account-tier-grid artales-account-membership-grid">
-        {MEMBERSHIP_TIERS.map((tier) => {
-          const copy = tierCopy[tier.code];
+        {tierOrder.map((tierCode) => {
+          const tier = MEMBERSHIP_PRICEBOOK.tiers[tierCode];
+          const copy = tierCopy[tierCode];
+          const priceLine = tierCode === "free_reader"
+            ? formatAt(0, locale)
+            : `${formatAt(tier.foundingAt, locale)} / ${dictionary.period}`;
+          const standardLine = tierCode === "free_reader"
+            ? dictionary.noStandardPrice
+            : `${dictionary.standardPrice}: ${formatAt(tier.standardAt, locale)} / ${dictionary.period}`;
+
           return (
-            <article key={tier.code} className="artales-account-card artales-account-tier-card">
+            <article key={tierCode} className="artales-account-card artales-account-tier-card">
               <div className="artales-account-tier-card__topline">
                 <p className="artales-account-card__label">{copy.name}</p>
                 {copy.badge ? <span className="artales-account-badge">{copy.badge}</span> : null}
               </div>
-              <h2>{copy.monthlyPrice} <span>{dictionary.perMonth}</span></h2>
+              <h2>{priceLine}</h2>
+              <p className="artales-account-muted">{standardLine}</p>
               <p>{copy.description}</p>
               <ul className="artales-account-feature-list">
                 <li>{copy.unlocks}</li>
@@ -67,15 +78,44 @@ export default async function AccountMembershipPage() {
       </div>
 
       <section className="artales-account-panel artales-community-section">
-        <p className="artales-account-card__label">{dictionary.modelLabel}</p>
-        <h2>{dictionary.modelTitle}</h2>
+        <p className="artales-account-card__label">{dictionary.valueLabel}</p>
+        <h2>{dictionary.valueTitle}</h2>
         <div className="artales-account-model-grid">
-          {dictionary.modelPoints.map((point) => (
+          {dictionary.valuePoints.map((point) => (
             <article key={point.title}>
               <h3>{point.title}</h3>
               <p>{point.text}</p>
             </article>
           ))}
+        </div>
+      </section>
+
+      <section className="artales-account-panel artales-community-section">
+        <p className="artales-account-card__label">{dictionary.pricebookLabel}</p>
+        <h2>{dictionary.pricebookTitle}</h2>
+        <div className="artales-account-model-grid">
+          {dictionary.pricebookPoints.map((point) => (
+            <article key={point.title}>
+              <h3>{point.title}</h3>
+              <p>{point.text}</p>
+            </article>
+          ))}
+        </div>
+      </section>
+
+      <section className="artales-account-panel artales-community-section">
+        <p className="artales-account-card__label">{dictionary.patronageLabel}</p>
+        <h2>{dictionary.patronageTitle}</h2>
+        <p>{dictionary.patronageText}</p>
+        <div className="artales-account-model-grid">
+          <article>
+            <h3>{isCs ? "Patron ARTales" : "ARTales Patron"}</h3>
+            <p>{dictionary.patronText}</p>
+          </article>
+          <article>
+            <h3>{isCs ? "Mecenáš ARTales" : "ARTales Benefactor"}</h3>
+            <p>{dictionary.mecenatText}</p>
+          </article>
         </div>
       </section>
 
@@ -91,6 +131,7 @@ export default async function AccountMembershipPage() {
       <div className="artales-account-actions">
         <Link className="artales-button" href="/checkout/credits">{dictionary.topUpCredits}</Link>
         <Link className="artales-button-secondary" href="/credits">{dictionary.creditInfo}</Link>
+        <Link className="artales-button-secondary" href="/hall">{dictionary.openHall}</Link>
         <Link className="artales-button-secondary" href="/account/library">{dictionary.openLibrary}</Link>
       </div>
     </section>

@@ -20,11 +20,11 @@ const copy = {
     eyebrow: "Podpora ARTales",
     title: "Podpořit literární prostor ARTales",
     intro:
-      "Podpora není nákup konkrétního díla. Pomáhá s provozem, obálkami, ediční prací, vývojem readeru a přípravou dalších vrstev platformy.",
+      "Podpora není nákup konkrétního díla ani členství. Pomáhá financovat ediční práci, obálky, vývoj readeru a další vrstvy ARTales. Každý příspěvek se započítá do mecenášské stopy účtu.",
     noFulfillmentLabel: "Podpora projektu",
     noFulfillmentTitle: "Příspěvek pro rozvoj ARTales",
     noFulfillmentText:
-      "Podpora je dobrovolný příspěvek na literární prostor ARTales. Nejde o nákup konkrétního titulu; po připsání platby ji zaevidujeme jako podporu projektu.",
+      "Podpora je dobrovolný příspěvek na literární prostor ARTales. Neodemkne titul automaticky, ale zapíše se jako podpora projektu. Až celková podpora dosáhne patronátní nebo mecenášské hranice, půjde ji navázat na viditelnost podle volby čtenáře.",
     country: "Země podporovatele",
     submit: "Podpořit touto částkou",
     credit: "Chci dobít kredit",
@@ -41,11 +41,11 @@ const copy = {
     eyebrow: "Support ARTales",
     title: "Support the ARTales literary space",
     intro:
-      "Support is not a purchase of a specific work. It helps cover operations, covers, editorial work, reader development, and the next layers of the platform.",
+      "Support is not a purchase of a specific work or membership. It helps fund editorial work, covers, reader development, and the next ARTales layers. Every contribution adds to the account's patronage trail.",
     noFulfillmentLabel: "Project support",
     noFulfillmentTitle: "A contribution to ARTales",
     noFulfillmentText:
-      "Support is a voluntary contribution to the ARTales literary space. It is not a purchase of a specific title; after the payment arrives, we record it as project support.",
+      "Support is a voluntary contribution to the ARTales literary space. It does not unlock a title automatically, but it is recorded as project support. Once total support reaches the patron or benefactor threshold, visibility can follow the reader's preference.",
     country: "Supporter country",
     submit: "Support with this amount",
     credit: "I want to top up credit",

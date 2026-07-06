@@ -97,7 +97,7 @@ export const enPublic = {
 
   productDeliveryLabel: "Reading formats",
   productDeliveryTitle: "Available ways to read",
-  productDeliveryText: "Access in ARTales is based on AT Credits. Online reading opens a title in your account library; edition files appear only where an official ARTales file is ready.",
+  productDeliveryText: "Access in ARTales is based on AT Credits. A permanent online unlock opens the title in your account library and lowers the price of related PDF/EPUB editions for the same work.",
   productDeliveryPreparingTitle: "Reading formats are being prepared",
   productDeliveryPreparingText: "This title can still be previewed online. Download products will be shown after the edition files are ready.",
   productAccessTitle: "Access",
@@ -136,6 +136,7 @@ export const enPublic = {
   productOnlineCreditPrice: "1 AT Credit",
   productDigitalCreditPrice: "2 AT Credits",
   productBundleCreditPrice: "3 AT Credits",
+  productOwnedEditionDiscount: "Owned-title price after online unlock.",
   feedbackSent: "Feedback sent. Thank you — the ARTales team will review it.",
   feedbackInvalid: "Feedback must be between 3 and 4000 characters.",
   feedbackError: "Feedback could not be saved. Try again later.",

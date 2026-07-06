@@ -15,6 +15,7 @@ import {
 import { getProductSurfaceItems, isDownloadProduct } from "@/lib/productDelivery";
 import { pickLocalizedText } from "@/lib/localizedContent";
 import { getLocalizedLanguageLabel } from "@/lib/dictionaries/language";
+import { getProductAtPriceLabel, type ProductPriceCode } from "@/lib/memberPricebook";
 
 type WorkDetailClientProps = {
   work: WorkDetailItem;
@@ -143,18 +144,28 @@ function getProductTitle(type: ProductType, labels: WorkPublicLabels) {
   }
 }
 
-function getProductCreditPriceLabel(type: ProductType, labels: WorkPublicLabels) {
-  switch (type) {
-    case "online_unlock":
-      return labels.productOnlineCreditPrice;
-    case "pdf_download":
-    case "epub_download":
-      return labels.productDigitalCreditPrice;
-    case "pdf_epub_bundle":
-      return labels.productBundleCreditPrice;
-    default:
-      return labels.productPricePreparing;
+function isPricebookProductType(type: ProductType): type is ProductPriceCode {
+  return (
+    type === "online_unlock" ||
+    type === "pdf_download" ||
+    type === "epub_download" ||
+    type === "pdf_epub_bundle"
+  );
+}
+
+function getProductCreditPriceLabel(
+  type: ProductType,
+  labels: WorkPublicLabels,
+  opts: { canReadFull: boolean; locale: SupportedLocale }
+) {
+  if (isPricebookProductType(type)) {
+    return getProductAtPriceLabel(type, {
+      hasPermanentOnlineUnlock: opts.canReadFull && isDownloadProduct(type),
+      locale: opts.locale,
+    });
   }
+
+  return labels.productPricePreparing;
 }
 
 function getProductActionHref(type: ProductType, slug: string) {
@@ -264,11 +275,13 @@ function ProductOptions({
   canReadFull,
   slug,
   labels,
+  locale,
 }: {
   products: WorkProductOffer[];
   canReadFull: boolean;
   slug: string;
   labels: WorkPublicLabels;
+  locale: SupportedLocale;
 }) {
   const surfaceItems = getProductSurfaceItems(products, canReadFull);
 
@@ -296,7 +309,8 @@ function ProductOptions({
       <div className="artales-product-grid artales-product-grid--delivery">
         {surfaceItems.map((item) => {
           const product = item.product;
-          const priceLabel = getProductCreditPriceLabel(item.key, labels);
+          const priceLabel = getProductCreditPriceLabel(item.key, labels, { canReadFull, locale });
+          const showOwnedEditionDiscount = canReadFull && isDownloadProduct(item.key);
           const title = !product || isPlaceholderProductTitle(product.title, item.key)
             ? getProductTitle(item.key, labels)
             : product.title;
@@ -313,6 +327,9 @@ function ProductOptions({
                 <span>{priceLabel}</span>
               </div>
               <p>{description}</p>
+              {showOwnedEditionDiscount ? (
+                <p className="artales-product-card__note">{labels.productOwnedEditionDiscount}</p>
+              ) : null}
               <p className="artales-product-card__status">{getProductStatusLabel(item.status, labels)}</p>
               {item.status === "unlocked" ? (
                 <Link className="artales-button-secondary" href={`/reader/${slug}?mode=full`}>
@@ -652,7 +669,7 @@ export default function WorkDetailClient({
               />
             </div>
 
-            <ProductOptions products={products} canReadFull={canReadFull} slug={work.slug} labels={t} />
+            <ProductOptions products={products} canReadFull={canReadFull} slug={work.slug} labels={t} locale={locale} />
 
             {feedbackStatus === "sent" ? (
               <p className="artales-account-success" style={{ marginTop: "18px" }}>
