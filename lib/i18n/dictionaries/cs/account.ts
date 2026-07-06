@@ -20,8 +20,15 @@ export const csAccount = {
     titlePrefix: "Vítej",
     lede: "Tady se vracíš ke čtení, sleduješ svůj kredit a spravuješ to, co k účtu opravdu patří.",
     signOut: "Odhlásit se",
-    currentRoleLabel: "Aktuální role",
+    currentRoleLabel: "Typ účtu",
     currentRoleText: "Registrovaný čtenář ARTales.",
+    accountTypeLabel: "Typ účtu",
+    accountTypeReader: "Free Reader",
+    accountTypeAdmin: "Interní profil · administrace",
+    accountTypeEditor: "Interní profil · editor",
+    accountTypeMember: "Interní profil ARTales",
+    accountTypeReaderText: "Bezplatný čtenářský účet pro knihovnu, kredity a pohodlné čtení.",
+    accountTypeInternalText: "Tento účet má interní oprávnění ARTales. Čtenářská knihovna a kredity zůstávají dostupné, ale přístup k dílům může vycházet i z pracovní role.",
     libraryLabel: "Knihovna",
     libraryTitle: "Tvoje čtení na jednom místě",
     libraryText:
@@ -66,8 +73,9 @@ export const csAccount = {
     supportLabel: "Podpora",
     supportTitle: "Podpořit ARTales",
     supportText:
-      "Pomoz nám stavět nezávislý literární prostor, ediční péči a nové čtenářské vrstvy.",
-    supportCta: "Podpořit",
+      "Dobité AT kredity můžeš použít ke čtení, edicím i dobrovolné podpoře ARTales. V účtu uvidíš svou mecenášskou stopu i cestu k Patronovi.",
+    supportCta: "Otevřít AT kredity",
+    memberZone: "Otevřít interní sekci",
   },
   library: {
     kicker: "Moje knihovna",
@@ -249,17 +257,20 @@ export const csAccount = {
   },
   membership: {
     kicker: "Členství ARTales",
-    title: "Členství, které se vyplatí číst pravidelně",
+    title: "Členství pro čtenáře, kteří se vracejí",
     freeReader: "Free Reader",
-    ledePrefix: "Aktuálně jsi na vrstvě účtu",
+    internalReaderLayer: "Interní profil ARTales",
+    ledePrefix: "Aktuální čtenářská vrstva:",
     ledeSuffix:
-      "Členství navazuje na AT kredity: dává pravidelnému čtení rytmus, trvalá online odemčení a výhody u navazujících edic.",
+      "Členství navazuje na AT kredity a dává pravidelnému čtení jasnější rytmus: odemčení do knihovny, kredit navíc a výhodnější cestu k edicím.",
+    internalLedeSuffix:
+      "Tento účet má zároveň interní oprávnění ARTales. Čtenářské členství, kredity a knihovna zůstávají oddělené od pracovní role.",
     creditModelLabel: "Zaváděcí ceny",
-    creditModelTitle: "První členové ARTales mají zvýhodněné podmínky",
+    creditModelTitle: "Zvýhodněné podmínky pro první čtenáře",
     creditModelText:
-      "Zaváděcí ceny jsou poděkování první vlně čtenářů. Standardní ceny budou vyšší až s rostoucím katalogem, funkcemi a komunitní vrstvou ARTales.",
+      "První členové pomáhají ARTales růst od začátku. Proto mají výhodnější cenu, zatímco katalog, ediční nabídka a komunitní vrstva postupně sílí.",
     paymentNotice:
-      "Členství se bude aktivovat pomocí AT kreditů. Nejde o automatické předplatné; každé období si čtenář aktivuje vědomě ze svého kreditového zůstatku.",
+      "Členství se aktivuje z AT kreditů na zvolené období. Bez automatického strhávání — čtenář má kontrolu nad tím, kdy pokračuje.",
     period: "30 dní",
     standardPrice: "standardně",
     noStandardPrice: "Bezplatná vrstva účtu.",
@@ -270,7 +281,7 @@ export const csAccount = {
       free_reader: {
         name: "Free Reader",
         description:
-          "Bezplatný účet pro první čtení, knihovnu a práci s AT kredity.",
+          "Bezplatný účet pro vstup do knihovny, první odemčení a práci s AT kredity.",
         unlocks: "1 uvítací trvalé online odemčení",
         credits: "Kredit podle vlastního dobití",
         prices: "Standardní ceny produktů",
@@ -278,7 +289,7 @@ export const csAccount = {
       basic: {
         name: "Basic",
         description:
-          "Základní členství pro čtenáře, kteří se chtějí pravidelně vracet a nechávat si odemčené tituly v knihovně.",
+          "Klidný start pro pravidelné čtení. Přidá online tituly do knihovny a ponechá trochu kreditu pro další volbu.",
         unlocks: "2 členská trvalá online odemčení za období",
         credits: "+1 běžný AT kredit k použití v ARTales",
         prices: "Vlastnická sleva na PDF/EPUB u odemčených titulů",
@@ -286,7 +297,7 @@ export const csAccount = {
       plus: {
         name: "Plus",
         description:
-          "Nejvyváženější vrstva pro pravidelné čtení a sbírání navazujících edic.",
+          "Vyvážená vrstva pro čtenáře, kteří se vracejí častěji a chtějí si z odemčených titulů časem skládat vlastní knihovnu.",
         badge: "Nejlepší hodnota",
         unlocks: "5 členských trvalých online odemčení za období",
         credits: "+1 běžný AT kredit",
@@ -295,27 +306,27 @@ export const csAccount = {
       library: {
         name: "Library",
         description:
-          "Knihovní režim pro čtenáře, kteří chtějí v ARTales volně procházet online katalog.",
+          "Nejširší čtenářská vrstva: otevřený online katalog po dobu členství a kredit navíc pro trvalé edice nebo podporu.",
         badge: "Knihovní přístup",
         unlocks: "Neomezené online čtení po dobu aktivního členství",
         credits: "+2 běžné AT kredity",
         prices: "Nejlepší čtenářská vrstva a vlastnické slevy u trvale odemčených titulů",
       },
     },
-    valueLabel: "Hodnota členství",
-    valueTitle: "Členství nemá trestat pravidelné čtenáře",
+    valueLabel: "Proč členství",
+    valueTitle: "Hodnota vzniká pravidelným návratem",
     valuePoints: [
       {
         title: "Členská odemčení nejsou AT kredity",
-        text: "Členská online odemčení slouží pro trvalé přidání titulů do knihovny. Nepřevádí se na kredit a nepoužívají se na PDF, podporu nebo jiné služby.",
+        text: "Členská online odemčení přidávají tituly natrvalo do knihovny. Jsou určená pro čtení, ne pro převod na jiné služby.",
       },
       {
-        title: "Bonusový AT kredit je skutečný kredit",
-        text: "AT kredit připsaný členstvím je běžný kredit. Lze ho použít na navazující edice, podporu ARTales nebo pozdější služby.",
+        title: "Bonusový AT kredit zůstává volný",
+        text: "AT kredit připsaný členstvím je běžný kredit. Můžeš ho využít na edice, další čtení, podporu ARTales nebo budoucí služby.",
       },
       {
         title: "Library je časový přístup",
-        text: "Library otevře online čtení po dobu aktivního členství. Po skončení zůstane pozice ve čtení, ale titul je potřeba znovu otevřít členstvím nebo trvale odemknout.",
+        text: "Library otevírá online katalog po dobu aktivního členství. Pozice ve čtení zůstává, přístup obnovíš členstvím nebo trvalým odemčením titulu.",
       },
     ],
     pricebookLabel: "Ceny edic",
@@ -348,7 +359,7 @@ export const csAccount = {
     identitySuffix:
       "Knihovna, kredit, uložené tituly a nastavení čtení jsou navázané na tvůj čtenářský profil.",
     paymentsDisabled:
-      "Technická aktivace členství za AT kredity přijde v navazujícím kroku. Tato stránka teď sjednocuje produktový model, ceny a výhody.",
+      "Aktivaci členství připravujeme přímo do účtu. AT kredity už můžeš využívat pro čtení, edice a podporu ARTales.",
     exploreWorks: "Procházet díla",
     openLibrary: "Otevřít moji knihovnu",
   },

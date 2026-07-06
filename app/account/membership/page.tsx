@@ -3,6 +3,7 @@ import { requireCompletedAccountProfile } from "@/lib/account";
 import { getPublicDictionary } from "@/lib/i18n/public";
 import { getCookieLocale, resolveProfileLocale } from "@/lib/i18n/server";
 import { MEMBERSHIP_PRICEBOOK, formatAt } from "@/lib/memberPricebook";
+import { normalizeRole } from "@/lib/permissions";
 
 export const dynamic = "force-dynamic";
 
@@ -23,6 +24,10 @@ export default async function AccountMembershipPage() {
   const locale = resolveProfileLocale(profile, cookieLocale);
   const dictionary = getPublicDictionary(locale).account.membership;
   const tierCopy = dictionary.tiers as Record<string, MembershipTierDictionary>;
+  const role = normalizeRole(profile.role);
+  const isInternalRole = role === "admin" || role === "editor" || role === "member";
+  const readerLayerLabel = isInternalRole ? dictionary.internalReaderLayer : dictionary.freeReader;
+  const ledeSuffix = isInternalRole ? dictionary.internalLedeSuffix : dictionary.ledeSuffix;
   const isCs = locale === "cs";
 
   return (
@@ -30,7 +35,7 @@ export default async function AccountMembershipPage() {
       <p className="artales-account-kicker">{dictionary.kicker}</p>
       <h1>{dictionary.title}</h1>
       <p className="artales-account-lede">
-        {dictionary.ledePrefix} <strong>{dictionary.freeReader}</strong>. {dictionary.ledeSuffix}
+        {dictionary.ledePrefix} <strong>{readerLayerLabel}</strong>. {ledeSuffix}
       </p>
 
       <section className="artales-account-promo-panel artales-account-membership-hero">
@@ -64,8 +69,8 @@ export default async function AccountMembershipPage() {
                 <p className="artales-account-card__label">{copy.name}</p>
                 {copy.badge ? <span className="artales-account-badge">{copy.badge}</span> : null}
               </div>
-              <h2>{priceLine}</h2>
-              <p className="artales-account-muted">{standardLine}</p>
+              <h2 className="artales-account-tier-card__price">{priceLine}</h2>
+              <p className="artales-account-muted artales-account-tier-card__standard">{standardLine}</p>
               <p>{copy.description}</p>
               <ul className="artales-account-feature-list">
                 <li>{copy.unlocks}</li>
@@ -119,7 +124,7 @@ export default async function AccountMembershipPage() {
         </div>
       </section>
 
-      <section className="artales-account-panel artales-community-section">
+      <section className="artales-account-panel artales-community-section artales-account-membership-note">
         <p className="artales-account-card__label">{dictionary.currentStateLabel}</p>
         <h2>{dictionary.currentStateTitle}</h2>
         <p>

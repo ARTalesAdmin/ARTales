@@ -23,6 +23,15 @@ export const enAccount = {
     currentRoleLabel: "Current role",
     currentRoleText:
       "You are signed in as a registered ARTales reader. Your account already connects your library, credit, payment instructions and future membership benefits.",
+    accountTypeLabel: "Account type",
+    accountTypeReader: "Free Reader",
+    accountTypeAdmin: "Internal profile · administration",
+    accountTypeEditor: "Internal profile · editor",
+    accountTypeMember: "Internal ARTales profile",
+    accountTypeReaderText:
+      "A free reader account for your library, credits and comfortable reading.",
+    accountTypeInternalText:
+      "This account has internal ARTales permissions. Your reader library and credits remain available, while some work access may also come from your role.",
     libraryLabel: "Library",
     libraryTitle: "Read & return",
     libraryText:
@@ -70,8 +79,9 @@ export const enAccount = {
     supportLabel: "Support",
     supportTitle: "Support ARTales",
     supportText:
-      "Help us build an independent literary space, editorial care and new reader layers.",
-    supportCta: "Support",
+      "AT Credits can be used for reading, editions and voluntary ARTales support. Your account shows your patronage trail and path toward Patron status.",
+    supportCta: "Open AT Credits",
+    memberZone: "Open internal zone",
   },
   library: {
     kicker: "My library",
@@ -256,17 +266,20 @@ export const enAccount = {
   },
   membership: {
     kicker: "ARTales membership",
-    title: "Membership that rewards regular reading",
+    title: "Membership for readers who return",
     freeReader: "Free Reader",
-    ledePrefix: "Your current account layer is",
+    internalReaderLayer: "Internal ARTales profile",
+    ledePrefix: "Current reader layer:",
     ledeSuffix:
-      "Membership builds on AT Credits: it gives regular reading a rhythm, permanent online unlocks, and better value for related editions.",
+      "Membership builds on AT Credits and gives regular reading a clearer rhythm: library unlocks, extra credit and a better path to editions.",
+    internalLedeSuffix:
+      "This account also has internal ARTales permissions. Reader membership, credits and library remain separate from the working role.",
     creditModelLabel: "Founding prices",
-    creditModelTitle: "Early ARTales members receive preferential terms",
+    creditModelTitle: "Preferential terms for early readers",
     creditModelText:
-      "Founding prices are a thank-you to the first wave of readers. Standard prices will come later as the catalogue, features, and community layers grow.",
+      "Early members help ARTales grow from the beginning. Their price reflects that trust while the catalogue, editions and community layer continue to expand.",
     paymentNotice:
-      "Membership will be activated with AT Credits. It is not automatic recurring billing; each period is activated deliberately from the reader's credit balance.",
+      "Membership is activated from AT Credits for a chosen period. No automatic billing — the reader chooses when to continue.",
     period: "30 days",
     standardPrice: "standard",
     noStandardPrice: "Free account layer.",
@@ -277,7 +290,7 @@ export const enAccount = {
       free_reader: {
         name: "Free Reader",
         description:
-          "A free account for first reading, the library, and AT Credit use.",
+          "A free account for entering the library, first unlock and AT Credit use.",
         unlocks: "1 welcome permanent online unlock",
         credits: "Credit topped up as needed",
         prices: "Standard product prices",
@@ -285,7 +298,7 @@ export const enAccount = {
       basic: {
         name: "Basic",
         description:
-          "A basic membership for readers who want to return regularly and keep unlocked titles in their library.",
+          "A calm start for regular reading. It adds online titles to the library and leaves a little credit for another choice.",
         unlocks: "2 member permanent online unlocks per period",
         credits: "+1 regular AT Credit for use in ARTales",
         prices: "Owned-title discount for PDF/EPUB editions",
@@ -293,7 +306,7 @@ export const enAccount = {
       plus: {
         name: "Plus",
         description:
-          "The most balanced tier for regular reading and collecting related editions.",
+          "A balanced tier for readers who return more often and want to build a library around the titles they unlock.",
         badge: "Best value",
         unlocks: "5 member permanent online unlocks per period",
         credits: "+1 regular AT Credit",
@@ -302,27 +315,27 @@ export const enAccount = {
       library: {
         name: "Library",
         description:
-          "A library mode for readers who want to browse the ARTales online catalogue freely.",
+          "The broadest reader layer: online catalogue access while active, plus extra credit for editions or support.",
         badge: "Library access",
         unlocks: "Unlimited online reading while membership is active",
         credits: "+2 regular AT Credits",
         prices: "Highest reader layer and owned-title discounts for permanently unlocked titles",
       },
     },
-    valueLabel: "Membership value",
-    valueTitle: "Membership should reward regular readers",
+    valueLabel: "Why membership",
+    valueTitle: "Value grows through returning",
     valuePoints: [
       {
         title: "Member unlocks are not AT Credits",
-        text: "Member online unlocks permanently add titles to the library. They do not convert into credit and cannot be used for PDF, support, or other services.",
+        text: "Member online unlocks permanently add titles to the library. They are meant for reading, not for conversion into other services.",
       },
       {
-        title: "Bonus AT Credit is real credit",
-        text: "AT Credit granted by membership is regular credit. It can be used for related editions, ARTales support, or later services.",
+        title: "Bonus AT Credit remains flexible",
+        text: "AT Credit granted by membership is regular credit. It can be used for editions, more reading, ARTales support or later services.",
       },
       {
         title: "Library is time-based access",
-        text: "Library opens online reading while membership is active. Reading position remains afterwards, but access requires renewing membership or permanently unlocking the title.",
+        text: "Library opens the online catalogue while membership is active. Reading position remains afterwards; access can be renewed through membership or a permanent title unlock.",
       },
     ],
     pricebookLabel: "Edition prices",
@@ -355,7 +368,7 @@ export const enAccount = {
     identitySuffix:
       "Library, credit, saved titles and reader settings are connected to your reader profile.",
     paymentsDisabled:
-      "Technical membership activation with AT Credits will follow next. This page now aligns the product model, prices, and benefits.",
+      "Membership activation is being prepared directly inside the account. AT Credits can already be used for reading, editions and ARTales support.",
     exploreWorks: "Explore works",
     openLibrary: "Open my library",
   },

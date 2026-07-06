@@ -4,6 +4,7 @@ import { getShortDisplayName } from "@/lib/displayName";
 import { getPublicDictionary } from "@/lib/i18n/public";
 import { getCookieLocale, resolveProfileLocale } from "@/lib/i18n/server";
 import { getReaderLibrarySummary } from "@/lib/entitlements";
+import { normalizeRole } from "@/lib/permissions";
 import { logoutFromAccount } from "./actions";
 
 export const dynamic = "force-dynamic";
@@ -17,6 +18,18 @@ export default async function AccountPage() {
   const shortName = getShortDisplayName(profile);
   const locale = resolveProfileLocale(profile, cookieLocale);
   const dictionary = getPublicDictionary(locale).account.overview;
+  const role = normalizeRole(profile.role);
+  const isInternalRole = role === "admin" || role === "editor" || role === "member";
+  const accountTypeLabel = role === "admin"
+    ? dictionary.accountTypeAdmin
+    : role === "editor"
+      ? dictionary.accountTypeEditor
+      : role === "member"
+        ? dictionary.accountTypeMember
+        : dictionary.accountTypeReader;
+  const accountTypeText = isInternalRole
+    ? dictionary.accountTypeInternalText
+    : dictionary.accountTypeReaderText;
 
   return (
     <section className="artales-account-page artales-account-overview-page">
@@ -82,11 +95,20 @@ export default async function AccountPage() {
 
         <article className="artales-account-card">
           <p className="artales-account-card__label">
+            {dictionary.accountTypeLabel}
+          </p>
+          <h2>{accountTypeLabel}</h2>
+          <p>{accountTypeText}</p>
+          {isInternalRole ? <Link href="/member">{dictionary.memberZone}</Link> : null}
+        </article>
+
+        <article className="artales-account-card">
+          <p className="artales-account-card__label">
             {dictionary.supportLabel}
           </p>
           <h2>{dictionary.supportTitle}</h2>
           <p>{dictionary.supportText}</p>
-          <Link href="/checkout/support">{dictionary.supportCta}</Link>
+          <Link href="/account/credits">{dictionary.supportCta}</Link>
         </article>
 
         <article className="artales-account-card">
