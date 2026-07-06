@@ -16,36 +16,36 @@ export default async function CreditsInfoPage() {
   const cards = isCs
     ? [
         {
-          label: "01",
-          title: "Dobiješ jednou, používáš postupně",
-          text: "AT kredit je univerzální hodnota účtu. Hodí se pro trvalá online odemčení, PDF/EPUB edice, členství, podporu ARTales a pozdější služby.",
+          label: "Číst",
+          title: "Kredit pro klidný výběr",
+          text: "Dobiješ si čtenářskou hodnotu a používáš ji postupně. Nemusíš při každém titulu znovu řešit platbu — vybereš si dílo, edici nebo členství podle nálady a potřeby.",
         },
         {
-          label: "02",
-          title: "Online přístup zlevní další formáty",
-          text: "Když máš titul trvale odemčený online, navazující PDF nebo EPUB téhož díla stojí 1 AT místo 2 AT. Balíček PDF + EPUB stojí 2 AT místo 3 AT.",
+          label: "Sbírat",
+          title: "Jedno dílo, více podob",
+          text: "Trvalé online odemčení zůstává u účtu. Pokud si k témuž titulu později doplníš PDF nebo EPUB, získáš vlastnickou cenu jako čtenář, který už má text odemčený.",
         },
         {
-          label: "03",
-          title: "Podpora má vlastní stopu",
-          text: `Libovolná podpora se započítává do mecenášské stopy účtu. Patron začíná od ${MEMBERSHIP_PRICEBOOK.patronage.patronAt} AT celkové podpory, Mecenáš od ${MEMBERSHIP_PRICEBOOK.patronage.mecenatAt} AT.`,
+          label: "Podporovat",
+          title: "Knihovna vzniká i díky čtenářům",
+          text: `Darované AT kredity se počítají do mecenášské stopy. Patron ARTales začíná od ${MEMBERSHIP_PRICEBOOK.patronage.patronAt} AT celkové podpory, Mecenáš od ${MEMBERSHIP_PRICEBOOK.patronage.mecenatAt} AT.`,
         },
       ]
     : [
         {
-          label: "01",
-          title: "Top up once, use gradually",
-          text: "AT Credit is the universal value in your account. Use it for permanent online unlocks, PDF/EPUB editions, membership, ARTales support, and later services.",
+          label: "Read",
+          title: "Credit for calm choice",
+          text: "Top up reader value and use it gradually. You do not need to handle a new payment for every title — choose a work, edition or membership when it makes sense.",
         },
         {
-          label: "02",
-          title: "Online access lowers edition prices",
-          text: "When you permanently unlock a title online, the related PDF or EPUB edition costs 1 AT instead of 2 AT. The PDF + EPUB bundle costs 2 AT instead of 3 AT.",
+          label: "Collect",
+          title: "One work, several forms",
+          text: "A permanent online unlock stays with your account. If you later add PDF or EPUB for the same work, you receive an owner price because the text is already unlocked.",
         },
         {
-          label: "03",
-          title: "Support has its own trail",
-          text: `Any support contributes to the account's patronage trail. Patron begins at ${MEMBERSHIP_PRICEBOOK.patronage.patronAt} AT of total support; Benefactor begins at ${MEMBERSHIP_PRICEBOOK.patronage.mecenatAt} AT.`,
+          label: "Support",
+          title: "The library is built with readers",
+          text: `Gifted AT Credits count toward the patronage trail. ARTales Patron begins at ${MEMBERSHIP_PRICEBOOK.patronage.patronAt} AT of total support; Benefactor begins at ${MEMBERSHIP_PRICEBOOK.patronage.mecenatAt} AT.`,
         },
       ];
 
@@ -53,16 +53,16 @@ export default async function CreditsInfoPage() {
     <div className="artales-public-shell">
       <PublicHeader active="credits" />
       <main className="artales-public-main artales-legal-main">
-        <article className="artales-legal-article">
+        <article className="artales-legal-article artales-credits-story">
           <p className="artales-public-kicker">ARTales Credits</p>
           <h1>{isCs ? "AT kredity" : "AT Credits"}</h1>
           <p>
             {isCs
-              ? "AT kredity jsou jednoduchý způsob, jak v ARTales platit za čtenářský přístup, doplňkové edice, členství a podporu projektu. Jsou navázané na účet a mají přehlednou historii."
-              : "AT Credits are a simple way to pay for reader access, related editions, membership, and project support in ARTales. They are tied to your account and have a clear history."}
+              ? "AT kredity jsou čtenářská hodnota uvnitř ARTales. Pomáhají držet čtení, edice, členství i podporu knihovny v jednom přehledném účtu. Dobiješ je jednou a používáš je vlastním tempem."
+              : "AT Credits are reader value inside ARTales. They keep reading, editions, membership and library support in one clear account. Top up once and use them at your own pace."}
           </p>
 
-          <div className="artales-account-model-grid">
+          <div className="artales-account-model-grid artales-credits-story-grid">
             {cards.map((card) => (
               <article key={card.label}>
                 <p className="artales-account-card__label">{card.label}</p>
@@ -72,30 +72,35 @@ export default async function CreditsInfoPage() {
             ))}
           </div>
 
-          <h2>{isCs ? "Základní ceník" : "Base pricebook"}</h2>
-          <ul>
-            <li>{isCs ? "trvalé online odemčení titulu — 1 AT," : "permanent online unlock — 1 AT,"}</li>
-            <li>{isCs ? "PDF nebo EPUB edice — 2 AT," : "PDF or EPUB edition — 2 AT,"}</li>
-            <li>{isCs ? "PDF + EPUB balíček — 3 AT," : "PDF + EPUB bundle — 3 AT,"}</li>
-            <li>{isCs ? "po trvalém online odemčení stojí PDF/EPUB téhož díla výhodněji." : "after a permanent online unlock, PDF/EPUB for the same work costs less."}</li>
-          </ul>
+          <section className="artales-account-panel artales-credits-pricebook-note">
+            <p className="artales-account-card__label">{isCs ? "Vlastnická cena" : "Owner price"}</p>
+            <h2>{isCs ? "Neplatíš dvakrát za stejný text" : "You do not pay twice for the same text"}</h2>
+            <p>
+              {isCs
+                ? "Online odemčení stojí 1 AT. PDF nebo EPUB běžně stojí 2 AT, ale po trvalém online odemčení téhož titulu stojí 1 AT. Balíček PDF + EPUB stojí po online odemčení 2 AT místo 3 AT."
+                : "Online unlock costs 1 AT. PDF or EPUB normally costs 2 AT, but after a permanent online unlock for the same title, it costs 1 AT. The PDF + EPUB bundle costs 2 AT after online unlock instead of 3 AT."}
+            </p>
+          </section>
 
-          <h2>{isCs ? "Členství a podpora" : "Membership and support"}</h2>
-          <p>
-            {isCs
-              ? "Členství bude používat AT kredity, ale členská online odemčení nejsou běžné kredity. Bonusové AT kredity ze členství naopak běžnými kredity jsou. Podpora ARTales je oddělená a počítá se do patronátní stopy účtu."
-              : "Membership will use AT Credits, but member online unlocks are not regular credit. Bonus AT Credits granted by membership are regular credit. ARTales support is separate and contributes to the account's patronage trail."}
-          </p>
+          <section className="artales-account-panel artales-credits-patronage-note">
+            <p className="artales-account-card__label">{isCs ? "Patronství" : "Patronage"}</p>
+            <h2>{isCs ? "Podpora nemusí být velká najednou" : "Support does not have to be large at once"}</h2>
+            <p>
+              {isCs
+                ? "Když věnuješ část svého kreditu ARTales, počítá se postupně. Jednorázový dar i pravidelná drobná podpora mají stejnou stopu v účtu. Viditelnost v Síni ARTales bude vždy dobrovolná a navázaná jen na zvolený nick."
+                : "When you gift part of your credit to ARTales, it counts over time. A single larger gift and regular small support share the same account trail. Hall visibility will always be voluntary and tied only to a chosen nickname."}
+            </p>
+          </section>
 
           <div className="artales-account-actions">
             <Link className="artales-button" href="/checkout/credits">
               {isCs ? "Dobít AT kredity" : "Top up AT Credits"}
             </Link>
+            <Link className="artales-button-secondary" href="/account/credits#support">
+              {isCs ? "Darovat z kreditu" : "Gift from credit"}
+            </Link>
             <Link className="artales-button-secondary" href="/account/membership">
               {isCs ? "Zobrazit členství" : "View membership"}
-            </Link>
-            <Link className="artales-button-secondary" href="/checkout/support">
-              {isCs ? "Podpořit ARTales" : "Support ARTales"}
             </Link>
             <Link className="artales-button-secondary" href="/hall">
               {isCs ? "Síň ARTales" : "ARTales Hall"}

@@ -18,7 +18,6 @@ export default async function AccountNav({
     { href: "/account", label: dictionary.overview },
     { href: "/account/library", label: dictionary.library },
     { href: "/account/credits", label: dictionary.credits },
-    { href: "/checkout/support", label: dictionary.support },
     { href: "/account/profile", label: dictionary.profile },
     { href: "/account/security", label: dictionary.security },
     { href: "/account/settings", label: dictionary.settings },

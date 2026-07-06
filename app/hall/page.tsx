@@ -21,8 +21,8 @@ export default async function ArtalesHallPage() {
           <h1>{isCs ? "Síň ARTales" : "ARTales Hall"}</h1>
           <p>
             {isCs
-              ? "Síň ARTales bude místem poděkování lidem, kteří výrazně nebo dlouhodobě podporují vznik literární knihovny. Veřejně se zde bude zobrazovat pouze zvolený nick, nikdy fakturační jméno ani e-mail."
-              : "The ARTales Hall will thank people who significantly or regularly support the literary library. Only a chosen public nickname will be shown here, never billing names or email addresses."}
+              ? "Síň ARTales bude místem tichého poděkování čtenářům, kteří výrazně nebo dlouhodobě podporují vznik knihovny. Zatím připravujeme dvě vrstvy: Patrony a Mecenáše."
+              : "The ARTales Hall will quietly thank readers who significantly or steadily support the creation of the library. For now, we are preparing two layers: Patrons and Benefactors."}
           </p>
 
           <div className="artales-account-model-grid">
@@ -31,8 +31,8 @@ export default async function ArtalesHallPage() {
               <h2>{isCs ? "Patroni" : "Patrons"}</h2>
               <p>
                 {isCs
-                  ? "Patronství je poděkování za opakovanou nebo výraznější podporu. Zápis do síně bude volitelný podle nastavení viditelnosti účtu."
-                  : "Patronage thanks readers for repeated or more substantial support. Hall visibility will be optional and controlled by account settings."}
+                  ? "Patronství vzniká postupně z podpory ARTales. Může jít o jeden větší dar nebo mnoho menších příspěvků v čase. V účtu bude vidět jako trvalé poděkování."
+                  : "Patronage grows from ARTales support over time. It can come from one larger gift or many smaller contributions. In the account, it becomes a lasting acknowledgement."}
               </p>
             </article>
             <article>
@@ -40,19 +40,19 @@ export default async function ArtalesHallPage() {
               <h2>{isCs ? "Mecenáši" : "Benefactors"}</h2>
               <p>
                 {isCs
-                  ? "Mecenášství je vyšší trvalý status podpory ARTales. Může být spojeno se symbolem u veřejného nicku a viditelným poděkováním."
-                  : "Benefactor status is a higher lasting form of ARTales support. It can be connected with a symbol next to the public nickname and a visible acknowledgement."}
+                  ? "Mecenášství je vyšší status podpory ARTales. Po spuštění viditelnosti může být spojeno se zvoleným veřejným nickem a jemným symbolem u jména."
+                  : "Benefactor status is a higher ARTales support status. Once visibility settings are enabled, it can be tied to a chosen public nickname and a subtle symbol next to the name."}
               </p>
             </article>
           </div>
 
           <section className="artales-account-panel artales-community-section">
             <p className="artales-account-card__label">{isCs ? "Soukromí" : "Privacy"}</p>
-            <h2>{isCs ? "Viditelnost bude volitelná" : "Visibility will be optional"}</h2>
+            <h2>{isCs ? "Viditelnost bude vždy volitelná" : "Visibility will always be optional"}</h2>
             <p>
               {isCs
-                ? "Patroni a mecenáši si později zvolí, zda chtějí zůstat anonymní, být vidět jen v účtu, nebo se zobrazit ve veřejné Síni ARTales pod svým nickem."
-                : "Patrons and benefactors will later choose whether to stay anonymous, be visible only in their account, or appear publicly in the ARTales Hall under their nickname."}
+                ? "Veřejně se nikdy nezobrazí fakturační jméno, e-mail ani interní role. Až bude nastavení viditelnosti aktivní, Patron nebo Mecenáš si zvolí, zda chce zůstat anonymní, být vidět jen v účtu, nebo se zobrazit ve veřejné Síni ARTales pod svým nickem."
+                : "Billing name, email address and internal role will never be shown publicly. Once visibility settings are active, a Patron or Benefactor will choose whether to stay anonymous, remain visible only in the account, or appear publicly in the ARTales Hall under a nickname."}
             </p>
           </section>
         </article>

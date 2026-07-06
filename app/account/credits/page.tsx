@@ -4,6 +4,7 @@ import { getReaderCommerceSummary, type ReaderManualQrPaymentItem, type ReaderCr
 import { getPublicDictionary } from "@/lib/i18n/public";
 import { getCookieLocale, resolveProfileLocale } from "@/lib/i18n/server";
 import { giftCreditToArtales } from "./actions";
+import { getPatronageProgress, formatPatronageLevel } from "@/lib/patronage";
 
 export const dynamic = "force-dynamic";
 
@@ -136,6 +137,66 @@ function LedgerRow({
   );
 }
 
+function PatronagePanel({
+  totalAt,
+  locale,
+  dictionary,
+}: {
+  totalAt: number;
+  locale: string;
+  dictionary: ReturnType<typeof getPublicDictionary>["account"]["credits"];
+}) {
+  const language = locale === "en" ? "en" : "cs";
+  const progress = getPatronageProgress(totalAt);
+  const levelLabel = formatPatronageLevel(progress.level, language);
+  const nextLevelLabel = progress.nextLevel ? formatPatronageLevel(progress.nextLevel, language) : null;
+
+  return (
+    <section className="artales-account-panel artales-credit-section artales-patronage-panel" id="patronage">
+      <div className="artales-patronage-panel__main">
+        <div>
+          <p className="artales-account-card__label">{dictionary.patronageLabel}</p>
+          <h2>{dictionary.patronageTitle}</h2>
+          <p>{dictionary.patronageText}</p>
+        </div>
+        <div className="artales-patronage-badge" aria-label={levelLabel}>
+          <span>{progress.level === "mecenat" ? "✦" : progress.level === "patron" ? "◆" : "•"}</span>
+          <strong>{levelLabel}</strong>
+        </div>
+      </div>
+
+      <div className="artales-patronage-meter" aria-label={dictionary.patronageProgressAria}>
+        <div className="artales-patronage-meter__head">
+          <strong>{dictionary.patronageTotalLabel}: {progress.totalAt} AT</strong>
+          {nextLevelLabel && progress.nextThresholdAt ? (
+            <span>{dictionary.patronageRemainingPrefix} {progress.remainingAt} AT · {nextLevelLabel}</span>
+          ) : (
+            <span>{dictionary.patronageTopLevel}</span>
+          )}
+        </div>
+        <div className="artales-patronage-meter__track">
+          <span style={{ width: `${progress.progressPercent}%` }} />
+        </div>
+      </div>
+
+      <div className="artales-patronage-mini-grid">
+        {dictionary.patronageCards.map((card) => (
+          <article key={card.title}>
+            <p className="artales-account-card__label">{card.label}</p>
+            <h3>{card.title}</h3>
+            <p>{card.text}</p>
+          </article>
+        ))}
+      </div>
+
+      <p className="artales-account-muted">{dictionary.patronageVisibilityText}</p>
+      <div className="artales-account-actions artales-account-actions--compact">
+        <Link className="artales-button-secondary" href="/hall">{dictionary.openHall}</Link>
+      </div>
+    </section>
+  );
+}
+
 type PageProps = {
   searchParams?: Promise<{ error?: string; success?: string }>;
 };
@@ -180,9 +241,11 @@ export default async function AccountCreditsPage({ searchParams }: PageProps) {
         </div>
         <div className="artales-credit-hero__actions">
           <Link className="artales-button" href="/checkout/credits">{dictionary.topUpCta}</Link>
-          <Link className="artales-button-secondary" href="/checkout/support">{dictionary.supportCta}</Link>
+          <a className="artales-button-secondary" href="#support">{dictionary.giftCta}</a>
         </div>
       </section>
+
+      <PatronagePanel totalAt={commerce.patronageTotalAt} locale={locale} dictionary={dictionary} />
 
       <div className="artales-account-grid artales-credit-explainer-grid">
         {dictionary.explainerCards.map((card) => (
@@ -214,19 +277,33 @@ export default async function AccountCreditsPage({ searchParams }: PageProps) {
         )}
       </section>
 
-      <section className="artales-account-panel artales-credit-section artales-credit-gift-panel">
+      <section className="artales-account-panel artales-credit-section artales-credit-gift-panel" id="support">
         <div>
           <p className="artales-account-card__label">{dictionary.giftLabel}</p>
           <h2>{dictionary.giftTitle}</h2>
           <p>{dictionary.giftText}</p>
         </div>
         <form action={giftCreditToArtales} className="artales-credit-gift-form">
+          <div className="artales-credit-gift-presets" aria-label={dictionary.giftAmountLabel}>
+            {[1, 3, 5].map((amount) => (
+              <button
+                key={amount}
+                className="artales-button-secondary"
+                type="submit"
+                name="amount"
+                value={amount}
+                disabled={commerce.creditBalance < amount}
+              >
+                {dictionary.giftPresetPrefix} {amount} AT
+              </button>
+            ))}
+          </div>
           <label>
             {dictionary.giftAmountLabel}
-            <input name="amount" type="number" min="1" max={Math.max(commerce.creditBalance, 1)} defaultValue={Math.min(Math.max(commerce.creditBalance, 1), 1)} />
+            <input name="amount" type="number" min="1" max={Math.max(commerce.creditBalance, 1)} placeholder="1" />
           </label>
-          <button className="artales-button-secondary" type="submit" disabled={commerce.creditBalance <= 0}>
-            {dictionary.giftCta}
+          <button className="artales-button" type="submit" disabled={commerce.creditBalance <= 0}>
+            {dictionary.giftCustomCta}
           </button>
         </form>
       </section>

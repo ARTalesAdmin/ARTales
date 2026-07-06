@@ -3877,7 +3877,7 @@ body {
   overflow: hidden;
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 3;
-  line-clamp: 3;
+    line-clamp: 3;
 }
 
 .artales-account-book-card__actions {
@@ -4041,4 +4041,129 @@ body {
 .artales-credit-unlock-decision {
   display: grid;
   gap: 12px;
+}
+
+/* v0.10.13d — patronage account UX */
+.artales-patronage-panel {
+  position: relative;
+  overflow: hidden;
+}
+
+.artales-patronage-panel::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(circle at top right, rgba(167, 124, 72, 0.16), transparent 34%),
+    linear-gradient(135deg, rgba(255, 248, 230, 0.72), rgba(255, 255, 255, 0));
+}
+
+.artales-patronage-panel > * {
+  position: relative;
+}
+
+.artales-patronage-panel__main {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 1.25rem;
+  align-items: start;
+}
+
+.artales-patronage-badge {
+  min-width: 9.5rem;
+  border: 1px solid rgba(118, 83, 44, 0.22);
+  border-radius: 999px;
+  padding: 0.55rem 0.85rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+  background: rgba(255, 255, 255, 0.74);
+  color: #5f3d20;
+  font-size: 0.86rem;
+}
+
+.artales-patronage-badge span {
+  font-size: 1.05rem;
+}
+
+.artales-patronage-meter {
+  margin-top: 1.15rem;
+}
+
+.artales-patronage-meter__head {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  font-size: 0.92rem;
+  color: rgba(43, 33, 24, 0.76);
+}
+
+.artales-patronage-meter__track {
+  margin-top: 0.55rem;
+  width: 100%;
+  height: 0.65rem;
+  border-radius: 999px;
+  overflow: hidden;
+  background: rgba(118, 83, 44, 0.13);
+}
+
+.artales-patronage-meter__track span {
+  display: block;
+  height: 100%;
+  min-width: 0.3rem;
+  border-radius: inherit;
+  background: linear-gradient(90deg, rgba(118, 83, 44, 0.7), rgba(183, 129, 66, 0.92));
+}
+
+.artales-patronage-mini-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+  margin-top: 1.25rem;
+}
+
+.artales-patronage-mini-grid article {
+  border: 1px solid rgba(118, 83, 44, 0.14);
+  border-radius: 1.1rem;
+  padding: 1rem;
+  background: rgba(255, 255, 255, 0.62);
+}
+
+.artales-patronage-mini-grid h3 {
+  margin: 0.15rem 0 0.45rem;
+}
+
+.artales-account-actions--compact {
+  margin-top: 1rem;
+}
+
+.artales-credit-gift-presets {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.65rem;
+}
+
+.artales-credits-story-grid article,
+.artales-credits-pricebook-note,
+.artales-credits-patronage-note {
+  border-color: rgba(118, 83, 44, 0.14);
+}
+
+@media (max-width: 760px) {
+  .artales-patronage-panel__main,
+  .artales-patronage-mini-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .artales-patronage-meter__head {
+    flex-direction: column;
+    gap: 0.35rem;
+  }
+
+  .artales-patronage-badge {
+    justify-content: flex-start;
+    width: fit-content;
+  }
 }

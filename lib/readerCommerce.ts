@@ -36,6 +36,7 @@ export type ReaderCommerceSummary = {
   creditBalance: number;
   creditLedger: ReaderCreditLedgerItem[];
   payments: ReaderManualQrPaymentItem[];
+  patronageTotalAt: number;
 };
 
 type CreditLedgerRow = {
@@ -72,6 +73,7 @@ type OrderMetadata = {
   billing_country?: string;
   payment_rail?: string;
   credit_amount?: number;
+  base_amount_eur_cents?: number;
   user_reported_paid_at?: string;
   user_cancelled_at?: string;
   manual_cancelled_at?: string;
@@ -95,7 +97,7 @@ function getOrderIdFromMetadata(metadata: Record<string, unknown> | null | undef
 export async function getReaderCommerceSummary(userId: string): Promise<ReaderCommerceSummary> {
   const admin = createAdminClient();
 
-  const [ledgerResult, ordersResult] = await Promise.all([
+  const [ledgerResult, balanceLedgerResult, ordersResult, supportOrdersResult] = await Promise.all([
     admin
       .from("reader_credit_ledger")
       .select("id, amount, source, note, created_at, metadata")
@@ -103,18 +105,33 @@ export async function getReaderCommerceSummary(userId: string): Promise<ReaderCo
       .order("created_at", { ascending: false })
       .limit(24),
     admin
+      .from("reader_credit_ledger")
+      .select("amount, source")
+      .eq("user_id", userId),
+    admin
       .from("orders")
       .select("id, status, payment_status, total_amount_cents, currency, metadata, created_at")
       .eq("user_id", userId)
       .eq("provider", "manual_qr")
       .order("created_at", { ascending: false })
       .limit(24),
+    admin
+      .from("orders")
+      .select("id, status, payment_status, total_amount_cents, currency, metadata, created_at")
+      .eq("user_id", userId)
+      .eq("provider", "manual_qr")
+      .eq("status", "fulfilled")
+      .limit(200),
   ]);
 
   if (ledgerResult.error) console.error("Reader credit ledger load failed:", ledgerResult.error);
+  if (balanceLedgerResult.error) console.error("Reader credit balance load failed:", balanceLedgerResult.error);
   if (ordersResult.error) console.error("Reader manual QR orders load failed:", ordersResult.error);
+  if (supportOrdersResult.error) console.error("Reader support orders load failed:", supportOrdersResult.error);
 
   const ledgerRows = (ledgerResult.data ?? []) as CreditLedgerRow[];
+  const balanceLedgerRows = (balanceLedgerResult.data ?? []) as Pick<CreditLedgerRow, "amount" | "source">[];
+  const supportOrderRows = (supportOrdersResult.data ?? []) as OrderRow[];
   const orderRows = (ordersResult.data ?? []) as OrderRow[];
   const orderIds = orderRows.map((order) => order.id);
 
@@ -141,7 +158,25 @@ export async function getReaderCommerceSummary(userId: string): Promise<ReaderCo
     orderId: getOrderIdFromMetadata(row.metadata),
   }));
 
-  const creditBalance = creditLedger.reduce((sum, row) => sum + row.amount, 0);
+  const creditBalance = balanceLedgerRows.reduce((sum, row) => sum + Number(row.amount ?? 0), 0);
+
+  const giftedCreditSupportAt = balanceLedgerRows.reduce((sum, row) => {
+    if (String(row.source ?? "") !== "contribution") return sum;
+    const amount = Number(row.amount ?? 0);
+    return amount < 0 ? sum + Math.abs(amount) : sum;
+  }, 0);
+
+  const directQrSupportAt = supportOrderRows.reduce((sum, order) => {
+    const metadata = asMetadata(order.metadata);
+    if (metadata.checkout_kind !== "support") return sum;
+    const baseAmount = Number(metadata.base_amount_eur_cents ?? 0);
+    if (Number.isFinite(baseAmount) && baseAmount > 0) return sum + baseAmount / 100;
+    const currency = String(order.currency ?? "EUR").toUpperCase();
+    const total = Number(order.total_amount_cents ?? 0);
+    return currency === "EUR" && Number.isFinite(total) && total > 0 ? sum + total / 100 : sum;
+  }, 0);
+
+  const patronageTotalAt = Math.floor(giftedCreditSupportAt + directQrSupportAt);
 
   const payments = orderRows.map((order) => {
     const orderMetadata = asMetadata(order.metadata);
@@ -175,5 +210,5 @@ export async function getReaderCommerceSummary(userId: string): Promise<ReaderCo
     };
   });
 
-  return { creditBalance, creditLedger, payments };
+  return { creditBalance, creditLedger, payments, patronageTotalAt };
 }

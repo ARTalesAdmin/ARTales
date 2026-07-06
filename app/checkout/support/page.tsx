@@ -17,19 +17,19 @@ type PageProps = {
 
 const copy = {
   cs: {
-    eyebrow: "Podpora ARTales",
-    title: "Podpořit literární prostor ARTales",
+    eyebrow: "Přímá podpora ARTales",
+    title: "Podpořit ARTales přímo",
     intro:
-      "Podpora není nákup konkrétního díla ani členství. Pomáhá financovat ediční práci, obálky, vývoj readeru a další vrstvy ARTales. Každý příspěvek se započítá do mecenášské stopy účtu.",
-    noFulfillmentLabel: "Podpora projektu",
-    noFulfillmentTitle: "Příspěvek pro rozvoj ARTales",
+      "Tato stránka je pro čtenáře, kteří chtějí poslat podporu přímo, bez převodu už dobitého kreditu. Pokud už máš AT kredity na účtu, čistší cesta je darovat část z nich v účtu kreditu.",
+    noFulfillmentLabel: "Dobrovolná podpora",
+    noFulfillmentTitle: "Nejde o nákup titulu ani členství",
     noFulfillmentText:
-      "Podpora je dobrovolný příspěvek na literární prostor ARTales. Neodemkne titul automaticky, ale zapíše se jako podpora projektu. Až celková podpora dosáhne patronátní nebo mecenášské hranice, půjde ji navázat na viditelnost podle volby čtenáře.",
+      "Přímá podpora pomáhá financovat ediční práci, obálky, čtečku a další vrstvy ARTales. Po potvrzení se započítá do mecenášské stopy účtu stejně jako darovaný kredit.",
     country: "Země podporovatele",
-    submit: "Podpořit touto částkou",
-    credit: "Chci dobít kredit",
+    submit: "Vytvořit QR pokyn",
+    credit: "Raději dobít kredit",
     library: "Moje knihovna",
-    supportLabel: "Podpora",
+    supportLabel: "Přímá podpora",
     priceNote: "Pro Česko se platba na další stránce převede do CZK QR platby.",
     errors: {
       invalid_package: "Vybraný příspěvek se nepodařilo načíst.",
@@ -38,19 +38,19 @@ const copy = {
     },
   },
   en: {
-    eyebrow: "Support ARTales",
-    title: "Support the ARTales literary space",
+    eyebrow: "Direct ARTales support",
+    title: "Support ARTales directly",
     intro:
-      "Support is not a purchase of a specific work or membership. It helps fund editorial work, covers, reader development, and the next ARTales layers. Every contribution adds to the account's patronage trail.",
-    noFulfillmentLabel: "Project support",
-    noFulfillmentTitle: "A contribution to ARTales",
+      "This page is for readers who want to send support directly, without gifting already topped-up credit. If you already have AT Credits in your account, the cleaner path is gifting part of them from the credit account.",
+    noFulfillmentLabel: "Voluntary support",
+    noFulfillmentTitle: "Not a title purchase or membership",
     noFulfillmentText:
-      "Support is a voluntary contribution to the ARTales literary space. It does not unlock a title automatically, but it is recorded as project support. Once total support reaches the patron or benefactor threshold, visibility can follow the reader's preference.",
+      "Direct support helps fund editorial work, covers, reader development and the next ARTales layers. Once confirmed, it counts toward the account patronage trail just like gifted credit.",
     country: "Supporter country",
-    submit: "Support with this amount",
-    credit: "I want to top up credit",
+    submit: "Create QR instruction",
+    credit: "Top up credit instead",
     library: "My library",
-    supportLabel: "Support",
+    supportLabel: "Direct support",
     priceNote: "For Czechia, the next page converts the payment into a CZK Czech QR payment.",
     errors: {
       invalid_package: "The selected support amount could not be loaded.",
@@ -129,8 +129,9 @@ export default async function SupportArtalesPage({ searchParams }: PageProps) {
         </section>
 
         <div className="artales-account-actions">
-          <Link className="artales-button-secondary" href="/credits">{locale === "cs" ? "Jak fungují AT kredity" : "How AT Credits work"}</Link>
+          <Link className="artales-button-secondary" href="/account/credits#support">{locale === "cs" ? "Darovat z kreditu" : "Gift from credit"}</Link>
           <Link className="artales-button-secondary" href="/checkout/credits">{t.credit}</Link>
+          <Link className="artales-button-secondary" href="/credits">{locale === "cs" ? "Jak fungují AT kredity" : "How AT Credits work"}</Link>
           <Link className="artales-button-secondary" href="/account/library">{t.library}</Link>
         </div>
       </main>
