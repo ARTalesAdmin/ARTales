@@ -2,15 +2,12 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { requireCompletedAccountProfile } from "@/lib/account";
 import { getWorkBySlug } from "@/lib/dbWorks";
-import {
-  ONLINE_READ_CREDIT_COST,
-  canOpenFullReader,
-  getAtCreditBalance,
-} from "@/lib/entitlements";
+import { canOpenFullReader } from "@/lib/entitlements";
 import { getPublicDictionary } from "@/lib/i18n/public";
 import { getCookieLocale, resolveProfileLocale } from "@/lib/i18n/server";
 import { normalizeRole } from "@/lib/permissions";
-import { unlockWithCredit } from "./actions";
+import { getReaderMembershipStatus } from "@/lib/readerMembership";
+import { useAtCreditOnlineUnlock, useMemberOnlineUnlock } from "./actions";
 
 export const dynamic = "force-dynamic";
 
@@ -23,13 +20,22 @@ function firstParam(value: string | string[] | undefined) {
   return Array.isArray(value) ? value[0] : value;
 }
 
+function getNotice(error: string | undefined, labels: ReturnType<typeof getPublicDictionary>["account"]["creditUnlock"]) {
+  if (!error) return null;
+  if (error === "not_enough_member_unlocks") return labels.notEnoughMemberUnlocksNotice;
+  if (error === "not_enough_credit") return labels.notEnoughCreditNotice;
+  if (error === "already_unlocked") return labels.alreadyUnlockedNotice;
+  return labels.failedNotice;
+}
+
 export default async function CreditUnlockPage({ params, searchParams }: PageProps) {
   const { slug } = await params;
   const resolvedSearchParams = (await searchParams) ?? {};
-  const [profile, work, cookieLocale] = await Promise.all([
-    requireCompletedAccountProfile(`/account/credit-unlock/${slug}`),
+  const profile = await requireCompletedAccountProfile(`/account/credit-unlock/${slug}`);
+  const [work, cookieLocale, membershipStatus] = await Promise.all([
     getWorkBySlug(slug),
     getCookieLocale(),
+    getReaderMembershipStatus(profile.id),
   ]);
 
   if (!work) notFound();
@@ -43,84 +49,94 @@ export default async function CreditUnlockPage({ params, searchParams }: PagePro
     redirect(`/reader/${work.slug}?mode=full`);
   }
 
-  if (role !== "reader") {
-    redirect(`/reader/${work.slug}?mode=full`);
-  }
-
-  const [balance, error] = await Promise.all([
-    getAtCreditBalance(profile.id),
-    Promise.resolve(firstParam(resolvedSearchParams.error)),
-  ]);
-  const hasEnoughCredit = balance >= ONLINE_READ_CREDIT_COST;
+  const error = firstParam(resolvedSearchParams.error);
+  const notice = getNotice(error, labels);
+  const hasMemberUnlock = membershipStatus.memberUnlockBalance > 0;
+  const hasAtCredit = membershipStatus.creditBalance >= 1;
 
   return (
-    <section className="artales-account-page artales-credit-unlock-page">
+    <section className="artales-account-page">
       <p className="artales-account-kicker">{labels.kicker}</p>
       <h1>{labels.title}</h1>
       <p className="artales-account-lede">{labels.lede}</p>
 
-      {error === "not_enough_credit" ? (
+      {notice ? (
         <div className="artales-account-notice artales-account-notice--error">
-          {labels.notEnoughCreditNotice}
+          {notice}
         </div>
       ) : null}
 
-      {error === "credit_unlock_failed" ? (
-        <div className="artales-account-notice artales-account-notice--error">
-          {labels.failedNotice}
-        </div>
-      ) : null}
-
-      <section className="artales-account-promo-panel artales-credit-unlock-hero">
-        <div>
-          <p className="artales-account-card__label">{labels.selectedWorkLabel}</p>
-          <h2>{work.title}</h2>
-          <p>{work.author?.name ?? labels.unknownAuthor}</p>
-          {work.summary ? <p>{work.summary}</p> : null}
-        </div>
-        <div className="artales-credit-unlock-cost-card">
-          <p className="artales-account-card__label">{labels.priceLabel}</p>
-          <strong>{ONLINE_READ_CREDIT_COST} {labels.creditUnit}</strong>
-          <span>{labels.balanceLabel}: {balance} {labels.creditUnit}</span>
-        </div>
+      <section className="artales-account-panel">
+        <p className="artales-account-card__label">{labels.selectedWorkLabel}</p>
+        <h2>{work.title}</h2>
+        <p>{work.author?.name ?? labels.unknownAuthor}</p>
+        {work.summary ? <p>{work.summary}</p> : null}
       </section>
 
-      <section className="artales-account-panel artales-credit-unlock-decision">
-        {hasEnoughCredit ? (
-          <>
-            <p className="artales-account-card__label">{labels.confirmLabel}</p>
-            <h2>{labels.confirmTitle}</h2>
-            <p>{labels.confirmText}</p>
-            <form action={unlockWithCredit} className="artales-account-actions">
+      {role !== "reader" ? (
+        <section className="artales-account-panel">
+          <p className="artales-account-card__label">{labels.internalLabel}</p>
+          <h2>{labels.internalTitle}</h2>
+          <p>{labels.internalText}</p>
+          <Link className="artales-button" href={`/reader/${work.slug}?mode=full`}>
+            {labels.openFullReader}
+          </Link>
+        </section>
+      ) : (
+        <div className="artales-account-tier-grid">
+          <section className="artales-account-card artales-account-tier-card">
+            <p className="artales-account-card__label">{labels.memberUnlockLabel}</p>
+            <h2>{labels.memberUnlockTitle}</h2>
+            <p>{labels.memberUnlockText}</p>
+            <p className="artales-account-muted">
+              {labels.memberUnlockBalanceLabel}: <strong>{membershipStatus.memberUnlockBalance}</strong>
+            </p>
+            <form action={useMemberOnlineUnlock} className="artales-membership-activation-form">
               <input type="hidden" name="slug" value={work.slug} />
               <input type="hidden" name="work_id" value={work.id} />
-              <button className="artales-button" type="submit">
+              <button className="artales-button" type="submit" disabled={!hasMemberUnlock}>
+                {labels.memberUnlockCta}
+              </button>
+            </form>
+            {!hasMemberUnlock ? <p className="artales-account-muted">{labels.memberUnlockUnavailable}</p> : null}
+          </section>
+
+          <section className="artales-account-card artales-account-tier-card">
+            <p className="artales-account-card__label">{labels.priceLabel}</p>
+            <h2>{labels.atCreditTitle}</h2>
+            <p>{labels.atCreditText}</p>
+            <p className="artales-account-muted">
+              {labels.balanceLabel}: <strong>{membershipStatus.creditBalance} {labels.creditUnit}</strong>
+            </p>
+            <form action={useAtCreditOnlineUnlock} className="artales-membership-activation-form">
+              <input type="hidden" name="slug" value={work.slug} />
+              <input type="hidden" name="work_id" value={work.id} />
+              <button className="artales-button-secondary" type="submit" disabled={!hasAtCredit}>
                 {labels.confirmCta}
               </button>
-              <Link className="artales-button-secondary" href={`/work/${work.slug}`}>
-                {labels.backToWork}
-              </Link>
             </form>
-          </>
-        ) : (
-          <>
-            <p className="artales-account-card__label">{labels.topUpLabel}</p>
-            <h2>{labels.topUpTitle}</h2>
-            <p>{labels.topUpText}</p>
-            <div className="artales-account-actions">
-              <Link className="artales-button" href={`/checkout/credits?next=${encodeURIComponent(`/account/credit-unlock/${work.slug}`)}`}>
-                {labels.topUpCta}
-              </Link>
-              <Link className="artales-button-secondary" href="/credits">
-                {labels.learnCreditsCta}
-              </Link>
-              <Link className="artales-button-secondary" href={`/work/${work.slug}`}>
-                {labels.backToWork}
-              </Link>
-            </div>
-          </>
-        )}
-      </section>
+            {!hasAtCredit ? (
+              <div className="artales-account-actions artales-account-actions--inline">
+                <Link className="artales-button-secondary" href="/checkout/credits">
+                  {labels.topUpCta}
+                </Link>
+                <Link className="artales-button-secondary" href="/credits">
+                  {labels.learnCreditsCta}
+                </Link>
+              </div>
+            ) : null}
+          </section>
+        </div>
+      )}
+
+      <div className="artales-account-actions">
+        <Link className="artales-button-secondary" href={`/work/${work.slug}`}>
+          {labels.backToWork}
+        </Link>
+        <Link className="artales-button-secondary" href="/account/membership">
+          {labels.viewMembershipCta}
+        </Link>
+      </div>
     </section>
   );
 }

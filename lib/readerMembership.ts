@@ -127,3 +127,67 @@ export async function activateMembershipWithCredits(params: {
     code: String(result.code ?? "activation_failed"),
   } as const;
 }
+
+type UnlockSpendRpcResult = {
+  ok?: boolean;
+  code?: string;
+  work_id?: string;
+  balance_before?: number;
+  balance_after?: number;
+};
+
+function normalizeUnlockSpendResult(data: unknown, fallbackCode: string) {
+  const result = (data ?? {}) as UnlockSpendRpcResult;
+  if (result.ok) {
+    return {
+      ok: true,
+      code: String(result.code ?? "unlocked"),
+      workId: result.work_id == null ? null : String(result.work_id),
+      balanceBefore: Number(result.balance_before ?? 0),
+      balanceAfter: Number(result.balance_after ?? 0),
+    } as const;
+  }
+
+  return {
+    ok: false,
+    code: String(result.code ?? fallbackCode),
+  } as const;
+}
+
+export async function spendMemberUnlockForOnlineReading(params: {
+  userId: string;
+  workId: string;
+}) {
+  const admin = createAdminClient();
+
+  const { data, error } = await admin.rpc("use_member_online_unlock", {
+    p_user_id: params.userId,
+    p_work_id: params.workId,
+  });
+
+  if (error) {
+    console.error("Member unlock spend RPC failed:", error);
+    return { ok: false, code: "rpc_failed" } as const;
+  }
+
+  return normalizeUnlockSpendResult(data, "member_unlock_failed");
+}
+
+export async function spendAtCreditForOnlineUnlock(params: {
+  userId: string;
+  workId: string;
+}) {
+  const admin = createAdminClient();
+
+  const { data, error } = await admin.rpc("use_at_credit_online_unlock", {
+    p_user_id: params.userId,
+    p_work_id: params.workId,
+  });
+
+  if (error) {
+    console.error("AT credit online unlock RPC failed:", error);
+    return { ok: false, code: "rpc_failed" } as const;
+  }
+
+  return normalizeUnlockSpendResult(data, "credit_unlock_failed");
+}
