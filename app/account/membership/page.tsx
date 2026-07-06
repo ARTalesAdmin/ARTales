@@ -4,6 +4,8 @@ import { getPublicDictionary } from "@/lib/i18n/public";
 import { getCookieLocale, resolveProfileLocale } from "@/lib/i18n/server";
 import { MEMBERSHIP_PRICEBOOK, formatAt } from "@/lib/memberPricebook";
 import { normalizeRole } from "@/lib/permissions";
+import { activateMembership } from "./actions";
+import { getReaderMembershipStatus } from "@/lib/readerMembership";
 
 export const dynamic = "force-dynamic";
 
@@ -18,9 +20,36 @@ type MembershipTierDictionary = {
 
 const tierOrder = ["free_reader", "basic", "plus", "library"] as const;
 
-export default async function AccountMembershipPage() {
+type PageProps = {
+  searchParams?: Promise<{ error?: string; success?: string; tier?: string }>;
+};
+
+function formatMembershipDate(value: string | null, locale: string) {
+  if (!value) return null;
+  return new Intl.DateTimeFormat(locale === "cs" ? "cs-CZ" : "en-US", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+  }).format(new Date(value));
+}
+
+function getMembershipNotice(
+  params: { error?: string; success?: string; tier?: string },
+  dictionary: ReturnType<typeof getPublicDictionary>["account"]["membership"],
+) {
+  if (params.success === "membership_activated") return { kind: "success", text: dictionary.activationSuccess };
+  if (params.error === "not_enough_credit") return { kind: "error", text: dictionary.activationNotEnoughCredit };
+  if (params.error === "other_membership_active") return { kind: "error", text: dictionary.activationOtherActive };
+  if (params.error) return { kind: "error", text: dictionary.activationError };
+  return null;
+}
+
+export default async function AccountMembershipPage({ searchParams }: PageProps) {
   const profile = await requireCompletedAccountProfile("/account/membership");
-  const cookieLocale = await getCookieLocale();
+  const [cookieLocale, membershipStatus] = await Promise.all([
+    getCookieLocale(),
+    getReaderMembershipStatus(profile.id),
+  ]);
   const locale = resolveProfileLocale(profile, cookieLocale);
   const dictionary = getPublicDictionary(locale).account.membership;
   const tierCopy = dictionary.tiers as Record<string, MembershipTierDictionary>;
@@ -29,6 +58,9 @@ export default async function AccountMembershipPage() {
   const readerLayerLabel = isInternalRole ? dictionary.internalReaderLayer : dictionary.freeReader;
   const ledeSuffix = isInternalRole ? dictionary.internalLedeSuffix : dictionary.ledeSuffix;
   const isCs = locale === "cs";
+  const params = (await searchParams) ?? {};
+  const notice = getMembershipNotice(params, dictionary);
+  const activeUntil = formatMembershipDate(membershipStatus.activeExpiresAt, locale);
 
   return (
     <section className="artales-account-page artales-account-membership-page">
@@ -37,6 +69,12 @@ export default async function AccountMembershipPage() {
       <p className="artales-account-lede">
         {dictionary.ledePrefix} <strong>{readerLayerLabel}</strong>. {ledeSuffix}
       </p>
+
+      {notice ? (
+        <div className={notice.kind === "success" ? "artales-account-notice artales-account-notice--success" : "artales-account-notice artales-account-notice--error"}>
+          {notice.text}
+        </div>
+      ) : null}
 
       <section className="artales-account-promo-panel artales-account-membership-hero">
         <div>
@@ -77,6 +115,23 @@ export default async function AccountMembershipPage() {
                 <li>{copy.credits}</li>
                 <li>{copy.prices}</li>
               </ul>
+              {tierCode === "free_reader" ? null : (
+                <form action={activateMembership} className="artales-membership-activation-form">
+                  <input type="hidden" name="tier" value={tierCode} />
+                  <button
+                    className="artales-button"
+                    type="submit"
+                    disabled={membershipStatus.creditBalance < tier.foundingAt}
+                  >
+                    {dictionary.activateCta}
+                  </button>
+                  <p className="artales-account-muted">
+                    {membershipStatus.creditBalance < tier.foundingAt
+                      ? dictionary.notEnoughCreditHint
+                      : dictionary.activationHint}
+                  </p>
+                </form>
+              )}
             </article>
           );
         })}
@@ -130,7 +185,23 @@ export default async function AccountMembershipPage() {
         <p>
           {dictionary.identityPrefix} <strong>{profile.email}</strong>. {dictionary.identitySuffix}
         </p>
-        <p>{dictionary.paymentsDisabled}</p>
+        <div className="artales-membership-status-grid">
+          <article>
+            <p className="artales-account-card__label">{dictionary.currentMembershipLabel}</p>
+            <h3>{membershipStatus.activeTierName ?? readerLayerLabel}</h3>
+            <p>{activeUntil ? `${dictionary.activeUntilPrefix} ${activeUntil}` : dictionary.noActiveMembership}</p>
+          </article>
+          <article>
+            <p className="artales-account-card__label">{dictionary.memberUnlockBalanceLabel}</p>
+            <h3>{membershipStatus.memberUnlockBalance}</h3>
+            <p>{dictionary.memberUnlockBalanceText}</p>
+          </article>
+          <article>
+            <p className="artales-account-card__label">{dictionary.creditBalanceLabel}</p>
+            <h3>{membershipStatus.creditBalance} AT</h3>
+            <p>{dictionary.creditBalanceText}</p>
+          </article>
+        </div>
       </section>
 
       <div className="artales-account-actions">
