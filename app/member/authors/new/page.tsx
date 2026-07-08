@@ -111,40 +111,38 @@ export default async function NewAuthorPage({ searchParams }: PageProps) {
             gap: "18px",
           }}
         >
-          <div>
-            <label
-              htmlFor="name"
-              style={{ display: "block", marginBottom: "8px", fontWeight: 600 }}
-            >
-              Jméno autora
-            </label>
-            <input
-              id="name"
-              name="name"
-              type="text"
-              required
-              defaultValue={defaults.name}
-              style={{
-                width: "100%",
-                padding: "12px 14px",
-                border: "1px solid #ccc",
-                fontSize: "16px",
-              }}
-            />
-            <p style={{ margin: "8px 0 0 0", fontSize: "14px", opacity: 0.75 }}>
-              Oficiální nebo běžně používané jméno autora. Povinné pole.
-            </p>
-          </div>
-
-
-
           <div
             style={{
               display: "grid",
-              gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))",
+              gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))",
               gap: "18px",
             }}
           >
+            <div>
+              <label
+                htmlFor="name_en"
+                style={{ display: "block", marginBottom: "8px", fontWeight: 600 }}
+              >
+                Jméno autora anglicky
+              </label>
+              <input
+                id="name_en"
+                name="name_en"
+                type="text"
+                required
+                defaultValue={defaults.name_en}
+                style={{
+                  width: "100%",
+                  padding: "12px 14px",
+                  border: "1px solid #ccc",
+                  fontSize: "16px",
+                }}
+              />
+              <p style={{ margin: "8px 0 0 0", fontSize: "14px", opacity: 0.75 }}>
+                Výchozí veřejné jméno autora. Použije se také pro slug, pokud ho nevyplníš ručně.
+              </p>
+            </div>
+
             <div>
               <label
                 htmlFor="name_cs"
@@ -164,33 +162,11 @@ export default async function NewAuthorPage({ searchParams }: PageProps) {
                   fontSize: "16px",
                 }}
               />
-            </div>
-
-            <div>
-              <label
-                htmlFor="name_en"
-                style={{ display: "block", marginBottom: "8px", fontWeight: 600 }}
-              >
-                Jméno autora anglicky
-              </label>
-              <input
-                id="name_en"
-                name="name_en"
-                type="text"
-                defaultValue={defaults.name_en}
-                style={{
-                  width: "100%",
-                  padding: "12px 14px",
-                  border: "1px solid #ccc",
-                  fontSize: "16px",
-                }}
-              />
+              <p style={{ margin: "8px 0 0 0", fontSize: "14px", opacity: 0.75 }}>
+                Vyplň jen pokud se má české zobrazení lišit. Jinak se použije anglické jméno.
+              </p>
             </div>
           </div>
-
-          <p style={{ margin: "-8px 0 0 0", fontSize: "14px", opacity: 0.75 }}>
-            Veřejné jazykové varianty. Pokud zůstanou prázdné, uloží se hlavní jméno autora.
-          </p>
 
           <div>
             <label
@@ -245,32 +221,6 @@ export default async function NewAuthorPage({ searchParams }: PageProps) {
             </p>
           </div>
 
-          <div>
-            <label
-              htmlFor="bio"
-              style={{ display: "block", marginBottom: "8px", fontWeight: 600 }}
-            >
-              Biografie
-            </label>
-            <textarea
-              id="bio"
-              name="bio"
-              defaultValue={defaults.bio}
-              rows={6}
-              style={{
-                width: "100%",
-                padding: "12px 14px",
-                border: "1px solid #ccc",
-                fontSize: "16px",
-                resize: "vertical",
-              }}
-            />
-            <p style={{ margin: "8px 0 0 0", fontSize: "14px", opacity: 0.75 }}>
-              Nepovinné stručné představení autora.
-            </p>
-          </div>
-
-
           <div
             style={{
               display: "grid",
@@ -278,28 +228,6 @@ export default async function NewAuthorPage({ searchParams }: PageProps) {
               gap: "18px",
             }}
           >
-            <div>
-              <label
-                htmlFor="bio_cs"
-                style={{ display: "block", marginBottom: "8px", fontWeight: 600 }}
-              >
-                Biografie česky
-              </label>
-              <textarea
-                id="bio_cs"
-                name="bio_cs"
-                defaultValue={defaults.bio_cs}
-                rows={7}
-                style={{
-                  width: "100%",
-                  padding: "12px 14px",
-                  border: "1px solid #ccc",
-                  fontSize: "16px",
-                  resize: "vertical",
-                }}
-              />
-            </div>
-
             <div>
               <label
                 htmlFor="bio_en"
@@ -320,12 +248,37 @@ export default async function NewAuthorPage({ searchParams }: PageProps) {
                   resize: "vertical",
                 }}
               />
+              <p style={{ margin: "8px 0 0 0", fontSize: "14px", opacity: 0.75 }}>
+                Výchozí biografie autora pro anglické i fallback zobrazení.
+              </p>
+            </div>
+
+            <div>
+              <label
+                htmlFor="bio_cs"
+                style={{ display: "block", marginBottom: "8px", fontWeight: 600 }}
+              >
+                Biografie česky
+              </label>
+              <textarea
+                id="bio_cs"
+                name="bio_cs"
+                defaultValue={defaults.bio_cs}
+                rows={7}
+                style={{
+                  width: "100%",
+                  padding: "12px 14px",
+                  border: "1px solid #ccc",
+                  fontSize: "16px",
+                  resize: "vertical",
+                }}
+              />
+              <p style={{ margin: "8px 0 0 0", fontSize: "14px", opacity: 0.75 }}>
+                Česká verze se použije v českém prostředí. Pokud chybí, použije se anglická biografie.
+              </p>
             </div>
           </div>
 
-          <p style={{ margin: "-8px 0 0 0", fontSize: "14px", opacity: 0.75 }}>
-            Jazykové biografie se používají na veřejném detailu autora a u jazykově přepínaných výpisů. Pokud chybí, použije se obecná biografie.
-          </p>
         </section>
 
         <p style={{ margin: "0", fontSize: "14px" }}>
@@ -336,9 +289,9 @@ export default async function NewAuthorPage({ searchParams }: PageProps) {
 
         <EditorialImageUploadField
           kind="author-portrait"
-          title={(defaults.name || "ARTales autor")}
+          title={(defaults.name_en || defaults.name_cs || "ARTales autor")}
           slugInputId="slug"
-          titleInputId="name"
+          titleInputId="name_en"
           pathName="portrait_image_path"
           altName="portrait_image_alt"
           captionName="portrait_image_caption"

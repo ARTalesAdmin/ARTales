@@ -48,16 +48,32 @@ export function getDefaultAuthorFormValues(): AuthorFormValues {
   }
 }
 
+function getOptionalLocalizedValue(
+  localizedValue: string | null,
+  fallbackValue: string | null
+): string {
+  if (!localizedValue) return ""
+
+  if (fallbackValue && localizedValue.trim() === fallbackValue.trim()) {
+    return ""
+  }
+
+  return localizedValue
+}
+
 export function mapAuthorToFormValues(author: AuthorEditItem): AuthorFormValues {
+  const englishName = author.name_en ?? author.name
+  const englishBio = author.bio_en ?? author.bio ?? ""
+
   return {
-    name: author.name,
-    name_cs: author.name_cs ?? author.name,
-    name_en: author.name_en ?? author.name,
+    name: englishName,
+    name_cs: getOptionalLocalizedValue(author.name_cs, englishName),
+    name_en: englishName,
     slug: author.slug,
     author_type: author.author_type,
-    bio: author.bio ?? "",
-    bio_cs: author.bio_cs ?? author.bio ?? "",
-    bio_en: author.bio_en ?? author.bio ?? "",
+    bio: englishBio,
+    bio_cs: getOptionalLocalizedValue(author.bio_cs, englishBio),
+    bio_en: englishBio,
     portrait_image_path: author.portrait_image_path ?? "",
     portrait_image_alt: author.portrait_image_alt ?? "",
     portrait_image_caption: author.portrait_image_caption ?? "",
@@ -71,7 +87,6 @@ export function mapAuthorToFormValues(author: AuthorEditItem): AuthorFormValues 
 }
 
 export function parseAuthorFormData(formData: FormData): AuthorFormValues {
-  const name = String(formData.get("name") ?? "").trim()
   const nameCs = String(formData.get("name_cs") ?? "").trim()
   const nameEn = String(formData.get("name_en") ?? "").trim()
   const rawSlug = String(formData.get("slug") ?? "").trim()
@@ -79,19 +94,21 @@ export function parseAuthorFormData(formData: FormData): AuthorFormValues {
   const rawWritingLanguages = formData
     .getAll("writing_languages")
     .map((value) => String(value).trim())
+  const bioEn = String(formData.get("bio_en") ?? "").trim()
+  const bioCs = String(formData.get("bio_cs") ?? "").trim()
 
   return {
-    name,
+    name: nameEn,
     name_cs: nameCs,
     name_en: nameEn,
-    slug: rawSlug ? slugify(rawSlug) : slugify(name),
+    slug: rawSlug ? slugify(rawSlug) : slugify(nameEn),
     author_type: String(formData.get("author_type") ?? "person") as
       | "person"
       | "collective"
       | "unknown",
-    bio: String(formData.get("bio") ?? "").trim(),
-    bio_cs: String(formData.get("bio_cs") ?? "").trim(),
-    bio_en: String(formData.get("bio_en") ?? "").trim(),
+    bio: bioEn,
+    bio_cs: bioCs,
+    bio_en: bioEn,
     portrait_image_path: String(formData.get("portrait_image_path") ?? "").trim(),
     portrait_image_alt: String(formData.get("portrait_image_alt") ?? "").trim(),
     portrait_image_caption: String(formData.get("portrait_image_caption") ?? "").trim(),
@@ -119,7 +136,7 @@ function toNullableNumber(value: string): number | null {
 }
 
 export function validateAuthorFormValues(values: AuthorFormValues): string | null {
-  if (!values.name) {
+  if (!values.name_en) {
     return "name_missing"
   }
 
@@ -157,12 +174,12 @@ export function mapAuthorFormValuesToInsertPayload(
   profileId: string
 ) {
   return {
-    name: values.name,
-    name_cs: toNullableString(values.name_cs) ?? values.name,
-    name_en: toNullableString(values.name_en) ?? values.name,
+    name: values.name_en,
+    name_cs: toNullableString(values.name_cs),
+    name_en: values.name_en,
     slug: values.slug,
     author_type: values.author_type,
-    bio: toNullableString(values.bio),
+    bio: toNullableString(values.bio_en),
     bio_cs: toNullableString(values.bio_cs),
     bio_en: toNullableString(values.bio_en),
     portrait_image_path: toNullableString(values.portrait_image_path),
@@ -184,12 +201,12 @@ export function mapAuthorFormValuesToUpdatePayload(
   profileId: string
 ) {
   return {
-    name: values.name,
-    name_cs: toNullableString(values.name_cs) ?? values.name,
-    name_en: toNullableString(values.name_en) ?? values.name,
+    name: values.name_en,
+    name_cs: toNullableString(values.name_cs),
+    name_en: values.name_en,
     slug: values.slug,
     author_type: values.author_type,
-    bio: toNullableString(values.bio),
+    bio: toNullableString(values.bio_en),
     bio_cs: toNullableString(values.bio_cs),
     bio_en: toNullableString(values.bio_en),
     portrait_image_path: toNullableString(values.portrait_image_path),
