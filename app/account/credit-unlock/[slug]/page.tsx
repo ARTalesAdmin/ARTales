@@ -6,6 +6,7 @@ import { canOpenFullReader } from "@/lib/entitlements";
 import { getPublicDictionary } from "@/lib/i18n/public";
 import { getCookieLocale, resolveProfileLocale } from "@/lib/i18n/server";
 import { normalizeRole } from "@/lib/permissions";
+import { pickLocalizedText } from "@/lib/localizedContent";
 import { getReaderMembershipStatus } from "@/lib/readerMembership";
 import { useAtCreditOnlineUnlock, useMemberOnlineUnlock } from "./actions";
 
@@ -42,6 +43,23 @@ export default async function CreditUnlockPage({ params, searchParams }: PagePro
 
   const locale = resolveProfileLocale(profile, cookieLocale);
   const labels = getPublicDictionary(locale).account.creditUnlock;
+  const displayTitle = pickLocalizedText(locale, {
+    cs: work.title_cs,
+    en: work.title_en,
+    fallback: work.title,
+  }) ?? work.title;
+  const displaySummary = pickLocalizedText(locale, {
+    cs: work.summary_cs,
+    en: work.summary_en,
+    fallback: work.summary,
+  }) ?? work.summary;
+  const displayAuthor = work.author
+    ? pickLocalizedText(locale, {
+        cs: work.author.name_cs ?? null,
+        en: work.author.name_en ?? null,
+        fallback: work.author.name,
+      }) ?? work.author.name
+    : null;
   const role = normalizeRole(profile.role);
   const canReadFull = await canOpenFullReader(profile, work.id);
 
@@ -68,9 +86,9 @@ export default async function CreditUnlockPage({ params, searchParams }: PagePro
 
       <section className="artales-account-panel">
         <p className="artales-account-card__label">{labels.selectedWorkLabel}</p>
-        <h2>{work.title}</h2>
-        <p>{work.author?.name ?? labels.unknownAuthor}</p>
-        {work.summary ? <p>{work.summary}</p> : null}
+        <h2>{displayTitle}</h2>
+        <p>{displayAuthor ?? labels.unknownAuthor}</p>
+        {displaySummary ? <p>{displaySummary}</p> : null}
       </section>
 
       {role !== "reader" ? (

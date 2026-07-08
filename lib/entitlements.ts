@@ -87,12 +87,16 @@ type EntitlementWorkRelation = {
     | {
         id: unknown;
         name: unknown;
+        name_cs?: unknown;
+        name_en?: unknown;
         slug: unknown;
       }
     | null
     | Array<{
         id: unknown;
         name: unknown;
+        name_cs?: unknown;
+        name_en?: unknown;
         slug: unknown;
       }>;
   collections?:
@@ -525,6 +529,8 @@ function mapWorkRelationToUnlockedWork({
       ? {
           id: String(author.id),
           name: String(author.name),
+          name_cs: author.name_cs == null ? null : String(author.name_cs),
+          name_en: author.name_en == null ? null : String(author.name_en),
           slug: String(author.slug),
         }
       : null,
@@ -618,6 +624,8 @@ export async function getReaderUnlockedWorks(
         authors:primary_author_id (
           id,
           name,
+          name_cs,
+          name_en,
           slug
         ),
         collections:collection_id (
@@ -696,6 +704,8 @@ export async function getReaderSavedWorks(
         authors:primary_author_id (
           id,
           name,
+          name_cs,
+          name_en,
           slug
         ),
         collections:collection_id (

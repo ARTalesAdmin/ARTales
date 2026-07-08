@@ -46,6 +46,18 @@ function getDisplaySummary(locale: "cs" | "en", work: ReaderUnlockedWork) {
   );
 }
 
+function getDisplayAuthorName(locale: "cs" | "en", work: ReaderUnlockedWork) {
+  if (!work.author) return null;
+
+  return (
+    pickLocalizedText(locale, {
+      cs: work.author.name_cs ?? null,
+      en: work.author.name_en ?? null,
+      fallback: work.author.name,
+    }) ?? work.author.name
+  );
+}
+
 function LibraryWorkCard({
   work,
   locale,
@@ -63,6 +75,7 @@ function LibraryWorkCard({
 }) {
   const title = getDisplayTitle(locale, work);
   const summary = getDisplaySummary(locale, work);
+  const authorName = getDisplayAuthorName(locale, work);
 
   return (
     <article className="artales-account-book-card">
@@ -85,7 +98,7 @@ function LibraryWorkCard({
           <Link href={`/work/${work.slug}`}>{title}</Link>
         </h3>
         <p className="artales-account-muted">
-          {work.author?.name ?? dictionary.unknownAuthor}
+          {authorName ?? dictionary.unknownAuthor}
         </p>
         <p className="artales-account-book-card__summary">{summary}</p>
         <div className="artales-account-book-card__actions">

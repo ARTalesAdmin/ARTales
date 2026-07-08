@@ -68,7 +68,7 @@ type Props = {
     blocks: WorkBlock[];
   };
 
-  authors: { id: string; name: string }[];
+  authors: { id: string; name: string; name_cs?: string | null; name_en?: string | null }[];
   collections: { id: string; title: string }[];
   tags: { id: string; slug: string; label_cs: string; label_en: string | null; type: string }[];
   languageOptions: { value: string; label: string }[];
@@ -130,18 +130,18 @@ function formatApproxMegabytes(chars: number) {
 
 function getLargeWorkSaveRiskMessage(chars: number) {
   if (chars >= LARGE_WORK_SAVE_DANGER_CHARS) {
-    return `Rozsáhlé dílo (${formatApproxMegabytes(chars)}). Editor ho uloží bezpečně po částech a po dokončení obnoví uloženou verzi.`;
+    return `Toto je velmi velké dílo (${formatApproxMegabytes(chars)}). Editor použije chytré ukládání: nové bloky se odešlou po menších částech a po dokončení se stránka obnoví.`;
   }
 
   if (chars >= LARGE_WORK_SAVE_WARNING_CHARS) {
-    return `Rozsáhlejší dílo (${formatApproxMegabytes(chars)}). Ukládání proběhne šetrně tak, aby se nemusel znovu odesílat celý text.`;
+    return `Velké dílo: obsah má přibližně ${formatApproxMegabytes(chars)}. Pokud doplňuješ další části, editor je uloží bezpečně po dávkách.`;
   }
 
   return null;
 }
 
 function getLocalAutosaveDisabledMessage() {
-  return "U rozsáhlých děl ukládá ARTales změny přímo přes bezpečné uložení. Lokální kopie v prohlížeči se nepoužívá, aby editor zůstal stabilní.";
+  return "Lokální autosave je pro toto velké dílo preventivně vypnutý. Prohlížečové úložiště u románů často nestačí a může shodit editor, proto ukládej změny hlavním tlačítkem Uložit.";
 }
 
 function isStorageQuotaError(error: unknown) {
@@ -282,10 +282,8 @@ export default function WorkEditorForm(props: Props) {
   const [coverUploadError, setCoverUploadError] = useState<string | null>(null);
   const [isCoverUploading, setIsCoverUploading] = useState(false);
   const coverInputRef = useRef<HTMLInputElement | null>(null);
-  const formRef = useRef<HTMLFormElement | null>(null);
   const contentBlocksInputRef = useRef<HTMLInputElement | null>(null);
   const contentUpdateModeInputRef = useRef<HTMLInputElement | null>(null);
-  const forceMetadataSubmitRef = useRef(false);
   const suppressBeforeUnloadRef = useRef(false);
   const uploadedCoverPathsRef = useRef<Set<string>>(new Set());
 
@@ -823,24 +821,16 @@ export default function WorkEditorForm(props: Props) {
       return;
     }
 
-    if (!contentBlocksInputRef.current || !contentUpdateModeInputRef.current) {
-      event.preventDefault();
-      setSaveSubmitMessage("Uložení se nepodařilo připravit. Obnov stránku a zkus to prosím znovu.");
-      scrollToSaveActions();
-      return;
-    }
-
-    if (forceMetadataSubmitRef.current) {
-      forceMetadataSubmitRef.current = false;
-      contentUpdateModeInputRef.current.value = "metadata_only";
-      contentBlocksInputRef.current.value = "[]";
-      setSaveSubmitMessage("Ukládám údaje díla…");
-      return;
-    }
-
     if (shouldUseBatchAppendSave) {
       event.preventDefault();
-      await saveNewBlocksInBatches({ saveMetadataAfterBatches: true });
+      await saveNewBlocksInBatches();
+      return;
+    }
+
+    if (!contentBlocksInputRef.current || !contentUpdateModeInputRef.current) {
+      event.preventDefault();
+      setSaveSubmitMessage("Ukládání se nepodařilo připravit. Obnov stránku a zkus to prosím znovu.");
+      scrollToSaveActions();
       return;
     }
 
@@ -849,16 +839,16 @@ export default function WorkEditorForm(props: Props) {
         contentUpdateModeInputRef.current.value = "metadata_only";
         contentBlocksInputRef.current.value = "[]";
         setSaveSubmitMessage(
-          "Ukládám jen údaje díla a stav publikace. Text zůstane beze změny.",
+          "Dílo je velmi velké, proto ukládám jen metadata a stav publikace. Obsah bloků zůstane beze změny.",
         );
         return;
       }
 
       event.preventDefault();
       setSaveSubmitMessage(
-        mode === "edit"
-          ? "Text je rozsáhlý. ARTales ho ukládá po částech; zkontroluj prosím, že nové bloky byly přidány na konec díla, a klikni znovu na Uložit změny."
-          : "Text je rozsáhlý. Nejprve vytvoř základ díla s menší ukázkou nebo prázdným obsahem, potom vlož celý text do existujícího díla a ARTales ho uloží po částech.",
+        canAppendNewBlocksOnly
+          ? "Dílo je příliš velké pro běžné uložení. Klikni znovu na Uložit změny; editor použije dávkové ukládání nových bloků."
+          : "Dílo je příliš velké pro běžné uložení celého formuláře. Stáhni si zálohu bloků a rozděl další úpravy na menší části.",
       );
       scrollToSaveActions();
       return;
@@ -870,15 +860,16 @@ export default function WorkEditorForm(props: Props) {
     } catch {
       event.preventDefault();
       setSaveSubmitMessage(
-        "Prohlížeč nedokázal připravit celý obsah najednou. Stáhni si pro jistotu zálohu a ulož text po částech do už existujícího díla.",
+        "Prohlížeč nedokázal připravit obsah díla k odeslání. Stáhni si zálohu bloků a zkus pracovat s menším úsekem textu.",
       );
       scrollToSaveActions();
     }
   }
 
-  async function saveNewBlocksInBatches(options: { saveMetadataAfterBatches?: boolean } = {}) {
+
+  async function saveNewBlocksInBatches() {
     if (!slug) {
-      setSaveSubmitMessage("Dávkové ukládání je dostupné po vytvoření základního záznamu díla.");
+      setSaveSubmitMessage("Nové bloky lze dávkově uložit jen u už existujícího díla.");
       scrollToSaveActions();
       return;
     }
@@ -896,10 +887,9 @@ export default function WorkEditorForm(props: Props) {
     }
 
     setIsSmartSaving(true);
-    suppressBeforeUnloadRef.current = false;
     scrollToSaveActions();
     setSaveSubmitMessage(
-      `Připravuji uložení rozsáhlého díla. Nové bloky rozdělím na ${batches.length} ${batches.length === 1 ? "část" : batches.length < 5 ? "části" : "částí"}. Zůstaň prosím na stránce, dokud se nezobrazí potvrzení.`,
+      `Připravuji chytré uložení. Nové bloky rozdělím na ${batches.length} ${batches.length === 1 ? "část" : batches.length < 5 ? "části" : "částí"}. Prosím neodcházej ze stránky.`,
     );
 
     let savedCount = 0;
@@ -908,7 +898,7 @@ export default function WorkEditorForm(props: Props) {
       for (let index = 0; index < batches.length; index += 1) {
         const batch = batches[index];
         setSaveSubmitMessage(
-          `Ukládám část ${index + 1} z ${batches.length}. Hotovo ${savedCount}/${newBlocksForAppend.length} bloků.`,
+          `Ukládám část ${index + 1} z ${batches.length}. Hotovo ${savedCount}/${newBlocksForAppend.length} bloků. Prosím neodcházej ze stránky.`,
         );
 
         const response = await fetch(`/api/member/works/${encodeURIComponent(slug)}/append-blocks`, {
@@ -930,7 +920,7 @@ export default function WorkEditorForm(props: Props) {
         if (!response.ok || !result?.ok) {
           setSaveSubmitMessage(
             result?.message ??
-              `Ukládání se zastavilo u části ${index + 1} z ${batches.length}. Uložené části zůstávají zachované. Stáhni si pro jistotu zálohu a obnov stránku.`,
+              `Ukládání se přerušilo u části ${index + 1} z ${batches.length}. Uloženo mohlo být ${savedCount} bloků. Než budeš pokračovat, stáhni si zálohu a obnov stránku.`,
           );
           return;
         }
@@ -938,31 +928,18 @@ export default function WorkEditorForm(props: Props) {
         savedCount += result.appendedCount ?? batch.length;
       }
 
-      if (options.saveMetadataAfterBatches && formRef.current && contentBlocksInputRef.current && contentUpdateModeInputRef.current) {
-        setSaveSubmitMessage(`Text je uložený (${savedCount} bloků). Ještě ukládám údaje díla…`);
-        forceMetadataSubmitRef.current = true;
-        suppressBeforeUnloadRef.current = true;
-        setIsSmartSaving(false);
-        window.setTimeout(() => {
-          formRef.current?.requestSubmit();
-        }, 80);
-        return;
-      }
-
-      setSaveSubmitMessage(`Hotovo. Uloženo ${savedCount} nových bloků. Obnovuji editor s uloženou verzí…`);
+      setSaveSubmitMessage(`Uloženo ${savedCount} nových bloků. Obnovuji editor…`);
       suppressBeforeUnloadRef.current = true;
       setIsSmartSaving(false);
       window.setTimeout(() => {
         window.location.href = `/member/works/${encodeURIComponent(slug)}/edit?success=work_updated`;
-      }, 80);
+      }, 50);
     } catch {
       setSaveSubmitMessage(
-        `Ukládání se přerušilo. Uložené části zůstávají zachované. Stáhni si pro jistotu zálohu bloků a obnov stránku; již uložené dávky by se měly načíst zpět.`,
+        `Ukládání se přerušilo. Uloženo mohlo být ${savedCount} bloků. Stáhni si zálohu bloků a obnov stránku; již uložené dávky by se měly načíst zpět.`,
       );
     } finally {
-      if (!suppressBeforeUnloadRef.current) {
-        setIsSmartSaving(false);
-      }
+      setIsSmartSaving(false);
     }
   }
 
@@ -1188,7 +1165,7 @@ export default function WorkEditorForm(props: Props) {
         ) : null}
       </section>
 
-      <form ref={formRef} action={action} onSubmit={prepareWorkSubmit} style={{ display: "grid", gap: "22px" }}>
+      <form action={action} onSubmit={prepareWorkSubmit} style={{ display: "grid", gap: "22px" }}>
         <section
           className="artales-member-panel"
           style={{
@@ -1474,7 +1451,7 @@ export default function WorkEditorForm(props: Props) {
               <option value="">— Vyber autora —</option>
               {authors.map((author) => (
                 <option key={author.id} value={author.id}>
-                  {author.name}
+                  {author.name_cs || author.name}
                 </option>
               ))}
             </select>
@@ -2385,7 +2362,7 @@ export default function WorkEditorForm(props: Props) {
             ) : null}
             {canAppendNewBlocksOnly ? (
               <p style={{ margin: "6px 0 0" }}>
-                Připraveno k uložení: <strong>{newBlocksForAppend.length}</strong>. Hlavní tlačítko Uložit změny samo zvolí bezpečný režim; u dlouhých děl odešle nové bloky po částech.
+                Nově přidané bloky: <strong>{newBlocksForAppend.length}</strong>. Hlavní tlačítko Uložit změny samo zvolí bezpečný režim; u dlouhých děl odešle nové bloky po částech.
               </p>
             ) : null}
             {!canAppendNewBlocksOnly && mode === "edit" && estimatedBlocksStorageChars >= LARGE_WORK_SAVE_DANGER_CHARS ? (

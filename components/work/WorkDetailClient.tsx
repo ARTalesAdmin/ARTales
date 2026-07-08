@@ -50,6 +50,34 @@ function isInternalRole(role: string | null) {
   return role === "admin" || role === "editor" || role === "member";
 }
 
+function getLocalizedAuthorName(
+  locale: SupportedLocale,
+  author: WorkDetailItem["author"]
+) {
+  if (!author) return null;
+
+  return (
+    pickLocalizedText(locale, {
+      cs: author.name_cs ?? null,
+      en: author.name_en ?? null,
+      fallback: author.name,
+    }) ?? author.name
+  );
+}
+
+function getLocalizedAuthorBio(
+  locale: SupportedLocale,
+  author: WorkDetailItem["author"]
+) {
+  if (!author) return null;
+
+  return pickLocalizedText(locale, {
+    cs: author.bio_cs ?? null,
+    en: author.bio_en ?? null,
+    fallback: author.bio ?? null,
+  });
+}
+
 function AccessStatusCard({
   isSignedIn,
   canReadFull,
@@ -384,7 +412,8 @@ export default function WorkDetailClient({
   locale,
 }: WorkDetailClientProps) {
   const { common, public: t } = getPublicDictionary(locale);
-  const authorName = work.author?.name ?? t.unknownAuthor;
+  const authorName = getLocalizedAuthorName(locale, work.author) ?? t.unknownAuthor;
+  const authorBio = getLocalizedAuthorBio(locale, work.author);
   const title = pickLocalizedText(locale, {
     cs: work.title_cs,
     en: work.title_en,
@@ -500,7 +529,7 @@ export default function WorkDetailClient({
                   <dt>{common.author}</dt>
                   <dd>
                     {work.author ? (
-                      <Link href={`/author/${work.author.slug}`}>{work.author.name}</Link>
+                      <Link href={`/author/${work.author.slug}`}>{authorName}</Link>
                     ) : (
                       t.unknownAuthor
                     )}
@@ -587,7 +616,7 @@ export default function WorkDetailClient({
                   href={`/author/${work.author.slug}`}
                   style={{ color: "var(--artales-ink)", fontWeight: 800 }}
                 >
-                  {work.author.name}
+                  {authorName}
                 </Link>
               ) : (
                 <strong>{t.unknownAuthor}</strong>
@@ -841,7 +870,7 @@ export default function WorkDetailClient({
           </details>
         </section>
 
-        {work.author?.bio ? (
+        {authorBio ? (
           <section style={{ marginBottom: "34px", maxWidth: "780px" }}>
             <h2
               style={{
@@ -852,7 +881,7 @@ export default function WorkDetailClient({
             >
               {t.aboutAuthor}
             </h2>
-            <p style={{ margin: 0, color: "#3f362f" }}>{work.author.bio}</p>
+            <p style={{ margin: 0, color: "#3f362f" }}>{authorBio}</p>
           </section>
         ) : null}
 

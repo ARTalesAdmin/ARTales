@@ -16,8 +16,12 @@ export type WorkSourceLabel = "gutenberg" | "web" | "manual" | "original"
 export type WorkAuthorRef = {
   id: string
   name: string
+  name_cs?: string | null
+  name_en?: string | null
   slug: string
   bio?: string | null
+  bio_cs?: string | null
+  bio_en?: string | null
 } | null
 
 export type WorkCollectionRef = {
@@ -124,6 +128,8 @@ export type MemberWorkListItem = {
   author: {
     id: string
     name: string
+    name_cs?: string | null
+    name_en?: string | null
     slug: string
   } | null
   collection: {
@@ -184,8 +190,12 @@ type RawRelationAuthor =
   | {
       id: unknown
       name: unknown
+      name_cs?: unknown
+      name_en?: unknown
       slug: unknown
       bio?: unknown
+      bio_cs?: unknown
+      bio_en?: unknown
     }
   | null
   | undefined
@@ -332,8 +342,12 @@ function normalizeAuthorRelation(
   return {
     id: String(relation.id),
     name: String(relation.name),
+    name_cs: relation.name_cs == null ? null : String(relation.name_cs),
+    name_en: relation.name_en == null ? null : String(relation.name_en),
     slug: String(relation.slug),
     bio: relation.bio == null ? null : String(relation.bio),
+    bio_cs: relation.bio_cs == null ? null : String(relation.bio_cs),
+    bio_en: relation.bio_en == null ? null : String(relation.bio_en),
   }
 }
 
@@ -697,6 +711,8 @@ export async function getWorksForGallery(): Promise<GalleryWorkItem[]> {
       authors:primary_author_id (
         id,
         name,
+        name_cs,
+        name_en,
         slug
       ),
       collections:collection_id (
@@ -780,8 +796,12 @@ export async function getWorkBySlug(
       authors:primary_author_id (
         id,
         name,
+        name_cs,
+        name_en,
         slug,
-        bio
+        bio,
+        bio_cs,
+        bio_en
       ),
       collections:collection_id (
         id,
@@ -847,6 +867,8 @@ export async function getPublishedWorksByAuthorId(
       authors:primary_author_id (
         id,
         name,
+        name_cs,
+        name_en,
         slug
       ),
       collections:collection_id (
@@ -915,6 +937,8 @@ export async function getPublishedWorksByCollectionId(
         authors:primary_author_id (
           id,
           name,
+          name_cs,
+          name_en,
           slug
         ),
         collections:collection_id (
@@ -988,6 +1012,8 @@ export async function getWorksForMember(): Promise<MemberWorkListItem[]> {
       authors:primary_author_id (
         id,
         name,
+        name_cs,
+        name_en,
         slug
       ),
       collections:collection_id (
@@ -1032,6 +1058,8 @@ export async function getWorksForMember(): Promise<MemberWorkListItem[]> {
         ? {
             id: author.id,
             name: author.name,
+            name_cs: author.name_cs,
+            name_en: author.name_en,
             slug: author.slug,
           }
         : null
