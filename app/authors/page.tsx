@@ -6,6 +6,7 @@ import { getLocalizedLanguageLabel } from "@/lib/dictionaries/language";
 import { getCountryLabel } from "@/lib/dictionaries/country";
 import { getPublicDictionary } from "@/lib/i18n/public";
 import { getCookieLocale } from "@/lib/i18n/server";
+import { pickLocalizedText } from "@/lib/localizedContent";
 
 export const dynamic = "force-dynamic";
 
@@ -49,6 +50,11 @@ export default async function AuthorsPage() {
         ) : (
           <section className="artales-author-grid">
             {authors.map((author) => {
+              const authorName = pickLocalizedText(locale, {
+                cs: author.name_cs,
+                en: author.name_en,
+                fallback: author.name,
+              }) ?? author.name;
               const years = formatYears(author.birth_year, author.death_year);
               const countryLabel = getCountryLabel(author.country, locale);
               const primaryLanguage = author.primary_language
@@ -65,7 +71,7 @@ export default async function AuthorsPage() {
                 <article key={author.id} className="artales-author-card">
                   <div className="artales-author-card-portrait">
                     <StorageImageDisplay
-                      title={author.name}
+                      title={authorName}
                       imagePath={author.portrait_image_path}
                       alt={author.portrait_image_alt}
                       caption={author.portrait_image_caption}
@@ -98,7 +104,7 @@ export default async function AuthorsPage() {
                       href={`/author/${author.slug}`}
                       style={{ color: "var(--artales-ink)", textDecoration: "none" }}
                     >
-                      {author.name}
+                      {authorName}
                     </Link>
                   </h2>
 

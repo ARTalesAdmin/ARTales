@@ -76,6 +76,16 @@ export default async function AuthorDetail({ params, searchParams }: PageProps) 
 
   const isFollowing = await isAuthorFollowedByUser(profile?.id, author.id)
 
+  const authorName = pickLocalizedText(locale, {
+    cs: author.name_cs,
+    en: author.name_en,
+    fallback: author.name,
+  }) ?? author.name
+  const authorBio = pickLocalizedText(locale, {
+    cs: author.bio_cs,
+    en: author.bio_en,
+    fallback: author.bio,
+  })
   const countryLabel = getCountryLabel(author.country, locale)
   const primaryLanguageLabel = getLocalizedLanguageLabel(author.primary_language, locale)
   const writingLanguageLabels = getLocalizedLanguageLabels(author.writing_languages, locale)
@@ -131,7 +141,7 @@ export default async function AuthorDetail({ params, searchParams }: PageProps) 
               margin: "0 0 18px",
             }}
           >
-            {author.name}
+            {authorName}
           </h1>
 
           <div
@@ -165,7 +175,7 @@ export default async function AuthorDetail({ params, searchParams }: PageProps) 
               maxWidth: "820px",
             }}
           >
-            {author.bio ?? t.authorBioMissing}
+            {authorBio ?? t.authorBioMissing}
           </p>
 
           {follow === "ok" ? (
@@ -197,7 +207,7 @@ export default async function AuthorDetail({ params, searchParams }: PageProps) 
 
             <aside>
               <StorageImageDisplay
-                title={author.name}
+                title={authorName}
                 imagePath={author.portrait_image_path}
                 alt={author.portrait_image_alt}
                 caption={author.portrait_image_caption}

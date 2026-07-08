@@ -7,9 +7,13 @@ export type AuthorType = "person" | "collective" | "unknown"
 export type AuthorDetailItem = {
   id: string
   name: string
+  name_cs: string | null
+  name_en: string | null
   slug: string
   author_type: AuthorType
   bio: string | null
+  bio_cs: string | null
+  bio_en: string | null
   portrait_image_path: string | null
   portrait_image_alt: string | null
   portrait_image_caption: string | null
@@ -25,6 +29,8 @@ export type AuthorDetailItem = {
 export type AuthorListItem = {
   id: string
   name: string
+  name_cs: string | null
+  name_en: string | null
   slug: string
   author_type: AuthorType
   portrait_image_path: string | null
@@ -41,9 +47,13 @@ export type AuthorListItem = {
 export type AuthorEditItem = {
   id: string
   name: string
+  name_cs: string | null
+  name_en: string | null
   slug: string
   author_type: AuthorType
   bio: string | null
+  bio_cs: string | null
+  bio_en: string | null
   portrait_image_path: string | null
   portrait_image_alt: string | null
   portrait_image_caption: string | null
@@ -58,9 +68,13 @@ export type AuthorEditItem = {
 type RawAuthorRow = {
   id: unknown
   name: unknown
+  name_cs: unknown
+  name_en: unknown
   slug: unknown
   author_type: unknown
   bio: unknown
+  bio_cs: unknown
+  bio_en: unknown
   portrait_image_path: unknown
   portrait_image_alt: unknown
   portrait_image_caption: unknown
@@ -76,9 +90,13 @@ function mapRawAuthor(row: RawAuthorRow): AuthorEditItem {
   return {
     id: String(row.id),
     name: String(row.name),
+    name_cs: row.name_cs == null ? null : String(row.name_cs),
+    name_en: row.name_en == null ? null : String(row.name_en),
     slug: String(row.slug),
     author_type: row.author_type as AuthorType,
     bio: row.bio == null ? null : String(row.bio),
+    bio_cs: row.bio_cs == null ? null : String(row.bio_cs),
+    bio_en: row.bio_en == null ? null : String(row.bio_en),
     portrait_image_path:
       row.portrait_image_path == null ? null : String(row.portrait_image_path),
     portrait_image_alt:
@@ -107,9 +125,13 @@ export async function getAuthorBySlug(
     .select(`
       id,
       name,
+      name_cs,
+      name_en,
       slug,
       author_type,
       bio,
+      bio_cs,
+      bio_en,
       portrait_image_path,
       portrait_image_alt,
       portrait_image_caption,
@@ -149,6 +171,8 @@ export async function getAuthorsForMember(): Promise<AuthorListItem[]> {
     .select(`
       id,
       name,
+      name_cs,
+      name_en,
       slug,
       author_type,
       portrait_image_path,
@@ -174,6 +198,8 @@ export async function getAuthorsForMember(): Promise<AuthorListItem[]> {
     return {
       id: mapped.id,
       name: mapped.name,
+      name_cs: mapped.name_cs,
+      name_en: mapped.name_en,
       slug: mapped.slug,
       author_type: mapped.author_type,
       portrait_image_path: mapped.portrait_image_path,
@@ -199,9 +225,13 @@ export async function getAuthorForEditBySlug(
     .select(`
       id,
       name,
+      name_cs,
+      name_en,
       slug,
       author_type,
       bio,
+      bio_cs,
+      bio_en,
       portrait_image_path,
       portrait_image_alt,
       portrait_image_caption,
@@ -230,6 +260,8 @@ export async function getAuthorsForPublicGallery(): Promise<AuthorListItem[]> {
     .select(`
       id,
       name,
+      name_cs,
+      name_en,
       slug,
       author_type,
       portrait_image_path,
@@ -256,6 +288,8 @@ export async function getAuthorsForPublicGallery(): Promise<AuthorListItem[]> {
     return {
       id: mapped.id,
       name: mapped.name,
+      name_cs: mapped.name_cs,
+      name_en: mapped.name_en,
       slug: mapped.slug,
       author_type: mapped.author_type,
       portrait_image_path: mapped.portrait_image_path,

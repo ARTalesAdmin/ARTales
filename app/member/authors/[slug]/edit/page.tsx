@@ -174,6 +174,62 @@ export default async function EditAuthorPage({
             />
           </div>
 
+
+
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))",
+              gap: "18px",
+            }}
+          >
+            <div>
+              <label
+                htmlFor="name_cs"
+                style={{ display: "block", marginBottom: "8px", fontWeight: 600 }}
+              >
+                Jméno autora česky
+              </label>
+              <input
+                id="name_cs"
+                name="name_cs"
+                type="text"
+                defaultValue={values.name_cs}
+                style={{
+                  width: "100%",
+                  padding: "12px 14px",
+                  border: "1px solid #ccc",
+                  fontSize: "16px",
+                }}
+              />
+            </div>
+
+            <div>
+              <label
+                htmlFor="name_en"
+                style={{ display: "block", marginBottom: "8px", fontWeight: 600 }}
+              >
+                Jméno autora anglicky
+              </label>
+              <input
+                id="name_en"
+                name="name_en"
+                type="text"
+                defaultValue={values.name_en}
+                style={{
+                  width: "100%",
+                  padding: "12px 14px",
+                  border: "1px solid #ccc",
+                  fontSize: "16px",
+                }}
+              />
+            </div>
+          </div>
+
+          <p style={{ margin: "-8px 0 0 0", fontSize: "14px", opacity: 0.75 }}>
+            Veřejné jazykové varianty. Pokud zůstanou prázdné, uloží se hlavní jméno autora.
+          </p>
+
           <div>
             <label
               htmlFor="slug"
@@ -240,6 +296,63 @@ export default async function EditAuthorPage({
               }}
             />
           </div>
+
+
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))",
+              gap: "18px",
+            }}
+          >
+            <div>
+              <label
+                htmlFor="bio_cs"
+                style={{ display: "block", marginBottom: "8px", fontWeight: 600 }}
+              >
+                Biografie česky
+              </label>
+              <textarea
+                id="bio_cs"
+                name="bio_cs"
+                defaultValue={values.bio_cs}
+                rows={7}
+                style={{
+                  width: "100%",
+                  padding: "12px 14px",
+                  border: "1px solid #ccc",
+                  fontSize: "16px",
+                  resize: "vertical",
+                }}
+              />
+            </div>
+
+            <div>
+              <label
+                htmlFor="bio_en"
+                style={{ display: "block", marginBottom: "8px", fontWeight: 600 }}
+              >
+                Biografie anglicky
+              </label>
+              <textarea
+                id="bio_en"
+                name="bio_en"
+                defaultValue={values.bio_en}
+                rows={7}
+                style={{
+                  width: "100%",
+                  padding: "12px 14px",
+                  border: "1px solid #ccc",
+                  fontSize: "16px",
+                  resize: "vertical",
+                }}
+              />
+            </div>
+          </div>
+
+          <p style={{ margin: "-8px 0 0 0", fontSize: "14px", opacity: 0.75 }}>
+            Jazykové biografie se používají na veřejném detailu autora a u jazykově přepínaných výpisů. Pokud chybí, použije se obecná biografie.
+          </p>
         </section>
 
         <p style={{ margin: "0", fontSize: "14px" }}>

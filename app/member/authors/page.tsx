@@ -138,6 +138,13 @@ export default async function MemberAuthorsPage() {
                     {author.name}
                   </h2>
 
+                  {(author.name_cs || author.name_en) ? (
+                    <p style={{ margin: "0 0 8px 0", color: "#5f5247" }}>
+                      <strong>CZ:</strong> {author.name_cs || author.name}{" · "}
+                      <strong>EN:</strong> {author.name_en || author.name}
+                    </p>
+                  ) : null}
+
                   {lifeSpan ? (
                     <p style={{ margin: "0 0 8px 0" }}>
                       <strong>Roky:</strong> {lifeSpan}

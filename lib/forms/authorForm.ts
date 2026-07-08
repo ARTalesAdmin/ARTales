@@ -8,9 +8,13 @@ import {
 
 export type AuthorFormValues = {
   name: string
+  name_cs: string
+  name_en: string
   slug: string
   author_type: "person" | "collective" | "unknown"
   bio: string
+  bio_cs: string
+  bio_en: string
   portrait_image_path: string
   portrait_image_alt: string
   portrait_image_caption: string
@@ -25,9 +29,13 @@ export type AuthorFormValues = {
 export function getDefaultAuthorFormValues(): AuthorFormValues {
   return {
     name: "",
+    name_cs: "",
+    name_en: "",
     slug: "",
     author_type: "person",
     bio: "",
+    bio_cs: "",
+    bio_en: "",
     portrait_image_path: "",
     portrait_image_alt: "",
     portrait_image_caption: "",
@@ -43,9 +51,13 @@ export function getDefaultAuthorFormValues(): AuthorFormValues {
 export function mapAuthorToFormValues(author: AuthorEditItem): AuthorFormValues {
   return {
     name: author.name,
+    name_cs: author.name_cs ?? author.name,
+    name_en: author.name_en ?? author.name,
     slug: author.slug,
     author_type: author.author_type,
     bio: author.bio ?? "",
+    bio_cs: author.bio_cs ?? author.bio ?? "",
+    bio_en: author.bio_en ?? author.bio ?? "",
     portrait_image_path: author.portrait_image_path ?? "",
     portrait_image_alt: author.portrait_image_alt ?? "",
     portrait_image_caption: author.portrait_image_caption ?? "",
@@ -60,6 +72,8 @@ export function mapAuthorToFormValues(author: AuthorEditItem): AuthorFormValues 
 
 export function parseAuthorFormData(formData: FormData): AuthorFormValues {
   const name = String(formData.get("name") ?? "").trim()
+  const nameCs = String(formData.get("name_cs") ?? "").trim()
+  const nameEn = String(formData.get("name_en") ?? "").trim()
   const rawSlug = String(formData.get("slug") ?? "").trim()
   const rawLanguage = String(formData.get("primary_language") ?? "").trim()
   const rawWritingLanguages = formData
@@ -68,12 +82,16 @@ export function parseAuthorFormData(formData: FormData): AuthorFormValues {
 
   return {
     name,
+    name_cs: nameCs,
+    name_en: nameEn,
     slug: rawSlug ? slugify(rawSlug) : slugify(name),
     author_type: String(formData.get("author_type") ?? "person") as
       | "person"
       | "collective"
       | "unknown",
     bio: String(formData.get("bio") ?? "").trim(),
+    bio_cs: String(formData.get("bio_cs") ?? "").trim(),
+    bio_en: String(formData.get("bio_en") ?? "").trim(),
     portrait_image_path: String(formData.get("portrait_image_path") ?? "").trim(),
     portrait_image_alt: String(formData.get("portrait_image_alt") ?? "").trim(),
     portrait_image_caption: String(formData.get("portrait_image_caption") ?? "").trim(),
@@ -140,9 +158,13 @@ export function mapAuthorFormValuesToInsertPayload(
 ) {
   return {
     name: values.name,
+    name_cs: toNullableString(values.name_cs) ?? values.name,
+    name_en: toNullableString(values.name_en) ?? values.name,
     slug: values.slug,
     author_type: values.author_type,
     bio: toNullableString(values.bio),
+    bio_cs: toNullableString(values.bio_cs),
+    bio_en: toNullableString(values.bio_en),
     portrait_image_path: toNullableString(values.portrait_image_path),
     portrait_image_alt: toNullableString(values.portrait_image_alt),
     portrait_image_caption: toNullableString(values.portrait_image_caption),
@@ -163,9 +185,13 @@ export function mapAuthorFormValuesToUpdatePayload(
 ) {
   return {
     name: values.name,
+    name_cs: toNullableString(values.name_cs) ?? values.name,
+    name_en: toNullableString(values.name_en) ?? values.name,
     slug: values.slug,
     author_type: values.author_type,
     bio: toNullableString(values.bio),
+    bio_cs: toNullableString(values.bio_cs),
+    bio_en: toNullableString(values.bio_en),
     portrait_image_path: toNullableString(values.portrait_image_path),
     portrait_image_alt: toNullableString(values.portrait_image_alt),
     portrait_image_caption: toNullableString(values.portrait_image_caption),
