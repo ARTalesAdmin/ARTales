@@ -116,21 +116,25 @@ export default async function AccountMembershipPage({ searchParams }: PageProps)
                 <li>{copy.prices}</li>
               </ul>
               {tierCode === "free_reader" ? null : (
-                <form action={activateMembership} className="artales-membership-activation-form">
-                  <input type="hidden" name="tier" value={tierCode} />
-                  <button
-                    className="artales-button"
-                    type="submit"
-                    disabled={membershipStatus.creditBalance < tier.foundingAt}
-                  >
-                    {dictionary.activateCta}
-                  </button>
+                <div className="artales-membership-activation-form">
+                  {membershipStatus.creditBalance < tier.foundingAt ? (
+                    <Link className="artales-button" href="/checkout/credits">
+                      {dictionary.topUpAndActivateCta}
+                    </Link>
+                  ) : (
+                    <form action={activateMembership}>
+                      <input type="hidden" name="tier" value={tierCode} />
+                      <button className="artales-button" type="submit">
+                        {dictionary.activateCta}
+                      </button>
+                    </form>
+                  )}
                   <p className="artales-account-muted">
                     {membershipStatus.creditBalance < tier.foundingAt
                       ? dictionary.notEnoughCreditHint
                       : dictionary.activationHint}
                   </p>
-                </form>
+                </div>
               )}
             </article>
           );

@@ -271,7 +271,7 @@ export const enAccount = {
     internalReaderLayer: "Internal ARTales profile",
     ledePrefix: "Current reader layer:",
     ledeSuffix:
-      "Membership builds on AT Credits and gives regular reading a clearer rhythm: library unlocks, extra credit and a better path to editions.",
+      "Membership builds on AT Credits and gives regular reading a clearer rhythm: library unlocks, time-based access and a better path to editions.",
     internalLedeSuffix:
       "This account also has internal ARTales permissions. Reader membership, credits and library remain separate from the working role.",
     creditModelLabel: "Founding prices",
@@ -279,7 +279,7 @@ export const enAccount = {
     creditModelText:
       "Early members help ARTales grow from the beginning. Their price reflects that trust while the catalogue, editions and community layer continue to expand.",
     paymentNotice:
-      "Membership is activated from AT Credits for a chosen period. No automatic billing — the reader chooses when to continue.",
+      "ARTales keeps a simple credit model: top up AT first, then use it for membership, titles, editions or support. Automatic renewal and a payment gateway can later become a more convenient layer above the same wallet.",
     period: "30 days",
     standardPrice: "standard",
     noStandardPrice: "Free account layer.",
@@ -291,8 +291,9 @@ export const enAccount = {
     activationOtherActive: "This account already has a different active membership. The same tier can be extended; tier changes will be handled in a later step.",
     activationError: "Membership could not be activated. Please try again or contact support.",
     activateCta: "Activate with AT Credits",
-    activationHint: "Activates for 30 days and adds the matching member value.",
-    notEnoughCreditHint: "Top up AT Credits first, then activate membership.",
+    activationHint: "Activates for 30 days and adds the matching member unlocks or Library access.",
+    notEnoughCreditHint: "Top up AT Credits first. Once the balance is sufficient, membership is activated from the wallet.",
+    topUpAndActivateCta: "Top up AT Credits",
     currentMembershipLabel: "Active membership",
     activeUntilPrefix: "Active until",
     noActiveMembership: "The free reader layer is active for now.",
@@ -312,9 +313,9 @@ export const enAccount = {
       basic: {
         name: "Basic",
         description:
-          "A calm start for regular reading. It adds online titles to the library and leaves a little credit for another choice.",
+          "A calm start for regular reading. Two unlocks are included directly in the membership value.",
         unlocks: "2 member permanent online unlocks per period",
-        credits: "+1 regular AT Credit for use in ARTales",
+        credits: "Paid from the AT wallet; unlocks remain a reader benefit",
         prices: "Owned-title discount for PDF/EPUB editions",
       },
       plus: {
@@ -323,16 +324,16 @@ export const enAccount = {
           "A balanced tier for readers who return more often and want to build a library around the titles they unlock.",
         badge: "Best value",
         unlocks: "5 member permanent online unlocks per period",
-        credits: "+1 regular AT Credit",
+        credits: "Paid from the AT wallet; the main value is directly in reading",
         prices: "Owned-title discount for PDF/EPUB editions",
       },
       library: {
         name: "Library",
         description:
-          "The broadest reader layer: online catalogue access while active, plus extra credit for editions or support.",
+          "The broadest reader layer: online catalogue access while membership is active.",
         badge: "Library access",
         unlocks: "Unlimited online reading while membership is active",
-        credits: "+2 regular AT Credits",
+        credits: "Paid from the AT wallet; the main value is time-based access",
         prices: "Highest reader layer and owned-title discounts for permanently unlocked titles",
       },
     },
@@ -344,8 +345,8 @@ export const enAccount = {
         text: "Member online unlocks permanently add titles to the library. They are meant for reading, not for conversion into other services.",
       },
       {
-        title: "Bonus AT Credit remains flexible",
-        text: "AT Credit granted by membership is regular credit. It can be used for editions, more reading, ARTales support or later services.",
+        title: "The AT wallet is the foundation",
+        text: "Topped-up AT Credits stay universal: use them for membership, title unlocks, editions or ARTales support. Membership is valued directly through reading value — unlocks, access and a stronger relationship with works.",
       },
       {
         title: "Library is time-based access",

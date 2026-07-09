@@ -32,7 +32,7 @@ export const MEMBERSHIP_PRICEBOOK = {
       foundingAt: 2,
       standardAt: 4,
       monthlyUnlocks: 2,
-      bonusAt: 1,
+      bonusAt: 0,
       libraryAccess: false,
     },
     plus: {
@@ -40,7 +40,7 @@ export const MEMBERSHIP_PRICEBOOK = {
       foundingAt: 4,
       standardAt: 7,
       monthlyUnlocks: 5,
-      bonusAt: 1,
+      bonusAt: 0,
       libraryAccess: false,
     },
     library: {
@@ -48,7 +48,7 @@ export const MEMBERSHIP_PRICEBOOK = {
       foundingAt: 7,
       standardAt: 10,
       monthlyUnlocks: null,
-      bonusAt: 2,
+      bonusAt: 0,
       libraryAccess: true,
     },
   } satisfies Record<MembershipTierCode, {
