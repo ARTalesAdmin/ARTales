@@ -15,6 +15,7 @@ type RouteContext = {
 
 type AppendBlocksPayload = {
   blocks?: unknown;
+  insertAfterBlockId?: unknown;
   batchIndex?: unknown;
   batchCount?: unknown;
 };
@@ -47,6 +48,10 @@ export async function POST(request: Request, context: RouteContext) {
   }
 
   const appendedBlocks = sanitizeWorkBlocks(Array.isArray(payload.blocks) ? payload.blocks : []);
+  const insertAfterBlockId =
+    typeof payload.insertAfterBlockId === "string" && payload.insertAfterBlockId.trim() !== ""
+      ? payload.insertAfterBlockId.trim()
+      : null;
   const batchIndex = typeof payload.batchIndex === "number" ? payload.batchIndex : null;
   const batchCount = typeof payload.batchCount === "number" ? payload.batchCount : null;
 
@@ -84,6 +89,7 @@ export async function POST(request: Request, context: RouteContext) {
       block_count: appendedBlocks.length,
       batch_index: batchIndex,
       batch_count: batchCount,
+      insert_after_block_id: insertAfterBlockId,
       work_slug: slug,
       actor_profile_id: profile?.id ?? null,
       saved_via: "smart_save",

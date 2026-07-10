@@ -485,18 +485,71 @@ function mapRawContentBlocks(value: unknown): WorkBlock[] {
 
 type RawWorkContentBlockBatchRow = {
   blocks: unknown
+  metadata?: unknown
 }
 
-function mergeContentBlocks(baseBlocks: WorkBlock[], appendedBlocks: WorkBlock[]) {
-  if (appendedBlocks.length === 0) return baseBlocks
+function getInsertionAnchorFromBatchMetadata(metadata: unknown) {
+  if (!metadata || typeof metadata !== "object") {
+    return { hasExplicitAnchor: false, insertAfterBlockId: null }
+  }
+
+  if (!Object.prototype.hasOwnProperty.call(metadata, "insert_after_block_id")) {
+    return { hasExplicitAnchor: false, insertAfterBlockId: null }
+  }
+
+  const value = (metadata as { insert_after_block_id?: unknown }).insert_after_block_id
+
+  return {
+    hasExplicitAnchor: true,
+    insertAfterBlockId:
+      typeof value === "string" && value.trim() !== "" ? value.trim() : null,
+  }
+}
+
+function insertBlocksAfterAnchor(
+  merged: WorkBlock[],
+  blocksToInsert: WorkBlock[],
+  anchor: { hasExplicitAnchor: boolean; insertAfterBlockId: string | null },
+) {
+  if (blocksToInsert.length === 0) return merged
+
+  if (!anchor.hasExplicitAnchor) {
+    return [...merged, ...blocksToInsert]
+  }
+
+  if (!anchor.insertAfterBlockId) {
+    return [...blocksToInsert, ...merged]
+  }
+
+  const anchorIndex = merged.findIndex((block) => block.id === anchor.insertAfterBlockId)
+
+  if (anchorIndex < 0) {
+    return [...merged, ...blocksToInsert]
+  }
+
+  const next = [...merged]
+  next.splice(anchorIndex + 1, 0, ...blocksToInsert)
+  return next
+}
+
+function mergeContentBlockBatches(
+  baseBlocks: WorkBlock[],
+  batches: RawWorkContentBlockBatchRow[],
+) {
+  if (batches.length === 0) return baseBlocks
 
   const seenIds = new Set(baseBlocks.map((block) => block.id))
-  const merged = [...baseBlocks]
+  let merged = [...baseBlocks]
 
-  appendedBlocks.forEach((block) => {
-    if (seenIds.has(block.id)) return
-    seenIds.add(block.id)
-    merged.push(block)
+  batches.forEach((batch) => {
+    const blocksToInsert = mapRawContentBlocks(batch.blocks).filter((block) => {
+      if (seenIds.has(block.id)) return false
+      seenIds.add(block.id)
+      return true
+    })
+
+    const anchor = getInsertionAnchorFromBatchMetadata(batch.metadata)
+    merged = insertBlocksAfterAnchor(merged, blocksToInsert, anchor)
   })
 
   return merged
@@ -511,10 +564,10 @@ function isMissingRelationError(error: unknown) {
 export async function getAppendedContentBlocks(
   client: SupabaseLike,
   workId: string,
-): Promise<WorkBlock[]> {
+): Promise<RawWorkContentBlockBatchRow[]> {
   const { data, error } = await client
     .from("work_content_block_batches")
-    .select("blocks")
+    .select("blocks, metadata")
     .eq("work_id", workId)
     .order("created_at", { ascending: true })
     .order("id", { ascending: true })
@@ -525,11 +578,7 @@ export async function getAppendedContentBlocks(
     return []
   }
 
-  const rows = (data ?? []) as RawWorkContentBlockBatchRow[]
-
-  return rows.flatMap((row: RawWorkContentBlockBatchRow) =>
-    mapRawContentBlocks(row.blocks),
-  )
+  return (data ?? []) as RawWorkContentBlockBatchRow[]
 }
 
 export async function getCombinedContentBlocksForWorkId(
@@ -556,8 +605,8 @@ export async function getCombinedContentBlocksForWorkId(
     )
   }
 
-  const appendedBlocks = await getAppendedContentBlocks(client, workId)
-  return mergeContentBlocks(resolvedBaseBlocks, appendedBlocks)
+  const appendedBlockBatches = await getAppendedContentBlocks(client, workId)
+  return mergeContentBlockBatches(resolvedBaseBlocks, appendedBlockBatches)
 }
 
 async function mergeAppendedBlocksForWork<T extends { id: string; content_blocks: WorkBlock[] }>(

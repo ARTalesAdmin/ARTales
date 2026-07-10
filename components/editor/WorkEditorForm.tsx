@@ -140,6 +140,78 @@ function getLargeWorkSaveRiskMessage(chars: number) {
   return null;
 }
 
+type AppendSaveRun = {
+  insertAfterBlockId: string | null;
+  blocks: WorkBlock[];
+};
+
+type AppendSavePlan = {
+  canUseAppendSave: boolean;
+  reason: "ok" | "existing_blocks_changed" | "no_new_blocks";
+  runs: AppendSaveRun[];
+};
+
+function buildAppendSavePlan(
+  blocks: WorkBlock[],
+  initialBlockIds: Set<string>,
+  initialBlockIdOrder: string[],
+): AppendSavePlan {
+  const currentExistingBlockIds = blocks
+    .filter((block) => initialBlockIds.has(block.id))
+    .map((block) => block.id);
+
+  const existingBlocksChanged =
+    currentExistingBlockIds.length !== initialBlockIdOrder.length ||
+    currentExistingBlockIds.some(
+      (blockId, index) => blockId !== initialBlockIdOrder[index],
+    );
+
+  if (existingBlocksChanged) {
+    return {
+      canUseAppendSave: false,
+      reason: "existing_blocks_changed",
+      runs: [],
+    };
+  }
+
+  const runs: AppendSaveRun[] = [];
+  let currentRun: AppendSaveRun | null = null;
+  let previousBlockId: string | null = null;
+
+  blocks.forEach((block) => {
+    if (initialBlockIds.has(block.id)) {
+      currentRun = null;
+      previousBlockId = block.id;
+      return;
+    }
+
+    if (!currentRun) {
+      currentRun = {
+        insertAfterBlockId: previousBlockId,
+        blocks: [],
+      };
+      runs.push(currentRun);
+    }
+
+    currentRun.blocks.push(block);
+    previousBlockId = block.id;
+  });
+
+  if (runs.length === 0) {
+    return {
+      canUseAppendSave: false,
+      reason: "no_new_blocks",
+      runs: [],
+    };
+  }
+
+  return {
+    canUseAppendSave: true,
+    reason: "ok",
+    runs,
+  };
+}
+
 function getLocalAutosaveDisabledMessage() {
   return "Lokální autosave je pro toto velké dílo preventivně vypnutý. Prohlížečové úložiště u románů často nestačí a může shodit editor, proto ukládej změny hlavním tlačítkem Uložit.";
 }
@@ -350,11 +422,23 @@ export default function WorkEditorForm(props: Props) {
     () => new Set(initialData.blocks.map((block) => block.id)),
     [initialData.blocks],
   );
+  const initialBlockIdOrder = useMemo(
+    () => initialData.blocks.map((block) => block.id),
+    [initialData.blocks],
+  );
   const newBlocksForAppend = useMemo(
     () => blocks.filter((block) => !initialBlockIds.has(block.id)),
     [blocks, initialBlockIds],
   );
-  const canAppendNewBlocksOnly = mode === "edit" && Boolean(slug) && newBlocksForAppend.length > 0;
+  const appendSavePlan = useMemo(
+    () => buildAppendSavePlan(blocks, initialBlockIds, initialBlockIdOrder),
+    [blocks, initialBlockIds, initialBlockIdOrder],
+  );
+  const canAppendNewBlocksOnly =
+    mode === "edit" &&
+    Boolean(slug) &&
+    newBlocksForAppend.length > 0 &&
+    appendSavePlan.canUseAppendSave;
   const shouldUseBatchAppendSave =
     canAppendNewBlocksOnly &&
     (currentAutosaveDisabled ||
@@ -844,10 +928,16 @@ export default function WorkEditorForm(props: Props) {
         return;
       }
 
+      if (canAppendNewBlocksOnly) {
+        event.preventDefault();
+        await saveNewBlocksInBatches();
+        return;
+      }
+
       event.preventDefault();
       setSaveSubmitMessage(
-        canAppendNewBlocksOnly
-          ? "Dílo je příliš velké pro běžné uložení. Klikni znovu na Uložit změny; editor použije dávkové ukládání nových bloků."
+        appendSavePlan.reason === "existing_blocks_changed"
+          ? "Dílo je příliš velké pro běžné uložení a současně se změnilo pořadí, úprava nebo odstranění původních bloků. Z bezpečnostních důvodů teď editor neuloží jen nové dávky, protože by mohl porušit pořadí. Stáhni si zálohu bloků a rozděl změnu na menší část."
           : "Dílo je příliš velké pro běžné uložení celého formuláře. Stáhni si zálohu bloků a rozděl další úpravy na menší části.",
       );
       scrollToSaveActions();
@@ -880,16 +970,32 @@ export default function WorkEditorForm(props: Props) {
       return;
     }
 
-    const batches: WorkBlock[][] = [];
-
-    for (let index = 0; index < newBlocksForAppend.length; index += APPEND_BLOCK_BATCH_SIZE) {
-      batches.push(newBlocksForAppend.slice(index, index + APPEND_BLOCK_BATCH_SIZE));
+    if (!appendSavePlan.canUseAppendSave) {
+      setSaveSubmitMessage(
+        appendSavePlan.reason === "existing_blocks_changed"
+          ? "Chytré ukládání nových bloků nelze bezpečně použít, protože se změnilo pořadí nebo sada původních bloků. Uložení celého díla zkusí běžný formulář; u velmi dlouhých děl si nejdřív stáhni zálohu."
+          : "Nejsou připravené žádné nové bloky k dávkovému uložení.",
+      );
+      scrollToSaveActions();
+      return;
     }
+
+    const batches: { blocks: WorkBlock[]; insertAfterBlockId: string | null }[] = [];
+
+    appendSavePlan.runs.forEach((run) => {
+      let insertAfterBlockId = run.insertAfterBlockId;
+
+      for (let index = 0; index < run.blocks.length; index += APPEND_BLOCK_BATCH_SIZE) {
+        const batchBlocks = run.blocks.slice(index, index + APPEND_BLOCK_BATCH_SIZE);
+        batches.push({ blocks: batchBlocks, insertAfterBlockId });
+        insertAfterBlockId = batchBlocks[batchBlocks.length - 1]?.id ?? insertAfterBlockId;
+      }
+    });
 
     setIsSmartSaving(true);
     scrollToSaveActions();
     setSaveSubmitMessage(
-      `Připravuji chytré uložení. Nové bloky rozdělím na ${batches.length} ${batches.length === 1 ? "část" : batches.length < 5 ? "části" : "částí"}. Prosím neodcházej ze stránky.`,
+      `Připravuji chytré uložení. Nové bloky rozdělím na ${batches.length} ${batches.length === 1 ? "část" : batches.length < 5 ? "části" : "částí"} a zachovám jejich místo v díle. Prosím neodcházej ze stránky.`,
     );
 
     let savedCount = 0;
@@ -907,7 +1013,8 @@ export default function WorkEditorForm(props: Props) {
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
-            blocks: batch,
+            blocks: batch.blocks,
+            insertAfterBlockId: batch.insertAfterBlockId,
             batchIndex: index,
             batchCount: batches.length,
           }),
@@ -925,7 +1032,7 @@ export default function WorkEditorForm(props: Props) {
           return;
         }
 
-        savedCount += result.appendedCount ?? batch.length;
+        savedCount += result.appendedCount ?? batch.blocks.length;
       }
 
       setSaveSubmitMessage(`Uloženo ${savedCount} nových bloků. Obnovuji editor…`);
