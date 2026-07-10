@@ -128,6 +128,14 @@ function formatApproxMegabytes(chars: number) {
   return `${(chars / 1_000_000).toFixed(1)} MB`;
 }
 
+function pickPublicMetadataValue(
+  preferred: string,
+  fallback: string,
+  legacy: string,
+) {
+  return preferred.trim() || fallback.trim() || legacy.trim();
+}
+
 function getLargeWorkSaveRiskMessage(chars: number) {
   if (chars >= LARGE_WORK_SAVE_DANGER_CHARS) {
     return `Toto je velmi velké dílo (${formatApproxMegabytes(chars)}). Editor použije chytré ukládání: nové bloky se odešlou po menších částech a po dokončení se stránka obnoví.`;
@@ -359,7 +367,6 @@ export default function WorkEditorForm(props: Props) {
   const suppressBeforeUnloadRef = useRef(false);
   const uploadedCoverPathsRef = useRef<Set<string>>(new Set());
 
-  const summaryLength = formState.summary.trim().length;
   const hasBlocks = blocks.some((block) => {
     if (block.type === "separator") return true;
     if (block.type === "letter") {
@@ -375,12 +382,29 @@ export default function WorkEditorForm(props: Props) {
     }
     return block.content.trim() !== "";
   });
+  const primaryTitle = pickPublicMetadataValue(
+    formState.title_en,
+    formState.title_cs,
+    formState.title,
+  );
+  const primarySubtitle = pickPublicMetadataValue(
+    formState.subtitle_en,
+    formState.subtitle_cs,
+    formState.subtitle,
+  );
+  const primarySummary = pickPublicMetadataValue(
+    formState.summary_en,
+    formState.summary_cs,
+    formState.summary,
+  );
+  const primarySummaryLength = primarySummary.trim().length;
+
   const readinessItems = [
-    { label: "Název", done: formState.title.trim() !== "" },
+    { label: "Název", done: primaryTitle.trim() !== "" },
     { label: "Autor", done: formState.primary_author_id.trim() !== "" },
     {
       label: "Shrnutí 200–800 znaků",
-      done: summaryLength >= 200 && summaryLength <= 800,
+      done: primarySummaryLength >= 200 && primarySummaryLength <= 800,
     },
     { label: "Obsahové bloky", done: hasBlocks },
     {
@@ -486,9 +510,15 @@ export default function WorkEditorForm(props: Props) {
       stableStringify({
         form: {
           title: initialData.title,
+          title_cs: initialData.title_cs,
+          title_en: initialData.title_en,
           slug: initialData.slug,
           subtitle: initialData.subtitle,
+          subtitle_cs: initialData.subtitle_cs,
+          subtitle_en: initialData.subtitle_en,
           summary: initialData.summary,
+          summary_cs: initialData.summary_cs,
+          summary_en: initialData.summary_en,
           primary_author_id: initialData.primary_author_id,
           collection_id: initialData.collection_id,
           tag_ids: initialData.tag_ids,
@@ -875,7 +905,7 @@ export default function WorkEditorForm(props: Props) {
         {
           exported_at: new Date().toISOString(),
           work_slug: formState.slug || slug || "work",
-          work_title: formState.title,
+          work_title: primaryTitle,
           blocks,
         },
         null,
@@ -884,7 +914,7 @@ export default function WorkEditorForm(props: Props) {
       const blob = new Blob([payload], { type: "application/json;charset=utf-8" });
       const url = URL.createObjectURL(blob);
       const link = document.createElement("a");
-      const safeSlug = slugify(formState.slug || formState.title || slug || "work");
+      const safeSlug = slugify(formState.slug || primaryTitle || slug || "work");
       link.href = url;
       link.download = `artales-${safeSlug || "work"}-blocks-backup.json`;
       document.body.appendChild(link);
@@ -1089,10 +1119,10 @@ export default function WorkEditorForm(props: Props) {
       return;
     }
 
-    const workSlug = slugify(formState.slug || formState.title);
+    const workSlug = slugify(formState.slug || primaryTitle);
 
     if (!workSlug) {
-      setCoverUploadError("Nejdřív vyplň název nebo slug díla. Podle něj se vytvoří bezpečná cesta obrázku.");
+      setCoverUploadError("Nejdřív vyplň název díla v CZ/EN nebo slug. Podle něj se vytvoří bezpečná cesta obrázku.");
       return;
     }
 
@@ -1340,36 +1370,151 @@ export default function WorkEditorForm(props: Props) {
           }}
         >
           <h2 style={{ margin: 0 }}>Metadata díla</h2>
+          <p style={{ margin: 0, fontSize: "14px", opacity: 0.75 }}>
+            Veřejná metadata díla se editují přímo ve dvou jazykových sloupcích.
+            Technická legacy pole se doplní automaticky z EN/CZ hodnot kvůli kompatibilitě starších částí systému.
+          </p>
 
-          <div>
-            <label
-              htmlFor="title"
-              style={{ display: "block", marginBottom: "8px", fontWeight: 600 }}
-            >
-              Název díla
-            </label>
-            <input
-              id="title"
-              name="title"
-              type="text"
-              required
-              value={formState.title}
-              onChange={(e) =>
-                setFormState((prev) => ({ ...prev, title: e.target.value }))
-              }
+          <input type="hidden" name="title" value={primaryTitle} />
+          <input type="hidden" name="subtitle" value={primarySubtitle} />
+          <input type="hidden" name="summary" value={primarySummary} />
+
+          <section
+            style={{
+              border: "1px solid rgba(217, 183, 110, 0.28)",
+              background: "rgba(255, 248, 232, 0.48)",
+              borderRadius: "18px",
+              padding: "16px",
+              display: "grid",
+              gap: "16px",
+            }}
+          >
+            <div>
+              <h3 style={{ margin: 0 }}>Veřejný název a anotace</h3>
+              <p style={{ margin: "8px 0 0", fontSize: "14px", opacity: 0.75 }}>
+                Anglický sloupec je výchozí/fallback pro mezinárodní vrstvu.
+                Český sloupec vyplň pro české veřejné zobrazení. Stačí jeden jazyk; chybějící jazyk použije fallback.
+              </p>
+            </div>
+
+            <div
               style={{
-                width: "100%",
-                padding: "12px 14px",
-                border: "1px solid rgba(13, 21, 40, 0.22)",
-                background: "#fffefb",
-                borderRadius: "12px",
-                fontSize: "16px",
+                display: "grid",
+                gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))",
+                gap: "18px",
+                alignItems: "start",
               }}
-            />
-            <p style={{ margin: "8px 0 0 0", fontSize: "14px", opacity: 0.75 }}>
-              Hlavní název díla. Povinné pole.
+            >
+              <div style={{ display: "grid", gap: "14px" }}>
+                <h4 style={{ margin: 0 }}>English / fallback</h4>
+
+                <div>
+                  <label htmlFor="title_en" style={{ display: "block", marginBottom: "8px", fontWeight: 600 }}>
+                    Title (EN)
+                  </label>
+                  <input
+                    id="title_en"
+                    name="title_en"
+                    type="text"
+                    value={formState.title_en}
+                    onChange={(e) => setFormState((prev) => ({ ...prev, title_en: e.target.value }))}
+                    placeholder="English public title"
+                    style={{ width: "100%", padding: "12px 14px", border: "1px solid rgba(13, 21, 40, 0.22)", background: "#fffefb", borderRadius: "12px", fontSize: "16px" }}
+                  />
+                  <p style={{ margin: "8px 0 0", fontSize: "14px", opacity: 0.75 }}>
+                    Použije se pro EN UI a jako fallback pro legacy název.
+                  </p>
+                </div>
+
+                <div>
+                  <label htmlFor="subtitle_en" style={{ display: "block", marginBottom: "8px", fontWeight: 600 }}>
+                    Subtitle (EN)
+                  </label>
+                  <input
+                    id="subtitle_en"
+                    name="subtitle_en"
+                    type="text"
+                    value={formState.subtitle_en}
+                    onChange={(e) => setFormState((prev) => ({ ...prev, subtitle_en: e.target.value }))}
+                    placeholder="English subtitle"
+                    style={{ width: "100%", padding: "12px 14px", border: "1px solid rgba(13, 21, 40, 0.22)", background: "#fffefb", borderRadius: "12px", fontSize: "16px" }}
+                  />
+                </div>
+
+                <div>
+                  <label htmlFor="summary_en" style={{ display: "block", marginBottom: "8px", fontWeight: 600 }}>
+                    Annotation (EN)
+                  </label>
+                  <textarea
+                    id="summary_en"
+                    name="summary_en"
+                    rows={6}
+                    value={formState.summary_en}
+                    onChange={(e) => setFormState((prev) => ({ ...prev, summary_en: e.target.value }))}
+                    placeholder="English public annotation"
+                    style={{ width: "100%", padding: "12px 14px", border: "1px solid rgba(13, 21, 40, 0.22)", background: "#fffefb", borderRadius: "12px", fontSize: "16px", resize: "vertical" }}
+                  />
+                </div>
+              </div>
+
+              <div style={{ display: "grid", gap: "14px" }}>
+                <h4 style={{ margin: 0 }}>Čeština</h4>
+
+                <div>
+                  <label htmlFor="title_cs" style={{ display: "block", marginBottom: "8px", fontWeight: 600 }}>
+                    Název (CZ)
+                  </label>
+                  <input
+                    id="title_cs"
+                    name="title_cs"
+                    type="text"
+                    value={formState.title_cs}
+                    onChange={(e) => setFormState((prev) => ({ ...prev, title_cs: e.target.value }))}
+                    placeholder="Český veřejný název"
+                    style={{ width: "100%", padding: "12px 14px", border: "1px solid rgba(13, 21, 40, 0.22)", background: "#fffefb", borderRadius: "12px", fontSize: "16px" }}
+                  />
+                  <p style={{ margin: "8px 0 0", fontSize: "14px", opacity: 0.75 }}>
+                    Pokud chybí, české zobrazení použije EN/fallback název.
+                  </p>
+                </div>
+
+                <div>
+                  <label htmlFor="subtitle_cs" style={{ display: "block", marginBottom: "8px", fontWeight: 600 }}>
+                    Podnázev (CZ)
+                  </label>
+                  <input
+                    id="subtitle_cs"
+                    name="subtitle_cs"
+                    type="text"
+                    value={formState.subtitle_cs}
+                    onChange={(e) => setFormState((prev) => ({ ...prev, subtitle_cs: e.target.value }))}
+                    placeholder="Český podnázev"
+                    style={{ width: "100%", padding: "12px 14px", border: "1px solid rgba(13, 21, 40, 0.22)", background: "#fffefb", borderRadius: "12px", fontSize: "16px" }}
+                  />
+                </div>
+
+                <div>
+                  <label htmlFor="summary_cs" style={{ display: "block", marginBottom: "8px", fontWeight: 600 }}>
+                    Anotace (CZ)
+                  </label>
+                  <textarea
+                    id="summary_cs"
+                    name="summary_cs"
+                    rows={6}
+                    value={formState.summary_cs}
+                    onChange={(e) => setFormState((prev) => ({ ...prev, summary_cs: e.target.value }))}
+                    placeholder="Česká veřejná anotace"
+                    style={{ width: "100%", padding: "12px 14px", border: "1px solid rgba(13, 21, 40, 0.22)", background: "#fffefb", borderRadius: "12px", fontSize: "16px", resize: "vertical" }}
+                  />
+                </div>
+              </div>
+            </div>
+
+            <p style={{ margin: 0, fontSize: "14px", opacity: 0.75 }}>
+              Kontrolní anotace pro legacy/fallback: {primarySummaryLength} znaků.
+              Povinný rozsah pro uložení zůstává 200–800 znaků v dostupném fallback textu.
             </p>
-          </div>
+          </section>
 
           <div>
             <label
@@ -1397,123 +1542,9 @@ export default function WorkEditorForm(props: Props) {
             />
             <p style={{ margin: "8px 0 0 0", fontSize: "14px", opacity: 0.75 }}>
               URL identifikátor díla. Když ho nevyplníš, vytvoří se automaticky
-              z názvu. Povolená jsou pouze malá písmena, čísla a pomlčky.
+              z EN/CZ názvu. Povolená jsou pouze malá písmena, čísla a pomlčky.
             </p>
           </div>
-
-          <div>
-            <label
-              htmlFor="subtitle"
-              style={{ display: "block", marginBottom: "8px", fontWeight: 600 }}
-            >
-              Podnázev
-            </label>
-            <input
-              id="subtitle"
-              name="subtitle"
-              type="text"
-              value={formState.subtitle}
-              onChange={(e) =>
-                setFormState((prev) => ({ ...prev, subtitle: e.target.value }))
-              }
-              style={{
-                width: "100%",
-                padding: "12px 14px",
-                border: "1px solid rgba(13, 21, 40, 0.22)",
-                background: "#fffefb",
-                borderRadius: "12px",
-                fontSize: "16px",
-              }}
-            />
-            <p style={{ margin: "8px 0 0 0", fontSize: "14px", opacity: 0.75 }}>
-              Nepovinný doplňující název díla.
-            </p>
-          </div>
-
-          <div>
-            <label
-              htmlFor="summary"
-              style={{ display: "block", marginBottom: "8px", fontWeight: 600 }}
-            >
-              Shrnutí
-            </label>
-            <textarea
-              id="summary"
-              name="summary"
-              required
-              rows={4}
-              value={formState.summary}
-              onChange={(e) =>
-                setFormState((prev) => ({ ...prev, summary: e.target.value }))
-              }
-              style={{
-                width: "100%",
-                padding: "12px 14px",
-                border: "1px solid rgba(13, 21, 40, 0.22)",
-                background: "#fffefb",
-                borderRadius: "12px",
-                fontSize: "16px",
-                resize: "vertical",
-              }}
-            />
-            <p style={{ margin: "8px 0 0 0", fontSize: "14px", opacity: 0.75 }}>
-              Krátké představení díla pro galerii a detail. Povinné pole.
-              Doporučený rozsah je 200–800 znaků. Aktuálně: {summaryLength}{" "}
-              znaků.
-            </p>
-          </div>
-
-          <section
-            style={{
-              border: "1px solid rgba(217, 183, 110, 0.28)",
-              background: "rgba(255, 248, 232, 0.48)",
-              borderRadius: "18px",
-              padding: "16px",
-              display: "grid",
-              gap: "14px",
-            }}
-          >
-            <div>
-              <h3 style={{ margin: 0 }}>Veřejná lokalizace metadat</h3>
-              <p style={{ margin: "8px 0 0", fontSize: "14px", opacity: 0.75 }}>
-                Vyplň čtenářské názvy a anotace pro veřejnou CZ/EN vrstvu. Pokud
-                některé pole chybí, web použije druhý jazyk nebo hlavní legacy pole výše.
-              </p>
-            </div>
-
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: "14px" }}>
-              <div>
-                <label htmlFor="title_cs" style={{ display: "block", marginBottom: "8px", fontWeight: 600 }}>Název (CZ)</label>
-                <input id="title_cs" name="title_cs" type="text" value={formState.title_cs} onChange={(e) => setFormState((prev) => ({ ...prev, title_cs: e.target.value }))} placeholder="Český veřejný název" style={{ width: "100%", padding: "12px 14px", border: "1px solid rgba(13, 21, 40, 0.22)", background: "#fffefb", borderRadius: "12px", fontSize: "16px" }} />
-              </div>
-              <div>
-                <label htmlFor="title_en" style={{ display: "block", marginBottom: "8px", fontWeight: 600 }}>Title (EN)</label>
-                <input id="title_en" name="title_en" type="text" value={formState.title_en} onChange={(e) => setFormState((prev) => ({ ...prev, title_en: e.target.value }))} placeholder="English public title" style={{ width: "100%", padding: "12px 14px", border: "1px solid rgba(13, 21, 40, 0.22)", background: "#fffefb", borderRadius: "12px", fontSize: "16px" }} />
-              </div>
-            </div>
-
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: "14px" }}>
-              <div>
-                <label htmlFor="subtitle_cs" style={{ display: "block", marginBottom: "8px", fontWeight: 600 }}>Podnázev (CZ)</label>
-                <input id="subtitle_cs" name="subtitle_cs" type="text" value={formState.subtitle_cs} onChange={(e) => setFormState((prev) => ({ ...prev, subtitle_cs: e.target.value }))} placeholder="Český podnázev" style={{ width: "100%", padding: "12px 14px", border: "1px solid rgba(13, 21, 40, 0.22)", background: "#fffefb", borderRadius: "12px", fontSize: "16px" }} />
-              </div>
-              <div>
-                <label htmlFor="subtitle_en" style={{ display: "block", marginBottom: "8px", fontWeight: 600 }}>Subtitle (EN)</label>
-                <input id="subtitle_en" name="subtitle_en" type="text" value={formState.subtitle_en} onChange={(e) => setFormState((prev) => ({ ...prev, subtitle_en: e.target.value }))} placeholder="English subtitle" style={{ width: "100%", padding: "12px 14px", border: "1px solid rgba(13, 21, 40, 0.22)", background: "#fffefb", borderRadius: "12px", fontSize: "16px" }} />
-              </div>
-            </div>
-
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: "14px" }}>
-              <div>
-                <label htmlFor="summary_cs" style={{ display: "block", marginBottom: "8px", fontWeight: 600 }}>Anotace (CZ)</label>
-                <textarea id="summary_cs" name="summary_cs" rows={4} value={formState.summary_cs} onChange={(e) => setFormState((prev) => ({ ...prev, summary_cs: e.target.value }))} placeholder="Česká veřejná anotace" style={{ width: "100%", padding: "12px 14px", border: "1px solid rgba(13, 21, 40, 0.22)", background: "#fffefb", borderRadius: "12px", fontSize: "16px", resize: "vertical" }} />
-              </div>
-              <div>
-                <label htmlFor="summary_en" style={{ display: "block", marginBottom: "8px", fontWeight: 600 }}>Annotation (EN)</label>
-                <textarea id="summary_en" name="summary_en" rows={4} value={formState.summary_en} onChange={(e) => setFormState((prev) => ({ ...prev, summary_en: e.target.value }))} placeholder="English public annotation" style={{ width: "100%", padding: "12px 14px", border: "1px solid rgba(13, 21, 40, 0.22)", background: "#fffefb", borderRadius: "12px", fontSize: "16px", resize: "vertical" }} />
-              </div>
-            </div>
-          </section>
 
           <div>
             <label
@@ -2434,7 +2465,7 @@ export default function WorkEditorForm(props: Props) {
           blocks={blocks}
           setBlocks={setBlocks}
           workSlug={formState.slug || slug || ""}
-          workTitle={formState.title}
+          workTitle={primaryTitle}
         />
 
         <input
