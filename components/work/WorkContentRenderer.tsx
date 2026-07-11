@@ -127,8 +127,7 @@ function renderBlock({ block, index, footnoteNumberByBlockId }: RenderBlockProps
           data-block-type={block.type}
           aria-label={meta.internalLabel}
         >
-          <p className="artales-book-part-kicker">Part</p>
-          <h2>{text}</h2>
+          <h2>{renderInlineRichText(text)}</h2>
         </section>
       )
 
@@ -147,7 +146,7 @@ function renderBlock({ block, index, footnoteNumberByBlockId }: RenderBlockProps
     case "headline":
       return (
         <section key={key} className="artales-block artales-headline" data-block-type={block.type}>
-          <h4>{text}</h4>
+          <h4>{renderInlineRichText(text)}</h4>
         </section>
       )
 
@@ -271,7 +270,6 @@ function renderBlock({ block, index, footnoteNumberByBlockId }: RenderBlockProps
     case "preface":
       return (
         <section key={key} className="artales-block artales-preface" data-block-type={block.type}>
-          <h3>Preface</h3>
           {renderMultiParagraphText(text)}
         </section>
       )
@@ -279,7 +277,6 @@ function renderBlock({ block, index, footnoteNumberByBlockId }: RenderBlockProps
     case "afterword":
       return (
         <section key={key} className="artales-block artales-afterword" data-block-type={block.type}>
-          <h3>Afterword</h3>
           {renderMultiParagraphText(text)}
         </section>
       )
@@ -287,7 +284,6 @@ function renderBlock({ block, index, footnoteNumberByBlockId }: RenderBlockProps
     case "acknowledgement":
       return (
         <section key={key} className="artales-block artales-acknowledgement" data-block-type={block.type}>
-          <h3>Acknowledgement</h3>
           {renderMultiParagraphText(text)}
         </section>
       )

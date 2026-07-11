@@ -552,6 +552,8 @@ export default function WorkBlocksEditor({
     setActiveLargeBlockIndex(
       Math.min(safeStartIndex, Math.max(0, finalBlocks.length - 1)),
     );
+    setBulkDeleteFrom("");
+    setBulkDeleteTo("");
     setBulkDeleteMessage(
       nextBlocks.length > 0
         ? `Smazáno ${removedCount} ${removedCount === 1 ? "blok" : removedCount < 5 ? "bloky" : "bloků"}. Pro trvalé uložení změny klikni na Uložit.`
@@ -899,7 +901,7 @@ export default function WorkBlocksEditor({
             <div>
               <strong>Hromadné mazání bloků</strong>
               <p style={{ margin: "4px 0 0", fontSize: "13px", opacity: 0.78 }}>
-                Rozsah je číslovaný podle aktuální navigace. Změna se uloží až tlačítkem Uložit.
+                Rozsah je číslovaný podle celého díla. Po potvrzení se pole vyčistí; změna se uloží až tlačítkem Uložit.
               </p>
             </div>
 
@@ -918,7 +920,6 @@ export default function WorkBlocksEditor({
                 id="bulk-delete-from"
                 type="number"
                 min={1}
-                max={blocks.length}
                 value={bulkDeleteFrom}
                 onChange={(event) => setBulkDeleteFrom(event.target.value)}
                 placeholder="1"
@@ -932,7 +933,6 @@ export default function WorkBlocksEditor({
                 id="bulk-delete-to"
                 type="number"
                 min={1}
-                max={blocks.length}
                 value={bulkDeleteTo}
                 onChange={(event) => setBulkDeleteTo(event.target.value)}
                 onKeyDown={(event) => {
