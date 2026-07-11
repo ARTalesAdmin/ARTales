@@ -435,30 +435,46 @@ export default function WorkBlocksEditor({
     setBlocks((prev) => [...prev, createEmptyBlock(type)]);
   }
 
+  function focusInsertedLargeWorkBlock(index: number, blockId: string) {
+    if (!isLargeWorkMode) return;
+
+    setActiveLargeBlockIndex(index);
+    setHighlightedBlockId(blockId);
+    pendingLargeWorkScrollBlockIdRef.current = blockId;
+    window.setTimeout(() => setHighlightedBlockId(null), 1600);
+  }
+
   function insertBlockAfter(index: number, type: WorkBlockType = "paragraph") {
+    const insertedBlock = createEmptyBlock(type);
+    const insertedIndex = index + 1;
+
     setBlocks((prev) => {
       const next = [...prev];
-      next.splice(index + 1, 0, createEmptyBlock(type));
+      next.splice(insertedIndex, 0, insertedBlock);
       return next;
     });
+
+    focusInsertedLargeWorkBlock(insertedIndex, insertedBlock.id);
   }
 
   function duplicateBlock(index: number) {
+    const source = blocks[index];
+    if (!source) return;
+
+    const clonedBlock: WorkBlock = {
+      ...source,
+      id: crypto.randomUUID(),
+      fields: source.fields ? { ...source.fields } : undefined,
+      editor_note: source.editor_note ?? null,
+    };
+
     setBlocks((prev) => {
-      const source = prev[index];
-      if (!source) return prev;
-
-      const clone: WorkBlock = {
-        ...source,
-        id: crypto.randomUUID(),
-        fields: source.fields ? { ...source.fields } : undefined,
-        editor_note: source.editor_note ?? null,
-      };
-
       const next = [...prev];
-      next.splice(index + 1, 0, clone);
+      next.splice(index + 1, 0, clonedBlock);
       return next;
     });
+
+    focusInsertedLargeWorkBlock(index + 1, clonedBlock.id);
   }
 
   const fieldStyle = {

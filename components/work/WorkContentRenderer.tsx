@@ -81,6 +81,36 @@ function renderMultiParagraphText(text: string, className?: string) {
   ))
 }
 
+function splitHeadingLines(text: string) {
+  return text
+    .replace(/\r\n/g, "\n")
+    .split("\n")
+    .map((line) => line.trim())
+    .filter(Boolean)
+}
+
+function renderChapterHeading(text: string) {
+  const lines = splitHeadingLines(text)
+
+  if (lines.length <= 1) {
+    return <h3>{renderInlineRichText(text)}</h3>
+  }
+
+  const [kicker, ...titleLines] = lines
+  const title = titleLines.join(" ")
+
+  return (
+    <h3>
+      <span className="artales-chapter-kicker">
+        {renderInlineRichText(kicker)}
+      </span>
+      <span className="artales-chapter-title">
+        {renderInlineRichText(title)}
+      </span>
+    </h3>
+  )
+}
+
 function renderBlock({ block, index, footnoteNumberByBlockId }: RenderBlockProps) {
   const key = getStableBlockKey(block, index)
   const text = getBlockText(block)
@@ -110,7 +140,7 @@ function renderBlock({ block, index, footnoteNumberByBlockId }: RenderBlockProps
           data-block-type={block.type}
           aria-label={meta.internalLabel}
         >
-          <h3>{text}</h3>
+          {renderChapterHeading(text)}
         </section>
       )
 
