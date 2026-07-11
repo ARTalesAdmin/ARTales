@@ -150,6 +150,9 @@ export default function WorkBlocksEditor({
   >({});
   const [activeLargeBlockIndex, setActiveLargeBlockIndex] = useState(0);
   const [largeWorkJumpInput, setLargeWorkJumpInput] = useState("");
+  const [bulkDeleteFrom, setBulkDeleteFrom] = useState("");
+  const [bulkDeleteTo, setBulkDeleteTo] = useState("");
+  const [bulkDeleteMessage, setBulkDeleteMessage] = useState<string | null>(null);
   const pendingLargeWorkScrollBlockIdRef = useRef<string | null>(null);
   const uploadedInlineImagePathsRef = useRef<Set<string>>(new Set());
 
@@ -502,6 +505,77 @@ export default function WorkBlocksEditor({
     });
   }
 
+  function deleteBlockRange(startIndex: number, endIndex: number) {
+    if (blocks.length === 0) return;
+
+    const safeStartIndex = Math.min(
+      Math.max(0, startIndex),
+      Math.max(0, blocks.length - 1),
+    );
+    const safeEndIndex = Math.min(
+      Math.max(safeStartIndex, endIndex),
+      Math.max(0, blocks.length - 1),
+    );
+    const removedCount = safeEndIndex - safeStartIndex + 1;
+    const startNumber = safeStartIndex + 1;
+    const endNumber = safeEndIndex + 1;
+
+    const confirmed = window.confirm(
+      `Smazat ${removedCount} ${removedCount === 1 ? "blok" : removedCount < 5 ? "bloky" : "bloků"} (${startNumber}–${endNumber})? Tato změna se do databáze propíše až po uložení díla.`,
+    );
+
+    if (!confirmed) return;
+
+    const nextBlocks = blocks.filter(
+      (_, index) => index < safeStartIndex || index > safeEndIndex,
+    );
+    const finalBlocks =
+      nextBlocks.length > 0 ? nextBlocks : [createEmptyBlock("chapter")];
+
+    setBlocks(finalBlocks);
+    setActiveLargeBlockIndex(
+      Math.min(safeStartIndex, Math.max(0, finalBlocks.length - 1)),
+    );
+    setBulkDeleteMessage(
+      nextBlocks.length > 0
+        ? `Smazáno ${removedCount} ${removedCount === 1 ? "blok" : removedCount < 5 ? "bloky" : "bloků"}. Pro trvalé uložení změny klikni na Uložit.`
+        : `Smazáno ${removedCount} ${removedCount === 1 ? "blok" : removedCount < 5 ? "bloky" : "bloků"}. V editoru zůstal jeden prázdný blok, aby bylo možné začít znovu. Před uložením doplň obsah.`,
+    );
+  }
+
+  function deleteTypedBlockRange() {
+    const parsedStart = Number.parseInt(bulkDeleteFrom, 10);
+    const parsedEnd = Number.parseInt(bulkDeleteTo || bulkDeleteFrom, 10);
+
+    if (!Number.isFinite(parsedStart) || !Number.isFinite(parsedEnd)) {
+      setBulkDeleteMessage("Zadej platný rozsah bloků, například od 120 do 180.");
+      return;
+    }
+
+    const startIndex = Math.min(parsedStart, parsedEnd) - 1;
+    const endIndex = Math.max(parsedStart, parsedEnd) - 1;
+    deleteBlockRange(startIndex, endIndex);
+  }
+
+  function deleteAllBlocks() {
+    if (blocks.length === 0) return;
+
+    const confirmed = window.confirm(
+      `Smazat všech ${blocks.length} bloků? Tato změna se do databáze propíše až po uložení díla. Doporučení: před tím si stáhni zálohu bloků z hlavní stránky editoru.`,
+    );
+
+    if (!confirmed) return;
+
+    const removedCount = blocks.length;
+    setBlocks([createEmptyBlock("chapter")]);
+    setActiveLargeBlockIndex(0);
+    setBulkDeleteFrom("");
+    setBulkDeleteTo("");
+    setBulkDeleteMessage(
+      `Smazáno všech ${removedCount} bloků. V editoru zůstal jeden prázdný blok, aby bylo možné začít znovu. Před uložením doplň obsah.`,
+    );
+  }
+
   function moveBlock(index: number, direction: -1 | 1) {
     setBlocks((prev) => {
       const targetIndex = index + direction;
@@ -795,6 +869,99 @@ export default function WorkBlocksEditor({
               </div>
             </div>
           ) : null}
+
+          <div
+            style={{
+              border: "1px solid rgba(154, 62, 62, 0.22)",
+              borderRadius: "16px",
+              background: "#fff8f6",
+              padding: "12px 14px",
+              display: "grid",
+              gap: "10px",
+            }}
+          >
+            <div>
+              <strong>Hromadné mazání bloků</strong>
+              <p style={{ margin: "4px 0 0", fontSize: "13px", opacity: 0.78 }}>
+                Rozsah je číslovaný podle aktuální navigace. Změna se uloží až tlačítkem Uložit.
+              </p>
+            </div>
+
+            <div
+              style={{
+                display: "flex",
+                gap: "8px",
+                flexWrap: "wrap",
+                alignItems: "center",
+              }}
+            >
+              <label htmlFor="bulk-delete-from" style={{ fontSize: "13px", fontWeight: 700 }}>
+                Od
+              </label>
+              <input
+                id="bulk-delete-from"
+                type="number"
+                min={1}
+                max={blocks.length}
+                value={bulkDeleteFrom}
+                onChange={(event) => setBulkDeleteFrom(event.target.value)}
+                placeholder="1"
+                style={{ ...compactFieldStyle, width: "92px", padding: "8px 10px" }}
+              />
+
+              <label htmlFor="bulk-delete-to" style={{ fontSize: "13px", fontWeight: 700 }}>
+                do
+              </label>
+              <input
+                id="bulk-delete-to"
+                type="number"
+                min={1}
+                max={blocks.length}
+                value={bulkDeleteTo}
+                onChange={(event) => setBulkDeleteTo(event.target.value)}
+                onKeyDown={(event) => {
+                  if (event.key === "Enter") {
+                    event.preventDefault();
+                    deleteTypedBlockRange();
+                  }
+                }}
+                placeholder={String(blocks.length)}
+                style={{ ...compactFieldStyle, width: "92px", padding: "8px 10px" }}
+              />
+
+              <button
+                type="button"
+                onClick={deleteTypedBlockRange}
+                style={{
+                  ...editorButtonStyle,
+                  border: "1px solid rgba(154, 62, 62, 0.35)",
+                  background: "#fff4f2",
+                  color: "#782222",
+                }}
+              >
+                Smazat rozsah
+              </button>
+
+              <button
+                type="button"
+                onClick={deleteAllBlocks}
+                style={{
+                  ...editorButtonStyle,
+                  border: "1px solid rgba(154, 62, 62, 0.48)",
+                  background: "#782222",
+                  color: "#fff",
+                }}
+              >
+                Smazat vše
+              </button>
+            </div>
+
+            {bulkDeleteMessage ? (
+              <p style={{ margin: 0, color: "#782222", fontSize: "13px", lineHeight: 1.45 }}>
+                {bulkDeleteMessage}
+              </p>
+            ) : null}
+          </div>
 
           {visibleBlockEntries.map(({ block, index }) => {
             const selectedTypeMeta =

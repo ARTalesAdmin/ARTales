@@ -18,6 +18,27 @@ function encodeDbError(message: string) {
   return encodeURIComponent(message.slice(0, 300))
 }
 
+function getDatabaseErrorCode(error: unknown) {
+  if (!error || typeof error !== "object") return null
+  return "code" in error ? String((error as { code?: unknown }).code ?? "") : null
+}
+
+async function clearWorkContentBlockBatches(
+  supabase: SupabaseClient,
+  workId: string
+) {
+  const { error } = await supabase
+    .from("work_content_block_batches")
+    .delete()
+    .eq("work_id", workId)
+
+  if (!error) return
+
+  if (getDatabaseErrorCode(error) === "42P01") return
+
+  throw new Error(error.message)
+}
+
 function applyPublicationFields<T extends Record<string, unknown>>(
   payload: T,
   status: string,
@@ -248,6 +269,20 @@ export async function updateWork(
         error.message
       )}`
     )
+  }
+
+  if (values.content_update_mode !== "metadata_only") {
+    try {
+      await clearWorkContentBlockBatches(supabase, String(data.id))
+    } catch (cleanupError) {
+      redirect(
+        `/member/works/${originalSlug}/edit?error=save_failed&db_error=${encodeDbError(
+          cleanupError instanceof Error
+            ? cleanupError.message
+            : "content_batch_cleanup_failed"
+        )}`
+      )
+    }
   }
 
   try {

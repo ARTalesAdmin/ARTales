@@ -506,6 +506,18 @@ function getInsertionAnchorFromBatchMetadata(metadata: unknown) {
   }
 }
 
+function getDeletedBlockIdsFromBatchMetadata(metadata: unknown) {
+  if (!metadata || typeof metadata !== "object") return []
+
+  const rawValue = (metadata as { deleted_block_ids?: unknown }).deleted_block_ids
+
+  if (!Array.isArray(rawValue)) return []
+
+  return rawValue
+    .map((value) => (typeof value === "string" ? value.trim() : ""))
+    .filter(Boolean)
+}
+
 function insertBlocksAfterAnchor(
   merged: WorkBlock[],
   blocksToInsert: WorkBlock[],
@@ -539,10 +551,19 @@ function mergeContentBlockBatches(
   if (batches.length === 0) return baseBlocks
 
   const seenIds = new Set(baseBlocks.map((block) => block.id))
+  const deletedIds = new Set<string>()
   let merged = [...baseBlocks]
 
   batches.forEach((batch) => {
+    const deletedBlockIds = getDeletedBlockIdsFromBatchMetadata(batch.metadata)
+
+    if (deletedBlockIds.length > 0) {
+      deletedBlockIds.forEach((blockId) => deletedIds.add(blockId))
+      merged = merged.filter((block) => !deletedIds.has(block.id))
+    }
+
     const blocksToInsert = mapRawContentBlocks(batch.blocks).filter((block) => {
+      if (deletedIds.has(block.id)) return false
       if (seenIds.has(block.id)) return false
       seenIds.add(block.id)
       return true

@@ -159,6 +159,12 @@ type AppendSavePlan = {
   runs: AppendSaveRun[];
 };
 
+type DeleteSavePlan = {
+  canUseDeleteSave: boolean;
+  reason: "ok" | "existing_blocks_reordered" | "new_blocks_present" | "no_deleted_blocks";
+  deletedBlockIds: string[];
+};
+
 function buildAppendSavePlan(
   blocks: WorkBlock[],
   initialBlockIds: Set<string>,
@@ -217,6 +223,61 @@ function buildAppendSavePlan(
     canUseAppendSave: true,
     reason: "ok",
     runs,
+  };
+}
+
+function buildDeleteSavePlan(
+  blocks: WorkBlock[],
+  initialBlockIds: Set<string>,
+  initialBlockIdOrder: string[],
+): DeleteSavePlan {
+  const hasNewBlocks = blocks.some((block) => !initialBlockIds.has(block.id));
+
+  if (hasNewBlocks) {
+    return {
+      canUseDeleteSave: false,
+      reason: "new_blocks_present",
+      deletedBlockIds: [],
+    };
+  }
+
+  const currentExistingBlockIds = blocks
+    .filter((block) => initialBlockIds.has(block.id))
+    .map((block) => block.id);
+  const currentExistingBlockIdSet = new Set(currentExistingBlockIds);
+  const expectedRemainingOrder = initialBlockIdOrder.filter((blockId) =>
+    currentExistingBlockIdSet.has(blockId),
+  );
+  const existingBlocksReordered =
+    expectedRemainingOrder.length !== currentExistingBlockIds.length ||
+    expectedRemainingOrder.some(
+      (blockId, index) => blockId !== currentExistingBlockIds[index],
+    );
+
+  if (existingBlocksReordered) {
+    return {
+      canUseDeleteSave: false,
+      reason: "existing_blocks_reordered",
+      deletedBlockIds: [],
+    };
+  }
+
+  const deletedBlockIds = initialBlockIdOrder.filter(
+    (blockId) => !currentExistingBlockIdSet.has(blockId),
+  );
+
+  if (deletedBlockIds.length === 0) {
+    return {
+      canUseDeleteSave: false,
+      reason: "no_deleted_blocks",
+      deletedBlockIds: [],
+    };
+  }
+
+  return {
+    canUseDeleteSave: true,
+    reason: "ok",
+    deletedBlockIds,
   };
 }
 
@@ -458,6 +519,10 @@ export default function WorkEditorForm(props: Props) {
     () => buildAppendSavePlan(blocks, initialBlockIds, initialBlockIdOrder),
     [blocks, initialBlockIds, initialBlockIdOrder],
   );
+  const deleteSavePlan = useMemo(
+    () => buildDeleteSavePlan(blocks, initialBlockIds, initialBlockIdOrder),
+    [blocks, initialBlockIds, initialBlockIdOrder],
+  );
   const canAppendNewBlocksOnly =
     mode === "edit" &&
     Boolean(slug) &&
@@ -468,6 +533,13 @@ export default function WorkEditorForm(props: Props) {
     (currentAutosaveDisabled ||
       estimatedBlocksStorageChars >= LARGE_WORK_SAVE_WARNING_CHARS ||
       newBlocksForAppend.length >= SMART_APPEND_MIN_NEW_BLOCKS);
+  const shouldUseBatchDeleteSave =
+    mode === "edit" &&
+    Boolean(slug) &&
+    deleteSavePlan.canUseDeleteSave &&
+    (currentAutosaveDisabled ||
+      estimatedBlocksStorageChars >= LARGE_WORK_SAVE_WARNING_CHARS ||
+      deleteSavePlan.deletedBlockIds.length >= SMART_APPEND_MIN_NEW_BLOCKS);
 
   useEffect(() => {
     if (!isSmartSaving) return;
@@ -935,6 +1007,12 @@ export default function WorkEditorForm(props: Props) {
       return;
     }
 
+    if (shouldUseBatchDeleteSave) {
+      event.preventDefault();
+      await saveDeletedBlocksInBatch();
+      return;
+    }
+
     if (shouldUseBatchAppendSave) {
       event.preventDefault();
       await saveNewBlocksInBatches();
@@ -955,6 +1033,12 @@ export default function WorkEditorForm(props: Props) {
         setSaveSubmitMessage(
           "Dílo je velmi velké, proto ukládám jen metadata a stav publikace. Obsah bloků zůstane beze změny.",
         );
+        return;
+      }
+
+      if (shouldUseBatchDeleteSave) {
+        event.preventDefault();
+        await saveDeletedBlocksInBatch();
         return;
       }
 
@@ -986,6 +1070,72 @@ export default function WorkEditorForm(props: Props) {
     }
   }
 
+
+  async function saveDeletedBlocksInBatch() {
+    if (!slug) {
+      setSaveSubmitMessage("Smazané bloky lze dávkově uložit jen u už existujícího díla.");
+      scrollToSaveActions();
+      return;
+    }
+
+    if (!deleteSavePlan.canUseDeleteSave || deleteSavePlan.deletedBlockIds.length === 0) {
+      setSaveSubmitMessage(
+        deleteSavePlan.reason === "existing_blocks_reordered"
+          ? "Chytré uložení smazání nelze bezpečně použít, protože se změnilo pořadí původních bloků. U menšího díla zkus běžné uložení; u velmi dlouhého díla si nejdřív stáhni zálohu."
+          : deleteSavePlan.reason === "new_blocks_present"
+            ? "Chytré uložení smazání teď neumí současně uložit nově přidané bloky. Ulož nejdřív nové bloky, obnov stránku a potom smaž rozsah."
+            : "Nejsou připravené žádné původní bloky ke smazání.",
+      );
+      scrollToSaveActions();
+      return;
+    }
+
+    const confirmed = window.confirm(
+      `Trvale uložit smazání ${deleteSavePlan.deletedBlockIds.length} ${deleteSavePlan.deletedBlockIds.length === 1 ? "bloku" : deleteSavePlan.deletedBlockIds.length < 5 ? "bloků" : "bloků"}? U velkého díla se změna uloží do dávkové vrstvy a stránka se potom obnoví.`,
+    );
+
+    if (!confirmed) return;
+
+    setIsSmartSaving(true);
+    scrollToSaveActions();
+    setSaveSubmitMessage(
+      `Ukládám smazání ${deleteSavePlan.deletedBlockIds.length} ${deleteSavePlan.deletedBlockIds.length === 1 ? "bloku" : deleteSavePlan.deletedBlockIds.length < 5 ? "bloků" : "bloků"}. Prosím neodcházej ze stránky.`,
+    );
+
+    try {
+      const response = await fetch(`/api/member/works/${encodeURIComponent(slug)}/delete-blocks`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ blockIds: deleteSavePlan.deletedBlockIds }),
+      });
+
+      const result = (await response.json().catch(() => null)) as
+        | { ok?: boolean; message?: string; deletedCount?: number }
+        | null;
+
+      if (!response.ok || !result?.ok) {
+        throw new Error(result?.message ?? "Smazané bloky se nepodařilo uložit.");
+      }
+
+      removeLocalDraft(storageKey);
+      setSaveSubmitMessage(
+        result.message ??
+          `Uloženo smazání ${result.deletedCount ?? deleteSavePlan.deletedBlockIds.length} bloků. Stránka se obnoví.`,
+      );
+      suppressBeforeUnloadRef.current = true;
+      window.location.assign(returnTo);
+    } catch (error) {
+      setIsSmartSaving(false);
+      setSaveSubmitMessage(
+        error instanceof Error
+          ? error.message
+          : "Smazané bloky se nepodařilo uložit. Stáhni si zálohu bloků a zkus to prosím znovu.",
+      );
+      scrollToSaveActions();
+    }
+  }
 
   async function saveNewBlocksInBatches() {
     if (!slug) {
