@@ -161,8 +161,14 @@ type AppendSavePlan = {
 
 type DeleteSavePlan = {
   canUseDeleteSave: boolean;
-  reason: "ok" | "existing_blocks_reordered" | "new_blocks_present" | "no_deleted_blocks";
+  reason:
+    | "ok"
+    | "existing_blocks_reordered"
+    | "existing_blocks_changed"
+    | "new_blocks_present"
+    | "no_deleted_blocks";
   deletedBlockIds: string[];
+  changedBlocks: WorkBlock[];
 };
 
 function buildAppendSavePlan(
@@ -228,6 +234,7 @@ function buildAppendSavePlan(
 
 function buildDeleteSavePlan(
   blocks: WorkBlock[],
+  initialBlocksById: Map<string, WorkBlock>,
   initialBlockIds: Set<string>,
   initialBlockIdOrder: string[],
 ): DeleteSavePlan {
@@ -238,6 +245,7 @@ function buildDeleteSavePlan(
       canUseDeleteSave: false,
       reason: "new_blocks_present",
       deletedBlockIds: [],
+      changedBlocks: [],
     };
   }
 
@@ -259,6 +267,7 @@ function buildDeleteSavePlan(
       canUseDeleteSave: false,
       reason: "existing_blocks_reordered",
       deletedBlockIds: [],
+      changedBlocks: [],
     };
   }
 
@@ -271,13 +280,22 @@ function buildDeleteSavePlan(
       canUseDeleteSave: false,
       reason: "no_deleted_blocks",
       deletedBlockIds: [],
+      changedBlocks: [],
     };
   }
+
+  const changedBlocks = blocks.filter((block) => {
+    if (!initialBlockIds.has(block.id)) return false;
+    const initialBlock = initialBlocksById.get(block.id);
+    if (!initialBlock) return false;
+    return stableStringify(block) !== stableStringify(initialBlock);
+  });
 
   return {
     canUseDeleteSave: true,
     reason: "ok",
     deletedBlockIds,
+    changedBlocks,
   };
 }
 
@@ -503,6 +521,10 @@ export default function WorkEditorForm(props: Props) {
     [blocks],
   );
   const largeWorkSaveRiskMessage = getLargeWorkSaveRiskMessage(estimatedBlocksStorageChars);
+  const initialBlocksById = useMemo(
+    () => new Map(initialData.blocks.map((block) => [block.id, block] as const)),
+    [initialData.blocks],
+  );
   const initialBlockIds = useMemo(
     () => new Set(initialData.blocks.map((block) => block.id)),
     [initialData.blocks],
@@ -520,8 +542,8 @@ export default function WorkEditorForm(props: Props) {
     [blocks, initialBlockIds, initialBlockIdOrder],
   );
   const deleteSavePlan = useMemo(
-    () => buildDeleteSavePlan(blocks, initialBlockIds, initialBlockIdOrder),
-    [blocks, initialBlockIds, initialBlockIdOrder],
+    () => buildDeleteSavePlan(blocks, initialBlocksById, initialBlockIds, initialBlockIdOrder),
+    [blocks, initialBlocksById, initialBlockIds, initialBlockIdOrder],
   );
   const canAppendNewBlocksOnly =
     mode === "edit" &&
@@ -1108,11 +1130,14 @@ export default function WorkEditorForm(props: Props) {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ blockIds: deleteSavePlan.deletedBlockIds }),
+        body: JSON.stringify({
+          blockIds: deleteSavePlan.deletedBlockIds,
+          changedBlocks: deleteSavePlan.changedBlocks,
+        }),
       });
 
       const result = (await response.json().catch(() => null)) as
-        | { ok?: boolean; message?: string; deletedCount?: number }
+        | { ok?: boolean; message?: string; deletedCount?: number; changedCount?: number }
         | null;
 
       if (!response.ok || !result?.ok) {
@@ -1122,7 +1147,7 @@ export default function WorkEditorForm(props: Props) {
       removeLocalDraft(storageKey);
       setSaveSubmitMessage(
         result.message ??
-          `Uloženo smazání ${result.deletedCount ?? deleteSavePlan.deletedBlockIds.length} bloků. Stránka se obnoví.`,
+          `Uloženo smazání ${result.deletedCount ?? deleteSavePlan.deletedBlockIds.length} bloků${(result.changedCount ?? deleteSavePlan.changedBlocks.length) > 0 ? ` a úprava ${result.changedCount ?? deleteSavePlan.changedBlocks.length} ponechaných bloků` : ""}. Stránka se obnoví.`,
       );
       suppressBeforeUnloadRef.current = true;
       window.location.assign(returnTo);

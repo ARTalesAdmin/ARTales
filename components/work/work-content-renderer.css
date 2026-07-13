@@ -87,6 +87,10 @@
   font-size: 1em;
 }
 
+.artales-headline {
+  text-align: center;
+}
+
 .artales-headline h4 {
   font-size: 1.35rem;
   font-weight: 700;
@@ -109,8 +113,7 @@
   max-width: 42rem;
 }
 
-.artales-poem pre {
-  background: transparent;
+.artales-poem-text {
   font-family: Georgia, "Times New Roman", serif;
   font-size: 1em;
   font-style: italic;

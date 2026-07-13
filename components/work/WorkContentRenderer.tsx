@@ -47,26 +47,34 @@ function splitParagraphs(text: string): string[] {
     .filter(Boolean)
 }
 
+function normalizeInlineMarkup(text: string) {
+  return text
+    .replace(/&lt;(\/?(?:em|i))&gt;/gi, "<$1>")
+    .replace(/<\s*(em|i)\s*>/gi, "<$1>")
+    .replace(/<\s*\/\s*(em|i)\s*>/gi, "</$1>")
+}
+
 function renderInlineRichText(text: string) {
+  const normalizedText = normalizeInlineMarkup(text)
   const parts: ReactNode[] = []
-  const pattern = /<em>([^]*?)<\/em>/gi
+  const pattern = /<(em|i)>([\s\S]*?)<\/\1>/gi
   let lastIndex = 0
   let match: RegExpExecArray | null
 
-  while ((match = pattern.exec(text)) !== null) {
+  while ((match = pattern.exec(normalizedText)) !== null) {
     if (match.index > lastIndex) {
-      parts.push(text.slice(lastIndex, match.index))
+      parts.push(normalizedText.slice(lastIndex, match.index))
     }
 
-    parts.push(<em key={`em-${match.index}`}>{match[1]}</em>)
+    parts.push(<em key={`em-${match.index}`}>{match[2]}</em>)
     lastIndex = match.index + match[0].length
   }
 
-  if (lastIndex < text.length) {
-    parts.push(text.slice(lastIndex))
+  if (lastIndex < normalizedText.length) {
+    parts.push(normalizedText.slice(lastIndex))
   }
 
-  return parts.length > 0 ? parts : text
+  return parts.length > 0 ? parts : normalizedText
 }
 
 function renderMultiParagraphText(text: string, className?: string) {
@@ -167,7 +175,7 @@ function renderBlock({ block, index, footnoteNumberByBlockId }: RenderBlockProps
     case "poem":
       return (
         <section key={key} className="artales-block artales-poem" data-block-type={block.type}>
-          <pre>{text}</pre>
+          <div className="artales-poem-text">{renderInlineRichText(text)}</div>
         </section>
       )
 
@@ -177,10 +185,10 @@ function renderBlock({ block, index, footnoteNumberByBlockId }: RenderBlockProps
 
       return (
         <section key={key} className="artales-block artales-letter" data-block-type={block.type}>
-          {placeYear ? <p className="artales-letter-place-year">{placeYear}</p> : null}
+          {placeYear ? <p className="artales-letter-place-year">{renderInlineRichText(placeYear)}</p> : null}
           <div className="artales-letter-body">{renderMultiParagraphText(text)}</div>
           {dateSignature ? (
-            <p className="artales-letter-date-signature">{dateSignature}</p>
+            <p className="artales-letter-date-signature">{renderInlineRichText(dateSignature)}</p>
           ) : null}
         </section>
       )
@@ -196,7 +204,7 @@ function renderBlock({ block, index, footnoteNumberByBlockId }: RenderBlockProps
     case "place_line":
       return (
         <p key={key} className="artales-block artales-place-line" data-block-type={block.type}>
-          {text}
+          {renderInlineRichText(text)}
         </p>
       )
 
@@ -208,7 +216,7 @@ function renderBlock({ block, index, footnoteNumberByBlockId }: RenderBlockProps
           data-block-type={block.type}
           aria-hidden="true"
         >
-          <span>{text || "* * *"}</span>
+          <span>{renderInlineRichText(text || "* * *")}</span>
         </div>
       )
 
@@ -231,7 +239,7 @@ function renderBlock({ block, index, footnoteNumberByBlockId }: RenderBlockProps
         >
           {/* eslint-disable-next-line @next/next/no-img-element -- Rich text images use Supabase Storage URLs and keep their natural aspect ratio. */}
           <img src={imageUrl} alt={alt} loading="lazy" />
-          {caption ? <figcaption>{caption}</figcaption> : null}
+          {caption ? <figcaption>{renderInlineRichText(caption)}</figcaption> : null}
         </figure>
       )
     }

@@ -518,6 +518,30 @@ function getDeletedBlockIdsFromBatchMetadata(metadata: unknown) {
     .filter(Boolean)
 }
 
+function getUpdatedBlocksFromBatchMetadata(metadata: unknown) {
+  if (!metadata || typeof metadata !== "object") return []
+
+  const rawValue = (metadata as { updated_blocks?: unknown }).updated_blocks
+
+  if (!Array.isArray(rawValue)) return []
+
+  return mapRawContentBlocks(rawValue)
+}
+
+function replaceBlocksById(merged: WorkBlock[], updatedBlocks: WorkBlock[], deletedIds: Set<string>) {
+  if (updatedBlocks.length === 0) return merged
+
+  const updatedById = new Map(
+    updatedBlocks
+      .filter((block) => !deletedIds.has(block.id))
+      .map((block) => [block.id, block] as const),
+  )
+
+  if (updatedById.size === 0) return merged
+
+  return merged.map((block) => updatedById.get(block.id) ?? block)
+}
+
 function insertBlocksAfterAnchor(
   merged: WorkBlock[],
   blocksToInsert: WorkBlock[],
@@ -561,6 +585,12 @@ function mergeContentBlockBatches(
       deletedBlockIds.forEach((blockId) => deletedIds.add(blockId))
       merged = merged.filter((block) => !deletedIds.has(block.id))
     }
+
+    merged = replaceBlocksById(
+      merged,
+      getUpdatedBlocksFromBatchMetadata(batch.metadata),
+      deletedIds,
+    )
 
     const blocksToInsert = mapRawContentBlocks(batch.blocks).filter((block) => {
       if (deletedIds.has(block.id)) return false

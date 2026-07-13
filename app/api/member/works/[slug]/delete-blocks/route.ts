@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getCurrentProfile } from "@/lib/auth";
 import { canEditContent } from "@/lib/permissions";
 import { createClient } from "@/lib/supabase/server";
+import { sanitizeWorkBlocks, validateWorkBlocks } from "@/lib/blocks";
 
 export const dynamic = "force-dynamic";
 
@@ -11,6 +12,7 @@ type RouteContext = {
 
 type DeleteBlocksPayload = {
   blockIds?: unknown;
+  changedBlocks?: unknown;
 };
 
 function toErrorResponse(message: string, status = 400) {
@@ -53,9 +55,16 @@ export async function POST(request: Request, context: RouteContext) {
   }
 
   const blockIds = normalizeBlockIds(payload.blockIds);
+  const changedBlocks = sanitizeWorkBlocks(Array.isArray(payload.changedBlocks) ? payload.changedBlocks : []);
 
   if (blockIds.length === 0) {
     return toErrorResponse("Nejsou vybrané žádné bloky ke smazání.");
+  }
+
+  const changedBlocksError = validateWorkBlocks(changedBlocks);
+
+  if (changedBlocksError) {
+    return toErrorResponse(`Upravené ponechané bloky nejsou platné: ${changedBlocksError}`);
   }
 
   const { data: work, error: loadError } = await supabase
@@ -81,6 +90,8 @@ export async function POST(request: Request, context: RouteContext) {
       source: "large_work_delete",
       deleted_block_ids: blockIds,
       deleted_count: blockIds.length,
+      updated_blocks: changedBlocks,
+      updated_count: changedBlocks.length,
       work_slug: slug,
       actor_profile_id: profile?.id ?? null,
       saved_via: "smart_delete",
@@ -103,6 +114,10 @@ export async function POST(request: Request, context: RouteContext) {
   return NextResponse.json({
     ok: true,
     deletedCount: blockIds.length,
-    message: `Uloženo smazání ${blockIds.length} bloků. Po obnovení stránky už nebudou součástí editoru ani čtečky.`,
+    changedCount: changedBlocks.length,
+    message:
+      changedBlocks.length > 0
+        ? `Uloženo smazání ${blockIds.length} bloků a úprava ${changedBlocks.length} ponechaných bloků. Po obnovení stránky bude editor i čtečka načítat novou verzi.`
+        : `Uloženo smazání ${blockIds.length} bloků. Po obnovení stránky už nebudou součástí editoru ani čtečky.`,
   });
 }
