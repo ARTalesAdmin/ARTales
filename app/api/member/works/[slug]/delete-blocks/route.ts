@@ -61,7 +61,8 @@ export async function POST(request: Request, context: RouteContext) {
     return toErrorResponse("Nejsou vybrané žádné bloky ke smazání.");
   }
 
-  const changedBlocksError = validateWorkBlocks(changedBlocks);
+  const changedBlocksError =
+    changedBlocks.length > 0 ? validateWorkBlocks(changedBlocks) : null;
 
   if (changedBlocksError) {
     return toErrorResponse(`Upravené ponechané bloky nejsou platné: ${changedBlocksError}`);
