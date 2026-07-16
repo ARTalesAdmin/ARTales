@@ -32,7 +32,7 @@ export default async function LegalIndexPage() {
         {
           href: "/legal/contact",
           title: "Kontakt",
-          text: "Kam psát kvůli dotazům, opravám, právům k textům nebo technickým problémům.",
+          text: "Kam psát kvůli dotazům, námětům na tituly, opravám, právům k textům nebo technickým problémům.",
         },
       ]
     : [
@@ -54,7 +54,7 @@ export default async function LegalIndexPage() {
         {
           href: "/legal/contact",
           title: "Contact",
-          text: "Where to write about questions, corrections, rights issues or technical problems.",
+          text: "Where to write about questions, title requests, corrections, rights issues or technical problems.",
         },
       ];
 

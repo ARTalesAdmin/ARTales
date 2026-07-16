@@ -209,7 +209,7 @@ export default async function ManualQrCheckoutPage({ searchParams }: PageProps) 
               <button className="artales-button-secondary" type="submit">{t.cancelPayment}</button>
             </form>
           ) : null}
-          <Link className="artales-button" href="mailto:artales@seznam.cz">{t.contactSupport}</Link>
+          <Link className="artales-button" href="mailto:info@artales.net">{t.contactSupport}</Link>
           <Link className="artales-button-secondary" href="/checkout/credits">{t.backToCredit}</Link>
           <Link className="artales-button-secondary" href="/account/library">{t.library}</Link>
           <Link className="artales-button-secondary" href="/checkout/support">{t.support}</Link>

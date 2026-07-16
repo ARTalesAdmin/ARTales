@@ -1,7 +1,7 @@
 {
   "name": "ARTales",
   "short_name": "ARTales",
-  "description": "Living literary editions, curated collections and online reading.",
+  "description": "An online library for calm reading, curated collections and a reader community around literature.",
   "id": "/?source=pwa",
   "start_url": "/?source=pwa",
   "scope": "/",
@@ -11,8 +11,8 @@
     "minimal-ui",
     "browser"
   ],
-  "background_color": "#fbf5ea",
-  "theme_color": "#0d1528",
+  "background_color": "#f7efe2",
+  "theme_color": "#0b0d10",
   "orientation": "any",
   "categories": [
     "books",
@@ -49,9 +49,9 @@
   ],
   "shortcuts": [
     {
-      "name": "Gallery",
-      "short_name": "Gallery",
-      "description": "Open the ARTales gallery.",
+      "name": "Library",
+      "short_name": "Library",
+      "description": "Open the ARTales library gallery.",
       "url": "/gallery?source=pwa",
       "icons": [
         {

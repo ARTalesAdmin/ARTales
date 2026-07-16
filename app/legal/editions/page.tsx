@@ -49,7 +49,7 @@ export default async function EditionsInfoPage() {
               </p>
               <h2>Opravy a připomínky</h2>
               <p>
-                Pokud narazíte na chybu v textu, metadatech, autorství, zdroji nebo právním zařazení, napište nám přes
+                Pokud narazíte na chybu v textu, metadatech, autorství, zdroji nebo právním zařazení, napište nám na info@artales.net nebo přes
                 kontaktní stránku. Cílem je držet edice přesné, čitelné a poctivě označené.
               </p>
             </>
@@ -80,7 +80,7 @@ export default async function EditionsInfoPage() {
               <h2>Corrections and notices</h2>
               <p>
                 If you notice an issue with text, metadata, authorship, source attribution or legal classification, please
-                contact us. The goal is to keep editions accurate, readable and clearly described.
+                write to info@artales.net or contact us. The goal is to keep editions accurate, readable and clearly described.
               </p>
             </>
           )}

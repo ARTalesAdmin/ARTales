@@ -72,7 +72,7 @@ export default async function Home() {
             </div>
           </div>
 
-          <aside className="artales-home-brand-panel" aria-label="ARTales visual identity">
+          <aside className="artales-home-brand-panel" aria-label={t.homeBrandPanelLabel}>
             <p className="artales-home-panel-label">{t.homeBrandPanelLabel}</p>
             <ArtalesBrand href="" variant="adaptive" size="lg" showMark />
             <p>{t.homeBrandNote}</p>
@@ -130,6 +130,9 @@ export default async function Home() {
             </Link>
             <Link className="artales-button-secondary" href="/gallery">
               {t.homeFinalSecondaryCta}
+            </Link>
+            <Link className="artales-button-secondary" href="mailto:info@artales.net">
+              {t.homeFinalContactCta}
             </Link>
           </div>
         </section>

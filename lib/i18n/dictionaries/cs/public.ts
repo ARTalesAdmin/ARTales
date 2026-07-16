@@ -79,32 +79,32 @@ export const csPublic = {
   deliveryOnlineReader: "Online reader",
   deliveryDigitalEditionsLater: "Ediční soubory",
 
-  homeEyebrow: "Čtení, edice, klidný literární prostor",
-  homeTitle: "Knihovna pro texty, ke kterým má smysl se vracet.",
+  homeEyebrow: "Online knihovna pro klidné čtení",
+  homeTitle: "Čtěte literaturu v klidu, bez zbytečných technikálií.",
   homeIntro:
-    "ARTales je online knihovna a ediční prostor pro čtenáře, kteří chtějí víc než jen rychlý soubor. Nabízíme klidnou čtečku, kurátorské kolekce a postupně budovanou péči o díla, jejich strukturu, původ a čtenářský kontext.",
+    "ARTales vzniká jako knihovna a čtenářský prostor pro klasická i nově připravovaná díla. Otevřete ukázku, vraťte se ke čtení z telefonu i počítače a objevujte texty v souvislostech, ne v reklamním hluku.",
   homePrimaryCta: "Procházet galerii",
   homeSecondaryCta: "Vyzkoušet čtečku",
-  homeBrandPanelLabel: "ARTales identity",
+  homeBrandPanelLabel: "Značka ARTales",
   homeThemeLabel: "Motiv stránky",
   homeFeatureAria: "Co ARTales nabízí",
   homeBrandNote:
-    "Stavíme literární prostředí, kde má text vlastní tvar, čtenář vlastní knihovnu a každé dílo může být časem doplněno o ediční i obrazové vrstvy.",
-  homeCardEditionsTitle: "Díla s jasnou strukturou",
+    "Jsme nezávislá online knihovna pro čtenáře, školy, autory i lidi, kteří chtějí literaturu používat, sdílet a spoluvytvářet smysluplněji.",
+  homeCardEditionsTitle: "Knihovna, ne skladiště souborů",
   homeCardEditionsText:
-    "Kapitoly, básně, dopisy, ilustrace, zdroje a poznámky nemají splývat v jeden dlouhý blok. ARTales pracuje s dílem jako s edicí, ne jako s anonymním uploadem.",
-  homeCardReaderTitle: "Čtečka bez zbytečného hluku",
+    "Díla připravujeme tak, aby se v nich dalo číst, hledat i vracet. Uvidíte autora, anotaci, jazyk, ukázku a postupně také souvislosti, které pomáhají vybrat správný titul.",
+  homeCardReaderTitle: "Čtení z jakéhokoli zařízení",
   homeCardReaderText:
-    "Reader má být soustředěný, čitelný a použitelný na počítači i mobilu. V popředí je text; ovládání a technika mají ustoupit stranou.",
-  homeCardExpansionTitle: "Účet, knihovna, členství",
+    "Čtečka je online, soustředěná a použitelná na mobilu, tabletu i počítači. Nemusíte řešit formát souboru — stačí otevřít titul a pokračovat tam, kde jste skončili.",
+  homeCardExpansionTitle: "Čtenáři mohou ovlivnit směr",
   homeCardExpansionText:
-    "Čtenářský účet ukládá knihovnu, návrat ke čtení a AT kredity. Členství postupně přidá pohodlnější přístup ke katalogu i pravidelnému čtení.",
-  homeReaderEyebrow: "Reader jako základ",
-  homeReaderTitle: "Nejdřív kvalitní čtení. Další vrstvy až potom.",
+    "Chceme, aby čtenáři mohli navrhovat tituly, upozornit na chyby, pomáhat s díly a časem se zapojit do překladů, čtenářských okruhů i autorských projektů.",
+  homeReaderEyebrow: "Pro koho ARTales vzniká",
+  homeReaderTitle: "Místo pro čtenáře, studenty, učitele i autory.",
   homeReaderText:
-    "Do launche dáváme přednost parseru, readeru a spolehlivé práci s dílem. Chceme, aby velká díla šla připravovat rozumně a aby se čtenář setkal hlavně s čistým textem, ne s technickými kompromisy.",
+    "Někdo hledá povinnou četbu, někdo dárek pro čtenáře, někdo klidné místo pro román po večerech. Jiný chce rozšířit obzory, připravit výuku, najít zdroj k referátu nebo sledovat autora před vydáním nové knihy.",
   homeReaderTextSecondary:
-    "PDF, EPUB a další ediční formáty mají přijít ve chvíli, kdy bude obsahová vrstva dostatečně stabilní. Základ ARTales je teď online čtení a kvalitně zpracovaný katalog.",
+    "ARTales má být klidná knihovna i živý literární prostor: bez reklamního tlaku, s pohodlnou čtečkou, kurátorskými kolekcemi a možností říct nám, co vám v nabídce chybí.",
   homePathAria: "Cesty do ARTales",
   homePathGalleryEyebrow: "Katalog",
   homePathGalleryTitle: "Vyber si dílo",
@@ -116,19 +116,20 @@ export const csPublic = {
   homePathCollectionsText:
     "Kolekce nejsou žánrové police. Jsou to literární trasy podle atmosféry, motivu, období nebo čtenářské zkušenosti.",
   homePathCollectionsCta: "Procházet kolekce",
-  homePathAccountEyebrow: "Čtenářský účet",
-  homePathAccountTitle: "Vrať se tam, kde jsi skončil/a",
+  homePathAccountEyebrow: "Účet a členství",
+  homePathAccountTitle: "Mějte čtení po ruce",
   homePathAccountText:
-    "Účet drží knihovnu, odemčené tituly, čtenářské nastavení a AT kredity pro další přístup k dílům.",
-  homePathAccountCta: "Zobrazit možnosti",
-  homeFinalEyebrow: "Začni jednoduše",
-  homeFinalTitle: "Vytvoř si čtenářský účet nebo rovnou otevři galerii.",
+    "Bezplatný účet vám umožní ukládat tituly, pokračovat ve čtení a časem využívat širší čtenářské možnosti. Členství připravujeme jako pohodlnější cestu k pravidelnému čtení.",
+  homePathAccountCta: "Zobrazit účet a členství",
+  homeFinalEyebrow: "Začněte jednoduše",
+  homeFinalTitle: "Otevřete galerii, vyberte si titul a čtěte.",
   homeFinalText:
-    "ARTales vzniká postupně, ale už teď má jasný cíl: nabídnout důvěryhodné místo pro klidné čtení, edičně zpracovaná díla a pozdější komunitní rozvoj kolem literatury.",
+    "Začněte ukázkou nebo si vytvořte účet zdarma. A pokud vám chybí konkrétní kniha, autor, překlad nebo funkce, napište nám — čtenářské podněty bereme jako součást práce na knihovně.",
   homeFinalPrimaryCta: "Vytvořit účet zdarma",
   homeFinalSecondaryCta: "Procházet díla",
+  homeFinalContactCta: "Napsat ARTales",
   homeDevelopmentNote:
-    "ARTales vzniká v Česku jako nezávislá literární platforma s důrazem na čitelnost, ediční péči a dlouhodobou hodnotu textu.",
+    "Náměty na tituly, opravy, spolupráci nebo čtenářské okruhy posílejte na info@artales.net.",
 
   author: "Autor",
   authorsTitle: "Autoři ARTales",

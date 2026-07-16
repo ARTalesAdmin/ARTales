@@ -44,8 +44,7 @@ export default async function TermsPage() {
               </p>
               <h2>Bez záruky úplnosti</h2>
               <p>
-                Platforma je poskytována průběžně a může obsahovat chyby, nedokončená metadata nebo pracovní edice. ARTales
-                neusiluje o právní, akademickou ani archivní garanci úplnosti.
+                ARTales připravuje a zpřístupňuje obsah průběžně. Pokud narazíte na chybu, nejasné metadata nebo problém se zdrojem, napište nám na info@artales.net. Platforma neposkytuje právní, akademickou ani archivní garanci úplnosti.
               </p>
             </>
           ) : (
@@ -68,8 +67,7 @@ export default async function TermsPage() {
               </p>
               <h2>No completeness guarantee</h2>
               <p>
-                The platform is developed continuously and may contain errors, incomplete metadata or working editions.
-                ARTales does not provide legal, academic or archival guarantees of completeness.
+                ARTales prepares and publishes content continuously. If you notice an error, unclear metadata or a source issue, write to info@artales.net. The platform does not provide legal, academic or archival guarantees of completeness.
               </p>
             </>
           )}

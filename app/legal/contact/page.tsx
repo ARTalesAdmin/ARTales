@@ -26,31 +26,27 @@ export default async function ContactPage() {
           {isCs ? (
             <>
               <p>
-                Pro běžné dotazy, opravy metadat, upozornění na chyby, právní připomínky nebo spolupráci použijte tento
-                kontaktní e-mail:
+                Pro běžné dotazy, náměty na tituly, opravy metadat, upozornění na chyby, právní připomínky nebo spolupráci použijte tento kontaktní e-mail:
               </p>
               <p className="artales-legal-contact">
-                <a href="mailto:artales@seznam.cz">artales@seznam.cz</a>
+                <a href="mailto:info@artales.net">info@artales.net</a>
               </p>
               <h2>Co prosím přiložit</h2>
               <p>
-                U opravy díla ideálně pošlete název díla, odkaz na stránku, popis problému a případný zdroj nebo doporučenou
-                opravu.
+                U opravy díla ideálně pošlete název díla, odkaz na stránku, popis problému a případný zdroj nebo doporučenou opravu. U námětu na nový titul stačí napsat autora, název a proč by podle vás měl být v knihovně ARTales.
               </p>
             </>
           ) : (
             <>
               <p>
-                For general questions, metadata corrections, error reports, rights notices or collaboration, use this contact
-                e-mail:
+                For general questions, title requests, metadata corrections, error reports, rights notices or collaboration, use this contact e-mail:
               </p>
               <p className="artales-legal-contact">
-                <a href="mailto:artales@seznam.cz">artales@seznam.cz</a>
+                <a href="mailto:info@artales.net">info@artales.net</a>
               </p>
               <h2>What to include</h2>
               <p>
-                For work corrections, please include the work title, page link, issue description and, if available, a source
-                or suggested correction.
+                For work corrections, please include the work title, page link, issue description and, if available, a source or suggested correction. For a new title request, the author, title and reason why it belongs in ARTales are enough.
               </p>
             </>
           )}

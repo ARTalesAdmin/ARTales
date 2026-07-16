@@ -11,7 +11,7 @@ export const metadata: Metadata = {
     template: "%s · ARTales",
   },
   description:
-    "ARTales is a literary publishing and reading platform for living editions, curated collections and structured online reading.",
+    "ARTales is an online library for calm reading, curated collections and a reader community around literature.",
   applicationName: "ARTales",
   manifest: "/manifest.webmanifest",
   appleWebApp: {
@@ -25,6 +25,7 @@ export const metadata: Metadata = {
   icons: {
     icon: [
       { url: "/favicon.ico", sizes: "any" },
+      { url: "/favicon.svg", type: "image/svg+xml" },
       { url: "/icons/artales-icon-192.png", sizes: "192x192", type: "image/png" },
       { url: "/icons/artales-icon-512.png", sizes: "512x512", type: "image/png" },
     ],
@@ -40,8 +41,8 @@ export const viewport: Viewport = {
   initialScale: 1,
   viewportFit: "cover",
   themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "#fbf5ea" },
-    { media: "(prefers-color-scheme: dark)", color: "#0d1528" },
+    { media: "(prefers-color-scheme: light)", color: "#f7efe2" },
+    { media: "(prefers-color-scheme: dark)", color: "#0b0d10" },
   ],
 };
 

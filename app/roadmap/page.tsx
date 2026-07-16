@@ -70,12 +70,12 @@ export default async function RoadmapPage() {
       <PublicHeader active="roadmap" />
       <main className="artales-public-main artales-legal-main">
         <article className="artales-legal-article">
-          <p className="artales-public-kicker">ARTales atelier</p>
-          <h1>{isCs ? "Co se může narodit dál" : "What may come next"}</h1>
+          <p className="artales-public-kicker">{isCs ? "Ateliér ARTales" : "ARTales Atelier"}</p>
+          <h1>{isCs ? "Co chystáme" : "What we are preparing"}</h1>
           <p>
             {isCs
-              ? "ARTales není jen místo pro čtení hotových textů. Je to prostor pro knihy, které mohou vznikat, proměňovat se, dostávat hlas, najít své čtenáře a časem i vlastní patrony. Tady je výhled na směry, které chceme rozvíjet."
-              : "ARTales is not only a place for finished texts. It is a space for books that can emerge, change shape, find a voice, reach readers and, over time, gain their own patrons. Here are the directions we want to explore."}
+              ? "ARTales chceme rozvíjet jako knihovnu, čtečku i literární ateliér: místo pro čtení, autory, školy, čtenářské okruhy a nové způsoby práce s textem. Tady jsou směry, které připravujeme postupně."
+              : "We want ARTales to grow as a library, reader and literary atelier: a place for reading, authors, schools, reading circles and new ways of working with texts. These are the directions we are preparing step by step."}
           </p>
 
           <section className="artales-menu-roadmap" aria-label={isCs ? "Budoucí směry ARTales" : "Future ARTales directions"}>
@@ -96,7 +96,7 @@ export default async function RoadmapPage() {
                 ? "Máte vysněnou knihu, autora, překlad, alternativní konec, audioverzi, tvůrčí kurz nebo službu, kterou by podle vás ARTales mělo nabídnout? Napište nám. Nejlepší přání pomáhají určovat, čemu dáme přednost."
                 : "Do you have a dream book, author, translation, alternative ending, audio edition, creative course or service you would like ARTales to offer? Tell us. The best wishes help shape what comes first."}
             </p>
-            <Link className="artales-button-secondary" href="mailto:artales@seznam.cz">
+            <Link className="artales-button-secondary" href="mailto:info@artales.net">
               {isCs ? "Napsat ARTales" : "Write to ARTales"}
             </Link>
           </section>

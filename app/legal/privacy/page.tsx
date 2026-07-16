@@ -45,7 +45,7 @@ export default async function PrivacyPage() {
               </p>
               <h2>Kontakt k údajům</h2>
               <p>
-                Kvůli dotazům, opravě nebo odstranění údajů nás kontaktujte přes kontaktní stránku.
+                Kvůli dotazům, opravě nebo odstranění údajů nám napište na info@artales.net nebo přes kontaktní stránku.
               </p>
             </>
           ) : (
@@ -70,7 +70,7 @@ export default async function PrivacyPage() {
               </p>
               <h2>Data contact</h2>
               <p>
-                For questions, corrections or deletion requests, contact us through the contact page.
+                For questions, corrections or deletion requests, write to info@artales.net or use the contact page.
               </p>
             </>
           )}
