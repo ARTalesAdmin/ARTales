@@ -5594,3 +5594,107 @@ html[data-artales-theme="dark"] .artales-account-content .divide-y > :not([hidde
 html[data-artales-theme="dark"] .artales-credit-checkout .divide-y > :not([hidden]) ~ :not([hidden]) {
   border-color: rgba(240, 209, 136, 0.13) !important;
 }
+
+/* v0.10.14i — dark internal inline actions/readiness contrast polish */
+html[data-artales-theme="dark"] .artales-member-content a[style*="border"],
+html[data-artales-theme="dark"] .artales-member-content a[style*="padding"],
+html[data-artales-theme="dark"] .artales-member-content button[style*="border"],
+html[data-artales-theme="dark"] .artales-member-content button[style*="padding"],
+html[data-artales-theme="dark"] .artales-admin-dashboard a[style*="border"],
+html[data-artales-theme="dark"] .artales-admin-dashboard a[style*="padding"],
+html[data-artales-theme="dark"] .artales-admin-dashboard button[style*="border"],
+html[data-artales-theme="dark"] .artales-admin-dashboard button[style*="padding"] {
+  background: linear-gradient(180deg, #e0bd70, #c99b3f) !important;
+  border-color: rgba(240, 209, 136, 0.78) !important;
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.28) !important;
+  color: #101215 !important;
+  text-decoration: none !important;
+}
+
+html[data-artales-theme="dark"] .artales-member-content a[style*="border"]:hover,
+html[data-artales-theme="dark"] .artales-member-content a[style*="padding"]:hover,
+html[data-artales-theme="dark"] .artales-member-content button[style*="border"]:hover,
+html[data-artales-theme="dark"] .artales-member-content button[style*="padding"]:hover,
+html[data-artales-theme="dark"] .artales-admin-dashboard a[style*="border"]:hover,
+html[data-artales-theme="dark"] .artales-admin-dashboard a[style*="padding"]:hover,
+html[data-artales-theme="dark"] .artales-admin-dashboard button[style*="border"]:hover,
+html[data-artales-theme="dark"] .artales-admin-dashboard button[style*="padding"]:hover {
+  background: linear-gradient(180deg, #f1d89d, #d9b76e) !important;
+  border-color: rgba(247, 236, 210, 0.86) !important;
+  color: #090b0d !important;
+}
+
+html[data-artales-theme="dark"] .artales-member-content a[style*="text-decoration: underline"],
+html[data-artales-theme="dark"] .artales-member-content a[target="_blank"],
+html[data-artales-theme="dark"] .artales-admin-dashboard a[style*="text-decoration: underline"],
+html[data-artales-theme="dark"] .artales-admin-dashboard a[target="_blank"] {
+  color: #f1d89d !important;
+  text-decoration-color: rgba(240, 209, 136, 0.64) !important;
+}
+
+html[data-artales-theme="dark"] .artales-member-content a[style*="text-decoration: underline"]:hover,
+html[data-artales-theme="dark"] .artales-member-content a[target="_blank"]:hover,
+html[data-artales-theme="dark"] .artales-admin-dashboard a[style*="text-decoration: underline"]:hover,
+html[data-artales-theme="dark"] .artales-admin-dashboard a[target="_blank"]:hover {
+  color: #fff8e5 !important;
+  text-decoration-color: #fff8e5 !important;
+}
+
+html[data-artales-theme="dark"] .artales-member-panel span[style*="border"],
+html[data-artales-theme="dark"] .artales-member-panel span[style*="background"],
+html[data-artales-theme="dark"] .artales-member-content span[style*="background"],
+html[data-artales-theme="dark"] .artales-member-content div[style*="background: rgb(255"],
+html[data-artales-theme="dark"] .artales-member-content article[style*="background: rgb(255"],
+html[data-artales-theme="dark"] .artales-member-content section[style*="background: rgb(255"] {
+  background: rgba(240, 209, 136, 0.1) !important;
+  border-color: rgba(240, 209, 136, 0.3) !important;
+  color: #fff8e5 !important;
+}
+
+html[data-artales-theme="dark"] .artales-member-panel span[style*="border"] *,
+html[data-artales-theme="dark"] .artales-member-content span[style*="background"] *,
+html[data-artales-theme="dark"] .artales-member-content div[style*="background: rgb(255"] *,
+html[data-artales-theme="dark"] .artales-member-content article[style*="background: rgb(255"] *,
+html[data-artales-theme="dark"] .artales-member-content section[style*="background: rgb(255"] * {
+  color: inherit !important;
+}
+
+html[data-artales-theme="dark"] .artales-member-content [style*="color: rgb(17"],
+html[data-artales-theme="dark"] .artales-member-content [style*="color: #111"],
+html[data-artales-theme="dark"] .artales-member-content [style*="color:#111"],
+html[data-artales-theme="dark"] .artales-admin-dashboard [style*="color: rgb(17"],
+html[data-artales-theme="dark"] .artales-admin-dashboard [style*="color: #111"],
+html[data-artales-theme="dark"] .artales-admin-dashboard [style*="color:#111"] {
+  color: #fff8e5 !important;
+}
+
+html[data-artales-theme="dark"] .artales-member-content .text-blue-500,
+html[data-artales-theme="dark"] .artales-member-content .text-blue-600,
+html[data-artales-theme="dark"] .artales-member-content .text-blue-700,
+html[data-artales-theme="dark"] .artales-member-content .text-sky-500,
+html[data-artales-theme="dark"] .artales-member-content .text-sky-600,
+html[data-artales-theme="dark"] .artales-member-content .text-sky-700,
+html[data-artales-theme="dark"] .artales-admin-dashboard .text-blue-500,
+html[data-artales-theme="dark"] .artales-admin-dashboard .text-blue-600,
+html[data-artales-theme="dark"] .artales-admin-dashboard .text-blue-700,
+html[data-artales-theme="dark"] .artales-admin-dashboard .text-sky-500,
+html[data-artales-theme="dark"] .artales-admin-dashboard .text-sky-600,
+html[data-artales-theme="dark"] .artales-admin-dashboard .text-sky-700 {
+  color: #bfdbfe !important;
+}
+
+html[data-artales-theme="dark"] .artales-credits-story-grid article p,
+html[data-artales-theme="dark"] .artales-credits-story-grid article li,
+html[data-artales-theme="dark"] .artales-credit-library-panel p,
+html[data-artales-theme="dark"] .artales-credit-library-panel li,
+html[data-artales-theme="dark"] .artales-credits-pricebook-note p,
+html[data-artales-theme="dark"] .artales-credits-patronage-note p {
+  color: rgba(247, 236, 210, 0.88) !important;
+}
+
+html[data-artales-theme="dark"] .artales-credits-story-grid article strong,
+html[data-artales-theme="dark"] .artales-credit-library-panel strong,
+html[data-artales-theme="dark"] .artales-credits-pricebook-note strong,
+html[data-artales-theme="dark"] .artales-credits-patronage-note strong {
+  color: #fff8e5 !important;
+}
