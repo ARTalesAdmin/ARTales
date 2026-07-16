@@ -568,6 +568,10 @@ export const enAccount = {
     interfaceLanguage: "Interface language",
     interfaceLanguageHelp:
       "Used by localized public/account surfaces. Localization is gradual, so some pages may still keep their current language.",
+    siteTheme: "ARTales theme",
+    siteThemeHelp: "Switches the public site, account, and internal workspace on this device. The choice is stored in the browser and cookie.",
+    siteThemeLight: "Light theme",
+    siteThemeDark: "Dark theme",
     readerTheme: "Reader theme",
     themeLight: "Light",
     themeScript: "Script / warm paper",

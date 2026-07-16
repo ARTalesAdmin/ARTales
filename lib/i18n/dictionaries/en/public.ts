@@ -35,25 +35,56 @@ export const enPublic = {
   literaryWork: "Literary work",
   previewNote: "This is a short preview. Continue to the full online reader.",
 
-  homeEyebrow: "Curated literature, living editions",
-  homeTitle: "A literary home for texts that deserve more than a flat file.",
+  homeEyebrow: "Reading, editions, a quieter literary space",
+  homeTitle: "A library for texts worth returning to.",
   homeIntro:
-    "ARTales brings together a public library, an editorial workshop, and a focused reader. Works are not treated as flat uploads: they can carry structure, context, notes, images, translations, collections, and future reader layers.",
+    "ARTales is an online library and editorial space for readers who want more than a quick file. It brings together a focused reader, curated collections, and a gradually built editorial layer around works, structure, origin, and context.",
   homePrimaryCta: "Browse the Gallery",
   homeSecondaryCta: "Try the Reader",
+  homeBrandPanelLabel: "ARTales identity",
+  homeThemeLabel: "Site theme",
+  homeFeatureAria: "What ARTales offers",
   homeBrandNote:
-    "ARTales begins as an elegant reading surface, with editorial, language, access, and community layers growing underneath.",
-  homeCardEditionsTitle: "Editions with structure",
+    "We are building a literary environment where a text has shape, a reader has a library, and each work can grow into richer editorial and visual layers over time.",
+  homeCardEditionsTitle: "Works with structure",
   homeCardEditionsText:
-    "A work can carry chapters, poems, letters, notes, images, sources, credits, and edition history — not just one long text block.",
-  homeCardReaderTitle: "A reader built for literature",
+    "Chapters, poems, letters, illustrations, sources, and notes should not collapse into one long block. ARTales treats a work as an edition, not as an anonymous upload.",
+  homeCardReaderTitle: "A reader without noise",
   homeCardReaderText:
-    "The reader is meant to stay calm, readable, and focused. The same structure also prepares the way for PDF/EPUB exports and editorial workflows.",
-  homeCardExpansionTitle: "Ready to grow",
+    "The reader is meant to stay focused, readable, and usable on desktop and mobile. The text leads; controls and technology should stay quiet.",
+  homeCardExpansionTitle: "Account, library, membership",
   homeCardExpansionText:
-    "ARTales is prepared for accounts, memberships, multilingual interfaces, curated collections, author profiles, paid formats, and future community layers.",
+    "A reader account keeps your library, reading position, and AT Credits. Membership will gradually add a smoother way to access the catalogue and read regularly.",
+  homeReaderEyebrow: "The reader first",
+  homeReaderTitle: "Quality reading before extra layers.",
+  homeReaderText:
+    "For launch, we are prioritizing the parser, the reader, and reliable work preparation. Large works should be possible to prepare sensibly, and readers should meet clean text rather than technical compromise.",
+  homeReaderTextSecondary:
+    "PDF, EPUB, and other edition formats should come when the content layer is stable enough. The ARTales foundation is online reading and a carefully prepared catalogue.",
+  homePathAria: "Ways into ARTales",
+  homePathGalleryEyebrow: "Catalogue",
+  homePathGalleryTitle: "Choose a work",
+  homePathGalleryText:
+    "The gallery shows published works with summaries, authors, language, and access to previews or the full reader.",
+  homePathGalleryCta: "Open gallery",
+  homePathCollectionsEyebrow: "Curation",
+  homePathCollectionsTitle: "Read in context",
+  homePathCollectionsText:
+    "Collections are not genre shelves. They are literary paths shaped by atmosphere, motif, period, or reading experience.",
+  homePathCollectionsCta: "Browse collections",
+  homePathAccountEyebrow: "Reader account",
+  homePathAccountTitle: "Return where you left off",
+  homePathAccountText:
+    "Your account keeps your library, unlocked works, reading settings, and AT Credits for future access.",
+  homePathAccountCta: "View options",
+  homeFinalEyebrow: "Start simply",
+  homeFinalTitle: "Create a reader account or open the gallery.",
+  homeFinalText:
+    "ARTales is growing step by step, with a clear aim: a trusted place for quiet reading, carefully prepared works, and later community development around literature.",
+  homeFinalPrimaryCta: "Create free account",
+  homeFinalSecondaryCta: "Browse works",
   homeDevelopmentNote:
-    "ARTales is under active development. The public surface is being refined for readers, the internal layer for editorial work, and new layers will open gradually.",
+    "ARTales is an independent literary platform built in Czechia, with emphasis on readability, editorial care, and the long-term value of texts.",
 
   author: "Author",
   authorsTitle: "ARTales Authors",

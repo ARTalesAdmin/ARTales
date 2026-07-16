@@ -558,6 +558,10 @@ export const csAccount = {
     interfaceLanguage: "Jazyk rozhraní",
     interfaceLanguageHelp:
       "Používá se ve veřejných/account částech napojených na lokalizaci. Lokalizace je postupná, takže některé stránky mohou zatím držet svůj aktuální jazyk.",
+    siteTheme: "Motiv ARTales",
+    siteThemeHelp: "Přepíná veřejné stránky, účet i interní sekci na tomto zařízení. Volba se uloží do prohlížeče a cookie.",
+    siteThemeLight: "Světlý motiv",
+    siteThemeDark: "Tmavý motiv",
     readerTheme: "Motiv čtečky",
     themeLight: "Světlý",
     themeScript: "Rukopis / teplý papír",

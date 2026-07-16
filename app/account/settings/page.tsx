@@ -2,6 +2,7 @@ import { requireCompletedAccountProfile } from "@/lib/account";
 import { getPublicDictionary } from "@/lib/i18n/public";
 import { getCookieLocale, resolveProfileLocale } from "@/lib/i18n/server";
 import { updateReaderPreferences } from "./actions";
+import ThemeToggle from "@/components/theme/ThemeToggle";
 
 export const dynamic = "force-dynamic";
 
@@ -24,6 +25,21 @@ export default async function AccountSettingsPage({ searchParams }: PageProps) {
 
       {error === "save" ? <p className="artales-account-alert">{dictionary.saveError}</p> : null}
       {success === "settings" ? <p className="artales-account-success">{dictionary.saveSuccess}</p> : null}
+
+      <section className="artales-account-theme-card" aria-label={dictionary.siteTheme}>
+        <div>
+          <p className="artales-account-card__label">{dictionary.siteTheme}</p>
+          <h2>{dictionary.siteTheme}</h2>
+          <p>{dictionary.siteThemeHelp}</p>
+        </div>
+        <ThemeToggle
+          labels={{
+            light: dictionary.siteThemeLight,
+            dark: dictionary.siteThemeDark,
+            aria: dictionary.siteTheme,
+          }}
+        />
+      </section>
 
       <form action={updateReaderPreferences} className="artales-account-form">
         <label>

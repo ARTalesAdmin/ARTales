@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import PwaRegister from "@/components/pwa/PwaRegister";
+import ThemeScript from "@/components/theme/ThemeScript";
 import { getCookieLocale } from "@/lib/i18n/server";
 
 export const metadata: Metadata = {
@@ -54,6 +55,7 @@ export default async function RootLayout({
   return (
     <html lang={locale}>
       <body>
+        <ThemeScript />
         <PwaRegister />
         {children}
       </body>

@@ -1,77 +1,68 @@
 import Link from "next/link"
 import ArtalesBrand from "@/components/brand/ArtalesBrand"
 import PublicHeader from "@/components/public/PublicHeader"
+import ThemeToggle from "@/components/theme/ThemeToggle"
 import { getPublicDictionary } from "@/lib/i18n/public"
 import { getCookieLocale } from "@/lib/i18n/server"
 
 export default async function Home() {
   const locale = await getCookieLocale()
   const { public: t } = getPublicDictionary(locale)
+  const isCs = locale === "cs"
+
+  const featureCards = [
+    {
+      title: t.homeCardEditionsTitle,
+      text: t.homeCardEditionsText,
+    },
+    {
+      title: t.homeCardReaderTitle,
+      text: t.homeCardReaderText,
+    },
+    {
+      title: t.homeCardExpansionTitle,
+      text: t.homeCardExpansionText,
+    },
+  ]
+
+  const pathItems = [
+    {
+      eyebrow: t.homePathGalleryEyebrow,
+      title: t.homePathGalleryTitle,
+      text: t.homePathGalleryText,
+      href: "/gallery",
+      cta: t.homePathGalleryCta,
+    },
+    {
+      eyebrow: t.homePathCollectionsEyebrow,
+      title: t.homePathCollectionsTitle,
+      text: t.homePathCollectionsText,
+      href: "/collections",
+      cta: t.homePathCollectionsCta,
+    },
+    {
+      eyebrow: t.homePathAccountEyebrow,
+      title: t.homePathAccountTitle,
+      text: t.homePathAccountText,
+      href: "/account/membership",
+      cta: t.homePathAccountCta,
+    },
+  ]
 
   return (
-    <div className="artales-public-shell">
+    <div className="artales-public-shell artales-home-shell">
       <PublicHeader active="home" />
 
-      <main
-        className="artales-home-main"
-        style={{
-          color: "var(--artales-ink)",
-          fontFamily: "Arial, Helvetica, sans-serif",
-          lineHeight: 1.6,
-          margin: "0 auto",
-          maxWidth: "1180px",
-          padding: "clamp(46px, 8vw, 92px) 24px 72px",
-        }}
-      >
-        <section
-          style={{
-            alignItems: "center",
-            display: "grid",
-            gap: "clamp(28px, 6vw, 72px)",
-            gridTemplateColumns: "minmax(0, 1.1fr) minmax(260px, 0.9fr)",
-            marginBottom: "clamp(54px, 8vw, 96px)",
-          }}
-          className="artales-home-hero"
-        >
-          <div>
-            <p
-              style={{
-                color: "#8a6a2d",
-                fontSize: "13px",
-                fontWeight: 800,
-                letterSpacing: "0.16em",
-                margin: "0 0 14px",
-                textTransform: "uppercase",
-              }}
-            >
-              {t.homeEyebrow}
-            </p>
+      <main className="artales-home-main">
+        <section className="artales-home-hero">
+          <div className="artales-home-hero__copy">
+            <p className="artales-home-eyebrow">{t.homeEyebrow}</p>
 
-            <h1
-              style={{
-                color: "var(--artales-ink)",
-                fontFamily: "Georgia, 'Times New Roman', serif",
-                fontSize: "clamp(48px, 8vw, 92px)",
-                letterSpacing: "-0.055em",
-                lineHeight: 0.98,
-                margin: "0 0 22px",
-              }}
-            >
-              {t.homeTitle}
-            </h1>
+            <h1>{t.homeTitle}</h1>
 
-            <p
-              style={{
-                color: "#3f362f",
-                fontSize: "20px",
-                margin: "0 0 28px",
-                maxWidth: "760px",
-              }}
-            >
-              {t.homeIntro}
-            </p>
+            <p className="artales-home-intro">{t.homeIntro}</p>
 
-            <div style={{ display: "flex", flexWrap: "wrap", gap: "12px" }}>
+            <div className="artales-home-actions">
               <Link className="artales-button" href="/gallery">
                 {t.homePrimaryCta}
               </Link>
@@ -81,95 +72,70 @@ export default async function Home() {
             </div>
           </div>
 
-          <aside
-            className="artales-home-brand-panel"
-            style={{
-              background:
-                "linear-gradient(180deg, rgba(255,255,255,0.62), rgba(255,255,255,0.34))",
-              border: "1px solid rgba(13, 21, 40, 0.12)",
-              borderRadius: "32px",
-              boxShadow: "0 30px 80px rgba(13, 21, 40, 0.12)",
-              padding: "clamp(28px, 5vw, 52px)",
-              textAlign: "center",
-            }}
-          >
-            <ArtalesBrand href="" variant="dark" size="lg" showMark />
-            <p
-              style={{
-                color: "#5f5247",
-                fontSize: "15px",
-                margin: "28px auto 0",
-                maxWidth: "380px",
-              }}
-            >
-              {t.homeBrandNote}
-            </p>
+          <aside className="artales-home-brand-panel" aria-label="ARTales visual identity">
+            <p className="artales-home-panel-label">{t.homeBrandPanelLabel}</p>
+            <ArtalesBrand href="" variant="adaptive" size="lg" showMark />
+            <p>{t.homeBrandNote}</p>
+            <div className="artales-home-theme-card">
+              <span>{t.homeThemeLabel}</span>
+              <ThemeToggle
+                labels={{
+                  light: isCs ? "Světlý" : "Light",
+                  dark: isCs ? "Tmavý" : "Dark",
+                  aria: isCs ? "Přepnout motiv ARTales" : "Switch ARTales theme",
+                }}
+              />
+            </div>
           </aside>
         </section>
 
-        <section
-          className="artales-home-feature-grid"
-          style={{
-            display: "grid",
-            gap: "18px",
-            gridTemplateColumns: "repeat(auto-fit, minmax(230px, 1fr))",
-            marginBottom: "56px",
-          }}
-        >
-          {[
-            {
-              title: t.homeCardEditionsTitle,
-              text: t.homeCardEditionsText,
-            },
-            {
-              title: t.homeCardReaderTitle,
-              text: t.homeCardReaderText,
-            },
-            {
-              title: t.homeCardExpansionTitle,
-              text: t.homeCardExpansionText,
-            },
-          ].map((item) => (
-            <article
-              key={item.title}
-              className="artales-home-feature-card"
-              style={{
-                background: "rgba(255, 255, 255, 0.52)",
-                border: "1px solid rgba(13, 21, 40, 0.1)",
-                borderRadius: "24px",
-                boxShadow: "0 18px 48px rgba(13, 21, 40, 0.07)",
-                padding: "24px",
-              }}
-            >
-              <h2
-                style={{
-                  fontFamily: "Georgia, 'Times New Roman', serif",
-                  fontSize: "26px",
-                  lineHeight: 1.14,
-                  margin: "0 0 10px",
-                }}
-              >
-                {item.title}
-              </h2>
-              <p style={{ color: "#4c4239", margin: 0 }}>{item.text}</p>
+        <section className="artales-home-feature-grid" aria-label={t.homeFeatureAria}>
+          {featureCards.map((item) => (
+            <article key={item.title} className="artales-home-feature-card">
+              <h2>{item.title}</h2>
+              <p>{item.text}</p>
             </article>
           ))}
         </section>
 
-        <section
-          className="artales-home-footnote"
-          style={{
-            borderTop: "1px solid rgba(13, 21, 40, 0.14)",
-            display: "flex",
-            flexWrap: "wrap",
-            gap: "14px",
-            justifyContent: "space-between",
-            paddingTop: "24px",
-          }}
-        >
-          <p style={{ color: "#5f5247", margin: 0 }}>
-            {t.homeDevelopmentNote}
-          </p>
+        <section className="artales-home-section artales-home-section--split">
+          <div>
+            <p className="artales-home-eyebrow">{t.homeReaderEyebrow}</p>
+            <h2>{t.homeReaderTitle}</h2>
+          </div>
+          <div className="artales-home-section__text">
+            <p>{t.homeReaderText}</p>
+            <p>{t.homeReaderTextSecondary}</p>
+          </div>
+        </section>
+
+        <section className="artales-home-paths" aria-label={t.homePathAria}>
+          {pathItems.map((item) => (
+            <article className="artales-home-path-card" key={item.title}>
+              <p className="artales-home-card-eyebrow">{item.eyebrow}</p>
+              <h2>{item.title}</h2>
+              <p>{item.text}</p>
+              <Link href={item.href}>{item.cta}</Link>
+            </article>
+          ))}
+        </section>
+
+        <section className="artales-home-final-cta">
+          <p className="artales-home-eyebrow">{t.homeFinalEyebrow}</p>
+          <h2>{t.homeFinalTitle}</h2>
+          <p>{t.homeFinalText}</p>
+          <div className="artales-home-actions artales-home-actions--center">
+            <Link className="artales-button" href="/register">
+              {t.homeFinalPrimaryCta}
+            </Link>
+            <Link className="artales-button-secondary" href="/gallery">
+              {t.homeFinalSecondaryCta}
+            </Link>
+          </div>
+        </section>
+
+        <section className="artales-home-footnote">
+          <p>{t.homeDevelopmentNote}</p>
         </section>
       </main>
     </div>

@@ -6,6 +6,7 @@ import { getCookieLocale, resolveProfileLocale } from "@/lib/i18n/server";
 import LocaleSwitcher from "@/components/i18n/LocaleSwitcher";
 import { canAccessMemberZone } from "@/lib/permissions";
 import PageViewTracker from "@/components/analytics/PageViewTracker";
+import ThemeToggle from "@/components/theme/ThemeToggle";
 
 export const dynamic = "force-dynamic";
 
@@ -36,7 +37,7 @@ export default async function PublicHeader({ active }: PublicHeaderProps) {
     <>
     <PageViewTracker />
     <header className="artales-public-header">
-      <ArtalesBrand href="/" variant="dark" size="md" showMark />
+      <ArtalesBrand href="/" variant="adaptive" size="md" showMark />
       <nav
         className="artales-public-header__nav"
         aria-label="Public navigation"
@@ -96,6 +97,15 @@ export default async function PublicHeader({ active }: PublicHeaderProps) {
         >
           {currentLocale === "cs" ? "Info" : "Info"}
         </Link>
+
+        <ThemeToggle
+          compact
+          labels={{
+            light: currentLocale === "cs" ? "Světlý" : "Light",
+            dark: currentLocale === "cs" ? "Tmavý" : "Dark",
+            aria: currentLocale === "cs" ? "Přepnout motiv ARTales" : "Switch ARTales theme",
+          }}
+        />
 
         <LocaleSwitcher currentLocale={currentLocale} compact />
 
