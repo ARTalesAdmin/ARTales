@@ -36,31 +36,31 @@ export const enPublic = {
   previewNote: "This is a short preview. Continue to the full online reader.",
 
   homeEyebrow: "An online library for quiet reading",
-  homeTitle: "Read literature calmly, without unnecessary technical friction.",
+  homeTitle: "Read calmly, without unnecessary noise.",
   homeIntro:
-    "ARTales is being built as a library and reading space for classics and carefully prepared new works. Open a preview, continue from phone or desktop, and discover texts in context rather than in advertising noise.",
+    "ARTales is an online library for classics and carefully prepared new works. Open a preview, continue from phone or desktop, and discover texts in context.",
   homePrimaryCta: "Browse the Gallery",
   homeSecondaryCta: "Try the Reader",
   homeBrandPanelLabel: "ARTales mark",
   homeThemeLabel: "Site theme",
   homeFeatureAria: "What ARTales offers",
   homeBrandNote:
-    "We are an independent online library for readers, schools, authors, and people who want to use, share, and shape literature with more care.",
+    "An independent library for readers, schools, authors, and everyone who wants to read, share, and shape literature with more care.",
   homeCardEditionsTitle: "A library, not a file shelf",
   homeCardEditionsText:
-    "Works are prepared so they can be read, found, and returned to. You see the author, summary, language, preview, and gradually the context that helps you choose the right title.",
+    "Titles include author, summary, language, preview, and gradually more context to help readers choose well.",
   homeCardReaderTitle: "Reading on any device",
   homeCardReaderText:
-    "The reader is online, focused, and usable on mobile, tablet, and desktop. You do not need to manage file formats — open a title and return where you left off.",
+    "The reader works on mobile, tablet, and desktop. Open a title and return where you left off.",
   homeCardExpansionTitle: "Readers can shape the library",
   homeCardExpansionText:
-    "Readers will be able to suggest titles, report issues, help with works, and later join translation, reading-circle, and author-facing projects.",
+    "Readers can suggest titles, report issues, and later join translation, reading-circle, and author-facing projects.",
   homeReaderEyebrow: "Who ARTales is for",
-  homeReaderTitle: "A place for readers, students, teachers, and authors.",
+  homeReaderTitle: "For readers, schools, and authors.",
   homeReaderText:
-    "Some visitors need required reading, some are choosing a gift, and some want a calm place for an evening novel. Others come for a school paper, a lesson plan, broader perspective, or an author they want to follow before publication.",
+    "Some visitors need required reading, some are choosing a gift, and some want a calm place for an evening novel. Others come for a school paper, a lesson plan, or an author they want to follow before publication.",
   homeReaderTextSecondary:
-    "ARTales should be both a quiet library and a living literary space: no advertising pressure, a comfortable reader, curated collections, and a way to tell us what is missing.",
+    "ARTales combines a quiet library, a comfortable reader, curated collections, and a way to tell us which titles or features are missing.",
   homePathAria: "Ways into ARTales",
   homePathGalleryEyebrow: "Catalogue",
   homePathGalleryTitle: "Choose a work",
@@ -75,12 +75,12 @@ export const enPublic = {
   homePathAccountEyebrow: "Account and membership",
   homePathAccountTitle: "Keep your reading close",
   homePathAccountText:
-    "A free account lets you save titles, continue reading, and gradually use broader reader features. Membership is being prepared as a smoother path for regular reading.",
+    "A free account helps you save titles, continue reading, and manage access to works. Membership will become a smoother path to regular reading.",
   homePathAccountCta: "View account and membership",
   homeFinalEyebrow: "Start simply",
   homeFinalTitle: "Open the gallery, choose a title, and read.",
   homeFinalText:
-    "Start with a preview or create a free account. If a book, author, translation, or feature is missing, write to us — reader wishes are part of how this library grows.",
+    "Start with a preview or a free account. Missing a book, author, translation, or feature? Write to us — reader suggestions matter.",
   homeFinalPrimaryCta: "Create free account",
   homeFinalSecondaryCta: "Browse works",
   homeFinalContactCta: "Write to ARTales",

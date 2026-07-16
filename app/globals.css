@@ -4831,3 +4831,53 @@ html[data-artales-theme="light"] .artales-member-sidebar {
     flex-direction: column;
   }
 }
+
+/* v0.10.14d — homepage copy polish and dark locale contrast */
+html[data-artales-theme="dark"] .artales-locale-switcher {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: rgba(240, 209, 136, 0.22);
+}
+
+html[data-artales-theme="dark"] .artales-locale-switcher__button {
+  background: rgba(255, 255, 255, 0.04);
+  border-color: rgba(240, 209, 136, 0.22);
+  color: rgba(245, 234, 210, 0.78);
+}
+
+html[data-artales-theme="dark"] .artales-locale-switcher__button--active {
+  background: var(--artales-gold);
+  border-color: var(--artales-gold);
+  color: #101215;
+}
+
+@media (min-width: 901px) {
+  .artales-home-section--split {
+    align-items: center;
+    grid-template-columns: minmax(280px, 0.72fr) minmax(0, 1.28fr);
+  }
+
+  .artales-home-section__text {
+    max-width: 720px;
+  }
+}
+
+.artales-home-section h2,
+.artales-home-final-cta h2 {
+  line-height: 1.03;
+}
+
+.artales-home-section h2 {
+  font-size: clamp(2.1rem, 4.1vw, 4rem);
+  max-width: 10ch;
+}
+
+.artales-home-feature-grid,
+.artales-home-paths {
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr));
+}
+
+@media (max-width: 900px) {
+  .artales-home-section h2 {
+    max-width: none;
+  }
+}

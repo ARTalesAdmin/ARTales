@@ -80,31 +80,31 @@ export const csPublic = {
   deliveryDigitalEditionsLater: "Ediční soubory",
 
   homeEyebrow: "Online knihovna pro klidné čtení",
-  homeTitle: "Čtěte literaturu v klidu, bez zbytečných technikálií.",
+  homeTitle: "Čtěte v klidu, bez zbytečného šumu.",
   homeIntro:
-    "ARTales vzniká jako knihovna a čtenářský prostor pro klasická i nově připravovaná díla. Otevřete ukázku, vraťte se ke čtení z telefonu i počítače a objevujte texty v souvislostech, ne v reklamním hluku.",
+    "ARTales je online knihovna pro klasická i nově připravovaná díla. Otevřete ukázku, vraťte se ke čtení z telefonu i počítače a objevujte texty v souvislostech.",
   homePrimaryCta: "Procházet galerii",
   homeSecondaryCta: "Vyzkoušet čtečku",
   homeBrandPanelLabel: "Značka ARTales",
   homeThemeLabel: "Motiv stránky",
   homeFeatureAria: "Co ARTales nabízí",
   homeBrandNote:
-    "Jsme nezávislá online knihovna pro čtenáře, školy, autory i lidi, kteří chtějí literaturu používat, sdílet a spoluvytvářet smysluplněji.",
+    "Nezávislá knihovna pro čtenáře, školy, autory i všechny, kdo chtějí literaturu číst, sdílet a spoluvytvářet kultivovaněji.",
   homeCardEditionsTitle: "Knihovna, ne skladiště souborů",
   homeCardEditionsText:
-    "Díla připravujeme tak, aby se v nich dalo číst, hledat i vracet. Uvidíte autora, anotaci, jazyk, ukázku a postupně také souvislosti, které pomáhají vybrat správný titul.",
+    "U titulů najdete autora, anotaci, jazyk, ukázku a postupně i souvislosti, které pomáhají vybrat správné čtení.",
   homeCardReaderTitle: "Čtení z jakéhokoli zařízení",
   homeCardReaderText:
-    "Čtečka je online, soustředěná a použitelná na mobilu, tabletu i počítači. Nemusíte řešit formát souboru — stačí otevřít titul a pokračovat tam, kde jste skončili.",
+    "Čtečka funguje na mobilu, tabletu i počítači. Otevřete titul a pokračujete tam, kde jste skončili.",
   homeCardExpansionTitle: "Čtenáři mohou ovlivnit směr",
   homeCardExpansionText:
-    "Chceme, aby čtenáři mohli navrhovat tituly, upozornit na chyby, pomáhat s díly a časem se zapojit do překladů, čtenářských okruhů i autorských projektů.",
+    "Čtenáři mohou posílat náměty na tituly, upozornit na chyby a časem se zapojit do překladů, okruhů i autorských projektů.",
   homeReaderEyebrow: "Pro koho ARTales vzniká",
-  homeReaderTitle: "Místo pro čtenáře, studenty, učitele i autory.",
+  homeReaderTitle: "Pro čtenáře, školy i autory.",
   homeReaderText:
-    "Někdo hledá povinnou četbu, někdo dárek pro čtenáře, někdo klidné místo pro román po večerech. Jiný chce rozšířit obzory, připravit výuku, najít zdroj k referátu nebo sledovat autora před vydáním nové knihy.",
+    "Někdo hledá povinnou četbu, někdo dárek pro čtenáře, někdo klidné místo pro román po večerech. Jiný chce připravit výuku, najít zdroj k referátu nebo sledovat autora před vydáním nové knihy.",
   homeReaderTextSecondary:
-    "ARTales má být klidná knihovna i živý literární prostor: bez reklamního tlaku, s pohodlnou čtečkou, kurátorskými kolekcemi a možností říct nám, co vám v nabídce chybí.",
+    "ARTales spojuje klidnou knihovnu, pohodlnou čtečku, kurátorské kolekce a možnost říct nám, které tituly nebo funkce vám chybí.",
   homePathAria: "Cesty do ARTales",
   homePathGalleryEyebrow: "Katalog",
   homePathGalleryTitle: "Vyber si dílo",
@@ -119,12 +119,12 @@ export const csPublic = {
   homePathAccountEyebrow: "Účet a členství",
   homePathAccountTitle: "Mějte čtení po ruce",
   homePathAccountText:
-    "Bezplatný účet vám umožní ukládat tituly, pokračovat ve čtení a časem využívat širší čtenářské možnosti. Členství připravujeme jako pohodlnější cestu k pravidelnému čtení.",
+    "Bezplatný účet pomůže ukládat tituly, pokračovat ve čtení a spravovat přístup k dílům. Členství bude pohodlnější cestou k pravidelnému čtení.",
   homePathAccountCta: "Zobrazit účet a členství",
   homeFinalEyebrow: "Začněte jednoduše",
   homeFinalTitle: "Otevřete galerii, vyberte si titul a čtěte.",
   homeFinalText:
-    "Začněte ukázkou nebo si vytvořte účet zdarma. A pokud vám chybí konkrétní kniha, autor, překlad nebo funkce, napište nám — čtenářské podněty bereme jako součást práce na knihovně.",
+    "Začněte ukázkou nebo účtem zdarma. Chybí vám konkrétní kniha, autor, překlad nebo funkce? Napište nám — čtenářské podněty bereme vážně.",
   homeFinalPrimaryCta: "Vytvořit účet zdarma",
   homeFinalSecondaryCta: "Procházet díla",
   homeFinalContactCta: "Napsat ARTales",
