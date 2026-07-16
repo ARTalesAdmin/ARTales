@@ -5698,3 +5698,21 @@ html[data-artales-theme="dark"] .artales-credits-pricebook-note strong,
 html[data-artales-theme="dark"] .artales-credits-patronage-note strong {
   color: #fff8e5 !important;
 }
+
+/* v0.10.14j — dark block navigation helper contrast polish */
+html[data-artales-theme="dark"] .artales-member-content aside[style*="position: sticky"] h3,
+html[data-artales-theme="dark"] .artales-member-content aside[style*="position: sticky"] p {
+  color: #fff8e5 !important;
+  opacity: 1 !important;
+}
+
+html[data-artales-theme="dark"] .artales-member-content aside[style*="position: sticky"] p {
+  color: rgba(247, 236, 210, 0.78) !important;
+}
+
+html[data-artales-theme="dark"] .artales-member-content aside[style*="position: sticky"] {
+  background:
+    linear-gradient(180deg, rgba(240, 209, 136, 0.06), rgba(255, 255, 255, 0.022)),
+    rgba(18, 19, 22, 0.95) !important;
+  border-color: rgba(240, 209, 136, 0.22) !important;
+}
