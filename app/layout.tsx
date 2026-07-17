@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import PwaRegister from "@/components/pwa/PwaRegister";
 import ThemeScript from "@/components/theme/ThemeScript";
+import { cookies } from "next/headers";
 import { getCookieLocale } from "@/lib/i18n/server";
 
 export const metadata: Metadata = {
@@ -52,11 +53,14 @@ export default async function RootLayout({
   children: React.ReactNode;
 }>) {
   const locale = await getCookieLocale();
+  const cookieStore = await cookies();
+  const cookieTheme = cookieStore.get("artales_theme")?.value;
+  const initialTheme = cookieTheme === "dark" ? "dark" : "light";
 
   return (
-    <html lang={locale}>
+    <html lang={locale} data-artales-theme={initialTheme} style={{ colorScheme: initialTheme }} suppressHydrationWarning>
       <body>
-        <ThemeScript />
+        <ThemeScript initialTheme={initialTheme} />
         <PwaRegister />
         {children}
       </body>

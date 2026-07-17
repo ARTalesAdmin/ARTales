@@ -533,6 +533,7 @@ export default function WorkEditorForm(props: Props) {
   const [parserMessage, setParserMessage] = useState<string | null>(null);
   const [saveSubmitMessage, setSaveSubmitMessage] = useState<string | null>(null);
   const [isSmartSaving, setIsSmartSaving] = useState(false);
+  const [isFormSubmitting, setIsFormSubmitting] = useState(false);
   const [coverUploadMessage, setCoverUploadMessage] = useState<string | null>(null);
   const [coverUploadError, setCoverUploadError] = useState<string | null>(null);
   const [isCoverUploading, setIsCoverUploading] = useState(false);
@@ -684,6 +685,7 @@ export default function WorkEditorForm(props: Props) {
       estimatedBlocksStorageChars >= LARGE_WORK_SAVE_WARNING_CHARS ||
       contentChangeInsertedCount >= SMART_APPEND_MIN_NEW_BLOCKS ||
       contentChangeSavePlan.deletedBlockIds.length >= SMART_APPEND_MIN_NEW_BLOCKS);
+  const isSavingWork = isSmartSaving || isFormSubmitting;
 
   useEffect(() => {
     if (!isSmartSaving) return;
@@ -1144,7 +1146,8 @@ export default function WorkEditorForm(props: Props) {
   }
 
   async function prepareWorkSubmit(event: FormEvent<HTMLFormElement>) {
-    setSaveSubmitMessage(null);
+    setSaveSubmitMessage("Připravuji uložení díla…");
+    setIsFormSubmitting(true);
 
     if (isSmartSaving) {
       event.preventDefault();
@@ -1171,6 +1174,7 @@ export default function WorkEditorForm(props: Props) {
 
     if (!contentBlocksInputRef.current || !contentUpdateModeInputRef.current) {
       event.preventDefault();
+      setIsFormSubmitting(false);
       setSaveSubmitMessage("Ukládání se nepodařilo připravit. Obnov stránku a zkus to prosím znovu.");
       scrollToSaveActions();
       return;
@@ -1205,6 +1209,7 @@ export default function WorkEditorForm(props: Props) {
       }
 
       event.preventDefault();
+      setIsFormSubmitting(false);
       setSaveSubmitMessage(
         contentChangeSavePlan.reason === "existing_blocks_reordered"
           ? "Dílo je příliš velké pro běžné uložení a současně se změnilo pořadí původních bloků. Stáhni si zálohu bloků a rozděl přesun bloků do samostatného kroku."
@@ -1219,8 +1224,10 @@ export default function WorkEditorForm(props: Props) {
     try {
       contentUpdateModeInputRef.current.value = "full";
       contentBlocksInputRef.current.value = JSON.stringify(blocks);
+      setSaveSubmitMessage("Ukládám dílo… Pokud je text delší, může to chvíli trvat.");
     } catch {
       event.preventDefault();
+      setIsFormSubmitting(false);
       setSaveSubmitMessage(
         "Prohlížeč nedokázal připravit obsah díla k odeslání. Stáhni si zálohu bloků a zkus pracovat s menším úsekem textu.",
       );
@@ -1231,12 +1238,14 @@ export default function WorkEditorForm(props: Props) {
 
   async function saveUnifiedContentChanges() {
     if (!slug) {
+      setIsFormSubmitting(false);
       setSaveSubmitMessage("Sjednocené ukládání změn lze použít jen u už existujícího díla.");
       scrollToSaveActions();
       return;
     }
 
     if (!contentChangeSavePlan.canUseContentChangeSave) {
+      setIsFormSubmitting(false);
       setSaveSubmitMessage(
         contentChangeSavePlan.reason === "existing_blocks_reordered"
           ? "Sjednocené chytré uložení zatím nepodporuje přesun původních bloků. Ostatní kombinace změn ulož najednou; přesuny prosím udělej jako samostatný krok."
@@ -1300,6 +1309,7 @@ export default function WorkEditorForm(props: Props) {
       );
     } catch (error) {
       setIsSmartSaving(false);
+      setIsFormSubmitting(false);
       setSaveSubmitMessage(
         error instanceof Error
           ? error.message
@@ -1311,12 +1321,14 @@ export default function WorkEditorForm(props: Props) {
 
   async function saveDeletedBlocksInBatch() {
     if (!slug) {
+      setIsFormSubmitting(false);
       setSaveSubmitMessage("Smazané bloky lze dávkově uložit jen u už existujícího díla.");
       scrollToSaveActions();
       return;
     }
 
     if (!deleteSavePlan.canUseDeleteSave || deleteSavePlan.deletedBlockIds.length === 0) {
+      setIsFormSubmitting(false);
       setSaveSubmitMessage(
         deleteSavePlan.reason === "existing_blocks_reordered"
           ? "Chytré uložení smazání nelze bezpečně použít, protože se změnilo pořadí původních bloků. U menšího díla zkus běžné uložení; u velmi dlouhého díla si nejdřív stáhni zálohu."
@@ -1332,7 +1344,11 @@ export default function WorkEditorForm(props: Props) {
       `Trvale uložit smazání ${deleteSavePlan.deletedBlockIds.length} ${deleteSavePlan.deletedBlockIds.length === 1 ? "bloku" : deleteSavePlan.deletedBlockIds.length < 5 ? "bloků" : "bloků"}? U velkého díla se změna uloží do dávkové vrstvy a stránka se potom obnoví.`,
     );
 
-    if (!confirmed) return;
+    if (!confirmed) {
+      setIsFormSubmitting(false);
+      setSaveSubmitMessage(null);
+      return;
+    }
 
     setIsSmartSaving(true);
     scrollToSaveActions();
@@ -1369,6 +1385,7 @@ export default function WorkEditorForm(props: Props) {
       window.location.assign(returnTo);
     } catch (error) {
       setIsSmartSaving(false);
+      setIsFormSubmitting(false);
       setSaveSubmitMessage(
         error instanceof Error
           ? error.message
@@ -1380,18 +1397,21 @@ export default function WorkEditorForm(props: Props) {
 
   async function saveNewBlocksInBatches() {
     if (!slug) {
+      setIsFormSubmitting(false);
       setSaveSubmitMessage("Nové bloky lze dávkově uložit jen u už existujícího díla.");
       scrollToSaveActions();
       return;
     }
 
     if (newBlocksForAppend.length === 0) {
+      setIsFormSubmitting(false);
       setSaveSubmitMessage("Nejsou připravené žádné nové bloky k uložení.");
       scrollToSaveActions();
       return;
     }
 
     if (!appendSavePlan.canUseAppendSave) {
+      setIsFormSubmitting(false);
       setSaveSubmitMessage(
         appendSavePlan.reason === "existing_blocks_changed"
           ? "Chytré ukládání nových bloků nelze bezpečně použít, protože se změnilo pořadí nebo sada původních bloků. Uložení celého díla zkusí běžný formulář; u velmi dlouhých děl si nejdřív stáhni zálohu."
@@ -1450,6 +1470,7 @@ export default function WorkEditorForm(props: Props) {
             result?.message ??
               `Ukládání se přerušilo u části ${index + 1} z ${batches.length}. Uloženo mohlo být ${savedCount} bloků. Než budeš pokračovat, stáhni si zálohu a obnov stránku.`,
           );
+          setIsFormSubmitting(false);
           return;
         }
 
@@ -1468,6 +1489,7 @@ export default function WorkEditorForm(props: Props) {
       );
     } finally {
       setIsSmartSaving(false);
+      setIsFormSubmitting(false);
     }
   }
 
@@ -2908,18 +2930,18 @@ export default function WorkEditorForm(props: Props) {
         >
           <button
             type="submit"
-            disabled={isSmartSaving}
+            disabled={isSavingWork}
             style={{
               padding: "12px 18px",
               border: "1px solid #111",
-              background: isSmartSaving ? "rgba(17, 17, 17, 0.56)" : "#111",
+              background: isSavingWork ? "rgba(17, 17, 17, 0.56)" : "#111",
               color: "#fff",
-              cursor: isSmartSaving ? "wait" : "pointer",
+              cursor: isSavingWork ? "wait" : "pointer",
               fontSize: "16px",
               fontWeight: 700,
             }}
           >
-            {isSmartSaving ? "Ukládám změny…" : "Uložit změny"}
+            {isSavingWork ? "Ukládám změny…" : "Uložit změny"}
           </button>
           {shouldUseBatchAppendSave ? (
             <span style={{ alignSelf: "center", fontSize: "13px", color: "rgba(17, 17, 17, 0.62)" }}>
@@ -2940,6 +2962,19 @@ export default function WorkEditorForm(props: Props) {
             }}
           >
             Stáhnout zálohu bloků
+          </button>
+        </div>
+
+        <div className="artales-work-editor-save-status" role="status" aria-live="polite">
+          <div>
+            <strong>{isSavingWork ? "Ukládám změny…" : "Uložení díla"}</strong>
+            <p>
+              {saveSubmitMessage ??
+                "Až dokončíš úpravy bloků nebo metadat, ulož vše jedním tlačítkem."}
+            </p>
+          </div>
+          <button type="submit" disabled={isSavingWork}>
+            {isSavingWork ? "Ukládám…" : "Uložit změny"}
           </button>
         </div>
       </form>
