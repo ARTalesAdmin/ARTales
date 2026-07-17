@@ -5805,3 +5805,58 @@ html[data-artales-theme="dark"] .artales-work-editor-save-status button {
   border-color: rgba(217, 183, 110, 0.28);
   background: rgba(12, 18, 32, 0.82);
 }
+
+
+/* v0.10.15e — editor block move and readable block UI polish */
+.artales-work-editor-save-status {
+  margin-top: 18px;
+}
+
+.artales-work-editor-save-status::after {
+  content: "";
+}
+
+.artales-member-content:has(.artales-work-editor-save-status) {
+  padding-bottom: 104px;
+}
+
+.artales-member-content article textarea,
+.artales-member-content article input,
+.artales-member-content article select {
+  font-size: 15px !important;
+  line-height: 1.55 !important;
+}
+
+.artales-member-content article textarea {
+  min-height: 7.5rem;
+}
+
+.artales-member-content aside[style*="position: sticky"] {
+  margin-bottom: 104px !important;
+  max-height: calc(100vh - 140px) !important;
+  padding-bottom: 18px !important;
+}
+
+.artales-member-content aside[style*="position: sticky"] button {
+  font-size: 13px !important;
+  line-height: 1.45 !important;
+  min-height: 42px;
+}
+
+.artales-member-content aside[style*="position: sticky"] button span:first-child {
+  font-size: 12.5px !important;
+}
+
+.artales-member-content aside[style*="position: sticky"] button span:last-child {
+  font-size: 13.5px !important;
+}
+
+@media (max-width: 760px) {
+  .artales-member-content:has(.artales-work-editor-save-status) {
+    padding-bottom: 154px;
+  }
+
+  .artales-member-content aside[style*="position: sticky"] {
+    margin-bottom: 154px !important;
+  }
+}

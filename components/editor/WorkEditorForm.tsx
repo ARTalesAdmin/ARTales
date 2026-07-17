@@ -177,10 +177,11 @@ type ContentChangeInsertRun = {
 
 type ContentChangeSavePlan = {
   canUseContentChangeSave: boolean;
-  reason: "ok" | "existing_blocks_reordered" | "no_changes";
+  reason: "ok" | "no_changes";
   deletedBlockIds: string[];
   updatedBlocks: WorkBlock[];
   insertRuns: ContentChangeInsertRun[];
+  orderedBlockIds: string[];
 };
 
 function buildAppendSavePlan(
@@ -321,24 +322,6 @@ function buildContentChangeSavePlan(
     .filter((block) => initialBlockIds.has(block.id))
     .map((block) => block.id);
   const currentExistingBlockIdSet = new Set(currentExistingBlockIds);
-  const expectedRemainingOrder = initialBlockIdOrder.filter((blockId) =>
-    currentExistingBlockIdSet.has(blockId),
-  );
-  const existingBlocksReordered =
-    expectedRemainingOrder.length !== currentExistingBlockIds.length ||
-    expectedRemainingOrder.some(
-      (blockId, index) => blockId !== currentExistingBlockIds[index],
-    );
-
-  if (existingBlocksReordered) {
-    return {
-      canUseContentChangeSave: false,
-      reason: "existing_blocks_reordered",
-      deletedBlockIds: [],
-      updatedBlocks: [],
-      insertRuns: [],
-    };
-  }
 
   const deletedBlockIds = initialBlockIdOrder.filter(
     (blockId) => !currentExistingBlockIdSet.has(blockId),
@@ -372,8 +355,15 @@ function buildContentChangeSavePlan(
     previousBlockId = block.id;
   });
 
+  const orderedBlockIds = blocks.map((block) => block.id);
+  const hasOrderChanges =
+    orderedBlockIds.length !== initialBlockIdOrder.length ||
+    orderedBlockIds.some((blockId, index) => blockId !== initialBlockIdOrder[index]);
   const hasChanges =
-    deletedBlockIds.length > 0 || updatedBlocks.length > 0 || insertRuns.length > 0;
+    deletedBlockIds.length > 0 ||
+    updatedBlocks.length > 0 ||
+    insertRuns.length > 0 ||
+    hasOrderChanges;
 
   if (!hasChanges) {
     return {
@@ -382,6 +372,7 @@ function buildContentChangeSavePlan(
       deletedBlockIds: [],
       updatedBlocks: [],
       insertRuns: [],
+      orderedBlockIds: [],
     };
   }
 
@@ -391,6 +382,7 @@ function buildContentChangeSavePlan(
     deletedBlockIds,
     updatedBlocks,
     insertRuns,
+    orderedBlockIds: hasOrderChanges ? orderedBlockIds : [],
   };
 }
 
@@ -1193,11 +1185,9 @@ export default function WorkEditorForm(props: Props) {
       event.preventDefault();
       setIsFormSubmitting(false);
       setSaveSubmitMessage(
-        contentChangeSavePlan.reason === "existing_blocks_reordered"
-          ? "Dílo je příliš velké pro běžné uložení a současně se změnilo pořadí původních bloků. Stáhni si zálohu bloků a rozděl přesun bloků do samostatného kroku."
-          : appendSavePlan.reason === "existing_blocks_changed"
-            ? "Dílo je příliš velké pro běžné uložení a současně se změnilo pořadí, úprava nebo odstranění původních bloků. Stáhni si zálohu bloků a rozděl změnu na menší část."
-            : "Dílo je příliš velké pro běžné uložení celého formuláře. Stáhni si zálohu bloků a rozděl další úpravy na menší části.",
+        appendSavePlan.reason === "existing_blocks_changed"
+          ? "Dílo je příliš velké pro běžné uložení celého formuláře. Změny bloků zkus uložit bezpečným sjednoceným režimem nebo si stáhni zálohu."
+          : "Dílo je příliš velké pro běžné uložení celého formuláře. Stáhni si zálohu bloků a rozděl další úpravy na menší části.",
       );
       scrollToSaveActions();
       return;
@@ -1229,9 +1219,7 @@ export default function WorkEditorForm(props: Props) {
     if (!contentChangeSavePlan.canUseContentChangeSave) {
       setIsFormSubmitting(false);
       setSaveSubmitMessage(
-        contentChangeSavePlan.reason === "existing_blocks_reordered"
-          ? "Sjednocené chytré uložení zatím nepodporuje přesun původních bloků. Ostatní kombinace změn ulož najednou; přesuny prosím udělej jako samostatný krok."
-          : "Uložení teď nelze bezpečně připravit. Obnov stránku a zkus to prosím znovu.",
+        "Uložení teď nelze bezpečně připravit. Obnov stránku a zkus to prosím znovu.",
       );
       scrollToSaveActions();
       return;
@@ -1259,6 +1247,7 @@ export default function WorkEditorForm(props: Props) {
             deletedBlockIds: contentChangeSavePlan.deletedBlockIds,
             updatedBlocks: contentChangeSavePlan.updatedBlocks,
             insertRuns: contentChangeSavePlan.insertRuns,
+            orderedBlockIds: contentChangeSavePlan.orderedBlockIds,
           },
         }),
       });

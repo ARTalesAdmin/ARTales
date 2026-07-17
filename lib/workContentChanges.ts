@@ -9,6 +9,11 @@ export type WorkContentChangeSet = {
   deletedBlockIds: string[]
   updatedBlocks: WorkBlock[]
   insertRuns: WorkContentInsertRun[]
+  /**
+   * Final block order after applying inserts, updates and deletes.
+   * This lets the editor save moved blocks without sending the whole work.
+   */
+  orderedBlockIds: string[]
 }
 
 function normalizeStringArray(value: unknown) {
@@ -64,6 +69,9 @@ export function sanitizeWorkContentChangeSet(value: unknown): WorkContentChangeS
           : [],
     ),
     insertRuns: normalizeInsertRuns(payload.insertRuns ?? payload.insert_runs),
+    orderedBlockIds: normalizeStringArray(
+      payload.orderedBlockIds ?? payload.ordered_block_ids,
+    ),
   }
 }
 
@@ -71,7 +79,8 @@ export function hasWorkContentChanges(changeSet: WorkContentChangeSet) {
   return (
     changeSet.deletedBlockIds.length > 0 ||
     changeSet.updatedBlocks.length > 0 ||
-    changeSet.insertRuns.some((run) => run.blocks.length > 0)
+    changeSet.insertRuns.some((run) => run.blocks.length > 0) ||
+    changeSet.orderedBlockIds.length > 0
   )
 }
 
@@ -130,6 +139,22 @@ export function applyWorkContentChangeSet(
     next.splice(anchorIndex + 1, 0, ...blocksToInsert)
     merged = next
   })
+
+  if (changeSet.orderedBlockIds.length > 0) {
+    const orderIndex = new Map(
+      changeSet.orderedBlockIds.map((blockId, index) => [blockId, index] as const),
+    )
+
+    merged = [...merged].sort((first, second) => {
+      const firstIndex = orderIndex.get(first.id)
+      const secondIndex = orderIndex.get(second.id)
+
+      if (firstIndex === undefined && secondIndex === undefined) return 0
+      if (firstIndex === undefined) return 1
+      if (secondIndex === undefined) return -1
+      return firstIndex - secondIndex
+    })
+  }
 
   return merged
 }

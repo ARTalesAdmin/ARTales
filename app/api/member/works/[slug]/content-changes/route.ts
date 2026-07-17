@@ -307,6 +307,7 @@ export async function POST(request: Request, context: RouteContext) {
             insert_after_block_id: run.insertAfterBlockId,
             blocks: run.blocks,
           })),
+          ordered_block_ids: changeSet.orderedBlockIds,
         },
         deleted_count: changeSet.deletedBlockIds.length,
         updated_count: changeSet.updatedBlocks.length,
