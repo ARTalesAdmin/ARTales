@@ -1,6 +1,10 @@
 import { supabase } from "./supabase"
 import { createClient } from "@/lib/supabase/server"
 import { sanitizeWorkBlocks, type WorkBlock } from "@/lib/blocks"
+import {
+  applyWorkContentChangeSet,
+  sanitizeWorkContentChangeSet,
+} from "@/lib/workContentChanges"
 import type { TagType } from "@/lib/tagTypes"
 
 export type WorkOriginType =
@@ -528,6 +532,15 @@ function getUpdatedBlocksFromBatchMetadata(metadata: unknown) {
   return mapRawContentBlocks(rawValue)
 }
 
+function getUnifiedChangeSetFromBatchMetadata(metadata: unknown) {
+  if (!metadata || typeof metadata !== "object") return null
+
+  const rawValue = (metadata as { content_change_set?: unknown }).content_change_set
+  if (!rawValue || typeof rawValue !== "object") return null
+
+  return sanitizeWorkContentChangeSet(rawValue)
+}
+
 function replaceBlocksById(merged: WorkBlock[], updatedBlocks: WorkBlock[], deletedIds: Set<string>) {
   if (updatedBlocks.length === 0) return merged
 
@@ -579,6 +592,15 @@ function mergeContentBlockBatches(
   let merged = [...baseBlocks]
 
   batches.forEach((batch) => {
+    const unifiedChangeSet = getUnifiedChangeSetFromBatchMetadata(batch.metadata)
+
+    if (unifiedChangeSet) {
+      unifiedChangeSet.deletedBlockIds.forEach((blockId) => deletedIds.add(blockId))
+      merged = applyWorkContentChangeSet(merged, unifiedChangeSet)
+      merged.forEach((block) => seenIds.add(block.id))
+      return
+    }
+
     const deletedBlockIds = getDeletedBlockIdsFromBatchMetadata(batch.metadata)
 
     if (deletedBlockIds.length > 0) {

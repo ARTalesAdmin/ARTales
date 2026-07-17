@@ -171,6 +171,19 @@ type DeleteSavePlan = {
   changedBlocks: WorkBlock[];
 };
 
+type ContentChangeInsertRun = {
+  insertAfterBlockId: string | null;
+  blocks: WorkBlock[];
+};
+
+type ContentChangeSavePlan = {
+  canUseContentChangeSave: boolean;
+  reason: "ok" | "existing_blocks_reordered" | "no_changes";
+  deletedBlockIds: string[];
+  updatedBlocks: WorkBlock[];
+  insertRuns: ContentChangeInsertRun[];
+};
+
 function buildAppendSavePlan(
   blocks: WorkBlock[],
   initialBlockIds: Set<string>,
@@ -296,6 +309,89 @@ function buildDeleteSavePlan(
     reason: "ok",
     deletedBlockIds,
     changedBlocks,
+  };
+}
+
+function buildContentChangeSavePlan(
+  blocks: WorkBlock[],
+  initialBlocksById: Map<string, WorkBlock>,
+  initialBlockIds: Set<string>,
+  initialBlockIdOrder: string[],
+): ContentChangeSavePlan {
+  const currentExistingBlockIds = blocks
+    .filter((block) => initialBlockIds.has(block.id))
+    .map((block) => block.id);
+  const currentExistingBlockIdSet = new Set(currentExistingBlockIds);
+  const expectedRemainingOrder = initialBlockIdOrder.filter((blockId) =>
+    currentExistingBlockIdSet.has(blockId),
+  );
+  const existingBlocksReordered =
+    expectedRemainingOrder.length !== currentExistingBlockIds.length ||
+    expectedRemainingOrder.some(
+      (blockId, index) => blockId !== currentExistingBlockIds[index],
+    );
+
+  if (existingBlocksReordered) {
+    return {
+      canUseContentChangeSave: false,
+      reason: "existing_blocks_reordered",
+      deletedBlockIds: [],
+      updatedBlocks: [],
+      insertRuns: [],
+    };
+  }
+
+  const deletedBlockIds = initialBlockIdOrder.filter(
+    (blockId) => !currentExistingBlockIdSet.has(blockId),
+  );
+  const updatedBlocks = blocks.filter((block) => {
+    if (!initialBlockIds.has(block.id)) return false;
+    const initialBlock = initialBlocksById.get(block.id);
+    if (!initialBlock) return false;
+    return stableStringify(block) !== stableStringify(initialBlock);
+  });
+  const insertRuns: ContentChangeInsertRun[] = [];
+  let currentRun: ContentChangeInsertRun | null = null;
+  let previousBlockId: string | null = null;
+
+  blocks.forEach((block) => {
+    if (initialBlockIds.has(block.id)) {
+      currentRun = null;
+      previousBlockId = block.id;
+      return;
+    }
+
+    if (!currentRun) {
+      currentRun = {
+        insertAfterBlockId: previousBlockId,
+        blocks: [],
+      };
+      insertRuns.push(currentRun);
+    }
+
+    currentRun.blocks.push(block);
+    previousBlockId = block.id;
+  });
+
+  const hasChanges =
+    deletedBlockIds.length > 0 || updatedBlocks.length > 0 || insertRuns.length > 0;
+
+  if (!hasChanges) {
+    return {
+      canUseContentChangeSave: false,
+      reason: "no_changes",
+      deletedBlockIds: [],
+      updatedBlocks: [],
+      insertRuns: [],
+    };
+  }
+
+  return {
+    canUseContentChangeSave: true,
+    reason: "ok",
+    deletedBlockIds,
+    updatedBlocks,
+    insertRuns,
   };
 }
 
@@ -545,6 +641,24 @@ export default function WorkEditorForm(props: Props) {
     () => buildDeleteSavePlan(blocks, initialBlocksById, initialBlockIds, initialBlockIdOrder),
     [blocks, initialBlocksById, initialBlockIds, initialBlockIdOrder],
   );
+  const contentChangeSavePlan = useMemo(
+    () =>
+      buildContentChangeSavePlan(
+        blocks,
+        initialBlocksById,
+        initialBlockIds,
+        initialBlockIdOrder,
+      ),
+    [blocks, initialBlocksById, initialBlockIds, initialBlockIdOrder],
+  );
+  const contentChangeInsertedCount = useMemo(
+    () =>
+      contentChangeSavePlan.insertRuns.reduce(
+        (total, run) => total + run.blocks.length,
+        0,
+      ),
+    [contentChangeSavePlan.insertRuns],
+  );
   const canAppendNewBlocksOnly =
     mode === "edit" &&
     Boolean(slug) &&
@@ -562,6 +676,14 @@ export default function WorkEditorForm(props: Props) {
     (currentAutosaveDisabled ||
       estimatedBlocksStorageChars >= LARGE_WORK_SAVE_WARNING_CHARS ||
       deleteSavePlan.deletedBlockIds.length >= SMART_APPEND_MIN_NEW_BLOCKS);
+  const shouldUseUnifiedContentChangeSave =
+    mode === "edit" &&
+    Boolean(slug) &&
+    contentChangeSavePlan.canUseContentChangeSave &&
+    (currentAutosaveDisabled ||
+      estimatedBlocksStorageChars >= LARGE_WORK_SAVE_WARNING_CHARS ||
+      contentChangeInsertedCount >= SMART_APPEND_MIN_NEW_BLOCKS ||
+      contentChangeSavePlan.deletedBlockIds.length >= SMART_APPEND_MIN_NEW_BLOCKS);
 
   useEffect(() => {
     if (!isSmartSaving) return;
@@ -1029,6 +1151,12 @@ export default function WorkEditorForm(props: Props) {
       return;
     }
 
+    if (shouldUseUnifiedContentChangeSave) {
+      event.preventDefault();
+      await saveUnifiedContentChanges();
+      return;
+    }
+
     if (shouldUseBatchDeleteSave) {
       event.preventDefault();
       await saveDeletedBlocksInBatch();
@@ -1049,12 +1177,18 @@ export default function WorkEditorForm(props: Props) {
     }
 
     if (estimatedBlocksStorageChars >= LARGE_WORK_SAVE_DANGER_CHARS) {
-      if (mode === "edit" && slug && newBlocksForAppend.length === 0) {
+      if (mode === "edit" && slug && !contentChangeSavePlan.canUseContentChangeSave) {
         contentUpdateModeInputRef.current.value = "metadata_only";
         contentBlocksInputRef.current.value = "[]";
         setSaveSubmitMessage(
           "Dílo je velmi velké, proto ukládám jen metadata a stav publikace. Obsah bloků zůstane beze změny.",
         );
+        return;
+      }
+
+      if (shouldUseUnifiedContentChangeSave) {
+        event.preventDefault();
+        await saveUnifiedContentChanges();
         return;
       }
 
@@ -1072,9 +1206,11 @@ export default function WorkEditorForm(props: Props) {
 
       event.preventDefault();
       setSaveSubmitMessage(
-        appendSavePlan.reason === "existing_blocks_changed"
-          ? "Dílo je příliš velké pro běžné uložení a současně se změnilo pořadí, úprava nebo odstranění původních bloků. Z bezpečnostních důvodů teď editor neuloží jen nové dávky, protože by mohl porušit pořadí. Stáhni si zálohu bloků a rozděl změnu na menší část."
-          : "Dílo je příliš velké pro běžné uložení celého formuláře. Stáhni si zálohu bloků a rozděl další úpravy na menší části.",
+        contentChangeSavePlan.reason === "existing_blocks_reordered"
+          ? "Dílo je příliš velké pro běžné uložení a současně se změnilo pořadí původních bloků. Stáhni si zálohu bloků a rozděl přesun bloků do samostatného kroku."
+          : appendSavePlan.reason === "existing_blocks_changed"
+            ? "Dílo je příliš velké pro běžné uložení a současně se změnilo pořadí, úprava nebo odstranění původních bloků. Stáhni si zálohu bloků a rozděl změnu na menší část."
+            : "Dílo je příliš velké pro běžné uložení celého formuláře. Stáhni si zálohu bloků a rozděl další úpravy na menší části.",
       );
       scrollToSaveActions();
       return;
@@ -1092,6 +1228,86 @@ export default function WorkEditorForm(props: Props) {
     }
   }
 
+
+  async function saveUnifiedContentChanges() {
+    if (!slug) {
+      setSaveSubmitMessage("Sjednocené ukládání změn lze použít jen u už existujícího díla.");
+      scrollToSaveActions();
+      return;
+    }
+
+    if (!contentChangeSavePlan.canUseContentChangeSave) {
+      setSaveSubmitMessage(
+        contentChangeSavePlan.reason === "existing_blocks_reordered"
+          ? "Sjednocené chytré uložení zatím nepodporuje přesun původních bloků. Ostatní kombinace změn ulož najednou; přesuny prosím udělej jako samostatný krok."
+          : "Nejsou připravené žádné obsahové změny k uložení.",
+      );
+      scrollToSaveActions();
+      return;
+    }
+
+    setIsSmartSaving(true);
+    scrollToSaveActions();
+    setSaveSubmitMessage(
+      `Ukládám změny díla: ${contentChangeInsertedCount} nových, ${contentChangeSavePlan.updatedBlocks.length} upravených a ${contentChangeSavePlan.deletedBlockIds.length} smazaných bloků. Prosím neodcházej ze stránky.`,
+    );
+
+    try {
+      const response = await fetch(`/api/member/works/${encodeURIComponent(slug)}/content-changes`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          form: {
+            ...formState,
+            title: primaryTitle,
+            subtitle: primarySubtitle,
+            summary: primarySummary,
+            tag_ids: formState.tag_ids,
+          },
+          contentChangeSet: {
+            deletedBlockIds: contentChangeSavePlan.deletedBlockIds,
+            updatedBlocks: contentChangeSavePlan.updatedBlocks,
+            insertRuns: contentChangeSavePlan.insertRuns,
+          },
+        }),
+      });
+
+      const result = (await response.json().catch(() => null)) as
+        | {
+            ok?: boolean;
+            message?: string;
+            slug?: string;
+            deletedCount?: number;
+            updatedCount?: number;
+            insertedCount?: number;
+          }
+        | null;
+
+      if (!response.ok || !result?.ok) {
+        throw new Error(result?.message ?? "Změny díla se nepodařilo uložit.");
+      }
+
+      removeLocalDraft(storageKey);
+      setSaveSubmitMessage(
+        result.message ??
+          `Uloženo: ${result.insertedCount ?? contentChangeInsertedCount} nových, ${result.updatedCount ?? contentChangeSavePlan.updatedBlocks.length} upravených a ${result.deletedCount ?? contentChangeSavePlan.deletedBlockIds.length} smazaných bloků. Stránka se obnoví.`,
+      );
+      suppressBeforeUnloadRef.current = true;
+      window.location.assign(
+        `/member/works/${encodeURIComponent(result.slug ?? slug)}/edit?success=work_updated`,
+      );
+    } catch (error) {
+      setIsSmartSaving(false);
+      setSaveSubmitMessage(
+        error instanceof Error
+          ? error.message
+          : "Změny díla se nepodařilo uložit. Stáhni si zálohu bloků a zkus to prosím znovu.",
+      );
+      scrollToSaveActions();
+    }
+  }
 
   async function saveDeletedBlocksInBatch() {
     if (!slug) {
