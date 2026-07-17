@@ -518,7 +518,9 @@ export default function WorkEditorForm(props: Props) {
   const [lastSaved, setLastSaved] = useState<string | null>(null);
   const [draftLoaded, setDraftLoaded] = useState(false);
   const [autosaveEnabled, setAutosaveEnabled] = useState(false);
-  const setAutosaveWarning = (_message: string | null) => undefined;
+  const setAutosaveWarning = (message: string | null) => {
+    void message;
+  };
   const [parserInput, setParserInput] = useState("");
   const [parserResult, setParserResult] = useState<ParsedWorkBlocksResult | null>(null);
   const [parserMessage, setParserMessage] = useState<string | null>(null);
