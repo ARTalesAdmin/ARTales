@@ -5860,3 +5860,111 @@ html[data-artales-theme="dark"] .artales-work-editor-save-status button {
     margin-bottom: 154px !important;
   }
 }
+
+/* v0.10.15f — static save actions and calmer editor spacing */
+.artales-work-editor-save-actions {
+  align-items: center;
+  background: rgba(255, 253, 248, 0.96);
+  border: 1px solid rgba(13, 21, 40, 0.16);
+  border-radius: 18px;
+  box-shadow: 0 14px 34px rgba(5, 7, 12, 0.10);
+  color: #0d1528;
+  display: flex;
+  gap: 14px;
+  justify-content: space-between;
+  padding: 14px 16px;
+}
+
+.artales-work-editor-save-actions--top {
+  margin-bottom: 2px;
+}
+
+.artales-work-editor-save-actions--bottom {
+  margin-top: 2px;
+}
+
+.artales-work-editor-save-actions p {
+  color: rgba(13, 21, 40, 0.72);
+  font-size: 13.5px;
+  line-height: 1.45;
+  margin: 3px 0 0;
+  max-width: 760px;
+}
+
+.artales-work-editor-save-buttons {
+  align-items: center;
+  display: flex;
+  flex: 0 0 auto;
+  flex-wrap: wrap;
+  gap: 10px;
+  justify-content: flex-end;
+}
+
+.artales-work-editor-save-buttons button {
+  background: #111827;
+  border: 1px solid #111827;
+  border-radius: 999px;
+  color: #ffffff;
+  cursor: pointer;
+  flex: 0 0 auto;
+  font-weight: 800;
+  padding: 10px 16px;
+}
+
+.artales-work-editor-save-buttons button:first-child {
+  background: transparent;
+  border-color: rgba(17, 24, 39, 0.18);
+  color: rgba(17, 24, 39, 0.74);
+}
+
+.artales-work-editor-save-buttons button:disabled {
+  cursor: wait;
+  opacity: 0.72;
+}
+
+html[data-artales-theme="dark"] .artales-work-editor-save-actions {
+  background: rgba(17, 19, 24, 0.96);
+  border-color: rgba(217, 183, 110, 0.34);
+  box-shadow: 0 14px 42px rgba(0, 0, 0, 0.32);
+  color: #fff5df;
+}
+
+html[data-artales-theme="dark"] .artales-work-editor-save-actions p {
+  color: rgba(255, 245, 223, 0.76);
+}
+
+html[data-artales-theme="dark"] .artales-work-editor-save-buttons button {
+  background: #d9b76e;
+  border-color: rgba(217, 183, 110, 0.9);
+  color: #121014;
+}
+
+html[data-artales-theme="dark"] .artales-work-editor-save-buttons button:first-child {
+  background: rgba(12, 18, 32, 0.82);
+  border-color: rgba(217, 183, 110, 0.28);
+  color: rgba(249, 239, 215, 0.78);
+}
+
+.artales-member-content aside[style*="position: sticky"] {
+  margin-bottom: 24px !important;
+  max-height: calc(100vh - 96px) !important;
+}
+
+@media (max-width: 760px) {
+  .artales-work-editor-save-actions {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .artales-work-editor-save-buttons {
+    justify-content: stretch;
+  }
+
+  .artales-work-editor-save-buttons button {
+    width: 100%;
+  }
+
+  .artales-member-content aside[style*="position: sticky"] {
+    margin-bottom: 24px !important;
+  }
+}

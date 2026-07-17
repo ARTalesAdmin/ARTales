@@ -518,7 +518,7 @@ export default function WorkEditorForm(props: Props) {
   const [lastSaved, setLastSaved] = useState<string | null>(null);
   const [draftLoaded, setDraftLoaded] = useState(false);
   const [autosaveEnabled, setAutosaveEnabled] = useState(false);
-  const [autosaveWarning, setAutosaveWarning] = useState<string | null>(null);
+  const setAutosaveWarning = (_message: string | null) => undefined;
   const [parserInput, setParserInput] = useState("");
   const [parserResult, setParserResult] = useState<ParsedWorkBlocksResult | null>(null);
   const [parserMessage, setParserMessage] = useState<string | null>(null);
@@ -695,8 +695,37 @@ export default function WorkEditorForm(props: Props) {
   }, [tags]);
 
   function scrollToSaveActions() {
-    const element = document.getElementById("work-editor-sticky-save-status");
+    const element = document.getElementById("work-editor-save-actions-top");
     element?.scrollIntoView({ behavior: "smooth", block: "center" });
+  }
+
+  function renderSaveActions(placement: "top" | "bottom") {
+    const statusText = isSavingWork
+      ? "Ukládám změny. Prosím neodcházej ze stránky."
+      : saveSubmitMessage ??
+        "Ukládej průběžně. Autosave je vypnutý; jedno uložení uloží metadata i všechny změny v blocích najednou.";
+
+    return (
+      <div
+        id={placement === "top" ? "work-editor-save-actions-top" : "work-editor-save-actions-bottom"}
+        className={`artales-work-editor-save-actions artales-work-editor-save-actions--${placement}`}
+        role="status"
+        aria-live="polite"
+      >
+        <div>
+          <strong>{isSavingWork ? "Ukládám…" : "Uložit práci"}</strong>
+          <p>{statusText}</p>
+        </div>
+        <div className="artales-work-editor-save-buttons">
+          <button type="button" onClick={downloadBlocksBackup} disabled={isSavingWork}>
+            Stáhnout zálohu
+          </button>
+          <button type="submit" disabled={isSavingWork}>
+            {isSavingWork ? "Ukládám…" : "Uložit změny"}
+          </button>
+        </div>
+      </div>
+    );
   }
 
   const initialSnapshot = useMemo(
@@ -1609,23 +1638,6 @@ export default function WorkEditorForm(props: Props) {
         </div>
       ) : null}
 
-      {autosaveWarning ? (
-        <div
-          role="status"
-          style={{
-            border: "1px solid #e0c39a",
-            padding: "14px 16px",
-            marginBottom: "20px",
-            background: "#fff8ed",
-            color: "#4a3218",
-          }}
-        >
-          <p style={{ margin: 0, fontSize: "14px", lineHeight: 1.5 }}>
-            {autosaveWarning}
-          </p>
-        </div>
-      ) : null}
-
       <section
         className="artales-member-panel"
         style={{
@@ -1682,6 +1694,8 @@ export default function WorkEditorForm(props: Props) {
       </section>
 
       <form action={action} onSubmit={prepareWorkSubmit} style={{ display: "grid", gap: "22px" }}>
+        {renderSaveActions("top")}
+
         <section
           className="artales-member-panel"
           style={{
@@ -2835,20 +2849,7 @@ export default function WorkEditorForm(props: Props) {
           </div>
         ) : null}
 
-        <div id="work-editor-sticky-save-status" className="artales-work-editor-save-status" role="status" aria-live="polite">
-          <div>
-            <strong>{isSavingWork ? "Ukládám…" : "Neuložené změny?"}</strong>
-            <p>{saveSubmitMessage ?? "Uložení zachová metadata i všechny změny v blocích najednou."}</p>
-          </div>
-          <div className="artales-work-editor-save-status-actions">
-            <button type="button" onClick={downloadBlocksBackup} disabled={isSavingWork}>
-              Stáhnout zálohu
-            </button>
-            <button type="submit" disabled={isSavingWork}>
-              {isSavingWork ? "Ukládám…" : "Uložit změny"}
-            </button>
-          </div>
-        </div>
+        {renderSaveActions("bottom")}
       </form>
     </>
   );
