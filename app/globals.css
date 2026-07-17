@@ -5786,3 +5786,22 @@ html[data-artales-theme="dark"] .artales-work-editor-save-status button {
     width: 100%;
   }
 }
+
+.artales-work-editor-save-status-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.artales-work-editor-save-status-actions button:first-child {
+  background: transparent;
+  color: rgba(17, 24, 39, 0.74);
+  border: 1px solid rgba(17, 24, 39, 0.18);
+}
+
+[data-artales-theme="dark"] .artales-work-editor-save-status-actions button:first-child {
+  color: rgba(249, 239, 215, 0.78);
+  border-color: rgba(217, 183, 110, 0.28);
+  background: rgba(12, 18, 32, 0.82);
+}

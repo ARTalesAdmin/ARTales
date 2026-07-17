@@ -5,7 +5,6 @@ import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import {
   WORK_BLOCK_TYPE_META,
   createEmptyBlock,
-  getUnresolvedImageBlocks,
   type WorkBlock,
 } from "@/lib/blocks";
 import { createClient as createBrowserSupabaseClient } from "@/lib/supabase/client";
@@ -378,7 +377,7 @@ function buildContentChangeSavePlan(
 
   if (!hasChanges) {
     return {
-      canUseContentChangeSave: false,
+      canUseContentChangeSave: true,
       reason: "no_changes",
       deletedBlockIds: [],
       updatedBlocks: [],
@@ -612,7 +611,6 @@ export default function WorkEditorForm(props: Props) {
     },
   ];
 
-  const unresolvedImageBlocks = getUnresolvedImageBlocks(blocks);
   const estimatedBlocksStorageChars = useMemo(
     () => estimateBlocksStorageChars(blocks),
     [blocks],
@@ -652,14 +650,6 @@ export default function WorkEditorForm(props: Props) {
       ),
     [blocks, initialBlocksById, initialBlockIds, initialBlockIdOrder],
   );
-  const contentChangeInsertedCount = useMemo(
-    () =>
-      contentChangeSavePlan.insertRuns.reduce(
-        (total, run) => total + run.blocks.length,
-        0,
-      ),
-    [contentChangeSavePlan.insertRuns],
-  );
   const canAppendNewBlocksOnly =
     mode === "edit" &&
     Boolean(slug) &&
@@ -678,13 +668,7 @@ export default function WorkEditorForm(props: Props) {
       estimatedBlocksStorageChars >= LARGE_WORK_SAVE_WARNING_CHARS ||
       deleteSavePlan.deletedBlockIds.length >= SMART_APPEND_MIN_NEW_BLOCKS);
   const shouldUseUnifiedContentChangeSave =
-    mode === "edit" &&
-    Boolean(slug) &&
-    contentChangeSavePlan.canUseContentChangeSave &&
-    (currentAutosaveDisabled ||
-      estimatedBlocksStorageChars >= LARGE_WORK_SAVE_WARNING_CHARS ||
-      contentChangeInsertedCount >= SMART_APPEND_MIN_NEW_BLOCKS ||
-      contentChangeSavePlan.deletedBlockIds.length >= SMART_APPEND_MIN_NEW_BLOCKS);
+    mode === "edit" && Boolean(slug) && contentChangeSavePlan.canUseContentChangeSave;
   const isSavingWork = isSmartSaving || isFormSubmitting;
 
   useEffect(() => {
@@ -719,7 +703,7 @@ export default function WorkEditorForm(props: Props) {
   }, [tags]);
 
   function scrollToSaveActions() {
-    const element = document.getElementById("work-editor-save-actions");
+    const element = document.getElementById("work-editor-sticky-save-status");
     element?.scrollIntoView({ behavior: "smooth", block: "center" });
   }
 
@@ -1146,7 +1130,7 @@ export default function WorkEditorForm(props: Props) {
   }
 
   async function prepareWorkSubmit(event: FormEvent<HTMLFormElement>) {
-    setSaveSubmitMessage("Připravuji uložení díla…");
+    setSaveSubmitMessage("Ukládám změny. Prosím neodcházej ze stránky.");
     setIsFormSubmitting(true);
 
     if (isSmartSaving) {
@@ -1184,9 +1168,7 @@ export default function WorkEditorForm(props: Props) {
       if (mode === "edit" && slug && !contentChangeSavePlan.canUseContentChangeSave) {
         contentUpdateModeInputRef.current.value = "metadata_only";
         contentBlocksInputRef.current.value = "[]";
-        setSaveSubmitMessage(
-          "Dílo je velmi velké, proto ukládám jen metadata a stav publikace. Obsah bloků zůstane beze změny.",
-        );
+        setSaveSubmitMessage("Ukládám změny. Prosím neodcházej ze stránky.");
         return;
       }
 
@@ -1224,7 +1206,7 @@ export default function WorkEditorForm(props: Props) {
     try {
       contentUpdateModeInputRef.current.value = "full";
       contentBlocksInputRef.current.value = JSON.stringify(blocks);
-      setSaveSubmitMessage("Ukládám dílo… Pokud je text delší, může to chvíli trvat.");
+      setSaveSubmitMessage("Ukládám změny. Prosím neodcházej ze stránky.");
     } catch {
       event.preventDefault();
       setIsFormSubmitting(false);
@@ -1249,7 +1231,7 @@ export default function WorkEditorForm(props: Props) {
       setSaveSubmitMessage(
         contentChangeSavePlan.reason === "existing_blocks_reordered"
           ? "Sjednocené chytré uložení zatím nepodporuje přesun původních bloků. Ostatní kombinace změn ulož najednou; přesuny prosím udělej jako samostatný krok."
-          : "Nejsou připravené žádné obsahové změny k uložení.",
+          : "Uložení teď nelze bezpečně připravit. Obnov stránku a zkus to prosím znovu.",
       );
       scrollToSaveActions();
       return;
@@ -1257,9 +1239,7 @@ export default function WorkEditorForm(props: Props) {
 
     setIsSmartSaving(true);
     scrollToSaveActions();
-    setSaveSubmitMessage(
-      `Ukládám změny díla: ${contentChangeInsertedCount} nových, ${contentChangeSavePlan.updatedBlocks.length} upravených a ${contentChangeSavePlan.deletedBlockIds.length} smazaných bloků. Prosím neodcházej ze stránky.`,
-    );
+    setSaveSubmitMessage("Ukládám změny. Prosím neodcházej ze stránky.");
 
     try {
       const response = await fetch(`/api/member/works/${encodeURIComponent(slug)}/content-changes`, {
@@ -1299,10 +1279,7 @@ export default function WorkEditorForm(props: Props) {
       }
 
       removeLocalDraft(storageKey);
-      setSaveSubmitMessage(
-        result.message ??
-          `Uloženo: ${result.insertedCount ?? contentChangeInsertedCount} nových, ${result.updatedCount ?? contentChangeSavePlan.updatedBlocks.length} upravených a ${result.deletedCount ?? contentChangeSavePlan.deletedBlockIds.length} smazaných bloků. Stránka se obnoví.`,
-      );
+      setSaveSubmitMessage("Uloženo. Obnovuji editor…");
       suppressBeforeUnloadRef.current = true;
       window.location.assign(
         `/member/works/${encodeURIComponent(result.slug ?? slug)}/edit?success=work_updated`,
@@ -1716,61 +1693,6 @@ export default function WorkEditorForm(props: Props) {
       </section>
 
       <form action={action} onSubmit={prepareWorkSubmit} style={{ display: "grid", gap: "22px" }}>
-        <section
-          className="artales-member-panel"
-          style={{
-            border: "1px solid rgba(13, 21, 40, 0.14)",
-            background: "#fffdf8",
-            borderRadius: "18px",
-            padding: "16px",
-            display: "flex",
-            gap: "12px",
-            flexWrap: "wrap",
-            alignItems: "center",
-            justifyContent: "space-between",
-          }}
-        >
-          <div>
-            <strong>Rychlé uložení</strong>
-            <p style={{ margin: "4px 0 0", fontSize: "13px", opacity: 0.75 }}>
-              U dlouhých děl nemusíš sjíždět až na konec formuláře.
-              {unresolvedImageBlocks.length > 0
-                ? ` Nevyřešené image bloky: ${unresolvedImageBlocks.length}. Draft uložit lze, publikaci zastaví.`
-                : ""}
-            </p>
-          </div>
-
-          <div style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
-            <button
-              type="submit"
-              style={{
-                padding: "10px 15px",
-                border: "1px solid #111",
-                background: "#111",
-                color: "#fff",
-                cursor: "pointer",
-                fontWeight: 700,
-              }}
-            >
-              Uložit dílo
-            </button>
-            <button
-              type="button"
-              onClick={scrollToSaveActions}
-              style={{
-                padding: "10px 15px",
-                border: "1px solid rgba(13, 21, 40, 0.22)",
-                background: "#fffefb",
-                color: "#111",
-                cursor: "pointer",
-                fontWeight: 700,
-              }}
-            >
-              Přejít na konec ↓
-            </button>
-          </div>
-        </section>
-
         <section
           className="artales-member-panel"
           style={{
@@ -2913,69 +2835,30 @@ export default function WorkEditorForm(props: Props) {
             ) : null}
             {canAppendNewBlocksOnly ? (
               <p style={{ margin: "6px 0 0" }}>
-                Nově přidané bloky: <strong>{newBlocksForAppend.length}</strong>. Hlavní tlačítko Uložit změny samo zvolí bezpečný režim; u dlouhých děl odešle nové bloky po částech.
+                Nově přidané bloky: <strong>{newBlocksForAppend.length}</strong>. Uložení proběhne jednotným bezpečným režimem.
               </p>
             ) : null}
             {!canAppendNewBlocksOnly && mode === "edit" && estimatedBlocksStorageChars >= LARGE_WORK_SAVE_DANGER_CHARS ? (
               <p style={{ margin: "6px 0 0" }}>
-                Pokud měníš jen metadata nebo status publikace, editor uloží pouze tato pole. Obsah díla se znovu neodesílá.
+                Editor uloží změny bezpečným režimem bez zbytečného odesílání celého díla.
               </p>
             ) : null}
           </div>
         ) : null}
 
-        <div
-          id="work-editor-save-actions"
-          style={{ display: "flex", gap: "12px", flexWrap: "wrap" }}
-        >
-          <button
-            type="submit"
-            disabled={isSavingWork}
-            style={{
-              padding: "12px 18px",
-              border: "1px solid #111",
-              background: isSavingWork ? "rgba(17, 17, 17, 0.56)" : "#111",
-              color: "#fff",
-              cursor: isSavingWork ? "wait" : "pointer",
-              fontSize: "16px",
-              fontWeight: 700,
-            }}
-          >
-            {isSavingWork ? "Ukládám změny…" : "Uložit změny"}
-          </button>
-          {shouldUseBatchAppendSave ? (
-            <span style={{ alignSelf: "center", fontSize: "13px", color: "rgba(17, 17, 17, 0.62)" }}>
-              Editor uloží {newBlocksForAppend.length} nových bloků po částech.
-            </span>
-          ) : null}
-          <button
-            type="button"
-            onClick={downloadBlocksBackup}
-            style={{
-              padding: "12px 18px",
-              border: "1px solid rgba(17, 17, 17, 0.24)",
-              background: "#fff",
-              color: "#111",
-              cursor: "pointer",
-              fontSize: "15px",
-              fontWeight: 600,
-            }}
-          >
-            Stáhnout zálohu bloků
-          </button>
-        </div>
-
-        <div className="artales-work-editor-save-status" role="status" aria-live="polite">
+        <div id="work-editor-sticky-save-status" className="artales-work-editor-save-status" role="status" aria-live="polite">
           <div>
-            <strong>{isSavingWork ? "Ukládám změny…" : "Uložení díla"}</strong>
-            <p>
-              {saveSubmitMessage ??
-                "Až dokončíš úpravy bloků nebo metadat, ulož vše jedním tlačítkem."}
-            </p>
+            <strong>{isSavingWork ? "Ukládám…" : "Neuložené změny?"}</strong>
+            <p>{saveSubmitMessage ?? "Uložení zachová metadata i všechny změny v blocích najednou."}</p>
           </div>
-          <button type="submit" disabled={isSavingWork}>
-            {isSavingWork ? "Ukládám…" : "Uložit změny"}
-          </button>
+          <div className="artales-work-editor-save-status-actions">
+            <button type="button" onClick={downloadBlocksBackup} disabled={isSavingWork}>
+              Stáhnout zálohu
+            </button>
+            <button type="submit" disabled={isSavingWork}>
+              {isSavingWork ? "Ukládám…" : "Uložit změny"}
+            </button>
+          </div>
         </div>
       </form>
     </>

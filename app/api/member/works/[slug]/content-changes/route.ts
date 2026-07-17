@@ -224,9 +224,7 @@ export async function POST(request: Request, context: RouteContext) {
   const changeSet = sanitizeWorkContentChangeSet(payload.contentChangeSet);
   const insertedCount = countInsertedBlocks(changeSet);
 
-  if (!hasWorkContentChanges(changeSet)) {
-    return toErrorResponse("Změnová sada neobsahuje žádné úpravy bloků.");
-  }
+  const hasContentChanges = hasWorkContentChanges(changeSet);
 
   const updatedBlocksError =
     changeSet.updatedBlocks.length > 0 ? validateWorkBlocks(changeSet.updatedBlocks) : null;
@@ -295,41 +293,43 @@ export async function POST(request: Request, context: RouteContext) {
     );
   }
 
-  const { error: insertError } = await supabase.from("work_content_block_batches").insert({
-    work_id: workId,
-    blocks: [],
-    created_by: profileId,
-    metadata: {
-      source: "large_work_content_change_set",
-      content_change_set: {
-        deleted_block_ids: changeSet.deletedBlockIds,
-        updated_blocks: changeSet.updatedBlocks,
-        insert_runs: changeSet.insertRuns.map((run) => ({
-          insert_after_block_id: run.insertAfterBlockId,
-          blocks: run.blocks,
-        })),
+  if (hasContentChanges) {
+    const { error: insertError } = await supabase.from("work_content_block_batches").insert({
+      work_id: workId,
+      blocks: [],
+      created_by: profileId,
+      metadata: {
+        source: "work_content_change_set",
+        content_change_set: {
+          deleted_block_ids: changeSet.deletedBlockIds,
+          updated_blocks: changeSet.updatedBlocks,
+          insert_runs: changeSet.insertRuns.map((run) => ({
+            insert_after_block_id: run.insertAfterBlockId,
+            blocks: run.blocks,
+          })),
+        },
+        deleted_count: changeSet.deletedBlockIds.length,
+        updated_count: changeSet.updatedBlocks.length,
+        inserted_count: insertedCount,
+        work_slug: slug,
+        next_work_slug: String(updatedWork.slug),
+        actor_profile_id: profileId,
+        saved_via: "unified_content_save",
       },
-      deleted_count: changeSet.deletedBlockIds.length,
-      updated_count: changeSet.updatedBlocks.length,
-      inserted_count: insertedCount,
-      work_slug: slug,
-      next_work_slug: String(updatedWork.slug),
-      actor_profile_id: profileId,
-      saved_via: "unified_smart_save",
-    },
-  });
+    });
 
-  if (insertError) {
-    console.error("Unified work change batch insert failed:", insertError);
+    if (insertError) {
+      console.error("Unified work change batch insert failed:", insertError);
 
-    if (getDatabaseErrorCode(insertError) === "42P01") {
-      return toErrorResponse(
-        "Chybí databázová tabulka pro dávkové ukládání bloků. Spusť prosím SQL migraci z patche v0.10.12j a zkus to znovu.",
-        500,
-      );
+      if (getDatabaseErrorCode(insertError) === "42P01") {
+        return toErrorResponse(
+          "Chybí databázová tabulka pro dávkové ukládání bloků. Spusť prosím SQL migraci z patche v0.10.12j a zkus to znovu.",
+          500,
+        );
+      }
+
+      return toErrorResponse(insertError.message || "Změny bloků se nepodařilo uložit.", 500);
     }
-
-    return toErrorResponse(insertError.message || "Změny bloků se nepodařilo uložit.", 500);
   }
 
   return NextResponse.json({
@@ -338,6 +338,6 @@ export async function POST(request: Request, context: RouteContext) {
     deletedCount: changeSet.deletedBlockIds.length,
     updatedCount: changeSet.updatedBlocks.length,
     insertedCount,
-    message: `Uloženo: ${insertedCount} nových, ${changeSet.updatedBlocks.length} upravených a ${changeSet.deletedBlockIds.length} smazaných bloků.`,
+    message: "Uloženo.",
   });
 }
