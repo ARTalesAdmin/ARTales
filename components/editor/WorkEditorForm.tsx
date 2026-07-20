@@ -5,6 +5,8 @@ import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import {
   WORK_BLOCK_TYPE_META,
   createEmptyBlock,
+  normalizeTableBlockFields,
+  validateTableBlockFields,
   type WorkBlock,
 } from "@/lib/blocks";
 import { createClient as createBrowserSupabaseClient } from "@/lib/supabase/client";
@@ -67,9 +69,20 @@ type Props = {
     blocks: WorkBlock[];
   };
 
-  authors: { id: string; name: string; name_cs?: string | null; name_en?: string | null }[];
+  authors: {
+    id: string;
+    name: string;
+    name_cs?: string | null;
+    name_en?: string | null;
+  }[];
   collections: { id: string; title: string }[];
-  tags: { id: string; slug: string; label_cs: string; label_en: string | null; type: string }[];
+  tags: {
+    id: string;
+    slug: string;
+    label_cs: string;
+    label_en: string | null;
+    type: string;
+  }[];
   languageOptions: { value: string; label: string }[];
   statusOptions: { value: string; label: string }[];
 
@@ -99,8 +112,8 @@ function estimateBlocksStorageChars(blocks: WorkBlock[]) {
   return blocks.reduce((total, block) => {
     const fieldsSize = block.fields
       ? Object.values(block.fields).reduce(
-          (sum, value) => sum + String(value ?? "").length,
-          0,
+          (sum: number, value) => sum + String(value ?? "").length,
+          0 as number,
         )
       : 0;
 
@@ -358,7 +371,9 @@ function buildContentChangeSavePlan(
   const orderedBlockIds = blocks.map((block) => block.id);
   const hasOrderChanges =
     orderedBlockIds.length !== initialBlockIdOrder.length ||
-    orderedBlockIds.some((blockId, index) => blockId !== initialBlockIdOrder[index]);
+    orderedBlockIds.some(
+      (blockId, index) => blockId !== initialBlockIdOrder[index],
+    );
   const hasChanges =
     deletedBlockIds.length > 0 ||
     updatedBlocks.length > 0 ||
@@ -522,12 +537,17 @@ export default function WorkEditorForm(props: Props) {
     void message;
   };
   const [parserInput, setParserInput] = useState("");
-  const [parserResult, setParserResult] = useState<ParsedWorkBlocksResult | null>(null);
+  const [parserResult, setParserResult] =
+    useState<ParsedWorkBlocksResult | null>(null);
   const [parserMessage, setParserMessage] = useState<string | null>(null);
-  const [saveSubmitMessage, setSaveSubmitMessage] = useState<string | null>(null);
+  const [saveSubmitMessage, setSaveSubmitMessage] = useState<string | null>(
+    null,
+  );
   const [isSmartSaving, setIsSmartSaving] = useState(false);
   const [isFormSubmitting, setIsFormSubmitting] = useState(false);
-  const [coverUploadMessage, setCoverUploadMessage] = useState<string | null>(null);
+  const [coverUploadMessage, setCoverUploadMessage] = useState<string | null>(
+    null,
+  );
   const [coverUploadError, setCoverUploadError] = useState<string | null>(null);
   const [isCoverUploading, setIsCoverUploading] = useState(false);
   const coverInputRef = useRef<HTMLInputElement | null>(null);
@@ -547,6 +567,12 @@ export default function WorkEditorForm(props: Props) {
           "" ||
         String(block.fields?.image_request ?? "").trim() !== "" ||
         String(block.fields?.caption ?? "").trim() !== ""
+      );
+    }
+    if (block.type === "table") {
+      return (
+        validateTableBlockFields(normalizeTableBlockFields(block.fields)) ===
+        null
       );
     }
     return block.content.trim() !== "";
@@ -609,9 +635,12 @@ export default function WorkEditorForm(props: Props) {
     () => estimateBlocksStorageChars(blocks),
     [blocks],
   );
-  const largeWorkSaveRiskMessage = getLargeWorkSaveRiskMessage(estimatedBlocksStorageChars);
+  const largeWorkSaveRiskMessage = getLargeWorkSaveRiskMessage(
+    estimatedBlocksStorageChars,
+  );
   const initialBlocksById = useMemo(
-    () => new Map(initialData.blocks.map((block) => [block.id, block] as const)),
+    () =>
+      new Map(initialData.blocks.map((block) => [block.id, block] as const)),
     [initialData.blocks],
   );
   const initialBlockIds = useMemo(
@@ -631,7 +660,13 @@ export default function WorkEditorForm(props: Props) {
     [blocks, initialBlockIds, initialBlockIdOrder],
   );
   const deleteSavePlan = useMemo(
-    () => buildDeleteSavePlan(blocks, initialBlocksById, initialBlockIds, initialBlockIdOrder),
+    () =>
+      buildDeleteSavePlan(
+        blocks,
+        initialBlocksById,
+        initialBlockIds,
+        initialBlockIdOrder,
+      ),
     [blocks, initialBlocksById, initialBlockIds, initialBlockIdOrder],
   );
   const contentChangeSavePlan = useMemo(
@@ -662,7 +697,9 @@ export default function WorkEditorForm(props: Props) {
       estimatedBlocksStorageChars >= LARGE_WORK_SAVE_WARNING_CHARS ||
       deleteSavePlan.deletedBlockIds.length >= SMART_APPEND_MIN_NEW_BLOCKS);
   const shouldUseUnifiedContentChangeSave =
-    mode === "edit" && Boolean(slug) && contentChangeSavePlan.canUseContentChangeSave;
+    mode === "edit" &&
+    Boolean(slug) &&
+    contentChangeSavePlan.canUseContentChangeSave;
   const isSavingWork = isSmartSaving || isFormSubmitting;
 
   useEffect(() => {
@@ -682,7 +719,16 @@ export default function WorkEditorForm(props: Props) {
   }, [isSmartSaving]);
 
   const tagGroups = useMemo(() => {
-    const groups = new Map<string, { id: string; slug: string; label_cs: string; label_en: string | null; type: string }[]>();
+    const groups = new Map<
+      string,
+      {
+        id: string;
+        slug: string;
+        label_cs: string;
+        label_en: string | null;
+        type: string;
+      }[]
+    >();
 
     tags.forEach((tag) => {
       const current = groups.get(tag.type) ?? [];
@@ -704,12 +750,16 @@ export default function WorkEditorForm(props: Props) {
   function renderSaveActions(placement: "top" | "bottom") {
     const statusText = isSavingWork
       ? "Ukládám změny. Prosím neodcházej ze stránky."
-      : saveSubmitMessage ??
-        "Ukládej průběžně. Autosave je vypnutý; jedno uložení uloží metadata i všechny změny v blocích najednou.";
+      : (saveSubmitMessage ??
+        "Ukládej průběžně. Autosave je vypnutý; jedno uložení uloží metadata i všechny změny v blocích najednou.");
 
     return (
       <div
-        id={placement === "top" ? "work-editor-save-actions-top" : "work-editor-save-actions-bottom"}
+        id={
+          placement === "top"
+            ? "work-editor-save-actions-top"
+            : "work-editor-save-actions-bottom"
+        }
         className={`artales-work-editor-save-actions artales-work-editor-save-actions--${placement}`}
         role="status"
         aria-live="polite"
@@ -719,7 +769,11 @@ export default function WorkEditorForm(props: Props) {
           <p>{statusText}</p>
         </div>
         <div className="artales-work-editor-save-buttons">
-          <button type="button" onClick={downloadBlocksBackup} disabled={isSavingWork}>
+          <button
+            type="button"
+            onClick={downloadBlocksBackup}
+            disabled={isSavingWork}
+          >
             Stáhnout zálohu
           </button>
           <button type="submit" disabled={isSavingWork}>
@@ -837,7 +891,10 @@ export default function WorkEditorForm(props: Props) {
           source_reference: parsedForm.source_reference ?? "",
           edition_title: parsedForm.edition_title ?? "",
           edition_version: parsedForm.edition_version ?? "",
-          edition_language: parsedForm.edition_language ?? parsedForm.canonical_language ?? "cs",
+          edition_language:
+            parsedForm.edition_language ??
+            parsedForm.canonical_language ??
+            "cs",
           original_language: parsedForm.original_language ?? "",
           edition_source_url: parsedForm.edition_source_url ?? "",
           edition_license: parsedForm.edition_license ?? "",
@@ -935,7 +992,14 @@ export default function WorkEditorForm(props: Props) {
         : "Lokální autosave není v tomto prohlížeči dostupný. Ukládej prosím ručně tlačítkem Uložit.",
     );
     setAutosaveEnabled(false);
-  }, [formState, blocks, storageKey, draftLoaded, autosaveEnabled, currentAutosaveDisabled]);
+  }, [
+    formState,
+    blocks,
+    storageKey,
+    draftLoaded,
+    autosaveEnabled,
+    currentAutosaveDisabled,
+  ]);
 
   useEffect(() => {
     if (!forcedAuthorId || !draftLoaded) return;
@@ -1013,7 +1077,9 @@ export default function WorkEditorForm(props: Props) {
           summary_en: parsed.form.summary_en ?? "",
           primary_author_id: parsed.form.primary_author_id ?? "",
           collection_id: parsed.form.collection_id ?? "",
-          tag_ids: Array.isArray(parsed.form.tag_ids) ? parsed.form.tag_ids : [],
+          tag_ids: Array.isArray(parsed.form.tag_ids)
+            ? parsed.form.tag_ids
+            : [],
           canonical_language: parsed.form.canonical_language ?? "cs",
           status: parsed.form.status ?? "draft",
           origin_type: parsed.form.origin_type ?? "original",
@@ -1021,7 +1087,10 @@ export default function WorkEditorForm(props: Props) {
           source_reference: parsed.form.source_reference ?? "",
           edition_title: parsed.form.edition_title ?? "",
           edition_version: parsed.form.edition_version ?? "",
-          edition_language: parsed.form.edition_language ?? parsed.form.canonical_language ?? "cs",
+          edition_language:
+            parsed.form.edition_language ??
+            parsed.form.canonical_language ??
+            "cs",
           original_language: parsed.form.original_language ?? "",
           edition_source_url: parsed.form.edition_source_url ?? "",
           edition_license: parsed.form.edition_license ?? "",
@@ -1084,7 +1153,9 @@ export default function WorkEditorForm(props: Props) {
     setParserResult(parsed);
 
     if (parsed.blocks.length === 0) {
-      setParserMessage("Parser nenašel žádný použitelný blok. Zkontroluj vstupní text.");
+      setParserMessage(
+        "Parser nenašel žádný použitelný blok. Zkontroluj vstupní text.",
+      );
       return;
     }
 
@@ -1105,22 +1176,30 @@ export default function WorkEditorForm(props: Props) {
     if (!shouldReplace) return;
 
     setBlocks(parserResult.blocks);
-    setParserMessage("Bloky byly nahrazeny výsledkem parseru. Teď je můžeš ručně zkontrolovat a uložit dílo.");
+    setParserMessage(
+      "Bloky byly nahrazeny výsledkem parseru. Teď je můžeš ručně zkontrolovat a uložit dílo.",
+    );
   }
 
   function appendParserResult() {
     if (!parserResult || parserResult.blocks.length === 0) return;
 
     setBlocks((prev) => [...prev, ...parserResult.blocks]);
-    setParserMessage("Bloky z parseru byly přidány na konec díla. Teď je můžeš ručně zkontrolovat a uložit dílo.");
+    setParserMessage(
+      "Bloky z parseru byly přidány na konec díla. Teď je můžeš ručně zkontrolovat a uložit dílo.",
+    );
   }
 
   async function copyParserAiPrompt() {
     try {
       await navigator.clipboard.writeText(ARTALES_TEXT_PREPROCESSOR_PROMPT);
-      setParserMessage("AI prompt pro předzpracování textu byl zkopírován do schránky.");
+      setParserMessage(
+        "AI prompt pro předzpracování textu byl zkopírován do schránky.",
+      );
     } catch {
-      setParserMessage("Prompt se nepodařilo zkopírovat automaticky. Zkopíruj ho prosím ručně z pokynů parseru.");
+      setParserMessage(
+        "Prompt se nepodařilo zkopírovat automaticky. Zkopíruj ho prosím ručně z pokynů parseru.",
+      );
     }
   }
 
@@ -1136,10 +1215,14 @@ export default function WorkEditorForm(props: Props) {
         null,
         2,
       );
-      const blob = new Blob([payload], { type: "application/json;charset=utf-8" });
+      const blob = new Blob([payload], {
+        type: "application/json;charset=utf-8",
+      });
       const url = URL.createObjectURL(blob);
       const link = document.createElement("a");
-      const safeSlug = slugify(formState.slug || primaryTitle || slug || "work");
+      const safeSlug = slugify(
+        formState.slug || primaryTitle || slug || "work",
+      );
       link.href = url;
       link.download = `artales-${safeSlug || "work"}-blocks-backup.json`;
       document.body.appendChild(link);
@@ -1148,7 +1231,9 @@ export default function WorkEditorForm(props: Props) {
       URL.revokeObjectURL(url);
       setSaveSubmitMessage("Záloha bloků byla stažena do počítače.");
     } catch {
-      setSaveSubmitMessage("Zálohu bloků se nepodařilo vytvořit. Zkus prosím uložit dílo nebo zmenšit vložený úsek.");
+      setSaveSubmitMessage(
+        "Zálohu bloků se nepodařilo vytvořit. Zkus prosím uložit dílo nebo zmenšit vložený úsek.",
+      );
     }
   }
 
@@ -1182,13 +1267,19 @@ export default function WorkEditorForm(props: Props) {
     if (!contentBlocksInputRef.current || !contentUpdateModeInputRef.current) {
       event.preventDefault();
       setIsFormSubmitting(false);
-      setSaveSubmitMessage("Ukládání se nepodařilo připravit. Obnov stránku a zkus to prosím znovu.");
+      setSaveSubmitMessage(
+        "Ukládání se nepodařilo připravit. Obnov stránku a zkus to prosím znovu.",
+      );
       scrollToSaveActions();
       return;
     }
 
     if (estimatedBlocksStorageChars >= LARGE_WORK_SAVE_DANGER_CHARS) {
-      if (mode === "edit" && slug && !contentChangeSavePlan.canUseContentChangeSave) {
+      if (
+        mode === "edit" &&
+        slug &&
+        !contentChangeSavePlan.canUseContentChangeSave
+      ) {
         contentUpdateModeInputRef.current.value = "metadata_only";
         contentBlocksInputRef.current.value = "[]";
         setSaveSubmitMessage("Ukládám změny. Prosím neodcházej ze stránky.");
@@ -1238,11 +1329,12 @@ export default function WorkEditorForm(props: Props) {
     }
   }
 
-
   async function saveUnifiedContentChanges() {
     if (!slug) {
       setIsFormSubmitting(false);
-      setSaveSubmitMessage("Sjednocené ukládání změn lze použít jen u už existujícího díla.");
+      setSaveSubmitMessage(
+        "Sjednocené ukládání změn lze použít jen u už existujícího díla.",
+      );
       scrollToSaveActions();
       return;
     }
@@ -1261,38 +1353,39 @@ export default function WorkEditorForm(props: Props) {
     setSaveSubmitMessage("Ukládám změny. Prosím neodcházej ze stránky.");
 
     try {
-      const response = await fetch(`/api/member/works/${encodeURIComponent(slug)}/content-changes`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
+      const response = await fetch(
+        `/api/member/works/${encodeURIComponent(slug)}/content-changes`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            form: {
+              ...formState,
+              title: primaryTitle,
+              subtitle: primarySubtitle,
+              summary: primarySummary,
+              tag_ids: formState.tag_ids,
+            },
+            contentChangeSet: {
+              deletedBlockIds: contentChangeSavePlan.deletedBlockIds,
+              updatedBlocks: contentChangeSavePlan.updatedBlocks,
+              insertRuns: contentChangeSavePlan.insertRuns,
+              orderedBlockIds: contentChangeSavePlan.orderedBlockIds,
+            },
+          }),
         },
-        body: JSON.stringify({
-          form: {
-            ...formState,
-            title: primaryTitle,
-            subtitle: primarySubtitle,
-            summary: primarySummary,
-            tag_ids: formState.tag_ids,
-          },
-          contentChangeSet: {
-            deletedBlockIds: contentChangeSavePlan.deletedBlockIds,
-            updatedBlocks: contentChangeSavePlan.updatedBlocks,
-            insertRuns: contentChangeSavePlan.insertRuns,
-            orderedBlockIds: contentChangeSavePlan.orderedBlockIds,
-          },
-        }),
-      });
+      );
 
-      const result = (await response.json().catch(() => null)) as
-        | {
-            ok?: boolean;
-            message?: string;
-            slug?: string;
-            deletedCount?: number;
-            updatedCount?: number;
-            insertedCount?: number;
-          }
-        | null;
+      const result = (await response.json().catch(() => null)) as {
+        ok?: boolean;
+        message?: string;
+        slug?: string;
+        deletedCount?: number;
+        updatedCount?: number;
+        insertedCount?: number;
+      } | null;
 
       if (!response.ok || !result?.ok) {
         throw new Error(result?.message ?? "Změny díla se nepodařilo uložit.");
@@ -1319,12 +1412,17 @@ export default function WorkEditorForm(props: Props) {
   async function saveDeletedBlocksInBatch() {
     if (!slug) {
       setIsFormSubmitting(false);
-      setSaveSubmitMessage("Smazané bloky lze dávkově uložit jen u už existujícího díla.");
+      setSaveSubmitMessage(
+        "Smazané bloky lze dávkově uložit jen u už existujícího díla.",
+      );
       scrollToSaveActions();
       return;
     }
 
-    if (!deleteSavePlan.canUseDeleteSave || deleteSavePlan.deletedBlockIds.length === 0) {
+    if (
+      !deleteSavePlan.canUseDeleteSave ||
+      deleteSavePlan.deletedBlockIds.length === 0
+    ) {
       setIsFormSubmitting(false);
       setSaveSubmitMessage(
         deleteSavePlan.reason === "existing_blocks_reordered"
@@ -1354,23 +1452,31 @@ export default function WorkEditorForm(props: Props) {
     );
 
     try {
-      const response = await fetch(`/api/member/works/${encodeURIComponent(slug)}/delete-blocks`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
+      const response = await fetch(
+        `/api/member/works/${encodeURIComponent(slug)}/delete-blocks`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            blockIds: deleteSavePlan.deletedBlockIds,
+            changedBlocks: deleteSavePlan.changedBlocks,
+          }),
         },
-        body: JSON.stringify({
-          blockIds: deleteSavePlan.deletedBlockIds,
-          changedBlocks: deleteSavePlan.changedBlocks,
-        }),
-      });
+      );
 
-      const result = (await response.json().catch(() => null)) as
-        | { ok?: boolean; message?: string; deletedCount?: number; changedCount?: number }
-        | null;
+      const result = (await response.json().catch(() => null)) as {
+        ok?: boolean;
+        message?: string;
+        deletedCount?: number;
+        changedCount?: number;
+      } | null;
 
       if (!response.ok || !result?.ok) {
-        throw new Error(result?.message ?? "Smazané bloky se nepodařilo uložit.");
+        throw new Error(
+          result?.message ?? "Smazané bloky se nepodařilo uložit.",
+        );
       }
 
       removeLocalDraft(storageKey);
@@ -1395,7 +1501,9 @@ export default function WorkEditorForm(props: Props) {
   async function saveNewBlocksInBatches() {
     if (!slug) {
       setIsFormSubmitting(false);
-      setSaveSubmitMessage("Nové bloky lze dávkově uložit jen u už existujícího díla.");
+      setSaveSubmitMessage(
+        "Nové bloky lze dávkově uložit jen u už existujícího díla.",
+      );
       scrollToSaveActions();
       return;
     }
@@ -1418,15 +1526,26 @@ export default function WorkEditorForm(props: Props) {
       return;
     }
 
-    const batches: { blocks: WorkBlock[]; insertAfterBlockId: string | null }[] = [];
+    const batches: {
+      blocks: WorkBlock[];
+      insertAfterBlockId: string | null;
+    }[] = [];
 
     appendSavePlan.runs.forEach((run) => {
       let insertAfterBlockId = run.insertAfterBlockId;
 
-      for (let index = 0; index < run.blocks.length; index += APPEND_BLOCK_BATCH_SIZE) {
-        const batchBlocks = run.blocks.slice(index, index + APPEND_BLOCK_BATCH_SIZE);
+      for (
+        let index = 0;
+        index < run.blocks.length;
+        index += APPEND_BLOCK_BATCH_SIZE
+      ) {
+        const batchBlocks = run.blocks.slice(
+          index,
+          index + APPEND_BLOCK_BATCH_SIZE,
+        );
         batches.push({ blocks: batchBlocks, insertAfterBlockId });
-        insertAfterBlockId = batchBlocks[batchBlocks.length - 1]?.id ?? insertAfterBlockId;
+        insertAfterBlockId =
+          batchBlocks[batchBlocks.length - 1]?.id ?? insertAfterBlockId;
       }
     });
 
@@ -1445,22 +1564,27 @@ export default function WorkEditorForm(props: Props) {
           `Ukládám část ${index + 1} z ${batches.length}. Hotovo ${savedCount}/${newBlocksForAppend.length} bloků. Prosím neodcházej ze stránky.`,
         );
 
-        const response = await fetch(`/api/member/works/${encodeURIComponent(slug)}/append-blocks`, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
+        const response = await fetch(
+          `/api/member/works/${encodeURIComponent(slug)}/append-blocks`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              blocks: batch.blocks,
+              insertAfterBlockId: batch.insertAfterBlockId,
+              batchIndex: index,
+              batchCount: batches.length,
+            }),
           },
-          body: JSON.stringify({
-            blocks: batch.blocks,
-            insertAfterBlockId: batch.insertAfterBlockId,
-            batchIndex: index,
-            batchCount: batches.length,
-          }),
-        });
+        );
 
-        const result = (await response.json().catch(() => null)) as
-          | { ok?: boolean; message?: string; appendedCount?: number }
-          | null;
+        const result = (await response.json().catch(() => null)) as {
+          ok?: boolean;
+          message?: string;
+          appendedCount?: number;
+        } | null;
 
         if (!response.ok || !result?.ok) {
           setSaveSubmitMessage(
@@ -1474,7 +1598,9 @@ export default function WorkEditorForm(props: Props) {
         savedCount += result.appendedCount ?? batch.blocks.length;
       }
 
-      setSaveSubmitMessage(`Uloženo ${savedCount} nových bloků. Obnovuji editor…`);
+      setSaveSubmitMessage(
+        `Uloženo ${savedCount} nových bloků. Obnovuji editor…`,
+      );
       suppressBeforeUnloadRef.current = true;
       setIsSmartSaving(false);
       window.setTimeout(() => {
@@ -1525,14 +1651,18 @@ export default function WorkEditorForm(props: Props) {
     }
 
     if (file.size > WORK_COVER_MAX_UPLOAD_BYTES) {
-      setCoverUploadError("Soubor je příliš velký. Maximální velikost obálky je 5 MB.");
+      setCoverUploadError(
+        "Soubor je příliš velký. Maximální velikost obálky je 5 MB.",
+      );
       return;
     }
 
     const workSlug = slugify(formState.slug || primaryTitle);
 
     if (!workSlug) {
-      setCoverUploadError("Nejdřív vyplň název díla v CZ/EN nebo slug. Podle něj se vytvoří bezpečná cesta obrázku.");
+      setCoverUploadError(
+        "Nejdřív vyplň název díla v CZ/EN nebo slug. Podle něj se vytvoří bezpečná cesta obrázku.",
+      );
       return;
     }
 
@@ -1571,9 +1701,13 @@ export default function WorkEditorForm(props: Props) {
         cover_image_path: storagePath,
         cover_image_alt:
           prev.cover_image_alt.trim() ||
-          (prev.title.trim() ? `Obálka díla ${prev.title.trim()}` : "Obálka díla"),
+          (prev.title.trim()
+            ? `Obálka díla ${prev.title.trim()}`
+            : "Obálka díla"),
       }));
-      setCoverUploadMessage("Obálka byla nahrána. Ulož dílo, aby se změna propsala do databáze.");
+      setCoverUploadMessage(
+        "Obálka byla nahrána. Ulož dílo, aby se změna propsala do databáze.",
+      );
 
       if (coverInputRef.current) {
         coverInputRef.current.value = "";
@@ -1695,7 +1829,11 @@ export default function WorkEditorForm(props: Props) {
         ) : null}
       </section>
 
-      <form action={action} onSubmit={prepareWorkSubmit} style={{ display: "grid", gap: "22px" }}>
+      <form
+        action={action}
+        onSubmit={prepareWorkSubmit}
+        style={{ display: "grid", gap: "22px" }}
+      >
         {renderSaveActions("top")}
 
         <section
@@ -1712,7 +1850,8 @@ export default function WorkEditorForm(props: Props) {
           <h2 style={{ margin: 0 }}>Metadata díla</h2>
           <p style={{ margin: 0, fontSize: "14px", opacity: 0.75 }}>
             Veřejná metadata díla se editují přímo ve dvou jazykových sloupcích.
-            Technická legacy pole se doplní automaticky z EN/CZ hodnot kvůli kompatibilitě starších částí systému.
+            Technická legacy pole se doplní automaticky z EN/CZ hodnot kvůli
+            kompatibilitě starších částí systému.
           </p>
 
           <input type="hidden" name="title" value={primaryTitle} />
@@ -1733,7 +1872,8 @@ export default function WorkEditorForm(props: Props) {
               <h3 style={{ margin: 0 }}>Veřejný název a anotace</h3>
               <p style={{ margin: "8px 0 0", fontSize: "14px", opacity: 0.75 }}>
                 Anglický sloupec je výchozí/fallback pro mezinárodní vrstvu.
-                Český sloupec vyplň pro české veřejné zobrazení. Stačí jeden jazyk; chybějící jazyk použije fallback.
+                Český sloupec vyplň pro české veřejné zobrazení. Stačí jeden
+                jazyk; chybějící jazyk použije fallback.
               </p>
             </div>
 
@@ -1749,7 +1889,14 @@ export default function WorkEditorForm(props: Props) {
                 <h4 style={{ margin: 0 }}>English / fallback</h4>
 
                 <div>
-                  <label htmlFor="title_en" style={{ display: "block", marginBottom: "8px", fontWeight: 600 }}>
+                  <label
+                    htmlFor="title_en"
+                    style={{
+                      display: "block",
+                      marginBottom: "8px",
+                      fontWeight: 600,
+                    }}
+                  >
                     Title (EN)
                   </label>
                   <input
@@ -1757,17 +1904,42 @@ export default function WorkEditorForm(props: Props) {
                     name="title_en"
                     type="text"
                     value={formState.title_en}
-                    onChange={(e) => setFormState((prev) => ({ ...prev, title_en: e.target.value }))}
+                    onChange={(e) =>
+                      setFormState((prev) => ({
+                        ...prev,
+                        title_en: e.target.value,
+                      }))
+                    }
                     placeholder="English public title"
-                    style={{ width: "100%", padding: "12px 14px", border: "1px solid rgba(13, 21, 40, 0.22)", background: "#fffefb", borderRadius: "12px", fontSize: "16px" }}
+                    style={{
+                      width: "100%",
+                      padding: "12px 14px",
+                      border: "1px solid rgba(13, 21, 40, 0.22)",
+                      background: "#fffefb",
+                      borderRadius: "12px",
+                      fontSize: "16px",
+                    }}
                   />
-                  <p style={{ margin: "8px 0 0", fontSize: "14px", opacity: 0.75 }}>
+                  <p
+                    style={{
+                      margin: "8px 0 0",
+                      fontSize: "14px",
+                      opacity: 0.75,
+                    }}
+                  >
                     Použije se pro EN UI a jako fallback pro legacy název.
                   </p>
                 </div>
 
                 <div>
-                  <label htmlFor="subtitle_en" style={{ display: "block", marginBottom: "8px", fontWeight: 600 }}>
+                  <label
+                    htmlFor="subtitle_en"
+                    style={{
+                      display: "block",
+                      marginBottom: "8px",
+                      fontWeight: 600,
+                    }}
+                  >
                     Subtitle (EN)
                   </label>
                   <input
@@ -1775,14 +1947,33 @@ export default function WorkEditorForm(props: Props) {
                     name="subtitle_en"
                     type="text"
                     value={formState.subtitle_en}
-                    onChange={(e) => setFormState((prev) => ({ ...prev, subtitle_en: e.target.value }))}
+                    onChange={(e) =>
+                      setFormState((prev) => ({
+                        ...prev,
+                        subtitle_en: e.target.value,
+                      }))
+                    }
                     placeholder="English subtitle"
-                    style={{ width: "100%", padding: "12px 14px", border: "1px solid rgba(13, 21, 40, 0.22)", background: "#fffefb", borderRadius: "12px", fontSize: "16px" }}
+                    style={{
+                      width: "100%",
+                      padding: "12px 14px",
+                      border: "1px solid rgba(13, 21, 40, 0.22)",
+                      background: "#fffefb",
+                      borderRadius: "12px",
+                      fontSize: "16px",
+                    }}
                   />
                 </div>
 
                 <div>
-                  <label htmlFor="summary_en" style={{ display: "block", marginBottom: "8px", fontWeight: 600 }}>
+                  <label
+                    htmlFor="summary_en"
+                    style={{
+                      display: "block",
+                      marginBottom: "8px",
+                      fontWeight: 600,
+                    }}
+                  >
                     Annotation (EN)
                   </label>
                   <textarea
@@ -1790,9 +1981,22 @@ export default function WorkEditorForm(props: Props) {
                     name="summary_en"
                     rows={6}
                     value={formState.summary_en}
-                    onChange={(e) => setFormState((prev) => ({ ...prev, summary_en: e.target.value }))}
+                    onChange={(e) =>
+                      setFormState((prev) => ({
+                        ...prev,
+                        summary_en: e.target.value,
+                      }))
+                    }
                     placeholder="English public annotation"
-                    style={{ width: "100%", padding: "12px 14px", border: "1px solid rgba(13, 21, 40, 0.22)", background: "#fffefb", borderRadius: "12px", fontSize: "16px", resize: "vertical" }}
+                    style={{
+                      width: "100%",
+                      padding: "12px 14px",
+                      border: "1px solid rgba(13, 21, 40, 0.22)",
+                      background: "#fffefb",
+                      borderRadius: "12px",
+                      fontSize: "16px",
+                      resize: "vertical",
+                    }}
                   />
                 </div>
               </div>
@@ -1801,7 +2005,14 @@ export default function WorkEditorForm(props: Props) {
                 <h4 style={{ margin: 0 }}>Čeština</h4>
 
                 <div>
-                  <label htmlFor="title_cs" style={{ display: "block", marginBottom: "8px", fontWeight: 600 }}>
+                  <label
+                    htmlFor="title_cs"
+                    style={{
+                      display: "block",
+                      marginBottom: "8px",
+                      fontWeight: 600,
+                    }}
+                  >
                     Název (CZ)
                   </label>
                   <input
@@ -1809,17 +2020,42 @@ export default function WorkEditorForm(props: Props) {
                     name="title_cs"
                     type="text"
                     value={formState.title_cs}
-                    onChange={(e) => setFormState((prev) => ({ ...prev, title_cs: e.target.value }))}
+                    onChange={(e) =>
+                      setFormState((prev) => ({
+                        ...prev,
+                        title_cs: e.target.value,
+                      }))
+                    }
                     placeholder="Český veřejný název"
-                    style={{ width: "100%", padding: "12px 14px", border: "1px solid rgba(13, 21, 40, 0.22)", background: "#fffefb", borderRadius: "12px", fontSize: "16px" }}
+                    style={{
+                      width: "100%",
+                      padding: "12px 14px",
+                      border: "1px solid rgba(13, 21, 40, 0.22)",
+                      background: "#fffefb",
+                      borderRadius: "12px",
+                      fontSize: "16px",
+                    }}
                   />
-                  <p style={{ margin: "8px 0 0", fontSize: "14px", opacity: 0.75 }}>
+                  <p
+                    style={{
+                      margin: "8px 0 0",
+                      fontSize: "14px",
+                      opacity: 0.75,
+                    }}
+                  >
                     Pokud chybí, české zobrazení použije EN/fallback název.
                   </p>
                 </div>
 
                 <div>
-                  <label htmlFor="subtitle_cs" style={{ display: "block", marginBottom: "8px", fontWeight: 600 }}>
+                  <label
+                    htmlFor="subtitle_cs"
+                    style={{
+                      display: "block",
+                      marginBottom: "8px",
+                      fontWeight: 600,
+                    }}
+                  >
                     Podnázev (CZ)
                   </label>
                   <input
@@ -1827,14 +2063,33 @@ export default function WorkEditorForm(props: Props) {
                     name="subtitle_cs"
                     type="text"
                     value={formState.subtitle_cs}
-                    onChange={(e) => setFormState((prev) => ({ ...prev, subtitle_cs: e.target.value }))}
+                    onChange={(e) =>
+                      setFormState((prev) => ({
+                        ...prev,
+                        subtitle_cs: e.target.value,
+                      }))
+                    }
                     placeholder="Český podnázev"
-                    style={{ width: "100%", padding: "12px 14px", border: "1px solid rgba(13, 21, 40, 0.22)", background: "#fffefb", borderRadius: "12px", fontSize: "16px" }}
+                    style={{
+                      width: "100%",
+                      padding: "12px 14px",
+                      border: "1px solid rgba(13, 21, 40, 0.22)",
+                      background: "#fffefb",
+                      borderRadius: "12px",
+                      fontSize: "16px",
+                    }}
                   />
                 </div>
 
                 <div>
-                  <label htmlFor="summary_cs" style={{ display: "block", marginBottom: "8px", fontWeight: 600 }}>
+                  <label
+                    htmlFor="summary_cs"
+                    style={{
+                      display: "block",
+                      marginBottom: "8px",
+                      fontWeight: 600,
+                    }}
+                  >
                     Anotace (CZ)
                   </label>
                   <textarea
@@ -1842,17 +2097,31 @@ export default function WorkEditorForm(props: Props) {
                     name="summary_cs"
                     rows={6}
                     value={formState.summary_cs}
-                    onChange={(e) => setFormState((prev) => ({ ...prev, summary_cs: e.target.value }))}
+                    onChange={(e) =>
+                      setFormState((prev) => ({
+                        ...prev,
+                        summary_cs: e.target.value,
+                      }))
+                    }
                     placeholder="Česká veřejná anotace"
-                    style={{ width: "100%", padding: "12px 14px", border: "1px solid rgba(13, 21, 40, 0.22)", background: "#fffefb", borderRadius: "12px", fontSize: "16px", resize: "vertical" }}
+                    style={{
+                      width: "100%",
+                      padding: "12px 14px",
+                      border: "1px solid rgba(13, 21, 40, 0.22)",
+                      background: "#fffefb",
+                      borderRadius: "12px",
+                      fontSize: "16px",
+                      resize: "vertical",
+                    }}
                   />
                 </div>
               </div>
             </div>
 
             <p style={{ margin: 0, fontSize: "14px", opacity: 0.75 }}>
-              Kontrolní anotace pro legacy/fallback: {primarySummaryLength} znaků.
-              Povinný rozsah pro uložení zůstává 200–800 znaků v dostupném fallback textu.
+              Kontrolní anotace pro legacy/fallback: {primarySummaryLength}{" "}
+              znaků. Povinný rozsah pro uložení zůstává 200–800 znaků v
+              dostupném fallback textu.
             </p>
           </section>
 
@@ -1986,13 +2255,20 @@ export default function WorkEditorForm(props: Props) {
               background: "rgba(255, 255, 255, 0.55)",
             }}
           >
-            <p style={{ display: "block", marginBottom: "10px", fontWeight: 600 }}>
+            <p
+              style={{
+                display: "block",
+                marginBottom: "10px",
+                fontWeight: 600,
+              }}
+            >
               Tagy díla
             </p>
 
             {tagGroups.length === 0 ? (
               <p style={{ margin: 0, fontSize: "14px", opacity: 0.75 }}>
-                Zatím nejsou založené žádné tagy. Nejprve je vytvoř v editoru tagů.
+                Zatím nejsou založené žádné tagy. Nejprve je vytvoř v editoru
+                tagů.
               </p>
             ) : (
               <div style={{ display: "grid", gap: "14px" }}>
@@ -2010,7 +2286,9 @@ export default function WorkEditorForm(props: Props) {
                     >
                       {group.type}
                     </p>
-                    <div style={{ display: "flex", flexWrap: "wrap", gap: "8px" }}>
+                    <div
+                      style={{ display: "flex", flexWrap: "wrap", gap: "8px" }}
+                    >
                       {group.items.map((tag) => {
                         const checked = formState.tag_ids.includes(tag.id);
                         const label = tag.label_cs || tag.label_en || tag.slug;
@@ -2027,7 +2305,9 @@ export default function WorkEditorForm(props: Props) {
                               border: checked
                                 ? "1px solid rgba(13, 21, 40, 0.75)"
                                 : "1px solid rgba(13, 21, 40, 0.18)",
-                              background: checked ? "rgba(13, 21, 40, 0.08)" : "#fffefb",
+                              background: checked
+                                ? "rgba(13, 21, 40, 0.08)"
+                                : "#fffefb",
                               cursor: "pointer",
                               fontSize: "14px",
                             }}
@@ -2056,8 +2336,11 @@ export default function WorkEditorForm(props: Props) {
               </div>
             )}
 
-            <p style={{ margin: "10px 0 0 0", fontSize: "14px", opacity: 0.75 }}>
-              Technická vrstva pro filtrování a budoucí vyhledávání. Tagy jsou vícenásobné.
+            <p
+              style={{ margin: "10px 0 0 0", fontSize: "14px", opacity: 0.75 }}
+            >
+              Technická vrstva pro filtrování a budoucí vyhledávání. Tagy jsou
+              vícenásobné.
             </p>
           </div>
 
@@ -2255,76 +2538,401 @@ export default function WorkEditorForm(props: Props) {
               <h3 style={{ margin: "0 0 6px" }}>Tiráž / edice</h3>
               <p style={{ margin: 0, fontSize: "14px", opacity: 0.78 }}>
                 Ediční metadata určují, co přesně publikujeme: jazyk edice,
-                původ, licenci, přispěvatele a případný stav ISBN. ISBN zde
-                není interní ID díla; používá se až pro konkrétní vydání nebo
+                původ, licenci, přispěvatele a případný stav ISBN. ISBN zde není
+                interní ID díla; používá se až pro konkrétní vydání nebo
                 distribuční formát.
               </p>
             </div>
 
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: "14px" }}>
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+                gap: "14px",
+              }}
+            >
               <div>
-                <label htmlFor="edition_title" style={{ display: "block", marginBottom: "8px", fontWeight: 600 }}>Název edice</label>
-                <input id="edition_title" name="edition_title" type="text" value={formState.edition_title} onChange={(e) => setFormState((prev) => ({ ...prev, edition_title: e.target.value }))} placeholder="např. ARTales public-domain edition" style={{ width: "100%", padding: "12px 14px", border: "1px solid rgba(13, 21, 40, 0.22)", background: "#fffefb", borderRadius: "12px", fontSize: "16px" }} />
+                <label
+                  htmlFor="edition_title"
+                  style={{
+                    display: "block",
+                    marginBottom: "8px",
+                    fontWeight: 600,
+                  }}
+                >
+                  Název edice
+                </label>
+                <input
+                  id="edition_title"
+                  name="edition_title"
+                  type="text"
+                  value={formState.edition_title}
+                  onChange={(e) =>
+                    setFormState((prev) => ({
+                      ...prev,
+                      edition_title: e.target.value,
+                    }))
+                  }
+                  placeholder="např. ARTales public-domain edition"
+                  style={{
+                    width: "100%",
+                    padding: "12px 14px",
+                    border: "1px solid rgba(13, 21, 40, 0.22)",
+                    background: "#fffefb",
+                    borderRadius: "12px",
+                    fontSize: "16px",
+                  }}
+                />
               </div>
 
               <div>
-                <label htmlFor="edition_version" style={{ display: "block", marginBottom: "8px", fontWeight: 600 }}>Verze edice</label>
-                <input id="edition_version" name="edition_version" type="text" value={formState.edition_version} onChange={(e) => setFormState((prev) => ({ ...prev, edition_version: e.target.value }))} placeholder="např. v1.0, draft, annotated" style={{ width: "100%", padding: "12px 14px", border: "1px solid rgba(13, 21, 40, 0.22)", background: "#fffefb", borderRadius: "12px", fontSize: "16px" }} />
+                <label
+                  htmlFor="edition_version"
+                  style={{
+                    display: "block",
+                    marginBottom: "8px",
+                    fontWeight: 600,
+                  }}
+                >
+                  Verze edice
+                </label>
+                <input
+                  id="edition_version"
+                  name="edition_version"
+                  type="text"
+                  value={formState.edition_version}
+                  onChange={(e) =>
+                    setFormState((prev) => ({
+                      ...prev,
+                      edition_version: e.target.value,
+                    }))
+                  }
+                  placeholder="např. v1.0, draft, annotated"
+                  style={{
+                    width: "100%",
+                    padding: "12px 14px",
+                    border: "1px solid rgba(13, 21, 40, 0.22)",
+                    background: "#fffefb",
+                    borderRadius: "12px",
+                    fontSize: "16px",
+                  }}
+                />
               </div>
             </div>
 
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: "14px" }}>
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+                gap: "14px",
+              }}
+            >
               <div>
-                <label htmlFor="edition_language" style={{ display: "block", marginBottom: "8px", fontWeight: 600 }}>Jazyk edice</label>
-                <select id="edition_language" name="edition_language" value={formState.edition_language} onChange={(e) => setFormState((prev) => ({ ...prev, edition_language: e.target.value }))} style={{ width: "100%", padding: "12px 14px", border: "1px solid rgba(13, 21, 40, 0.22)", background: "#fffefb", borderRadius: "12px", fontSize: "16px" }}>
+                <label
+                  htmlFor="edition_language"
+                  style={{
+                    display: "block",
+                    marginBottom: "8px",
+                    fontWeight: 600,
+                  }}
+                >
+                  Jazyk edice
+                </label>
+                <select
+                  id="edition_language"
+                  name="edition_language"
+                  value={formState.edition_language}
+                  onChange={(e) =>
+                    setFormState((prev) => ({
+                      ...prev,
+                      edition_language: e.target.value,
+                    }))
+                  }
+                  style={{
+                    width: "100%",
+                    padding: "12px 14px",
+                    border: "1px solid rgba(13, 21, 40, 0.22)",
+                    background: "#fffefb",
+                    borderRadius: "12px",
+                    fontSize: "16px",
+                  }}
+                >
                   <option value="">Použít hlavní jazyk díla</option>
-                  {languageOptions.map((option) => (<option key={option.value} value={option.value}>{option.label}</option>))}
+                  {languageOptions.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
                 </select>
               </div>
 
               <div>
-                <label htmlFor="original_language" style={{ display: "block", marginBottom: "8px", fontWeight: 600 }}>Původní jazyk</label>
-                <select id="original_language" name="original_language" value={formState.original_language} onChange={(e) => setFormState((prev) => ({ ...prev, original_language: e.target.value }))} style={{ width: "100%", padding: "12px 14px", border: "1px solid rgba(13, 21, 40, 0.22)", background: "#fffefb", borderRadius: "12px", fontSize: "16px" }}>
+                <label
+                  htmlFor="original_language"
+                  style={{
+                    display: "block",
+                    marginBottom: "8px",
+                    fontWeight: 600,
+                  }}
+                >
+                  Původní jazyk
+                </label>
+                <select
+                  id="original_language"
+                  name="original_language"
+                  value={formState.original_language}
+                  onChange={(e) =>
+                    setFormState((prev) => ({
+                      ...prev,
+                      original_language: e.target.value,
+                    }))
+                  }
+                  style={{
+                    width: "100%",
+                    padding: "12px 14px",
+                    border: "1px solid rgba(13, 21, 40, 0.22)",
+                    background: "#fffefb",
+                    borderRadius: "12px",
+                    fontSize: "16px",
+                  }}
+                >
                   <option value="">Nevyplněno / shodné</option>
-                  {languageOptions.map((option) => (<option key={option.value} value={option.value}>{option.label}</option>))}
+                  {languageOptions.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
                 </select>
               </div>
             </div>
 
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: "14px" }}>
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+                gap: "14px",
+              }}
+            >
               <div>
-                <label htmlFor="edition_license" style={{ display: "block", marginBottom: "8px", fontWeight: 600 }}>Licence / práva</label>
-                <input id="edition_license" name="edition_license" type="text" value={formState.edition_license} onChange={(e) => setFormState((prev) => ({ ...prev, edition_license: e.target.value }))} placeholder="např. Public domain, CC BY, interní práva" style={{ width: "100%", padding: "12px 14px", border: "1px solid rgba(13, 21, 40, 0.22)", background: "#fffefb", borderRadius: "12px", fontSize: "16px" }} />
+                <label
+                  htmlFor="edition_license"
+                  style={{
+                    display: "block",
+                    marginBottom: "8px",
+                    fontWeight: 600,
+                  }}
+                >
+                  Licence / práva
+                </label>
+                <input
+                  id="edition_license"
+                  name="edition_license"
+                  type="text"
+                  value={formState.edition_license}
+                  onChange={(e) =>
+                    setFormState((prev) => ({
+                      ...prev,
+                      edition_license: e.target.value,
+                    }))
+                  }
+                  placeholder="např. Public domain, CC BY, interní práva"
+                  style={{
+                    width: "100%",
+                    padding: "12px 14px",
+                    border: "1px solid rgba(13, 21, 40, 0.22)",
+                    background: "#fffefb",
+                    borderRadius: "12px",
+                    fontSize: "16px",
+                  }}
+                />
               </div>
 
               <div>
-                <label htmlFor="edition_source_url" style={{ display: "block", marginBottom: "8px", fontWeight: 600 }}>URL zdroje</label>
-                <input id="edition_source_url" name="edition_source_url" type="url" value={formState.edition_source_url} onChange={(e) => setFormState((prev) => ({ ...prev, edition_source_url: e.target.value }))} placeholder="https://..." style={{ width: "100%", padding: "12px 14px", border: "1px solid rgba(13, 21, 40, 0.22)", background: "#fffefb", borderRadius: "12px", fontSize: "16px" }} />
+                <label
+                  htmlFor="edition_source_url"
+                  style={{
+                    display: "block",
+                    marginBottom: "8px",
+                    fontWeight: 600,
+                  }}
+                >
+                  URL zdroje
+                </label>
+                <input
+                  id="edition_source_url"
+                  name="edition_source_url"
+                  type="url"
+                  value={formState.edition_source_url}
+                  onChange={(e) =>
+                    setFormState((prev) => ({
+                      ...prev,
+                      edition_source_url: e.target.value,
+                    }))
+                  }
+                  placeholder="https://..."
+                  style={{
+                    width: "100%",
+                    padding: "12px 14px",
+                    border: "1px solid rgba(13, 21, 40, 0.22)",
+                    background: "#fffefb",
+                    borderRadius: "12px",
+                    fontSize: "16px",
+                  }}
+                />
               </div>
             </div>
 
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: "14px" }}>
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+                gap: "14px",
+              }}
+            >
               <div>
-                <label htmlFor="edition_publisher" style={{ display: "block", marginBottom: "8px", fontWeight: 600 }}>Vydavatel / imprint</label>
-                <input id="edition_publisher" name="edition_publisher" type="text" value={formState.edition_publisher} onChange={(e) => setFormState((prev) => ({ ...prev, edition_publisher: e.target.value }))} placeholder="ARTales" style={{ width: "100%", padding: "12px 14px", border: "1px solid rgba(13, 21, 40, 0.22)", background: "#fffefb", borderRadius: "12px", fontSize: "16px" }} />
+                <label
+                  htmlFor="edition_publisher"
+                  style={{
+                    display: "block",
+                    marginBottom: "8px",
+                    fontWeight: 600,
+                  }}
+                >
+                  Vydavatel / imprint
+                </label>
+                <input
+                  id="edition_publisher"
+                  name="edition_publisher"
+                  type="text"
+                  value={formState.edition_publisher}
+                  onChange={(e) =>
+                    setFormState((prev) => ({
+                      ...prev,
+                      edition_publisher: e.target.value,
+                    }))
+                  }
+                  placeholder="ARTales"
+                  style={{
+                    width: "100%",
+                    padding: "12px 14px",
+                    border: "1px solid rgba(13, 21, 40, 0.22)",
+                    background: "#fffefb",
+                    borderRadius: "12px",
+                    fontSize: "16px",
+                  }}
+                />
               </div>
 
               <div>
-                <label htmlFor="publication_year" style={{ display: "block", marginBottom: "8px", fontWeight: 600 }}>Rok vydání</label>
-                <input id="publication_year" name="publication_year" type="text" value={formState.publication_year} onChange={(e) => setFormState((prev) => ({ ...prev, publication_year: e.target.value }))} placeholder="např. 2026" style={{ width: "100%", padding: "12px 14px", border: "1px solid rgba(13, 21, 40, 0.22)", background: "#fffefb", borderRadius: "12px", fontSize: "16px" }} />
+                <label
+                  htmlFor="publication_year"
+                  style={{
+                    display: "block",
+                    marginBottom: "8px",
+                    fontWeight: 600,
+                  }}
+                >
+                  Rok vydání
+                </label>
+                <input
+                  id="publication_year"
+                  name="publication_year"
+                  type="text"
+                  value={formState.publication_year}
+                  onChange={(e) =>
+                    setFormState((prev) => ({
+                      ...prev,
+                      publication_year: e.target.value,
+                    }))
+                  }
+                  placeholder="např. 2026"
+                  style={{
+                    width: "100%",
+                    padding: "12px 14px",
+                    border: "1px solid rgba(13, 21, 40, 0.22)",
+                    background: "#fffefb",
+                    borderRadius: "12px",
+                    fontSize: "16px",
+                  }}
+                />
               </div>
             </div>
 
             <div>
-              <label htmlFor="contributor_summary" style={{ display: "block", marginBottom: "8px", fontWeight: 600 }}>Přispěvatelé / veřejná tiráž</label>
-              <textarea id="contributor_summary" name="contributor_summary" rows={3} value={formState.contributor_summary} onChange={(e) => setFormState((prev) => ({ ...prev, contributor_summary: e.target.value }))} placeholder="např. Original author: Gaston Leroux; Editor: Ivana; Technical edition: ARTales" style={{ width: "100%", padding: "12px 14px", border: "1px solid rgba(13, 21, 40, 0.22)", background: "#fffefb", borderRadius: "12px", fontSize: "16px" }} />
-              <p style={{ margin: "8px 0 0", fontSize: "14px", opacity: 0.75 }}>MVP forma contributor modelu. Později z toho vznikne strukturovaná tabulka osob, rolí a potvrzení práce.</p>
+              <label
+                htmlFor="contributor_summary"
+                style={{
+                  display: "block",
+                  marginBottom: "8px",
+                  fontWeight: 600,
+                }}
+              >
+                Přispěvatelé / veřejná tiráž
+              </label>
+              <textarea
+                id="contributor_summary"
+                name="contributor_summary"
+                rows={3}
+                value={formState.contributor_summary}
+                onChange={(e) =>
+                  setFormState((prev) => ({
+                    ...prev,
+                    contributor_summary: e.target.value,
+                  }))
+                }
+                placeholder="např. Original author: Gaston Leroux; Editor: Ivana; Technical edition: ARTales"
+                style={{
+                  width: "100%",
+                  padding: "12px 14px",
+                  border: "1px solid rgba(13, 21, 40, 0.22)",
+                  background: "#fffefb",
+                  borderRadius: "12px",
+                  fontSize: "16px",
+                }}
+              />
+              <p style={{ margin: "8px 0 0", fontSize: "14px", opacity: 0.75 }}>
+                MVP forma contributor modelu. Později z toho vznikne
+                strukturovaná tabulka osob, rolí a potvrzení práce.
+              </p>
             </div>
 
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: "14px" }}>
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+                gap: "14px",
+              }}
+            >
               <div>
-                <label htmlFor="isbn_status" style={{ display: "block", marginBottom: "8px", fontWeight: 600 }}>Stav ISBN</label>
-                <select id="isbn_status" name="isbn_status" value={formState.isbn_status} onChange={(e) => setFormState((prev) => ({ ...prev, isbn_status: e.target.value }))} style={{ width: "100%", padding: "12px 14px", border: "1px solid rgba(13, 21, 40, 0.22)", background: "#fffefb", borderRadius: "12px", fontSize: "16px" }}>
+                <label
+                  htmlFor="isbn_status"
+                  style={{
+                    display: "block",
+                    marginBottom: "8px",
+                    fontWeight: 600,
+                  }}
+                >
+                  Stav ISBN
+                </label>
+                <select
+                  id="isbn_status"
+                  name="isbn_status"
+                  value={formState.isbn_status}
+                  onChange={(e) =>
+                    setFormState((prev) => ({
+                      ...prev,
+                      isbn_status: e.target.value,
+                    }))
+                  }
+                  style={{
+                    width: "100%",
+                    padding: "12px 14px",
+                    border: "1px solid rgba(13, 21, 40, 0.22)",
+                    background: "#fffefb",
+                    borderRadius: "12px",
+                    fontSize: "16px",
+                  }}
+                >
                   <option value="not_required">Není potřeba</option>
                   <option value="planned">Plánováno</option>
                   <option value="requested">Zažádáno</option>
@@ -2335,25 +2943,141 @@ export default function WorkEditorForm(props: Props) {
               </div>
 
               <div>
-                <label htmlFor="isbn" style={{ display: "block", marginBottom: "8px", fontWeight: 600 }}>ISBN</label>
-                <input id="isbn" name="isbn" type="text" value={formState.isbn} onChange={(e) => setFormState((prev) => ({ ...prev, isbn: e.target.value }))} placeholder="978-..." style={{ width: "100%", padding: "12px 14px", border: "1px solid rgba(13, 21, 40, 0.22)", background: "#fffefb", borderRadius: "12px", fontSize: "16px" }} />
+                <label
+                  htmlFor="isbn"
+                  style={{
+                    display: "block",
+                    marginBottom: "8px",
+                    fontWeight: 600,
+                  }}
+                >
+                  ISBN
+                </label>
+                <input
+                  id="isbn"
+                  name="isbn"
+                  type="text"
+                  value={formState.isbn}
+                  onChange={(e) =>
+                    setFormState((prev) => ({ ...prev, isbn: e.target.value }))
+                  }
+                  placeholder="978-..."
+                  style={{
+                    width: "100%",
+                    padding: "12px 14px",
+                    border: "1px solid rgba(13, 21, 40, 0.22)",
+                    background: "#fffefb",
+                    borderRadius: "12px",
+                    fontSize: "16px",
+                  }}
+                />
               </div>
             </div>
 
             <div>
-              <label htmlFor="isbn_note" style={{ display: "block", marginBottom: "8px", fontWeight: 600 }}>Poznámka k ISBN</label>
-              <input id="isbn_note" name="isbn_note" type="text" value={formState.isbn_note} onChange={(e) => setFormState((prev) => ({ ...prev, isbn_note: e.target.value }))} placeholder="např. řešit až při PDF vydání" style={{ width: "100%", padding: "12px 14px", border: "1px solid rgba(13, 21, 40, 0.22)", background: "#fffefb", borderRadius: "12px", fontSize: "16px" }} />
-              <p style={{ margin: "8px 0 0", fontSize: "14px", opacity: 0.75 }}>ISBN nepoužívej jako interní ID. Veřejně se zobrazí pouze při stavu Přiděleno nebo Externí ISBN.</p>
+              <label
+                htmlFor="isbn_note"
+                style={{
+                  display: "block",
+                  marginBottom: "8px",
+                  fontWeight: 600,
+                }}
+              >
+                Poznámka k ISBN
+              </label>
+              <input
+                id="isbn_note"
+                name="isbn_note"
+                type="text"
+                value={formState.isbn_note}
+                onChange={(e) =>
+                  setFormState((prev) => ({
+                    ...prev,
+                    isbn_note: e.target.value,
+                  }))
+                }
+                placeholder="např. řešit až při PDF vydání"
+                style={{
+                  width: "100%",
+                  padding: "12px 14px",
+                  border: "1px solid rgba(13, 21, 40, 0.22)",
+                  background: "#fffefb",
+                  borderRadius: "12px",
+                  fontSize: "16px",
+                }}
+              />
+              <p style={{ margin: "8px 0 0", fontSize: "14px", opacity: 0.75 }}>
+                ISBN nepoužívej jako interní ID. Veřejně se zobrazí pouze při
+                stavu Přiděleno nebo Externí ISBN.
+              </p>
             </div>
 
             <div>
-              <label htmlFor="edition_note_public" style={{ display: "block", marginBottom: "8px", fontWeight: 600 }}>Veřejná ediční poznámka</label>
-              <textarea id="edition_note_public" name="edition_note_public" rows={3} value={formState.edition_note_public} onChange={(e) => setFormState((prev) => ({ ...prev, edition_note_public: e.target.value }))} placeholder="Krátká poznámka, kterou může vidět čtenář v tiráži." style={{ width: "100%", padding: "12px 14px", border: "1px solid rgba(13, 21, 40, 0.22)", background: "#fffefb", borderRadius: "12px", fontSize: "16px" }} />
+              <label
+                htmlFor="edition_note_public"
+                style={{
+                  display: "block",
+                  marginBottom: "8px",
+                  fontWeight: 600,
+                }}
+              >
+                Veřejná ediční poznámka
+              </label>
+              <textarea
+                id="edition_note_public"
+                name="edition_note_public"
+                rows={3}
+                value={formState.edition_note_public}
+                onChange={(e) =>
+                  setFormState((prev) => ({
+                    ...prev,
+                    edition_note_public: e.target.value,
+                  }))
+                }
+                placeholder="Krátká poznámka, kterou může vidět čtenář v tiráži."
+                style={{
+                  width: "100%",
+                  padding: "12px 14px",
+                  border: "1px solid rgba(13, 21, 40, 0.22)",
+                  background: "#fffefb",
+                  borderRadius: "12px",
+                  fontSize: "16px",
+                }}
+              />
             </div>
 
             <div>
-              <label htmlFor="edition_note_internal" style={{ display: "block", marginBottom: "8px", fontWeight: 600 }}>Interní ediční poznámka</label>
-              <textarea id="edition_note_internal" name="edition_note_internal" rows={3} value={formState.edition_note_internal} onChange={(e) => setFormState((prev) => ({ ...prev, edition_note_internal: e.target.value }))} placeholder="Interní poznámky k právům, zdroji, kontrole nebo budoucímu vydání." style={{ width: "100%", padding: "12px 14px", border: "1px solid rgba(13, 21, 40, 0.22)", background: "#fffefb", borderRadius: "12px", fontSize: "16px" }} />
+              <label
+                htmlFor="edition_note_internal"
+                style={{
+                  display: "block",
+                  marginBottom: "8px",
+                  fontWeight: 600,
+                }}
+              >
+                Interní ediční poznámka
+              </label>
+              <textarea
+                id="edition_note_internal"
+                name="edition_note_internal"
+                rows={3}
+                value={formState.edition_note_internal}
+                onChange={(e) =>
+                  setFormState((prev) => ({
+                    ...prev,
+                    edition_note_internal: e.target.value,
+                  }))
+                }
+                placeholder="Interní poznámky k právům, zdroji, kontrole nebo budoucímu vydání."
+                style={{
+                  width: "100%",
+                  padding: "12px 14px",
+                  border: "1px solid rgba(13, 21, 40, 0.22)",
+                  background: "#fffefb",
+                  borderRadius: "12px",
+                  fontSize: "16px",
+                }}
+              />
             </div>
           </section>
 
@@ -2373,7 +3097,10 @@ export default function WorkEditorForm(props: Props) {
                 formáty: JPG, PNG, WebP. Maximální velikost pro obálku je 5 MB.
               </p>
               <p style={{ margin: "10px 0 0", fontSize: "14px" }}>
-                <Link className="artales-editor-help-link" href="/member/resources#work-cover">
+                <Link
+                  className="artales-editor-help-link"
+                  href="/member/resources#work-cover"
+                >
                   Otevřít cover standard a prompt
                 </Link>
               </p>
@@ -2442,7 +3169,9 @@ export default function WorkEditorForm(props: Props) {
                           ...prev,
                           cover_image_path: "",
                         }));
-                        setCoverUploadMessage("Obálka byla odebrána z formuláře. Ulož dílo, aby se změna propsala do databáze.");
+                        setCoverUploadMessage(
+                          "Obálka byla odebrána z formuláře. Ulož dílo, aby se změna propsala do databáze.",
+                        );
                         setCoverUploadError(null);
 
                         if (removedPath) {
@@ -2478,10 +3207,10 @@ export default function WorkEditorForm(props: Props) {
 
                 {formState.cover_image_path ? (
                   <p style={{ margin: 0, fontSize: "13px", opacity: 0.72 }}>
-                    Obálka je připravená v ARTales Storage. Technickou cestu není
-                    potřeba ručně upravovat. Další nahrání stejného formátu nahradí
-                    aktuální soubor místo vytváření další kopie. Po nahrání nezapomeň
-                    dílo uložit.
+                    Obálka je připravená v ARTales Storage. Technickou cestu
+                    není potřeba ručně upravovat. Další nahrání stejného formátu
+                    nahradí aktuální soubor místo vytváření další kopie. Po
+                    nahrání nezapomeň dílo uložit.
                   </p>
                 ) : (
                   <p style={{ margin: 0, fontSize: "13px", opacity: 0.72 }}>
@@ -2626,7 +3355,10 @@ export default function WorkEditorForm(props: Props) {
               Výsledek vždy zkontroluj v editoru před uložením díla.
             </p>
             <p style={{ margin: "10px 0 0", fontSize: "14px" }}>
-              <Link className="artales-editor-help-link" href="/member/resources#parser">
+              <Link
+                className="artales-editor-help-link"
+                href="/member/resources#parser"
+              >
                 Otevřít pravidla parseru a aktuální AI prompt
               </Link>
             </p>
@@ -2640,7 +3372,9 @@ export default function WorkEditorForm(props: Props) {
             rows={12}
             value={parserInput}
             onChange={(event) => setParserInput(event.target.value)}
-            placeholder={"Kapitola I\n\nPrvní odstavec textu...\n\n* * *\n\nDalší scéna..."}
+            placeholder={
+              "Kapitola I\n\nPrvní odstavec textu...\n\n* * *\n\nDalší scéna..."
+            }
             style={{
               width: "100%",
               padding: "14px 16px",
@@ -2677,10 +3411,19 @@ export default function WorkEditorForm(props: Props) {
               style={{
                 padding: "10px 14px",
                 border: "1px solid rgba(13, 21, 40, 0.24)",
-                background: parserResult && parserResult.blocks.length > 0 ? "#fff" : "#f2efe8",
-                color: parserResult && parserResult.blocks.length > 0 ? "#111" : "#888",
+                background:
+                  parserResult && parserResult.blocks.length > 0
+                    ? "#fff"
+                    : "#f2efe8",
+                color:
+                  parserResult && parserResult.blocks.length > 0
+                    ? "#111"
+                    : "#888",
                 borderRadius: "999px",
-                cursor: parserResult && parserResult.blocks.length > 0 ? "pointer" : "not-allowed",
+                cursor:
+                  parserResult && parserResult.blocks.length > 0
+                    ? "pointer"
+                    : "not-allowed",
                 fontWeight: 700,
               }}
             >
@@ -2693,10 +3436,19 @@ export default function WorkEditorForm(props: Props) {
               style={{
                 padding: "10px 14px",
                 border: "1px solid rgba(13, 21, 40, 0.24)",
-                background: parserResult && parserResult.blocks.length > 0 ? "#fff" : "#f2efe8",
-                color: parserResult && parserResult.blocks.length > 0 ? "#111" : "#888",
+                background:
+                  parserResult && parserResult.blocks.length > 0
+                    ? "#fff"
+                    : "#f2efe8",
+                color:
+                  parserResult && parserResult.blocks.length > 0
+                    ? "#111"
+                    : "#888",
                 borderRadius: "999px",
-                cursor: parserResult && parserResult.blocks.length > 0 ? "pointer" : "not-allowed",
+                cursor:
+                  parserResult && parserResult.blocks.length > 0
+                    ? "pointer"
+                    : "not-allowed",
                 fontWeight: 700,
               }}
             >
@@ -2753,16 +3505,34 @@ export default function WorkEditorForm(props: Props) {
                   gap: "10px",
                 }}
               >
-                <span className="artales-parser-stat">Bloky: {parserResult.stats.totalBlocks}</span>
-                <span className="artales-parser-stat">Kapitoly: {parserResult.stats.chapters}</span>
-                <span className="artales-parser-stat">Odstavce: {parserResult.stats.paragraphs}</span>
-                <span className="artales-parser-stat">Básně: {parserResult.stats.poems}</span>
-                <span className="artales-parser-stat">Předěly: {parserResult.stats.separators}</span>
-                <span className="artales-parser-stat">Citace: {parserResult.stats.quotes}</span>
-                <span className="artales-parser-stat">Datace: {parserResult.stats.placeLines}</span>
-                <span className="artales-parser-stat">Obrázky: {parserResult.stats.images}</span>
+                <span className="artales-parser-stat">
+                  Bloky: {parserResult.stats.totalBlocks}
+                </span>
+                <span className="artales-parser-stat">
+                  Kapitoly: {parserResult.stats.chapters}
+                </span>
+                <span className="artales-parser-stat">
+                  Odstavce: {parserResult.stats.paragraphs}
+                </span>
+                <span className="artales-parser-stat">
+                  Básně: {parserResult.stats.poems}
+                </span>
+                <span className="artales-parser-stat">
+                  Předěly: {parserResult.stats.separators}
+                </span>
+                <span className="artales-parser-stat">
+                  Citace: {parserResult.stats.quotes}
+                </span>
+                <span className="artales-parser-stat">
+                  Datace: {parserResult.stats.placeLines}
+                </span>
+                <span className="artales-parser-stat">
+                  Obrázky: {parserResult.stats.images}
+                </span>
                 {parserResult.usedMarkup ? (
-                  <span className="artales-parser-stat">ARTales značky: použity</span>
+                  <span className="artales-parser-stat">
+                    ARTales značky: použity
+                  </span>
                 ) : null}
               </div>
 
@@ -2778,13 +3548,25 @@ export default function WorkEditorForm(props: Props) {
                       padding: "12px",
                     }}
                   >
-                    <p style={{ margin: "0 0 6px 0", fontSize: "13px", opacity: 0.72 }}>
-                      {index + 1}. {WORK_BLOCK_TYPE_META[block.type].internalLabel}
+                    <p
+                      style={{
+                        margin: "0 0 6px 0",
+                        fontSize: "13px",
+                        opacity: 0.72,
+                      }}
+                    >
+                      {index + 1}.{" "}
+                      {WORK_BLOCK_TYPE_META[block.type].internalLabel}
                       {block.editor_note ? ` · ${block.editor_note}` : ""}
                     </p>
                     <p style={{ margin: 0, whiteSpace: "pre-wrap" }}>
                       {block.type === "image"
-                        ? String(block.fields?.source_note ?? block.fields?.image_request ?? block.fields?.caption ?? "Image placeholder")
+                        ? String(
+                            block.fields?.source_note ??
+                              block.fields?.image_request ??
+                              block.fields?.caption ??
+                              "Image placeholder",
+                          )
                         : block.content.length > 260
                           ? `${block.content.slice(0, 260)}…`
                           : block.content}
@@ -2793,7 +3575,8 @@ export default function WorkEditorForm(props: Props) {
                 ))}
                 {parserResult.blocks.length > 12 ? (
                   <p style={{ margin: 0, opacity: 0.72 }}>
-                    Dalších {parserResult.blocks.length - 12} bloků se zobrazí až po vložení do editoru.
+                    Dalších {parserResult.blocks.length - 12} bloků se zobrazí
+                    až po vložení do editoru.
                   </p>
                 ) : null}
               </div>
@@ -2836,16 +3619,22 @@ export default function WorkEditorForm(props: Props) {
               <p style={{ margin: "6px 0 0" }}>{largeWorkSaveRiskMessage}</p>
             ) : null}
             {saveSubmitMessage ? (
-              <p style={{ margin: "6px 0 0", fontWeight: 600 }}>{saveSubmitMessage}</p>
+              <p style={{ margin: "6px 0 0", fontWeight: 600 }}>
+                {saveSubmitMessage}
+              </p>
             ) : null}
             {canAppendNewBlocksOnly ? (
               <p style={{ margin: "6px 0 0" }}>
-                Nově přidané bloky: <strong>{newBlocksForAppend.length}</strong>. Uložení proběhne jednotným bezpečným režimem.
+                Nově přidané bloky: <strong>{newBlocksForAppend.length}</strong>
+                . Uložení proběhne jednotným bezpečným režimem.
               </p>
             ) : null}
-            {!canAppendNewBlocksOnly && mode === "edit" && estimatedBlocksStorageChars >= LARGE_WORK_SAVE_DANGER_CHARS ? (
+            {!canAppendNewBlocksOnly &&
+            mode === "edit" &&
+            estimatedBlocksStorageChars >= LARGE_WORK_SAVE_DANGER_CHARS ? (
               <p style={{ margin: "6px 0 0" }}>
-                Editor uloží změny bezpečným režimem bez zbytečného odesílání celého díla.
+                Editor uloží změny bezpečným režimem bez zbytečného odesílání
+                celého díla.
               </p>
             ) : null}
           </div>

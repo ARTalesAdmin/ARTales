@@ -16,25 +16,43 @@ export const WORK_BLOCK_TYPES = [
   "afterword",
   "acknowledgement",
   "image",
-] as const
+  "table",
+] as const;
 
-export type WorkBlockType = (typeof WORK_BLOCK_TYPES)[number]
+export type WorkBlockType = (typeof WORK_BLOCK_TYPES)[number];
+
+export type TableBlockAlignment = "left" | "center" | "right";
+export type TableBlockResponsiveMode = "scroll" | "stack";
+
+export type TableBlockFields = {
+  headers?: string[];
+  rows: string[][];
+  caption?: string;
+  first_column_header?: boolean;
+  alignment?: TableBlockAlignment[];
+  responsive_mode?: TableBlockResponsiveMode;
+};
+
+export type WorkBlockFieldValue =
+  string | string[] | string[][] | boolean | number | null | undefined;
+
+export type WorkBlockFields = Record<string, WorkBlockFieldValue>;
 
 export type WorkBlock = {
-  id: string
-  type: WorkBlockType
-  content: string
-  editor_note: string | null
-  fields?: Record<string, string | null>
-}
+  id: string;
+  type: WorkBlockType;
+  content: string;
+  editor_note: string | null;
+  fields?: WorkBlockFields;
+};
 
 export const WORK_BLOCK_TYPE_META: Record<
   WorkBlockType,
   {
-    internalLabel: string
-    internalHelp: string
-    publicLabel: string
-    preservesLineBreaks: boolean
+    internalLabel: string;
+    internalHelp: string;
+    publicLabel: string;
+    preservesLineBreaks: boolean;
   }
 > = {
   book_part: {
@@ -57,7 +75,8 @@ export const WORK_BLOCK_TYPE_META: Record<
   },
   headline: {
     internalLabel: "Titulek",
-    internalHelp: "Krátký výrazný titulek uvnitř textu nebo vloženého dokumentu.",
+    internalHelp:
+      "Krátký výrazný titulek uvnitř textu nebo vloženého dokumentu.",
     publicLabel: "Headline",
     preservesLineBreaks: false,
   },
@@ -144,10 +163,17 @@ export const WORK_BLOCK_TYPE_META: Record<
     publicLabel: "Image",
     preservesLineBreaks: false,
   },
-}
+  table: {
+    internalLabel: "Tabulka",
+    internalHelp:
+      "Jednoduchá literární tabulka, kde význam závisí na řádcích a sloupcích.",
+    publicLabel: "Table",
+    preservesLineBreaks: false,
+  },
+};
 
 export function isWorkBlockType(value: string): value is WorkBlockType {
-  return WORK_BLOCK_TYPES.includes(value as WorkBlockType)
+  return WORK_BLOCK_TYPES.includes(value as WorkBlockType);
 }
 
 export function getWorkBlockTypeOptions() {
@@ -155,7 +181,7 @@ export function getWorkBlockTypeOptions() {
     value: type,
     label: WORK_BLOCK_TYPE_META[type].internalLabel,
     help: WORK_BLOCK_TYPE_META[type].internalHelp,
-  }))
+  }));
 }
 
 export function createEmptyBlock(type: WorkBlockType = "chapter"): WorkBlock {
@@ -170,7 +196,7 @@ export function createEmptyBlock(type: WorkBlockType = "chapter"): WorkBlock {
         body: "",
         date_signature: "",
       },
-    }
+    };
   }
 
   if (type === "image") {
@@ -188,7 +214,24 @@ export function createEmptyBlock(type: WorkBlockType = "chapter"): WorkBlock {
         size: "normal",
         source_note: "",
       },
-    }
+    };
+  }
+
+  if (type === "table") {
+    return {
+      id: crypto.randomUUID(),
+      type,
+      content: "",
+      editor_note: null,
+      fields: {
+        headers: ["Sloupec 1", "Sloupec 2"],
+        rows: [["", ""]],
+        caption: "",
+        first_column_header: false,
+        alignment: ["left", "left"],
+        responsive_mode: "scroll",
+      },
+    };
   }
 
   return {
@@ -196,40 +239,120 @@ export function createEmptyBlock(type: WorkBlockType = "chapter"): WorkBlock {
     type,
     content: type === "separator" ? "* * *" : "",
     editor_note: null,
-  }
+  };
 }
 
 function normalizeEditorNote(value: unknown): string | null {
-  if (typeof value !== "string") return null
+  if (typeof value !== "string") return null;
 
-  const trimmed = value.trim()
-  return trimmed === "" ? null : trimmed
+  const trimmed = value.trim();
+  return trimmed === "" ? null : trimmed;
 }
 
 function normalizeContent(value: unknown): string {
-  if (typeof value !== "string") return ""
-  return value.replace(/\r\n/g, "\n").trim()
+  if (typeof value !== "string") return "";
+  return value.replace(/\r\n/g, "\n").trim();
 }
 
-function normalizeFields(value: unknown): Record<string, string | null> | undefined {
-  if (!value || typeof value !== "object") return undefined
+function normalizeFields(value: unknown): WorkBlockFields | undefined {
+  if (!value || typeof value !== "object") return undefined;
 
-  const raw = value as Record<string, unknown>
-  const fields: Record<string, string | null> = {}
+  const raw = value as Record<string, unknown>;
+  const fields: WorkBlockFields = {};
 
   for (const [key, rawValue] of Object.entries(raw)) {
-    fields[key] = rawValue == null ? null : String(rawValue)
+    fields[key] = rawValue == null ? null : String(rawValue);
   }
 
-  return fields
+  return fields;
+}
+
+function normalizeTextArray(value: unknown): string[] | undefined {
+  if (!Array.isArray(value)) return undefined;
+  return value.map((item) => normalizeContent(item));
+}
+
+function normalizeTableRows(value: unknown): string[][] {
+  if (!Array.isArray(value)) return [];
+
+  return value
+    .filter((row) => Array.isArray(row))
+    .map((row) => (row as unknown[]).map((cell) => normalizeContent(cell)));
+}
+
+function getTableColumnCount(fields: TableBlockFields): number {
+  if (fields.headers && fields.headers.length > 0) return fields.headers.length;
+  return fields.rows[0]?.length ?? 0;
+}
+
+export function normalizeTableBlockFields(value: unknown): TableBlockFields {
+  const raw =
+    value && typeof value === "object"
+      ? (value as Record<string, unknown>)
+      : {};
+  const rows = normalizeTableRows(raw.rows);
+  const headers = normalizeTextArray(raw.headers);
+  const rawResponsiveMode = normalizeContent(raw.responsive_mode ?? "scroll");
+  const responsiveMode: TableBlockResponsiveMode =
+    rawResponsiveMode === "stack" ? "stack" : "scroll";
+  const rawAlignment = normalizeTextArray(raw.alignment);
+  const alignment = rawAlignment?.map((item) =>
+    item === "center" || item === "right" ? item : "left",
+  ) as TableBlockAlignment[] | undefined;
+
+  return {
+    ...(headers && headers.length > 0 ? { headers } : {}),
+    rows,
+    caption: normalizeContent(raw.caption ?? ""),
+    first_column_header:
+      raw.first_column_header === true || raw.first_column_header === "true",
+    ...(alignment && alignment.length > 0 ? { alignment } : {}),
+    responsive_mode: responsiveMode,
+  };
+}
+
+export function validateTableBlockFields(
+  fields: TableBlockFields,
+): string | null {
+  if (!fields.rows || fields.rows.length === 0)
+    return "Tabulka musí mít alespoň jeden řádek.";
+
+  const columnCount = getTableColumnCount(fields);
+  if (columnCount < 2) return "Tabulka musí mít alespoň dva sloupce.";
+
+  const invalidRowIndex = fields.rows.findIndex(
+    (row) => row.length !== columnCount,
+  );
+  if (invalidRowIndex !== -1) {
+    return `Řádek ${invalidRowIndex + 1} má jiný počet buněk než zbytek tabulky.`;
+  }
+
+  if (
+    fields.headers &&
+    fields.headers.length > 0 &&
+    fields.headers.length !== columnCount
+  ) {
+    return "Počet hlaviček musí odpovídat počtu sloupců.";
+  }
+
+  return null;
+}
+
+export function getTableBlockPlainText(fields: TableBlockFields): string {
+  const lines: string[] = [];
+  if (fields.caption) lines.push(fields.caption);
+  if (fields.headers && fields.headers.length > 0)
+    lines.push(fields.headers.join(" | "));
+  for (const row of fields.rows) lines.push(row.join(" | "));
+  return lines.join("\n");
 }
 
 function normalizeLetterBlock(candidate: Record<string, unknown>): WorkBlock {
-  const rawFields = normalizeFields(candidate.fields) ?? {}
+  const rawFields = normalizeFields(candidate.fields) ?? {};
 
-  const placeYear = normalizeContent(rawFields.place_year ?? "")
-  const body = normalizeContent(rawFields.body ?? candidate.content ?? "")
-  const dateSignature = normalizeContent(rawFields.date_signature ?? "")
+  const placeYear = normalizeContent(rawFields.place_year ?? "");
+  const body = normalizeContent(rawFields.body ?? candidate.content ?? "");
+  const dateSignature = normalizeContent(rawFields.date_signature ?? "");
 
   return {
     id:
@@ -244,25 +367,29 @@ function normalizeLetterBlock(candidate: Record<string, unknown>): WorkBlock {
       body,
       date_signature: dateSignature,
     },
-  }
+  };
 }
 
 function normalizeImageBlock(candidate: Record<string, unknown>): WorkBlock {
-  const rawFields = normalizeFields(candidate.fields) ?? {}
-  const storagePath = normalizeContent(rawFields.storage_path ?? candidate.content ?? "")
-  const imageRequest = normalizeContent(rawFields.image_request ?? "")
-  const alt = normalizeContent(rawFields.alt ?? "")
-  const caption = normalizeContent(rawFields.caption ?? "")
-  const sourceNote = normalizeContent(rawFields.source_note ?? rawFields.image_request ?? "")
-  const rawAlignment = normalizeContent(rawFields.alignment ?? "center")
-  const rawSize = normalizeContent(rawFields.size ?? "normal")
+  const rawFields = normalizeFields(candidate.fields) ?? {};
+  const storagePath = normalizeContent(
+    rawFields.storage_path ?? candidate.content ?? "",
+  );
+  const imageRequest = normalizeContent(rawFields.image_request ?? "");
+  const alt = normalizeContent(rawFields.alt ?? "");
+  const caption = normalizeContent(rawFields.caption ?? "");
+  const sourceNote = normalizeContent(
+    rawFields.source_note ?? rawFields.image_request ?? "",
+  );
+  const rawAlignment = normalizeContent(rawFields.alignment ?? "center");
+  const rawSize = normalizeContent(rawFields.size ?? "normal");
 
   const alignment = ["center", "left", "right", "wide"].includes(rawAlignment)
     ? rawAlignment
-    : "center"
+    : "center";
   const size = ["normal", "wide", "full"].includes(rawSize)
     ? rawSize
-    : "normal"
+    : "normal";
 
   return {
     id:
@@ -281,31 +408,53 @@ function normalizeImageBlock(candidate: Record<string, unknown>): WorkBlock {
       size,
       source_note: sourceNote,
     },
-  }
+  };
+}
+
+function normalizeTableBlock(candidate: Record<string, unknown>): WorkBlock {
+  const fields = normalizeTableBlockFields(candidate.fields);
+  const content = normalizeContent(
+    candidate.content ?? getTableBlockPlainText(fields),
+  );
+
+  return {
+    id:
+      typeof candidate.id === "string" && candidate.id.trim() !== ""
+        ? candidate.id
+        : crypto.randomUUID(),
+    type: "table",
+    content,
+    editor_note: normalizeEditorNote(candidate.editor_note),
+    fields,
+  };
 }
 
 export function sanitizeWorkBlocks(input: unknown): WorkBlock[] {
-  if (!Array.isArray(input)) return []
+  if (!Array.isArray(input)) return [];
 
   return input
     .map((raw) => {
-      if (!raw || typeof raw !== "object") return null
+      if (!raw || typeof raw !== "object") return null;
 
-      const candidate = raw as Record<string, unknown>
-      const type = String(candidate.type ?? "")
+      const candidate = raw as Record<string, unknown>;
+      const type = String(candidate.type ?? "");
 
-      if (!isWorkBlockType(type)) return null
+      if (!isWorkBlockType(type)) return null;
 
       if (type === "letter") {
-        return normalizeLetterBlock(candidate)
+        return normalizeLetterBlock(candidate);
       }
 
       if (type === "image") {
-        return normalizeImageBlock(candidate)
+        return normalizeImageBlock(candidate);
       }
 
-      const content = normalizeContent(candidate.content)
-      const editor_note = normalizeEditorNote(candidate.editor_note)
+      if (type === "table") {
+        return normalizeTableBlock(candidate);
+      }
+
+      const content = normalizeContent(candidate.content);
+      const editor_note = normalizeEditorNote(candidate.editor_note);
 
       return {
         id:
@@ -316,64 +465,79 @@ export function sanitizeWorkBlocks(input: unknown): WorkBlock[] {
         content,
         editor_note,
         fields: normalizeFields(candidate.fields),
-      } satisfies WorkBlock
+      } satisfies WorkBlock;
     })
-    .filter((block): block is WorkBlock => block !== null)
+    .filter((block): block is WorkBlock => block !== null);
 }
 
 export function getUnresolvedImageBlocks(blocks: WorkBlock[]): WorkBlock[] {
   return blocks.filter((block) => {
-    if (block.type !== "image") return false
+    if (block.type !== "image") return false;
 
-    return String(block.fields?.storage_path ?? block.content ?? "").trim() === ""
-  })
+    return (
+      String(block.fields?.storage_path ?? block.content ?? "").trim() === ""
+    );
+  });
 }
 
 export function validateWorkBlocks(blocks: WorkBlock[]): string | null {
   if (blocks.length === 0) {
-    return "blocks_missing"
+    return "blocks_missing";
   }
 
   const hasVisibleContent = blocks.some((block) => {
-    if (block.type === "separator") return true
+    if (block.type === "separator") return true;
     if (block.type === "image") {
       return (
-        String(block.fields?.storage_path ?? block.content ?? "").trim() !== "" ||
+        String(block.fields?.storage_path ?? block.content ?? "").trim() !==
+          "" ||
         String(block.fields?.image_request ?? "").trim() !== "" ||
         String(block.fields?.caption ?? "").trim() !== ""
-      )
+      );
     }
     if (block.type === "letter") {
-      return String(block.fields?.body ?? block.content ?? "").trim() !== ""
+      return String(block.fields?.body ?? block.content ?? "").trim() !== "";
+    }
+    if (block.type === "table") {
+      const fields = normalizeTableBlockFields(block.fields);
+      return validateTableBlockFields(fields) === null;
     }
 
-    return block.content.trim() !== ""
-  })
+    return block.content.trim() !== "";
+  });
 
   if (!hasVisibleContent) {
-    return "blocks_empty"
+    return "blocks_empty";
   }
 
   for (const block of blocks) {
-    if (block.type === "separator") continue
-    if (block.type === "image") continue
+    if (block.type === "separator") continue;
+    if (block.type === "image") continue;
 
     if (block.type === "letter") {
-      const body = String(block.fields?.body ?? block.content ?? "").trim()
+      const body = String(block.fields?.body ?? block.content ?? "").trim();
 
       if (body === "") {
-        return "block_content_missing"
+        return "block_content_missing";
       }
 
-      continue
+      continue;
+    }
+
+    if (block.type === "table") {
+      const tableError = validateTableBlockFields(
+        normalizeTableBlockFields(block.fields),
+      );
+      if (tableError) return `table_invalid: ${tableError}`;
+      continue;
     }
 
     if (block.content.trim() === "") {
-      return "block_content_missing"
+      return "block_content_missing";
     }
   }
 
-  return null
+  return null;
 }
 
 export function flattenBlocksToPlainText(blocks: WorkBlock[]): string {
@@ -392,35 +556,44 @@ export function flattenBlocksToPlainText(blocks: WorkBlock[]): string {
         case "preface":
         case "afterword":
         case "acknowledgement":
-          return block.content.trim()
+          return block.content.trim();
+
+        case "table":
+          return getTableBlockPlainText(
+            normalizeTableBlockFields(block.fields),
+          ).trim();
 
         case "image": {
-          const caption = String(block.fields?.caption ?? "").trim()
-          const imageRequest = String(block.fields?.image_request ?? "").trim()
-          return ["[Obrázek]", caption || imageRequest].filter(Boolean).join(" ")
+          const caption = String(block.fields?.caption ?? "").trim();
+          const imageRequest = String(block.fields?.image_request ?? "").trim();
+          return ["[Obrázek]", caption || imageRequest]
+            .filter(Boolean)
+            .join(" ");
         }
 
         case "letter": {
-          const placeYear = String(block.fields?.place_year ?? "").trim()
-          const body = String(block.fields?.body ?? block.content ?? "").trim()
-          const dateSignature = String(block.fields?.date_signature ?? "").trim()
+          const placeYear = String(block.fields?.place_year ?? "").trim();
+          const body = String(block.fields?.body ?? block.content ?? "").trim();
+          const dateSignature = String(
+            block.fields?.date_signature ?? "",
+          ).trim();
 
-          return [placeYear, body, dateSignature].filter(Boolean).join("\n\n")
+          return [placeYear, body, dateSignature].filter(Boolean).join("\n\n");
         }
 
         case "separator":
-          return "* * *"
+          return "* * *";
 
         case "note":
-          return `[Poznámka] ${block.content.trim()}`
+          return `[Poznámka] ${block.content.trim()}`;
 
         case "footnote":
-          return `[Poznámka pod čarou] ${block.content.trim()}`
+          return `[Poznámka pod čarou] ${block.content.trim()}`;
 
         default:
-          return block.content.trim()
+          return block.content.trim();
       }
     })
     .filter(Boolean)
-    .join("\n\n")
+    .join("\n\n");
 }

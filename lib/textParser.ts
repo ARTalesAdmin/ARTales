@@ -1,4 +1,10 @@
-import type { WorkBlock, WorkBlockType } from "@/lib/blocks";
+import {
+  getTableBlockPlainText,
+  normalizeTableBlockFields,
+  validateTableBlockFields,
+  type WorkBlock,
+  type WorkBlockType,
+} from "@/lib/blocks";
 
 const MARKUP_TAG_TO_BLOCK_TYPE: Record<string, WorkBlockType> = {
   book_part: "book_part",
@@ -18,6 +24,7 @@ const MARKUP_TAG_TO_BLOCK_TYPE: Record<string, WorkBlockType> = {
   afterword: "afterword",
   acknowledgement: "acknowledgement",
   image: "image",
+  table: "table",
 };
 
 export const ARTALES_TEXT_PREPROCESSOR_PROMPT = `Jsi ARTales text preprocessor.
@@ -53,6 +60,7 @@ Používej pouze tyto značky, vždy samostatně na řádku:
 ::afterword
 ::acknowledgement
 ::image
+::table
 
 METODIKA:
 - Každý skutečný odstavec prózy označ jako samostatný blok ::paragraph.
@@ -71,6 +79,7 @@ METODIKA:
 - Poznámku označ jako ::note.
 - Poznámku pod čarou označ jako ::footnote.
 - Obrázek, ilustraci, mapu, tabuli nebo jasné místo pro obrázek označ jako ::image. Do bloku napiš původní popisek, název obrázku nebo stručnou poznámku. Obrázek nesmí z textu zmizet, i když samotný soubor zatím není k dispozici.
+- Jednoduchou literární tabulku, seznam ve sloupcích, paralelní přehled šachových tahů nebo podobný obsah, jehož význam závisí na řádcích a sloupcích, označ jako ::table. Za značku vlož pouze validní JSON s poli caption, headers, rows, first_column_header, alignment a responsive_mode. Neměň text buněk.
 
 PŘÍMÁ ŘEČ VS. CITACE:
 - Běžná přímá řeč a dialog v próze zůstávají ::paragraph.
@@ -104,6 +113,7 @@ druhý verš
 třetí verš
 
 ::image
+::table
 Obrázek 1 – mapa okolí. Editor později nahraje soubor.`;
 
 export type ParsedWorkBlocksResult = {
@@ -118,31 +128,42 @@ export type ParsedWorkBlocksResult = {
     quotes: number;
     placeLines: number;
     images: number;
+    tables: number;
     markedBlocks: number;
   };
 };
 
-function createBlock(type: WorkBlockType, content: string, editorNote?: string): WorkBlock {
+function createBlock(
+  type: WorkBlockType,
+  content: string,
+  editorNote?: string,
+): WorkBlock {
   return {
-    id: typeof crypto !== "undefined" && "randomUUID" in crypto
-      ? crypto.randomUUID()
-      : `parsed-${Date.now()}-${Math.random().toString(16).slice(2)}`,
+    id:
+      typeof crypto !== "undefined" && "randomUUID" in crypto
+        ? crypto.randomUUID()
+        : `parsed-${Date.now()}-${Math.random().toString(16).slice(2)}`,
     type,
     content: content.trim(),
     editor_note: editorNote ?? null,
   };
 }
 
-function createImagePlaceholderBlock(content: string, editorNote?: string): WorkBlock {
+function createImagePlaceholderBlock(
+  content: string,
+  editorNote?: string,
+): WorkBlock {
   const cleaned = content.trim();
 
   return {
-    id: typeof crypto !== "undefined" && "randomUUID" in crypto
-      ? crypto.randomUUID()
-      : `parsed-image-${Date.now()}-${Math.random().toString(16).slice(2)}`,
+    id:
+      typeof crypto !== "undefined" && "randomUUID" in crypto
+        ? crypto.randomUUID()
+        : `parsed-image-${Date.now()}-${Math.random().toString(16).slice(2)}`,
     type: "image",
     content: "",
-    editor_note: editorNote ?? "Parser: placeholder obrázku. Nahraj asset před publikací.",
+    editor_note:
+      editorNote ?? "Parser: placeholder obrázku. Nahraj asset před publikací.",
     fields: {
       image_request: cleaned,
       storage_path: "",
@@ -153,6 +174,47 @@ function createImagePlaceholderBlock(content: string, editorNote?: string): Work
       source_note: cleaned || "Parser označil místo pro obrázek.",
     },
   };
+}
+
+function createTableBlockFromJson(content: string): WorkBlock[] {
+  const cleaned = content.trim();
+
+  try {
+    const parsed = JSON.parse(cleaned) as unknown;
+    const fields = normalizeTableBlockFields(parsed);
+    const error = validateTableBlockFields(fields);
+
+    if (error) {
+      return [
+        createBlock(
+          "paragraph",
+          cleaned,
+          `Parser: značka ::table nebyla převedena na tabulku. ${error}`,
+        ),
+      ];
+    }
+
+    return [
+      {
+        id:
+          typeof crypto !== "undefined" && "randomUUID" in crypto
+            ? crypto.randomUUID()
+            : `parsed-table-${Date.now()}-${Math.random().toString(16).slice(2)}`,
+        type: "table",
+        content: getTableBlockPlainText(fields),
+        editor_note: "Parser: vloženo podle ARTales značky ::table.",
+        fields,
+      },
+    ];
+  } catch {
+    return [
+      createBlock(
+        "paragraph",
+        cleaned,
+        "Parser: značka ::table obsahovala neplatný JSON. Zkontroluj a případně vytvoř tabulku ručně.",
+      ),
+    ];
+  }
 }
 
 function normalizeRawText(rawText: string) {
@@ -212,7 +274,8 @@ function normalizeContentForType(type: WorkBlockType, content: string) {
     type === "newspaper_article" ||
     type === "dedication" ||
     type === "acknowledgement" ||
-    type === "image"
+    type === "image" ||
+    type === "table"
   ) {
     return content.trim();
   }
@@ -224,11 +287,27 @@ function createMarkedBlocks(type: WorkBlockType, content: string): WorkBlock[] {
   const cleaned = content.trim();
 
   if (type === "separator") {
-    return [createBlock("separator", normalizeContentForType("separator", cleaned), "Parser: vloženo podle ARTales značky ::separator.")];
+    return [
+      createBlock(
+        "separator",
+        normalizeContentForType("separator", cleaned),
+        "Parser: vloženo podle ARTales značky ::separator.",
+      ),
+    ];
   }
 
   if (type === "image") {
-    return [createImagePlaceholderBlock(cleaned, "Parser: vloženo podle ARTales značky ::image. Nahraj obrázek před publikací.")];
+    return [
+      createImagePlaceholderBlock(
+        cleaned,
+        "Parser: vloženo podle ARTales značky ::image. Nahraj obrázek před publikací.",
+      ),
+    ];
+  }
+
+  if (type === "table") {
+    if (!cleaned) return [];
+    return createTableBlockFromJson(cleaned);
   }
 
   if (!cleaned) return [];
@@ -237,7 +316,11 @@ function createMarkedBlocks(type: WorkBlockType, content: string): WorkBlock[] {
   // keep the clean model: one real paragraph = one ARTales paragraph block.
   if (type === "paragraph") {
     return splitIntoParagraphCandidates(cleaned).map((paragraph) =>
-      createBlock("paragraph", compactInlineText(paragraph), "Parser: vloženo podle ARTales značky ::paragraph."),
+      createBlock(
+        "paragraph",
+        compactInlineText(paragraph),
+        "Parser: vloženo podle ARTales značky ::paragraph.",
+      ),
     );
   }
 
@@ -284,13 +367,23 @@ function parseMarkedTextToWorkBlocks(text: string): WorkBlock[] {
 
   if (!currentType && buffer.join("\n").trim()) {
     return splitIntoParagraphCandidates(buffer.join("\n")).map((paragraph) =>
-      createBlock("paragraph", compactInlineText(paragraph), "Parser: text před první značkou převeden jako odstavec."),
+      createBlock(
+        "paragraph",
+        compactInlineText(paragraph),
+        "Parser: text před první značkou převeden jako odstavec.",
+      ),
     );
   }
 
   flush();
 
-  return blocks.filter((block) => block.content.trim() !== "" || block.type === "separator" || block.type === "image");
+  return blocks.filter(
+    (block) =>
+      block.content.trim() !== "" ||
+      block.type === "separator" ||
+      block.type === "image" ||
+      block.type === "table",
+  );
 }
 
 function isSeparator(lines: string[]) {
@@ -302,10 +395,7 @@ function isBookPart(lines: string[]) {
   if (lines.length > 2) return false;
   const text = compactInlineText(lines.join("\n"));
 
-  return (
-    /^(část|cast|part|book|kniha)\b/i.test(text) &&
-    text.length <= 90
-  );
+  return /^(část|cast|part|book|kniha)\b/i.test(text) && text.length <= 90;
 }
 
 function isStrongPrefaceHeading(lines: string[]) {
@@ -314,8 +404,10 @@ function isStrongPrefaceHeading(lines: string[]) {
 
   if (/^(předmluva|predmluva|preface)$/i.test(text)) return "preface" as const;
   if (/^(doslov|afterword)$/i.test(text)) return "afterword" as const;
-  if (/^(věnování|venovani|dedication)$/i.test(text)) return "dedication" as const;
-  if (/^(poděkování|podekovani|acknowledgement|acknowledgments)$/i.test(text)) return "acknowledgement" as const;
+  if (/^(věnování|venovani|dedication)$/i.test(text))
+    return "dedication" as const;
+  if (/^(poděkování|podekovani|acknowledgement|acknowledgments)$/i.test(text))
+    return "acknowledgement" as const;
 
   return null;
 }
@@ -347,7 +439,8 @@ function isPlaceLine(lines: string[]) {
 
   return (
     text.length <= 90 &&
-    (/\b(1[5-9]\d{2}|20\d{2})\b/.test(text) || /,\s*[A-ZÁČĎÉĚÍŇÓŘŠŤÚŮÝŽa-záčďéěíňóřšťúůýž]+\.?$/.test(text)) &&
+    (/\b(1[5-9]\d{2}|20\d{2})\b/.test(text) ||
+      /,\s*[A-ZÁČĎÉĚÍŇÓŘŠŤÚŮÝŽa-záčďéěíňóřšťúůýž]+\.?$/.test(text)) &&
     !/[!?]$/.test(text)
   );
 }
@@ -358,7 +451,9 @@ function isQuote(lines: string[]) {
 
   const looksLikeDialogue =
     /^([„“\"'‚‘’»«]|—\s*)/.test(text) &&
-    /[,!?…][“\"'‘’»«]?\s+(řekl|řekla|pravil|pravila|odpověděl|odpověděla|zeptal|zeptala|zvolal|zvolala|said|asked|answered|replied)\b/i.test(text);
+    /[,!?…][“\"'‘’»«]?\s+(řekl|řekla|pravil|pravila|odpověděl|odpověděla|zeptal|zeptala|zvolal|zvolala|said|asked|answered|replied)\b/i.test(
+      text,
+    );
 
   if (looksLikeDialogue) return false;
 
@@ -374,19 +469,29 @@ function isImagePlaceholder(lines: string[]) {
   if (lines.length > 4) return false;
   const text = compactInlineText(lines.join("\n"));
 
-  return /^(obrázek|obrazek|ilustrace|mapa|tabule|figure|fig\.|image|illustration|plate)\b/i.test(text) ||
-    /^\[(obrázek|obrazek|ilustrace|image|figure)[^\]]*\]$/i.test(text);
+  return (
+    /^(obrázek|obrazek|ilustrace|mapa|tabule|figure|fig\.|image|illustration|plate)\b/i.test(
+      text,
+    ) || /^\[(obrázek|obrazek|ilustrace|image|figure)[^\]]*\]$/i.test(text)
+  );
 }
 
 function isLikelyPoem(lines: string[]) {
   if (lines.length < 3) return false;
   if (lines.length > 40) return false;
 
-  const averageLength = lines.reduce((sum, line) => sum + line.length, 0) / lines.length;
+  const averageLength =
+    lines.reduce((sum, line) => sum + line.length, 0) / lines.length;
   const shortLines = lines.filter((line) => line.length <= 70).length;
-  const terminalPunctuation = lines.filter((line) => /[.!?…]$/.test(line)).length;
+  const terminalPunctuation = lines.filter((line) =>
+    /[.!?…]$/.test(line),
+  ).length;
 
-  return averageLength <= 58 && shortLines / lines.length >= 0.8 && terminalPunctuation / lines.length < 0.75;
+  return (
+    averageLength <= 58 &&
+    shortLines / lines.length >= 0.8 &&
+    terminalPunctuation / lines.length < 0.75
+  );
 }
 
 function blockFromCandidate(candidate: string, index: number): WorkBlock {
@@ -401,52 +506,87 @@ function blockFromCandidate(candidate: string, index: number): WorkBlock {
   }
 
   if (isImagePlaceholder(lines)) {
-    return createImagePlaceholderBlock(candidate, "Parser: rozpoznané místo pro obrázek. Nahraj asset před publikací.");
+    return createImagePlaceholderBlock(
+      candidate,
+      "Parser: rozpoznané místo pro obrázek. Nahraj asset před publikací.",
+    );
   }
 
   const strongIntroBlock = isStrongPrefaceHeading(lines);
   if (strongIntroBlock) {
-    return createBlock(strongIntroBlock, compactInlineText(candidate), "Parser: rozpoznaný jasný úvodní/závěrečný blok.");
+    return createBlock(
+      strongIntroBlock,
+      compactInlineText(candidate),
+      "Parser: rozpoznaný jasný úvodní/závěrečný blok.",
+    );
   }
 
   if (isBookPart(lines)) {
-    return createBlock("book_part", compactInlineText(candidate), "Parser: rozpoznaná část knihy.");
+    return createBlock(
+      "book_part",
+      compactInlineText(candidate),
+      "Parser: rozpoznaná část knihy.",
+    );
   }
 
   if (isChapterHeading(lines, index)) {
-    return createBlock("chapter", compactInlineText(candidate), "Parser: rozpoznaný nadpis / kapitola.");
+    return createBlock(
+      "chapter",
+      compactInlineText(candidate),
+      "Parser: rozpoznaný nadpis / kapitola.",
+    );
   }
 
   if (isPlaceLine(lines)) {
-    return createBlock("place_line", compactInlineText(candidate), "Parser: možná datace / místo.");
+    return createBlock(
+      "place_line",
+      compactInlineText(candidate),
+      "Parser: možná datace / místo.",
+    );
   }
 
   if (isLikelyPoem(lines)) {
-    return createBlock("poem", lines.join("\n"), "Parser: pravděpodobně veršovaný blok. Zkontrolovat ručně.");
+    return createBlock(
+      "poem",
+      lines.join("\n"),
+      "Parser: pravděpodobně veršovaný blok. Zkontrolovat ručně.",
+    );
   }
 
   if (isQuote(lines)) {
-    return createBlock("quote", compactInlineText(candidate), "Parser: pravděpodobná citace / motto.");
+    return createBlock(
+      "quote",
+      compactInlineText(candidate),
+      "Parser: pravděpodobná citace / motto.",
+    );
   }
 
   return createBlock("paragraph", compactInlineText(candidate));
 }
 
-function calculateStats(blocks: WorkBlock[], usedMarkup: boolean): ParsedWorkBlocksResult["stats"] {
+function calculateStats(
+  blocks: WorkBlock[],
+  usedMarkup: boolean,
+): ParsedWorkBlocksResult["stats"] {
   return {
     totalBlocks: blocks.length,
-    chapters: blocks.filter((block) => block.type === "chapter" || block.type === "book_part").length,
+    chapters: blocks.filter(
+      (block) => block.type === "chapter" || block.type === "book_part",
+    ).length,
     paragraphs: blocks.filter((block) => block.type === "paragraph").length,
     poems: blocks.filter((block) => block.type === "poem").length,
     separators: blocks.filter((block) => block.type === "separator").length,
     quotes: blocks.filter((block) => block.type === "quote").length,
     placeLines: blocks.filter((block) => block.type === "place_line").length,
     images: blocks.filter((block) => block.type === "image").length,
+    tables: blocks.filter((block) => block.type === "table").length,
     markedBlocks: usedMarkup ? blocks.length : 0,
   };
 }
 
-export function parseRawTextToWorkBlocks(rawText: string): ParsedWorkBlocksResult {
+export function parseRawTextToWorkBlocks(
+  rawText: string,
+): ParsedWorkBlocksResult {
   const text = normalizeRawText(rawText);
 
   if (!text) {
@@ -462,7 +602,12 @@ export function parseRawTextToWorkBlocks(rawText: string): ParsedWorkBlocksResul
     ? parseMarkedTextToWorkBlocks(text)
     : splitIntoParagraphCandidates(text)
         .map((candidate, index) => blockFromCandidate(candidate, index))
-        .filter((block) => block.content.trim() !== "" || block.type === "image");
+        .filter(
+          (block) =>
+            block.content.trim() !== "" ||
+            block.type === "image" ||
+            block.type === "table",
+        );
 
   return {
     blocks,

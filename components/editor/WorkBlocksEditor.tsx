@@ -3,7 +3,13 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
   createEmptyBlock,
+  getTableBlockPlainText,
   getWorkBlockTypeOptions,
+  normalizeTableBlockFields,
+  validateTableBlockFields,
+  type TableBlockAlignment,
+  type TableBlockFields,
+  type TableBlockResponsiveMode,
   type WorkBlock,
   type WorkBlockType,
 } from "@/lib/blocks";
@@ -39,6 +45,44 @@ type ImageFieldName =
   | "size"
   | "source_note";
 
+function getTableFields(block: WorkBlock): TableBlockFields {
+  return normalizeTableBlockFields(block.fields);
+}
+
+function getTableColumnCount(fields: TableBlockFields): number {
+  if (fields.headers && fields.headers.length > 0) return fields.headers.length;
+  return fields.rows[0]?.length ?? 0;
+}
+
+function normalizeTableShape(fields: TableBlockFields): TableBlockFields {
+  const columnCount = Math.max(2, getTableColumnCount(fields));
+  const rows =
+    fields.rows.length > 0 ? fields.rows : [Array(columnCount).fill("")];
+  const normalizedRows = rows.map((row) =>
+    Array.from({ length: columnCount }).map((_, index) => row[index] ?? ""),
+  );
+  const headers = fields.headers
+    ? Array.from({ length: columnCount }).map(
+        (_, index) => fields.headers?.[index] ?? "",
+      )
+    : undefined;
+  const alignment = Array.from({ length: columnCount }).map((_, index) =>
+    fields.alignment?.[index] === "center" ||
+    fields.alignment?.[index] === "right"
+      ? fields.alignment[index]
+      : "left",
+  ) as TableBlockAlignment[];
+
+  return {
+    ...(headers ? { headers } : {}),
+    rows: normalizedRows,
+    caption: fields.caption ?? "",
+    first_column_header: Boolean(fields.first_column_header),
+    alignment,
+    responsive_mode: fields.responsive_mode === "stack" ? "stack" : "scroll",
+  };
+}
+
 function collapseWhitespace(value: string) {
   return value.replace(/\s+/g, " ").trim();
 }
@@ -46,6 +90,10 @@ function collapseWhitespace(value: string) {
 function getBlockTextLength(block: WorkBlock) {
   if (block.type === "letter") {
     return String(block.fields?.body ?? block.content ?? "").length;
+  }
+
+  if (block.type === "table") {
+    return getTableBlockPlainText(getTableFields(block)).length;
   }
 
   if (block.type === "image") {
@@ -63,7 +111,9 @@ function getBlockTextLength(block: WorkBlock) {
 
 function getBlockPreviewSource(block: WorkBlock) {
   if (block.type === "letter") {
-    return String(block.fields?.body ?? block.content ?? block.fields?.place_year ?? "");
+    return String(
+      block.fields?.body ?? block.content ?? block.fields?.place_year ?? "",
+    );
   }
 
   if (block.type === "image") {
@@ -74,6 +124,10 @@ function getBlockPreviewSource(block: WorkBlock) {
         block.content ??
         "",
     );
+  }
+
+  if (block.type === "table") {
+    return getTableBlockPlainText(getTableFields(block));
   }
 
   return String(block.content ?? "");
@@ -101,6 +155,7 @@ function getBlockTypeName(block: WorkBlock) {
   if (block.type === "headline") return "titulek";
   if (block.type === "letter") return "dopis";
   if (block.type === "image") return "obrázek";
+  if (block.type === "table") return "tabulka";
   if (block.type === "separator") return "předěl";
   if (block.type === "quote") return "citace";
   if (block.type === "poem") return "báseň";
@@ -152,7 +207,9 @@ export default function WorkBlocksEditor({
   const [largeWorkJumpInput, setLargeWorkJumpInput] = useState("");
   const [bulkDeleteFrom, setBulkDeleteFrom] = useState("");
   const [bulkDeleteTo, setBulkDeleteTo] = useState("");
-  const [bulkDeleteMessage, setBulkDeleteMessage] = useState<string | null>(null);
+  const [bulkDeleteMessage, setBulkDeleteMessage] = useState<string | null>(
+    null,
+  );
   const pendingLargeWorkScrollBlockIdRef = useRef<string | null>(null);
   const uploadedInlineImagePathsRef = useRef<Set<string>>(new Set());
 
@@ -221,16 +278,44 @@ export default function WorkBlocksEditor({
       return {
         ...block,
         type,
-        content: block.fields?.storage_path ?? block.content ?? "",
+        content: String(block.fields?.storage_path ?? block.content ?? ""),
         fields: {
-          image_request: block.fields?.image_request ?? "",
-          storage_path: block.fields?.storage_path ?? block.content ?? "",
-          alt: block.fields?.alt ?? "",
-          caption: block.fields?.caption ?? "",
-          alignment: block.fields?.alignment ?? "center",
-          size: block.fields?.size ?? "normal",
-          source_note: block.fields?.source_note ?? "",
+          image_request: String(block.fields?.image_request ?? ""),
+          storage_path: String(
+            block.fields?.storage_path ?? block.content ?? "",
+          ),
+          alt: String(block.fields?.alt ?? ""),
+          caption: String(block.fields?.caption ?? ""),
+          alignment: String(block.fields?.alignment ?? "center"),
+          size: String(block.fields?.size ?? "normal"),
+          source_note: String(block.fields?.source_note ?? ""),
         },
+      };
+    }
+
+    if (type === "table") {
+      const existingFields =
+        block.type === "table"
+          ? getTableFields(block)
+          : normalizeTableBlockFields(undefined);
+      const fields = normalizeTableShape(
+        existingFields.rows.length > 0
+          ? existingFields
+          : {
+              headers: ["Sloupec 1", "Sloupec 2"],
+              rows: [["", ""]],
+              caption: block.content ?? "",
+              first_column_header: false,
+              alignment: ["left", "left"],
+              responsive_mode: "scroll",
+            },
+      );
+
+      return {
+        ...block,
+        type,
+        content: getTableBlockPlainText(fields),
+        fields,
       };
     }
 
@@ -291,13 +376,15 @@ export default function WorkBlocksEditor({
         if (i !== index) return block;
 
         const nextFields = {
-          image_request: block.fields?.image_request ?? "",
-          storage_path: block.fields?.storage_path ?? block.content ?? "",
-          alt: block.fields?.alt ?? "",
-          caption: block.fields?.caption ?? "",
-          alignment: block.fields?.alignment ?? "center",
-          size: block.fields?.size ?? "normal",
-          source_note: block.fields?.source_note ?? "",
+          image_request: String(block.fields?.image_request ?? ""),
+          storage_path: String(
+            block.fields?.storage_path ?? block.content ?? "",
+          ),
+          alt: String(block.fields?.alt ?? ""),
+          caption: String(block.fields?.caption ?? ""),
+          alignment: String(block.fields?.alignment ?? "center"),
+          size: String(block.fields?.size ?? "normal"),
+          source_note: String(block.fields?.source_note ?? ""),
           [fieldName]: value,
         };
 
@@ -311,6 +398,119 @@ export default function WorkBlocksEditor({
         };
       }),
     );
+  }
+
+  function updateTableFields(
+    index: number,
+    updater: (fields: TableBlockFields) => TableBlockFields,
+  ) {
+    setBlocks((prev) =>
+      prev.map((block, i) => {
+        if (i !== index) return block;
+        const fields = normalizeTableShape(updater(getTableFields(block)));
+
+        return {
+          ...block,
+          type: "table",
+          content: getTableBlockPlainText(fields),
+          fields,
+        };
+      }),
+    );
+  }
+
+  function updateTableCaption(index: number, value: string) {
+    updateTableFields(index, (fields) => ({ ...fields, caption: value }));
+  }
+
+  function updateTableHeader(
+    index: number,
+    columnIndex: number,
+    value: string,
+  ) {
+    updateTableFields(index, (fields) => {
+      const columnCount = Math.max(2, getTableColumnCount(fields));
+      const headers = Array.from({ length: columnCount }).map(
+        (_, i) => fields.headers?.[i] ?? "",
+      );
+      headers[columnIndex] = value;
+      return { ...fields, headers };
+    });
+  }
+
+  function updateTableCell(
+    index: number,
+    rowIndex: number,
+    columnIndex: number,
+    value: string,
+  ) {
+    updateTableFields(index, (fields) => ({
+      ...fields,
+      rows: fields.rows.map((row, i) =>
+        i === rowIndex
+          ? row.map((cell, j) => (j === columnIndex ? value : cell))
+          : row,
+      ),
+    }));
+  }
+
+  function addTableRow(index: number) {
+    updateTableFields(index, (fields) => {
+      const columnCount = Math.max(2, getTableColumnCount(fields));
+      return { ...fields, rows: [...fields.rows, Array(columnCount).fill("")] };
+    });
+  }
+
+  function removeTableRow(index: number, rowIndex: number) {
+    updateTableFields(index, (fields) => ({
+      ...fields,
+      rows: fields.rows.filter((_, i) => i !== rowIndex),
+    }));
+  }
+
+  function addTableColumn(index: number) {
+    updateTableFields(index, (fields) => {
+      const nextColumnNumber = Math.max(2, getTableColumnCount(fields)) + 1;
+      return {
+        ...fields,
+        headers: fields.headers
+          ? [...fields.headers, `Sloupec ${nextColumnNumber}`]
+          : undefined,
+        rows: fields.rows.map((row) => [...row, ""]),
+        alignment: [...(fields.alignment ?? []), "left"],
+      };
+    });
+  }
+
+  function removeTableColumn(index: number, columnIndex: number) {
+    updateTableFields(index, (fields) => {
+      const columnCount = Math.max(2, getTableColumnCount(fields));
+      if (columnCount <= 2) return fields;
+
+      return {
+        ...fields,
+        headers: fields.headers?.filter((_, i) => i !== columnIndex),
+        rows: fields.rows.map((row) => row.filter((_, i) => i !== columnIndex)),
+        alignment: fields.alignment?.filter((_, i) => i !== columnIndex),
+      };
+    });
+  }
+
+  function updateTableResponsiveMode(
+    index: number,
+    mode: TableBlockResponsiveMode,
+  ) {
+    updateTableFields(index, (fields) => ({
+      ...fields,
+      responsive_mode: mode,
+    }));
+  }
+
+  function updateTableFirstColumnHeader(index: number, enabled: boolean) {
+    updateTableFields(index, (fields) => ({
+      ...fields,
+      first_column_header: enabled,
+    }));
   }
 
   function setImageUploadPatch(
@@ -566,7 +766,9 @@ export default function WorkBlocksEditor({
     const parsedEnd = Number.parseInt(bulkDeleteTo || bulkDeleteFrom, 10);
 
     if (!Number.isFinite(parsedStart) || !Number.isFinite(parsedEnd)) {
-      setBulkDeleteMessage("Zadej platný rozsah bloků, například od 120 do 180.");
+      setBulkDeleteMessage(
+        "Zadej platný rozsah bloků, například od 120 do 180.",
+      );
       return;
     }
 
@@ -685,9 +887,9 @@ export default function WorkBlocksEditor({
               lineHeight: 1.5,
             }}
           >
-            Velké dílo: editor zobrazuje aktivní blok a několik bloků před
-            ním i za ním. Celý obsah se uloží najednou tlačítkem Uložit, ale
-            stránka nemusí současně renderovat všechny bloky románu.
+            Velké dílo: editor zobrazuje aktivní blok a několik bloků před ním i
+            za ním. Celý obsah se uloží najednou tlačítkem Uložit, ale stránka
+            nemusí současně renderovat všechny bloky románu.
           </div>
         ) : null}
       </div>
@@ -863,7 +1065,9 @@ export default function WorkBlocksEditor({
                   min={1}
                   max={blocks.length}
                   value={largeWorkJumpInput}
-                  onChange={(event) => setLargeWorkJumpInput(event.target.value)}
+                  onChange={(event) =>
+                    setLargeWorkJumpInput(event.target.value)
+                  }
                   onKeyDown={(event) => {
                     if (event.key === "Enter") {
                       event.preventDefault();
@@ -901,7 +1105,8 @@ export default function WorkBlocksEditor({
             <div>
               <strong>Hromadné mazání bloků</strong>
               <p style={{ margin: "4px 0 0", fontSize: "13px", opacity: 0.78 }}>
-                Rozsah je číslovaný podle celého díla. Po potvrzení se pole vyčistí; změna se uloží až tlačítkem Uložit.
+                Rozsah je číslovaný podle celého díla. Po potvrzení se pole
+                vyčistí; změna se uloží až tlačítkem Uložit.
               </p>
             </div>
 
@@ -913,7 +1118,10 @@ export default function WorkBlocksEditor({
                 alignItems: "center",
               }}
             >
-              <label htmlFor="bulk-delete-from" style={{ fontSize: "13px", fontWeight: 700 }}>
+              <label
+                htmlFor="bulk-delete-from"
+                style={{ fontSize: "13px", fontWeight: 700 }}
+              >
                 Od
               </label>
               <input
@@ -923,10 +1131,17 @@ export default function WorkBlocksEditor({
                 value={bulkDeleteFrom}
                 onChange={(event) => setBulkDeleteFrom(event.target.value)}
                 placeholder="1"
-                style={{ ...compactFieldStyle, width: "92px", padding: "8px 10px" }}
+                style={{
+                  ...compactFieldStyle,
+                  width: "92px",
+                  padding: "8px 10px",
+                }}
               />
 
-              <label htmlFor="bulk-delete-to" style={{ fontSize: "13px", fontWeight: 700 }}>
+              <label
+                htmlFor="bulk-delete-to"
+                style={{ fontSize: "13px", fontWeight: 700 }}
+              >
                 do
               </label>
               <input
@@ -942,7 +1157,11 @@ export default function WorkBlocksEditor({
                   }
                 }}
                 placeholder={String(blocks.length)}
-                style={{ ...compactFieldStyle, width: "92px", padding: "8px 10px" }}
+                style={{
+                  ...compactFieldStyle,
+                  width: "92px",
+                  padding: "8px 10px",
+                }}
               />
 
               <button
@@ -973,7 +1192,14 @@ export default function WorkBlocksEditor({
             </div>
 
             {bulkDeleteMessage ? (
-              <p style={{ margin: 0, color: "#782222", fontSize: "13px", lineHeight: 1.45 }}>
+              <p
+                style={{
+                  margin: 0,
+                  color: "#782222",
+                  fontSize: "13px",
+                  lineHeight: 1.45,
+                }}
+              >
                 {bulkDeleteMessage}
               </p>
             ) : null}
@@ -986,6 +1212,7 @@ export default function WorkBlocksEditor({
 
             const isLetter = block.type === "letter";
             const isImage = block.type === "image";
+            const isTable = block.type === "table";
             const isSeparator = block.type === "separator";
             const isActiveLargeBlock =
               isLargeWorkMode && index === safeActiveLargeBlockIndex;
@@ -1196,6 +1423,362 @@ export default function WorkBlocksEditor({
                       />
                     </div>
                   </>
+                ) : isTable ? (
+                  (() => {
+                    const tableFields = normalizeTableShape(
+                      getTableFields(block),
+                    );
+                    const tableError = validateTableBlockFields(tableFields);
+                    const columnCount = Math.max(
+                      2,
+                      getTableColumnCount(tableFields),
+                    );
+
+                    return (
+                      <div style={{ display: "grid", gap: "14px" }}>
+                        <div>
+                          <label
+                            htmlFor={`block-table-caption-${block.id}`}
+                            style={{
+                              display: "block",
+                              marginBottom: "6px",
+                              fontWeight: 600,
+                            }}
+                          >
+                            Caption / nadpis tabulky
+                          </label>
+                          <input
+                            id={`block-table-caption-${block.id}`}
+                            type="text"
+                            value={tableFields.caption ?? ""}
+                            onChange={(e) =>
+                              updateTableCaption(index, e.target.value)
+                            }
+                            placeholder="Nepovinný popisek tabulky"
+                            style={fieldStyle}
+                          />
+                        </div>
+
+                        {tableError ? (
+                          <div
+                            role="status"
+                            style={{
+                              border: "1px solid rgba(154, 62, 62, 0.32)",
+                              borderRadius: "14px",
+                              background: "#fff4f2",
+                              color: "#782222",
+                              padding: "10px 12px",
+                              fontSize: "14px",
+                              lineHeight: 1.45,
+                            }}
+                          >
+                            {tableError}
+                          </div>
+                        ) : null}
+
+                        <div
+                          style={{
+                            display: "flex",
+                            gap: "10px",
+                            flexWrap: "wrap",
+                            alignItems: "center",
+                          }}
+                        >
+                          <button
+                            type="button"
+                            onClick={() => addTableRow(index)}
+                            style={editorButtonStyle}
+                          >
+                            + Řádek
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => addTableColumn(index)}
+                            style={editorButtonStyle}
+                          >
+                            + Sloupec
+                          </button>
+                          <label
+                            style={{
+                              display: "inline-flex",
+                              gap: "8px",
+                              alignItems: "center",
+                              fontSize: "14px",
+                            }}
+                          >
+                            <input
+                              type="checkbox"
+                              checked={Boolean(tableFields.first_column_header)}
+                              onChange={(e) =>
+                                updateTableFirstColumnHeader(
+                                  index,
+                                  e.target.checked,
+                                )
+                              }
+                            />
+                            První sloupec je hlavička řádku
+                          </label>
+                          <label
+                            style={{
+                              display: "inline-flex",
+                              gap: "8px",
+                              alignItems: "center",
+                              fontSize: "14px",
+                            }}
+                          >
+                            Mobilní režim
+                            <select
+                              value={tableFields.responsive_mode ?? "scroll"}
+                              onChange={(e) =>
+                                updateTableResponsiveMode(
+                                  index,
+                                  e.target.value as TableBlockResponsiveMode,
+                                )
+                              }
+                              style={{
+                                ...compactFieldStyle,
+                                width: "150px",
+                                padding: "8px 10px",
+                              }}
+                            >
+                              <option value="scroll">Horizontální posun</option>
+                              <option value="stack">Stack později</option>
+                            </select>
+                          </label>
+                        </div>
+
+                        <div
+                          style={{
+                            overflowX: "auto",
+                            border: "1px solid rgba(13, 21, 40, 0.14)",
+                            borderRadius: "14px",
+                          }}
+                        >
+                          <table
+                            style={{
+                              borderCollapse: "collapse",
+                              minWidth: `${Math.max(columnCount * 180, 420)}px`,
+                              width: "100%",
+                            }}
+                          >
+                            <thead>
+                              <tr>
+                                {Array.from({ length: columnCount }).map(
+                                  (_, columnIndex) => (
+                                    <th
+                                      key={`header-${columnIndex}`}
+                                      style={{
+                                        borderBottom:
+                                          "1px solid rgba(13, 21, 40, 0.12)",
+                                        padding: "8px",
+                                        textAlign: "left",
+                                        background: "#f7f0df",
+                                      }}
+                                    >
+                                      <input
+                                        type="text"
+                                        value={
+                                          tableFields.headers?.[columnIndex] ??
+                                          ""
+                                        }
+                                        onChange={(e) =>
+                                          updateTableHeader(
+                                            index,
+                                            columnIndex,
+                                            e.target.value,
+                                          )
+                                        }
+                                        placeholder={`Hlavička ${columnIndex + 1}`}
+                                        style={{
+                                          ...compactFieldStyle,
+                                          minWidth: "150px",
+                                        }}
+                                      />
+                                      <button
+                                        type="button"
+                                        disabled={columnCount <= 2}
+                                        onClick={() =>
+                                          removeTableColumn(index, columnIndex)
+                                        }
+                                        style={{
+                                          ...editorButtonStyle,
+                                          marginTop: "6px",
+                                          opacity: columnCount <= 2 ? 0.45 : 1,
+                                        }}
+                                      >
+                                        Odebrat sloupec
+                                      </button>
+                                    </th>
+                                  ),
+                                )}
+                                <th
+                                  style={{
+                                    borderBottom:
+                                      "1px solid rgba(13, 21, 40, 0.12)",
+                                    padding: "8px",
+                                    width: "1%",
+                                  }}
+                                >
+                                  Akce
+                                </th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {tableFields.rows.map((row, rowIndex) => (
+                                <tr key={`row-${rowIndex}`}>
+                                  {Array.from({ length: columnCount }).map(
+                                    (_, columnIndex) => (
+                                      <td
+                                        key={`cell-${rowIndex}-${columnIndex}`}
+                                        style={{
+                                          borderTop:
+                                            "1px solid rgba(13, 21, 40, 0.08)",
+                                          padding: "8px",
+                                          verticalAlign: "top",
+                                        }}
+                                      >
+                                        <textarea
+                                          value={row[columnIndex] ?? ""}
+                                          onChange={(e) =>
+                                            updateTableCell(
+                                              index,
+                                              rowIndex,
+                                              columnIndex,
+                                              e.target.value,
+                                            )
+                                          }
+                                          rows={2}
+                                          style={{
+                                            ...compactFieldStyle,
+                                            minWidth: "150px",
+                                            resize: "vertical",
+                                          }}
+                                        />
+                                      </td>
+                                    ),
+                                  )}
+                                  <td
+                                    style={{
+                                      borderTop:
+                                        "1px solid rgba(13, 21, 40, 0.08)",
+                                      padding: "8px",
+                                      verticalAlign: "top",
+                                    }}
+                                  >
+                                    <button
+                                      type="button"
+                                      disabled={tableFields.rows.length <= 1}
+                                      onClick={() =>
+                                        removeTableRow(index, rowIndex)
+                                      }
+                                      style={{
+                                        ...editorButtonStyle,
+                                        opacity:
+                                          tableFields.rows.length <= 1
+                                            ? 0.45
+                                            : 1,
+                                      }}
+                                    >
+                                      Smazat řádek
+                                    </button>
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+
+                        <div
+                          style={{
+                            border: "1px solid rgba(13, 21, 40, 0.12)",
+                            borderRadius: "14px",
+                            background: "#fbf7ed",
+                            padding: "12px",
+                            overflowX: "auto",
+                          }}
+                        >
+                          <strong>Náhled tabulky</strong>
+                          <table
+                            style={{
+                              borderCollapse: "collapse",
+                              marginTop: "8px",
+                              minWidth: `${Math.max(columnCount * 150, 360)}px`,
+                              width: "100%",
+                            }}
+                          >
+                            {tableFields.caption ? (
+                              <caption
+                                style={{
+                                  captionSide: "top",
+                                  textAlign: "left",
+                                  padding: "6px",
+                                }}
+                              >
+                                {tableFields.caption}
+                              </caption>
+                            ) : null}
+                            {tableFields.headers &&
+                            tableFields.headers.length > 0 ? (
+                              <thead>
+                                <tr>
+                                  {tableFields.headers.map(
+                                    (header, cellIndex) => (
+                                      <th
+                                        key={`preview-header-${cellIndex}`}
+                                        scope="col"
+                                        style={{
+                                          border:
+                                            "1px solid rgba(13, 21, 40, 0.16)",
+                                          padding: "6px",
+                                          textAlign: "left",
+                                        }}
+                                      >
+                                        {header}
+                                      </th>
+                                    ),
+                                  )}
+                                </tr>
+                              </thead>
+                            ) : null}
+                            <tbody>
+                              {tableFields.rows.map((row, rowIndex) => (
+                                <tr key={`preview-row-${rowIndex}`}>
+                                  {row.map((cell, cellIndex) =>
+                                    tableFields.first_column_header &&
+                                    cellIndex === 0 ? (
+                                      <th
+                                        key={`preview-cell-${rowIndex}-${cellIndex}`}
+                                        scope="row"
+                                        style={{
+                                          border:
+                                            "1px solid rgba(13, 21, 40, 0.16)",
+                                          padding: "6px",
+                                          textAlign: "left",
+                                        }}
+                                      >
+                                        {cell}
+                                      </th>
+                                    ) : (
+                                      <td
+                                        key={`preview-cell-${rowIndex}-${cellIndex}`}
+                                        style={{
+                                          border:
+                                            "1px solid rgba(13, 21, 40, 0.16)",
+                                          padding: "6px",
+                                        }}
+                                      >
+                                        {cell}
+                                      </td>
+                                    ),
+                                  )}
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      </div>
+                    );
+                  })()
                 ) : isImage ? (
                   <>
                     {(() => {
@@ -1629,7 +2212,10 @@ export default function WorkBlocksEditor({
                         fontSize: isOutlineNavigationBlock ? "13px" : "12px",
                         fontWeight: isOutlineNavigationBlock ? 800 : 500,
                         lineHeight: 1.35,
-                        opacity: navigationPreview === "Bez textového náhledu" ? 0.55 : 0.9,
+                        opacity:
+                          navigationPreview === "Bez textového náhledu"
+                            ? 0.55
+                            : 0.9,
                       }}
                     >
                       {navigationPreview}
