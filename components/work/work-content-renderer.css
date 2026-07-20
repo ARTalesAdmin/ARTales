@@ -109,8 +109,10 @@
 }
 
 .artales-poem {
+  break-inside: auto;
   margin: 1.75rem auto;
   max-width: 42rem;
+  page-break-inside: auto;
 }
 
 .artales-poem-text {
@@ -119,7 +121,7 @@
   font-style: italic;
   line-height: 1.72;
   margin: 0;
-  overflow-x: auto;
+  overflow-wrap: anywhere;
   white-space: pre-wrap;
 }
 
@@ -430,20 +432,22 @@
 }
 
 .artales-table-figure {
+  break-inside: auto;
   margin: 2rem 0;
   max-width: 100%;
+  page-break-inside: auto;
 }
 
 .artales-table-scroll {
   border: 1px solid var(--artales-border);
   border-radius: 16px;
-  overflow-x: auto;
-  -webkit-overflow-scrolling: touch;
+  overflow: visible;
+  max-width: 100%;
 }
 
 .artales-table {
   border-collapse: collapse;
-  min-width: min(100%, 36rem);
+  table-layout: fixed;
   width: 100%;
 }
 
@@ -460,9 +464,11 @@
 .artales-table th,
 .artales-table td {
   border-top: 1px solid var(--artales-border);
-  min-width: 9rem;
-  padding: 0.68rem 0.82rem;
+  min-width: 0;
+  overflow-wrap: anywhere;
+  padding: 0.58rem 0.66rem;
   vertical-align: top;
+  word-break: normal;
 }
 
 .artales-table thead th {
@@ -515,10 +521,32 @@
   color: #f4ead8;
 }
 
+
+@media (max-width: 640px) {
+  .artales-table-scroll--scroll {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .artales-table-scroll--scroll .artales-table {
+    min-width: 34rem;
+    table-layout: auto;
+  }
+
+  .artales-table-scroll--scroll .artales-table th,
+  .artales-table-scroll--scroll .artales-table td {
+    min-width: 8.5rem;
+  }
+}
+
 @media print {
   .artales-table-scroll {
     border-radius: 0;
     overflow: visible;
+  }
+
+  .artales-table {
+    table-layout: auto;
   }
 
   .artales-table th,

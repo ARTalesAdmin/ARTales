@@ -159,7 +159,7 @@ function renderTableBlock(block: WorkBlock, key: string) {
       data-block-type={block.type}
     >
       <div
-        className="artales-table-scroll"
+        className={`artales-table-scroll artales-table-scroll--${fields.responsive_mode ?? "scroll"}`}
         tabIndex={0}
         role="region"
         aria-label={fields.caption || "Tabulka"}
