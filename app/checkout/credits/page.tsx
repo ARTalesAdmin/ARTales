@@ -1,3 +1,4 @@
+import { randomUUID } from "crypto";
 import Link from "next/link";
 import PublicHeader from "@/components/public/PublicHeader";
 import { requireCompletedAccountProfile } from "@/lib/account";
@@ -6,6 +7,7 @@ import {
   CREDIT_TOPUP_PACKAGES,
   getManualQrCountries,
 } from "@/lib/manualQrPayments";
+import SubmitOnceButton from "@/components/checkout/SubmitOnceButton";
 import { createCreditTopupOrder } from "./actions";
 
 export const dynamic = "force-dynamic";
@@ -26,6 +28,7 @@ const copy = {
       "Dobití teď probíhá přes QR / bankovní převod. Platební bránu připravíme později jako pohodlnější způsob dobíjení, ale princip zůstane stejný: nejdřív AT peněženka, potom čtení a edice.",
     country: "Země zákazníka",
     submit: "Dobít tento kredit",
+    submitPending: "Připravuji QR pokyn…",
     support: "Chci raději podpořit ARTales",
     library: "Moje knihovna",
     credits: "kreditů",
@@ -47,6 +50,7 @@ const copy = {
       "Top-up currently uses QR / bank transfer. A payment gateway can later become the more convenient top-up method, but the principle remains the same: AT wallet first, then reading and editions.",
     country: "Customer country",
     submit: "Top up this credit",
+    submitPending: "Preparing QR instruction…",
     support: "I would rather support ARTales",
     library: "My library",
     credits: "credits",
@@ -113,6 +117,7 @@ export default async function CreditTopupPage({ searchParams }: PageProps) {
               <p className="artales-member-muted">{t.priceNote}</p>
               <form action={createCreditTopupOrder} className="artales-credit-package-card__form">
                 <input type="hidden" name="package_code" value={item.code} />
+                <input type="hidden" name="submission_key" value={`${item.code}-${randomUUID()}`} />
                 <label>
                   {t.country}
                   <select name="billing_country" defaultValue="CZ" required>
@@ -121,7 +126,7 @@ export default async function CreditTopupPage({ searchParams }: PageProps) {
                     ))}
                   </select>
                 </label>
-                <button className="artales-button" type="submit">{t.submit}</button>
+                <SubmitOnceButton pendingLabel={t.submitPending}>{t.submit}</SubmitOnceButton>
               </form>
             </article>
           ))}

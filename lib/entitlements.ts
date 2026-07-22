@@ -327,7 +327,7 @@ export async function unlockOnlineReadWithCredit(params: {
       workId: params.workId,
       source: "credit_spend",
       grantedByUserId: null,
-      note: "Online reading unlocked with AT Credit.",
+      note: "Online čtení bylo odemčeno za AT kredit.",
     });
 
     const admin = createAdminClient();
@@ -339,7 +339,7 @@ export async function unlockOnlineReadWithCredit(params: {
       amount: -cost,
       source: "credit_spend",
       related_work_id: params.workId,
-      note: "Online reading unlocked with AT Credit.",
+      note: "Online čtení bylo odemčeno za AT kredit.",
       metadata: {
         action: "online_read_unlock",
         entitlement_id: entitlementId,

@@ -288,7 +288,7 @@ export async function fulfillManualQrOrder(params: {
       amount: creditAmount,
       source: "purchase",
       related_work_id: null,
-      note: params.note || `Manual QR credit top-up for order ${params.orderId}.`,
+      note: params.note || `Ruční QR dobití kreditu k objednávce ${params.orderId}.`,
       metadata: {
         order_id: params.orderId,
         payment_method: "manual_qr",
@@ -373,7 +373,7 @@ export async function cancelManualQrOrderAsAdmin(params: {
       amount: -Math.abs(creditAmount),
       source: "admin_adjustment",
       related_work_id: null,
-      note: params.note || `Manual QR credit reversal for order ${params.orderId}.`,
+      note: params.note || `Storno QR dobití kreditu k objednávce ${params.orderId}.`,
       metadata: {
         order_id: params.orderId,
         payment_method: "manual_qr",

@@ -10,11 +10,13 @@ function formValue(formData: FormData, key: string) {
 export async function createSupportOrder(formData: FormData): Promise<void> {
   const packageCode = formValue(formData, "package_code");
   const billingCountry = formValue(formData, "billing_country");
+  const submissionKey = formValue(formData, "submission_key");
 
   const result = await createManualQrOrder({
     kind: "support",
     packageCode,
     billingCountry,
+    submissionKey,
   });
 
   if (result.ok) {

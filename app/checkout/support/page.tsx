@@ -1,3 +1,4 @@
+import { randomUUID } from "crypto";
 import Link from "next/link";
 import PublicHeader from "@/components/public/PublicHeader";
 import { requireCompletedAccountProfile } from "@/lib/account";
@@ -7,6 +8,7 @@ import {
   formatManualPaymentAmount,
   getManualQrCountries,
 } from "@/lib/manualQrPayments";
+import SubmitOnceButton from "@/components/checkout/SubmitOnceButton";
 import { createSupportOrder } from "./actions";
 
 export const dynamic = "force-dynamic";
@@ -27,6 +29,7 @@ const copy = {
       "Přímá podpora pomáhá financovat ediční práci, obálky, čtečku a další vrstvy ARTales. Po potvrzení se započítá do mecenášské stopy účtu stejně jako darovaný kredit.",
     country: "Země podporovatele",
     submit: "Vytvořit QR pokyn",
+    submitPending: "Připravuji QR pokyn…",
     credit: "Raději dobít kredit",
     library: "Moje knihovna",
     supportLabel: "Přímá podpora",
@@ -48,6 +51,7 @@ const copy = {
       "Direct support helps fund editorial work, covers, reader development and the next ARTales layers. Once confirmed, it counts toward the account patronage trail just like gifted credit.",
     country: "Supporter country",
     submit: "Create QR instruction",
+    submitPending: "Preparing QR instruction…",
     credit: "Top up credit instead",
     library: "My library",
     supportLabel: "Direct support",
@@ -114,6 +118,7 @@ export default async function SupportArtalesPage({ searchParams }: PageProps) {
               <p className="artales-member-muted">{t.priceNote}</p>
               <form action={createSupportOrder} className="artales-credit-package-card__form">
                 <input type="hidden" name="package_code" value={item.code} />
+                <input type="hidden" name="submission_key" value={`${item.code}-${randomUUID()}`} />
                 <label>
                   {t.country}
                   <select name="billing_country" defaultValue="CZ" required>
@@ -122,7 +127,7 @@ export default async function SupportArtalesPage({ searchParams }: PageProps) {
                     ))}
                   </select>
                 </label>
-                <button className="artales-button" type="submit">{t.submit}</button>
+                <SubmitOnceButton pendingLabel={t.submitPending}>{t.submit}</SubmitOnceButton>
               </form>
             </article>
           ))}

@@ -41,7 +41,7 @@ export async function useMemberOnlineUnlock(formData: FormData): Promise<void> {
     redirect(`/account/credit-unlock/${slug}?error=${encodeURIComponent(result.code)}`);
   }
 
-  redirect(`/reader/${slug}?mode=full&success=member_unlock`);
+  redirect(`/account/credit-unlock/${slug}?success=member_unlock`);
 }
 
 export async function useAtCreditOnlineUnlock(formData: FormData): Promise<void> {
@@ -72,5 +72,5 @@ export async function useAtCreditOnlineUnlock(formData: FormData): Promise<void>
     redirect(`/account/credit-unlock/${slug}?error=${encodeURIComponent(result.code)}`);
   }
 
-  redirect(`/reader/${slug}?mode=full&success=credit_unlock`);
+  redirect(`/account/credit-unlock/${slug}?success=credit_unlock`);
 }

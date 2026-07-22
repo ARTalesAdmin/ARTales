@@ -55,6 +55,7 @@ export type ManualQrOrderSummary = {
 };
 
 type OrderMetadata = {
+  idempotency_key?: string;
   manual_qr_reference?: string;
   manual_qr_message?: string;
   manual_qr_kind?: ManualQrCheckoutKind;
@@ -235,6 +236,11 @@ function normalizePackageCode(value: string) {
   return value.trim().toLowerCase();
 }
 
+function normalizeSubmissionKey(value: string | null | undefined) {
+  const normalized = String(value ?? "").trim();
+  return normalized.length >= 8 && normalized.length <= 120 ? normalized : null;
+}
+
 function normalizeCheckoutKind(value: string): ManualQrCheckoutKind | null {
   if (value === "credit_topup" || value === "support") return value;
   return null;
@@ -321,10 +327,61 @@ export function createQrPaymentPayload(params: {
   ].join("*");
 }
 
+async function findExistingManualQrOrder(params: {
+  userId: string;
+  kind: ManualQrCheckoutKind;
+  packageCode: string;
+  billingCountry: string;
+  amountCents: number;
+  currency: string;
+  paymentRail: string;
+  submissionKey: string | null;
+}) {
+  if (!params.submissionKey) return null;
+
+  const admin = createAdminClient();
+  const recentCutoff = new Date(Date.now() - 10 * 60 * 1000).toISOString();
+
+  const { data, error } = await admin
+    .from("orders")
+    .select("id, status, payment_status, total_amount_cents, currency, metadata, created_at")
+    .eq("user_id", params.userId)
+    .eq("provider", "manual_qr")
+    .gte("created_at", recentCutoff)
+    .order("created_at", { ascending: false })
+    .limit(10);
+
+  if (error) {
+    console.error("Manual QR duplicate check failed:", error);
+    return null;
+  }
+
+  for (const row of data ?? []) {
+    const typed = row as OrderRow;
+    const metadata = (typed.metadata ?? {}) as OrderMetadata;
+    const status = String(typed.status ?? "");
+    const paymentStatus = String(typed.payment_status ?? "");
+
+    if (metadata.idempotency_key !== params.submissionKey) continue;
+    if (metadata.checkout_kind !== params.kind) continue;
+    if (metadata.billing_country !== params.billingCountry) continue;
+    if (metadata.payment_rail !== params.paymentRail) continue;
+    if (String(typed.currency ?? "") !== params.currency) continue;
+    if (Number(typed.total_amount_cents ?? 0) !== params.amountCents) continue;
+    if (["cancelled", "refunded", "fulfilled"].includes(status)) continue;
+    if (["paid", "failed", "refunded"].includes(paymentStatus)) continue;
+
+    return String(typed.id);
+  }
+
+  return null;
+}
+
 export async function createManualQrOrder(params: {
   kind: ManualQrCheckoutKind;
   packageCode: string;
   billingCountry: string;
+  submissionKey?: string | null;
 }) {
   const kind = normalizeCheckoutKind(params.kind);
   const packageCode = normalizePackageCode(params.packageCode);
@@ -339,6 +396,7 @@ export async function createManualQrOrder(params: {
   }
 
   const paymentAmount = resolveManualQrAmount(selectedPackage, billingCountry);
+  const submissionKey = normalizeSubmissionKey(params.submissionKey);
 
   const supabase = await createClient();
   const {
@@ -357,6 +415,21 @@ export async function createManualQrOrder(params: {
     .eq("id", user.id)
     .maybeSingle();
 
+  const existingOrderId = await findExistingManualQrOrder({
+    userId: user.id,
+    kind,
+    packageCode: selectedPackage.code,
+    billingCountry,
+    amountCents: paymentAmount.amountCents,
+    currency: paymentAmount.currency,
+    paymentRail: paymentAmount.paymentRail,
+    submissionKey,
+  });
+
+  if (existingOrderId) {
+    return { ok: true as const, orderId: existingOrderId, reused: true as const };
+  }
+
   const { data: intent, error: intentError } = await admin
     .from("purchase_intents")
     .insert({
@@ -369,6 +442,7 @@ export async function createManualQrOrder(params: {
       metadata: {
         checkout_method: "manual_qr",
         checkout_kind: kind,
+        idempotency_key: submissionKey,
         package_code: selectedPackage.code,
         amount_cents: paymentAmount.amountCents,
         base_amount_eur_cents: selectedPackage.amountCents,
@@ -401,6 +475,7 @@ export async function createManualQrOrder(params: {
       metadata: {
         checkout_method: "manual_qr",
         checkout_kind: kind,
+        idempotency_key: submissionKey,
         purchase_intent_id: String(intent.id),
         package_code: selectedPackage.code,
         credit_amount: selectedPackage.creditAmount ?? null,
@@ -461,6 +536,7 @@ export async function createManualQrOrder(params: {
         metadata: {
           checkout_method: "manual_qr",
           checkout_kind: kind,
+          idempotency_key: submissionKey,
           purchase_intent_id: String(intent.id),
           package_code: selectedPackage.code,
           credit_amount: selectedPackage.creditAmount ?? null,
@@ -480,6 +556,7 @@ export async function createManualQrOrder(params: {
         metadata: {
           checkout_method: "manual_qr",
           checkout_kind: kind,
+          idempotency_key: submissionKey,
           package_code: selectedPackage.code,
           amount_cents: paymentAmount.amountCents,
           base_amount_eur_cents: selectedPackage.amountCents,

@@ -8,6 +8,7 @@ import { getCookieLocale, resolveProfileLocale } from "@/lib/i18n/server";
 import { normalizeRole } from "@/lib/permissions";
 import { pickLocalizedText } from "@/lib/localizedContent";
 import { getReaderMembershipStatus } from "@/lib/readerMembership";
+import SubmitOnceButton from "@/components/checkout/SubmitOnceButton";
 import { useAtCreditOnlineUnlock, useMemberOnlineUnlock } from "./actions";
 
 export const dynamic = "force-dynamic";
@@ -61,13 +62,13 @@ export default async function CreditUnlockPage({ params, searchParams }: PagePro
       }) ?? work.author.name
     : null;
   const role = normalizeRole(profile.role);
+  const error = firstParam(resolvedSearchParams.error);
+  const success = firstParam(resolvedSearchParams.success);
   const canReadFull = await canOpenFullReader(profile, work.id);
 
-  if (canReadFull) {
+  if (canReadFull && !success) {
     redirect(`/reader/${work.slug}?mode=full`);
   }
-
-  const error = firstParam(resolvedSearchParams.error);
   const notice = getNotice(error, labels);
   const hasMemberUnlock = membershipStatus.memberUnlockBalance > 0;
   const hasAtCredit = membershipStatus.creditBalance >= 1;
@@ -91,7 +92,24 @@ export default async function CreditUnlockPage({ params, searchParams }: PagePro
         {displaySummary ? <p>{displaySummary}</p> : null}
       </section>
 
-      {role !== "reader" ? (
+      {success && canReadFull ? (
+        <section className="artales-account-panel artales-account-panel--success">
+          <p className="artales-account-card__label">{labels.successLabel}</p>
+          <h2>{labels.successTitle}</h2>
+          <p>{success === "member_unlock" ? labels.successMemberText : labels.successCreditText}</p>
+          <div className="artales-account-actions artales-account-actions--inline">
+            <Link className="artales-button" href={`/reader/${work.slug}?mode=full`}>
+              {labels.readNowCta}
+            </Link>
+            <Link className="artales-button-secondary" href="/gallery">
+              {labels.backToGalleryCta}
+            </Link>
+            <Link className="artales-button-secondary" href="/account/library">
+              {labels.openLibraryCta}
+            </Link>
+          </div>
+        </section>
+      ) : role !== "reader" ? (
         <section className="artales-account-panel">
           <p className="artales-account-card__label">{labels.internalLabel}</p>
           <h2>{labels.internalTitle}</h2>
@@ -112,9 +130,9 @@ export default async function CreditUnlockPage({ params, searchParams }: PagePro
             <form action={useMemberOnlineUnlock} className="artales-membership-activation-form">
               <input type="hidden" name="slug" value={work.slug} />
               <input type="hidden" name="work_id" value={work.id} />
-              <button className="artales-button" type="submit" disabled={!hasMemberUnlock}>
+              <SubmitOnceButton className="artales-button" pendingLabel={labels.unlockPendingCta} disabled={!hasMemberUnlock}>
                 {labels.memberUnlockCta}
-              </button>
+              </SubmitOnceButton>
             </form>
             {!hasMemberUnlock ? <p className="artales-account-muted">{labels.memberUnlockUnavailable}</p> : null}
           </section>
@@ -129,9 +147,9 @@ export default async function CreditUnlockPage({ params, searchParams }: PagePro
             <form action={useAtCreditOnlineUnlock} className="artales-membership-activation-form">
               <input type="hidden" name="slug" value={work.slug} />
               <input type="hidden" name="work_id" value={work.id} />
-              <button className="artales-button-secondary" type="submit" disabled={!hasAtCredit}>
+              <SubmitOnceButton className="artales-button-secondary" pendingLabel={labels.unlockPendingCta} disabled={!hasAtCredit}>
                 {labels.confirmCta}
-              </button>
+              </SubmitOnceButton>
             </form>
             {!hasAtCredit ? (
               <div className="artales-account-actions artales-account-actions--inline">

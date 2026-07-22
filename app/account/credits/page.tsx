@@ -63,6 +63,31 @@ function getLedgerSourceLabel(source: string, dictionary: ReturnType<typeof getP
   return dictionary.ledgerSources.unknown;
 }
 
+function getLedgerNoteLabel(note: string | null | undefined, dictionary: ReturnType<typeof getPublicDictionary>["account"]["credits"]) {
+  if (!note) return null;
+
+  if (note === "Online reading unlocked with AT Credit.") {
+    return dictionary.ledgerNotes.onlineReadUnlock;
+  }
+
+  const topupPrefix = "Manual QR credit top-up for order ";
+  if (note.startsWith(topupPrefix)) {
+    return `${dictionary.ledgerNotes.manualQrTopupPrefix} ${note.slice(topupPrefix.length)}`;
+  }
+
+  const reversalPrefix = "Manual QR credit reversal for order ";
+  if (note.startsWith(reversalPrefix)) {
+    return `${dictionary.ledgerNotes.manualQrReversalPrefix} ${note.slice(reversalPrefix.length)}`;
+  }
+
+  const membershipPrefix = "Membership activation: ";
+  if (note.startsWith(membershipPrefix)) {
+    return `${dictionary.ledgerNotes.membershipActivationPrefix}: ${note.slice(membershipPrefix.length)}`;
+  }
+
+  return note;
+}
+
 function PaymentCard({
   payment,
   locale,
@@ -132,7 +157,7 @@ function LedgerRow({
         <h3>{positive ? "+" : ""}{item.amount} {dictionary.creditUnit}</h3>
         <p className="artales-account-muted">{formatDate(item.createdAt, locale)}</p>
       </div>
-      <p>{item.note ?? (positive ? dictionary.ledgerFallbackPositive : dictionary.ledgerFallbackNegative)}</p>
+      <p>{getLedgerNoteLabel(item.note, dictionary) ?? (positive ? dictionary.ledgerFallbackPositive : dictionary.ledgerFallbackNegative)}</p>
     </article>
   );
 }
