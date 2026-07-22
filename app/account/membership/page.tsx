@@ -55,8 +55,12 @@ export default async function AccountMembershipPage({ searchParams }: PageProps)
   const tierCopy = dictionary.tiers as Record<string, MembershipTierDictionary>;
   const role = normalizeRole(profile.role);
   const isInternalRole = role === "admin" || role === "editor" || role === "member";
-  const readerLayerLabel = isInternalRole ? dictionary.internalReaderLayer : dictionary.freeReader;
-  const ledeSuffix = isInternalRole ? dictionary.internalLedeSuffix : dictionary.ledeSuffix;
+  const readerLayerLabel = membershipStatus.activeTierName ?? (isInternalRole ? dictionary.internalReaderLayer : dictionary.freeReader);
+  const ledeSuffix = membershipStatus.activeTierName
+    ? dictionary.activeLedeSuffix
+    : isInternalRole
+      ? dictionary.internalLedeSuffix
+      : dictionary.ledeSuffix;
   const isCs = locale === "cs";
   const params = (await searchParams) ?? {};
   const notice = getMembershipNotice(params, dictionary);

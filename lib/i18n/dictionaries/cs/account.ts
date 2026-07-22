@@ -28,6 +28,8 @@ export const csAccount = {
     accountTypeEditor: "Interní profil · editor",
     accountTypeMember: "Interní profil ARTales",
     accountTypeReaderText: "Bezplatný čtenářský účet pro knihovnu, kredity a pohodlné čtení.",
+    accountTypeMembershipActiveText: "Aktivní členství platí do",
+    accountTypeMembershipActiveNoExpiryText: "Členství je aktivní. Datum vypršení zatím není v účtu uložené.",
     accountTypeInternalText: "Tento účet má interní oprávnění ARTales. Čtenářská knihovna a kredity zůstávají dostupné, ale přístup k dílům může vycházet i z pracovní role.",
     libraryLabel: "Knihovna",
     libraryTitle: "Tvoje čtení na jednom místě",
@@ -265,6 +267,8 @@ export const csAccount = {
       "Členství navazuje na AT kredity a dává pravidelnému čtení jasnější rytmus: odemčení do knihovny, časový přístup a výhodnější cestu k edicím.",
     internalLedeSuffix:
       "Tento účet má zároveň interní oprávnění ARTales. Čtenářské členství, kredity a knihovna zůstávají oddělené od pracovní role.",
+    activeLedeSuffix:
+      "Členství je aktivní. Stav účtu níže ukazuje datum platnosti a dostupné čtenářské výhody.",
     creditModelLabel: "Zaváděcí ceny",
     creditModelTitle: "Zvýhodněné podmínky pro první čtenáře",
     creditModelText:
@@ -488,6 +492,7 @@ export const csAccount = {
     ledgerFallbackNegative: "Kredit byl odečten nebo vyrovnán korekcí.",
     ledgerNotes: {
       onlineReadUnlock: "Online čtení bylo odemčeno za AT kredit.",
+      memberOnlineUnlock: "Online čtení bylo odemčeno členským odemčením.",
       manualQrTopupPrefix: "Ruční QR dobití kreditu k objednávce",
       manualQrReversalPrefix: "Storno QR dobití kreditu k objednávce",
       membershipActivationPrefix: "Aktivace členství",
@@ -595,7 +600,7 @@ export const csAccount = {
     welcome_unlock: "Uvítací odemčení",
     manual_grant: "Přiděleno týmem ARTales",
     subscription_monthly: "Výhoda členství",
-    credit_spend: "Odemčeno za AT Credits",
+    credit_spend: "Odemčeno za AT kredity",
     purchase: "Zakoupený přístup",
     admin_adjustment: "Úprava účtu ARTales",
     promo: "Promo přístup",

@@ -4,32 +4,51 @@ import { getShortDisplayName } from "@/lib/displayName";
 import { getPublicDictionary } from "@/lib/i18n/public";
 import { getCookieLocale, resolveProfileLocale } from "@/lib/i18n/server";
 import { getReaderLibrarySummary } from "@/lib/entitlements";
+import { getReaderMembershipStatus } from "@/lib/readerMembership";
 import { normalizeRole } from "@/lib/permissions";
 import { logoutFromAccount } from "./actions";
 
 export const dynamic = "force-dynamic";
 
+function formatMembershipDate(value: string | null, locale: string) {
+  if (!value) return null;
+  return new Intl.DateTimeFormat(locale === "cs" ? "cs-CZ" : "en-US", {
+    day: "2-digit",
+    month: "long",
+    year: "numeric",
+  }).format(new Date(value));
+}
+
 export default async function AccountPage() {
   const profile = await requireCompletedAccountProfile("/account");
-  const [summary, cookieLocale] = await Promise.all([
+  const [summary, cookieLocale, membershipStatus] = await Promise.all([
     getReaderLibrarySummary(profile.id),
     getCookieLocale(),
+    getReaderMembershipStatus(profile.id),
   ]);
   const shortName = getShortDisplayName(profile);
   const locale = resolveProfileLocale(profile, cookieLocale);
   const dictionary = getPublicDictionary(locale).account.overview;
   const role = normalizeRole(profile.role);
   const isInternalRole = role === "admin" || role === "editor" || role === "member";
-  const accountTypeLabel = role === "admin"
-    ? dictionary.accountTypeAdmin
-    : role === "editor"
-      ? dictionary.accountTypeEditor
-      : role === "member"
-        ? dictionary.accountTypeMember
-        : dictionary.accountTypeReader;
-  const accountTypeText = isInternalRole
-    ? dictionary.accountTypeInternalText
-    : dictionary.accountTypeReaderText;
+  const activeMembershipName = membershipStatus.activeTierName;
+  const membershipExpiresAt = formatMembershipDate(membershipStatus.activeExpiresAt, locale);
+  const accountTypeLabel = activeMembershipName
+    ? activeMembershipName
+    : role === "admin"
+      ? dictionary.accountTypeAdmin
+      : role === "editor"
+        ? dictionary.accountTypeEditor
+        : role === "member"
+          ? dictionary.accountTypeMember
+          : dictionary.accountTypeReader;
+  const accountTypeText = activeMembershipName
+    ? membershipExpiresAt
+      ? `${dictionary.accountTypeMembershipActiveText} ${membershipExpiresAt}.`
+      : dictionary.accountTypeMembershipActiveNoExpiryText
+    : isInternalRole
+      ? dictionary.accountTypeInternalText
+      : dictionary.accountTypeReaderText;
 
   return (
     <section className="artales-account-page artales-account-overview-page">

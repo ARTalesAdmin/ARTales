@@ -30,6 +30,8 @@ export const enAccount = {
     accountTypeMember: "Internal ARTales profile",
     accountTypeReaderText:
       "A free reader account for your library, credits and comfortable reading.",
+    accountTypeMembershipActiveText: "Active membership valid until",
+    accountTypeMembershipActiveNoExpiryText: "Membership is active. The expiry date is not stored on the account yet.",
     accountTypeInternalText:
       "This account has internal ARTales permissions. Your reader library and credits remain available, while some work access may also come from your role.",
     libraryLabel: "Library",
@@ -274,6 +276,8 @@ export const enAccount = {
       "Membership builds on AT Credits and gives regular reading a clearer rhythm: library unlocks, time-based access and a better path to editions.",
     internalLedeSuffix:
       "This account also has internal ARTales permissions. Reader membership, credits and library remain separate from the working role.",
+    activeLedeSuffix:
+      "Membership is active. The account state below shows the validity date and available reader benefits.",
     creditModelLabel: "Founding prices",
     creditModelTitle: "Preferential terms for early readers",
     creditModelText:
@@ -498,6 +502,7 @@ export const enAccount = {
     ledgerFallbackNegative: "Credit was spent or balanced by a correction.",
     ledgerNotes: {
       onlineReadUnlock: "Online reading unlocked with AT Credit.",
+      memberOnlineUnlock: "Online reading unlocked with a member unlock.",
       manualQrTopupPrefix: "Manual QR credit top-up for order",
       manualQrReversalPrefix: "Manual QR credit reversal for order",
       membershipActivationPrefix: "Membership activation",

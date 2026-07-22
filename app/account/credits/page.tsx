@@ -66,8 +66,19 @@ function getLedgerSourceLabel(source: string, dictionary: ReturnType<typeof getP
 function getLedgerNoteLabel(note: string | null | undefined, dictionary: ReturnType<typeof getPublicDictionary>["account"]["credits"]) {
   if (!note) return null;
 
-  if (note === "Online reading unlocked with AT Credit.") {
+  const normalizedNote = note.trim();
+
+  if ([
+    "Online reading unlocked with AT Credit.",
+    "Permanent online reading unlocked with 1 AT Credit.",
+    "Online reading unlock.",
+    "Online čtení bylo odemčeno za AT kredit.",
+  ].includes(normalizedNote)) {
     return dictionary.ledgerNotes.onlineReadUnlock;
+  }
+
+  if (normalizedNote === "Permanent online reading unlocked with a member unlock.") {
+    return dictionary.ledgerNotes.memberOnlineUnlock;
   }
 
   const topupPrefix = "Manual QR credit top-up for order ";
