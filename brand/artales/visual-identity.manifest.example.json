@@ -1,0 +1,78 @@
+{
+  "schemaVersion": "0.1-example",
+  "project": "ARTales",
+  "scope": "visual_identity_pack",
+  "packVersion": "not_locked_yet",
+  "status": "example_only",
+  "generatedAt": null,
+  "assets": [
+    {
+      "id": "artales-wordmark-primary-dark-bg",
+      "type": "wordmark",
+      "status": "example_only",
+      "sourceMaster": "artales-wordmark-primary",
+      "sourceVersion": "not_locked_yet",
+      "path": "public/brand/artales/wordmark-primary-dark.svg",
+      "format": "svg",
+      "intendedUsage": [
+        "web_header",
+        "brand_sheet"
+      ],
+      "background": [
+        "dark"
+      ],
+      "dimensions": {
+        "width": null,
+        "height": null,
+        "unit": "px"
+      },
+      "checksum": null,
+      "exportRule": "not_defined_yet",
+      "approval": {
+        "state": "not_ready",
+        "approvedBy": null,
+        "approvedAt": null
+      },
+      "notes": "Example only. Do not create this asset until the source master and export rule are locked."
+    },
+    {
+      "id": "artales-monogram-favicon",
+      "type": "favicon",
+      "status": "example_only",
+      "sourceMaster": "artales-monogram",
+      "sourceVersion": "not_locked_yet",
+      "path": "public/brand/artales/favicon.svg",
+      "format": "svg",
+      "intendedUsage": [
+        "browser_tab",
+        "app_icon_basis"
+      ],
+      "background": [
+        "transparent",
+        "dark",
+        "light"
+      ],
+      "dimensions": {
+        "width": 32,
+        "height": 32,
+        "unit": "px"
+      },
+      "checksum": null,
+      "exportRule": "not_defined_yet",
+      "approval": {
+        "state": "not_ready",
+        "approvedBy": null,
+        "approvedAt": null
+      },
+      "notes": "Small-size legibility must be checked before this can become an approved favicon."
+    }
+  ],
+  "sourceMasters": [],
+  "exportProfiles": [],
+  "approvalRecord": {
+    "state": "not_ready",
+    "approvedBy": null,
+    "approvedAt": null,
+    "notes": "No ARTales Visual Identity Pack has been locked yet."
+  }
+}
