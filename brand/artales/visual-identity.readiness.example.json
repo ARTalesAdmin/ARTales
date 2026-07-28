@@ -1,0 +1,252 @@
+{
+  "schemaVersion": "0.1-example",
+  "project": "ARTales",
+  "scope": "visual_identity_pack",
+  "packVersion": "not_locked_yet",
+  "status": "assessment_example",
+  "contextReferences": {
+    "brandManifest": {
+      "status": "available",
+      "usage": "context_only",
+      "notes": "Supports visual decisions but is not locked by this visual identity checklist."
+    },
+    "messageHouse": {
+      "status": "available",
+      "usage": "context_only",
+      "notes": "Supports tone and positioning but is outside the active scope of this visual identity pack."
+    },
+    "brandPrinciples": {
+      "status": "available",
+      "usage": "context_only",
+      "notes": "Use as context for calm, literary and trustworthy visual decisions."
+    },
+    "visualManual": {
+      "status": "available",
+      "usage": "context_only",
+      "notes": "Use as reference until masters and export profiles are locked."
+    }
+  },
+  "allowedStatuses": [
+    "missing",
+    "reference",
+    "draft",
+    "candidate",
+    "approved",
+    "locked"
+  ],
+  "readiness": {
+    "wordmark": {
+      "status": "reference",
+      "summary": "Raster logo references are available, but no vector wordmark master is locked yet.",
+      "availableInputs": [
+        "raster_logo_references"
+      ],
+      "missing": [
+        "vector_master",
+        "approved_primary_variant",
+        "transparent_export"
+      ],
+      "nextActions": [
+        "Select the preferred wordmark variant.",
+        "Prepare or request an SVG vector master.",
+        "Confirm light and dark usage."
+      ],
+      "approvalOwner": "visual_identity",
+      "notes": "Do not treat raster references as locked production masters."
+    },
+    "logoLockup": {
+      "status": "reference",
+      "summary": "Logo lockup references exist, but primary and secondary lockups are not locked.",
+      "availableInputs": [
+        "logo_board_reference",
+        "raster_logo_references"
+      ],
+      "missing": [
+        "primary_lockup_decision",
+        "vector_master",
+        "clear_space_rule",
+        "minimum_size_rule"
+      ],
+      "nextActions": [
+        "Confirm the primary logo lockup.",
+        "Define clear space and minimum size rules.",
+        "Prepare SVG master."
+      ],
+      "approvalOwner": "visual_identity",
+      "notes": "The lockup should not be redrawn or creatively reinterpreted during export."
+    },
+    "symbol": {
+      "status": "reference",
+      "summary": "Symbol references are available, but no standalone vector symbol is locked.",
+      "availableInputs": [
+        "raster_symbol_references"
+      ],
+      "missing": [
+        "vector_master",
+        "approved_usage_rules"
+      ],
+      "nextActions": [
+        "Confirm whether the standalone symbol is part of the official visual identity.",
+        "Prepare SVG master.",
+        "Define where the symbol can be used."
+      ],
+      "approvalOwner": "visual_identity",
+      "notes": "The symbol can later support icons, decorative marks or watermarks only after approval."
+    },
+    "monogram": {
+      "status": "reference",
+      "summary": "AT monogram references are available, but no monogram master is locked.",
+      "availableInputs": [
+        "raster_monogram_references"
+      ],
+      "missing": [
+        "vector_master",
+        "favicon_suitability_decision",
+        "social_avatar_suitability_decision"
+      ],
+      "nextActions": [
+        "Confirm whether the monogram is the preferred favicon/app icon basis.",
+        "Prepare SVG master.",
+        "Test legibility at small sizes."
+      ],
+      "approvalOwner": "visual_identity",
+      "notes": "Small-size use should be validated before creating favicon and app icon exports."
+    },
+    "colorPalette": {
+      "status": "draft",
+      "summary": "A calm dark, paper and gold direction exists, but final token roles need confirmation.",
+      "availableInputs": [
+        "visual_direction",
+        "draft_palette"
+      ],
+      "missing": [
+        "final_hex_confirmation",
+        "usage_roles",
+        "contrast_notes",
+        "accessibility_notes"
+      ],
+      "nextActions": [
+        "Confirm final HEX values.",
+        "Define semantic roles for each color.",
+        "Check contrast for core text/background combinations."
+      ],
+      "approvalOwner": "visual_identity",
+      "notes": "Gold should be treated as an accent, not a broad surface color."
+    },
+    "typography": {
+      "status": "missing",
+      "summary": "Typography for headings, body text and UI has not been locked.",
+      "availableInputs": [],
+      "missing": [
+        "primary_heading_font",
+        "body_font",
+        "ui_font",
+        "fallback_stack",
+        "license_note"
+      ],
+      "nextActions": [
+        "Choose or document the primary typefaces.",
+        "Confirm licensing and fallback stacks.",
+        "Define basic scale and usage notes."
+      ],
+      "approvalOwner": "visual_identity",
+      "notes": "Typography decisions should support calm literary reading and practical UI clarity."
+    },
+    "graphicMotifs": {
+      "status": "reference",
+      "summary": "Visual mood and motif references exist, but usage rules are not locked.",
+      "availableInputs": [
+        "visual_references",
+        "brand_principles"
+      ],
+      "missing": [
+        "approved_motifs",
+        "usage_rules",
+        "do_not_use_rules"
+      ],
+      "nextActions": [
+        "Identify which motifs are official and which are only mood references.",
+        "Define acceptable use for ornaments, marks and illustrations.",
+        "Document prohibited transformations."
+      ],
+      "approvalOwner": "visual_identity",
+      "notes": "Avoid decorative noise; the visual language should remain calm and literary."
+    },
+    "backgroundsAndTextures": {
+      "status": "reference",
+      "summary": "Dark and paper-like visual directions exist, but background and texture rules are not locked.",
+      "availableInputs": [
+        "dark_visual_references",
+        "light_visual_references"
+      ],
+      "missing": [
+        "approved_background_roles",
+        "texture_usage_rules",
+        "contrast_rules"
+      ],
+      "nextActions": [
+        "Define dark and light background roles.",
+        "Confirm whether texture assets are official.",
+        "Ensure text contrast remains readable."
+      ],
+      "approvalOwner": "visual_identity",
+      "notes": "Textures should support atmosphere without harming readability."
+    },
+    "exportProfiles": {
+      "status": "draft",
+      "summary": "Expected export types are known, but dimensions, formats and naming rules are not locked.",
+      "availableInputs": [
+        "expected_export_list"
+      ],
+      "missing": [
+        "favicon_profile",
+        "web_logo_profile",
+        "social_avatar_profile",
+        "watermark_profile",
+        "brand_sheet_profile",
+        "naming_rules"
+      ],
+      "nextActions": [
+        "Define which exports are required for Brand Pack v1.",
+        "Specify dimensions, formats and background suitability.",
+        "Define deterministic naming rules."
+      ],
+      "approvalOwner": "visual_identity",
+      "notes": "Exports should be generated from locked masters, not directly from reference images."
+    },
+    "brandSheet": {
+      "status": "missing",
+      "summary": "A one-page visual reference sheet has not been generated yet.",
+      "availableInputs": [],
+      "missing": [
+        "locked_masters",
+        "approved_palette",
+        "typography_decision",
+        "export_rule"
+      ],
+      "nextActions": [
+        "Generate after visual identity inputs are approved and locked.",
+        "Include logo variants, symbol, monogram, palette and core usage notes."
+      ],
+      "approvalOwner": "visual_identity",
+      "notes": "The brand sheet should be an output, not a substitute for locked source masters."
+    },
+    "approval": {
+      "status": "missing",
+      "summary": "The visual identity is not ready to lock yet.",
+      "availableInputs": [],
+      "missing": [
+        "approval_record",
+        "locked_masters",
+        "approved_export_profiles"
+      ],
+      "nextActions": [
+        "Resolve missing visual identity blocks.",
+        "Record human approval before Brand Pack v1 lock.",
+        "Create generated exports only after approval."
+      ],
+      "approvalOwner": "visual_identity",
+      "notes": "Final lock should be explicit and versioned."
+    }
+  }
+}
