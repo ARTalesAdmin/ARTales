@@ -1,0 +1,81 @@
+{
+  "project": "ARTales",
+  "scope": "visual_identity_reference_first_vectorization",
+  "version": "0.1",
+  "status": "active_correction",
+  "reason": "The first hand-constructed SVG candidate masters were rejected because they introduced creative shape and color drift from the approved AI-generated references.",
+  "source_of_truth": {
+    "principle": "Approved raster references are authoritative until clean traced/vector masters are explicitly approved.",
+    "not_authoritative": [
+      "hand-imagined SVG reconstructions",
+      "approximate fonts used as final wordmark",
+      "invented colors",
+      "texture/noise/glow from generated renders"
+    ]
+  },
+  "removed_candidate_files": [
+    {
+      "path": "brand/artales/masters/candidates/symbol-pen-drop.v0.1.svg",
+      "status": "rejected_removed",
+      "reason": "Too creative; shape did not faithfully match the source reference."
+    },
+    {
+      "path": "brand/artales/masters/candidates/logo-lockup-light.v0.1.svg",
+      "status": "rejected_removed",
+      "reason": "Too creative; lockup and wordmark did not faithfully match the source reference."
+    },
+    {
+      "path": "brand/artales/masters/candidates/logo-lockup-dark.v0.1.svg",
+      "status": "rejected_removed",
+      "reason": "Too creative; lockup and colors did not faithfully match the source reference."
+    }
+  ],
+  "required_workflow": [
+    {
+      "step": 1,
+      "name": "select_reference",
+      "requirement": "Select the exact source image for the symbol or lockup being vectorized."
+    },
+    {
+      "step": 2,
+      "name": "crop_reference",
+      "requirement": "Crop the exact symbol/lockup area from the source without altering shape or color."
+    },
+    {
+      "step": 3,
+      "name": "sample_colors",
+      "requirement": "Sample gold, dark and paper tones from the source reference before defining candidate colors."
+    },
+    {
+      "step": 4,
+      "name": "trace_shape",
+      "requirement": "Trace or manually vectorize against the visible source outline, not from memory or a descriptive prompt."
+    },
+    {
+      "step": 5,
+      "name": "compare",
+      "requirement": "Produce source/vector/overlay/small-size comparison before review."
+    },
+    {
+      "step": 6,
+      "name": "human_review",
+      "requirement": "Promote only after explicit human approval based on fidelity."
+    }
+  ],
+  "acceptance_checks": {
+    "shape_fidelity": "The vector candidate must match the source silhouette and internal details closely.",
+    "color_fidelity": "The candidate colors must be sampled or explicitly approved; no invented substitute palette.",
+    "wordmark_fidelity": "The wordmark must be traced/converted from the reference or clearly marked as temporary approximation.",
+    "texture_handling": "Texture may be preserved as presentation reference only; the production master must be clean and flat unless explicitly approved otherwise.",
+    "comparison_required": "No future SVG candidate PR should be accepted without visual comparison evidence."
+  },
+  "allowed_statuses": [
+    "reference",
+    "candidate_svg",
+    "rejected",
+    "needs_refinement",
+    "approved_candidate",
+    "locked_master"
+  ],
+  "next_step": "Prepare a reference extraction pass before creating another SVG candidate."
+}
