@@ -1,0 +1,78 @@
+{
+  "project": "ARTales",
+  "version": "0.1",
+  "status": "reference_selection_pending_binary_assets",
+  "purpose": "Select the exact raster references that are authoritative for future reference-first vectorization.",
+  "principle": "The selected raster reference is the visual authority. Future vector work must reproduce it faithfully and must not creatively reinterpret shape, spacing, color, typography or proportions.",
+  "source_context": {
+    "origin": "AI-generated visual references created in a separate conversation and selected by human review.",
+    "current_repository_state": "Reference images are not yet committed as binary assets in the repository.",
+    "required_next_input": "Commit or otherwise provide the exact reference raster files before any new SVG/vector candidate is created."
+  },
+  "selected_reference_roles": {
+    "primary_symbol": {
+      "status": "selected_by_conversation_context_not_yet_repo_asset",
+      "role": "Authoritative source for the standalone gold pen/drop symbol.",
+      "expected_source": "Dark-background image containing only the gold pen/drop symbol.",
+      "known_local_filename_from_conversation": "3f2978a6-53fd-482e-9974-d0e33e719153.jpg",
+      "repository_asset_path_todo": "brand/artales/references/source/symbol-pen-drop.source.jpg",
+      "must_preserve": [
+        "gold pen/drop silhouette",
+        "central diamond/kite detail",
+        "small bottom drop/dot",
+        "overall vertical proportion",
+        "visual weight and gold tone from source"
+      ]
+    },
+    "light_logo_lockup": {
+      "status": "selected_by_conversation_context_not_yet_repo_asset",
+      "role": "Authoritative source for the light-background ARTales logo lockup.",
+      "expected_source": "Warm paper-background image with gold symbol and dark ARTales wordmark.",
+      "known_local_filename_from_conversation": "84512f5c-1e4d-48dd-a2ca-eddb85ab60ad.jpg",
+      "repository_asset_path_todo": "brand/artales/references/source/logo-lockup-light.source.jpg",
+      "must_preserve": [
+        "gold symbol color as sampled from the source",
+        "dark wordmark color as sampled from the source",
+        "symbol-to-wordmark spacing",
+        "wordmark proportions",
+        "warm paper background only for comparison, not as the master background"
+      ]
+    },
+    "dark_logo_lockup": {
+      "status": "selected_by_conversation_context_not_yet_repo_asset",
+      "role": "Authoritative source for the dark-background ARTales logo lockup.",
+      "expected_source": "Dark-background image with gold symbol and gold ARTales wordmark.",
+      "known_local_filename_from_conversation": "f2dec087-5def-40a1-a1d3-14a81d38e348.jpg",
+      "repository_asset_path_todo": "brand/artales/references/source/logo-lockup-dark.source.jpg",
+      "must_preserve": [
+        "gold symbol and wordmark color as sampled from the source",
+        "dark background only for comparison, not as the master background",
+        "symbol-to-wordmark spacing",
+        "wordmark proportions",
+        "overall calm literary character"
+      ]
+    }
+  },
+  "minimum_required_before_next_svg_pr": {
+    "reference_files": [
+      "brand/artales/references/source/symbol-pen-drop.source.jpg",
+      "brand/artales/references/source/logo-lockup-light.source.jpg",
+      "brand/artales/references/source/logo-lockup-dark.source.jpg"
+    ],
+    "derived_review_outputs": [
+      "source crop for each role",
+      "sampled color swatches from source pixels",
+      "source/vector overlay",
+      "difference or side-by-side comparison",
+      "small-size tests"
+    ],
+    "forbidden": [
+      "new SVG drawn from memory or description",
+      "invented colors",
+      "invented spacing",
+      "font substitution presented as final wordmark",
+      "creative simplification without explicit approval"
+    ]
+  },
+  "next_valid_step": "Add exact reference raster assets and a comparison-board workflow. Do not add replacement SVG masters until source images are present and comparisons can be reviewed."
+}
