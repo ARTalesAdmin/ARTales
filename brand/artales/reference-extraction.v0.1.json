@@ -1,0 +1,76 @@
+{
+  "project": "ARTales",
+  "version": "0.1",
+  "status": "reference_extraction_candidate",
+  "principle": "Source raster references are authoritative. This package contains direct source copies, direct crops, sampled color evidence, and a comparison board. No vectorization or redraw was performed.",
+  "source_references": {
+    "primary_symbol": {
+      "role": "standalone gold pen/drop symbol on dark background",
+      "repository_path": "brand/artales/references/source/symbol-pen-drop.source.jpg",
+      "conversation_file": "3f2978a6-53fd-482e-9974-d0e33e719153.jpg",
+      "actual_session_source": "47ebe86c-73ee-5bc0-b7d0-ad7235b98311.jpg"
+    },
+    "light_logo_lockup": {
+      "role": "gold symbol + dark ARTales wordmark on warm paper background",
+      "repository_path": "brand/artales/references/source/logo-lockup-light.source.jpg",
+      "conversation_file": "84512f5c-1e4d-48dd-a2ca-eddb85ab60ad.jpg",
+      "actual_session_source": "1e24cf54-4bb7-5bf7-b034-3e08c334658e.jpg"
+    },
+    "dark_logo_lockup": {
+      "role": "gold symbol + gold ARTales wordmark on dark background",
+      "repository_path": "brand/artales/references/source/logo-lockup-dark.source.jpg",
+      "conversation_file": "f2dec087-5def-40a1-a1d3-14a81d38e348.jpg",
+      "actual_session_source": "3e519386-efd5-5c66-84da-cdc6ee95f274.jpg"
+    }
+  },
+  "extracted_crops": {
+    "primary_symbol": {
+      "repository_path": "brand/artales/references/extracted/symbol-pen-drop.source-crop.png",
+      "crop_box_xyxy": [
+        439,
+        293,
+        815,
+        945
+      ]
+    },
+    "light_logo_lockup": {
+      "repository_path": "brand/artales/references/extracted/logo-lockup-light.source-crop.png",
+      "crop_box_xyxy": [
+        147,
+        318,
+        1322,
+        744
+      ]
+    },
+    "dark_logo_lockup": {
+      "repository_path": "brand/artales/references/extracted/logo-lockup-dark.source-crop.png",
+      "crop_box_xyxy": [
+        149,
+        437,
+        1103,
+        822
+      ]
+    }
+  },
+  "comparison_board": "brand/artales/references/extracted/comparison-board-v0.1.png",
+  "sampled_palette": {
+    "dark_background_from_symbol": "#0F1316",
+    "dark_background_from_lockup": "#101010",
+    "light_paper_background": "#FCF5E3",
+    "primary_gold_symbol_median": "#DCA645",
+    "gold_light_reference_median": "#E6AF3B",
+    "gold_dark_lockup_median": "#D19A3E",
+    "gold_highlight_sample": "#EFB94F",
+    "gold_shadow_sample": "#D39B3A",
+    "dark_wordmark_median": "#272726"
+  },
+  "constraints": [
+    "No generative fill.",
+    "No retouching.",
+    "No background replacement.",
+    "No sharpening or recoloring.",
+    "No SVG/vector reconstruction in this step.",
+    "All color values are candidate samples only, not locked production tokens."
+  ],
+  "next_required_approval": "Human visual approval of source copies, crops, and sampled colors before any SVG/vector candidate is attempted."
+}
