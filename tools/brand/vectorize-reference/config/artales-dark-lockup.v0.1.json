@@ -1,0 +1,26 @@
+{
+  "version": "0.1",
+  "role": "artales_dark_logo_lockup",
+  "input_image": "brand/artales/references/extracted/logo-lockup-dark.source-crop.png",
+  "output_dir": "tools/brand/vectorize-reference/output/artales-dark-lockup-v0.1",
+  "segmentation": {
+    "mode": "background_distance",
+    "background_color": [16, 16, 16],
+    "target_color": [209, 154, 62],
+    "tolerance": 40,
+    "alpha_threshold": 1
+  },
+  "cleanup": {
+    "open_radius": 1,
+    "close_radius": 1
+  },
+  "outputs": {
+    "mask": "dark-lockup-mask.png",
+    "cleaned_mask": "dark-lockup-mask-cleaned.png",
+    "trace": "dark-lockup-trace-candidate.svg",
+    "overlay": "dark-lockup-overlay.png",
+    "report": "dark-lockup-report.json"
+  },
+  "notes": "Candidate thresholds derived from documented reference samples. Outputs are diagnostics only and require visual review.",
+  "approval_state": "not_run"
+}

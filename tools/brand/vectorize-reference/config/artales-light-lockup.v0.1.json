@@ -1,0 +1,26 @@
+{
+  "version": "0.1",
+  "role": "artales_light_logo_lockup",
+  "input_image": "brand/artales/references/extracted/logo-lockup-light.source-crop.png",
+  "output_dir": "tools/brand/vectorize-reference/output/artales-light-lockup-v0.1",
+  "segmentation": {
+    "mode": "background_distance",
+    "background_color": [252, 245, 227],
+    "target_color": [230, 175, 59],
+    "tolerance": 34,
+    "alpha_threshold": 1
+  },
+  "cleanup": {
+    "open_radius": 1,
+    "close_radius": 1
+  },
+  "outputs": {
+    "mask": "light-lockup-mask.png",
+    "cleaned_mask": "light-lockup-mask-cleaned.png",
+    "trace": "light-lockup-trace-candidate.svg",
+    "overlay": "light-lockup-overlay.png",
+    "report": "light-lockup-report.json"
+  },
+  "notes": "Background-distance mode retains both the gold symbol and dark wordmark. Outputs are diagnostics only and require visual review.",
+  "approval_state": "not_run"
+}
