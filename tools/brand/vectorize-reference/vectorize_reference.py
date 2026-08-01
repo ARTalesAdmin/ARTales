@@ -7,6 +7,7 @@ import argparse
 import importlib.util
 import json
 import math
+import re
 import shutil
 import subprocess
 import sys
@@ -20,6 +21,8 @@ REPOSITORY_ROOT = SCRIPT_DIR.parents[2]
 SUPPORTED_MODES = {"background_distance", "target_color_distance"}
 SUPPORTED_TRACE_MODES = {"foreground"}
 SMALL_PREVIEW_SIZES = [128, 64, 32, 16]
+TOOL_VERSION = "0.2"
+SAFE_VARIANT_ID = re.compile(r"^[a-z0-9_-]+$")
 DEFAULT_TRACE = {
     "mode": "foreground",
     "fill_color": "#000000",
@@ -56,6 +59,11 @@ def parse_args() -> argparse.Namespace:
         "--validate-config",
         action="store_true",
         help="Validate configuration and input paths without generating output.",
+    )
+    parser.add_argument(
+        "--matrix",
+        action="store_true",
+        help="Generate deterministic diagnostics for every configured trace_matrix variant.",
     )
     return parser.parse_args()
 
@@ -131,21 +139,47 @@ def validate_config(config: dict[str, Any]) -> None:
         raise ConfigurationError("trace.fill_color must be a six-digit hexadecimal color.")
     if trace.get("background") != "transparent":
         raise ConfigurationError("trace.background must be transparent.")
-    potrace_options = trace.get("potrace", {})
+    validate_potrace_options(trace.get("potrace", {}), "trace.potrace")
+    trace_matrix = config.get("trace_matrix")
+    if trace_matrix is not None:
+        if not isinstance(trace_matrix, list) or not trace_matrix:
+            raise ConfigurationError("trace_matrix must be a non-empty array when provided.")
+        seen_ids: set[str] = set()
+        for index, variant in enumerate(trace_matrix):
+            field = f"trace_matrix[{index}]"
+            if not isinstance(variant, dict):
+                raise ConfigurationError(f"{field} must be an object.")
+            variant_id = variant.get("id")
+            if not isinstance(variant_id, str) or not SAFE_VARIANT_ID.fullmatch(variant_id):
+                raise ConfigurationError(
+                    f"{field}.id must contain only lowercase letters, numbers, hyphens, or underscores."
+                )
+            if variant_id in seen_ids:
+                raise ConfigurationError(f"trace_matrix contains duplicate id: {variant_id}.")
+            seen_ids.add(variant_id)
+            if not isinstance(variant.get("label"), str) or not variant["label"].strip():
+                raise ConfigurationError(f"{field}.label must be a non-empty string.")
+            unknown_keys = sorted(variant.keys() - {"id", "label", "potrace"})
+            if unknown_keys:
+                raise ConfigurationError(f"{field} contains unsupported keys: {', '.join(unknown_keys)}.")
+            validate_potrace_options(variant.get("potrace"), f"{field}.potrace")
+
+
+def validate_potrace_options(potrace_options: Any, field: str) -> None:
     if not isinstance(potrace_options, dict):
-        raise ConfigurationError("trace.potrace must be an object.")
+        raise ConfigurationError(f"{field} must be an object.")
     unknown_options = sorted(potrace_options.keys() - POTRACE_OPTION_RULES.keys())
     if unknown_options:
         raise ConfigurationError(
-            f"trace.potrace contains unsupported options: {', '.join(unknown_options)}."
+            f"{field} contains unsupported options: {', '.join(unknown_options)}."
         )
     for name, value in potrace_options.items():
         expected_type, minimum, maximum = POTRACE_OPTION_RULES[name]
         if isinstance(value, bool) or not isinstance(value, expected_type):
-            raise ConfigurationError(f"trace.potrace.{name} has the wrong numeric type.")
+            raise ConfigurationError(f"{field}.{name} has the wrong numeric type.")
         if not minimum <= value <= maximum:
             raise ConfigurationError(
-                f"trace.potrace.{name} must be from {minimum} to {maximum}."
+                f"{field}.{name} must be from {minimum} to {maximum}."
             )
 
 
@@ -505,6 +539,152 @@ def create_review_board(
     return comparison_available, SMALL_PREVIEW_SIZES
 
 
+def save_trace_previews(trace_render: Any | None, output_dir: Path, image_module: Any) -> list[int]:
+    """Write comparable trace previews only when an SVG renderer is available."""
+    if trace_render is None:
+        return []
+    alpha = trace_render.getchannel("A")
+    for size in SMALL_PREVIEW_SIZES:
+        resized = alpha.resize((size, size), image_module.Resampling.LANCZOS)
+        preview = image_module.new("RGBA", (size, size), "white")
+        preview.paste(image_module.new("RGBA", (size, size), "black"), mask=resized)
+        preview.save(output_dir / f"trace-preview-{size}.png")
+    return list(SMALL_PREVIEW_SIZES)
+
+
+def create_matrix_board(
+    variants: list[dict[str, Any]],
+    destination: Path,
+    image_module: Any,
+    image_draw: Any,
+) -> None:
+    """Create one explicitly unapproved, side-by-side trace comparison board."""
+    column_width, margin, gap = 310, 28, 18
+    width = 2 * margin + len(variants) * column_width + (len(variants) - 1) * gap
+    board = image_module.new("RGB", (width, 760), "#ececec")
+    draw = image_draw.Draw(board)
+    draw.text((margin, 14), "ARTales symbol trace matrix - DIAGNOSTIC ONLY / NOT APPROVED / NOT A MASTER", fill="black")
+    draw.text((margin, 38), "Mismatch is a thresholded pixel diagnostic, not a perceptual quality score.", fill="#333333")
+    for index, variant in enumerate(variants):
+        x = margin + index * (column_width + gap)
+        draw.text((x, 76), variant["label"], fill="black")
+        options = variant["potrace_options_configured"]
+        draw.multiline_text(
+            (x, 98),
+            f"id: {variant['id']}\nturdsize={options['turdsize']}  alphamax={options['alphamax']}\nopttolerance={options['opttolerance']}",
+            fill="#333333",
+            spacing=3,
+        )
+        render = variant.pop("_trace_render", None)
+        if render is not None:
+            board.paste(_fit(render, (column_width, 300), image_module).convert("RGB"), (x, 160))
+        else:
+            draw.rectangle((x, 160, x + column_width, 460), fill="white", outline="#999999")
+            draw.multiline_text(
+                (x + 16, 182),
+                "Trace render unavailable\n\n" + "\n".join(variant["fallback_messages"]),
+                fill="#555555",
+                spacing=5,
+            )
+        ratio = variant["mismatch_ratio"]
+        ratio_text = "unavailable" if ratio is None else str(ratio)
+        draw.text((x, 478), f"Mismatch ratio: {ratio_text}", fill="black")
+        draw.text((x, 500), f"SVG path count: {variant['svg_path_count']}", fill="black")
+        draw.text((x, 532), "Small-size previews", fill="black")
+        preview_x = x
+        for size in SMALL_PREVIEW_SIZES:
+            preview_path = Path(variant["_output_dir"]) / f"trace-preview-{size}.png"
+            draw.text((preview_x, 554), str(size), fill="#333333")
+            if preview_path.is_file():
+                with image_module.open(preview_path) as preview:
+                    board.paste(preview.convert("RGB"), (preview_x, 574))
+            else:
+                draw.rectangle((preview_x, 574, preview_x + size, 574 + size), fill="white", outline="#999999")
+            preview_x += max(size, 42) + 7
+        variant.pop("_output_dir", None)
+    draw.text((margin, 730), "Human review is required. No variant is selected, promoted, approved, or locked by this output.", fill="#333333")
+    board.save(destination)
+
+
+def run_trace_matrix(
+    config_path: Path,
+    config: dict[str, Any],
+    source: Any,
+    cleaned: Any,
+    output_dir: Path,
+    base_metrics: dict[str, Any],
+    image_module: Any,
+    image_draw: Any,
+) -> None:
+    matrix_dir = output_dir / "matrix"
+    matrix_dir.mkdir(parents=True, exist_ok=True)
+    base_trace = config.get("trace", DEFAULT_TRACE)
+    variants: list[dict[str, Any]] = []
+    for configured in config["trace_matrix"]:
+        variant_dir = matrix_dir / configured["id"]
+        variant_dir.mkdir(parents=True, exist_ok=True)
+        trace = {**base_trace, "potrace": dict(configured["potrace"])}
+        svg_path = variant_dir / "trace.svg"
+        status, trace_message, _, options_used = try_trace(cleaned, svg_path, variant_dir, trace)
+        analysis = analyze_trace_svg(svg_path, trace, options_used)
+        trace_render, render_message = try_render_trace(svg_path, variant_dir, source.size, image_module)
+        if trace_render is not None:
+            trace_render.save(variant_dir / "trace-render.png")
+        comparison = compare_trace_to_mask(cleaned, trace_render)
+        if trace_render is None:
+            comparison["unavailable_reason"] = render_message
+        fallbacks = [message for message in (trace_message, render_message) if message]
+        preview_sizes = save_trace_previews(trace_render, variant_dir, image_module)
+        warnings = []
+        if analysis["parse_error"]:
+            warnings.append(f"SVG parse error: {analysis['parse_error']}")
+        if trace_render is None:
+            warnings.append("Render-dependent comparison metrics and previews are unavailable.")
+        variant = {
+            "id": configured["id"],
+            "label": configured["label"],
+            "potrace_options_configured": configured["potrace"],
+            "potrace_options_used": options_used,
+            "trace_status": status,
+            "svg_exists": analysis["svg_exists"],
+            "svg_file_size_bytes": analysis["svg_file_size_bytes"],
+            "svg_path_count": analysis["svg_path_count"],
+            "svg_fill_values": analysis["svg_fill_values"],
+            "svg_contains_image_tag": analysis["svg_contains_image_tag"],
+            "svg_contains_text_tag": analysis["svg_contains_text_tag"],
+            "svg_contains_rect_background": analysis["svg_contains_rect_background"],
+            "svg_has_viewbox": analysis["svg_has_viewbox"],
+            "mismatch_ratio": comparison["trace_vs_cleaned_mask_mismatch_ratio"],
+            "mismatch_pixels": comparison["trace_vs_cleaned_mask_mismatch_pixels"],
+            "compared_pixel_count": comparison["compared_pixel_count"],
+            "trace_render_available": trace_render is not None,
+            "fallback_messages": fallbacks,
+            "small_size_preview_sizes": preview_sizes,
+            "notes": warnings,
+            "review_required": True,
+            "approval_state": "diagnostic_only_not_approved",
+            "_trace_render": trace_render,
+            "_output_dir": str(variant_dir),
+        }
+        serializable = {key: value for key, value in variant.items() if not key.startswith("_")}
+        (variant_dir / "variant-metrics.json").write_text(json.dumps(serializable, indent=2) + "\n", encoding="utf-8")
+        variants.append(variant)
+    board_path = output_dir / "symbol-trace-matrix-board.png"
+    create_matrix_board(variants, board_path, image_module, image_draw)
+    report = {
+        "tool_version": TOOL_VERSION,
+        "source_config_path": report_path(config_path),
+        "source_crop_path": report_path(repository_path(config["input_image"])),
+        "cleaned_mask_metrics": base_metrics,
+        "review_required": True,
+        "approval_state": "diagnostic_only_not_approved",
+        "diagnostic_note": "Mismatch is not a perceptual quality score; no variant is selected or promoted.",
+        "matrix_board": report_path(board_path),
+        "variants": variants,
+    }
+    (output_dir / "symbol-trace-matrix-report.json").write_text(json.dumps(report, indent=2) + "\n", encoding="utf-8")
+
+
 def write_report(
     config_path: Path,
     config: dict[str, Any],
@@ -527,7 +707,7 @@ def write_report(
     clean_foreground = sum(1 for value in cleaned_mask.getdata() if value)
     trace = config.get("trace", DEFAULT_TRACE)
     report = {
-        "tool_version": "0.1",
+        "tool_version": TOOL_VERSION,
         "config": report_path(config_path),
         "config_version": config["version"],
         "role": config["role"],
@@ -577,12 +757,14 @@ def write_report(
     paths["report"].write_text(json.dumps(report, indent=2) + "\n", encoding="utf-8")
 
 
-def run(config_path: Path, validate_only: bool) -> int:
+def run(config_path: Path, validate_only: bool, matrix: bool = False) -> int:
     config_path = config_path.resolve()
     config = load_config(config_path)
     input_path = repository_path(config["input_image"])
     if not input_path.is_file():
         raise ConfigurationError(f"Input image does not exist: {input_path}")
+    if matrix and not config.get("trace_matrix"):
+        raise ConfigurationError("--matrix requires a non-empty trace_matrix in the configuration.")
     if validate_only:
         print(f"Configuration is valid: {config_path}")
         print(f"Input image exists: {input_path}")
@@ -650,6 +832,27 @@ def run(config_path: Path, validate_only: bool) -> int:
         small_preview_sizes,
         fallback_messages,
     )
+    if matrix:
+        total = source.width * source.height
+        cleaned_foreground = sum(1 for value in cleaned.getdata() if value)
+        run_trace_matrix(
+            config_path,
+            config,
+            source,
+            cleaned,
+            output_dir,
+            {
+                "total_pixels": total,
+                "cleaned_foreground_pixels": cleaned_foreground,
+                "cleaned_foreground_ratio": round(cleaned_foreground / total, 8),
+                "cleanup_changed_pixels": sum(
+                    1 for before, after in zip(mask.getdata(), cleaned.getdata()) if before != after
+                ),
+            },
+            Image,
+            ImageDraw,
+        )
+        print(f"Trace matrix report and comparison board written to: {output_dir}")
     print(f"Artifacts written to: {output_dir}")
     if trace_status == "skipped":
         print(f"Vector trace skipped: {trace_message}")
@@ -660,7 +863,7 @@ def run(config_path: Path, validate_only: bool) -> int:
 def main() -> int:
     args = parse_args()
     try:
-        return run(args.config, args.validate_config)
+        return run(args.config, args.validate_config, args.matrix)
     except ConfigurationError as exc:
         print(f"Error: {exc}", file=sys.stderr)
         return 2
