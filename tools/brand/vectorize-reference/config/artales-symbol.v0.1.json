@@ -17,7 +17,12 @@
   "trace": {
     "mode": "foreground",
     "fill_color": "#DCA645",
-    "background": "transparent"
+    "background": "transparent",
+    "potrace": {
+      "turdsize": 2,
+      "alphamax": 1.0,
+      "opttolerance": 0.2
+    }
   },
   "outputs": {
     "mask": "symbol-mask.png",
