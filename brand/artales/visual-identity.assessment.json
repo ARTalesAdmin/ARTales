@@ -1,0 +1,327 @@
+{
+  "schema": "artales.visual_identity.assessment",
+  "schemaVersion": "0.1",
+  "project": "ARTales",
+  "scope": "visual_identity_pack",
+  "assessmentVersion": "0.1",
+  "assessmentDate": "2026-07-30",
+  "status": "assessment_only_not_locked",
+  "summary": "ARTales has a strong visual direction, several usable logo candidates and approved context materials. It is not ready for a locked Visual Identity Pack v1 because vector masters, transparent exports, final logo variant decisions, final color role confirmation, typography decisions and export profiles are still missing.",
+  "sourceMaterials": {
+    "visualReferences": [
+      {
+        "name": "New logo.zip",
+        "status": "reference_and_candidate_source",
+        "notes": "Contains one logo board and eight raster JPG logo/mark/monogram variants. These are useful for evaluation and selection, but are not production masters."
+      }
+    ],
+    "contextReferences": [
+      {
+        "name": "ARTales_Brand_Book_CZ.docx",
+        "usage": "context_only",
+        "assessment": "Strong brand context for care, calm, curation, trust and living culture."
+      },
+      {
+        "name": "ARTales_Vizualni_identita_a_designovy_manual_CZ.docx",
+        "usage": "visual_context_and_rules_source",
+        "assessment": "Strongest source for visual principles, including space, contrast, typography, accessibility and provisional logo/color rules."
+      },
+      {
+        "name": "Manifest ARTales.docx",
+        "usage": "context_only",
+        "assessment": "Explains cultural purpose and responsibility; not an active visual checklist item in this scope."
+      },
+      {
+        "name": "Message House ARTales.docx",
+        "usage": "context_only",
+        "assessment": "Useful for tone and public claims; not an active visual checklist item in this scope."
+      },
+      {
+        "name": "Principy značky ARTales.docx",
+        "usage": "context_only",
+        "assessment": "Useful governance context for integrity, reality, quality and technology serving culture."
+      },
+      {
+        "name": "Převod Brand Booku do praxe.docx",
+        "usage": "process_context",
+        "assessment": "Confirms the need to translate brand context into visual identity, audit, launch materials and playbook."
+      }
+    ]
+  },
+  "readinessOverview": {
+    "identityContext": "strong_available_context_only",
+    "visualDirection": "strong_candidate",
+    "wordmark": "candidate_not_locked",
+    "logoLockup": "candidate_not_locked",
+    "symbol": "candidate_not_locked",
+    "monogram": "candidate_not_locked",
+    "colorPalette": "draft_needs_confirmation",
+    "typography": "missing_or_unclear",
+    "graphicMotifs": "reference_needs_usage_rules",
+    "backgroundsAndTextures": "reference_needs_usage_rules",
+    "exportProfiles": "missing_or_draft",
+    "brandSheet": "missing",
+    "approval": "not_ready_for_lock"
+  },
+  "candidatePolicy": {
+    "doNotDiscardNonSelectedCandidates": true,
+    "recommendedCandidateStates": [
+      "primary_candidate",
+      "reserve_candidate",
+      "not_selected",
+      "test_failed",
+      "archived_reference",
+      "superseded"
+    ],
+    "notes": "Non-selected candidates should remain available until the identity has been tested in real web, favicon, mobile, social and dark/light contexts."
+  },
+  "blocks": {
+    "wordmark": {
+      "status": "candidate",
+      "quality": "strong",
+      "availableInputs": [
+        "45e01741-fe3c-4190-8b65-b89c94d45df7.jpg",
+        "31298043-e263-446e-b831-7abbb24be843.jpg",
+        "logo board reference"
+      ],
+      "candidateAssessment": "The ARTales wordmark is visually coherent and suitable as the core signature. The serif tone supports cultural dignity and calm. It still needs a final primary variant decision and vector preparation.",
+      "missing": [
+        "approved_primary_wordmark_variant",
+        "svg_vector_master",
+        "transparent_dark_background_export",
+        "transparent_light_background_export",
+        "minimum_size_rule"
+      ],
+      "risks": [
+        "Raster source can blur or degrade in production uses.",
+        "Some wordmark variants may lose legibility at small sizes.",
+        "Without a selected primary variant, future web/token work may drift."
+      ],
+      "recommendation": "Keep the strongest standalone wordmark as a primary candidate and test it in header, footer, brand sheet and social preview contexts before locking."
+    },
+    "logoLockup": {
+      "status": "candidate",
+      "quality": "strong",
+      "availableInputs": [
+        "f2dec087-5def-40a1-a1d3-14a81d38e348.jpg",
+        "84512f5c-1e4d-48dd-a2ca-eddb85ab60ad.jpg",
+        "6e4f7335-f872-4d6b-8229-f4d3f029f65e.jpg",
+        "dc57f2f0-8e08-49f7-a0c8-0b31c2fe4c7e.jpg",
+        "logo board reference"
+      ],
+      "candidateAssessment": "The symbol plus ARTales lockup is the strongest candidate for a public brand signature. It connects the literary mark with the name, works emotionally, and matches the dark/gold ARTales atmosphere. Several variants should be retained for testing.",
+      "missing": [
+        "approved_primary_lockup_variant",
+        "svg_vector_master",
+        "spacing_rule_between_symbol_and_wordmark",
+        "clear_space_rule",
+        "light_and_dark_usage_rules"
+      ],
+      "risks": [
+        "The symbol may be too detailed for very small header or social sizes.",
+        "Spacing and proportions may vary between raster variants unless rebuilt as a vector master.",
+        "Gold-on-dark works strongly, but gold-on-light needs contrast testing."
+      ],
+      "recommendation": "Select 2-3 lockup candidates for real-context preview testing before locking one primary and one reserve variant."
+    },
+    "symbol": {
+      "status": "candidate",
+      "quality": "strong_but_needs_small_size_testing",
+      "availableInputs": [
+        "3f2978a6-53fd-482e-9974-d0e33e719153.jpg",
+        "logo board icon reference"
+      ],
+      "candidateAssessment": "The pen/drop/leaf-like symbol is distinctive and well aligned with literature, care and cultural craft. It is a strong candidate for mark/icon usage, but detail density must be tested at favicon and small avatar sizes.",
+      "missing": [
+        "svg_vector_master",
+        "small_size_simplified_variant_decision",
+        "favicon_viability_test",
+        "dark_light_transparent_exports"
+      ],
+      "risks": [
+        "Internal detail may disappear at small sizes.",
+        "The symbol may need a simplified small-size version rather than one universal master."
+      ],
+      "recommendation": "Keep as a primary symbol candidate. Prepare or request vector reconstruction and test whether a simplified favicon variant is needed."
+    },
+    "monogram": {
+      "status": "candidate",
+      "quality": "useful_reserve_candidate",
+      "availableInputs": [
+        "9cd26a7a-8e35-4dde-89fb-f58db331f14e.jpg",
+        "logo board monogram reference"
+      ],
+      "candidateAssessment": "The AT monogram is useful as a secondary or reserve mark, especially where the symbol is too detailed. It may read as more classic/luxury than literary-gallery, so it needs context testing before becoming a primary mark.",
+      "missing": [
+        "svg_vector_master",
+        "usage_role_decision",
+        "small_size_test",
+        "relationship_to_symbol_rule"
+      ],
+      "risks": [
+        "Could compete with the pen/drop symbol if both are used without hierarchy.",
+        "May shift the tone toward luxury branding rather than calm cultural space."
+      ],
+      "recommendation": "Retain as reserve candidate for avatar, seal or special-use contexts. Do not discard; do not make primary without comparison testing against the symbol."
+    },
+    "colorPalette": {
+      "status": "draft",
+      "quality": "directionally_strong",
+      "availableInputs": [
+        "dark/gold/cream visual references",
+        "working palette from visual manual and prior decisions"
+      ],
+      "candidateValues": {
+        "inkoust": "#151821",
+        "papir": "#F6F2E9",
+        "zlato": "#B08A4A",
+        "grafit": "#303136",
+        "mlznaSed": "#D9D5CC",
+        "bila": "#FFFFFF"
+      },
+      "candidateAssessment": "The dark ink, paper and muted gold direction is coherent with ARTales. The gold should function as accent/light, not as a large decorative surface. Values need formal confirmation and contrast checks before being locked as tokens.",
+      "missing": [
+        "final_hex_confirmation",
+        "semantic_color_roles",
+        "contrast_tests_for_text_and_ui_states",
+        "light_theme_usage_rules",
+        "dark_theme_usage_rules"
+      ],
+      "risks": [
+        "Gold can fail contrast for small text if used casually.",
+        "Too much gold could make the interface feel decorative or commercial instead of calm."
+      ],
+      "recommendation": "Confirm semantic roles before tokenization: background, surface, text, muted text, accent, border, focus, state colors."
+    },
+    "typography": {
+      "status": "missing_or_unclear",
+      "quality": "not_ready",
+      "availableInputs": [
+        "visual principle: typography is care",
+        "wordmark serif tone"
+      ],
+      "candidateAssessment": "The brand documents define the importance and tone of typography, but do not yet lock production fonts for headings, body text and UI. This is a blocker before serious tokenization.",
+      "missing": [
+        "heading_font_candidate",
+        "body_font_candidate",
+        "ui_font_candidate_or_stack",
+        "fallback_stack",
+        "license_note",
+        "reader_vs_public_site_typography_boundary"
+      ],
+      "risks": [
+        "A mismatched type stack can undermine the calm literary tone even if logo and colors are strong.",
+        "Licensed fonts must not be used without clear rights."
+      ],
+      "recommendation": "Define 2-3 typography candidates and test them on homepage, work detail, reader-adjacent UI and long descriptive text."
+    },
+    "graphicMotifs": {
+      "status": "reference",
+      "quality": "promising_but_not_locked",
+      "availableInputs": [
+        "pen/drop/leaf symbol",
+        "paper/ink/light metaphor",
+        "dark gallery atmosphere"
+      ],
+      "candidateAssessment": "The visual language has coherent metaphors: ink, paper, light, space, literary craft. These should become usage rules, not random decoration.",
+      "missing": [
+        "approved_motif_set",
+        "ornament_usage_rules",
+        "texture_usage_rules",
+        "illustration_boundary_rules"
+      ],
+      "risks": [
+        "Decorative motifs can easily create visual noise if not constrained.",
+        "AI-generated visuals should not become masters without review and provenance."
+      ],
+      "recommendation": "Keep motifs as context/reference. Define permitted usage after logo/color/typography decisions."
+    },
+    "backgroundsAndTextures": {
+      "status": "reference",
+      "quality": "useful_for_mood_not_ready_for_system",
+      "availableInputs": [
+        "dark textured logo board",
+        "cream paper-like logo variants"
+      ],
+      "candidateAssessment": "The dark textured surface and cream paper background support the gallery/literary mood, but production UI needs restrained rules and accessible contrast.",
+      "missing": [
+        "texture_source_master",
+        "allowed_opacity_or_usage_rule",
+        "performance_rule_for_web",
+        "accessibility_contrast_rule"
+      ],
+      "risks": [
+        "Texture can reduce readability or make UI feel heavy.",
+        "Raster textures can increase web weight if used carelessly."
+      ],
+      "recommendation": "Treat textures as mood/reference until the tokenized UI has basic calm contrast without them."
+    },
+    "exportProfiles": {
+      "status": "missing_or_draft",
+      "quality": "not_ready",
+      "availableInputs": [
+        "readiness model and manifest schema"
+      ],
+      "candidateAssessment": "Export needs are known conceptually, but no final profiles exist yet because masters are not locked.",
+      "missing": [
+        "web_header_logo_profile",
+        "favicon_profile",
+        "app_icon_profile",
+        "social_avatar_profile",
+        "social_share_profile",
+        "watermark_profile",
+        "brand_sheet_profile"
+      ],
+      "risks": [
+        "Generating exports before masters are locked creates cleanup and drift.",
+        "Different social/web crops may reveal weaknesses in candidates."
+      ],
+      "recommendation": "Define profiles after selecting primary candidates, before creating final exports."
+    },
+    "brandSheet": {
+      "status": "missing",
+      "quality": "not_ready",
+      "availableInputs": [
+        "logo board reference"
+      ],
+      "candidateAssessment": "The existing logo board is useful as a visual reference, but not yet a final brand sheet because inputs are not locked and rules are incomplete.",
+      "missing": [
+        "locked_or_selected_logo_candidates",
+        "confirmed_palette",
+        "typography_candidates_or_decision",
+        "usage_rules_summary",
+        "exported_composite_reference"
+      ],
+      "risks": [
+        "A polished brand sheet can falsely imply that the identity is already locked."
+      ],
+      "recommendation": "Create a candidate comparison board first; create final brand sheet only after Visual Identity Pack v1 approval."
+    },
+    "approval": {
+      "status": "not_ready",
+      "quality": "needs_human_decisions",
+      "availableInputs": [
+        "strong visual direction",
+        "candidate logo set",
+        "strong visual manual"
+      ],
+      "missing": [
+        "human_selection_of_primary_candidates",
+        "vector_master_creation_or_source",
+        "typography_decision",
+        "color_role_confirmation",
+        "real_context_testing",
+        "final_lock_record"
+      ],
+      "recommendation": "Move next to candidate comparison and missing master plan, not to production tokenization yet."
+    }
+  },
+  "nextRecommendedSteps": [
+    "Create a candidate comparison brief for wordmark, lockup, symbol and monogram.",
+    "Choose a primary candidate and reserve candidate for each logo role, without deleting rejected candidates.",
+    "Prepare or request SVG vector masters for selected candidates.",
+    "Define typography candidates and test them in real ARTales contexts.",
+    "Confirm semantic color roles and accessibility constraints.",
+    "Only then prepare Visual Identity Pack v1 exports and token skeleton."
+  ]
+}

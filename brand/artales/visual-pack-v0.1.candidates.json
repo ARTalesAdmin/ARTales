@@ -1,0 +1,217 @@
+{
+  "schemaVersion": "0.1",
+  "project": "ARTales",
+  "pack": "visual-pack-v0.1-candidates",
+  "status": "candidate_for_v0_1_test",
+  "lastReviewedAt": "2026-07-31",
+  "scope": "visual_identity_pack",
+  "sourceReferences": [
+    {
+      "id": "symbol-dark-reference",
+      "description": "Standalone gold pen/drop symbol on dark background.",
+      "status": "reference",
+      "usage": "candidate evidence"
+    },
+    {
+      "id": "logo-light-reference",
+      "description": "Gold symbol plus dark ARTales wordmark on warm paper background.",
+      "status": "reference",
+      "usage": "candidate evidence"
+    },
+    {
+      "id": "logo-dark-reference",
+      "description": "Gold symbol plus gold ARTales wordmark on dark background.",
+      "status": "reference",
+      "usage": "candidate evidence"
+    }
+  ],
+  "confirmedCandidateDecisions": {
+    "primarySymbol": {
+      "decision": "gold pen / drop symbol",
+      "status": "confirmed_candidate",
+      "notes": "The symbol should be the primary standalone mark. It reads as a pen nib up close and as a gold drop from distance, which is useful for animation and small identity uses."
+    },
+    "primaryLogo": {
+      "decision": "symbol on the left plus ARTales wordmark on the right",
+      "status": "confirmed_candidate",
+      "notes": "This is the preferred full logo lockup for official and web use."
+    },
+    "darkVariant": {
+      "decision": "gold symbol and gold wordmark on dark background",
+      "status": "confirmed_candidate",
+      "notes": "Dark presentation should support the calm cultural/gallery tone."
+    },
+    "lightVariant": {
+      "decision": "gold symbol and dark wordmark on warm paper background",
+      "status": "confirmed_candidate",
+      "notes": "Light presentation should feel editorial, paper-like and readable."
+    },
+    "monogram": {
+      "decision": "reserve candidate, not the primary mark",
+      "status": "reserve_candidate",
+      "notes": "The monogram can remain available for internal, secondary or fallback use, but the pen/drop symbol should lead."
+    },
+    "texture": {
+      "decision": "presentation layer, not the production master",
+      "status": "confirmed_candidate_rule",
+      "notes": "Texture may be used in mockups, marketing and presentation assets. Locked masters must also exist as clean, reproducible vector/flat assets."
+    }
+  },
+  "visualElements": {
+    "primarySymbol": {
+      "status": "strong_candidate",
+      "description": "Vertical, symmetrical gold pen/drop mark with a central diamond detail and small lower drop endpoint.",
+      "intendedUses": [
+        "favicon_base",
+        "social_avatar",
+        "app_icon_base",
+        "loading_animation",
+        "standalone_brand_mark",
+        "watermark_candidate"
+      ],
+      "missingBeforeLockedMaster": [
+        "svg_vector_master",
+        "flat_single_color_or_clean_gold_master",
+        "transparent_export",
+        "minimum_size_rule",
+        "small_size_legibility_test"
+      ]
+    },
+    "primaryLogoLockup": {
+      "status": "strong_candidate",
+      "description": "Horizontal logo lockup with the pen/drop symbol on the left and ARTales wordmark on the right.",
+      "intendedUses": [
+        "web_header",
+        "brand_sheet",
+        "official_signature",
+        "social_cover",
+        "presentation_graphics"
+      ],
+      "missingBeforeLockedMaster": [
+        "svg_vector_master",
+        "transparent_light_background_variant",
+        "transparent_dark_background_variant",
+        "symbol_to_wordmark_ratio",
+        "spacing_rule",
+        "clear_space_rule",
+        "minimum_size_rule"
+      ]
+    },
+    "wordmark": {
+      "status": "strong_candidate_not_technically_locked",
+      "description": "Elegant literary serif wordmark reading ARTales, with dominant ART and softer lowercase ales.",
+      "typographicDirection": "high-contrast literary serif with editorial/cultural character",
+      "missingBeforeLockedMaster": [
+        "font_name_or_custom_lettering_confirmation",
+        "license_note_if_font_based",
+        "vector_outlines",
+        "kerning_review",
+        "light_dark_color_variants"
+      ]
+    },
+    "monogram": {
+      "status": "reserve_candidate",
+      "description": "Secondary candidate only. It should not replace the pen/drop symbol as the primary mark at this stage.",
+      "possibleUses": [
+        "internal_avatar",
+        "small_secondary_mark",
+        "fallback_icon",
+        "seal_candidate"
+      ],
+      "missingBeforeUse": [
+        "same_quality_reference_as_logo",
+        "role_definition_against_symbol",
+        "svg_vector_master"
+      ]
+    }
+  },
+  "candidatePalette": {
+    "status": "candidate_not_locked",
+    "notes": "Values are extracted from raster references and should be confirmed before becoming design tokens.",
+    "colors": [
+      {
+        "name": "Ink / Night",
+        "hex": "#0F1315",
+        "role": "main dark brand background"
+      },
+      {
+        "name": "Deep Dark",
+        "hex": "#141414",
+        "role": "alternate dark background / deep neutral"
+      },
+      {
+        "name": "Paper",
+        "hex": "#FDF3E2",
+        "role": "warm paper-like light background"
+      },
+      {
+        "name": "Text Dark",
+        "hex": "#272827",
+        "role": "dark wordmark or text on light background"
+      },
+      {
+        "name": "Primary Gold",
+        "hex": "#E0AA47",
+        "role": "primary gold identity accent candidate"
+      },
+      {
+        "name": "Warm Gold",
+        "hex": "#E3AA46",
+        "role": "warm highlight gold candidate"
+      },
+      {
+        "name": "Darker Gold",
+        "hex": "#D19738",
+        "role": "darker gold candidate for depth/shadow"
+      },
+      {
+        "name": "Gold Shade",
+        "hex": "#B58636",
+        "role": "support gold shade for presentation texture"
+      }
+    ],
+    "rules": [
+      "Gold should be an accent, not a broad decorative surface.",
+      "Use fewer core color tokens for the first implementation; derived shades can be added later.",
+      "Contrast checks are required before runtime use."
+    ]
+  },
+  "variantPrinciples": {
+    "status": "confirmed_candidate_direction",
+    "sameGeometryAcrossVariants": true,
+    "notes": "Dark and light variants should be color/use variants of the same underlying logo and symbol geometry, not separate identities.",
+    "dark": {
+      "background": "Ink / Night or Deep Dark",
+      "symbol": "Gold",
+      "wordmark": "Gold"
+    },
+    "light": {
+      "background": "Paper",
+      "symbol": "Gold",
+      "wordmark": "Text Dark"
+    }
+  },
+  "textureAndMateriality": {
+    "status": "presentation_layer_rule_confirmed",
+    "description": "The references show paper/material texture and gold depth. This is suitable for presentation and marketing, but must not be the only production master form.",
+    "rule": "Locked masters must also exist as clean vector/flat assets. Texture can be generated or exported as a presentation layer."
+  },
+  "notLockedYet": [
+    "svg_vector_masters",
+    "transparent_exports",
+    "final_exact_color_tokens",
+    "font_or_lettering_license_confirmation",
+    "clear_space_rule",
+    "minimum_size_rule",
+    "export_profiles",
+    "brand_sheet",
+    "runtime_usage"
+  ],
+  "nextRecommendedSteps": [
+    "Prepare or obtain clean SVG/vector masters for the primary symbol and primary logo lockup.",
+    "Confirm whether the wordmark is font-based or custom lettering, including license status if relevant.",
+    "Confirm final core color tokens after testing against light and dark UI surfaces.",
+    "Define export profiles before generating production assets.",
+    "Create a brand sheet after vector masters and candidate tokens are ready."
+  ]
+}
