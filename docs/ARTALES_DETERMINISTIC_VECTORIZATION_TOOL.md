@@ -22,6 +22,11 @@ The intended lifecycle is:
 
 Version 0.1 uses RGB-distance segmentation and simple morphological cleanup. Pillow produces raster artifacts. If the optional local `potrace` executable is present, it produces an SVG trace candidate; otherwise the pipeline completes its masks and overlay and records a skipped trace in the report.
 
+The binary masks store selected foreground as white, but `potrace` traces black pixels. The
+tool inverts a temporary trace-only bitmap so the SVG contains positive foreground artwork
+on a transparent background instead of tracing the background rectangle. This polarity
+normalization does not alter the checked mask or elevate the SVG beyond candidate status.
+
 ## Asset vocabulary
 
 | Term | Meaning |

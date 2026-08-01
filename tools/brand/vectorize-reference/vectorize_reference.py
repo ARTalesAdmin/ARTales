@@ -17,6 +17,12 @@ from typing import Any
 SCRIPT_DIR = Path(__file__).resolve().parent
 REPOSITORY_ROOT = SCRIPT_DIR.parents[2]
 SUPPORTED_MODES = {"background_distance", "target_color_distance"}
+SUPPORTED_TRACE_MODES = {"foreground"}
+DEFAULT_TRACE = {
+    "mode": "foreground",
+    "fill_color": "#000000",
+    "background": "transparent",
+}
 REQUIRED_CONFIG_KEYS = {
     "version",
     "role",
@@ -99,6 +105,21 @@ def validate_config(config: dict[str, Any]) -> None:
             raise ConfigurationError(f"outputs.{key} must be a plain filename.")
     if config["approval_state"] not in {"not_run", "pending_human_review"}:
         raise ConfigurationError("approval_state must be not_run or pending_human_review.")
+    trace = config.get("trace", DEFAULT_TRACE)
+    if not isinstance(trace, dict):
+        raise ConfigurationError("trace must be an object.")
+    if trace.get("mode") not in SUPPORTED_TRACE_MODES:
+        raise ConfigurationError("trace.mode must be foreground.")
+    fill_color = trace.get("fill_color")
+    if (
+        not isinstance(fill_color, str)
+        or len(fill_color) != 7
+        or not fill_color.startswith("#")
+        or any(character not in "0123456789abcdefABCDEF" for character in fill_color[1:])
+    ):
+        raise ConfigurationError("trace.fill_color must be a six-digit hexadecimal color.")
+    if trace.get("background") != "transparent":
+        raise ConfigurationError("trace.background must be transparent.")
 
 
 def repository_path(value: str) -> Path:
@@ -157,15 +178,31 @@ def save_overlay(source: Any, cleaned: Any, destination: Path, image_module: Any
     image_module.alpha_composite(base, red).save(destination)
 
 
-def try_trace(cleaned: Any, destination: Path, output_dir: Path) -> tuple[str, str | None]:
+def try_trace(
+    cleaned: Any,
+    destination: Path,
+    output_dir: Path,
+    trace: dict[str, Any],
+) -> tuple[str, str | None, bool]:
     potrace = shutil.which("potrace")
     if not potrace:
-        return "skipped", "potrace executable is not available on PATH"
+        return "skipped", "potrace executable is not available on PATH", False
     temporary_bitmap = output_dir / ".vectorize-reference-trace.pbm"
-    cleaned.save(temporary_bitmap)
+    # The cleaned mask uses white for selected foreground, while potrace traces
+    # black bitmap pixels. Normalize that polarity only in the temporary input.
+    trace_bitmap = cleaned.point(lambda value: 0 if value else 255)
+    trace_bitmap.save(temporary_bitmap)
     try:
         completed = subprocess.run(
-            [potrace, str(temporary_bitmap), "--svg", "--output", str(destination)],
+            [
+                potrace,
+                str(temporary_bitmap),
+                "--svg",
+                "--color",
+                trace["fill_color"],
+                "--output",
+                str(destination),
+            ],
             check=False,
             capture_output=True,
             text=True,
@@ -173,8 +210,12 @@ def try_trace(cleaned: Any, destination: Path, output_dir: Path) -> tuple[str, s
     finally:
         temporary_bitmap.unlink(missing_ok=True)
     if completed.returncode:
-        return "skipped", f"potrace exited with code {completed.returncode}: {completed.stderr.strip()}"
-    return "created", None
+        return (
+            "skipped",
+            f"potrace exited with code {completed.returncode}: {completed.stderr.strip()}",
+            True,
+        )
+    return "created", None, True
 
 
 def write_report(
@@ -186,10 +227,12 @@ def write_report(
     paths: dict[str, Path],
     trace_status: str,
     trace_message: str | None,
+    trace_inverted_for_potrace: bool,
 ) -> None:
     total = source.width * source.height
     raw_foreground = sum(1 for value in raw_mask.getdata() if value)
     clean_foreground = sum(1 for value in cleaned_mask.getdata() if value)
+    trace = config.get("trace", DEFAULT_TRACE)
     report = {
         "tool_version": "0.1",
         "config": report_path(config_path),
@@ -209,7 +252,14 @@ def write_report(
                 1 for before, after in zip(raw_mask.getdata(), cleaned_mask.getdata()) if before != after
             ),
         },
-        "trace": {"backend": "potrace", "status": trace_status, "message": trace_message},
+        "trace_backend": "potrace",
+        "trace_status": trace_status,
+        "trace_mode": trace["mode"],
+        "trace_foreground_expected": True,
+        "trace_fill_color": trace["fill_color"],
+        "trace_background": trace["background"],
+        "trace_inverted_for_potrace": trace_inverted_for_potrace,
+        "trace_message": trace_message,
         "outputs": {
             key: report_path(path) if path.exists() else None
             for key, path in paths.items()
@@ -252,7 +302,10 @@ def run(config_path: Path, validate_only: bool) -> int:
     mask.save(paths["mask"])
     cleaned.save(paths["cleaned_mask"])
     save_overlay(source, cleaned, paths["overlay"], Image)
-    trace_status, trace_message = try_trace(cleaned, paths["trace"], output_dir)
+    trace = config.get("trace", DEFAULT_TRACE)
+    trace_status, trace_message, trace_inverted_for_potrace = try_trace(
+        cleaned, paths["trace"], output_dir, trace
+    )
     write_report(
         config_path,
         config,
@@ -262,6 +315,7 @@ def run(config_path: Path, validate_only: bool) -> int:
         paths,
         trace_status,
         trace_message,
+        trace_inverted_for_potrace,
     )
     print(f"Artifacts written to: {output_dir}")
     if trace_status == "skipped":
