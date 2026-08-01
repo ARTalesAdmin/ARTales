@@ -18,6 +18,7 @@ SCRIPT_DIR = Path(__file__).resolve().parent
 REPOSITORY_ROOT = SCRIPT_DIR.parents[2]
 SUPPORTED_MODES = {"background_distance", "target_color_distance"}
 SUPPORTED_TRACE_MODES = {"foreground"}
+SMALL_PREVIEW_SIZES = [128, 64, 32, 16]
 DEFAULT_TRACE = {
     "mode": "foreground",
     "fill_color": "#000000",
@@ -103,6 +104,10 @@ def validate_config(config: dict[str, Any]) -> None:
         name = outputs[key]
         if not isinstance(name, str) or not name or Path(name).name != name:
             raise ConfigurationError(f"outputs.{key} must be a plain filename.")
+    if "review_board" in outputs:
+        name = outputs["review_board"]
+        if not isinstance(name, str) or not name or Path(name).name != name:
+            raise ConfigurationError("outputs.review_board must be a plain filename.")
     if config["approval_state"] not in {"not_run", "pending_human_review"}:
         raise ConfigurationError("approval_state must be not_run or pending_human_review.")
     trace = config.get("trace", DEFAULT_TRACE)
@@ -218,6 +223,196 @@ def try_trace(
     return "created", None, True
 
 
+def try_render_trace(
+    svg_path: Path,
+    output_dir: Path,
+    size: tuple[int, int],
+    image_module: Any,
+) -> tuple[Any | None, str | None]:
+    """Best-effort SVG rasterization without making a renderer a project dependency."""
+    if not svg_path.is_file():
+        return None, "Trace render unavailable because no SVG trace was created."
+    temporary_png = output_dir / ".vectorize-reference-trace-render.png"
+    width, height = size
+    message: str | None = None
+    try:
+        if importlib.util.find_spec("cairosvg") is not None:
+            cairosvg = importlib.import_module("cairosvg")
+            cairosvg.svg2png(
+                url=str(svg_path),
+                write_to=str(temporary_png),
+                output_width=width,
+                output_height=height,
+            )
+        elif shutil.which("rsvg-convert"):
+            completed = subprocess.run(
+                [
+                    "rsvg-convert",
+                    "--width",
+                    str(width),
+                    "--height",
+                    str(height),
+                    "--output",
+                    str(temporary_png),
+                    str(svg_path),
+                ],
+                check=False,
+                capture_output=True,
+                text=True,
+            )
+            if completed.returncode:
+                message = f"Trace render skipped: rsvg-convert exited with code {completed.returncode}."
+        else:
+            imagemagick = shutil.which("magick") or shutil.which("convert")
+            if imagemagick:
+                command = [imagemagick]
+                if Path(imagemagick).name == "magick":
+                    command.append("convert")
+                completed = subprocess.run(
+                    command
+                    + [
+                        str(svg_path),
+                        "-background",
+                        "none",
+                        "-resize",
+                        f"{width}x{height}!",
+                        str(temporary_png),
+                    ],
+                    check=False,
+                    capture_output=True,
+                    text=True,
+                )
+                if completed.returncode:
+                    message = f"Trace render skipped: ImageMagick exited with code {completed.returncode}."
+            else:
+                message = "Trace render skipped: no CairoSVG, rsvg-convert, or ImageMagick renderer is available."
+        if temporary_png.is_file():
+            with image_module.open(temporary_png) as opened:
+                return opened.convert("RGBA"), None
+    except Exception as exc:  # Optional renderers must never make the diagnostic run fail.
+        message = f"Trace render skipped: renderer failed ({exc})."
+    finally:
+        temporary_png.unlink(missing_ok=True)
+    return None, message or "Trace render unavailable."
+
+
+def _fit(image: Any, size: tuple[int, int], image_module: Any) -> Any:
+    fitted = image.copy()
+    fitted.thumbnail(size, image_module.Resampling.LANCZOS)
+    canvas = image_module.new("RGBA", size, "white")
+    canvas.alpha_composite(
+        fitted.convert("RGBA"),
+        ((size[0] - fitted.width) // 2, (size[1] - fitted.height) // 2),
+    )
+    return canvas
+
+
+def create_review_board(
+    source: Any,
+    raw_mask: Any,
+    cleaned_mask: Any,
+    overlay: Any,
+    trace_render: Any | None,
+    destination: Path,
+    fallback_messages: list[str],
+    image_module: Any,
+    image_draw: Any,
+) -> tuple[bool, list[int]]:
+    """Compose a labelled, diagnostic-only human review sheet."""
+    panel_size = (360, 250)
+    margin, gap, label_height = 28, 20, 32
+    board = image_module.new("RGB", (3 * panel_size[0] + 2 * gap + 2 * margin, 1360), "#ececec")
+    draw = image_draw.Draw(board)
+    draw.text((margin, 12), "ARTales vectorization review board - diagnostic / unapproved", fill="black")
+
+    panels: list[tuple[str, Any | None, str | None]] = [
+        ("Source crop", source, None),
+        ("Raw mask", raw_mask, None),
+        ("Cleaned mask", cleaned_mask, None),
+        ("Mask overlay", overlay, None),
+    ]
+    comparison_available = trace_render is not None
+    if trace_render is not None:
+        trace_overlay = source.convert("RGBA")
+        tint = image_module.new("RGBA", trace_render.size, (0, 190, 255, 0))
+        tint.putalpha(trace_render.getchannel("A").point(lambda value: value // 2))
+        trace_overlay = image_module.alpha_composite(trace_overlay, tint)
+        expected = cleaned_mask.point(lambda value: 255 if value >= 128 else 0)
+        rendered = trace_render.getchannel("A").point(lambda value: 255 if value >= 128 else 0)
+        mismatch = image_module.new("RGB", source.size, "white")
+        mismatch.putdata(
+            [
+                (220, 45, 55)
+                if wanted and not actual
+                else (35, 105, 210)
+                if actual and not wanted
+                else (35, 35, 35)
+                if actual
+                else (255, 255, 255)
+                for wanted, actual in zip(expected.getdata(), rendered.getdata())
+            ]
+        )
+        panels.extend(
+            [
+                ("Trace render", trace_render, None),
+                ("Source + trace overlay", trace_overlay, None),
+                ("Trace mismatch (red missing / blue extra)", mismatch, None),
+            ]
+        )
+    else:
+        fallback = fallback_messages[-1] if fallback_messages else "Trace render unavailable"
+        panels.extend([("Trace render unavailable", None, fallback), ("Source + trace overlay unavailable", None, fallback)])
+
+    for index, (label, image, note) in enumerate(panels):
+        row, column = divmod(index, 3)
+        x = margin + column * (panel_size[0] + gap)
+        y = 48 + row * (panel_size[1] + label_height + gap)
+        draw.text((x, y), label, fill="black")
+        area_y = y + label_height
+        if image is not None:
+            board.paste(_fit(image, panel_size, image_module).convert("RGB"), (x, area_y))
+        else:
+            draw.rectangle(
+                (x, area_y, x + panel_size[0], area_y + panel_size[1]),
+                fill="white",
+                outline="#999999",
+            )
+            draw.multiline_text((x + 16, area_y + 20), note or "Unavailable", fill="#555555", spacing=6)
+
+    preview_y = 990
+    preview_source = trace_render.getchannel("A") if trace_render is not None else cleaned_mask
+    preview_label = "trace render" if trace_render is not None else "cleaned-mask fallback"
+    draw.text((margin, preview_y), f"Small-size previews ({preview_label})", fill="black")
+    x = margin
+    for size in SMALL_PREVIEW_SIZES:
+        tile = preview_source.resize((size, size), image_module.Resampling.LANCZOS)
+        tile_rgba = image_module.new("RGBA", (size, size), "white")
+        ink = image_module.new("RGBA", (size, size), (0, 0, 0, 255))
+        tile_rgba.paste(ink, mask=tile)
+        draw.text((x, preview_y + 28), f"{size} px", fill="black")
+        board.paste(tile_rgba.convert("RGB"), (x, preview_y + 50))
+        x += max(size, 90) + 24
+    draw.text(
+        (margin, 1210),
+        "Visual mismatch uses thresholded trace alpha; anti-aliasing differences are diagnostic, not a score.",
+        fill="#333333",
+    )
+    draw.text(
+        (margin, 1242),
+        "This board does not approve or promote any logo asset.",
+        fill="#333333",
+    )
+    if fallback_messages:
+        draw.multiline_text(
+            (margin, 1274),
+            "Fallbacks: " + " | ".join(fallback_messages),
+            fill="#555555",
+            spacing=4,
+        )
+    board.save(destination)
+    return comparison_available, SMALL_PREVIEW_SIZES
+
+
 def write_report(
     config_path: Path,
     config: dict[str, Any],
@@ -228,6 +423,10 @@ def write_report(
     trace_status: str,
     trace_message: str | None,
     trace_inverted_for_potrace: bool,
+    trace_render_available: bool,
+    source_trace_overlay_generated: bool,
+    small_preview_sizes: list[int],
+    fallback_messages: list[str],
 ) -> None:
     total = source.width * source.height
     raw_foreground = sum(1 for value in raw_mask.getdata() if value)
@@ -260,6 +459,11 @@ def write_report(
         "trace_background": trace["background"],
         "trace_inverted_for_potrace": trace_inverted_for_potrace,
         "trace_message": trace_message,
+        "review_board": report_path(paths["review_board"]),
+        "trace_render_available": trace_render_available,
+        "source_trace_overlay_generated": source_trace_overlay_generated,
+        "small_size_preview_sizes": small_preview_sizes,
+        "fallback_messages": fallback_messages,
         "outputs": {
             key: report_path(path) if path.exists() else None
             for key, path in paths.items()
@@ -289,14 +493,16 @@ def run(config_path: Path, validate_only: bool) -> int:
             file=sys.stderr,
         )
         return 2
-    from PIL import Image, ImageFilter
+    from PIL import Image, ImageDraw, ImageFilter
 
     try:
         with Image.open(input_path) as opened:
             source = opened.convert("RGBA")
     except (OSError, ValueError) as exc:
         raise ConfigurationError(f"Input image cannot be decoded: {input_path}: {exc}") from exc
-    paths = {key: output_dir / value for key, value in config["outputs"].items()}
+    output_names = dict(config["outputs"])
+    output_names.setdefault("review_board", f"{config['role']}-review-board.png")
+    paths = {key: output_dir / value for key, value in output_names.items()}
     mask = build_mask(source, config["segmentation"], Image)
     cleaned = clean_mask(mask, config["cleanup"], ImageFilter)
     mask.save(paths["mask"])
@@ -306,6 +512,20 @@ def run(config_path: Path, validate_only: bool) -> int:
     trace_status, trace_message, trace_inverted_for_potrace = try_trace(
         cleaned, paths["trace"], output_dir, trace
     )
+    trace_render, render_message = try_render_trace(paths["trace"], output_dir, source.size, Image)
+    fallback_messages = [message for message in (trace_message, render_message) if message]
+    with Image.open(paths["overlay"]) as opened_overlay:
+        source_trace_overlay_generated, small_preview_sizes = create_review_board(
+            source,
+            mask,
+            cleaned,
+            opened_overlay.convert("RGBA"),
+            trace_render,
+            paths["review_board"],
+            fallback_messages,
+            Image,
+            ImageDraw,
+        )
     write_report(
         config_path,
         config,
@@ -316,6 +536,10 @@ def run(config_path: Path, validate_only: bool) -> int:
         trace_status,
         trace_message,
         trace_inverted_for_potrace,
+        trace_render is not None,
+        source_trace_overlay_generated,
+        small_preview_sizes,
+        fallback_messages,
     )
     print(f"Artifacts written to: {output_dir}")
     if trace_status == "skipped":
