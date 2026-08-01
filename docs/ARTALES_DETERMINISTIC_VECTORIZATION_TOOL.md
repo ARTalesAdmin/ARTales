@@ -6,7 +6,7 @@ Earlier manual and generative SVG attempts drifted from the approved raster refe
 
 This scaffold replaces subjective reconstruction with a repeatable, reference-first process:
 
-> source raster/crop → color and background segmentation → binary mask → cleaned mask → optional vector trace candidate → overlay and diagnostic report → human review
+> source raster/crop → color and background segmentation → binary mask → cleaned mask → optional vector trace candidate → overlay, review board, and diagnostic report → human review
 
 The approved raster reference remains the authority throughout the process. The tool records its inputs and parameters so that the same configuration can be rerun and reviewed. It does not claim that deterministic output is automatically correct.
 
@@ -21,6 +21,13 @@ The intended lifecycle is:
 5. **Later promotion:** only a separately reviewed change can promote an accepted candidate into the controlled brand system.
 
 Version 0.1 uses RGB-distance segmentation and simple morphological cleanup. Pillow produces raster artifacts. If the optional local `potrace` executable is present, it produces an SVG trace candidate; otherwise the pipeline completes its masks and overlay and records a skipped trace in the report.
+
+Each normal run also creates a labelled review-board PNG for human visual assessment
+before any candidate or master promotion. It compares the source, raw and cleaned masks,
+mask overlay, and small-size previews. When optional SVG rendering is available it adds a
+trace render, source/trace overlay, and thresholded mismatch diagnostic; otherwise it
+shows an explicit fallback without failing the run. The board remains an unapproved
+diagnostic and does not make an approval decision.
 
 The binary masks store selected foreground as white, but `potrace` traces black pixels. The
 tool inverts a temporary trace-only bitmap so the SVG contains positive foreground artwork
