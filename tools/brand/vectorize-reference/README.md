@@ -50,10 +50,21 @@ The checked-in configs point only to existing extracted reference crops. Each co
 - the reference role and input path;
 - segmentation mode, sampled color, and RGB-distance tolerance;
 - morphological opening and closing radii;
+- foreground trace mode, single fill color, and transparent background;
 - output directory and filenames;
 - an explicit, unapproved review state.
 
 `background_distance` treats pixels farther than the configured distance from the background sample as foreground. `target_color_distance` selects pixels close to the configured target color. RGB values and tolerances are evidence-based working parameters, not approved brand tokens.
+
+The cleaned mask represents selected foreground as white. Because `potrace` traces black
+pixels, the tool deterministically inverts only its temporary PBM input: selected artwork
+becomes black for tracing and the background becomes white. The emitted SVG therefore
+contains the positive foreground artwork with the configured fill and no background shape;
+SVG transparency is preserved by omitting a background element.
+
+The lockup configs produce a single-color, mask-level diagnostic trace. They do not recover
+or approve the lockups' multiple source colors. Every generated SVG remains a diagnostic
+candidate, not an approved master.
 
 ## Generated outputs
 
@@ -63,7 +74,8 @@ A normal run creates a config-specific directory below `tools/brand/vectorize-re
 2. a cleaned binary mask;
 3. an SVG trace candidate when `potrace` is available;
 4. a red mask-on-source overlay;
-5. a JSON diagnostic report with dimensions, pixel counts, ratios, paths, and trace status.
+5. a JSON diagnostic report with dimensions, pixel counts, ratios, paths, trace status, and
+   foreground-polarity metadata.
 
 The output directory is intentionally ignored except for its `.gitkeep`. Generated files are local diagnostics, are not brand masters, and must not be treated as approved.
 
