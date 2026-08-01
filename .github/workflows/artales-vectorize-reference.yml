@@ -11,6 +11,14 @@ on:
           - artales-symbol.v0.1.json
           - artales-light-lockup.v0.1.json
           - artales-dark-lockup.v0.1.json
+      mode:
+        description: Vectorization mode
+        required: true
+        default: single
+        type: choice
+        options:
+          - single
+          - matrix
 
 permissions:
   contents: read
@@ -37,9 +45,15 @@ jobs:
           sudo apt-get install --yes potrace
 
       - name: Generate diagnostics
-        run: >-
-          python tools/brand/vectorize-reference/vectorize_reference.py
-          --config tools/brand/vectorize-reference/config/${{ inputs.config }}
+        run: |
+          if [ "${{ inputs.mode }}" = "matrix" ]; then
+            python tools/brand/vectorize-reference/vectorize_reference.py \
+              --config tools/brand/vectorize-reference/config/${{ inputs.config }} \
+              --matrix
+          else
+            python tools/brand/vectorize-reference/vectorize_reference.py \
+              --config tools/brand/vectorize-reference/config/${{ inputs.config }}
+          fi
 
       - name: Upload diagnostics
         uses: actions/upload-artifact@v4
