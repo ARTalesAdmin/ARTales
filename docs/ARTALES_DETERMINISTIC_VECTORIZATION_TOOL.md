@@ -34,6 +34,14 @@ tool inverts a temporary trace-only bitmap so the SVG contains positive foregrou
 on a transparent background instead of tracing the background rectangle. This polarity
 normalization does not alter the checked mask or elevate the SVG beyond candidate status.
 
+After trace generation, the report records basic SVG structure, the exact successfully used
+bounded potrace parameters, configured small-preview sizes, and (when a renderer is
+available) thresholded render-versus-cleaned-mask comparison metrics. These diagnostics
+make parameterized reruns reviewable; the mismatch ratio is not a perceptual quality score
+or an approval decision. Refinement must proceed through recorded parameter changes and
+human comparison rather than agent, manual, or generative redraw. Any final master creation
+remains a separate governed step.
+
 ## Asset vocabulary
 
 | Term | Meaning |

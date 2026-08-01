@@ -10,6 +10,7 @@ import math
 import shutil
 import subprocess
 import sys
+import xml.etree.ElementTree as ET
 from pathlib import Path
 from typing import Any
 
@@ -23,6 +24,11 @@ DEFAULT_TRACE = {
     "mode": "foreground",
     "fill_color": "#000000",
     "background": "transparent",
+}
+POTRACE_OPTION_RULES = {
+    "turdsize": (int, 0, 100),
+    "alphamax": ((int, float), 0.0, 1.333),
+    "opttolerance": ((int, float), 0.0, 10.0),
 }
 REQUIRED_CONFIG_KEYS = {
     "version",
@@ -125,6 +131,22 @@ def validate_config(config: dict[str, Any]) -> None:
         raise ConfigurationError("trace.fill_color must be a six-digit hexadecimal color.")
     if trace.get("background") != "transparent":
         raise ConfigurationError("trace.background must be transparent.")
+    potrace_options = trace.get("potrace", {})
+    if not isinstance(potrace_options, dict):
+        raise ConfigurationError("trace.potrace must be an object.")
+    unknown_options = sorted(potrace_options.keys() - POTRACE_OPTION_RULES.keys())
+    if unknown_options:
+        raise ConfigurationError(
+            f"trace.potrace contains unsupported options: {', '.join(unknown_options)}."
+        )
+    for name, value in potrace_options.items():
+        expected_type, minimum, maximum = POTRACE_OPTION_RULES[name]
+        if isinstance(value, bool) or not isinstance(value, expected_type):
+            raise ConfigurationError(f"trace.potrace.{name} has the wrong numeric type.")
+        if not minimum <= value <= maximum:
+            raise ConfigurationError(
+                f"trace.potrace.{name} must be from {minimum} to {maximum}."
+            )
 
 
 def repository_path(value: str) -> Path:
@@ -188,26 +210,25 @@ def try_trace(
     destination: Path,
     output_dir: Path,
     trace: dict[str, Any],
-) -> tuple[str, str | None, bool]:
+) -> tuple[str, str | None, bool, dict[str, int | float]]:
+    configured_options = trace.get("potrace", {})
+    # Never let an artifact from an earlier run masquerade as this run's trace.
+    destination.unlink(missing_ok=True)
     potrace = shutil.which("potrace")
     if not potrace:
-        return "skipped", "potrace executable is not available on PATH", False
+        return "skipped", "potrace executable is not available on PATH", False, {}
     temporary_bitmap = output_dir / ".vectorize-reference-trace.pbm"
     # The cleaned mask uses white for selected foreground, while potrace traces
     # black bitmap pixels. Normalize that polarity only in the temporary input.
     trace_bitmap = cleaned.point(lambda value: 0 if value else 255)
     trace_bitmap.save(temporary_bitmap)
     try:
+        command = [potrace, str(temporary_bitmap), "--svg", "--color", trace["fill_color"]]
+        for name, value in configured_options.items():
+            command.extend([f"--{name}", str(value)])
+        command.extend(["--output", str(destination)])
         completed = subprocess.run(
-            [
-                potrace,
-                str(temporary_bitmap),
-                "--svg",
-                "--color",
-                trace["fill_color"],
-                "--output",
-                str(destination),
-            ],
+            command,
             check=False,
             capture_output=True,
             text=True,
@@ -215,12 +236,83 @@ def try_trace(
     finally:
         temporary_bitmap.unlink(missing_ok=True)
     if completed.returncode:
+        destination.unlink(missing_ok=True)
         return (
             "skipped",
             f"potrace exited with code {completed.returncode}: {completed.stderr.strip()}",
             True,
+            {},
         )
-    return "created", None, True
+    return "created", None, True, dict(configured_options)
+
+
+def analyze_trace_svg(svg_path: Path, trace: dict[str, Any], options_used: dict[str, Any]) -> dict[str, Any]:
+    """Return structural SVG diagnostics without treating the trace as approved."""
+    analysis: dict[str, Any] = {
+        "svg_exists": svg_path.is_file(),
+        "svg_file_size_bytes": svg_path.stat().st_size if svg_path.is_file() else None,
+        "svg_path_count": None,
+        "svg_contains_image_tag": None,
+        "svg_contains_text_tag": None,
+        "svg_contains_rect_background": None,
+        "svg_fill_values": [],
+        "svg_has_viewbox": False,
+        "svg_width": None,
+        "svg_height": None,
+        "trace_transparent_background_expected": trace["background"] == "transparent",
+        "trace_potrace_options_configured": trace.get("potrace", {}),
+        "trace_potrace_options_used": options_used,
+        "parse_error": None,
+    }
+    if not svg_path.is_file():
+        return analysis
+    try:
+        root = ET.parse(svg_path).getroot()
+        elements = list(root.iter())
+        local_name = lambda element: element.tag.rsplit("}", 1)[-1].lower()
+        analysis.update(
+            {
+                "svg_path_count": sum(local_name(element) == "path" for element in elements),
+                "svg_contains_image_tag": any(local_name(element) == "image" for element in elements),
+                "svg_contains_text_tag": any(local_name(element) == "text" for element in elements),
+                "svg_contains_rect_background": any(local_name(element) == "rect" for element in elements),
+                "svg_fill_values": sorted(
+                    {element.attrib["fill"] for element in elements if "fill" in element.attrib}
+                ),
+                "svg_has_viewbox": "viewBox" in root.attrib,
+                "svg_width": root.attrib.get("width"),
+                "svg_height": root.attrib.get("height"),
+            }
+        )
+    except (ET.ParseError, OSError) as exc:
+        analysis["parse_error"] = str(exc)
+    return analysis
+
+
+def compare_trace_to_mask(cleaned_mask: Any, trace_render: Any | None) -> dict[str, Any]:
+    """Compare thresholded pixels; this is not a perceptual quality score."""
+    comparison = {
+        "trace_render_available": trace_render is not None,
+        "trace_vs_cleaned_mask_mismatch_ratio": None,
+        "trace_vs_cleaned_mask_mismatch_pixels": None,
+        "compared_pixel_count": 0,
+        "unavailable_reason": None,
+        "note": "Diagnostic thresholded mask/render comparison; not a perceptual logo quality score.",
+    }
+    if trace_render is None:
+        return comparison
+    expected = cleaned_mask.point(lambda value: 255 if value >= 128 else 0)
+    rendered = trace_render.getchannel("A").point(lambda value: 255 if value >= 128 else 0)
+    mismatches = sum(before != after for before, after in zip(expected.getdata(), rendered.getdata()))
+    total = expected.width * expected.height
+    comparison.update(
+        {
+            "trace_vs_cleaned_mask_mismatch_ratio": round(mismatches / total, 8),
+            "trace_vs_cleaned_mask_mismatch_pixels": mismatches,
+            "compared_pixel_count": total,
+        }
+    )
+    return comparison
 
 
 def try_render_trace(
@@ -423,6 +515,8 @@ def write_report(
     trace_status: str,
     trace_message: str | None,
     trace_inverted_for_potrace: bool,
+    trace_svg_analysis: dict[str, Any],
+    trace_comparison: dict[str, Any],
     trace_render_available: bool,
     source_trace_overlay_generated: bool,
     small_preview_sizes: list[int],
@@ -459,10 +553,19 @@ def write_report(
         "trace_background": trace["background"],
         "trace_inverted_for_potrace": trace_inverted_for_potrace,
         "trace_message": trace_message,
+        "trace_svg_analysis": trace_svg_analysis,
+        "trace_comparison": trace_comparison,
         "review_board": report_path(paths["review_board"]),
         "trace_render_available": trace_render_available,
         "source_trace_overlay_generated": source_trace_overlay_generated,
         "small_size_preview_sizes": small_preview_sizes,
+        "small_size_diagnostics": {
+            "preview_sizes": small_preview_sizes,
+            "small_size_warning": (
+                "16 px likely loses internal detail; a separate small-size variant may be needed later."
+            ),
+            "note": "Diagnostic only; no size variant or approval decision is created.",
+        },
         "fallback_messages": fallback_messages,
         "outputs": {
             key: report_path(path) if path.exists() else None
@@ -509,10 +612,14 @@ def run(config_path: Path, validate_only: bool) -> int:
     cleaned.save(paths["cleaned_mask"])
     save_overlay(source, cleaned, paths["overlay"], Image)
     trace = config.get("trace", DEFAULT_TRACE)
-    trace_status, trace_message, trace_inverted_for_potrace = try_trace(
+    trace_status, trace_message, trace_inverted_for_potrace, potrace_options_used = try_trace(
         cleaned, paths["trace"], output_dir, trace
     )
+    trace_svg_analysis = analyze_trace_svg(paths["trace"], trace, potrace_options_used)
     trace_render, render_message = try_render_trace(paths["trace"], output_dir, source.size, Image)
+    trace_comparison = compare_trace_to_mask(cleaned, trace_render)
+    if trace_render is None:
+        trace_comparison["unavailable_reason"] = render_message
     fallback_messages = [message for message in (trace_message, render_message) if message]
     with Image.open(paths["overlay"]) as opened_overlay:
         source_trace_overlay_generated, small_preview_sizes = create_review_board(
@@ -536,6 +643,8 @@ def run(config_path: Path, validate_only: bool) -> int:
         trace_status,
         trace_message,
         trace_inverted_for_potrace,
+        trace_svg_analysis,
+        trace_comparison,
         trace_render is not None,
         source_trace_overlay_generated,
         small_preview_sizes,
