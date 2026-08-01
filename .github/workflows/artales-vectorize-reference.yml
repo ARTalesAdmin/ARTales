@@ -1,0 +1,49 @@
+name: ARTales reference vectorization diagnostics
+
+on:
+  workflow_dispatch:
+    inputs:
+      config:
+        description: Reference vectorization configuration
+        required: true
+        type: choice
+        options:
+          - artales-symbol.v0.1.json
+          - artales-light-lockup.v0.1.json
+          - artales-dark-lockup.v0.1.json
+
+permissions:
+  contents: read
+
+jobs:
+  vectorize-reference:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install Pillow
+        run: python -m pip install Pillow
+
+      - name: Install optional potrace
+        continue-on-error: true
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes potrace
+
+      - name: Generate diagnostics
+        run: >-
+          python tools/brand/vectorize-reference/vectorize_reference.py
+          --config tools/brand/vectorize-reference/config/${{ inputs.config }}
+
+      - name: Upload diagnostics
+        uses: actions/upload-artifact@v4
+        with:
+          name: artales-vectorization-${{ inputs.config }}
+          path: tools/brand/vectorize-reference/output/
+          if-no-files-found: error

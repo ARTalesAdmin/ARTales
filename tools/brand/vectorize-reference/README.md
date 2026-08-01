@@ -37,6 +37,12 @@ python tools/brand/vectorize-reference/vectorize_reference.py \
 
 The other supplied configs cover the light and dark lockups. Repository-relative input and output paths are resolved from the repository root, so execution does not depend on the caller's working directory.
 
+## Run through GitHub Actions
+
+Open **Actions → ARTales reference vectorization diagnostics → Run workflow**, choose one of the supplied configs, and start the manual run. After it completes, download the config-named artifact from the run's **Artifacts** section; it contains the generated diagnostics from `tools/brand/vectorize-reference/output/`.
+
+Workflow artifacts are diagnostics only, not approved brand masters. Integrating them into runtime or public assets remains out of scope and requires a separate review and change.
+
 ## Inputs and configuration
 
 The checked-in configs point only to existing extracted reference crops. Each config fixes:
