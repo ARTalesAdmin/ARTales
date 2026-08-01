@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="195" height="391" viewBox="0 0 195 391" preserveAspectRatio="xMidYMid meet" role="img" aria-labelledby="title desc">
+  <title id="title">ARTales pen-drop symbol candidate v0.1</title>
+  <desc id="desc">Reference-traced gold pen nib and drop symbol with transparent negative-space details.</desc>
+  <path fill="#DCA645" fill-rule="evenodd" d="M90 0 C84 52 66 91 43 128 C18 168 0 196 0 236 C0 287 31 319 70 332 C81 336 85 344 86 355 C78 362 77 375 84 383 C91 391 104 391 111 383 C118 375 117 362 109 355 C110 344 114 336 125 332 C164 319 195 287 195 236 C195 196 177 168 152 128 C129 91 111 52 105 0 L98 0 L98 176 L135 214 L98 252 L98 342 C98 350 94 355 90 355 C86 355 82 350 82 342 L82 252 L45 214 L82 176 L82 0 Z
+M90 186 L118 214 L90 242 L62 214 Z
+M90 191 L100 202 L90 213 L80 202 Z
+M76 205 L87 216 L76 227 L65 216 Z
+M104 205 L115 216 L104 227 L93 216 Z
+M90 219 L101 230 L90 241 L79 230 Z"/>
+</svg>

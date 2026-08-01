@@ -1,51 +1,29 @@
-# ARTales visual identity candidates
+# ARTales vector candidates v0.1
 
-Tato složka je určena pro budoucí evidenci kandidátů vizuální identity ARTales.
+These files are first-pass, review-only reconstructions of the approved raster references. They are **candidate masters**, not final or approved brand masters, and are not connected to the application.
 
-V tomto PR se sem zatím nepřidávají žádné binární assety. Současné logo soubory z `New logo.zip` zůstávají vstupní referencí mimo repozitář, dokud nebude rozhodnuto, co se má stát kandidátem uloženým v repu a co zůstane pouze archivní referencí.
+## Candidate files
 
-## Proč kandidáty nemažeme
+- `symbol-pen-drop.candidate.v0.1.svg` — a transparent-background, neutral standalone master. Its inner pen channel and four-pane diamond are knocked out so the mark can be reviewed on light or dark backgrounds.
+- `logo-lockup-light.candidate.v0.1.svg` — the symbol and dark wordmark on the sampled warm-paper background, composed for light use.
+- `logo-lockup-dark.candidate.v0.1.svg` — the symbol and gold wordmark on the sampled dark background, composed for dark use.
 
-Nevybraná varianta nemusí být špatná. Může být nevhodná pro hlavní logo, ale dobrá pro favicon, avatar, speciální značku, interní dokument nebo pozdější revizi.
+All artwork uses explicit SVG paths. No raster is embedded and no provisional font or `<text>` node is used.
 
-Proto kandidát nikdy nemá zmizet jen proto, že nebyl vybrán jako primární varianta. Měl by dostat stav a důvod.
+## Authoritative references
 
-## Doporučené stavy kandidátů
+The reconstruction used only:
 
-- `primary_candidate` — hlavní kandidát k testování;
-- `reserve_candidate` — záložní kandidát, který zůstává použitelný;
-- `not_selected` — nebyl vybrán pro danou roli, ale zůstává evidovaný;
-- `test_failed` — selhal v konkrétním testu, například favicon nebo mobilní header;
-- `archived_reference` — historická nebo inspirační reference;
-- `superseded` — nahrazeno novější verzí.
+- `../references/source/symbol-pen-drop.source.jpg`
+- `../references/source/logo-lockup-light.source.jpg`
+- `../references/source/logo-lockup-dark.source.jpg`
+- `../references/extracted/symbol-pen-drop.source-crop.png`
+- `../references/extracted/logo-lockup-light.source-crop.png`
+- `../references/extracted/logo-lockup-dark.source-crop.png`
+- `../references/extracted/comparison-board-v0.1.png`
+- `../reference-extraction.v0.1.json`
+- `../../../docs/ARTALES_REFERENCE_EXTRACTION_REPORT.md`
 
-## Doporučené role
+## Manual review still required
 
-- `wordmark` — samotný nápis ARTales;
-- `logo_lockup` — symbol + wordmark;
-- `symbol` — samostatný mark / pero-kapka-list;
-- `monogram` — AT monogram;
-- `texture` — pozadí nebo atmosférický motiv;
-- `social_variant` — varianta určená primárně pro sociální sítě;
-- `small_size_variant` — varianta určená pro favicon, avatar nebo malé UI použití.
-
-## Co patří do kandidátní evidence
-
-U každého kandidáta by později mělo být jasné:
-
-- odkud pochází;
-- k jaké roli je určen;
-- zda je rastrový, vektorový nebo pouze mood reference;
-- zda má práva a původ vyjasněné;
-- v jakém testu uspěl nebo selhal;
-- proč byl vybrán, odmítnut nebo ponechán jako rezerva.
-
-## Co zatím nepatří do této složky
-
-- náhodné pracovní exporty;
-- generativní návrhy bez původu;
-- finální mastery;
-- produkční exporty;
-- runtime assety používané webem.
-
-Finální mastery patří později do `brand/artales/masters/`. Generované exporty patří do `brand/artales/exports/` nebo do jiné cílové struktury popsané manifestem.
+Compare each SVG over the corresponding raster crop at matched dimensions. Confirm the symbol silhouette and nib geometry, wordmark letter contours and kerning, symbol-to-wordmark scale and spacing, and all sampled colors. In particular, the wordmark outlines are a careful first-pass manual trace rather than recovered original typography; they need human approval or correction before any master designation or runtime integration.

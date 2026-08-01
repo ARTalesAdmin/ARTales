@@ -1,0 +1,39 @@
+{
+  "version": "0.1",
+  "status": "vector_candidate_review_only",
+  "source_reference_files": [
+    "brand/artales/references/source/symbol-pen-drop.source.jpg",
+    "brand/artales/references/source/logo-lockup-light.source.jpg",
+    "brand/artales/references/source/logo-lockup-dark.source.jpg",
+    "brand/artales/references/extracted/symbol-pen-drop.source-crop.png",
+    "brand/artales/references/extracted/logo-lockup-light.source-crop.png",
+    "brand/artales/references/extracted/logo-lockup-dark.source-crop.png",
+    "brand/artales/references/extracted/comparison-board-v0.1.png",
+    "brand/artales/reference-extraction.v0.1.json",
+    "docs/ARTALES_REFERENCE_EXTRACTION_REPORT.md"
+  ],
+  "created_files": [
+    "brand/artales/candidates/symbol-pen-drop.candidate.v0.1.svg",
+    "brand/artales/candidates/logo-lockup-light.candidate.v0.1.svg",
+    "brand/artales/candidates/logo-lockup-dark.candidate.v0.1.svg",
+    "brand/artales/candidates/README.md",
+    "brand/artales/candidates/vector-candidates.v0.1.json",
+    "docs/ARTALES_VECTOR_CANDIDATES_REPORT.md"
+  ],
+  "candidate_palette": {
+    "neutral_symbol_gold": "#DCA645",
+    "light_background": "#FCF5E3",
+    "light_wordmark": "#272726",
+    "dark_background": "#101010",
+    "dark_wordmark_gold": "#D19A3E",
+    "status": "sampled_candidate_values_not_approved_tokens"
+  },
+  "known_uncertainties": [
+    "The original vector control points and original type design are unavailable.",
+    "Wordmark outlines are a manual first-pass reconstruction and require overlay review, especially curves, serifs and kerning.",
+    "Flat candidate fills cannot reproduce incidental photographic or print texture in the raster references.",
+    "Palette values are sampled evidence and remain unapproved."
+  ],
+  "approval_state": "awaiting_human_visual_review",
+  "notes": "Reference-first SVG candidates only. No raster embedding, text nodes, runtime integration, public asset replacement, CSS, manifest or application behavior changes."
+}
