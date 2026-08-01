@@ -67,6 +67,21 @@ The lockup configs produce a single-color, mask-level diagnostic trace. They do 
 or approve the lockups' multiple source colors. Every generated SVG remains a diagnostic
 candidate, not an approved master.
 
+### Potrace tuning
+
+The optional `trace.potrace` object supports only three bounded CLI parameters:
+
+- `turdsize` (integer, 0–100) removes pixel specks up to the configured area;
+- `alphamax` (number, 0.0–1.333) controls corner smoothing; and
+- `opttolerance` (number, 0.0–10.0) controls curve optimization tolerance.
+
+The supplied configs use the conservative starting values `2`, `1.0`, and `0.2`. Lockup
+values remain diagnostic defaults rather than wordmark optimization. The tool passes a
+configured value to potrace using its matching long CLI option and records options as used
+only after potrace succeeds. An older or incompatible potrace fails the trace step with its
+CLI error in the report instead of silently ignoring an option. Changing these parameters
+creates a reproducible diagnostic run, not a brand decision or a manually refined candidate.
+
 ## Generated outputs
 
 A normal run creates a config-specific directory below `tools/brand/vectorize-reference/output/` containing:
@@ -78,6 +93,15 @@ A normal run creates a config-specific directory below `tools/brand/vectorize-re
 5. a labelled PNG review board; and
 6. a JSON diagnostic report with dimensions, pixel counts, ratios, paths, trace status,
    foreground-polarity metadata, review-board capabilities, preview sizes, and fallbacks.
+
+The report's `trace_svg_analysis` object records file presence and size, path count, root
+dimensions/viewBox, fill values, and detectable image, text, or rectangle elements. XML
+parse failures are reported without aborting the rest of the run. `trace_comparison` records
+the thresholded trace-render versus cleaned-mask mismatch pixels and ratio when rendering
+is available, or an explicit reason when it is not. `small_size_diagnostics` records the
+preview sizes and a non-binding detail warning. These fields support comparisons between
+parameterized runs; mismatch is sensitive to renderer and antialiasing behavior and is not
+a perceptual logo-quality score or approval threshold.
 
 The review board places the source crop, raw mask, cleaned mask, and mask overlay side by
 side. When an SVG renderer is available it also shows the trace, a translucent
@@ -99,7 +123,10 @@ The board neither approves nor promotes a candidate as a brand master.
 - Morphological cleanup can remove fine detail or alter boundaries; the overlay must be reviewed at useful zoom levels.
 - The overlay compares the cleaned mask to the raster source. It is not a perceptual quality score.
 - `potrace` availability and version are external to the repository. Its SVG output is only a candidate.
-- The current metrics measure coverage and cleanup changes; they do not establish brand fidelity or approval.
+- The metrics measure coverage, cleanup changes, SVG structure, and render/mask mismatch; they do not establish brand fidelity or approval.
+
+Final refinement and master creation remain separate, human-reviewed work. They must not be
+replaced by agent redraw, generative reconstruction, or an automatic metric threshold.
 
 ## Future Brand Lab integration
 
