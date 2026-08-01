@@ -1,0 +1,26 @@
+{
+  "version": "0.1",
+  "role": "artales_symbol_pen_drop",
+  "input_image": "brand/artales/references/extracted/symbol-pen-drop.source-crop.png",
+  "output_dir": "tools/brand/vectorize-reference/output/artales-symbol-v0.1",
+  "segmentation": {
+    "mode": "background_distance",
+    "background_color": [15, 19, 22],
+    "target_color": [220, 166, 69],
+    "tolerance": 42,
+    "alpha_threshold": 1
+  },
+  "cleanup": {
+    "open_radius": 1,
+    "close_radius": 1
+  },
+  "outputs": {
+    "mask": "symbol-mask.png",
+    "cleaned_mask": "symbol-mask-cleaned.png",
+    "trace": "symbol-trace-candidate.svg",
+    "overlay": "symbol-overlay.png",
+    "report": "symbol-report.json"
+  },
+  "notes": "Candidate thresholds derived from documented reference samples. Outputs are diagnostics only and require visual review.",
+  "approval_state": "not_run"
+}
