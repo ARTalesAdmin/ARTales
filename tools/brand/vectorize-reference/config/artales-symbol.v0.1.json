@@ -24,6 +24,28 @@
       "opttolerance": 0.2
     }
   },
+  "trace_matrix": [
+    {
+      "id": "current",
+      "label": "Current conservative",
+      "potrace": {"turdsize": 2, "alphamax": 1.0, "opttolerance": 0.2}
+    },
+    {
+      "id": "smoother",
+      "label": "Smoother",
+      "potrace": {"turdsize": 2, "alphamax": 1.1, "opttolerance": 0.4}
+    },
+    {
+      "id": "cleaner",
+      "label": "Cleaner",
+      "potrace": {"turdsize": 3, "alphamax": 1.0, "opttolerance": 0.3}
+    },
+    {
+      "id": "stricter",
+      "label": "Stricter",
+      "potrace": {"turdsize": 1, "alphamax": 0.8, "opttolerance": 0.15}
+    }
+  ],
   "outputs": {
     "mask": "symbol-mask.png",
     "cleaned_mask": "symbol-mask-cleaned.png",
