@@ -38,6 +38,31 @@ python tools/brand/vectorize-reference/vectorize_reference.py \
 
 The other supplied configs cover the light and dark lockups. Repository-relative input and output paths are resolved from the repository root, so execution does not depend on the caller's working directory.
 
+### Compare symbol trace parameters
+
+The standalone symbol config also contains a bounded, named `trace_matrix`. Run all of
+its variants with:
+
+```bash
+python tools/brand/vectorize-reference/vectorize_reference.py \
+  --config tools/brand/vectorize-reference/config/artales-symbol.v0.1.json \
+  --matrix
+```
+
+Matrix mode first produces the same base mask diagnostics as a single run, then traces the
+identical cleaned mask with the `current`, `smoother`, `cleaner`, and `stricter` potrace
+settings. Each variant is written below `matrix/<variant-id>/` with its SVG, optional
+render, metrics, and optional 128, 64, 32, and 16 px previews. The output root also receives
+`symbol-trace-matrix-report.json` and `symbol-trace-matrix-board.png`, which compare SVG
+structure, render availability, thresholded mask mismatch, fallbacks, and small-size views.
+
+Variant ids are restricted to safe lowercase filenames, and every potrace value uses the
+same bounds as single mode. A config without `trace_matrix` fails clearly when `--matrix`
+is requested. Renderer absence remains non-fatal and is shown on the board and in reports.
+These controlled parameter changes are deterministic diagnostics intended to support human
+comparison without manual or generative redraw drift. The matrix does not select, approve,
+lock, or promote a variant, candidate, or master; mismatch is not a perceptual quality score.
+
 ## Run through GitHub Actions
 
 Open **Actions → ARTales reference vectorization diagnostics → Run workflow**, choose one of the supplied configs, and start the manual run. After it completes, download the config-named artifact from the run's **Artifacts** section; it contains the generated diagnostics from `tools/brand/vectorize-reference/output/`.
@@ -81,6 +106,7 @@ configured value to potrace using its matching long CLI option and records optio
 only after potrace succeeds. An older or incompatible potrace fails the trace step with its
 CLI error in the report instead of silently ignoring an option. Changing these parameters
 creates a reproducible diagnostic run, not a brand decision or a manually refined candidate.
+The same validation applies independently to every `trace_matrix[].potrace` object.
 
 ## Generated outputs
 
@@ -114,7 +140,7 @@ space, edge changes, and survival of internal detail rather than treating any pa
 automatic pass/fail decision.
 
 The output directory is intentionally ignored except for its `.gitkeep`. Generated files,
-including review boards and SVG traces, are local diagnostics and unapproved artifacts.
+including review boards, matrix outputs, reports, previews, and SVG traces, are local diagnostics and unapproved artifacts.
 The board neither approves nor promotes a candidate as a brand master.
 
 ## Known limitations

@@ -42,6 +42,14 @@ or an approval decision. Refinement must proceed through recorded parameter chan
 human comparison rather than agent, manual, or generative redraw. Any final master creation
 remains a separate governed step.
 
+Before any later candidate promotion, the tool can also run a symbol-only tuning matrix of
+named, bounded potrace parameter sets against one identical cleaned mask. It produces
+per-variant metrics and a single comparison board while explicitly leaving every result
+diagnostic, unapproved, and not a master. This deterministic comparison step helps reviewers
+choose whether a parameter set merits further work without introducing the geometry drift
+caused by manual or generative redraw. No matrix metric is an approval or perceptual-quality
+score.
+
 ## Asset vocabulary
 
 | Term | Meaning |
