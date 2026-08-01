@@ -24,6 +24,7 @@
     "cleaned_mask": "symbol-mask-cleaned.png",
     "trace": "symbol-trace-candidate.svg",
     "overlay": "symbol-overlay.png",
+    "review_board": "symbol-review-board.png",
     "report": "symbol-report.json"
   },
   "notes": "Candidate thresholds derived from documented reference samples. Outputs are diagnostics only and require visual review.",

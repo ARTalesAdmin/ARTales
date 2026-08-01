@@ -24,6 +24,7 @@
     "cleaned_mask": "light-lockup-mask-cleaned.png",
     "trace": "light-lockup-trace-candidate.svg",
     "overlay": "light-lockup-overlay.png",
+    "review_board": "light-lockup-review-board.png",
     "report": "light-lockup-report.json"
   },
   "notes": "Background-distance mode retains both the gold symbol and dark wordmark. Outputs are diagnostics only and require visual review.",

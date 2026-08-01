@@ -7,6 +7,7 @@ This local tool turns an approved raster reference into reproducible review arti
 - Python 3.9 or newer.
 - [Pillow](https://pillow.readthedocs.io/) for mask and overlay generation.
 - Optional: the `potrace` executable on `PATH` for an SVG trace candidate.
+- Optional: CairoSVG, `rsvg-convert`, or ImageMagick for rasterizing that candidate on the review board.
 
 No dependency is added to the application by this scaffold. If Pillow is unavailable, install it in an isolated local environment, for example:
 
@@ -16,7 +17,7 @@ python -m venv .venv-vectorize
 python -m pip install Pillow
 ```
 
-Without Pillow, config-only validation still works and generation exits with a clear message. Without `potrace`, masks, the overlay, and the JSON report are still produced; the report records that tracing was skipped.
+Without Pillow, config-only validation still works and generation exits with a clear message. Without `potrace`, masks, the overlay, review board, and JSON report are still produced; the board and report record that tracing was skipped. A missing SVG renderer is also non-fatal: the board retains its source and mask panels and clearly labels the trace fallback.
 
 ## Run the tool
 
@@ -74,10 +75,23 @@ A normal run creates a config-specific directory below `tools/brand/vectorize-re
 2. a cleaned binary mask;
 3. an SVG trace candidate when `potrace` is available;
 4. a red mask-on-source overlay;
-5. a JSON diagnostic report with dimensions, pixel counts, ratios, paths, trace status, and
-   foreground-polarity metadata.
+5. a labelled PNG review board; and
+6. a JSON diagnostic report with dimensions, pixel counts, ratios, paths, trace status,
+   foreground-polarity metadata, review-board capabilities, preview sizes, and fallbacks.
 
-The output directory is intentionally ignored except for its `.gitkeep`. Generated files are local diagnostics, are not brand masters, and must not be treated as approved.
+The review board places the source crop, raw mask, cleaned mask, and mask overlay side by
+side. When an SVG renderer is available it also shows the trace, a translucent
+source/trace comparison, and a thresholded mismatch view (red means expected mask pixels
+missing from the trace; blue means additional traced pixels). That mismatch is sensitive
+to rasterization and antialiasing and is a visual aid, not a perceptual score. The final row
+shows 128, 64, 32, and 16 px previews using the trace when it can be rendered, or a clearly
+labelled cleaned-mask fallback otherwise. Reviewers should inspect silhouette, negative
+space, edge changes, and survival of internal detail rather than treating any panel as an
+automatic pass/fail decision.
+
+The output directory is intentionally ignored except for its `.gitkeep`. Generated files,
+including review boards and SVG traces, are local diagnostics and unapproved artifacts.
+The board neither approves nor promotes a candidate as a brand master.
 
 ## Known limitations
 

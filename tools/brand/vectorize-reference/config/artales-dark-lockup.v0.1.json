@@ -24,6 +24,7 @@
     "cleaned_mask": "dark-lockup-mask-cleaned.png",
     "trace": "dark-lockup-trace-candidate.svg",
     "overlay": "dark-lockup-overlay.png",
+    "review_board": "dark-lockup-review-board.png",
     "report": "dark-lockup-report.json"
   },
   "notes": "Candidate thresholds derived from documented reference samples. Outputs are diagnostics only and require visual review.",
