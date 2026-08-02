@@ -1,0 +1,70 @@
+{
+  "candidate_id": "symbol-pen-drop.smoother",
+  "version": "0.1",
+  "status": "candidate_review_only",
+  "approval_state": "awaiting_human_visual_review",
+  "not_master": true,
+  "selected_from_matrix_variant": "smoother",
+  "selected_from_matrix_label": "Smoother",
+  "selected_potrace_options": {
+    "turdsize": 2,
+    "alphamax": 1.1,
+    "opttolerance": 0.4
+  },
+  "source_config_path": "tools/brand/vectorize-reference/config/artales-symbol.v0.1.json",
+  "source_reference_path": "brand/artales/references/source/symbol-pen-drop.source.jpg",
+  "source_crop_path": "brand/artales/references/extracted/symbol-pen-drop.source-crop.png",
+  "generated_from_trace_matrix": true,
+  "deterministic_regeneration": true,
+  "fill_color": "#DCA645",
+  "background": "transparent",
+  "svg_analysis": {
+    "svg_exists": true,
+    "svg_file_size_bytes": 2525,
+    "svg_path_count": 5,
+    "svg_contains_image_tag": false,
+    "svg_contains_text_tag": false,
+    "svg_contains_rect_background": false,
+    "svg_fill_values": [
+      "#dca645"
+    ],
+    "svg_has_viewbox": true,
+    "svg_width": "376.000000pt",
+    "svg_height": "652.000000pt",
+    "trace_transparent_background_expected": true,
+    "trace_potrace_options_configured": {
+      "turdsize": 2,
+      "alphamax": 1.1,
+      "opttolerance": 0.4
+    },
+    "trace_potrace_options_used": {
+      "turdsize": 2,
+      "alphamax": 1.1,
+      "opttolerance": 0.4
+    },
+    "parse_error": null
+  },
+  "trace_comparison": {
+    "trace_render_available": true,
+    "trace_vs_cleaned_mask_mismatch_ratio": 0.00205587,
+    "trace_vs_cleaned_mask_mismatch_pixels": 504,
+    "compared_pixel_count": 245152,
+    "unavailable_reason": null,
+    "note": "Diagnostic thresholded mask/render comparison; not a perceptual logo quality score."
+  },
+  "small_size_note": "16 px likely needs a separate small-size or favicon variant later.",
+  "runtimeImpact": false,
+  "dbImpact": false,
+  "envImpact": false,
+  "limitations": [
+    "Thresholded render mismatch is a technical diagnostic, not a perceptual quality score.",
+    "The deterministic trace has not received human visual approval.",
+    "This package does not define a master or a small-size variant."
+  ],
+  "review_checklist": [
+    "Compare silhouette and negative space with the source crop.",
+    "Inspect curve continuity and retained pen/drop identity at useful zoom levels.",
+    "Review 128, 64, 32, and 16 px behavior; do not infer favicon approval.",
+    "Record explicit human approval before any separate master-lock proposal."
+  ]
+}
