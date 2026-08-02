@@ -36,6 +36,19 @@ python tools/brand/vectorize-reference/vectorize_reference.py \
   --validate-config
 ```
 
+Validate all fixed prerequisites for a future light/dark lockup candidate step:
+
+```bash
+python tools/brand/vectorize-reference/vectorize_reference.py \
+  --validate-lockup-sources
+```
+
+This preflight checks that the standalone symbol SVG exists, its metadata still says
+`locked_master` / `approved_locked`, and both lockup configs and source crops exist and
+validate. It does not generate, package, approve, lock, export, or integrate an asset.
+The current lockup references still require human wordmark-fidelity review before a safe
+vector candidate packaging mode can be enabled.
+
 The other supplied configs cover the light and dark lockups. Repository-relative input and output paths are resolved from the repository root, so execution does not depend on the caller's working directory.
 
 ### Compare symbol trace parameters
