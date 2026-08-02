@@ -11,6 +11,7 @@ import re
 import shutil
 import subprocess
 import sys
+import tempfile
 import xml.etree.ElementTree as ET
 from pathlib import Path
 from typing import Any
@@ -64,6 +65,14 @@ def parse_args() -> argparse.Namespace:
         "--matrix",
         action="store_true",
         help="Generate deterministic diagnostics for every configured trace_matrix variant.",
+    )
+    parser.add_argument(
+        "--candidate-from-matrix",
+        metavar="VARIANT_ID",
+        help=(
+            "Regenerate one trace_matrix variant and package it as an unapproved "
+            "repository candidate (never a master or runtime asset)."
+        ),
     )
     return parser.parse_args()
 
@@ -685,6 +694,102 @@ def run_trace_matrix(
     (output_dir / "symbol-trace-matrix-report.json").write_text(json.dumps(report, indent=2) + "\n", encoding="utf-8")
 
 
+def package_matrix_candidate(
+    config_path: Path,
+    config: dict[str, Any],
+    variant_id: str,
+    source: Any,
+    cleaned: Any,
+    image_module: Any,
+) -> None:
+    """Regenerate and persist one explicitly unapproved symbol candidate."""
+    if config["role"] != "artales_symbol_pen_drop":
+        raise ConfigurationError(
+            "Candidate packaging is currently restricted to the standalone ARTales symbol config."
+        )
+    variants = config.get("trace_matrix") or []
+    selected = next((variant for variant in variants if variant["id"] == variant_id), None)
+    if selected is None:
+        available = ", ".join(variant["id"] for variant in variants) or "none"
+        raise ConfigurationError(
+            f"trace_matrix variant '{variant_id}' was not found (available: {available})."
+        )
+
+    trace = {**config.get("trace", DEFAULT_TRACE), "potrace": dict(selected["potrace"])}
+    candidate_dir = REPOSITORY_ROOT / "brand/artales/candidates/symbol-pen-drop"
+    basename = f"symbol-pen-drop.{variant_id}.candidate.v{config['version']}"
+    svg_path = candidate_dir / f"{basename}.svg"
+    metadata_path = candidate_dir / f"{basename}.json"
+    with tempfile.TemporaryDirectory(prefix="artales-symbol-candidate-") as temporary:
+        temporary_dir = Path(temporary)
+        temporary_svg = temporary_dir / "candidate.svg"
+        status, message, _, options_used = try_trace(
+            cleaned, temporary_svg, temporary_dir, trace
+        )
+        if status != "created":
+            raise ConfigurationError(f"Candidate SVG could not be generated: {message}")
+        analysis = analyze_trace_svg(temporary_svg, trace, options_used)
+        forbidden = (
+            analysis["svg_contains_image_tag"],
+            analysis["svg_contains_text_tag"],
+            analysis["svg_contains_rect_background"],
+        )
+        if analysis["parse_error"] or any(forbidden) or not analysis["svg_has_viewbox"]:
+            raise ConfigurationError("Generated candidate SVG failed candidate structure checks.")
+        if trace["fill_color"].lower() not in {
+            value.lower() for value in analysis["svg_fill_values"]
+        }:
+            raise ConfigurationError("Generated candidate SVG does not contain the configured fill color.")
+
+        trace_render, render_message = try_render_trace(
+            temporary_svg, temporary_dir, source.size, image_module
+        )
+        comparison = compare_trace_to_mask(cleaned, trace_render)
+        if trace_render is None:
+            comparison["unavailable_reason"] = render_message
+        candidate_dir.mkdir(parents=True, exist_ok=True)
+        shutil.copyfile(temporary_svg, svg_path)
+
+    source_crop = report_path(repository_path(config["input_image"]))
+    source_reference = "brand/artales/references/source/symbol-pen-drop.source.jpg"
+    metadata = {
+        "candidate_id": f"symbol-pen-drop.{variant_id}",
+        "version": config["version"],
+        "status": "candidate_review_only",
+        "approval_state": "awaiting_human_visual_review",
+        "not_master": True,
+        "selected_from_matrix_variant": selected["id"],
+        "selected_from_matrix_label": selected["label"],
+        "selected_potrace_options": selected["potrace"],
+        "source_config_path": report_path(config_path),
+        "source_reference_path": source_reference,
+        "source_crop_path": source_crop,
+        "generated_from_trace_matrix": True,
+        "deterministic_regeneration": True,
+        "fill_color": trace["fill_color"],
+        "background": "transparent",
+        "svg_analysis": analysis,
+        "trace_comparison": comparison,
+        "small_size_note": "16 px likely needs a separate small-size or favicon variant later.",
+        "runtimeImpact": False,
+        "dbImpact": False,
+        "envImpact": False,
+        "limitations": [
+            "Thresholded render mismatch is a technical diagnostic, not a perceptual quality score.",
+            "The deterministic trace has not received human visual approval.",
+            "This package does not define a master or a small-size variant.",
+        ],
+        "review_checklist": [
+            "Compare silhouette and negative space with the source crop.",
+            "Inspect curve continuity and retained pen/drop identity at useful zoom levels.",
+            "Review 128, 64, 32, and 16 px behavior; do not infer favicon approval.",
+            "Record explicit human approval before any separate master-lock proposal.",
+        ],
+    }
+    metadata_path.write_text(json.dumps(metadata, indent=2) + "\n", encoding="utf-8")
+    print(f"Unapproved candidate package written to: {candidate_dir}")
+
+
 def write_report(
     config_path: Path,
     config: dict[str, Any],
@@ -757,7 +862,12 @@ def write_report(
     paths["report"].write_text(json.dumps(report, indent=2) + "\n", encoding="utf-8")
 
 
-def run(config_path: Path, validate_only: bool, matrix: bool = False) -> int:
+def run(
+    config_path: Path,
+    validate_only: bool,
+    matrix: bool = False,
+    candidate_from_matrix: str | None = None,
+) -> int:
     config_path = config_path.resolve()
     config = load_config(config_path)
     input_path = repository_path(config["input_image"])
@@ -765,12 +875,16 @@ def run(config_path: Path, validate_only: bool, matrix: bool = False) -> int:
         raise ConfigurationError(f"Input image does not exist: {input_path}")
     if matrix and not config.get("trace_matrix"):
         raise ConfigurationError("--matrix requires a non-empty trace_matrix in the configuration.")
+    if candidate_from_matrix and not config.get("trace_matrix"):
+        raise ConfigurationError(
+            "--candidate-from-matrix requires a non-empty trace_matrix in the configuration."
+        )
+    if matrix and candidate_from_matrix:
+        raise ConfigurationError("--matrix and --candidate-from-matrix cannot be combined.")
     if validate_only:
         print(f"Configuration is valid: {config_path}")
         print(f"Input image exists: {input_path}")
         return 0
-    output_dir = repository_path(config["output_dir"])
-    output_dir.mkdir(parents=True, exist_ok=True)
     if importlib.util.find_spec("PIL") is None:
         print(
             "Pillow is required to generate raster artifacts. Install it locally with "
@@ -785,11 +899,18 @@ def run(config_path: Path, validate_only: bool, matrix: bool = False) -> int:
             source = opened.convert("RGBA")
     except (OSError, ValueError) as exc:
         raise ConfigurationError(f"Input image cannot be decoded: {input_path}: {exc}") from exc
+    mask = build_mask(source, config["segmentation"], Image)
+    cleaned = clean_mask(mask, config["cleanup"], ImageFilter)
+    if candidate_from_matrix:
+        package_matrix_candidate(
+            config_path, config, candidate_from_matrix, source, cleaned, Image
+        )
+        return 0
+    output_dir = repository_path(config["output_dir"])
+    output_dir.mkdir(parents=True, exist_ok=True)
     output_names = dict(config["outputs"])
     output_names.setdefault("review_board", f"{config['role']}-review-board.png")
     paths = {key: output_dir / value for key, value in output_names.items()}
-    mask = build_mask(source, config["segmentation"], Image)
-    cleaned = clean_mask(mask, config["cleanup"], ImageFilter)
     mask.save(paths["mask"])
     cleaned.save(paths["cleaned_mask"])
     save_overlay(source, cleaned, paths["overlay"], Image)
@@ -863,7 +984,12 @@ def run(config_path: Path, validate_only: bool, matrix: bool = False) -> int:
 def main() -> int:
     args = parse_args()
     try:
-        return run(args.config, args.validate_config, args.matrix)
+        return run(
+            args.config,
+            args.validate_config,
+            args.matrix,
+            args.candidate_from_matrix,
+        )
     except ConfigurationError as exc:
         print(f"Error: {exc}", file=sys.stderr)
         return 2
