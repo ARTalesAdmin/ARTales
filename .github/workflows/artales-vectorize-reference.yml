@@ -19,6 +19,12 @@ on:
         options:
           - single
           - matrix
+          - candidate
+      candidate_variant:
+        description: Candidate trace_matrix variant id
+        required: false
+        default: smoother
+        type: string
 
 permissions:
   contents: read
@@ -50,6 +56,10 @@ jobs:
             python tools/brand/vectorize-reference/vectorize_reference.py \
               --config tools/brand/vectorize-reference/config/${{ inputs.config }} \
               --matrix
+          elif [ "${{ inputs.mode }}" = "candidate" ]; then
+            python tools/brand/vectorize-reference/vectorize_reference.py \
+              --config tools/brand/vectorize-reference/config/${{ inputs.config }} \
+              --candidate-from-matrix "${{ inputs.candidate_variant }}"
           else
             python tools/brand/vectorize-reference/vectorize_reference.py \
               --config tools/brand/vectorize-reference/config/${{ inputs.config }}
@@ -59,5 +69,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: artales-vectorization-${{ inputs.config }}
-          path: tools/brand/vectorize-reference/output/
+          path: |
+            tools/brand/vectorize-reference/output/
+            brand/artales/candidates/symbol-pen-drop/
           if-no-files-found: error
