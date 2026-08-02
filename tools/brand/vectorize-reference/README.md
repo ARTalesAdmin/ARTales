@@ -63,6 +63,25 @@ These controlled parameter changes are deterministic diagnostics intended to sup
 comparison without manual or generative redraw drift. The matrix does not select, approve,
 lock, or promote a variant, candidate, or master; mismatch is not a perceptual quality score.
 
+### Package a selected review candidate
+
+After a human has selected a matrix basis, regenerate that exact cleaned mask and variant
+directly from its config and place the unapproved package in the candidate registry:
+
+```bash
+python tools/brand/vectorize-reference/vectorize_reference.py \
+  --config tools/brand/vectorize-reference/config/artales-symbol.v0.1.json \
+  --candidate-from-matrix smoother
+```
+
+This mode looks up the variant by id, applies its bounded potrace settings, and refuses to
+write a package unless potrace succeeds and the SVG passes structural checks (viewBox,
+configured fill, and no image, text, or rectangle element). It writes only the candidate
+SVG and metadata under `brand/artales/candidates/symbol-pen-drop/`; temporary masks and
+render diagnostics stay outside the repository. Candidate packaging is currently restricted
+to the standalone symbol config. It does not approve, lock, export, or copy the candidate
+to a master, `public/`, favicon, application icon, CSS, or any runtime path.
+
 ## Run through GitHub Actions
 
 Open **Actions → ARTales reference vectorization diagnostics → Run workflow**, choose one of the supplied configs, and start the manual run. After it completes, download the config-named artifact from the run's **Artifacts** section; it contains the generated diagnostics from `tools/brand/vectorize-reference/output/`.
