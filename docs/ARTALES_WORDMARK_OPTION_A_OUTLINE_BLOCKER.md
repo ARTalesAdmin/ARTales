@@ -49,6 +49,35 @@ could be verified and no outline conversion was attempted. Georgia was not used.
 font was substituted, no letters were manually redrawn, and no AI/generative reconstruction was
 used.
 
+## Font-source follow-up (2026-08-03)
+
+A follow-up change attempted to create the requested auditable source package from the
+authoritative Google Fonts repository. The first provenance step was intentionally performed
+before downloading any files: resolve the current commit for the repository's `main` branch so
+that the font and license could be fetched from immutable, commit-pinned paths.
+
+- Attempted repository: `https://github.com/google/fonts.git`
+- Attempted ref: `refs/heads/main`
+- Command: `git ls-remote https://github.com/google/fonts.git refs/heads/main`
+- Intended upstream paths after pinning a commit:
+  `ofl/librebaskerville/LibreBaskerville-Regular.ttf`,
+  `ofl/librebaskerville/OFL.txt`, and
+  `ofl/librebaskerville/METADATA.pb`
+- Result: the execution environment rejected the HTTPS CONNECT tunnel with HTTP 403 before a
+  commit identifier or any upstream file could be retrieved.
+
+A filesystem search also found no existing Libre Baskerville source file in the workspace,
+system font directory, tool directory, root cache, or temporary directory. An independent web
+lookup was unavailable because the browsing service rejected the request as unauthorized. These
+failures leave no authoritative binary, immutable source revision, license companion, or digest
+that can be committed and truthfully audited.
+
+Therefore this follow-up does not create
+`brand/artales/wordmark/font-sources/libre-baskerville/`, does not commit a substitute or an
+unverified copy, and does not alter the prior conclusion. The font-source package remains blocked
+until a trusted Libre Baskerville Regular file and its authoritative OFL provenance can be
+retrieved together.
+
 ## Why no candidate files were created
 
 An outline freezes the glyph geometry of one exact font file. Generating paths from an
@@ -119,6 +148,10 @@ Any future outlined candidate must remain `outline_candidate_review_only` with a
 
 - [x] Confirmed Libre Baskerville is not installed and does not resolve through fontconfig.
 - [x] Confirmed source retrieval attempts were blocked by HTTP 403 responses.
+- [x] Re-attempted authoritative Google Fonts provenance resolution on 2026-08-03; the HTTPS
+  CONNECT tunnel was blocked with HTTP 403 before a commit or file was retrieved.
+- [x] Confirmed no cached or installed Libre Baskerville source file was available in the
+  searched workspace, system-font, tool, root-cache, or temporary paths.
 - [x] Confirmed no font binary was added.
 - [x] Confirmed no outline candidate, master, or lockup asset was added.
 - [x] Confirmed existing Option A candidate and options board were not changed.
