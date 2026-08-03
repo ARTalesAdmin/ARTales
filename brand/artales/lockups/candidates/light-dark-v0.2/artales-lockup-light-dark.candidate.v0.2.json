@@ -1,0 +1,82 @@
+{
+  "candidate_id": "artales-lockup-light-dark.v0.2",
+  "based_on_candidate": "artales-lockup-light-dark.v0.1",
+  "status": "lockup_candidate_review_only",
+  "approval_state": "awaiting_human_visual_review",
+  "not_master": true,
+  "human_feedback": "Za mě v obou variantách, light i dark, bych zvětšil symbol na velikost písmena A ve vertikální ose. Ať je tedy celý znak větší, výraznější. Mezera mezi znakem a wordmarkem se zdá v pořádku.",
+  "symbol_master_path": "brand/artales/masters/symbol-pen-drop/symbol-pen-drop.master.v1.svg",
+  "symbol_master_json_path": "brand/artales/masters/symbol-pen-drop/symbol-pen-drop.master.v1.json",
+  "symbol_master_sha256": "d70d53143a6809d0bea61d68238b40d6a7d3a063e8a5f0f5d703f234d9899847",
+  "wordmark_master_path": "brand/artales/masters/wordmark-artales/artales-wordmark.master.v1.svg",
+  "wordmark_master_json_path": "brand/artales/masters/wordmark-artales/artales-wordmark.master.v1.json",
+  "wordmark_master_sha256": "74ed72373b89a0818628469d5a6ff5fdf7080316d9338018f6bf70ae9fec4f91",
+  "symbol_geometry_modified": false,
+  "wordmark_geometry_modified": false,
+  "symbol_included": true,
+  "wordmark_included": true,
+  "layout": "horizontal_symbol_left_wordmark_right",
+  "variants": ["light", "dark"],
+  "light_variant_path": "brand/artales/lockups/candidates/light-dark-v0.2/artales-lockup-light.candidate.v0.2.svg",
+  "dark_variant_path": "brand/artales/lockups/candidates/light-dark-v0.2/artales-lockup-dark.candidate.v0.2.svg",
+  "color_palette_used": {
+    "symbol_locked_gold": "#DCA645",
+    "primary_gold_dark_wordmark": "#E0AA47",
+    "text_dark_light_wordmark": "#272827",
+    "intended_light_context_paper": "#FDF3E2",
+    "intended_dark_context_deep_dark": "#141414",
+    "intended_dark_context_ink_night": "#0F1315"
+  },
+  "background_required": false,
+  "transparent_background": true,
+  "live_text": false,
+  "external_font_references": false,
+  "raster_images": false,
+  "runtimeImpact": false,
+  "dbImpact": false,
+  "envImpact": false,
+  "publicIntegration": false,
+  "composition_parameters_v0_1": {
+    "symbol_scale": 1.0,
+    "wordmark_scale": 1.0,
+    "symbol_translate": [0, 104],
+    "wordmark_translate": [520, 840],
+    "gap_between_symbol_and_wordmark": 144,
+    "viewBox": "0 0 4700 860"
+  },
+  "composition_parameters_v0_2": {
+    "symbol_scale": 1.18,
+    "wordmark_scale": 1.0,
+    "symbol_translate": [0, 45.32],
+    "wordmark_translate": [587.68, 840],
+    "symbol_scaled_viewport": [443.68, 769.36],
+    "gap_between_symbol_and_wordmark": 144,
+    "viewBox": "0 0 4768 860",
+    "vertical_alignment_method": "The scaled 769.36-unit symbol viewport is centered at y=430, matching the v0.1 optical center; the wordmark baseline remains y=840."
+  },
+  "symbol_scale_change_summary": "Increased wrapper scale from 1.00 to 1.18. The symbol viewport height changes from 652 to 769.36 units, approximately matching the capital A path height of 770 units; source path geometry is unchanged.",
+  "visual_target": "symbol visual height approximately equals capital A height",
+  "gap_change_summary": "The gap remains exactly 144 units. Wordmark x moved from 520 to 587.68 to compensate for the symbol viewport width increasing from 376 to 443.68 units.",
+  "limitations": [
+    "These files are adjusted review candidates, not approved lockup masters.",
+    "The capital-A height match uses the source viewports as the composition proxy and still requires optical human review.",
+    "No runtime, public asset, export, favicon, app icon, or monochrome profile use is approved."
+  ],
+  "review_checklist": [
+    "Confirm the enlarged symbol feels as prominent as the capital A.",
+    "Confirm the preserved 144-unit gap remains optically balanced.",
+    "Confirm optical vertical centering in both variants.",
+    "Review colors on the documented light and dark contexts.",
+    "Review readability at representative lockup sizes."
+  ],
+  "finalization_requirements": [
+    "Obtain explicit human visual approval.",
+    "Apply another candidate adjustment if requested.",
+    "Create a separately scoped lockup master pull request only after approval."
+  ],
+  "next_steps": [
+    "Conduct human visual review.",
+    "Choose either an adjustment pass or a separately scoped lockup master pull request.",
+    "Consider a monochrome export profile only in later separately scoped work."
+  ]
+}
