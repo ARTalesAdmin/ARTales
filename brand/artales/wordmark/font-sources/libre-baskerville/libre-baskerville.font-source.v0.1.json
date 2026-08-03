@@ -1,0 +1,38 @@
+{
+  "font_source_id": "libre-baskerville.regular.v0.1",
+  "status": "verified_supplied_font_source",
+  "approval_state": "available_for_outline_candidate_generation",
+  "font_name": "Libre Baskerville",
+  "font_style": "Regular",
+  "license": "SIL Open Font License 1.1",
+  "license_short_name": "OFL-1.1",
+  "license_file": "OFL.txt",
+  "upstream_readme_file": "README.upstream.txt",
+  "source_provider": "user_supplied_repository_files",
+  "source_repository_or_url": "not_embedded_in_repo_metadata_unless_present_in_upstream_readme",
+  "font_file_path": "brand/artales/wordmark/font-sources/libre-baskerville/LibreBaskerville-Regular.ttf",
+  "font_file_sha256": "b93dfb2ec674ef59fd9a1b47498a8d1db498bb9e64ed22a96f8071082e3d6add",
+  "ofl_file_sha256": "3624eddd4c8f8a908130a417ae7cd089c9da69899c4e0ca1a5217d0a6fae16fd",
+  "upstream_readme_sha256": "94e5892780fe18337251df5ebe4d29d1c30ad530efd9eddb631fe06a6bcd9b9f",
+  "intended_use": "deterministic generation of ARTales Option A outline wordmark candidate",
+  "runtimeImpact": false,
+  "dbImpact": false,
+  "envImpact": false,
+  "publicIntegration": false,
+  "webfontUse": false,
+  "outlineGeneratedInThisPr": false,
+  "wordmarkMasterCreated": false,
+  "lockupCreated": false,
+  "limitations": [
+    "This package contains only the Regular style required by the selected Option A direction.",
+    "The files were manually supplied through the repository; the package does not add a separate source URL beyond information already present in the supplied upstream README.",
+    "Verification of this package does not approve any wordmark geometry or master asset.",
+    "The font source is not approved or configured for runtime webfont use."
+  ],
+  "next_steps": [
+    "After this package is merged, verify the recorded SHA-256 values before generation.",
+    "Generate the deterministic ARTales Option A outline candidate in a separate pull request and record the exact toolchain and generation parameters.",
+    "Obtain human visual approval of the outline candidate before proposing a separate wordmark master-lock change.",
+    "Do not create a lockup candidate until the wordmark master exists."
+  ]
+}
