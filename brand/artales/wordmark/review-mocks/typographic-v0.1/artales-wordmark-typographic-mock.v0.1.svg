@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 180" role="img" aria-labelledby="title description">
+  <title id="title">ARTales typographic wordmark mock — review only</title>
+  <desc id="description">Live-text, system-font placeholder showing ARTales only. Awaiting human visual review; not a master or lockup.</desc>
+  <metadata>
+    status: review_only; approval_state: awaiting_human_visual_review; not_master: true; not_lockup: true; publicIntegration: false; live_text: true
+  </metadata>
+  <text
+    x="360"
+    y="118"
+    fill="currentColor"
+    font-family="Georgia, 'Times New Roman', Times, serif"
+    font-size="112"
+    font-weight="400"
+    letter-spacing="-2"
+    text-anchor="middle">ARTales</text>
+</svg>
