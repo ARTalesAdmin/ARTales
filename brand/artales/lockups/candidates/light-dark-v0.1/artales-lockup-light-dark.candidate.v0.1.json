@@ -1,0 +1,72 @@
+{
+  "candidate_id": "artales-lockup-light-dark.v0.1",
+  "status": "lockup_candidate_review_only",
+  "approval_state": "awaiting_human_visual_review",
+  "not_master": true,
+  "symbol_master_path": "brand/artales/masters/symbol-pen-drop/symbol-pen-drop.master.v1.svg",
+  "symbol_master_json_path": "brand/artales/masters/symbol-pen-drop/symbol-pen-drop.master.v1.json",
+  "symbol_master_sha256": "d70d53143a6809d0bea61d68238b40d6a7d3a063e8a5f0f5d703f234d9899847",
+  "wordmark_master_path": "brand/artales/masters/wordmark-artales/artales-wordmark.master.v1.svg",
+  "wordmark_master_json_path": "brand/artales/masters/wordmark-artales/artales-wordmark.master.v1.json",
+  "wordmark_master_sha256": "74ed72373b89a0818628469d5a6ff5fdf7080316d9338018f6bf70ae9fec4f91",
+  "symbol_geometry_modified": false,
+  "wordmark_geometry_modified": false,
+  "symbol_included": true,
+  "wordmark_included": true,
+  "layout": "horizontal_symbol_left_wordmark_right",
+  "variants": [
+    "light",
+    "dark"
+  ],
+  "light_variant_path": "brand/artales/lockups/candidates/light-dark-v0.1/artales-lockup-light.candidate.v0.1.svg",
+  "dark_variant_path": "brand/artales/lockups/candidates/light-dark-v0.1/artales-lockup-dark.candidate.v0.1.svg",
+  "color_palette_used": {
+    "symbol_locked_gold": "#DCA645",
+    "primary_gold_dark_wordmark": "#E0AA47",
+    "text_dark_light_wordmark": "#272827",
+    "intended_light_context_paper": "#FDF3E2",
+    "intended_dark_context_deep_dark": "#141414",
+    "intended_dark_context_ink_night": "#0F1315"
+  },
+  "background_required": false,
+  "transparent_background": true,
+  "live_text": false,
+  "external_font_references": false,
+  "raster_images": false,
+  "runtimeImpact": false,
+  "dbImpact": false,
+  "envImpact": false,
+  "publicIntegration": false,
+  "composition_parameters": {
+    "symbol_scale": 1.0,
+    "wordmark_scale": 1.0,
+    "symbol_translate": [0, 104],
+    "wordmark_translate": [520, 840],
+    "gap_between_symbol_and_wordmark": 144,
+    "viewBox": "0 0 4700 860",
+    "vertical_alignment_method": "Optical center alignment: the 652-unit symbol viewport is translated to y=104 within the 860-unit lockup; the wordmark baseline is translated to y=840, preserving its -840..20 master coordinate range."
+  },
+  "limitations": [
+    "These files are first-pass review candidates, not approved lockup masters.",
+    "Spacing, relative scale, optical alignment, color, and readability await human visual review.",
+    "The candidates are not approved for runtime, public asset, export, favicon, or app icon use.",
+    "The recorded 144-unit gap is measured from the symbol master viewport right edge at x=376 to the wordmark master viewport left edge at x=520."
+  ],
+  "review_checklist": [
+    "Review the symbol-to-wordmark scale relationship.",
+    "Review the 144-unit horizontal gap for a calm literary rhythm.",
+    "Review optical vertical centering.",
+    "Review light and dark color treatments in their intended contexts.",
+    "Review readability at representative lockup sizes."
+  ],
+  "finalization_requirements": [
+    "Obtain explicit human visual approval.",
+    "Apply an adjustment pass if requested and repeat review.",
+    "Create a separately scoped lockup master pull request only after approval."
+  ],
+  "next_steps": [
+    "Conduct human visual review.",
+    "Choose either an adjustment pass or a separately scoped lockup master pull request.",
+    "Define export profiles, favicons, and app icons only in later explicitly scoped work."
+  ]
+}
