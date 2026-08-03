@@ -1,0 +1,81 @@
+{
+  "decision_id": "artales-wordmark-source-decision.v0.1",
+  "status": "decision_required",
+  "approval_state": "awaiting_human_direction",
+  "symbol_master_locked": true,
+  "symbol_master_path": "brand/artales/masters/symbol-pen-drop/symbol-pen-drop.master.v1.svg",
+  "wordmark_master_exists": false,
+  "lockup_master_exists": false,
+  "recommended_route": {
+    "primary": "obtain_and_audit_authoritative_existing_vector_wordmark",
+    "fallback": "prepare_controlled_typographic_review_only_mock_with_documented_font_provenance_and_license",
+    "automatic_raster_trace_as_final": false
+  },
+  "options": [
+    {
+      "id": "A",
+      "name": "authoritative_existing_vector_wordmark",
+      "requirements": [
+        "trusted SVG, PDF, AI, or vector export",
+        "documented provenance and usage rights",
+        "human confirmation that the source represents the intended wordmark"
+      ]
+    },
+    {
+      "id": "B",
+      "name": "controlled_typographic_wordmark",
+      "requirements": [
+        "documented font name, version, license, provenance, source, and fallback status",
+        "live-text review mock before any approved outline conversion",
+        "no committed or vendored font files",
+        "explicit human approval boundary"
+      ]
+    },
+    {
+      "id": "C",
+      "name": "human_designed_custom_wordmark",
+      "requirements": [
+        "external or manual design step",
+        "reviewed vector source with authorship, rights, and provenance",
+        "explicit human approval"
+      ]
+    },
+    {
+      "id": "D",
+      "name": "temporary_layout_mock",
+      "requirements": [
+        "clearly marked non-final, placeholder, and review-only",
+        "disclosed placeholder font",
+        "not eligible to become a master or approval candidate"
+      ]
+    }
+  ],
+  "risks": [
+    "whole-image tracing can drift letter geometry",
+    "segmentation can drift kerning and spacing",
+    "antialiasing thresholds can change letterforms and counters",
+    "morphological cleanup and Potrace smoothing can alter terminals, joins, counters, and curves",
+    "a source raster is not an authoritative wordmark master",
+    "whole-lockup tracing would recreate rather than reuse the locked symbol geometry"
+  ],
+  "prohibited_actions": [
+    "create or present a final wordmark master",
+    "create light or dark lockup candidates",
+    "redraw, retrace, or alter the locked symbol",
+    "use AI or generative reconstruction",
+    "present any wordmark as approved",
+    "silently replace the wordmark with a system font",
+    "commit or vendor font files or proprietary font binaries",
+    "use a font without documented license and provenance",
+    "create runtime or public assets, exports, favicons, app icons, CSS, or website integration"
+  ],
+  "next_steps": [
+    "request and audit an authoritative vector wordmark source",
+    "if unavailable, separately specify a review-only controlled typographic mock with documented font provenance and license",
+    "obtain explicit human direction before preparing any wordmark or lockup candidate"
+  ],
+  "runtimeImpact": false,
+  "dbImpact": false,
+  "envImpact": false,
+  "publicIntegration": false
+}
