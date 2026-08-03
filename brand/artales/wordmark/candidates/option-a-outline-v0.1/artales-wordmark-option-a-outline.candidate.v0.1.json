@@ -1,0 +1,73 @@
+{
+  "candidate_id": "artales-wordmark-option-a-outline.v0.1",
+  "status": "outline_candidate_review_only",
+  "approval_state": "awaiting_human_visual_review",
+  "selected_from_candidate": "artales-wordmark-option-a-classic-literary-serif.v0.1",
+  "selected_from_board": "artales-wordmark-options-board.v0.1",
+  "selected_option_id": "A",
+  "selected_option_label": "Classic literary serif",
+  "text": "ARTales",
+  "human_outline_direction": true,
+  "not_master": true,
+  "not_lockup": true,
+  "wordmark_master_exists": false,
+  "lockup_master_exists": false,
+  "source_font_name": "Libre Baskerville",
+  "source_font_style": "Regular",
+  "source_font_license": "SIL Open Font License 1.1",
+  "source_font_package_metadata": "brand/artales/wordmark/font-sources/libre-baskerville/libre-baskerville.font-source.v0.1.json",
+  "source_font_file_path": "brand/artales/wordmark/font-sources/libre-baskerville/LibreBaskerville-Regular.ttf",
+  "source_font_file_sha256": "b93dfb2ec674ef59fd9a1b47498a8d1db498bb9e64ed22a96f8071082e3d6add",
+  "ofl_file_sha256": "3624eddd4c8f8a908130a417ae7cd089c9da69899c4e0ca1a5217d0a6fae16fd",
+  "upstream_readme_sha256": "94e5892780fe18337251df5ebe4d29d1c30ad530efd9eddb631fe06a6bcd9b9f",
+  "outlines_created": true,
+  "live_text": false,
+  "external_font_references": false,
+  "font_files_added_in_this_pr": false,
+  "letter_spacing": 0,
+  "width_adjustment": "none",
+  "scale_transform": "none; 1000-unit em rendered directly into SVG user units and framed by the viewBox",
+  "geometry_adjustments": "none; only a non-rendering viewBox margin was added to prevent edge clipping",
+  "manual_geometry_edits": "none",
+  "individual_glyph_edits": "none",
+  "generation_toolchain": {
+    "python": "3.14.4",
+    "freetype": "2.13.2 (libfreetype6 2.13.2+dfsg-1ubuntu0.1)",
+    "harfbuzz": "8.3.0 (libharfbuzz0b 8.3.0-2build2)",
+    "interface": "Python standard-library ctypes; no downloaded Python packages",
+    "shaping": "HarfBuzz hb_shape with guessed segment properties and default OpenType features",
+    "outline_extraction": "FreeType FT_LOAD_NO_HINTING and FT_Outline_Decompose"
+  },
+  "generation_command_or_script": "python brand/artales/wordmark/candidates/option-a-outline-v0.1/generate_outline.py",
+  "svg_contains_text_elements": false,
+  "svg_contains_image_elements": false,
+  "svg_contains_external_font_references": false,
+  "runtimeImpact": false,
+  "dbImpact": false,
+  "envImpact": false,
+  "publicIntegration": false,
+  "limitations": [
+    "This is a first stable outline candidate and has not received human visual approval.",
+    "Spacing is the source font's default HarfBuzz-shaped spacing; no optical adjustment pass was performed.",
+    "The viewBox includes a small non-rendering safety margin and is not a production export specification.",
+    "The candidate contains only wordmark glyph outlines and no symbol geometry or background."
+  ],
+  "review_checklist": [
+    "Confirm the exact ARTales letterforms and uppercase/lowercase balance.",
+    "Review literary character, softness, readability, and distinctiveness.",
+    "Review kerning and spacing, especially AR, RT, Ta, al, le, and es.",
+    "Inspect outline smoothness and behavior at intended sizes.",
+    "Decide whether an adjustment pass is needed before any master-lock proposal."
+  ],
+  "finalization_requirements": [
+    "Obtain explicit human visual approval.",
+    "Complete any separately reviewed spacing or width adjustment pass.",
+    "Create a separate wordmark master-lock pull request; do not promote this candidate in place.",
+    "Consider lockup work only after a wordmark master exists."
+  ],
+  "next_steps": [
+    "Conduct human visual review of this outline candidate.",
+    "Either request a controlled adjustment pass or approve the geometry direction.",
+    "If approved, prepare a separate wordmark master-lock pull request."
+  ]
+}

@@ -1,5 +1,15 @@
 # ARTales Option A outline candidate — generation blocker
 
+## Resolution update (2026-08-03)
+
+The generation blocker is **resolved** by the merged, verified Libre Baskerville Regular source
+package and this outline-candidate generation pull request. The candidate is deterministically
+generated from the re-verified packaged TTF; no fallback or replacement font is used. This update
+preserves the original blocker history below.
+
+Technical generation is unblocked, but **human visual approval is still pending**. The resulting
+asset remains review-only and is not a wordmark master, lockup, or public/runtime integration.
+
 ## Status
 
 ### Font-source status update (2026-08-03)
