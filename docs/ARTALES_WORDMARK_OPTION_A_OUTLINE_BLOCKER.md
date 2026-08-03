@@ -1,0 +1,127 @@
+# ARTales Option A outline candidate — generation blocker
+
+## Status
+
+**Blocked; no outline candidate was generated.** This report follows the task's font/provenance
+gate: if the exact font file cannot be obtained safely, or its provenance and license cannot be
+documented, work must stop rather than fabricate outlines or silently substitute a typeface.
+
+The intended output remains a review-only outline candidate derived from the human-selected
+**Option A — Classic literary serif** direction. This report is not a wordmark master, a lockup,
+an approval record, or a runtime/public brand asset.
+
+## Human outline direction
+
+The reviewer requested an outline SVG as the more stable and reusable next candidate, while
+retaining the ability to review controlled width or spacing parameters before any master lock:
+
+> Klidně, nejsem sice typograf, ale řekl bych že konkrétní outline SVG neuškodí a bude obecnější,
+> tudíž hodnotnější..? Klidně.. V ostré UI Brand Builderu bych dal pak taky na výběr - třeba
+> vybere kandidáta a pak ještě doladí případné drobnost před zamknutím, třeba pozmění šířku
+> fontu, nebo pod. Za mě pojďme outline.
+
+The source selection remains
+`artales-wordmark-option-a-classic-literary-serif.v0.1`, selected from
+`artales-wordmark-options-board.v0.1` as Option A. Neither existing source record was modified.
+
+## Intended source font and provenance gate
+
+The requested primary typeface is **Libre Baskerville Regular**, with Google Fonts identified
+in the task as the preferred provider and the SIL Open Font License (OFL) as the expected
+license. Before converting glyphs to paths, generation requires all of the following from an
+obtained source font:
+
+- the exact font file and style;
+- the version recorded in the font's own metadata, when available;
+- a SHA-256 digest of the exact generation file;
+- provider/repository provenance; and
+- license text or an authoritative license record suitable for the intended use.
+
+Libre Baskerville was not installed in the generation environment. Fontconfig instead resolved
+the requested family to DejaVu Sans, which is not an acceptable substitute. Attempts to obtain
+the font and accompanying `OFL.txt` and `METADATA.pb` from the Google Fonts repository, Google
+Fonts stylesheet service, and the Fontsource npm package were rejected by the environment's
+network policy with HTTP 403 responses. The Debian package index available in the environment
+also did not offer Libre Baskerville.
+
+Because no exact Libre Baskerville font file was safely obtained, no version or file digest
+could be verified and no outline conversion was attempted. Georgia was not used. No alternative
+font was substituted, no letters were manually redrawn, and no AI/generative reconstruction was
+used.
+
+## Why no candidate files were created
+
+An outline freezes the glyph geometry of one exact font file. Generating paths from an
+unverified file, a system fallback, or a visually similar face would hide a material source
+change inside apparently stable geometry. It would also prevent the candidate metadata from
+truthfully recording the required version, provenance, license, and SHA-256 digest.
+
+Accordingly, this blocked change does **not** create the requested candidate directory, SVG,
+JSON metadata, or optional preview. Creating placeholder geometry or metadata would incorrectly
+suggest that the outlined asset had passed the provenance gate.
+
+Live text remains unsuitable for a later master because its font resolution, glyphs, metrics,
+kerning, and line dimensions can vary by viewer and installed fonts. A verified outline would
+remove that runtime dependency, but it must be produced from an exact, documented source.
+
+## Unblock requirements
+
+Resume outline generation in a new change only after one of these inputs is available:
+
+1. a trusted Libre Baskerville Regular font file accompanied by authoritative provenance and
+   OFL documentation; or
+2. explicit human approval of a different open-source typeface, together with its exact source,
+   version, and license documentation.
+
+The generation process must then record the source file's SHA-256 digest, conversion tool and
+version, exact `ARTales` text, letter-spacing, width adjustment, scale transform, and geometry
+adjustments. Defaults should remain zero/none, with no individual glyph edits. The font binary
+should be used only as a generation input and should not be committed unless separately
+justified and legally reviewed.
+
+## Human review required after unblocking
+
+Any future outlined candidate must remain `outline_candidate_review_only` with approval state
+`awaiting_human_visual_review`. Reviewers must assess:
+
+- letter character and literary softness;
+- continuity with Option A, the current site, and the existing overall logo direction;
+- readability and distinctiveness;
+- uppercase/lowercase balance in `ARTales`;
+- kerning, spacing, and outline smoothness;
+- whether width or spacing should change before lock;
+- whether that exact geometry may proceed to a separate wordmark master-lock change; and
+- whether later light/dark lockup candidates may proceed only after a wordmark master exists.
+
+## Explicitly out of scope and unchanged
+
+- Wordmark masters and final geometry lock.
+- Light/dark lockup candidates or masters, and symbol placement.
+- Runtime/public assets, production exports, favicons, app icons, CSS, or website integration.
+- Application, component, style, Supabase, payment, credit, membership, reader, editor, parser,
+  database, or environment changes.
+- Font binaries or generated font subsets in the repository.
+- Cancelled patch v0.10.15k.
+
+## Scope, risk, and rollback
+
+- **Changed files:** this blocker report only.
+- **Runtime impact:** none.
+- **Risk:** low; documentation-only and no brand geometry is introduced.
+- **Target:** develop first.
+- **DB:** no.
+- **Env:** no.
+- **Public integration:** no.
+- **Rollback:** revert the commit adding this report. There is no generated candidate, font
+  installation, deployed state, database state, or environment configuration to reverse.
+
+## Test checklist
+
+- [x] Confirmed Libre Baskerville is not installed and does not resolve through fontconfig.
+- [x] Confirmed source retrieval attempts were blocked by HTTP 403 responses.
+- [x] Confirmed no font binary was added.
+- [x] Confirmed no outline candidate, master, or lockup asset was added.
+- [x] Confirmed existing Option A candidate and options board were not changed.
+- [x] Confirmed no runtime/public/application/CSS/database/environment file was changed.
+- [ ] SVG and JSON validation: not applicable because the provenance gate prevented generation.
+- [ ] Human visual review: pending a safely sourced outline candidate.
