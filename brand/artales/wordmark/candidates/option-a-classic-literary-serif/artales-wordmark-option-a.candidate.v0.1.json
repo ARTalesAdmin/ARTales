@@ -1,0 +1,58 @@
+{
+  "candidate_id": "artales-wordmark-option-a-classic-literary-serif.v0.1",
+  "selected_from_board": "artales-wordmark-options-board.v0.1",
+  "selected_option_id": "A",
+  "selected_option_label": "Classic literary serif",
+  "status": "selected_direction_candidate",
+  "approval_state": "awaiting_final_wordmark_approval",
+  "human_selected": true,
+  "human_selection_text": "Za mě jsou kandidáti A a B. A působí měkce, B působí elegantně, jednoduše. Na stránkách je aktuálně A, a v celkovém logu je taky spíš A. Takže volím A.",
+  "not_master": true,
+  "not_lockup": true,
+  "wordmark_master_exists": false,
+  "lockup_master_exists": false,
+  "text": "ARTales",
+  "font_strategy": "live_text_system_font_stack",
+  "font_family_stack": "Georgia, 'Times New Roman', Times, serif",
+  "font_files_committed": false,
+  "external_font_references": false,
+  "live_text": true,
+  "outlines_created": false,
+  "exact_font_selected": false,
+  "final_geometry_stable": false,
+  "license_documentation_status": "unresolved_for_final_master",
+  "runtimeImpact": false,
+  "dbImpact": false,
+  "envImpact": false,
+  "publicIntegration": false,
+  "limitations": [
+    "This is a selected wordmark direction candidate, not a final master.",
+    "Live-text rendering can vary across systems, including glyphs, metrics, kerning, spacing, and dimensions.",
+    "The exact font and its license and provenance must be resolved before any outline or master lock.",
+    "No font files are committed.",
+    "No symbol or lockup is included.",
+    "No runtime or public use is approved."
+  ],
+  "finalization_requirements": [
+    "Decide whether Option A should become the final wordmark direction.",
+    "Select the exact font strategy: either document the exact typeface and license, or explicitly accept a live-text/system-font strategy with known variability.",
+    "If outlines are desired, approve a separate outline conversion task.",
+    "After final wordmark approval, create a separate wordmark master-lock PR.",
+    "After the wordmark master is locked, prepare light/dark lockup candidates using the locked symbol unchanged."
+  ],
+  "review_checklist": [
+    "Confirm Option A remains the preferred direction for final wordmark consideration.",
+    "Assess the softer literary character and continuity with the current site and existing overall logo direction.",
+    "Review readability, uppercase/lowercase balance, kerning, and spacing across relevant environments.",
+    "Record live-text substitutions and rendering variation across relevant environments.",
+    "Resolve the exact font strategy, provenance, license, and permitted logo use.",
+    "Confirm that this candidate does not authorize a master, lockup, or runtime/public integration."
+  ],
+  "next_steps": [
+    "Conduct final-direction review of Option A using this review-only candidate.",
+    "Document and approve the selected exact-font or accepted system-font strategy.",
+    "If requested and separately approved, evaluate outline conversion only after font provenance and license review.",
+    "Open a separate wordmark master-lock PR only after explicit final wordmark approval.",
+    "Prepare light/dark lockup candidates in a later separate task only after the wordmark master exists."
+  ]
+}
