@@ -1,0 +1,200 @@
+{
+  "export_assets_id": "artales-brand-exports.v0.1",
+  "status": "generated_svg_brand_library_assets",
+  "approval_state": "awaiting_human_review",
+  "source_export_profiles_path": "brand/artales/export-profiles/artales-export-profiles.v0.1.json",
+  "source_export_profiles_sha256": "056d1453a7f95bc1b77812077c85d2be96aa70873e5712ec4cd7c82ea8aab206",
+  "masters_used": [
+    {
+      "path": "brand/artales/masters/symbol-pen-drop/symbol-pen-drop.master.v1.svg",
+      "sha256": "d70d53143a6809d0bea61d68238b40d6a7d3a063e8a5f0f5d703f234d9899847"
+    },
+    {
+      "path": "brand/artales/masters/wordmark-artales/artales-wordmark.master.v1.svg",
+      "sha256": "74ed72373b89a0818628469d5a6ff5fdf7080316d9338018f6bf70ae9fec4f91"
+    },
+    {
+      "path": "brand/artales/masters/logo-lockup/artales-lockup-light.master.v1.svg",
+      "sha256": "8697d4a0fa29e9c000e45b9c4a920ec2c916ac7940c61a9603fa28e34d6cd75b"
+    },
+    {
+      "path": "brand/artales/masters/logo-lockup/artales-lockup-dark.master.v1.svg",
+      "sha256": "ee4844c7d4c96a57ae3a01a1b52731812e342ef9bb9accfc60a8028bbae61fb4"
+    }
+  ],
+  "generated_profiles": [
+    {
+      "profile_id": "primary-light",
+      "source_master_path": "brand/artales/masters/logo-lockup/artales-lockup-light.master.v1.svg",
+      "source_master_sha256": "8697d4a0fa29e9c000e45b9c4a920ec2c916ac7940c61a9603fa28e34d6cd75b",
+      "svg_path": "brand/artales/exports/v0.1/primary-light/artales-logo-primary-light.svg",
+      "svg_sha256": "2622a8df14ce6ba5c84a05e425edc546743bb431c9309cb8b5bc3eb3599d619a",
+      "png_path": null,
+      "png_sha256": null,
+      "png_dimensions": null,
+      "png_generation_status": "deferred_binary_export",
+      "colors_used": [
+        {
+          "name": "Approved source gold",
+          "hex": "#DCA645"
+        },
+        {
+          "name": "Text Dark",
+          "hex": "#272827"
+        }
+      ],
+      "background": "transparent",
+      "public_asset": false,
+      "runtime_integrated": false
+    },
+    {
+      "profile_id": "primary-dark",
+      "source_master_path": "brand/artales/masters/logo-lockup/artales-lockup-dark.master.v1.svg",
+      "source_master_sha256": "ee4844c7d4c96a57ae3a01a1b52731812e342ef9bb9accfc60a8028bbae61fb4",
+      "svg_path": "brand/artales/exports/v0.1/primary-dark/artales-logo-primary-dark.svg",
+      "svg_sha256": "8ccc089488a8d00f90ab83075906bb6d23eb382b07f145dde1c3bd4ac110d301",
+      "png_path": null,
+      "png_sha256": null,
+      "png_dimensions": null,
+      "png_generation_status": "deferred_binary_export",
+      "colors_used": [
+        {
+          "name": "Approved source gold",
+          "hex": "#DCA645"
+        },
+        {
+          "name": "Primary Gold",
+          "hex": "#E0AA47"
+        }
+      ],
+      "background": "transparent",
+      "public_asset": false,
+      "runtime_integrated": false
+    },
+    {
+      "profile_id": "symbol-only-gold",
+      "source_master_path": "brand/artales/masters/symbol-pen-drop/symbol-pen-drop.master.v1.svg",
+      "source_master_sha256": "d70d53143a6809d0bea61d68238b40d6a7d3a063e8a5f0f5d703f234d9899847",
+      "svg_path": "brand/artales/exports/v0.1/symbol-only-gold/artales-symbol-gold.svg",
+      "svg_sha256": "91dec82c4882877417051d2b1e6072f8cd9026d9127ac74a55e6bedd3831a85f",
+      "png_path": null,
+      "png_sha256": null,
+      "png_dimensions": null,
+      "png_generation_status": "deferred_binary_export",
+      "colors_used": [
+        {
+          "name": "Approved source gold",
+          "hex": "#DCA645"
+        }
+      ],
+      "background": "transparent",
+      "public_asset": false,
+      "runtime_integrated": false
+    },
+    {
+      "profile_id": "wordmark-only-dark",
+      "source_master_path": "brand/artales/masters/wordmark-artales/artales-wordmark.master.v1.svg",
+      "source_master_sha256": "74ed72373b89a0818628469d5a6ff5fdf7080316d9338018f6bf70ae9fec4f91",
+      "svg_path": "brand/artales/exports/v0.1/wordmark-only-dark/artales-wordmark-dark.svg",
+      "svg_sha256": "7ec33200cdf1fc3f11b4ad13ce464fdc7ce5ad11081b7e2486399a97ac1d9db9",
+      "png_path": null,
+      "png_sha256": null,
+      "png_dimensions": null,
+      "png_generation_status": "deferred_binary_export",
+      "colors_used": [
+        {
+          "name": "Text Dark",
+          "hex": "#272827"
+        }
+      ],
+      "background": "transparent",
+      "public_asset": false,
+      "runtime_integrated": false
+    },
+    {
+      "profile_id": "wordmark-only-gold",
+      "source_master_path": "brand/artales/masters/wordmark-artales/artales-wordmark.master.v1.svg",
+      "source_master_sha256": "74ed72373b89a0818628469d5a6ff5fdf7080316d9338018f6bf70ae9fec4f91",
+      "svg_path": "brand/artales/exports/v0.1/wordmark-only-gold/artales-wordmark-gold.svg",
+      "svg_sha256": "da40d6852d790bc94db2a4a3cc2b47fefb5d7e198802bd9a592fa3ffdabbdad3",
+      "png_path": null,
+      "png_sha256": null,
+      "png_dimensions": null,
+      "png_generation_status": "deferred_binary_export",
+      "colors_used": [
+        {
+          "name": "Primary Gold",
+          "hex": "#E0AA47"
+        }
+      ],
+      "background": "transparent",
+      "public_asset": false,
+      "runtime_integrated": false
+    },
+    {
+      "profile_id": "monochrome-dark",
+      "source_master_path": "brand/artales/masters/logo-lockup/artales-lockup-light.master.v1.svg",
+      "source_master_sha256": "8697d4a0fa29e9c000e45b9c4a920ec2c916ac7940c61a9603fa28e34d6cd75b",
+      "svg_path": "brand/artales/exports/v0.1/monochrome-dark/artales-logo-monochrome-dark.svg",
+      "svg_sha256": "c03270cf55b5a9f58e15e70bfd79a246bc027dc2cf072cf789bb6cb5ba31825f",
+      "png_path": null,
+      "png_sha256": null,
+      "png_dimensions": null,
+      "png_generation_status": "deferred_binary_export",
+      "colors_used": [
+        {
+          "name": "Text Dark",
+          "hex": "#272827"
+        }
+      ],
+      "background": "transparent",
+      "public_asset": false,
+      "runtime_integrated": false
+    },
+    {
+      "profile_id": "monochrome-light",
+      "source_master_path": "brand/artales/masters/logo-lockup/artales-lockup-light.master.v1.svg",
+      "source_master_sha256": "8697d4a0fa29e9c000e45b9c4a920ec2c916ac7940c61a9603fa28e34d6cd75b",
+      "svg_path": "brand/artales/exports/v0.1/monochrome-light/artales-logo-monochrome-light.svg",
+      "svg_sha256": "089f904d261277fb6fc3f6c009de5971a0b9dfbfea348a9edba4cf2f1bddac53",
+      "png_path": null,
+      "png_sha256": null,
+      "png_dimensions": null,
+      "png_generation_status": "deferred_binary_export",
+      "colors_used": [
+        {
+          "name": "Paper",
+          "hex": "#FDF3E2"
+        }
+      ],
+      "background": "transparent",
+      "public_asset": false,
+      "runtime_integrated": false
+    }
+  ],
+  "png_generation_status": "deferred_binary_export",
+  "reason": "binary files are not supported in the current Codex PR flow",
+  "next_step": "generate PNGs in a later manual/tooling step after SVG exports are reviewed",
+  "small_size_symbol_status": "deferred_to_separate_review",
+  "no_png_assets_created": true,
+  "no_binary_assets_created": true,
+  "no_public_assets_created": true,
+  "no_runtime_integration": true,
+  "runtimeImpact": false,
+  "dbImpact": false,
+  "envImpact": false,
+  "publicIntegration": false,
+  "limitations": [
+    "SVG-only brand-library exports; they are not public or runtime assets.",
+    "Primary light and primary dark are the main logo exports; monochrome variants are secondary practical exports.",
+    "PNG and all other binary exports are deferred.",
+    "Small-size symbol, favicon, and app-icon work requires a separate review."
+  ],
+  "next_steps": [
+    "Complete human review of the SVG exports.",
+    "Generate PNGs in a later manual/tooling step after SVG exports are reviewed.",
+    "Create and review a small-size, favicon, and app-icon candidate separately.",
+    "Integrate public or runtime assets only in a later explicitly scoped pull request.",
+    "Promote to main only after explicit approval."
+  ]
+}
