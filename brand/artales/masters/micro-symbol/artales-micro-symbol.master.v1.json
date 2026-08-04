@@ -1,0 +1,14 @@
+{
+  "asset_id": "artales-micro-symbol",
+  "version": "1",
+  "status": "locked_master",
+  "file": "artales-micro-symbol.master.v1.svg",
+  "viewBox": "0 0 376 652",
+  "fill": "#DCA645",
+  "background": "transparent",
+  "runtimeImpact": false,
+  "dbImpact": false,
+  "envImpact": false,
+  "usage": "source for review-only icon artifact generation",
+  "production_icon_approval": false
+}
