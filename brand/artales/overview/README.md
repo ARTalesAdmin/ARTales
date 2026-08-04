@@ -1,29 +1,36 @@
-# ARTales composite brand board v0.1
+# ARTales composite brand boards
 
-## Purpose
+## Snapshots
 
-This directory contains one static, review-only snapshot of the current ARTales palette and approved/locked assets. Open [`artales-brand-composite-board.v0.1.svg`](./artales-brand-composite-board.v0.1.svg) at its native 2400 × 1600 size to review the full board; use the adjacent JSON for machine-readable provenance and checksums.
+- **v0.1** is the initial 2400 × 1600 snapshot of the documented palette, locked masters, and public icon ladder. Its externally referenced assets may not appear reliably in GitHub's SVG preview.
+- **v0.2** is the fuller practical overview. It adds the current export library, usage guidance, runtime status, asset authority, proposal-only tokenization candidates, and a current-state registry pointer.
 
-The board summarizes the standard symbol, wordmark, light and dark logo lockups, Micro B symbol master, and the current public favicon/app-icon size ladder. It references those existing files rather than changing their geometry or creating variants. The public PNGs are displayed only by relative reference; no binary is copied or created.
+For human review, run the manual GitHub Actions workflow `ARTales Generate Brand Board Preview` and download the `artales-brand-board-preview-v0.2` artifact. The generated artifact PNG is the canonical preview for human approval and future admin thumbnail/full-preview use, but it is not committed because binary files are not supported in this Codex PR flow. The adjacent v0.2 SVG is the structured documentation source, while the v0.2 JSON records metadata and provenance.
+
+The repository registry at [`../brand-registry.v0.1.json`](../brand-registry.v0.1.json) points future admin dashboard, Syrael/Flow review, and analysis tooling to the current develop snapshot, approved masters, exports, and runtime icon set. It is a pointer only and is not integrated into runtime code.
 
 ## Authority and limitations
 
-- This board is documentation for human review only.
-- It is **not** a runtime source of truth, a token source, runtime integration, or a final brand manual.
-- It does not replace any individual locked master. Each master remains authoritative for its own geometry and intended use.
-- Colors on the board are a snapshot of the supplied current values, not CSS variables or design tokens.
-
-## Review checklist
-
-1. Open the SVG from this directory so all relative asset references resolve.
-2. View it at 100% and fit-to-window zoom on both light and dark-capable displays.
-3. Confirm all nine swatches and their hex labels.
-4. Compare the standard symbol on Ink / Night and Paper.
-5. Confirm the wordmark and both lockups retain the appearance of their locked masters.
-6. Inspect Micro B and the 16, 32, 48, 180, 192, and 512 public icon ladder.
-7. Record feedback separately; do not edit a master or runtime asset as part of board review.
+- Review boards are documentation snapshots for human review. They are **not token sources**, runtime sources of truth, or final brand manuals.
+- Individual locked masters remain authoritative for geometry and intended use.
+- Exports are derived delivery assets; public assets are integrated browser/PWA files.
+- Colors and future token names shown here are documented values or proposals, not active CSS variables or design tokens.
+- v0.2 does not change masters, exports, public files, runtime styling, or UI.
 
 ## Files
 
-- `artales-brand-composite-board.v0.1.svg` — 2400 × 1600 review board.
-- `artales-brand-composite-board.v0.1.json` — status, palette, source paths, and SHA-256 provenance.
+- `artales-brand-composite-board.v0.1.svg` — initial structured review board.
+- `artales-brand-composite-board.v0.1.json` — v0.1 metadata and provenance.
+- `artales-brand-composite-board.v0.2.svg` — self-contained 2800 × 2000 structured board source.
+- `artales-brand-composite-board.v0.2.json` — v0.2 metadata, guidance, artifact-only PNG status, and SHA-256 provenance.
+- `../../../tools/brand/generate-brand-board-preview/` — local/manual preview generator for the artifact-only PNG.
+- `../../../.github/workflows/artales-generate-brand-board-preview.yml` — workflow_dispatch-only preview artifact workflow.
+- `../brand-registry.v0.1.json` — machine-readable current-state pointer.
+
+## v0.2 review checklist
+
+1. Run the manual preview workflow, download the artifact-only PNG, and open it at fit-to-window and 100% zoom.
+2. Confirm all nine palette values and three contrast examples.
+3. Confirm the five masters, seven SVG exports, and 16/32/48/180/192/512 icon ladder render.
+4. Review the use/avoid notes, authority ladder, and proposal-only token candidates.
+5. Use the metadata JSON and registry for paths and checksums; do not edit a master or runtime asset during board review.
