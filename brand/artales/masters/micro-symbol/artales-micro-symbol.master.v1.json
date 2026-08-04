@@ -1,0 +1,49 @@
+{
+  "master_id": "artales-micro-symbol.master",
+  "version": 1,
+  "status": "locked_master",
+  "approval_state": "approved_locked",
+  "human_approval_text": "Lock B.",
+  "selected_candidate_id": "artales-symbol-micro-b.candidate.v0.1",
+  "selected_candidate_path": "brand/artales/small-size/micro-candidates/v0.1/artales-symbol-micro-b.candidate.v0.1.svg",
+  "selected_candidate_set_path": "brand/artales/small-size/micro-candidates/v0.1/artales-symbol-micro-candidates.v0.1.json",
+  "selected_candidate_sha256": "964e61bbb64b8a68d1b5784d6eb3cb001bd7a0bb6404779ad476e21dbd5217be",
+  "master_svg_path": "brand/artales/masters/micro-symbol/artales-micro-symbol.master.v1.svg",
+  "master_svg_sha256": "964e61bbb64b8a68d1b5784d6eb3cb001bd7a0bb6404779ad476e21dbd5217be",
+  "source_and_master_svg_byte_identical": true,
+  "source_standard_symbol_master_path": "brand/artales/masters/symbol-pen-drop/symbol-pen-drop.master.v1.svg",
+  "source_standard_symbol_master_json_path": "brand/artales/masters/symbol-pen-drop/symbol-pen-drop.master.v1.json",
+  "source_standard_symbol_master_sha256": "d70d53143a6809d0bea61d68238b40d6a7d3a063e8a5f0f5d703f234d9899847",
+  "intended_use": [
+    "favicon candidate base",
+    "app icon candidate base",
+    "tiny-size symbol usage",
+    "16px to 32px review context"
+  ],
+  "intended_minimum_size_note": "Candidate B was selected because it is the strongest micro candidate for 16px–20px contexts.",
+  "standard_symbol_relationship": [
+    "derived_from_locked_standard_symbol_master",
+    "micro_size_specific_variant",
+    "not_replacement_for_standard_symbol_master"
+  ],
+  "production_binary_exports_created": false,
+  "favicon_created": false,
+  "app_icon_created": false,
+  "publicIntegration": false,
+  "runtimeImpact": false,
+  "dbImpact": false,
+  "envImpact": false,
+  "limitations": [
+    "This lock covers only the ARTales micro symbol source master v1.",
+    "The micro symbol does not replace the locked standard ARTales symbol master.",
+    "No PNG, ICO, favicon, app-icon, or other production binary export is included.",
+    "No public, application, runtime, metadata, or manifest integration is included.",
+    "The byte-identical SVG retains its candidate-era title, description, and embedded metadata; authoritative lock state is recorded in this master JSON and the lock report."
+  ],
+  "next_steps": [
+    "Generate favicon and app-icon export assets in a separate, explicitly scoped step.",
+    "Decide the manual or tooling approach for production binary files.",
+    "Integrate approved assets into public or runtime only in a later explicit pull request.",
+    "Promote to main only after explicit production approval."
+  ]
+}
