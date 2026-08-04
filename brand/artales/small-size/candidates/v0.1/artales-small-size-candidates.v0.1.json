@@ -75,5 +75,20 @@
     "Lock a dedicated small-size master after approval.",
     "Generate PNG, ICO, and app-icon binaries later through an approved manual or tooling workflow.",
     "Handle runtime and public integration only in a later explicit pull request."
-  ]
+  ],
+  "review_decision": {
+    "status": "human_review_recorded",
+    "approval_state": "acceptable_direction_with_limitations",
+    "human_feedback": "Za mě je to přijatelné. Je tam v svg vždy 6 velikostí, první dvě, tedy ty nejmenší, jsou hraniční, na úplně nejmenší není moc dobře vidět, ta druhá nejmenší je přijatelnější, byť taky trochu hůř rozpoznatelná. 3-6 je ok. 2 je ok, pokud vím, na co se dívám.",
+    "smallest_size_assessment": "borderline_not_clearly_readable",
+    "second_smallest_size_assessment": "acceptable_with_context",
+    "larger_sizes_assessment": "acceptable",
+    "recommended_minimum_general_use_size": "32px",
+    "possible_contextual_use_size": "24px",
+    "not_recommended_size": "16px unless simplified variant is created",
+    "production_favicon_master_locked": false,
+    "production_app_icon_master_locked": false,
+    "simplified_16px_variant_needed": "maybe",
+    "next_step": "Decide whether to create a simplified 16px micro-variant or defer until runtime icon integration."
+  }
 }
