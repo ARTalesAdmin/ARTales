@@ -1,0 +1,36 @@
+{
+  "board_id": "artales-brand-composite-board.v0.1",
+  "status": "review_only",
+  "created": "2026-08-04",
+  "runtimeImpact": false,
+  "dbImpact": false,
+  "envImpact": false,
+  "publicIntegration": false,
+  "board_path": "brand/artales/overview/artales-brand-composite-board.v0.1.svg",
+  "source_assets": [
+    {"path": "brand/artales/masters/symbol-pen-drop/symbol-pen-drop.master.v1.svg", "sha256": "d70d53143a6809d0bea61d68238b40d6a7d3a063e8a5f0f5d703f234d9899847", "status": "master"},
+    {"path": "brand/artales/masters/wordmark-artales/artales-wordmark.master.v1.svg", "sha256": "74ed72373b89a0818628469d5a6ff5fdf7080316d9338018f6bf70ae9fec4f91", "status": "master"},
+    {"path": "brand/artales/masters/logo-lockup/artales-lockup-light.master.v1.svg", "sha256": "8697d4a0fa29e9c000e45b9c4a920ec2c916ac7940c61a9603fa28e34d6cd75b", "status": "master"},
+    {"path": "brand/artales/masters/logo-lockup/artales-lockup-dark.master.v1.svg", "sha256": "ee4844c7d4c96a57ae3a01a1b52731812e342ef9bb9accfc60a8028bbae61fb4", "status": "master"},
+    {"path": "brand/artales/masters/micro-symbol/artales-micro-symbol.master.v1.svg", "sha256": "964e61bbb64b8a68d1b5784d6eb3cb001bd7a0bb6404779ad476e21dbd5217be", "status": "master"},
+    {"path": "public/favicon-16x16.png", "sha256": "18c76d89a4d0a127a3bb608bdf1a7d743ec29aa93e5f4a086024e7137a5e50b7", "status": "runtime_public_asset"},
+    {"path": "public/favicon-32x32.png", "sha256": "57ab5314e4ac0c620e8ff50f4bc5dcd976cb9e2b565f21fe62f9fedaf2035cde", "status": "runtime_public_asset"},
+    {"path": "public/favicon-48x48.png", "sha256": "8c2f12c0cb0e0dee8a114a4f22ca87ae372985885aa4cda807a0f749bc8fe522", "status": "runtime_public_asset"},
+    {"path": "public/apple-touch-icon-180x180.png", "sha256": "9b646801a4b4be85980d39de8414fdda942dda91cc6d9b65f3e9f54d4bb44cad", "status": "runtime_public_asset"},
+    {"path": "public/app-icon-192x192.png", "sha256": "07c228cacdd3f69c94bcea5cd3746d07a3e00709708614802f12439a9770d583", "status": "runtime_public_asset"},
+    {"path": "public/app-icon-512x512.png", "sha256": "bfcc054b3d0d0afb4d16b45a375461889384bb4dc113975cd3b654e1cd536715", "status": "runtime_public_asset"}
+  ],
+  "color_palette": [
+    {"name": "Ink / Night", "hex": "#0F1315"},
+    {"name": "Deep Dark", "hex": "#141414"},
+    {"name": "Paper", "hex": "#FDF3E2"},
+    {"name": "Text Dark", "hex": "#272827"},
+    {"name": "Primary Gold", "hex": "#E0AA47"},
+    {"name": "Secondary Gold", "hex": "#E3AA46"},
+    {"name": "Darker Gold", "hex": "#D19738"},
+    {"name": "Gold Shade", "hex": "#B58636"},
+    {"name": "Locked Symbol Gold", "hex": "#DCA645"}
+  ],
+  "limitations": ["review board only", "not token source", "not runtime integration", "not final brand manual"],
+  "next_steps": ["human visual review", "later design-token proposal", "later runtime tokenization", "later full brand guide if needed"]
+}
