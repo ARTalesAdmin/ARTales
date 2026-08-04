@@ -34,6 +34,15 @@ This is a **review-only** documentation snapshot. It is suitable as a future adm
 
 The generated artifact PNG should be reviewed first. The workflow-only Sharp install is only for rendering that artifact and does not change app/runtime dependencies. Use the SVG when inspecting the structured board source and the JSON when validating provenance or building later repository-aware tooling. Manual upload of a PNG can be considered later only if explicitly needed; it is intentionally not part of this PR.
 
+
+## Human visual review
+
+The v0.2 SVG board was opened and visually reviewed by the project owner on 2026-08-04. It is accepted as the current ARTales develop brand snapshot.
+
+This approval is limited to the review/documentation snapshot on develop. It does not approve production promotion, runtime styling changes, tokenization, public asset changes, or admin-dashboard integration.
+
+The PNG preview workflow remains available for future artifact-only review, but a PNG artifact was not required for this checkpoint.
+
 ## Runtime impact
 
 None. This work does not change runtime styling, application UI, CSS variables, design tokens, metadata integration, web manifest integration, public icons, approved masters, or export assets. It does not require database or environment changes.

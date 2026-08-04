@@ -12,7 +12,10 @@
     "metadata_path": "brand/artales/overview/artales-brand-composite-board.v0.2.json",
     "status": "review_only",
     "png_preview_status": "generated_as_workflow_artifact_only",
-    "png_preview_artifact_name": "artales-brand-board-preview-v0.2"
+    "png_preview_artifact_name": "artales-brand-board-preview-v0.2",
+    "human_review_status": "visually_accepted_on_develop",
+    "human_reviewed_at": "2026-08-04",
+    "approval_scope": "develop_review_snapshot_only"
   },
   "current_symbol_master": {
     "id": "artales-symbol-pen-drop.master.v1",
@@ -124,7 +127,13 @@
     "wordmark approved",
     "lockup approved",
     "micro symbol B approved",
-    "public icon integration verified in develop preview favicon"
+    "public icon integration verified in develop preview favicon",
+    "ARTales Brand Snapshot v0.2 SVG visually accepted by project owner on 2026-08-04.",
+    "PNG artifact preview remains optional and artifact-only.",
+    "This approval does not approve production/main promotion.",
+    "This approval does not approve runtime tokenization.",
+    "This approval does not approve admin dashboard integration.",
+    "This approval does not approve runtime styling or public asset changes."
   ],
   "next_steps": [
     "run workflow_dispatch preview generator when PNG review artifact is needed",
@@ -133,5 +142,25 @@
     "later review workflow",
     "later tokenization proposal",
     "later production promotion after explicit approval"
+  ],
+  "review_history": [
+    {
+      "snapshot_id": "artales-brand-composite-board.v0.2",
+      "status": "visually_accepted_on_develop",
+      "reviewed_by": "project_owner",
+      "reviewed_at": "2026-08-04",
+      "reviewed_asset": "brand/artales/overview/artales-brand-composite-board.v0.2.svg",
+      "approval_scope": "develop_review_snapshot_only",
+      "notes": [
+        "SVG board visually accepted as the current ARTales develop brand snapshot.",
+        "PNG artifact preview remains optional and artifact-only for this checkpoint.",
+        "No production/main promotion, runtime styling, tokenization, admin dashboard integration, public asset changes, binary files, database changes, or environment changes are approved."
+      ],
+      "runtimeApproval": false,
+      "productionApproval": false,
+      "tokenizationApproval": false,
+      "adminDashboardApproval": false,
+      "publicAssetApproval": false
+    }
   ]
 }

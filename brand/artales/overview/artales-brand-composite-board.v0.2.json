@@ -227,5 +227,17 @@
     "Production promotion only after explicit approval."
   ],
   "png_preview_status": "generated_as_workflow_artifact_only",
-  "png_preview_artifact_name": "artales-brand-board-preview-v0.2"
+  "png_preview_artifact_name": "artales-brand-board-preview-v0.2",
+  "human_review": {
+    "status": "visually_accepted_on_develop",
+    "reviewed_asset": "brand/artales/overview/artales-brand-composite-board.v0.2.svg",
+    "reviewed_by": "project_owner",
+    "reviewed_at": "2026-08-04",
+    "review_note": "SVG board reviewed and accepted as the current ARTales develop brand snapshot. PNG artifact preview is available but not required for this checkpoint.",
+    "approval_scope": "develop_review_snapshot_only",
+    "runtimeApproval": false,
+    "productionApproval": false,
+    "tokenizationApproval": false,
+    "adminDashboardApproval": false
+  }
 }

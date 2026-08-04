@@ -5,7 +5,7 @@
 - **v0.1** is the initial 2400 × 1600 snapshot of the documented palette, locked masters, and public icon ladder. Its externally referenced assets may not appear reliably in GitHub's SVG preview.
 - **v0.2** is the fuller practical overview. It adds the current export library, usage guidance, runtime status, asset authority, proposal-only tokenization candidates, and a current-state registry pointer.
 
-For human review, run the manual GitHub Actions workflow `ARTales Generate Brand Board Preview` and download the `artales-brand-board-preview-v0.2` artifact. The generated artifact PNG is the canonical preview for human approval and future admin thumbnail/full-preview use, but it is not committed because binary files are not supported in this Codex PR flow. The adjacent v0.2 SVG is the structured documentation source, while the v0.2 JSON records metadata and provenance.
+The v0.2 SVG board was visually accepted by the project owner on 2026-08-04 as the current ARTales develop brand snapshot. The PNG preview workflow remains available for future artifact-only review, but a PNG artifact was not required for this checkpoint. The adjacent v0.2 SVG is the structured documentation source, while the v0.2 JSON records metadata, provenance, and human review status.
 
 The repository registry at [`../brand-registry.v0.1.json`](../brand-registry.v0.1.json) points future admin dashboard, Syrael/Flow review, and analysis tooling to the current develop snapshot, approved masters, exports, and runtime icon set. It is a pointer only and is not integrated into runtime code.
 
