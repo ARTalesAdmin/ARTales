@@ -1,0 +1,40 @@
+name: ARTales Generate Brand Board Preview
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  generate-preview:
+    name: Generate artifact-only ARTales brand board PNG preview
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      - name: Install repository dependencies
+        run: npm ci
+
+      - name: Install artifact renderer dependency
+        run: npm install --no-save sharp@0.33.5
+
+      - name: Generate preview artifact files
+        run: python tools/brand/generate-brand-board-preview/generate_brand_board_preview.py
+      - name: Upload preview artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: artales-brand-board-preview-v0.2
+          path: artifact-output/artales-brand-board-preview/v0.2/
+          if-no-files-found: error
