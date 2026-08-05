@@ -1,0 +1,17 @@
+{
+  "asset_id": "artales-symbol",
+  "version": "1",
+  "status": "locked_master",
+  "file": "artales-symbol.master.v1.svg",
+  "viewBox": "0 0 376 652",
+  "fill": "#DCA645",
+  "background": "transparent",
+  "approval": {
+    "state": "approved_for_production_promotion",
+    "human_review": true,
+    "production_approval_date": "2026-08-05"
+  },
+  "runtimeImpact": false,
+  "dbImpact": false,
+  "envImpact": false
+}

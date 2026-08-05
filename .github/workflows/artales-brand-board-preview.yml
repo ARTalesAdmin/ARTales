@@ -1,0 +1,25 @@
+name: ARTales brand board preview
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  collect-brand-board-preview:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+      - name: Validate brand board sources
+        run: |
+          test -f brand/artales/boards/brand-composite-board.v0.1.svg
+          test -f brand/artales/boards/brand-composite-board.v0.2.svg
+      - name: Upload brand board sources
+        uses: actions/upload-artifact@v4
+        with:
+          name: artales-brand-board-preview-sources
+          path: brand/artales/boards/*.svg
+          if-no-files-found: error
+          retention-days: 14

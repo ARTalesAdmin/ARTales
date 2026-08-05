@@ -1,0 +1,28 @@
+{
+  "registry": "artales-brand-registry",
+  "version": "0.1",
+  "status": "approved_for_production_promotion",
+  "human_review": {
+    "approved": true,
+    "production_approval_date": "2026-08-05",
+    "scope": "PR #64 ARTales brand identity package promotion from develop to main"
+  },
+  "locked_masters": [
+    "brand/artales/masters/symbol/artales-symbol.master.v1.svg",
+    "brand/artales/masters/wordmark/artales-wordmark.master.v1.svg",
+    "brand/artales/masters/logo-lockup/artales-logo-lockup.master.v1.svg",
+    "brand/artales/masters/micro-symbol/artales-micro-symbol.master.v1.svg"
+  ],
+  "runtime_assets": [
+    "public/favicon.svg",
+    "public/favicon.ico",
+    "public/apple-touch-icon.png",
+    "public/icons/artales-icon-192.png",
+    "public/icons/artales-icon-512.png",
+    "public/icons/artales-maskable-192.png",
+    "public/icons/artales-maskable-512.png",
+    "public/manifest.webmanifest",
+    "app/layout.tsx"
+  ],
+  "excluded": ["database changes", "environment changes", "Supabase changes", "runtime tokenization", "CSS palette refactor", "admin dashboard"]
+}

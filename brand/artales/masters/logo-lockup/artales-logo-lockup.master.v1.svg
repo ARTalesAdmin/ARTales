@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 920 220" role="img" aria-labelledby="title desc">
+  <title id="title">ARTales locked logo lockup master</title>
+  <desc id="desc">Approved ARTales symbol and wordmark lockup master.</desc>
+  <g transform="translate(24 20) scale(.24)" fill="#DCA645">
+    <path d="M178 44c-5 41-22 117-48 211-18 67-48 126-91 215-36 74-45 151-27 224 16 66 59 118 128 154 38 20 54 42 48 67-3 12-11 20-24 25-36 13-58 45-58 83 0 48 37 86 86 86 50 0 87-38 87-86 0-38-22-70-58-83-14-5-22-13-24-25-6-25 10-47 48-67 69-36 112-88 128-154 18-73 9-150-27-224-43-89-73-148-91-215-26-94-43-170-48-211h-49z" transform="translate(0 -7) scale(1 0.6)"/>
+    <path d="M188 297l51 51-51 51-51-51 51-51zm72 72l51 51-51 51-51-51 51-51zm-144 0l51 51-51 51-51-51 51-51zm72 72l51 51-51 51-51-51 51-51z"/>
+  </g>
+  <text x="154" y="138" fill="#171412" font-family="Georgia, 'Times New Roman', serif" font-size="96" font-weight="700" letter-spacing="2">ARTales</text>
+</svg>

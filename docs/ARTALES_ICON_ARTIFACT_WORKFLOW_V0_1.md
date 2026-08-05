@@ -36,3 +36,9 @@ Local reproduction is documented in
 Revert the commit or pull request that adds the workflow and generator. Existing
 downloaded workflow artifacts can be deleted or allowed to expire; no runtime,
 database, environment, or public asset rollback is necessary.
+
+## PR #64 production promotion conflict resolution
+
+Production approval was granted on 2026-08-05 for promoting the approved develop brand identity package to main. Conflict resolution keeps the complete develop brand/icon package as the source of truth where it supersedes earlier partial main icon tooling, while preserving production code outside the brand/icon promotion scope.
+
+Runtime impact is limited to the already-approved favicon/app icon metadata and web manifest wiring. This promotion does not introduce database changes, environment changes, Supabase changes, runtime tokenization, CSS palette refactor, admin dashboard work, or new binary preview PNGs.

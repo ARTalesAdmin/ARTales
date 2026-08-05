@@ -1,0 +1,11 @@
+{
+  "version": "1",
+  "status": "locked_export_profiles",
+  "profiles": [
+    {"id": "runtime-favicon", "source": "brand/artales/masters/micro-symbol/artales-micro-symbol.master.v1.svg", "outputs": ["public/favicon.svg", "public/favicon.ico", "public/apple-touch-icon.png", "public/icons/artales-icon-192.png", "public/icons/artales-icon-512.png", "public/icons/artales-maskable-192.png", "public/icons/artales-maskable-512.png"]},
+    {"id": "svg-library", "source": "brand/artales/masters", "outputs": ["brand/artales/exports/svg/artales-symbol.v1.svg", "brand/artales/exports/svg/artales-wordmark.v1.svg", "brand/artales/exports/svg/artales-logo-lockup.v1.svg"]}
+  ],
+  "approval": {"human_review": true, "production_approval_date": "2026-08-05"},
+  "dbImpact": false,
+  "envImpact": false
+}
