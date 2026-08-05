@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 420 120" role="img" aria-labelledby="title description">
+  <title id="title">ARTales Option A selected wordmark direction candidate</title>
+  <desc id="description">Review-only live-text ARTales wordmark in the Classic literary serif system font stack. Not a master or lockup.</desc>
+  <metadata>
+    candidate_id: artales-wordmark-option-a-classic-literary-serif.v0.1; status: selected_direction_candidate; approval_state: awaiting_final_wordmark_approval; review_only: true; selected_direction_candidate: true; not_master: true; not_lockup: true; publicIntegration: false; live_text: true
+  </metadata>
+  <text x="18" y="86" fill="currentColor" font-family="Georgia, 'Times New Roman', Times, serif" font-size="72" font-weight="400" letter-spacing="-1">ARTales</text>
+</svg>

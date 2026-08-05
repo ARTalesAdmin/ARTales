@@ -1,0 +1,46 @@
+{
+  "master_id": "symbol-pen-drop.master",
+  "version": 1,
+  "status": "locked_master",
+  "approval_state": "approved_locked",
+  "source_candidate_id": "symbol-pen-drop.smoother",
+  "source_candidate_path": "brand/artales/candidates/symbol-pen-drop/symbol-pen-drop.smoother.candidate.v0.1.svg",
+  "source_candidate_metadata_path": "brand/artales/candidates/symbol-pen-drop/symbol-pen-drop.smoother.candidate.v0.1.json",
+  "selected_from_matrix_variant": "smoother",
+  "selected_potrace_options": {
+    "turdsize": 2,
+    "alphamax": 1.1,
+    "opttolerance": 0.4
+  },
+  "fill_color": "#DCA645",
+  "background": "transparent",
+  "locked_from_candidate_without_geometry_changes": true,
+  "source_and_master_svg_byte_identical": true,
+  "human_approval": {
+    "approved": true,
+    "approval_text": "Za mě je to dobré. Můžeme pokročit.",
+    "approval_context": "Human reviewed the smoother candidate artifact and approved proceeding to standalone symbol master lock."
+  },
+  "runtimeImpact": false,
+  "dbImpact": false,
+  "envImpact": false,
+  "publicIntegration": false,
+  "faviconApproved": false,
+  "appIconApproved": false,
+  "smallSizeVariantApproved": false,
+  "wordmarkApproved": false,
+  "lockupApproved": false,
+  "limitations": [
+    "This is only the standalone ARTales symbol master.",
+    "This lock does not approve a favicon or any other small-size variant.",
+    "Use at 16 px will likely require a separate simplified or small-size treatment.",
+    "This lock does not approve logo lockups or the ARTales wordmark.",
+    "The master is not placed into public or runtime usage by this package.",
+    "Derivative exports remain a separate controlled step."
+  ],
+  "next_steps": [
+    "Review and approve any derivative export specification in a separate change.",
+    "Develop and review a dedicated simplified or small-size treatment before favicon use.",
+    "Handle any future public or runtime integration as a separate controlled change."
+  ]
+}

@@ -1,0 +1,94 @@
+{
+  "candidate_set_id": "artales-small-size-symbol-candidates.v0.1",
+  "status": "small_size_candidate_review_only",
+  "approval_state": "awaiting_human_visual_review",
+  "not_master": true,
+  "source_symbol_master_path": "brand/artales/masters/symbol-pen-drop/symbol-pen-drop.master.v1.svg",
+  "source_symbol_master_json_path": "brand/artales/masters/symbol-pen-drop/symbol-pen-drop.master.v1.json",
+  "source_symbol_master_sha256": "d70d53143a6809d0bea61d68238b40d6a7d3a063e8a5f0f5d703f234d9899847",
+  "source_export_profile_path": "brand/artales/export-profiles/artales-export-profiles.v0.1.json",
+  "source_export_profile_sha256": "056d1453a7f95bc1b77812077c85d2be96aa70873e5712ec4cd7c82ea8aab206",
+  "candidates": [
+    {
+      "id": "transparent-gold",
+      "path": "brand/artales/small-size/candidates/v0.1/artales-small-symbol-transparent-gold.candidate.v0.1.svg",
+      "intended_use": "Inline small symbol on controlled backgrounds",
+      "recommended_for_unpredictable_browser_backgrounds": false
+    },
+    {
+      "id": "dark-square-gold",
+      "path": "brand/artales/small-size/candidates/v0.1/artales-small-symbol-dark-square-gold.candidate.v0.1.svg",
+      "intended_use": "Favicon or app-icon candidate base",
+      "priority_for_review": "likely_strongest_base"
+    },
+    {
+      "id": "dark-round-gold",
+      "path": "brand/artales/small-size/candidates/v0.1/artales-small-symbol-dark-round-gold.candidate.v0.1.svg",
+      "intended_use": "Social-avatar or app-icon candidate base"
+    }
+  ],
+  "review_board_path": "brand/artales/small-size/candidates/v0.1/artales-small-size-review-board.v0.1.svg",
+  "simulated_sizes_px": [16, 24, 32, 48, 64, 128],
+  "colors_used": {
+    "symbol": { "name": "Primary Gold", "hex": "#E0AA47" },
+    "controlled_background": { "name": "Ink/Night", "hex": "#0F1315" },
+    "review_board_only": ["#F4EFE6", "#FFFFFF", "#E7E1D8"]
+  },
+  "padding_strategy": {
+    "transparent_gold": "48px vertical and 136px horizontal minimum padding in a 512px square canvas",
+    "dark_square_gold": "48px vertical and 136px horizontal minimum padding in a 512px square canvas",
+    "dark_round_gold": "72px vertical and 150px horizontal minimum padding in a 512px circular canvas"
+  },
+  "background_strategy": {
+    "transparent_gold": "transparent; use only on controlled backgrounds",
+    "dark_square_gold": "full square Ink/Night background",
+    "dark_round_gold": "full circular Ink/Night background with transparent corners"
+  },
+  "geometry_modified": false,
+  "destructive_simplification": false,
+  "png_generation_status": "deferred_binary_export",
+  "ico_generation_status": "deferred_binary_export",
+  "app_icon_generation_status": "deferred_binary_export",
+  "no_binary_assets_created": true,
+  "no_public_assets_created": true,
+  "no_runtime_integration": true,
+  "runtimeImpact": false,
+  "dbImpact": false,
+  "envImpact": false,
+  "publicIntegration": false,
+  "limitations": [
+    "The locked geometry may lose interior pen-nib and small diamond detail at 16px.",
+    "Transparent gold cannot guarantee contrast on arbitrary browser or operating-system backgrounds.",
+    "These candidates are neither approved masters nor production favicon or app-icon assets.",
+    "The review board is an SVG simulation; final rasterization behavior still requires later binary-export review."
+  ],
+  "review_checklist": [
+    "Compare silhouette recognition at every simulated size.",
+    "Inspect the pen-nib opening and four small diamond details at 16px and 24px.",
+    "Compare contrast and edge clarity on transparent, square, and round backgrounds.",
+    "Select one direction before creating any master or binary export."
+  ],
+  "next_steps": [
+    "Complete human visual review.",
+    "Choose one small-size candidate direction.",
+    "Optionally create a separately documented simplified v0.2 if needed.",
+    "Lock a dedicated small-size master after approval.",
+    "Generate PNG, ICO, and app-icon binaries later through an approved manual or tooling workflow.",
+    "Handle runtime and public integration only in a later explicit pull request."
+  ],
+  "review_decision": {
+    "status": "human_review_recorded",
+    "approval_state": "acceptable_direction_with_limitations",
+    "human_feedback": "Za mě je to přijatelné. Je tam v svg vždy 6 velikostí, první dvě, tedy ty nejmenší, jsou hraniční, na úplně nejmenší není moc dobře vidět, ta druhá nejmenší je přijatelnější, byť taky trochu hůř rozpoznatelná. 3-6 je ok. 2 je ok, pokud vím, na co se dívám.",
+    "smallest_size_assessment": "borderline_not_clearly_readable",
+    "second_smallest_size_assessment": "acceptable_with_context",
+    "larger_sizes_assessment": "acceptable",
+    "recommended_minimum_general_use_size": "32px",
+    "possible_contextual_use_size": "24px",
+    "not_recommended_size": "16px unless simplified variant is created",
+    "production_favicon_master_locked": false,
+    "production_app_icon_master_locked": false,
+    "simplified_16px_variant_needed": "maybe",
+    "next_step": "Decide whether to create a simplified 16px micro-variant or defer until runtime icon integration."
+  }
+}

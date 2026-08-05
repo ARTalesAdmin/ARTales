@@ -1,0 +1,92 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="2400" height="1600" viewBox="0 0 2400 1600" role="img" aria-labelledby="board-title board-desc">
+  <title id="board-title">ARTales Brand Snapshot v0.1</title>
+  <desc id="board-desc">A review-only composite board of the locked ARTales masters, public icon assets, and documented palette. It is not a runtime or token source.</desc>
+  <metadata>{"board_id":"artales-brand-composite-board.v0.1","status":"review_only","runtimeImpact":false,"publicIntegration":false,"created":"2026-08-04"}</metadata>
+  <rect width="2400" height="1600" fill="#FDF3E2"/>
+
+  <!-- Header -->
+  <rect x="0" y="0" width="2400" height="190" fill="#0F1315"/>
+  <text x="100" y="92" fill="#FDF3E2" font-family="Arial, Helvetica, sans-serif" font-size="58" font-weight="700">ARTales Brand Snapshot v0.1</text>
+  <text x="100" y="143" fill="#E0AA47" font-family="Arial, Helvetica, sans-serif" font-size="25" letter-spacing="1.5">REVIEW-ONLY  /  NOT RUNTIME  /  NOT TOKEN SOURCE</text>
+  <text x="2300" y="142" text-anchor="end" fill="#FDF3E2" font-family="Arial, Helvetica, sans-serif" font-size="22">2026-08-04</text>
+
+  <!-- Core colors -->
+  <g id="core-colors" font-family="Arial, Helvetica, sans-serif">
+    <text x="100" y="248" fill="#272827" font-size="31" font-weight="700">01  Core colors</text>
+    <text x="100" y="280" fill="#272827" font-size="18">Current documented values shown for comparison — this board does not define tokens.</text>
+    <g font-size="17" font-weight="700">
+      <rect x="100" y="310" width="220" height="105" rx="8" fill="#0F1315"/><text x="118" y="345" fill="#FDF3E2">Ink / Night</text><text x="118" y="389" fill="#FDF3E2">#0F1315</text>
+      <rect x="336" y="310" width="220" height="105" rx="8" fill="#141414"/><text x="354" y="345" fill="#FDF3E2">Deep Dark</text><text x="354" y="389" fill="#FDF3E2">#141414</text>
+      <rect x="572" y="310" width="220" height="105" rx="8" fill="#FDF3E2" stroke="#272827"/><text x="590" y="345" fill="#272827">Paper</text><text x="590" y="389" fill="#272827">#FDF3E2</text>
+      <rect x="808" y="310" width="220" height="105" rx="8" fill="#272827"/><text x="826" y="345" fill="#FDF3E2">Text Dark</text><text x="826" y="389" fill="#FDF3E2">#272827</text>
+      <rect x="1044" y="310" width="220" height="105" rx="8" fill="#E0AA47"/><text x="1062" y="345" fill="#272827">Primary Gold</text><text x="1062" y="389" fill="#272827">#E0AA47</text>
+      <rect x="1280" y="310" width="220" height="105" rx="8" fill="#E3AA46"/><text x="1298" y="345" fill="#272827">Secondary Gold</text><text x="1298" y="389" fill="#272827">#E3AA46</text>
+      <rect x="1516" y="310" width="220" height="105" rx="8" fill="#D19738"/><text x="1534" y="345" fill="#272827">Darker Gold</text><text x="1534" y="389" fill="#272827">#D19738</text>
+      <rect x="1752" y="310" width="220" height="105" rx="8" fill="#B58636"/><text x="1770" y="345" fill="#0F1315">Gold Shade</text><text x="1770" y="389" fill="#0F1315">#B58636</text>
+      <rect x="1988" y="310" width="312" height="105" rx="8" fill="#DCA645"/><text x="2006" y="345" fill="#272827">Locked Symbol Gold</text><text x="2006" y="389" fill="#272827">#DCA645</text>
+    </g>
+    <g font-size="20" font-weight="700">
+      <rect x="100" y="435" width="460" height="62" rx="8" fill="#0F1315"/><text x="330" y="474" text-anchor="middle" fill="#E0AA47">Primary Gold on Ink / Night</text>
+      <rect x="572" y="435" width="460" height="62" rx="8" fill="#FDF3E2" stroke="#272827"/><text x="802" y="474" text-anchor="middle" fill="#272827">Text Dark on Paper</text>
+      <rect x="1044" y="435" width="460" height="62" rx="8" fill="#141414"/><text x="1274" y="474" text-anchor="middle" fill="#FDF3E2">Paper on Deep Dark</text>
+    </g>
+  </g>
+
+  <!-- Symbol and wordmark -->
+  <g id="symbol-wordmark" font-family="Arial, Helvetica, sans-serif">
+    <text x="100" y="560" fill="#272827" font-size="31" font-weight="700">02  Symbol</text>
+    <text x="100" y="592" fill="#272827" font-size="18">Standard symbol master v1 · locked geometry</text>
+    <rect x="100" y="620" width="335" height="390" rx="12" fill="#0F1315"/>
+    <image x="188" y="655" width="159" height="276" href="../masters/symbol-pen-drop/symbol-pen-drop.master.v1.svg" xlink:href="../masters/symbol-pen-drop/symbol-pen-drop.master.v1.svg"/>
+    <text x="267" y="976" text-anchor="middle" fill="#FDF3E2" font-size="17">on Ink / Night</text>
+    <rect x="455" y="620" width="335" height="390" rx="12" fill="#FDF3E2" stroke="#272827"/>
+    <image x="543" y="655" width="159" height="276" href="../masters/symbol-pen-drop/symbol-pen-drop.master.v1.svg" xlink:href="../masters/symbol-pen-drop/symbol-pen-drop.master.v1.svg"/>
+    <text x="622" y="976" text-anchor="middle" fill="#272827" font-size="17">on Paper</text>
+
+    <text x="850" y="560" fill="#272827" font-size="31" font-weight="700">03  Wordmark</text>
+    <text x="850" y="592" fill="#272827" font-size="18">Wordmark master v1 · locked geometry</text>
+    <rect x="850" y="620" width="1450" height="390" rx="12" fill="#FDF3E2" stroke="#272827"/>
+    <image x="970" y="700" width="1210" height="249" href="../masters/wordmark-artales/artales-wordmark.master.v1.svg" xlink:href="../masters/wordmark-artales/artales-wordmark.master.v1.svg" color="#272827"/>
+  </g>
+
+  <!-- Lockups -->
+  <g id="lockups" font-family="Arial, Helvetica, sans-serif">
+    <text x="100" y="1070" fill="#272827" font-size="31" font-weight="700">04  Logo lockup master v1</text>
+    <rect x="100" y="1100" width="1085" height="235" rx="12" fill="#FDF3E2" stroke="#272827"/>
+    <image x="155" y="1150" width="975" height="182" href="../masters/logo-lockup/artales-lockup-light.master.v1.svg" xlink:href="../masters/logo-lockup/artales-lockup-light.master.v1.svg"/>
+    <text x="130" y="1134" fill="#272827" font-size="17" font-weight="700">LIGHT LOCKUP · PAPER</text>
+    <rect x="1215" y="1100" width="1085" height="235" rx="12" fill="#141414"/>
+    <image x="1270" y="1150" width="975" height="182" href="../masters/logo-lockup/artales-lockup-dark.master.v1.svg" xlink:href="../masters/logo-lockup/artales-lockup-dark.master.v1.svg"/>
+    <text x="1245" y="1134" fill="#FDF3E2" font-size="17" font-weight="700">DARK LOCKUP · DEEP DARK</text>
+  </g>
+
+  <!-- Micro and public icon ladder -->
+  <g id="micro-icons" font-family="Arial, Helvetica, sans-serif">
+    <text x="100" y="1400" fill="#272827" font-size="31" font-weight="700">05  Micro / favicon sizes</text>
+    <text x="100" y="1432" fill="#272827" font-size="18">Micro B is selected for tiny sizes · micro master and current runtime/public assets</text>
+    <rect x="100" y="1460" width="116" height="104" rx="10" fill="#0F1315"/>
+    <image x="143" y="1472" width="30" height="52" href="../masters/micro-symbol/artales-micro-symbol.master.v1.svg" xlink:href="../masters/micro-symbol/artales-micro-symbol.master.v1.svg"/>
+    <text x="158" y="1549" text-anchor="middle" fill="#FDF3E2" font-size="14">MICRO B</text>
+    <g fill="#272827" font-size="14" text-anchor="middle">
+      <image x="260" y="1493" width="16" height="16" href="../../../public/favicon-16x16.png" xlink:href="../../../public/favicon-16x16.png"/><text x="268" y="1549">16</text>
+      <image x="320" y="1485" width="32" height="32" href="../../../public/favicon-32x32.png" xlink:href="../../../public/favicon-32x32.png"/><text x="336" y="1549">32</text>
+      <image x="396" y="1477" width="48" height="48" href="../../../public/favicon-48x48.png" xlink:href="../../../public/favicon-48x48.png"/><text x="420" y="1549">48</text>
+      <image x="490" y="1468" width="64" height="64" href="../../../public/apple-touch-icon-180x180.png" xlink:href="../../../public/apple-touch-icon-180x180.png"/><text x="522" y="1549">180</text>
+      <image x="600" y="1468" width="64" height="64" href="../../../public/app-icon-192x192.png" xlink:href="../../../public/app-icon-192x192.png"/><text x="632" y="1549">192</text>
+      <image x="710" y="1460" width="72" height="72" href="../../../public/app-icon-512x512.png" xlink:href="../../../public/app-icon-512x512.png"/><text x="746" y="1549">512</text>
+    </g>
+  </g>
+
+  <!-- Status legend -->
+  <g id="status-legend" font-family="Arial, Helvetica, sans-serif">
+    <text x="910" y="1400" fill="#272827" font-size="31" font-weight="700">06  Asset status legend</text>
+    <g font-size="17" fill="#272827">
+      <circle cx="930" cy="1450" r="10" fill="#DCA645"/><text x="952" y="1456"><tspan font-weight="700">Master</tspan> · locked source asset</text>
+      <circle cx="930" cy="1490" r="10" fill="#D19738"/><text x="952" y="1496"><tspan font-weight="700">Export</tspan> · derived delivery asset</text>
+      <circle cx="1450" cy="1450" r="10" fill="#0F1315"/><text x="1472" y="1456"><tspan font-weight="700">Runtime/public asset</tspan> · currently integrated file</text>
+      <circle cx="1450" cy="1490" r="10" fill="#B58636"/><text x="1472" y="1496"><tspan font-weight="700">Review-only board</tspan> · documentation artifact</text>
+    </g>
+    <text x="2300" y="1560" text-anchor="end" fill="#272827" font-size="16">Individual locked masters remain authoritative.</text>
+  </g>
+</svg>

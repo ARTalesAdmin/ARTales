@@ -1,4 +1,4 @@
-name: ARTales icon artifact generator
+name: ARTales Generate Icon Artifacts
 
 on:
   workflow_dispatch:
@@ -9,6 +9,7 @@ permissions:
 jobs:
   generate-icon-artifacts:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
@@ -18,16 +19,16 @@ jobs:
         with:
           python-version: "3.12"
 
-      - name: Install image tooling
-        run: python -m pip install --disable-pip-version-check CairoSVG Pillow
+      - name: Install deterministic rendering dependencies
+        run: python -m pip install --disable-pip-version-check --no-cache-dir "CairoSVG==2.7.1" "Pillow==10.4.0"
 
-      - name: Generate icon artifacts
+      - name: Generate icon artifact payload
         run: python tools/brand/generate-icon-artifacts/generate_icon_artifacts.py
 
       - name: Upload icon artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: artales-icon-artifacts
-          path: tools/brand/generate-icon-artifacts/output/
+          name: artales-icon-artifacts-v0.1
+          path: artifact-output/artales-icons/v0.1/
           if-no-files-found: error
-          retention-days: 14
+          retention-days: 30

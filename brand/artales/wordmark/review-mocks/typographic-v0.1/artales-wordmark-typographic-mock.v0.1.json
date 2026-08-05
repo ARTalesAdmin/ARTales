@@ -1,0 +1,54 @@
+{
+  "mock_id": "artales-wordmark-typographic-mock.v0.1",
+  "status": "review_only",
+  "approval_state": "awaiting_human_visual_review",
+  "not_master": true,
+  "not_lockup": true,
+  "source_decision_path": "docs/ARTALES_WORDMARK_SOURCE_DECISION_V0_1.md",
+  "symbol_master_locked": true,
+  "wordmark_master_exists": false,
+  "lockup_master_exists": false,
+  "text": "ARTales",
+  "font_strategy": "placeholder_system_font_stack",
+  "font_family_stack": "Georgia, 'Times New Roman', Times, serif",
+  "font_files_committed": false,
+  "license_documentation": {
+    "strategy": "No specific font is distributed, required, or proposed for approval; the SVG uses a generic system-font fallback stack solely for visual review.",
+    "specific_font_license_claimed": false,
+    "font_source_url": null,
+    "repo_contains_font_file": false,
+    "review_requirement": "Before selecting a real typeface, record its exact name and version, source, license, and permitted logo use."
+  },
+  "live_text": true,
+  "outlines_created": false,
+  "runtimeImpact": false,
+  "dbImpact": false,
+  "envImpact": false,
+  "publicIntegration": false,
+  "limitations": [
+    "This is a review-only placeholder/system-font mock, not an approved wordmark, final candidate, or master.",
+    "The SVG relies on locally available system fonts; rendering, metrics, kerning, and line placement may vary by environment.",
+    "No font file is committed or externally referenced.",
+    "No exact typeface provenance or license is asserted because no specific font is selected or distributed.",
+    "The locked symbol is not included, copied, redrawn, retraced, or altered.",
+    "This artifact cannot be used for runtime, public, export, or lockup production."
+  ],
+  "review_checklist": [
+    "Assess letter character and literary/editorial feel.",
+    "Assess readability.",
+    "Assess distinctiveness while recognizing that this is a placeholder stack.",
+    "Assess potential fit next to the locked symbol without treating this artifact as a lockup.",
+    "Assess uppercase/lowercase balance in ARTales.",
+    "Assess kerning and spacing, allowing for environment-dependent rendering.",
+    "Decide whether the licensing approach is acceptable or a documented specific typeface is required.",
+    "Decide whether this direction may proceed to a real wordmark candidate.",
+    "Decide whether outlines may later be created after font and license confirmation.",
+    "Decide whether light/dark lockup candidate preparation may later proceed."
+  ],
+  "next_steps": [
+    "Complete human visual review and record whether the direction should stop, be revised, or proceed.",
+    "If proceeding, select and document an exact typeface, version, source, license, and logo-use rights in a separate approved task.",
+    "Create outlines only after explicit approval and font/license confirmation.",
+    "Prepare any light/dark lockup candidate only after separate explicit approval."
+  ]
+}

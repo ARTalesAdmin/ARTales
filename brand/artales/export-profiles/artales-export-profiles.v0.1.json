@@ -1,0 +1,125 @@
+{
+  "export_profiles_id": "artales-export-profiles.v0.1",
+  "status": "specification_only",
+  "approval_state": "awaiting_human_review",
+  "masters_locked": true,
+  "symbol_master_path": "brand/artales/masters/symbol-pen-drop/symbol-pen-drop.master.v1.svg",
+  "symbol_master_sha256": "d70d53143a6809d0bea61d68238b40d6a7d3a063e8a5f0f5d703f234d9899847",
+  "wordmark_master_path": "brand/artales/masters/wordmark-artales/artales-wordmark.master.v1.svg",
+  "wordmark_master_sha256": "74ed72373b89a0818628469d5a6ff5fdf7080316d9338018f6bf70ae9fec4f91",
+  "light_lockup_master_path": "brand/artales/masters/logo-lockup/artales-lockup-light.master.v1.svg",
+  "light_lockup_master_sha256": "8697d4a0fa29e9c000e45b9c4a920ec2c916ac7940c61a9603fa28e34d6cd75b",
+  "dark_lockup_master_path": "brand/artales/masters/logo-lockup/artales-lockup-dark.master.v1.svg",
+  "dark_lockup_master_sha256": "ee4844c7d4c96a57ae3a01a1b52731812e342ef9bb9accfc60a8028bbae61fb4",
+  "profiles": [
+    {
+      "id": "primary-light",
+      "source": "brand/artales/masters/logo-lockup/artales-lockup-light.master.v1.svg",
+      "intended_use": "Normal use on light or paper backgrounds.",
+      "background": "transparent",
+      "colors": {
+        "symbol": { "name": "Primary Gold", "hex": "#E0AA47" },
+        "wordmark": { "name": "Text Dark", "hex": "#272827" }
+      },
+      "future_output_formats": ["SVG", "PNG"],
+      "public_runtime_integration": "later_only"
+    },
+    {
+      "id": "primary-dark",
+      "source": "brand/artales/masters/logo-lockup/artales-lockup-dark.master.v1.svg",
+      "intended_use": "Normal use on dark backgrounds.",
+      "background": "transparent",
+      "colors": {
+        "symbol": { "name": "Primary Gold", "hex": "#E0AA47" },
+        "wordmark": { "name": "Primary Gold", "hex": "#E0AA47" }
+      },
+      "future_output_formats": ["SVG", "PNG"],
+      "public_runtime_integration": "later_only"
+    },
+    {
+      "id": "symbol-only-gold",
+      "source": "brand/artales/masters/symbol-pen-drop/symbol-pen-drop.master.v1.svg",
+      "intended_use": "Decorative mark, small brand moments, and a possible favicon or app-icon starting point.",
+      "background": "transparent",
+      "color": { "name": "Primary Gold", "hex": "#E0AA47" },
+      "future_output_formats": ["SVG", "PNG"]
+    },
+    {
+      "id": "wordmark-only-dark",
+      "source": "brand/artales/masters/wordmark-artales/artales-wordmark.master.v1.svg",
+      "intended_use": "Standalone wordmark on light backgrounds.",
+      "background": "transparent",
+      "color": { "name": "Text Dark", "hex": "#272827" },
+      "future_output_formats": ["SVG", "PNG"]
+    },
+    {
+      "id": "wordmark-only-gold",
+      "source": "brand/artales/masters/wordmark-artales/artales-wordmark.master.v1.svg",
+      "intended_use": "Standalone wordmark on dark backgrounds.",
+      "background": "transparent",
+      "color": { "name": "Primary Gold", "hex": "#E0AA47" },
+      "future_output_formats": ["SVG", "PNG"]
+    },
+    {
+      "id": "monochrome-dark",
+      "source": "locked logo lockup master geometry",
+      "source_paths": [
+        "brand/artales/masters/logo-lockup/artales-lockup-light.master.v1.svg",
+        "brand/artales/masters/logo-lockup/artales-lockup-dark.master.v1.svg"
+      ],
+      "intended_use": "One-color dark usage on light backgrounds, print, fallback, and legal or simple contexts.",
+      "background": "transparent",
+      "allowed_colors": [
+        { "name": "Text Dark", "hex": "#272827" },
+        { "name": "Ink/Night", "hex": "#0F1315" }
+      ],
+      "future_output_formats": ["SVG", "PNG"],
+      "note": "This is not a third primary logo; it is only a monochrome export profile."
+    },
+    {
+      "id": "monochrome-light",
+      "source": "locked logo lockup master geometry",
+      "source_paths": [
+        "brand/artales/masters/logo-lockup/artales-lockup-light.master.v1.svg",
+        "brand/artales/masters/logo-lockup/artales-lockup-dark.master.v1.svg"
+      ],
+      "intended_use": "One-color light usage on dark backgrounds, print, fallback, and simple contexts.",
+      "background": "transparent",
+      "allowed_colors": [
+        { "name": "Paper", "hex": "#FDF3E2", "preference": "preferred" },
+        { "name": "White", "hex": "#FFFFFF", "preference": "only_when_necessary" }
+      ],
+      "future_output_formats": ["SVG", "PNG"],
+      "note": "This is not a third primary logo; it is only a monochrome export profile."
+    },
+    {
+      "id": "small-size-symbol",
+      "source": "brand/artales/masters/symbol-pen-drop/symbol-pen-drop.master.v1.svg",
+      "geometry_policy": "Use locked symbol master geometry as the base; a later simplified small-size candidate may be required.",
+      "intended_use": "Candidate base for favicon, app icon, and social avatar work.",
+      "background": "transparent_or_later_controlled_square_background",
+      "status": "needs_separate_small_size_review_before_production_favicon_or_app_icon",
+      "future_output_formats": ["SVG", "PNG", "ICO", "app icon sizes"]
+    }
+  ],
+  "no_exports_created": true,
+  "no_public_assets_created": true,
+  "no_runtime_integration": true,
+  "runtimeImpact": false,
+  "dbImpact": false,
+  "envImpact": false,
+  "publicIntegration": false,
+  "limitations": [
+    "This specification does not create or approve production export files.",
+    "Primary light and primary dark remain the main ARTales logo lockups.",
+    "Monochrome profiles are secondary practical exports, not additional primary logos.",
+    "The small-size symbol requires separate review before favicon or app-icon production.",
+    "No public or runtime integration is included or approved."
+  ],
+  "next_steps": [
+    "Complete human review of this export profile specification.",
+    "Generate export assets in a separate pull request.",
+    "Create and review small-size, favicon, and app-icon candidates separately.",
+    "Integrate runtime or public assets only in a later explicitly scoped pull request."
+  ]
+}
