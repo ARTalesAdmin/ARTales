@@ -1,28 +1,37 @@
 # ARTales icon artifact generator
 
-This directory contains the deterministic, manual-only generator used by the
-ARTales icon artifact workflow. It reads the locked micro-symbol SVG and writes
-reviewable PNG and ICO files to an ignored output directory. Generated files
-are downloadable GitHub Action artifacts; the tool does not publish or install
-them in `public/` or in the application.
+This tool renders review candidates from the locked ARTales micro symbol master
+without changing the application or committing binary assets. The default output
+directory is `artifact-output/artales-icons/v0.1/`.
 
-## Run locally
+## Requirements
 
-Python 3.12 and the `CairoSVG` and `Pillow` packages are required.
+- Python 3.12
+- CairoSVG 2.7.1
+- Pillow 10.4.0
+
+Install the pinned renderer versions and run the generator from the repository
+root:
 
 ```bash
-python -m pip install CairoSVG Pillow
+python -m pip install --disable-pip-version-check --no-cache-dir \
+  "CairoSVG==2.7.1" "Pillow==10.4.0"
 python tools/brand/generate-icon-artifacts/generate_icon_artifacts.py
 ```
 
-To keep local output outside the repository, pass `--output-dir`:
+For a disposable local check, select another output directory:
 
 ```bash
 python tools/brand/generate-icon-artifacts/generate_icon_artifacts.py \
   --output-dir /tmp/artales-icon-artifacts
 ```
 
-The output contains transparent square PNG previews at 16, 32, 48, 180, 192,
-and 512 pixels, a multi-resolution ICO file, and `manifest.json` with source
-and output SHA-256 checksums. Output files are review artifacts, not approved
-production icons.
+The generator fails if the source master or rendering dependencies are missing,
+or if rendering does not produce the requested dimensions. It writes PNG and ICO
+candidates, a source-SVG review copy, an artifact README, and a JSON manifest with
+SHA-256 checksums. The manifest describes payload files other than itself because
+a file cannot contain its own stable checksum.
+
+The GitHub Actions workflow uploads the output for manual review only. It has no
+commit, push, pull-request, `public/`, or runtime integration step. Delete locally
+generated default output after testing; generated binaries must not be committed.

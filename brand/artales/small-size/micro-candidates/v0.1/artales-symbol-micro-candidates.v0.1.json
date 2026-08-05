@@ -1,0 +1,50 @@
+{
+  "candidate_set_id": "artales-symbol-micro-candidates",
+  "version": "0.1",
+  "status": "review_only",
+  "review_status": "pending_human_review",
+  "source_master": "brand/artales/masters/symbol-pen-drop/symbol-pen-drop.master.v1.svg",
+  "source_context": [
+    "brand/artales/small-size/candidates/v0.1/",
+    "docs/ARTALES_SMALL_SIZE_SYMBOL_REVIEW_DECISION_V0_1.md"
+  ],
+  "intended_sizes_px": [16, 20, 24, 32],
+  "candidates": [
+    {
+      "id": "artales-symbol-micro-a",
+      "file": "artales-symbol-micro-a.candidate.v0.1.svg",
+      "source_master_used": "brand/artales/masters/symbol-pen-drop/symbol-pen-drop.master.v1.svg",
+      "status": "review_only",
+      "intended_sizes": [16, 20, 24, 32],
+      "simplification_notes": "Keeps the locked master outer silhouette and all four interior lozenges; slightly thickens the interior feature to resist pixel collapse.",
+      "expected_tradeoff": "Closest to the master, but the four-part interior may remain busy at 16px.",
+      "review_status": "pending_human_review"
+    },
+    {
+      "id": "artales-symbol-micro-b",
+      "file": "artales-symbol-micro-b.candidate.v0.1.svg",
+      "source_master_used": "brand/artales/masters/symbol-pen-drop/symbol-pen-drop.master.v1.svg",
+      "status": "review_only",
+      "intended_sizes": [16, 20, 24, 32],
+      "simplification_notes": "Keeps the locked master outer silhouette and merges the four tiny interior subdivisions into one enlarged central diamond.",
+      "expected_tradeoff": "Strongest single interior signal at 16px, with the greatest reduction of master detail.",
+      "review_status": "pending_human_review"
+    },
+    {
+      "id": "artales-symbol-micro-c",
+      "file": "artales-symbol-micro-c.candidate.v0.1.svg",
+      "source_master_used": "brand/artales/masters/symbol-pen-drop/symbol-pen-drop.master.v1.svg",
+      "status": "review_only",
+      "intended_sizes": [16, 20, 24, 32],
+      "simplification_notes": "Keeps the locked master outer silhouette and reduces the interior feature to three enlarged lozenges, removing the lowest subdivision.",
+      "expected_tradeoff": "Balances family resemblance and fewer micro-details, but may read less symmetrically than the master.",
+      "review_status": "pending_human_review"
+    }
+  ],
+  "runtime_impact": "none",
+  "public_integration": false,
+  "favicon_export": false,
+  "binary_exports": false,
+  "db_impact": false,
+  "env_impact": false
+}

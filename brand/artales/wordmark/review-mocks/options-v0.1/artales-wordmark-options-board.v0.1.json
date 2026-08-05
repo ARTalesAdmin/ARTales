@@ -1,0 +1,84 @@
+{
+  "board_id": "artales-wordmark-options-board.v0.1",
+  "status": "review_only",
+  "approval_state": "awaiting_human_visual_review",
+  "not_master": true,
+  "not_candidate": true,
+  "not_lockup": true,
+  "source_mock_path": "brand/artales/wordmark/review-mocks/typographic-v0.1/",
+  "source_decision_path": "docs/ARTALES_WORDMARK_SOURCE_DECISION_V0_1.md",
+  "symbol_master_locked": true,
+  "symbol_used_in_board": false,
+  "wordmark_master_exists": false,
+  "lockup_master_exists": false,
+  "text": "ARTales",
+  "live_text": true,
+  "outlines_created": false,
+  "font_files_committed": false,
+  "external_font_references": false,
+  "options": [
+    {
+      "id": "option-a",
+      "label": "Option A — Classic literary serif",
+      "font_family_stack": "Georgia, 'Times New Roman', Times, serif",
+      "intended_review_character": "Familiar, composed literary character with sturdy reading-oriented forms."
+    },
+    {
+      "id": "option-b",
+      "label": "Option B — Refined editorial serif",
+      "font_family_stack": "'Palatino Linotype', Palatino, 'Book Antiqua', serif",
+      "intended_review_character": "Open, refined editorial character with calligraphic warmth."
+    },
+    {
+      "id": "option-c",
+      "label": "Option C — Humanist / book serif",
+      "font_family_stack": "'Iowan Old Style', 'Palatino Linotype', Palatino, serif",
+      "intended_review_character": "Humanist book character intended to feel approachable and reader-focused."
+    },
+    {
+      "id": "option-d",
+      "label": "Option D — Transitional serif",
+      "font_family_stack": "'Times New Roman', Times, serif",
+      "intended_review_character": "Compact transitional character balancing traditional and editorial cues."
+    },
+    {
+      "id": "option-e",
+      "label": "Option E — Elegant high-contrast serif",
+      "font_family_stack": "Cambria, Georgia, serif",
+      "intended_review_character": "Crisp, formal character for reviewing a more elegant direction."
+    },
+    {
+      "id": "option-f",
+      "label": "Option F — Neutral fallback serif",
+      "font_family_stack": "serif",
+      "intended_review_character": "Environment-dependent baseline for comparison rather than a specific design direction."
+    }
+  ],
+  "runtimeImpact": false,
+  "dbImpact": false,
+  "envImpact": false,
+  "publicIntegration": false,
+  "limitations": [
+    "This board is for directional comparison only; no option is approved and no exact typeface is selected.",
+    "All options use live text and locally available generic or system stacks, so glyphs, metrics, kerning, spacing, and line placement may vary across environments.",
+    "No font file is committed, embedded, downloaded, vendored, or externally referenced.",
+    "The board contains no symbol and must not be treated as a lockup.",
+    "The options are not masters, candidates, exports, or runtime/public assets."
+  ],
+  "review_checklist": [
+    "Choose a preferred option or reject all options.",
+    "Assess literary and editorial feel.",
+    "Assess readability.",
+    "Assess distinctiveness while accounting for environment-dependent substitution.",
+    "Assess uppercase/lowercase balance in ARTales.",
+    "Assess kerning and spacing.",
+    "Assess conceptual fit next to the locked symbol without treating this board as a lockup.",
+    "Decide whether to proceed to exact font, provenance, and license selection.",
+    "Decide whether additional typographic directions are needed."
+  ],
+  "next_steps": [
+    "Record the human decision to prefer one direction, request revisions, request new directions, or reject all.",
+    "If a direction proceeds, select an exact font and document its version, provenance, license, and permitted logo use in a separate approved task.",
+    "Only after exact font and license review may a real wordmark candidate or outlines be prepared under separate explicit approval."
+  ]
+}

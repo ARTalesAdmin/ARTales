@@ -1,0 +1,174 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="760" viewBox="0 0 1200 760" role="img" aria-labelledby="title desc">
+  <title id="title">ARTales micro symbol candidates v0.1 review board</title>
+  <desc id="desc">Candidates A, B, and C shown at exact 16, 20, 24, and 32 pixel heights on light and dark backgrounds for human review.</desc>
+  <metadata>{&quot;status&quot;:&quot;review_only&quot;,&quot;review_status&quot;:&quot;pending_human_review&quot;,&quot;sizes_px&quot;:[16,20,24,32],&quot;backgrounds&quot;:[&quot;light&quot;,&quot;dark&quot;],&quot;publicIntegration&quot;:false}</metadata>
+  <defs>
+    <symbol id="micro-a" viewBox="0 0 376 652">
+      <g transform="translate(0 652) scale(0.1 -0.1)" fill="#DCA645" stroke="none">
+    <path d="M1780 6078 c-12 -84 -61 -334 -79 -398 -5 -19 -21 -73 -35 -120 -14
+-47 -32 -112 -41 -144 -21 -77 -125 -354 -165 -442 -140 -304 -254 -515 -451
+-829 -65 -105 -119 -196 -119 -202 0 -6 -4 -13 -9 -15 -22 -8 -250 -388 -338
+-563 -172 -340 -228 -686 -167 -1020 8 -44 19 -89 24 -100 4 -11 11 -33 15
+-50 15 -73 80 -221 132 -301 18 -28 33 -54 33 -58 0 -33 310 -376 339 -376 5
+0 16 -6 23 -13 23 -22 161 -111 213 -137 28 -14 53 -28 56 -33 3 -4 43 -23 90
+-43 130 -55 217 -105 265 -153 24 -24 44 -46 44 -48 0 -2 11 -19 23 -36 48
+-66 74 -178 43 -190 -25 -10 -56 -112 -56 -185 0 -191 177 -312 361 -247 153
+54 216 266 122 409 -46 71 -13 183 91 304 30 33 101 77 186 112 162 66 367
+179 430 236 8 7 47 40 85 72 76 65 151 142 205 212 19 25 38 46 42 48 5 2 8 8
+8 13 0 6 18 37 40 69 22 32 40 61 40 64 0 2 20 47 44 98 158 331 175 711 50
+1088 -65 196 -231 508 -451 849 -20 31 -52 81 -71 111 -20 30 -44 67 -54 82
+-10 15 -18 30 -18 33 0 3 -8 18 -18 33 -65 94 -159 256 -244 419 -247 470
+-406 930 -480 1390 -22 135 -24 143 -46 143 -12 0 -25 -7 -29 -17 -4 -9 -1
+-215 5 -457 13 -474 30 -1465 35 -1973 2 -313 2 -313 32 -341 23 -21 542 -553
+623 -637 6 -8 12 -19 12 -26 0 -6 -150 -162 -332 -346 l-333 -334 -6 -512 c-5
+-513 -8 -551 -42 -594 -16 -22 -44 -14 -55 15 -33 85 -35 113 -39 592 -3 267
+-8 491 -13 499 -4 8 -154 163 -331 344 -178 181 -324 335 -324 342 0 12 406
+436 593 619 l63 62 9 665 c6 365 15 810 20 989 6 179 13 502 17 718 l6 392
+-30 0 c-31 0 -31 0 -43 -82z"/>
+    <path d="M1778 3072 c-49 -48 -88 -93 -88 -99 0 -17 176 -193 192 -193 15 0
+188 180 188 195 0 18 -170 185 -188 185 -9 0 -56 -40 -104 -88z" stroke="#DCA645" stroke-width="44" stroke-linejoin="round"/>
+    <path d="M2043 2814 c-51 -52 -93 -98 -93 -102 0 -15 177 -192 191 -192 22 0
+191 175 187 193 -3 18 -176 198 -186 196 -4 -1 -49 -43 -99 -95z" stroke="#DCA645" stroke-width="44" stroke-linejoin="round"/>
+    <path d="M1518 2810 c-48 -50 -88 -95 -88 -100 0 -17 172 -190 189 -190 16 0
+201 178 201 193 0 14 -185 187 -199 187 -8 0 -54 -41 -103 -90z" stroke="#DCA645" stroke-width="44" stroke-linejoin="round"/>
+    <path d="M1783 2550 c-51 -50 -93 -95 -93 -100 0 -12 181 -200 192 -200 13 0
+188 183 188 197 0 14 -174 193 -187 193 -4 0 -50 -41 -100 -90z" stroke="#DCA645" stroke-width="44" stroke-linejoin="round"/>
+  </g>
+    </symbol>
+    <symbol id="micro-b" viewBox="0 0 376 652">
+      <g transform="translate(0 652) scale(0.1 -0.1)" fill="#DCA645" stroke="none">
+    <path d="M1780 6078 c-12 -84 -61 -334 -79 -398 -5 -19 -21 -73 -35 -120 -14
+-47 -32 -112 -41 -144 -21 -77 -125 -354 -165 -442 -140 -304 -254 -515 -451
+-829 -65 -105 -119 -196 -119 -202 0 -6 -4 -13 -9 -15 -22 -8 -250 -388 -338
+-563 -172 -340 -228 -686 -167 -1020 8 -44 19 -89 24 -100 4 -11 11 -33 15
+-50 15 -73 80 -221 132 -301 18 -28 33 -54 33 -58 0 -33 310 -376 339 -376 5
+0 16 -6 23 -13 23 -22 161 -111 213 -137 28 -14 53 -28 56 -33 3 -4 43 -23 90
+-43 130 -55 217 -105 265 -153 24 -24 44 -46 44 -48 0 -2 11 -19 23 -36 48
+-66 74 -178 43 -190 -25 -10 -56 -112 -56 -185 0 -191 177 -312 361 -247 153
+54 216 266 122 409 -46 71 -13 183 91 304 30 33 101 77 186 112 162 66 367
+179 430 236 8 7 47 40 85 72 76 65 151 142 205 212 19 25 38 46 42 48 5 2 8 8
+8 13 0 6 18 37 40 69 22 32 40 61 40 64 0 2 20 47 44 98 158 331 175 711 50
+1088 -65 196 -231 508 -451 849 -20 31 -52 81 -71 111 -20 30 -44 67 -54 82
+-10 15 -18 30 -18 33 0 3 -8 18 -18 33 -65 94 -159 256 -244 419 -247 470
+-406 930 -480 1390 -22 135 -24 143 -46 143 -12 0 -25 -7 -29 -17 -4 -9 -1
+-215 5 -457 13 -474 30 -1465 35 -1973 2 -313 2 -313 32 -341 23 -21 542 -553
+623 -637 6 -8 12 -19 12 -26 0 -6 -150 -162 -332 -346 l-333 -334 -6 -512 c-5
+-513 -8 -551 -42 -594 -16 -22 -44 -14 -55 15 -33 85 -35 113 -39 592 -3 267
+-8 491 -13 499 -4 8 -154 163 -331 344 -178 181 -324 335 -324 342 0 12 406
+436 593 619 l63 62 9 665 c6 365 15 810 20 989 6 179 13 502 17 718 l6 392
+-30 0 c-31 0 -31 0 -43 -82z"/>
+    <path d="M1880 3260 L2150 2990 L1880 2720 L1610 2990 Z"/>
+  </g>
+    </symbol>
+    <symbol id="micro-c" viewBox="0 0 376 652">
+      <g transform="translate(0 652) scale(0.1 -0.1)" fill="#DCA645" stroke="none">
+    <path d="M1780 6078 c-12 -84 -61 -334 -79 -398 -5 -19 -21 -73 -35 -120 -14
+-47 -32 -112 -41 -144 -21 -77 -125 -354 -165 -442 -140 -304 -254 -515 -451
+-829 -65 -105 -119 -196 -119 -202 0 -6 -4 -13 -9 -15 -22 -8 -250 -388 -338
+-563 -172 -340 -228 -686 -167 -1020 8 -44 19 -89 24 -100 4 -11 11 -33 15
+-50 15 -73 80 -221 132 -301 18 -28 33 -54 33 -58 0 -33 310 -376 339 -376 5
+0 16 -6 23 -13 23 -22 161 -111 213 -137 28 -14 53 -28 56 -33 3 -4 43 -23 90
+-43 130 -55 217 -105 265 -153 24 -24 44 -46 44 -48 0 -2 11 -19 23 -36 48
+-66 74 -178 43 -190 -25 -10 -56 -112 -56 -185 0 -191 177 -312 361 -247 153
+54 216 266 122 409 -46 71 -13 183 91 304 30 33 101 77 186 112 162 66 367
+179 430 236 8 7 47 40 85 72 76 65 151 142 205 212 19 25 38 46 42 48 5 2 8 8
+8 13 0 6 18 37 40 69 22 32 40 61 40 64 0 2 20 47 44 98 158 331 175 711 50
+1088 -65 196 -231 508 -451 849 -20 31 -52 81 -71 111 -20 30 -44 67 -54 82
+-10 15 -18 30 -18 33 0 3 -8 18 -18 33 -65 94 -159 256 -244 419 -247 470
+-406 930 -480 1390 -22 135 -24 143 -46 143 -12 0 -25 -7 -29 -17 -4 -9 -1
+-215 5 -457 13 -474 30 -1465 35 -1973 2 -313 2 -313 32 -341 23 -21 542 -553
+623 -637 6 -8 12 -19 12 -26 0 -6 -150 -162 -332 -346 l-333 -334 -6 -512 c-5
+-513 -8 -551 -42 -594 -16 -22 -44 -14 -55 15 -33 85 -35 113 -39 592 -3 267
+-8 491 -13 499 -4 8 -154 163 -331 344 -178 181 -324 335 -324 342 0 12 406
+436 593 619 l63 62 9 665 c6 365 15 810 20 989 6 179 13 502 17 718 l6 392
+-30 0 c-31 0 -31 0 -43 -82z"/>
+    <path d="M1880 3260 L2070 3070 L1880 2880 L1690 3070 Z"/>
+    <path d="M1550 2940 L1740 2750 L1550 2560 L1360 2750 Z"/>
+    <path d="M2210 2940 L2400 2750 L2210 2560 L2020 2750 Z"/>
+  </g>
+    </symbol>
+  </defs>
+  <rect width="1200" height="760" fill="#F4EFE6"/>
+  <text x="48" y="52" fill="#241F1A" font-family="Arial, sans-serif" font-size="24" font-weight="700">ARTales micro symbol candidates · v0.1</text>
+  <text x="48" y="80" fill="#665E55" font-family="Arial, sans-serif" font-size="14">Review only · locked master silhouette · actual target-size heights</text>
+  <rect x="48" y="112" width="540" height="582" rx="16" fill="#FFFFFF" stroke="#D8D0C5"/>
+  <rect x="612" y="112" width="540" height="582" rx="16" fill="#211D19" stroke="#4B433B"/>
+  <text x="72" y="148" fill="#241F1A" font-family="Arial, sans-serif" font-size="16" font-weight="700">Light background</text>
+  <text x="636" y="148" fill="#FFFFFF" font-family="Arial, sans-serif" font-size="16" font-weight="700">Dark background</text>
+  <text x="203" y="184" text-anchor="middle" fill="#665E55" font-family="Arial, sans-serif" font-size="13">16px</text>
+  <text x="295" y="184" text-anchor="middle" fill="#665E55" font-family="Arial, sans-serif" font-size="13">20px</text>
+  <text x="387" y="184" text-anchor="middle" fill="#665E55" font-family="Arial, sans-serif" font-size="13">24px</text>
+  <text x="479" y="184" text-anchor="middle" fill="#665E55" font-family="Arial, sans-serif" font-size="13">32px</text>
+  <text x="767" y="184" text-anchor="middle" fill="#CFC7BD" font-family="Arial, sans-serif" font-size="13">16px</text>
+  <text x="859" y="184" text-anchor="middle" fill="#CFC7BD" font-family="Arial, sans-serif" font-size="13">20px</text>
+  <text x="951" y="184" text-anchor="middle" fill="#CFC7BD" font-family="Arial, sans-serif" font-size="13">24px</text>
+  <text x="1043" y="184" text-anchor="middle" fill="#CFC7BD" font-family="Arial, sans-serif" font-size="13">32px</text>
+  <line x1="72" y1="204" x2="564" y2="204" stroke="#E4DDD4"/>
+  <text x="72" y="238" fill="#241F1A" font-family="Arial, sans-serif" font-size="18" font-weight="700">A</text>
+  <text x="72" y="259" fill="#746B61" font-family="Arial, sans-serif" font-size="11">Closest to master</text>
+  <rect x="179" y="220" width="48" height="64" rx="6" fill="#F7F4EF" stroke="#E4DDD4"/>
+  <use href="#micro-a" x="198.387" y="228.000" width="9.227" height="16"/>
+  <rect x="271" y="220" width="48" height="64" rx="6" fill="#F7F4EF" stroke="#E4DDD4"/>
+  <use href="#micro-a" x="289.233" y="228.000" width="11.534" height="20"/>
+  <rect x="363" y="220" width="48" height="64" rx="6" fill="#F7F4EF" stroke="#E4DDD4"/>
+  <use href="#micro-a" x="380.080" y="228.000" width="13.840" height="24"/>
+  <rect x="455" y="220" width="48" height="64" rx="6" fill="#F7F4EF" stroke="#E4DDD4"/>
+  <use href="#micro-a" x="469.773" y="228.000" width="18.454" height="32"/>
+  <line x1="636" y1="204" x2="1128" y2="204" stroke="#4B433B"/>
+  <text x="636" y="238" fill="#FFFFFF" font-family="Arial, sans-serif" font-size="18" font-weight="700">A</text>
+  <text x="636" y="259" fill="#BDB4AA" font-family="Arial, sans-serif" font-size="11">Closest to master</text>
+  <rect x="743" y="220" width="48" height="64" rx="6" fill="#2B2621" stroke="#4B433B"/>
+  <use href="#micro-a" x="762.387" y="228.000" width="9.227" height="16"/>
+  <rect x="835" y="220" width="48" height="64" rx="6" fill="#2B2621" stroke="#4B433B"/>
+  <use href="#micro-a" x="853.233" y="228.000" width="11.534" height="20"/>
+  <rect x="927" y="220" width="48" height="64" rx="6" fill="#2B2621" stroke="#4B433B"/>
+  <use href="#micro-a" x="944.080" y="228.000" width="13.840" height="24"/>
+  <rect x="1019" y="220" width="48" height="64" rx="6" fill="#2B2621" stroke="#4B433B"/>
+  <use href="#micro-a" x="1033.773" y="228.000" width="18.454" height="32"/>
+  <line x1="72" y1="358" x2="564" y2="358" stroke="#E4DDD4"/>
+  <text x="72" y="392" fill="#241F1A" font-family="Arial, sans-serif" font-size="18" font-weight="700">B</text>
+  <text x="72" y="413" fill="#746B61" font-family="Arial, sans-serif" font-size="11">Strongest reduction</text>
+  <rect x="179" y="374" width="48" height="64" rx="6" fill="#F7F4EF" stroke="#E4DDD4"/>
+  <use href="#micro-b" x="198.387" y="382.000" width="9.227" height="16"/>
+  <rect x="271" y="374" width="48" height="64" rx="6" fill="#F7F4EF" stroke="#E4DDD4"/>
+  <use href="#micro-b" x="289.233" y="382.000" width="11.534" height="20"/>
+  <rect x="363" y="374" width="48" height="64" rx="6" fill="#F7F4EF" stroke="#E4DDD4"/>
+  <use href="#micro-b" x="380.080" y="382.000" width="13.840" height="24"/>
+  <rect x="455" y="374" width="48" height="64" rx="6" fill="#F7F4EF" stroke="#E4DDD4"/>
+  <use href="#micro-b" x="469.773" y="382.000" width="18.454" height="32"/>
+  <line x1="636" y1="358" x2="1128" y2="358" stroke="#4B433B"/>
+  <text x="636" y="392" fill="#FFFFFF" font-family="Arial, sans-serif" font-size="18" font-weight="700">B</text>
+  <text x="636" y="413" fill="#BDB4AA" font-family="Arial, sans-serif" font-size="11">Strongest reduction</text>
+  <rect x="743" y="374" width="48" height="64" rx="6" fill="#2B2621" stroke="#4B433B"/>
+  <use href="#micro-b" x="762.387" y="382.000" width="9.227" height="16"/>
+  <rect x="835" y="374" width="48" height="64" rx="6" fill="#2B2621" stroke="#4B433B"/>
+  <use href="#micro-b" x="853.233" y="382.000" width="11.534" height="20"/>
+  <rect x="927" y="374" width="48" height="64" rx="6" fill="#2B2621" stroke="#4B433B"/>
+  <use href="#micro-b" x="944.080" y="382.000" width="13.840" height="24"/>
+  <rect x="1019" y="374" width="48" height="64" rx="6" fill="#2B2621" stroke="#4B433B"/>
+  <use href="#micro-b" x="1033.773" y="382.000" width="18.454" height="32"/>
+  <line x1="72" y1="512" x2="564" y2="512" stroke="#E4DDD4"/>
+  <text x="72" y="546" fill="#241F1A" font-family="Arial, sans-serif" font-size="18" font-weight="700">C</text>
+  <text x="72" y="567" fill="#746B61" font-family="Arial, sans-serif" font-size="11">Balanced reduction</text>
+  <rect x="179" y="528" width="48" height="64" rx="6" fill="#F7F4EF" stroke="#E4DDD4"/>
+  <use href="#micro-c" x="198.387" y="536.000" width="9.227" height="16"/>
+  <rect x="271" y="528" width="48" height="64" rx="6" fill="#F7F4EF" stroke="#E4DDD4"/>
+  <use href="#micro-c" x="289.233" y="536.000" width="11.534" height="20"/>
+  <rect x="363" y="528" width="48" height="64" rx="6" fill="#F7F4EF" stroke="#E4DDD4"/>
+  <use href="#micro-c" x="380.080" y="536.000" width="13.840" height="24"/>
+  <rect x="455" y="528" width="48" height="64" rx="6" fill="#F7F4EF" stroke="#E4DDD4"/>
+  <use href="#micro-c" x="469.773" y="536.000" width="18.454" height="32"/>
+  <line x1="636" y1="512" x2="1128" y2="512" stroke="#4B433B"/>
+  <text x="636" y="546" fill="#FFFFFF" font-family="Arial, sans-serif" font-size="18" font-weight="700">C</text>
+  <text x="636" y="567" fill="#BDB4AA" font-family="Arial, sans-serif" font-size="11">Balanced reduction</text>
+  <rect x="743" y="528" width="48" height="64" rx="6" fill="#2B2621" stroke="#4B433B"/>
+  <use href="#micro-c" x="762.387" y="536.000" width="9.227" height="16"/>
+  <rect x="835" y="528" width="48" height="64" rx="6" fill="#2B2621" stroke="#4B433B"/>
+  <use href="#micro-c" x="853.233" y="536.000" width="11.534" height="20"/>
+  <rect x="927" y="528" width="48" height="64" rx="6" fill="#2B2621" stroke="#4B433B"/>
+  <use href="#micro-c" x="944.080" y="536.000" width="13.840" height="24"/>
+  <rect x="1019" y="528" width="48" height="64" rx="6" fill="#2B2621" stroke="#4B433B"/>
+  <use href="#micro-c" x="1033.773" y="536.000" width="18.454" height="32"/>
+  <text x="600" y="728" text-anchor="middle" fill="#665E55" font-family="Arial, sans-serif" font-size="13">No selection implied · no favicon, binary export, or runtime integration</text>
+</svg>

@@ -2,37 +2,68 @@
 
 ## Purpose
 
-The manual `ARTales icon artifact generator` GitHub Action makes a consistent
-review package from the locked ARTales micro-symbol master. Its presence on the
-default branch exposes the **Run workflow** control without promoting the
-broader `develop` branch.
+`ARTales Generate Icon Artifacts` is a manually dispatched GitHub Actions
+workflow for producing favicon and app-icon candidates. It keeps binary review
+outputs separate from the repository and does not change runtime behavior.
 
-## Scope and safety boundary
+## Source master
 
-- The workflow runs only through `workflow_dispatch`.
-- Repository contents are read-only during the job.
-- The generator reads the locked SVG master and creates temporary PNG, ICO, and
-  checksum-manifest files in its tooling output directory.
-- GitHub Actions uploads that directory as a downloadable artifact retained for
-  14 days.
-- No generated file is committed, deployed, copied into `public/`, or connected
-  to application/runtime code.
-- Generated artifacts are review-only. They are not production icon approval.
+Every icon is rendered as-is from the approved, locked micro symbol master:
 
-## Operation
+`brand/artales/masters/micro-symbol/artales-micro-symbol.master.v1.svg`
 
-1. Open **Actions** in GitHub.
-2. Select **ARTales icon artifact generator**.
-3. Choose **Run workflow** on the default branch.
-4. After the job succeeds, download `artales-icon-artifacts` from the run page.
-5. Inspect the images and verify `manifest.json` before any separately approved
-   production integration.
+The micro master is the approved source for tiny icon contexts. The generator
+copies it into the artifact for visual provenance and records its SHA-256 digest
+in the manifest. It does not invent or modify icon artwork.
 
-Local reproduction is documented in
-`tools/brand/generate-icon-artifacts/README.md`.
+## Generated artifact files
 
-## Rollback
+The artifact `artales-icon-artifacts-v0.1` contains:
 
-Revert the commit or pull request that adds the workflow and generator. Existing
-downloaded workflow artifacts can be deleted or allowed to expire; no runtime,
-database, environment, or public asset rollback is necessary.
+- `favicon-16x16.png`
+- `favicon-32x32.png`
+- `favicon-48x48.png`
+- `favicon.ico` (16, 32, and 48 pixel entries)
+- `apple-touch-icon-180x180.png`
+- `app-icon-192x192.png`
+- `app-icon-512x512.png`
+- `artales-icons-manifest.v0.1.json`
+- `README.md`
+- `artales-micro-symbol.source.svg`
+
+The manifest records source and payload SHA-256 values, dimensions, generation
+time, workflow identity, and explicit no-runtime/no-database/no-environment flags.
+
+## Why artifact-only
+
+Binary output is less reviewable than its SVG source and should be visually
+checked at every target size before public use. The workflow therefore has
+read-only repository permission, uploads only a downloadable Actions artifact,
+and contains no commit, push, pull-request, or deployment step. No generated
+binary belongs in this change.
+
+## Manual follow-up process
+
+1. Run **ARTales Generate Icon Artifacts** manually in GitHub Actions.
+2. Download `artales-icon-artifacts-v0.1` from the completed run.
+3. Visually review every icon, including the smallest favicon sizes and ICO entries.
+4. Manually upload only approved binaries in a new branch and pull request.
+5. Integrate files into `public/`, metadata, manifests, or runtime only after
+   separate explicit approval.
+
+## Limitations
+
+- CairoSVG and Pillow are pinned to make the Actions renderer controlled, but a
+  later intentional dependency update can change raster bytes and checksums.
+- The workflow produces square canvases from a tall symbol view box. Reviewers
+  must confirm the resulting scale and whitespace are suitable before approval.
+- Generation is not visual approval and does not make any candidate production-ready.
+- The Actions artifact is retained for 30 days.
+
+## Out of scope
+
+- Committing PNG or ICO files.
+- Changes under `public/` or integration with application runtime, metadata, or manifests.
+- Changes to components, styles, database, environment variables, or Supabase.
+- Deployment, production promotion, or changes to `main`.
+- Reader, editor, parser, tables, or pagination work, including patch v0.10.15k.

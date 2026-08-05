@@ -1,0 +1,243 @@
+{
+  "board_id": "artales-brand-composite-board.v0.2",
+  "status": "review_only",
+  "version": 0.2,
+  "created": "2026-08-04",
+  "supersedes_for_review": "artales-brand-composite-board.v0.1",
+  "svg_board_path": "brand/artales/overview/artales-brand-composite-board.v0.2.svg",
+  "runtimeImpact": false,
+  "dbImpact": false,
+  "envImpact": false,
+  "publicIntegration": false,
+  "source_assets": [
+    {
+      "id": "standard_symbol_master",
+      "path": "brand/artales/masters/symbol-pen-drop/symbol-pen-drop.master.v1.svg",
+      "sha256": "d70d53143a6809d0bea61d68238b40d6a7d3a063e8a5f0f5d703f234d9899847",
+      "status": "master"
+    },
+    {
+      "id": "wordmark_master",
+      "path": "brand/artales/masters/wordmark-artales/artales-wordmark.master.v1.svg",
+      "sha256": "74ed72373b89a0818628469d5a6ff5fdf7080316d9338018f6bf70ae9fec4f91",
+      "status": "master"
+    },
+    {
+      "id": "light_logo_lockup_master",
+      "path": "brand/artales/masters/logo-lockup/artales-lockup-light.master.v1.svg",
+      "sha256": "8697d4a0fa29e9c000e45b9c4a920ec2c916ac7940c61a9603fa28e34d6cd75b",
+      "status": "master"
+    },
+    {
+      "id": "dark_logo_lockup_master",
+      "path": "brand/artales/masters/logo-lockup/artales-lockup-dark.master.v1.svg",
+      "sha256": "ee4844c7d4c96a57ae3a01a1b52731812e342ef9bb9accfc60a8028bbae61fb4",
+      "status": "master"
+    },
+    {
+      "id": "micro_symbol_master",
+      "path": "brand/artales/masters/micro-symbol/artales-micro-symbol.master.v1.svg",
+      "sha256": "964e61bbb64b8a68d1b5784d6eb3cb001bd7a0bb6404779ad476e21dbd5217be",
+      "status": "master"
+    }
+  ],
+  "export_assets": [
+    {
+      "id": "primary-light",
+      "path": "brand/artales/exports/v0.1/primary-light/artales-logo-primary-light.svg",
+      "sha256": "2622a8df14ce6ba5c84a05e425edc546743bb431c9309cb8b5bc3eb3599d619a",
+      "status": "derived_export"
+    },
+    {
+      "id": "primary-dark",
+      "path": "brand/artales/exports/v0.1/primary-dark/artales-logo-primary-dark.svg",
+      "sha256": "8ccc089488a8d00f90ab83075906bb6d23eb382b07f145dde1c3bd4ac110d301",
+      "status": "derived_export"
+    },
+    {
+      "id": "symbol-only-gold",
+      "path": "brand/artales/exports/v0.1/symbol-only-gold/artales-symbol-gold.svg",
+      "sha256": "91dec82c4882877417051d2b1e6072f8cd9026d9127ac74a55e6bedd3831a85f",
+      "status": "derived_export"
+    },
+    {
+      "id": "wordmark-only-dark",
+      "path": "brand/artales/exports/v0.1/wordmark-only-dark/artales-wordmark-dark.svg",
+      "sha256": "7ec33200cdf1fc3f11b4ad13ce464fdc7ce5ad11081b7e2486399a97ac1d9db9",
+      "status": "derived_export"
+    },
+    {
+      "id": "wordmark-only-gold",
+      "path": "brand/artales/exports/v0.1/wordmark-only-gold/artales-wordmark-gold.svg",
+      "sha256": "da40d6852d790bc94db2a4a3cc2b47fefb5d7e198802bd9a592fa3ffdabbdad3",
+      "status": "derived_export"
+    },
+    {
+      "id": "monochrome-dark",
+      "path": "brand/artales/exports/v0.1/monochrome-dark/artales-logo-monochrome-dark.svg",
+      "sha256": "c03270cf55b5a9f58e15e70bfd79a246bc027dc2cf072cf789bb6cb5ba31825f",
+      "status": "derived_export"
+    },
+    {
+      "id": "monochrome-light",
+      "path": "brand/artales/exports/v0.1/monochrome-light/artales-logo-monochrome-light.svg",
+      "sha256": "089f904d261277fb6fc3f6c009de5971a0b9dfbfea348a9edba4cf2f1bddac53",
+      "status": "derived_export"
+    }
+  ],
+  "runtime_public_assets": [
+    {
+      "id": "favicon-16",
+      "path": "public/favicon-16x16.png",
+      "sha256": "18c76d89a4d0a127a3bb608bdf1a7d743ec29aa93e5f4a086024e7137a5e50b7",
+      "status": "integrated_runtime_public_asset"
+    },
+    {
+      "id": "favicon-32",
+      "path": "public/favicon-32x32.png",
+      "sha256": "57ab5314e4ac0c620e8ff50f4bc5dcd976cb9e2b565f21fe62f9fedaf2035cde",
+      "status": "integrated_runtime_public_asset"
+    },
+    {
+      "id": "favicon-48",
+      "path": "public/favicon-48x48.png",
+      "sha256": "8c2f12c0cb0e0dee8a114a4f22ca87ae372985885aa4cda807a0f749bc8fe522",
+      "status": "integrated_runtime_public_asset"
+    },
+    {
+      "id": "apple-touch-icon-180",
+      "path": "public/apple-touch-icon-180x180.png",
+      "sha256": "9b646801a4b4be85980d39de8414fdda942dda91cc6d9b65f3e9f54d4bb44cad",
+      "status": "integrated_runtime_public_asset"
+    },
+    {
+      "id": "app-icon-192",
+      "path": "public/app-icon-192x192.png",
+      "sha256": "07c228cacdd3f69c94bcea5cd3746d07a3e00709708614802f12439a9770d583",
+      "status": "integrated_runtime_public_asset"
+    },
+    {
+      "id": "app-icon-512",
+      "path": "public/app-icon-512x512.png",
+      "sha256": "bfcc054b3d0d0afb4d16b45a375461889384bb4dc113975cd3b654e1cd536715",
+      "status": "integrated_runtime_public_asset"
+    }
+  ],
+  "color_palette": [
+    {
+      "name": "Ink / Night",
+      "hex": "#0F1315",
+      "status": "documented_not_tokenized"
+    },
+    {
+      "name": "Deep Dark",
+      "hex": "#141414",
+      "status": "documented_not_tokenized"
+    },
+    {
+      "name": "Paper",
+      "hex": "#FDF3E2",
+      "status": "documented_not_tokenized"
+    },
+    {
+      "name": "Text Dark",
+      "hex": "#272827",
+      "status": "documented_not_tokenized"
+    },
+    {
+      "name": "Primary Gold",
+      "hex": "#E0AA47",
+      "status": "documented_not_tokenized"
+    },
+    {
+      "name": "Secondary Gold",
+      "hex": "#E3AA46",
+      "status": "documented_not_tokenized"
+    },
+    {
+      "name": "Darker Gold",
+      "hex": "#D19738",
+      "status": "documented_not_tokenized"
+    },
+    {
+      "name": "Gold Shade",
+      "hex": "#B58636",
+      "status": "documented_not_tokenized"
+    },
+    {
+      "name": "Locked Symbol Gold",
+      "hex": "#DCA645",
+      "status": "documented_not_tokenized"
+    }
+  ],
+  "typography_note": {
+    "direction": "classic literary serif",
+    "source_route": "Libre Baskerville verified source package",
+    "current_wordmark_master": "outline SVG",
+    "runtime_font_requirement": false,
+    "brand_protection_note": "The font itself is not exclusive; the protected brand layer is the ARTales composition, wordmark, and lockup."
+  },
+  "usage_guidance": [
+    "Use primary-light on paper or light backgrounds.",
+    "Use primary-dark on dark backgrounds.",
+    "Use the micro symbol for tiny favicon and app-icon contexts.",
+    "Use symbol-only-gold for small standalone brand marks.",
+    "Use runtime public icons only for browser and PWA contexts."
+  ],
+  "avoid_guidance": [
+    "Do not use monochrome-light on light backgrounds.",
+    "Do not stretch lockups.",
+    "Do not recolor masters ad hoc.",
+    "Do not treat the review board as a token source.",
+    "Do not replace the standard symbol with the micro symbol in normal-size contexts.",
+    "Do not assume current site CSS is tokenized."
+  ],
+  "future_token_candidates": {
+    "status": "proposal_only_not_runtime",
+    "candidates": {
+      "color.brand.gold": "#E0AA47 or final selected gold TBD",
+      "color.brand.symbolGold": "#DCA645",
+      "color.surface.paper": "#FDF3E2",
+      "color.surface.dark": "#0F1315",
+      "color.text.default": "#272827",
+      "color.text.inverse": "#FDF3E2",
+      "color.accent.goldDarker": "#D19738"
+    }
+  },
+  "dashboard_readiness": {
+    "suitable_for_admin_preview": true,
+    "suitable_for_human_review": true,
+    "canonical_human_preview": "workflow_artifact_png",
+    "png_preview_status": "generated_as_workflow_artifact_only",
+    "png_preview_artifact_name": "artales-brand-board-preview-v0.2"
+  },
+  "limitations": [
+    "Review-only documentation snapshot; it is not runtime integration.",
+    "The board and candidate token names are not token sources.",
+    "No runtime styling, CSS variables, public assets, masters, or exports were changed.",
+    "The registry is a repository pointer and is not yet integrated with an admin dashboard or review workflow.",
+    "PNG preview is generated as a GitHub Actions artifact only because binary files are not supported in this Codex PR flow."
+  ],
+  "next_steps": [
+    "Run the workflow_dispatch preview generator when a downloadable PNG is needed for review.",
+    "Human visual review of the v0.2 workflow artifact PNG preview.",
+    "Later admin brand dashboard integration.",
+    "Later Syrael/Flow review workflow exploration.",
+    "Later tokenization proposal.",
+    "Production promotion only after explicit approval."
+  ],
+  "png_preview_status": "generated_as_workflow_artifact_only",
+  "png_preview_artifact_name": "artales-brand-board-preview-v0.2",
+  "human_review": {
+    "status": "visually_accepted_on_develop",
+    "reviewed_asset": "brand/artales/overview/artales-brand-composite-board.v0.2.svg",
+    "reviewed_by": "project_owner",
+    "reviewed_at": "2026-08-04",
+    "review_note": "SVG board reviewed and accepted as the current ARTales develop brand snapshot. PNG artifact preview is available but not required for this checkpoint.",
+    "approval_scope": "develop_review_snapshot_only",
+    "runtimeApproval": false,
+    "productionApproval": false,
+    "tokenizationApproval": false,
+    "adminDashboardApproval": false
+  }
+}

@@ -23,6 +23,16 @@ SUPPORTED_MODES = {"background_distance", "target_color_distance"}
 SUPPORTED_TRACE_MODES = {"foreground"}
 SMALL_PREVIEW_SIZES = [128, 64, 32, 16]
 TOOL_VERSION = "0.2"
+LOCKUP_SYMBOL_SVG = "brand/artales/masters/symbol-pen-drop/symbol-pen-drop.master.v1.svg"
+LOCKUP_SYMBOL_METADATA = "brand/artales/masters/symbol-pen-drop/symbol-pen-drop.master.v1.json"
+LOCKUP_CONFIGS = (
+    "tools/brand/vectorize-reference/config/artales-light-lockup.v0.1.json",
+    "tools/brand/vectorize-reference/config/artales-dark-lockup.v0.1.json",
+)
+LOCKUP_SOURCE_REFERENCES = (
+    "brand/artales/references/source/logo-lockup-light.source.jpg",
+    "brand/artales/references/source/logo-lockup-dark.source.jpg",
+)
 SAFE_VARIANT_ID = re.compile(r"^[a-z0-9_-]+$")
 DEFAULT_TRACE = {
     "mode": "foreground",
@@ -55,7 +65,15 @@ def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description="Build deterministic mask, overlay, trace, and report artifacts."
     )
-    parser.add_argument("--config", required=True, type=Path, help="Path to a JSON config.")
+    parser.add_argument("--config", type=Path, help="Path to a JSON config.")
+    parser.add_argument(
+        "--validate-lockup-sources",
+        action="store_true",
+        help=(
+            "Validate the locked symbol and both lockup configs/source crops without "
+            "generating or promoting an asset."
+        ),
+    )
     parser.add_argument(
         "--validate-config",
         action="store_true",
@@ -75,6 +93,50 @@ def parse_args() -> argparse.Namespace:
         ),
     )
     return parser.parse_args()
+
+
+def validate_lockup_sources() -> None:
+    """Validate the fixed prerequisites for a future lockup candidate run."""
+    symbol_svg = repository_path(LOCKUP_SYMBOL_SVG)
+    symbol_metadata_path = repository_path(LOCKUP_SYMBOL_METADATA)
+    if not symbol_svg.is_file():
+        raise ConfigurationError(f"Locked symbol SVG does not exist: {symbol_svg}")
+    if not symbol_metadata_path.is_file():
+        raise ConfigurationError(
+            f"Locked symbol metadata does not exist: {symbol_metadata_path}"
+        )
+    try:
+        symbol_metadata = json.loads(symbol_metadata_path.read_text(encoding="utf-8"))
+    except json.JSONDecodeError as exc:
+        raise ConfigurationError(f"Locked symbol metadata is invalid JSON: {exc}") from exc
+    if symbol_metadata.get("status") != "locked_master":
+        raise ConfigurationError("Locked symbol metadata status must be locked_master.")
+    if symbol_metadata.get("approval_state") != "approved_locked":
+        raise ConfigurationError(
+            "Locked symbol metadata approval_state must be approved_locked."
+        )
+
+    for reference_value in LOCKUP_SOURCE_REFERENCES:
+        reference_path = repository_path(reference_value)
+        if not reference_path.is_file():
+            raise ConfigurationError(
+                f"Lockup source reference does not exist: {reference_path}"
+            )
+        print(f"Lockup source reference exists: {report_path(reference_path)}")
+
+    for config_value in LOCKUP_CONFIGS:
+        config_path = repository_path(config_value)
+        config = load_config(config_path)
+        input_path = repository_path(config["input_image"])
+        if not input_path.is_file():
+            raise ConfigurationError(f"Lockup source crop does not exist: {input_path}")
+        print(f"Lockup config is valid: {report_path(config_path)}")
+        print(f"Lockup source crop exists: {report_path(input_path)}")
+    print(f"Locked symbol SVG exists: {LOCKUP_SYMBOL_SVG}")
+    print(
+        "Locked symbol metadata is valid: "
+        "status=locked_master, approval_state=approved_locked"
+    )
 
 
 def load_config(path: Path) -> dict[str, Any]:
@@ -984,6 +1046,17 @@ def run(
 def main() -> int:
     args = parse_args()
     try:
+        if args.validate_lockup_sources:
+            if args.config or args.validate_config or args.matrix or args.candidate_from_matrix:
+                raise ConfigurationError(
+                    "--validate-lockup-sources cannot be combined with other modes."
+                )
+            validate_lockup_sources()
+            return 0
+        if args.config is None:
+            raise ConfigurationError(
+                "--config is required unless --validate-lockup-sources is used."
+            )
         return run(
             args.config,
             args.validate_config,
