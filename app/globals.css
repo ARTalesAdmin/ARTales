@@ -1987,7 +1987,7 @@ body {
 }
 
 .artales-gallery-card h2 a {
-  color: var(--artales-ink);
+  color: var(--artales-color-text-primary);
   text-decoration: none;
 }
 
@@ -2081,7 +2081,7 @@ body {
 }
 
 .artales-gallery-card__author-link {
-  color: var(--artales-ink);
+  color: var(--artales-color-text-primary);
   font-weight: 900;
   text-decoration: underline;
   text-decoration-color: rgba(138, 106, 45, 0.38);
@@ -2089,7 +2089,7 @@ body {
 }
 
 .artales-gallery-card__meta a:not(.artales-gallery-card__author-link) {
-  color: var(--artales-ink);
+  color: var(--artales-color-text-primary);
   font-weight: 750;
   text-decoration: underline;
   text-decoration-color: rgba(13, 21, 40, 0.18);
@@ -2133,13 +2133,13 @@ body {
 }
 
 .artales-work-detail-facts dd {
-  color: var(--artales-ink);
+  color: var(--artales-color-text-primary);
   font-weight: 800;
   margin: 0;
 }
 
 .artales-work-detail-facts a {
-  color: var(--artales-ink);
+  color: var(--artales-color-text-primary);
   text-decoration: underline;
   text-decoration-color: rgba(138, 106, 45, 0.42);
   text-underline-offset: 0.16em;
