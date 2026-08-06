@@ -6,6 +6,7 @@
 - **Scope:** service worker cache behavior for current icon and manifest assets.
 - **Risk:** medium — this is an isolated runtime cache change, but installed service workers and PWA assets update asynchronously.
 - **Target:** develop first
+- **Production status:** promoted to `main`
 - **DB:** no
 - **Env:** no
 
@@ -26,7 +27,7 @@ The cache name was bumped from `artales-pwa-v0108` to `artales-pwa-v0109-brand-i
 
 ## Deployment note
 
-The service worker cache-name bump gives installed clients a path away from the previous named cache after the new worker activates. Browser favicon caches, installed PWA metadata, and operating-system launcher caches are separate layers, however, and may still take time to refresh after deployment.
+The alignment was promoted to `main`. The service worker cache-name bump gives installed clients a path away from the previous named cache after the new worker activates. Browser favicon caches, installed PWA metadata, and operating-system launcher caches are separate layers, however, and may still take time to refresh after deployment.
 
 ## Rollback
 

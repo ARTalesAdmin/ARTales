@@ -16,6 +16,10 @@
 
 PR #68 promoted the approved ARTales brand identity package to `main`. The production deployment is visible on Vercel and the Vercel UI already shows the new ARTales icon. The live site is not known to be broken. This audit records the post-production baseline before any further runtime changes, especially because browser tab favicons and installed PWA icons may keep old cached assets after deployment.
 
+## Post-audit resolution
+
+The runtime-relevant service-worker finding was resolved by PR #71, which aligned the active icon and manifest cache paths and was subsequently promoted to `main`. The registry finding was resolved in the follow-up status-only cleanup: production promotion via PR #68, the service-worker alignment, and their completed production state are now recorded in `brand/artales/brand-registry.v0.1.json`. No runtime behavior was changed by the registry cleanup.
+
 ## What was checked
 
 Repository files were searched for icon, manifest, PWA, service worker, cache, shortcut, and theme-color references, including:
@@ -150,12 +154,12 @@ Needed. `brand/artales/brand-registry.v0.1.json` still represents production pro
 
 Not found by repository audit. Current `app/layout.tsx` metadata references and `public/manifest.webmanifest` references are internally consistent with the expected current public icon files. Any visible old browser/PWA icon can be explained by cache/service-worker/installed-app delay or by the separate `app/favicon.ico` file-based metadata source pending deeper verification.
 
-## Recommended follow-up PRs
+## Follow-up status
 
-1. **Service worker icon cache alignment PR** — update `public/sw.js` to stop precaching old `/icons/artales-*` and `/apple-touch-icon.png` paths, consider a cache name bump, and align cacheable icon URLs with current metadata and manifest paths.
+1. **Service worker icon cache alignment** — completed in PR #71 and promoted to `main`.
 2. **File-based metadata verification PR** — compare or align `app/favicon.ico` with the current approved `public/favicon.ico` source if browser tab favicon inconsistency persists.
 3. **Legacy public asset retirement PR** — decide whether to remove or leave `public/favicon.svg`, `public/apple-touch-icon.png`, and `public/icons/artales-*` after confirming no external clients rely on them.
-4. **Brand registry status cleanup PR** — update `brand/artales/brand-registry.v0.1.json` to reflect PR #68 production promotion and the post-sync `develop` baseline.
+4. **Brand registry status cleanup** — completed in the status-only follow-up after the PR #70 audit.
 5. **Documentation archive cleanup PR** — optionally annotate older review docs and example manifests as historical to prevent confusion, without changing runtime behavior.
 
 ## Acceptance checklist
@@ -170,3 +174,4 @@ Not found by repository audit. Current `app/layout.tsx` metadata references and 
 - [x] Current repo references are internally consistent for metadata and manifest icon paths.
 - [x] Stale icon paths are clearly identified.
 - [x] Registry production-status cleanup need is clearly identified.
+- [x] Post-audit service-worker and registry resolutions are recorded.
