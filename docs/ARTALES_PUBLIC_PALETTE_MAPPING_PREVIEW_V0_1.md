@@ -56,7 +56,9 @@ site recolor.
 - `--artales-color-text-secondary` and `--artales-color-text-muted` retain
   `#5f5247` and `#73685d`; changing secondary hierarchy awaits contrast review.
 - `--artales-color-brand-gold-muted` remains unchanged because remapping its
-  alpha recipe is unnecessary for this preview.
+  alpha recipe is unnecessary for this preview. The approved Gold Shade
+  (`#B58636`) is therefore not assigned to a semantic token in v0.1; assigning
+  it belongs to a later, usage-led mapping rather than this conservative pass.
 - Action and focus tokens remain unchanged. Existing selector behavior, rather
   than a broader action-system remap, is the review boundary for v0.1.
 - Success, warning, error, and info state colors remain unchanged so semantic
@@ -94,3 +96,18 @@ mapping table) to return the root semantic tokens to their value-preserving
 state. No database, environment, asset, package, component, or route rollback
 is required. After rollback, recheck the public homepage, shell,
 gallery/catalog, and work-detail pages in light, dark, and adaptive themes.
+
+## Delivery record
+
+- **Changed files:** `app/globals.css` contains the reviewable literal token
+  mapping; this document records its scope, expected effects, deferrals, review,
+  and rollback.
+- **Risk:** `medium` — this is an intentional public visual-system change and
+  needs targeted browser and contrast review, but it does not alter application
+  behavior or data.
+- **Target:** `develop first` — preview review is required; this is not approval
+  to promote the mapping to `main`.
+- **DB:** `no`.
+- **Env:** `no`.
+- **Known limitation:** automated syntax checks do not replace browser review of
+  public surfaces, responsive states, or light/dark/adaptive theme combinations.
