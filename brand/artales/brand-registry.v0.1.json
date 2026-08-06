@@ -119,16 +119,17 @@
   "admin_dashboard_status": "not_integrated",
   "review_workflow_status": "planned",
   "deployment_status": {
-    "develop": "brand_snapshot_and_icons_integrated",
-    "main": "brand_snapshot_and_icons_integrated"
+    "develop": "brand_snapshot_icons_and_sw_cache_integrated",
+    "main": "brand_snapshot_icons_and_sw_cache_integrated"
   },
   "production_promotion": {
     "status": "promoted_to_main",
     "production_pr": 68,
     "promoted_at": "2026-08-05",
+    "approved_by": "project_owner",
     "approval": "explicit_project_owner_approval",
     "scope": [
-      "brand masters",
+      "locked brand masters",
       "svg exports",
       "brand registry",
       "runtime public icons",
@@ -136,7 +137,7 @@
       "web manifest icon wiring"
     ],
     "non_scope": [
-      "tokenization",
+      "runtime tokenization",
       "admin dashboard",
       "CSS palette refactor",
       "DB changes",
@@ -145,11 +146,14 @@
     ]
   },
   "service_worker_icon_cache_alignment": {
-    "status": "aligned",
+    "status": "promoted_to_main",
     "develop_pr": 71,
     "main_status": "promoted_to_main",
     "cache_name": "artales-pwa-v0109-brand-icons",
-    "scope": "icon_and_manifest_cache_alignment_only"
+    "scope": "icon_and_manifest_cache_alignment_only",
+    "runtimeImpact": true,
+    "dbImpact": false,
+    "envImpact": false
   },
   "approval_notes": [
     "symbol approved",
@@ -166,10 +170,9 @@
     "Registry cleanup is status-only and does not change runtime behavior."
   ],
   "next_steps": [
-    "verify production icon/PWA behavior after cache refresh",
-    "registry cleanup complete",
-    "file-based favicon verification if needed",
-    "optional legacy public asset retirement",
+    "verify production icon/PWA behavior after browser/service-worker/OS cache refresh",
+    "file-based favicon verification if browser tab remains stale",
+    "optional legacy public asset retirement decision",
     "tokenization audit/proposal",
     "later admin brand dashboard"
   ],
@@ -199,10 +202,22 @@
       "approved_at": "2026-08-05",
       "promotion_pr": 68,
       "approval_scope": "brand_identity_package_and_runtime_icon_integration",
+      "runtimeIconApproval": true,
       "tokenizationApproval": false,
       "adminDashboardApproval": false,
       "dbImpact": false,
       "envImpact": false
+    },
+    {
+      "event": "service_worker_icon_cache_alignment",
+      "status": "promoted_to_main",
+      "develop_pr": 71,
+      "cache_name": "artales-pwa-v0109-brand-icons",
+      "scope": "icon_and_manifest_cache_alignment_only",
+      "dbImpact": false,
+      "envImpact": false,
+      "tokenizationApproval": false,
+      "adminDashboardApproval": false
     }
   ]
 }

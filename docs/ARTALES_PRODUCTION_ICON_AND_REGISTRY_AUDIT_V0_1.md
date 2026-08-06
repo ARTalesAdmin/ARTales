@@ -67,9 +67,9 @@ All expected current runtime icon assets exist in `public/`.
 
 Stale icon paths still exist in the repository, but they are not all equivalent in runtime impact.
 
-### Runtime-relevant stale references
+### Runtime-relevant stale references found by PR #70 (resolved)
 
-`public/sw.js` still precaches and serves old icon paths:
+At the time of the audit, `public/sw.js` precached and served old icon paths:
 
 - `/icons/artales-icon-192.png`
 - `/icons/artales-icon-512.png`
@@ -77,7 +77,7 @@ Stale icon paths still exist in the repository, but they are not all equivalent 
 - `/icons/artales-maskable-512.png`
 - `/apple-touch-icon.png`
 
-The same service worker also treats `/icons/` and `/apple-touch-icon.png` as cacheable icon-like resources. This can plausibly contribute to expected browser/PWA cache delay or installed-PWA icon staleness, even though the metadata and manifest references have moved to the current icon paths.
+The same service worker also treated `/icons/` and `/apple-touch-icon.png` as cacheable icon-like resources. PR #71 replaced those active references with the approved icon set and bumped the cache name; that alignment was subsequently promoted to `main`.
 
 ### Legacy public assets still present
 
@@ -114,19 +114,19 @@ Finding: `app/favicon.ico` is a real file-based metadata favicon source. This me
 
 ## PWA cache and update sources
 
-The PWA/cache-related sources found in active runtime code are:
+At the time of the PR #70 audit, the PWA/cache-related sources found in active runtime code were:
 
 - `components/pwa/PwaRegister.tsx` registers `/sw.js` in production only, with scope `/` and `updateViaCache: "none"`.
-- `public/sw.js` defines `CACHE_NAME = "artales-pwa-v0108"`, precaches icon and manifest URLs, deletes old named caches during activation, and serves cached icon/manifest requests before fetching.
+- `public/sw.js` defined `CACHE_NAME = "artales-pwa-v0108"`, precached icon and manifest URLs, deleted old named caches during activation, and served cached icon/manifest requests before fetching. PR #71 subsequently aligned the icon paths and changed the cache name to `artales-pwa-v0109-brand-icons`.
 - `public/manifest.webmanifest` defines the installable PWA metadata and current app icon references.
 
 No `next-pwa` or `workbox` runtime integration was found in active app configuration. Package lock cache-related hits are dependency metadata, not ARTales runtime PWA behavior.
 
-Finding: delayed favicon/PWA icon refresh is expected at the browser, OS, installed-PWA, service-worker, and cache layers. The clearest repository-level contributor is `public/sw.js`, which still names old icon URLs and uses a cache-first response for icon/manifest resources.
+Finding at PR #70: delayed favicon/PWA icon refresh was expected at the browser, OS, installed-PWA, service-worker, and cache layers. The repository-level stale service-worker paths identified by the audit were resolved by PR #71 and promoted to `main`; client-side cache refresh can still be asynchronous.
 
-## Brand registry audit
+## Brand registry audit (finding at PR #70)
 
-`brand/artales/brand-registry.v0.1.json` still contains post-production stale status fields after PR #68:
+At the time of the PR #70 audit, `brand/artales/brand-registry.v0.1.json` contained post-production stale status fields after PR #68:
 
 - `deployment_status.main` says `partial_tooling_only_or_not_promoted`.
 - Approval notes still say production/main promotion is not approved.
@@ -134,21 +134,21 @@ Finding: delayed favicon/PWA icon refresh is expected at the browser, OS, instal
 - Review history still records `productionApproval: false` and notes that no production/main promotion was approved.
 - Current snapshot fields still describe the approval scope as develop-only review state.
 
-Finding: the registry needs a cleanup PR that updates audit/status wording to reflect the post-PR #68 production baseline. That cleanup should be separated from runtime behavior changes unless explicitly approved.
+Resolution: the status-only registry cleanup has now recorded the completed PR #68 promotion and the subsequent service-worker cache alignment. It preserved the original develop-only visual review record and added separate production-promotion and cache-alignment events. No runtime behavior changed in the cleanup.
 
 ## Findings by category
 
 ### Expected browser/PWA cache delay
 
-Expected. Browser favicon caches, installed PWA icon caches, OS launcher caches, and active service workers can keep previously fetched icons after a production deployment. This is especially plausible because `public/sw.js` still cache-first serves icon/manifest resources and still includes legacy icon paths in its precache list.
+Expected. Browser favicon caches, installed PWA icon caches, OS launcher caches, and active service workers can keep previously fetched icons after a production deployment. PR #71 removed the legacy precache paths, but browser, installed-PWA, and operating-system cache layers may still refresh asynchronously after the aligned worker reaches a client.
 
 ### Real stale repository references
 
-Found. Runtime-relevant stale icon references remain in `public/sw.js`, and legacy icon files remain in `public/`. Historical docs and brand candidate files also mention older or pre-production icon statuses, but most of those are recordkeeping rather than active runtime integration.
+Partially resolved. PR #71 removed the runtime-relevant stale icon references from `public/sw.js` and was promoted to `main`. Legacy icon files remain in `public/` pending an optional retirement decision. Historical docs and brand candidate files also mention older or pre-production icon statuses, but most of those are recordkeeping rather than active runtime integration.
 
-### Registry audit-status cleanup
+### Registry audit-status cleanup (resolved)
 
-Needed. `brand/artales/brand-registry.v0.1.json` still represents production promotion as unapproved or future, which is stale after PR #68 and after syncing `develop` with `main`.
+Addressed. `brand/artales/brand-registry.v0.1.json` now records production promotion and service-worker icon cache alignment as completed on `main`; tokenization and admin dashboard integration remain unstarted.
 
 ### Actual runtime breakage
 
