@@ -1,0 +1,317 @@
+{
+  "proposal_id": "artales-color-token-proposal.v0.1",
+  "status": "proposal_only",
+  "runtimeImpact": false,
+  "dbImpact": false,
+  "envImpact": false,
+  "palette_source": "ARTales approved brand palette",
+  "tokens": [
+    {
+      "token": "color.background.page",
+      "purpose": "Default light-theme canvas for brand-facing pages.",
+      "proposed_value": "#FDF3E2",
+      "source": "ARTales Paper",
+      "fallback_current_value": "#FBF5EA",
+      "target_surfaces": ["homepage", "public pages", "auth shell"],
+      "migration_risk": "medium",
+      "notes": "Preserve the current value during replacement; palette remapping changes the warmth of a large surface."
+    },
+    {
+      "token": "color.background.surface",
+      "purpose": "Raised cards, panels, forms, and navigation surfaces on a light canvas.",
+      "proposed_value": "#FDF3E2",
+      "source": "ARTales Paper",
+      "fallback_current_value": "#FFFEFB",
+      "target_surfaces": ["homepage cards", "catalog cards", "auth cards", "account cards"],
+      "migration_risk": "medium",
+      "notes": "Page and surface may initially share a hue; elevation must remain legible through border and shadow tokens."
+    },
+    {
+      "token": "color.background.surfaceMuted",
+      "purpose": "Quiet secondary panels, chips, and grouped content.",
+      "proposed_value": "#FDF3E2",
+      "source": "ARTales Paper",
+      "fallback_current_value": "#F3EADC",
+      "target_surfaces": ["public secondary panels", "catalog metadata", "account panels"],
+      "migration_risk": "medium",
+      "notes": "Use a documented alpha or derived tint in implementation rather than inventing another raw cream."
+    },
+    {
+      "token": "color.background.inverse",
+      "purpose": "Dark brand bands, hero panels, sidebars, and dark-theme canvas.",
+      "proposed_value": "#0F1315",
+      "source": "ARTales Ink/Night",
+      "fallback_current_value": "#0D1528",
+      "target_surfaces": ["public hero panels", "header/footer bands", "dark theme"],
+      "migration_risk": "medium",
+      "notes": "Validate gradients and dark-theme elevation after mapping away from the current blue ink."
+    },
+    {
+      "token": "color.background.inverseDeep",
+      "purpose": "Deepest dark layer used to distinguish nested inverse surfaces.",
+      "proposed_value": "#141414",
+      "source": "ARTales Deep Dark",
+      "fallback_current_value": "#090B0D",
+      "target_surfaces": ["dark-theme cards", "inverse overlays", "footer depth"],
+      "migration_risk": "medium",
+      "notes": "Do not use interchangeably with the page inverse token without checking layer separation."
+    },
+    {
+      "token": "color.text.primary",
+      "purpose": "Primary body text and headings on light surfaces.",
+      "proposed_value": "#272827",
+      "source": "ARTales Text Dark",
+      "fallback_current_value": "#0D1528",
+      "target_surfaces": ["homepage", "public pages", "auth", "account"],
+      "migration_risk": "medium",
+      "notes": "Proposed text on Paper has approximately 13.46:1 contrast."
+    },
+    {
+      "token": "color.text.secondary",
+      "purpose": "Supporting copy and metadata that remains comfortably readable.",
+      "proposed_value": "#272827",
+      "source": "ARTales Text Dark",
+      "fallback_current_value": "#5F5247",
+      "target_surfaces": ["card descriptions", "catalog metadata", "form help"],
+      "migration_risk": "low",
+      "notes": "Implementation may derive a controlled opacity from Text Dark; verify contrast over translucent surfaces."
+    },
+    {
+      "token": "color.text.muted",
+      "purpose": "De-emphasized labels, captions, and tertiary metadata.",
+      "proposed_value": "#272827",
+      "source": "ARTales Text Dark",
+      "fallback_current_value": "#73685D",
+      "target_surfaces": ["eyebrows", "timestamps", "secondary metadata"],
+      "migration_risk": "medium",
+      "notes": "Define opacity only after checking WCAG contrast; muted must not mean illegible."
+    },
+    {
+      "token": "color.text.inverse",
+      "purpose": "Primary text on inverse and dark surfaces.",
+      "proposed_value": "#FDF3E2",
+      "source": "ARTales Paper",
+      "fallback_current_value": "#FFF8E5",
+      "target_surfaces": ["dark header/footer", "inverse cards", "dark theme"],
+      "migration_risk": "low",
+      "notes": "Paper on Ink/Night has approximately 16.98:1 contrast."
+    },
+    {
+      "token": "color.brand.gold",
+      "purpose": "Canonical interactive and identifying ARTales gold.",
+      "proposed_value": "#E0AA47",
+      "source": "ARTales Primary Gold",
+      "fallback_current_value": "#D9B76E",
+      "target_surfaces": ["brand accents", "links", "active states", "selected controls"],
+      "migration_risk": "medium",
+      "notes": "Gold is an accent, not default small text on Paper."
+    },
+    {
+      "token": "color.brand.goldSecondary",
+      "purpose": "Alternate approved gold for controlled brand compositions.",
+      "proposed_value": "#E3AA46",
+      "source": "ARTales Secondary Gold",
+      "fallback_current_value": "#D9B76E",
+      "target_surfaces": ["brand-specific accents"],
+      "migration_risk": "low",
+      "notes": "Keep distinct only where brand guidance needs it; avoid near-duplicate use in ordinary UI."
+    },
+    {
+      "token": "color.brand.goldHover",
+      "purpose": "Hover and pressed emphasis for gold actions.",
+      "proposed_value": "#D19738",
+      "source": "ARTales Darker Gold",
+      "fallback_current_value": "#6F5424",
+      "target_surfaces": ["primary buttons", "accent links", "selected controls"],
+      "migration_risk": "medium",
+      "notes": "Pair with Ink/Night or Text Dark, not Paper text, and test hover distinction."
+    },
+    {
+      "token": "color.brand.goldMuted",
+      "purpose": "Subtle gold fills and decorative accents.",
+      "proposed_value": "#B58636",
+      "source": "ARTales Gold Shade",
+      "fallback_current_value": "rgba(217, 183, 110, 0.14)",
+      "target_surfaces": ["badges", "decorative gradients", "quiet highlights"],
+      "migration_risk": "medium",
+      "notes": "Implement as a controlled tint/alpha for fills; solid Gold Shade on Paper is not suitable for small text."
+    },
+    {
+      "token": "color.brand.symbol",
+      "purpose": "Locked symbol color where the approved brand asset or its exact UI analogue is required.",
+      "proposed_value": "#DCA645",
+      "source": "ARTales Locked Symbol Gold",
+      "fallback_current_value": "#D9B76E",
+      "target_surfaces": ["approved symbol contexts only"],
+      "migration_risk": "low",
+      "notes": "Do not recolor brand masters or exports; this token does not supersede locked asset rules."
+    },
+    {
+      "token": "color.border.subtle",
+      "purpose": "Low-emphasis separators and card outlines.",
+      "proposed_value": "#272827",
+      "source": "ARTales Text Dark",
+      "fallback_current_value": "rgba(13, 21, 40, 0.14)",
+      "target_surfaces": ["cards", "navigation", "forms", "dividers"],
+      "migration_risk": "low",
+      "notes": "Use a centrally defined alpha; the proposal value is the opaque source color, not a recommendation for a solid border."
+    },
+    {
+      "token": "color.border.strong",
+      "purpose": "Emphasized controls, selected panels, and structural boundaries.",
+      "proposed_value": "#B58636",
+      "source": "ARTales Gold Shade",
+      "fallback_current_value": "rgba(217, 183, 110, 0.44)",
+      "target_surfaces": ["selected cards", "inputs", "accent boundaries"],
+      "migration_risk": "medium",
+      "notes": "Check adjacent fill and focus-ring distinction."
+    },
+    {
+      "token": "color.action.primary.bg",
+      "purpose": "Background of the main action in a view.",
+      "proposed_value": "#E0AA47",
+      "source": "ARTales Primary Gold",
+      "fallback_current_value": "#0D1528",
+      "target_surfaces": ["homepage CTA", "public forms", "auth submit"],
+      "migration_risk": "high",
+      "notes": "This intentionally changes action hierarchy in Phase 3; defer until component states and contrast are reviewed."
+    },
+    {
+      "token": "color.action.primary.text",
+      "purpose": "Label and icon color on the primary action.",
+      "proposed_value": "#0F1315",
+      "source": "ARTales Ink/Night",
+      "fallback_current_value": "#FFFFFF",
+      "target_surfaces": ["primary buttons", "auth submit"],
+      "migration_risk": "high",
+      "notes": "Ink/Night on Primary Gold has approximately 8.90:1 contrast; current white must not remain when the background becomes gold."
+    },
+    {
+      "token": "color.action.primary.hover",
+      "purpose": "Hover/pressed background for the primary action.",
+      "proposed_value": "#D19738",
+      "source": "ARTales Darker Gold",
+      "fallback_current_value": "#6F5424",
+      "target_surfaces": ["primary buttons", "auth submit"],
+      "migration_risk": "high",
+      "notes": "Validate keyboard, hover, active, disabled, and loading states as one state set."
+    },
+    {
+      "token": "color.action.secondary.bg",
+      "purpose": "Background of secondary and quiet actions.",
+      "proposed_value": "#FDF3E2",
+      "source": "ARTales Paper",
+      "fallback_current_value": "rgba(255, 255, 255, 0.55)",
+      "target_surfaces": ["secondary buttons", "toolbar controls"],
+      "migration_risk": "medium",
+      "notes": "Must remain distinct from the containing surface through the secondary border token."
+    },
+    {
+      "token": "color.action.secondary.text",
+      "purpose": "Label and icon color on secondary actions.",
+      "proposed_value": "#272827",
+      "source": "ARTales Text Dark",
+      "fallback_current_value": "#0D1528",
+      "target_surfaces": ["secondary buttons", "toolbar controls"],
+      "migration_risk": "low",
+      "notes": "Strong contrast on Paper; continue to show state without relying on color alone."
+    },
+    {
+      "token": "color.reader.background",
+      "purpose": "Long-form reading paper in the default reader theme.",
+      "proposed_value": "#FDF3E2",
+      "source": "ARTales Paper",
+      "fallback_current_value": "#FFFAF0",
+      "target_surfaces": ["reader paper", "work content preview"],
+      "migration_risk": "high",
+      "notes": "Reader offers multiple independent themes; preserve all current values until dedicated readability QA."
+    },
+    {
+      "token": "color.reader.text",
+      "purpose": "Long-form body text on reader paper.",
+      "proposed_value": "#272827",
+      "source": "ARTales Text Dark",
+      "fallback_current_value": "#17130F",
+      "target_surfaces": ["reader prose", "rendered work content"],
+      "migration_risk": "high",
+      "notes": "Test long-session comfort, font weights, links, annotations, and each reader theme."
+    },
+    {
+      "token": "color.reader.muted",
+      "purpose": "Reader metadata, captions, and non-primary controls.",
+      "proposed_value": "#272827",
+      "source": "ARTales Text Dark",
+      "fallback_current_value": "#6C6258",
+      "target_surfaces": ["reader metadata", "captions", "toolbar labels"],
+      "migration_risk": "high",
+      "notes": "A controlled opacity may be suitable but must be tested independently in every reader theme."
+    },
+    {
+      "token": "color.reader.selection",
+      "purpose": "Text selection and reader-local highlight.",
+      "proposed_value": "#E3AA46",
+      "source": "ARTales Secondary Gold",
+      "fallback_current_value": "#EAD39B",
+      "target_surfaces": ["reader selection", "reader highlights"],
+      "migration_risk": "high",
+      "notes": "Use a translucent derived value and verify selected text contrast in all themes."
+    },
+    {
+      "token": "color.focus.ring",
+      "purpose": "Keyboard focus indicator across themes and components.",
+      "proposed_value": "#DCA645",
+      "source": "ARTales Locked Symbol Gold",
+      "fallback_current_value": "rgba(148, 105, 42, 0.32)",
+      "target_surfaces": ["public controls", "auth forms", "reader toolbar", "admin forms"],
+      "migration_risk": "medium",
+      "notes": "Focus must remain visible against both Paper and Ink/Night; consider an offset/contrast halo rather than color alone."
+    },
+    {
+      "token": "color.state.success",
+      "purpose": "Successful completion, owned/access-granted status, and confirmations.",
+      "proposed_value": "#2F6A3A",
+      "source": "Current UI fallback; no approved brand-palette semantic equivalent",
+      "fallback_current_value": "#2F6A3A",
+      "target_surfaces": ["forms", "account status", "admin status"],
+      "migration_risk": "low",
+      "notes": "Retain a conventional non-brand state color and pair it with text/icon semantics."
+    },
+    {
+      "token": "color.state.warning",
+      "purpose": "Pending, caution, and attention-required states.",
+      "proposed_value": "#8A641F",
+      "source": "Current UI fallback; no approved brand-palette semantic equivalent",
+      "fallback_current_value": "#8A641F",
+      "target_surfaces": ["forms", "checkout status", "admin status"],
+      "migration_risk": "medium",
+      "notes": "Keep warning semantically distinct from decorative brand gold and never communicate status by color alone."
+    },
+    {
+      "token": "color.state.error",
+      "purpose": "Errors, destructive actions, and blocked states.",
+      "proposed_value": "#7A1F1F",
+      "source": "Current UI fallback; no approved brand-palette semantic equivalent",
+      "fallback_current_value": "#7A1F1F",
+      "target_surfaces": ["form errors", "destructive actions", "admin status"],
+      "migration_risk": "low",
+      "notes": "Preserve conventional meaning; separately define text, border, and subtle fill variants during implementation."
+    },
+    {
+      "token": "color.state.info",
+      "purpose": "Neutral informational notices and in-progress guidance.",
+      "proposed_value": "#40537A",
+      "source": "Current UI fallback; no approved brand-palette semantic equivalent",
+      "fallback_current_value": "#40537A",
+      "target_surfaces": ["informational notices", "account guidance", "admin status"],
+      "migration_risk": "low",
+      "notes": "Do not force all semantic states into the gold brand ramp."
+    }
+  ],
+  "migration_phases": [
+    "audit",
+    "token definitions without visual change",
+    "replace hardcoded values preserving current visuals",
+    "map public-facing tokens to ARTales palette",
+    "visual QA and polish"
+  ]
+}
