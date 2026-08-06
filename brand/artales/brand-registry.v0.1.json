@@ -120,7 +120,36 @@
   "review_workflow_status": "planned",
   "deployment_status": {
     "develop": "brand_snapshot_and_icons_integrated",
-    "main": "partial_tooling_only_or_not_promoted"
+    "main": "brand_snapshot_and_icons_integrated"
+  },
+  "production_promotion": {
+    "status": "promoted_to_main",
+    "production_pr": 68,
+    "promoted_at": "2026-08-05",
+    "approval": "explicit_project_owner_approval",
+    "scope": [
+      "brand masters",
+      "svg exports",
+      "brand registry",
+      "runtime public icons",
+      "app metadata icon wiring",
+      "web manifest icon wiring"
+    ],
+    "non_scope": [
+      "tokenization",
+      "admin dashboard",
+      "CSS palette refactor",
+      "DB changes",
+      "env changes",
+      "Supabase changes"
+    ]
+  },
+  "service_worker_icon_cache_alignment": {
+    "status": "aligned",
+    "develop_pr": 71,
+    "main_status": "promoted_to_main",
+    "cache_name": "artales-pwa-v0109-brand-icons",
+    "scope": "icon_and_manifest_cache_alignment_only"
   },
   "approval_notes": [
     "symbol approved",
@@ -130,18 +159,19 @@
     "public icon integration verified in develop preview favicon",
     "ARTales Brand Snapshot v0.2 SVG visually accepted by project owner on 2026-08-04.",
     "PNG artifact preview remains optional and artifact-only.",
-    "This approval does not approve production/main promotion.",
-    "This approval does not approve runtime tokenization.",
-    "This approval does not approve admin dashboard integration.",
-    "This approval does not approve runtime styling or public asset changes."
+    "Production promotion approved and completed via PR #68.",
+    "Service worker icon cache alignment completed after PR #70 audit and promoted to main.",
+    "Tokenization is still not started.",
+    "Admin dashboard is still not integrated.",
+    "Registry cleanup is status-only and does not change runtime behavior."
   ],
   "next_steps": [
-    "run workflow_dispatch preview generator when PNG review artifact is needed",
-    "human visual review of v0.2 workflow artifact PNG preview",
-    "later admin brand dashboard",
-    "later review workflow",
-    "later tokenization proposal",
-    "later production promotion after explicit approval"
+    "verify production icon/PWA behavior after cache refresh",
+    "registry cleanup complete",
+    "file-based favicon verification if needed",
+    "optional legacy public asset retirement",
+    "tokenization audit/proposal",
+    "later admin brand dashboard"
   ],
   "review_history": [
     {
@@ -161,6 +191,18 @@
       "tokenizationApproval": false,
       "adminDashboardApproval": false,
       "publicAssetApproval": false
+    },
+    {
+      "event": "production_promotion",
+      "status": "promoted_to_main",
+      "approved_by": "project_owner",
+      "approved_at": "2026-08-05",
+      "promotion_pr": 68,
+      "approval_scope": "brand_identity_package_and_runtime_icon_integration",
+      "tokenizationApproval": false,
+      "adminDashboardApproval": false,
+      "dbImpact": false,
+      "envImpact": false
     }
   ]
 }
