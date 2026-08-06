@@ -1,5 +1,35 @@
 @import "tailwindcss";
 
+/* ARTales semantic color tokens v0.1 — value-preserving layer */
+:root {
+  --artales-color-background-page: #fbf5ea;
+  --artales-color-background-surface: #fffefb;
+  --artales-color-background-surface-muted: #f3eadc;
+  --artales-color-background-inverse: #0d1528;
+  --artales-color-background-inverse-deep: #090b0d;
+  --artales-color-text-primary: #0d1528;
+  --artales-color-text-secondary: #5f5247;
+  --artales-color-text-muted: #73685d;
+  --artales-color-text-inverse: #fff8e5;
+  --artales-color-brand-gold: #d9b76e;
+  --artales-color-brand-gold-secondary: #d9b76e;
+  --artales-color-brand-gold-hover: #6f5424;
+  --artales-color-brand-gold-muted: rgba(217, 183, 110, 0.14);
+  --artales-color-brand-symbol: #d9b76e;
+  --artales-color-border-subtle: rgba(13, 21, 40, 0.14);
+  --artales-color-border-strong: rgba(217, 183, 110, 0.44);
+  --artales-color-action-primary-bg: #0d1528;
+  --artales-color-action-primary-text: #fff;
+  --artales-color-action-primary-hover: #6f5424;
+  --artales-color-action-secondary-bg: rgba(255, 255, 255, 0.55);
+  --artales-color-action-secondary-text: #0d1528;
+  --artales-color-focus-ring: rgba(148, 105, 42, 0.32);
+  --artales-color-state-success: #2f6a3a;
+  --artales-color-state-warning: #8a641f;
+  --artales-color-state-error: #7a1f1f;
+  --artales-color-state-info: #40537a;
+}
+
 :root {
   --background: #fbf5ea;
   --foreground: #0d1528;
