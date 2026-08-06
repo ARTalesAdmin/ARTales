@@ -42,3 +42,11 @@ plain foreground declarations in public navigation, header, footer, and page
 shell selectors. It should continue to replace only references covered by the
 existing aliases and leave gradients, opacity recipes, and unmatched legacy
 variables unchanged.
+
+## Follow-up
+
+The public shell follow-up is documented in
+`ARTALES_PUBLIC_SHELL_TOKEN_MIGRATION_V0_1.md`. It migrates a small group of
+public shell, navigation, and button references from `--artales-ink` to
+`--artales-color-text-primary` without changing selector structure, literal
+token values, adaptive-theme overrides, or any deferred product area.

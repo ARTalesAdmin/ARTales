@@ -128,7 +128,7 @@ body {
       transparent 30rem
     ),
     linear-gradient(180deg, #fffaf0 0%, var(--artales-paper) 100%);
-  color: var(--artales-ink);
+  color: var(--artales-color-text-primary);
   min-height: 100vh;
 }
 
@@ -151,7 +151,7 @@ body {
 }
 
 .artales-public-link {
-  color: var(--artales-ink);
+  color: var(--artales-color-text-primary);
   font-size: 0.92rem;
   font-weight: 700;
   text-decoration: none;
@@ -180,8 +180,8 @@ body {
 }
 
 .artales-button {
-  background: var(--artales-ink);
-  border: 1px solid var(--artales-ink);
+  background: var(--artales-color-text-primary);
+  border: 1px solid var(--artales-color-text-primary);
   color: #fff;
   box-shadow: 0 12px 28px rgba(13, 21, 40, 0.18);
 }
@@ -194,7 +194,7 @@ body {
 .artales-button-secondary {
   background: rgba(255, 255, 255, 0.55);
   border: 1px solid rgba(13, 21, 40, 0.22);
-  color: var(--artales-ink);
+  color: var(--artales-color-text-primary);
 }
 
 .artales-button-muted {
