@@ -1,15 +1,16 @@
 /* ARTales PWA service worker — conservative launch version. */
-const CACHE_NAME = "artales-pwa-v0108";
-const PRECACHE_URLS = [
+const CACHE_NAME = "artales-pwa-v0109-brand-icons";
+const BRAND_ASSET_URLS = [
   "/manifest.webmanifest",
-  "/offline.html",
-  "/icons/artales-icon-192.png",
-  "/icons/artales-icon-512.png",
-  "/icons/artales-maskable-192.png",
-  "/icons/artales-maskable-512.png",
-  "/apple-touch-icon.png",
-  "/favicon.ico"
+  "/favicon.ico",
+  "/favicon-16x16.png",
+  "/favicon-32x32.png",
+  "/favicon-48x48.png",
+  "/apple-touch-icon-180x180.png",
+  "/app-icon-192x192.png",
+  "/app-icon-512x512.png"
 ];
+const PRECACHE_URLS = ["/offline.html", ...BRAND_ASSET_URLS];
 
 self.addEventListener("install", (event) => {
   event.waitUntil(
@@ -44,12 +45,7 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
-  if (
-    url.pathname.startsWith("/icons/") ||
-    url.pathname === "/favicon.ico" ||
-    url.pathname === "/apple-touch-icon.png" ||
-    url.pathname === "/manifest.webmanifest"
-  ) {
+  if (BRAND_ASSET_URLS.includes(url.pathname)) {
     event.respondWith(
       caches.match(request).then((cached) => cached || fetch(request))
     );

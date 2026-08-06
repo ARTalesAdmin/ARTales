@@ -1,0 +1,128 @@
+{
+  "production_promotion_pr": 68,
+  "audit_date": "2026-08-05",
+  "branch_baseline": "develop_synced_with_main_after_pr_68",
+  "scope": "audit_only",
+  "runtime_behavior_changed": false,
+  "db_changed": false,
+  "env_changed": false,
+  "runtime_icon_assets_expected": [
+    "public/favicon.ico",
+    "public/favicon-16x16.png",
+    "public/favicon-32x32.png",
+    "public/favicon-48x48.png",
+    "public/apple-touch-icon-180x180.png",
+    "public/app-icon-192x192.png",
+    "public/app-icon-512x512.png"
+  ],
+  "runtime_icon_assets_found": {
+    "public/favicon.ico": { "exists": true, "sha256": "c442a5406b99bb683310d28b0b5019759a9f68bb854858dae3b8285df8636bd4" },
+    "public/favicon-16x16.png": { "exists": true, "sha256": "18c76d89a4d0a127a3bb608bdf1a7d743ec29aa93e5f4a086024e7137a5e50b7" },
+    "public/favicon-32x32.png": { "exists": true, "sha256": "57ab5314e4ac0c620e8ff50f4bc5dcd976cb9e2b565f21fe62f9fedaf2035cde" },
+    "public/favicon-48x48.png": { "exists": true, "sha256": "8c2f12c0cb0e0dee8a114a4f22ca87ae372985885aa4cda807a0f749bc8fe522" },
+    "public/apple-touch-icon-180x180.png": { "exists": true, "sha256": "9b646801a4b4be85980d39de8414fdda942dda91cc6d9b65f3e9f54d4bb44cad" },
+    "public/app-icon-192x192.png": { "exists": true, "sha256": "07c228cacdd3f69c94bcea5cd3746d07a3e00709708614802f12439a9770d583" },
+    "public/app-icon-512x512.png": { "exists": true, "sha256": "bfcc054b3d0d0afb4d16b45a375461889384bb4dc113975cd3b654e1cd536715" }
+  },
+  "metadata_references": {
+    "file": "app/layout.tsx",
+    "manifest": "/manifest.webmanifest",
+    "icons": [
+      "/favicon.ico",
+      "/favicon-16x16.png",
+      "/favicon-32x32.png",
+      "/favicon-48x48.png"
+    ],
+    "apple": ["/apple-touch-icon-180x180.png"],
+    "shortcut": ["/favicon.ico"],
+    "theme_color_declared": true,
+    "internally_consistent_with_expected_assets": true
+  },
+  "manifest_references": {
+    "file": "public/manifest.webmanifest",
+    "icons": [
+      "/app-icon-192x192.png",
+      "/app-icon-512x512.png"
+    ],
+    "shortcut_icons": ["/app-icon-192x192.png"],
+    "maskable_icons_declared": false,
+    "internally_consistent_with_expected_assets": true
+  },
+  "stale_references_found": {
+    "runtime_relevant": [
+      { "file": "public/sw.js", "path": "/icons/artales-icon-192.png" },
+      { "file": "public/sw.js", "path": "/icons/artales-icon-512.png" },
+      { "file": "public/sw.js", "path": "/icons/artales-maskable-192.png" },
+      { "file": "public/sw.js", "path": "/icons/artales-maskable-512.png" },
+      { "file": "public/sw.js", "path": "/apple-touch-icon.png" }
+    ],
+    "legacy_public_files_present": [
+      "public/favicon.svg",
+      "public/apple-touch-icon.png",
+      "public/icons/artales-icon-192.png",
+      "public/icons/artales-icon-512.png",
+      "public/icons/artales-maskable-192.png",
+      "public/icons/artales-maskable-512.png"
+    ],
+    "manifest_stale_icon_paths_found": false,
+    "metadata_stale_icon_paths_found": false
+  },
+  "next_file_metadata_override_check": {
+    "found": ["app/favicon.ico"],
+    "not_found": [
+      "app/icon.*",
+      "app/apple-icon.*",
+      "src/app/favicon.ico",
+      "src/app/icon.*",
+      "src/app/apple-icon.*"
+    ],
+    "finding": "app/favicon.ico is a real file-based metadata favicon source, so favicon behavior is not exclusively controlled by metadata.icons."
+  },
+  "possible_cache_or_pwa_delay_sources": [
+    {
+      "file": "components/pwa/PwaRegister.tsx",
+      "finding": "Registers /sw.js in production with updateViaCache set to none."
+    },
+    {
+      "file": "public/sw.js",
+      "finding": "Uses cache-first handling for icon and manifest requests and still includes legacy icon paths in PRECACHE_URLS."
+    },
+    {
+      "source": "browser_os_installed_pwa_cache",
+      "finding": "Browser favicon caches, operating-system launcher caches, and installed PWA metadata can lag behind deployment."
+    }
+  ],
+  "registry_stale_fields_found": [
+    {
+      "file": "brand/artales/brand-registry.v0.1.json",
+      "field": "deployment_status.main",
+      "current_value": "partial_tooling_only_or_not_promoted",
+      "finding": "Stale after PR #68 production promotion."
+    },
+    {
+      "file": "brand/artales/brand-registry.v0.1.json",
+      "field": "approval_notes",
+      "finding": "Contains production/main not-approved wording that is stale after PR #68."
+    },
+    {
+      "file": "brand/artales/brand-registry.v0.1.json",
+      "field": "next_steps",
+      "finding": "Still describes production promotion as future work."
+    },
+    {
+      "file": "brand/artales/brand-registry.v0.1.json",
+      "field": "review_history.productionApproval",
+      "current_value": false,
+      "finding": "Historical review entry remains develop-only and should be clarified or superseded in a cleanup PR."
+    }
+  ],
+  "repo_references_internally_consistent": true,
+  "actual_runtime_breakage_found_by_repo_audit": false,
+  "recommended_followup_prs": [
+    "Service worker icon cache alignment PR",
+    "File-based metadata verification PR",
+    "Legacy public asset retirement PR",
+    "Brand registry status cleanup PR",
+    "Documentation archive cleanup PR"
+  ]
+}
