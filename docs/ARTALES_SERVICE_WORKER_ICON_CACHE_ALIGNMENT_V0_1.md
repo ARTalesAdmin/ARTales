@@ -21,7 +21,7 @@ The cache name was bumped from `artales-pwa-v0108` to `artales-pwa-v0109-brand-i
 - Legacy public icon files were not removed.
 - `app/favicon.ico` was not touched.
 - `app/layout.tsx` and `public/manifest.webmanifest` were not changed.
-- Brand masters, exports, and registry production status were not changed. Registry status cleanup remains a separate follow-up.
+- Brand masters and exports were not changed. Registry production status was handled separately by the later status-only cleanup and now records this alignment as promoted to `main`.
 - Navigation caching and the offline fallback behavior were not changed.
 - No DB, environment, or Supabase changes were made.
 
