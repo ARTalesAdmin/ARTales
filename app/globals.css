@@ -31,8 +31,8 @@
 }
 
 :root {
-  --background: #fbf5ea;
-  --foreground: #0d1528;
+  --background: var(--artales-color-background-page);
+  --foreground: var(--artales-color-text-primary);
   --font-artales-sans: Arial, Helvetica, sans-serif;
   --font-artales-mono:
     "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
@@ -52,15 +52,15 @@ samp {
 }
 
 :root {
-  --artales-ink: #0d1528;
+  --artales-ink: var(--artales-color-text-primary);
   --artales-ink-soft: #18233c;
-  --artales-black: #090b0d;
-  --artales-gold: #d9b76e;
+  --artales-black: var(--artales-color-background-inverse-deep);
+  --artales-gold: var(--artales-color-brand-gold);
   --artales-gold-soft: #f1d89d;
-  --artales-paper: #fbf5ea;
-  --artales-paper-warm: #f3eadc;
-  --artales-muted: #73685d;
-  --artales-border: rgba(13, 21, 40, 0.14);
+  --artales-paper: var(--artales-color-background-page);
+  --artales-paper-warm: var(--artales-color-background-surface-muted);
+  --artales-muted: var(--artales-color-text-muted);
+  --artales-border: var(--artales-color-border-subtle);
   --artales-shadow: 0 24px 80px rgba(5, 7, 12, 0.26);
 }
 
