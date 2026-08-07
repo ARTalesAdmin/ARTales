@@ -37,7 +37,7 @@ export default async function PublicHeader({ active }: PublicHeaderProps) {
     <>
     <PageViewTracker />
     <header className="artales-public-header">
-      <ArtalesBrand href="/" variant="adaptive" size="md" showMark />
+      <ArtalesBrand href="/" variant="adaptive" size="md" mode="lockup" />
       <nav
         className="artales-public-header__nav"
         aria-label="Public navigation"
