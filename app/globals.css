@@ -6144,3 +6144,123 @@ html[data-artales-theme="dark"] .artales-work-editor-save-buttons button:first-c
 :root:not([data-artales-theme="dark"]) .artales-gallery-card__meta {
   color: var(--artales-color-text-secondary);
 }
+
+/* ARTales public launch polish v0.1 — public surfaces and interaction only. */
+:root:not([data-artales-theme="dark"]) .artales-public-header {
+  border-bottom-color: var(--artales-color-border-subtle);
+  box-shadow: 0 1rem 2rem -2rem var(--artales-color-border-strong);
+}
+
+:root:not([data-artales-theme="dark"]) .artales-home-brand-panel {
+  background: var(--artales-color-background-surface-muted);
+  border-color: var(--artales-color-border-strong);
+  box-shadow: 0 1.25rem 3rem -2rem var(--artales-color-border-strong);
+}
+
+.artales-home-brand-panel .artales-brand--lg {
+  justify-content: center;
+  max-width: 100%;
+}
+
+.artales-home-brand-panel .artales-brand--lg .artales-brand__wordmark {
+  max-width: min(100%, 24rem);
+}
+
+:root:not([data-artales-theme="dark"]) .artales-home-feature-card,
+:root:not([data-artales-theme="dark"]) .artales-home-path-card,
+:root:not([data-artales-theme="dark"]) .artales-gallery-card,
+:root:not([data-artales-theme="dark"]) .artales-author-card,
+:root:not([data-artales-theme="dark"]) .artales-community-card,
+:root:not([data-artales-theme="dark"]) .artales-resource-card {
+  border-color: var(--artales-color-border-subtle);
+  box-shadow: 0 1.25rem 3rem -2rem var(--artales-color-border-strong);
+}
+
+:root:not([data-artales-theme="dark"]) .artales-work-detail-facts,
+:root:not([data-artales-theme="dark"]) .artales-edition-language-note {
+  border-color: var(--artales-color-border-subtle);
+  box-shadow: 0 1rem 2.5rem -2rem var(--artales-color-border-strong);
+}
+
+.artales-public-shell .artales-public-link,
+.artales-public-shell .artales-gallery-card h2 a,
+.artales-public-shell .artales-gallery-card__author-link,
+.artales-public-shell
+  .artales-gallery-card__meta
+  a:not(.artales-gallery-card__author-link),
+.artales-public-shell .artales-work-detail-facts a,
+.artales-home-shell .artales-home-path-card a {
+  text-decoration-color: transparent;
+  text-decoration-thickness: 0.08em;
+  text-underline-offset: 0.2em;
+  transition:
+    color 140ms ease,
+    text-decoration-color 140ms ease;
+}
+
+.artales-public-shell .artales-public-link:hover,
+.artales-public-shell .artales-gallery-card h2 a:hover,
+.artales-public-shell .artales-gallery-card__author-link:hover,
+.artales-public-shell
+  .artales-gallery-card__meta
+  a:not(.artales-gallery-card__author-link):hover,
+.artales-public-shell .artales-work-detail-facts a:hover,
+.artales-home-shell .artales-home-path-card a:hover {
+  color: var(--artales-color-brand-gold-hover);
+  text-decoration-color: currentColor;
+}
+
+.artales-public-shell .artales-button,
+.artales-public-shell .artales-button-secondary,
+.artales-public-shell .artales-theme-toggle {
+  transition:
+    background 140ms ease,
+    border-color 140ms ease,
+    color 140ms ease,
+    box-shadow 140ms ease,
+    transform 140ms ease;
+}
+
+:root:not([data-artales-theme="dark"])
+  .artales-public-shell
+  .artales-button:hover,
+:root:not([data-artales-theme="dark"])
+  .artales-public-shell
+  .artales-public-link--primary:hover {
+  background: var(--artales-color-background-inverse-deep);
+  border-color: var(--artales-color-brand-gold-hover);
+  color: var(--artales-color-text-inverse);
+}
+
+:root:not([data-artales-theme="dark"])
+  .artales-public-shell
+  .artales-button-secondary:hover,
+:root:not([data-artales-theme="dark"])
+  .artales-public-shell
+  .artales-theme-toggle:hover {
+  background: var(--artales-color-background-surface-muted);
+  border-color: var(--artales-color-brand-gold-hover);
+  color: var(--artales-color-text-primary);
+}
+
+.artales-public-shell .artales-public-link:focus-visible,
+.artales-public-shell .artales-gallery-card h2 a:focus-visible,
+.artales-public-shell .artales-gallery-card__author-link:focus-visible,
+.artales-public-shell .artales-work-detail-facts a:focus-visible,
+.artales-public-shell .artales-button:focus-visible,
+.artales-public-shell .artales-button-secondary:focus-visible,
+.artales-public-shell .artales-theme-toggle:focus-visible {
+  outline: 2px solid var(--artales-color-brand-gold-hover);
+  outline-offset: 3px;
+}
+
+html[data-artales-theme="dark"] .artales-public-header {
+  background: var(--artales-paper);
+  border-bottom-color: var(--artales-border);
+  box-shadow: 0 1rem 2rem -2rem var(--artales-border-strong);
+}
+
+html[data-artales-theme="dark"] .artales-home-brand-panel {
+  border-color: var(--artales-border-strong);
+  box-shadow: var(--artales-soft-shadow);
+}
