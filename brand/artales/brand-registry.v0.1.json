@@ -3,7 +3,7 @@
   "brand_id": "artales",
   "status": "current_develop_registry",
   "registry_scope": "repository_brand_state",
-  "runtimeImpact": false,
+  "runtimeImpact": true,
   "dbImpact": false,
   "envImpact": false,
   "current_brand_snapshot": {
@@ -76,6 +76,29 @@
       "sha256": "089f904d261277fb6fc3f6c009de5971a0b9dfbfea348a9edba4cf2f1bddac53"
     }
   ],
+  "runtime_logo_lockup_delivery": {
+    "status": "delivered_to_develop",
+    "source_exports": [
+      "brand/artales/exports/v0.1/primary-light/artales-logo-primary-light.svg",
+      "brand/artales/exports/v0.1/primary-dark/artales-logo-primary-dark.svg"
+    ],
+    "runtime_paths": [
+      "public/brand/artales-logo-primary-light.svg",
+      "public/brand/artales-logo-primary-dark.svg"
+    ],
+    "sha256": {
+      "primary_light": "2622a8df14ce6ba5c84a05e425edc546743bb431c9309cb8b5bc3eb3599d619a",
+      "primary_dark": "8ccc089488a8d00f90ab83075906bb6d23eb382b07f145dde1c3bd4ac110d301"
+    },
+    "byte_identical_to_source": true,
+    "usage_scope": "public_homepage_brand_card_preview",
+    "target": "develop_first",
+    "dbImpact": false,
+    "envImpact": false,
+    "public_assetImpact": true,
+    "no_favicon_or_manifest_change": true,
+    "no_master_change": true
+  },
   "current_runtime_icon_set": {
     "id": "artales-public-icons.v0.1",
     "files": [

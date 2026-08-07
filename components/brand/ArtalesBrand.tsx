@@ -7,6 +7,7 @@ type ArtalesBrandProps = {
   size?: "sm" | "md" | "lg"
   label?: string
   showMark?: boolean
+  mode?: "legacy" | "lockup"
 }
 
 const wordmarkSrc = {
@@ -17,6 +18,11 @@ const wordmarkSrc = {
 const markSrc = {
   dark: "/brand/artales-mark-dark.webp",
   light: "/brand/artales-mark-light.webp",
+}
+
+const lockupSrc = {
+  dark: "/brand/artales-logo-primary-light.svg",
+  light: "/brand/artales-logo-primary-dark.svg",
 }
 
 function getWordmarkSize(size: NonNullable<ArtalesBrandProps["size"]>) {
@@ -49,6 +55,7 @@ export default function ArtalesBrand({
   size = "md",
   label = "ARTales",
   showMark = false,
+  mode = "legacy",
 }: ArtalesBrandProps) {
   const isTextOnly = variant === "text"
   const isAdaptive = variant === "adaptive"
@@ -56,7 +63,32 @@ export default function ArtalesBrand({
   const wordmarkSize = getWordmarkSize(size)
   const markSize = getMarkSize(size)
 
-  const content = (
+  const lockup = (
+    <span className={`artales-brand artales-brand--adaptive artales-brand--${size}`}>
+      <span className="artales-brand__variant artales-brand__variant--dark">
+        <Image
+          src={lockupSrc.dark}
+          alt={label}
+          width={289}
+          height={54}
+          className="artales-brand__wordmark"
+          priority
+        />
+      </span>
+      <span className="artales-brand__variant artales-brand__variant--light" aria-hidden="true">
+        <Image
+          src={lockupSrc.light}
+          alt=""
+          width={289}
+          height={54}
+          className="artales-brand__wordmark"
+          priority={false}
+        />
+      </span>
+    </span>
+  )
+
+  const content = mode === "lockup" ? lockup : (
     <span className={`artales-brand artales-brand--${variant} artales-brand--${size}`}>
       {isAdaptive ? (
         <>
