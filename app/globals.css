@@ -6243,6 +6243,126 @@ html[data-artales-theme="dark"] .artales-work-editor-save-buttons button:first-c
   color: var(--artales-color-text-primary);
 }
 
+/* ARTales public header brand + navigation refresh v0.1. */
+.artales-public-header {
+  background: var(--artales-color-background-surface);
+  border-bottom-color: var(--artales-color-brand-gold);
+  border-bottom-width: 1px;
+  box-shadow: none;
+  min-height: 76px;
+}
+
+.artales-public-header .artales-brand-link {
+  align-items: center;
+  min-height: 40px;
+}
+
+.artales-public-header .artales-brand__wordmark {
+  height: auto;
+  max-width: none;
+  width: clamp(11.5rem, 18vw, 13.5rem);
+}
+
+.artales-public-header__nav {
+  gap: 0.4rem 0.75rem;
+}
+
+.artales-public-header__nav > .artales-public-link:not(.artales-public-link--primary) {
+  color: var(--artales-color-text-primary);
+  font-weight: 700;
+  padding-block: 0.55rem;
+  text-decoration-thickness: 0.1em;
+  text-underline-offset: 0.35em;
+}
+
+.artales-public-header__nav > .artales-public-link:not(.artales-public-link--primary):hover,
+.artales-public-header__nav > .artales-public-link:not(.artales-public-link--primary):focus-visible,
+.artales-public-header__nav > .artales-public-link[aria-current="page"] {
+  color: var(--artales-color-text-primary);
+  text-decoration-color: var(--artales-color-brand-gold-hover);
+}
+
+.artales-public-header__nav .artales-theme-toggle,
+.artales-public-header__nav .artales-locale-switcher__button {
+  background: var(--artales-color-background-surface-muted);
+  border-color: var(--artales-color-border-subtle);
+  color: var(--artales-color-text-primary);
+  box-shadow: none;
+}
+
+.artales-public-header__nav .artales-theme-toggle:hover,
+.artales-public-header__nav .artales-theme-toggle:focus-visible,
+.artales-public-header__nav .artales-locale-switcher__button:hover,
+.artales-public-header__nav .artales-locale-switcher__button:focus-visible {
+  border-color: var(--artales-color-brand-gold-hover);
+}
+
+.artales-public-header__nav .artales-locale-switcher__button--active {
+  background: var(--artales-color-background-inverse);
+  border-color: var(--artales-color-brand-gold);
+  color: var(--artales-color-text-inverse);
+}
+
+.artales-public-header__nav .artales-public-link--primary {
+  border-color: var(--artales-color-brand-gold);
+  box-shadow: none;
+}
+
+html[data-artales-theme="dark"] .artales-public-header {
+  background: var(--artales-color-background-inverse);
+  border-bottom-color: var(--artales-color-brand-gold);
+}
+
+html[data-artales-theme="dark"]
+  .artales-public-header__nav
+  > .artales-public-link:not(.artales-public-link--primary) {
+  color: var(--artales-color-text-inverse);
+}
+
+html[data-artales-theme="dark"]
+  .artales-public-header__nav
+  > .artales-public-link:not(.artales-public-link--primary):hover,
+html[data-artales-theme="dark"]
+  .artales-public-header__nav
+  > .artales-public-link:not(.artales-public-link--primary):focus-visible,
+html[data-artales-theme="dark"]
+  .artales-public-header__nav
+  > .artales-public-link[aria-current="page"] {
+  color: var(--artales-color-text-inverse);
+}
+
+html[data-artales-theme="dark"] .artales-public-header__nav .artales-theme-toggle,
+html[data-artales-theme="dark"] .artales-public-header__nav .artales-locale-switcher__button {
+  background: var(--artales-color-background-surface-muted);
+  border-color: var(--artales-color-border-subtle);
+  color: var(--artales-color-text-primary);
+}
+
+html[data-artales-theme="dark"]
+  .artales-public-header__nav
+  .artales-locale-switcher__button--active {
+  background: var(--artales-color-brand-gold);
+  border-color: var(--artales-color-brand-gold);
+  color: var(--artales-color-background-inverse);
+}
+
+@media (max-width: 860px) {
+  .artales-public-header {
+    min-height: 0;
+  }
+
+  .artales-public-header .artales-brand__wordmark {
+    width: clamp(10.5rem, 48vw, 12rem);
+  }
+
+  .artales-public-header__nav > .artales-public-link:not(.artales-public-link--primary) {
+    background: transparent;
+    border: 0;
+    border-radius: 0;
+    padding: 0.45rem 0.2rem;
+  }
+}
+
 .artales-public-shell .artales-public-link:focus-visible,
 .artales-public-shell .artales-gallery-card h2 a:focus-visible,
 .artales-public-shell .artales-gallery-card__author-link:focus-visible,
@@ -6263,4 +6383,10 @@ html[data-artales-theme="dark"] .artales-public-header {
 html[data-artales-theme="dark"] .artales-home-brand-panel {
   border-color: var(--artales-border-strong);
   box-shadow: var(--artales-soft-shadow);
+}
+
+html[data-artales-theme="dark"] .artales-public-header {
+  background: var(--artales-color-background-inverse);
+  border-bottom-color: var(--artales-color-brand-gold);
+  box-shadow: none;
 }
