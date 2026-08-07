@@ -74,7 +74,7 @@ export default async function Home() {
 
           <aside className="artales-home-brand-panel" aria-label={t.homeBrandPanelLabel}>
             <p className="artales-home-panel-label">{t.homeBrandPanelLabel}</p>
-            <ArtalesBrand href="" variant="adaptive" size="lg" showMark />
+            <ArtalesBrand href="" variant="adaptive" size="lg" mode="lockup" />
             <p>{t.homeBrandNote}</p>
             <div className="artales-home-theme-card">
               <span>{t.homeThemeLabel}</span>
