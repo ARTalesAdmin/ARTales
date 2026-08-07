@@ -4885,7 +4885,12 @@ html[data-artales-theme="dark"] .artales-locale-switcher__button--active {
 @media (min-width: 901px) {
   .artales-home-section--split {
     align-items: center;
-    grid-template-columns: minmax(280px, 0.72fr) minmax(0, 1.28fr);
+    gap: clamp(28px, 4vw, 48px);
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  }
+
+  .artales-home-section.artales-home-section--split h2 {
+    max-width: 13ch;
   }
 
   .artales-home-section__text {
