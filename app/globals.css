@@ -6390,3 +6390,47 @@ html[data-artales-theme="dark"] .artales-public-header {
   border-bottom-color: var(--artales-color-brand-gold);
   box-shadow: none;
 }
+
+/* ARTales final public visual QA v0.1 — light transition and dark detail prose. */
+:root:not([data-artales-theme="dark"]) .artales-public-header {
+  background: linear-gradient(
+    180deg,
+    var(--artales-color-background-surface) 0%,
+    var(--artales-color-background-page) 100%
+  );
+  border-bottom-color: var(--artales-color-border-subtle);
+  box-shadow: 0 1rem 2.5rem -2.4rem var(--artales-color-border-strong);
+}
+
+:root:not([data-artales-theme="dark"]) .artales-home-shell {
+  background:
+    linear-gradient(
+      180deg,
+      var(--artales-color-background-surface-muted) 0,
+      var(--artales-color-background-page) 8rem
+    );
+}
+
+html[data-artales-theme="dark"] .artales-work-detail-main {
+  color: var(--artales-color-text-inverse);
+}
+
+html[data-artales-theme="dark"] .artales-work-detail-hero > div > p,
+html[data-artales-theme="dark"]
+  .artales-work-detail-main
+  > section:not(.artales-work-detail-hero)
+  p,
+html[data-artales-theme="dark"] .artales-work-detail-main details dl {
+  color: rgba(247, 236, 210, 0.78) !important;
+}
+
+html[data-artales-theme="dark"] .artales-work-detail-main details summary,
+html[data-artales-theme="dark"] .artales-work-detail-main details dt,
+html[data-artales-theme="dark"] .artales-work-detail-main > section > h2 {
+  color: var(--artales-color-text-inverse);
+}
+
+html[data-artales-theme="dark"] .artales-work-detail-hero > div > p a,
+html[data-artales-theme="dark"] .artales-work-detail-main details a {
+  color: var(--artales-color-text-inverse) !important;
+}
