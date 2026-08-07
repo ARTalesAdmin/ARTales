@@ -134,7 +134,7 @@ body {
 
 .artales-public-header {
   align-items: center;
-  border-bottom: 1px solid rgba(13, 21, 40, 0.1);
+  border-bottom: 1px solid var(--artales-color-border-strong);
   display: flex;
   gap: 1rem;
   justify-content: space-between;
@@ -154,11 +154,14 @@ body {
   color: var(--artales-color-text-primary);
   font-size: 0.92rem;
   font-weight: 700;
-  text-decoration: none;
+  text-decoration: underline;
+  text-decoration-color: transparent;
+  text-underline-offset: 0.18em;
 }
 
 .artales-public-link:hover {
-  color: #6f5424;
+  color: var(--artales-color-text-primary);
+  text-decoration-color: var(--artales-color-brand-gold-hover);
 }
 
 .artales-button,
@@ -181,7 +184,7 @@ body {
 
 .artales-button {
   background: var(--artales-color-text-primary);
-  border: 1px solid var(--artales-color-text-primary);
+  border: 1px solid var(--artales-color-brand-gold);
   color: #fff;
   box-shadow: 0 12px 28px rgba(13, 21, 40, 0.18);
 }
@@ -193,7 +196,7 @@ body {
 
 .artales-button-secondary {
   background: rgba(255, 255, 255, 0.55);
-  border: 1px solid rgba(13, 21, 40, 0.22);
+  border: 1px solid var(--artales-color-border-strong);
   color: var(--artales-color-text-primary);
 }
 
@@ -1964,7 +1967,7 @@ body {
 
 .artales-gallery-card {
   background: rgba(255, 255, 255, 0.62);
-  border: 1px solid rgba(13, 21, 40, 0.1);
+  border: 1px solid var(--artales-color-border-strong);
   border-radius: 24px;
   box-shadow: 0 18px 45px rgba(13, 21, 40, 0.08);
   display: flex;
@@ -2084,7 +2087,7 @@ body {
   color: var(--artales-color-text-primary);
   font-weight: 900;
   text-decoration: underline;
-  text-decoration-color: rgba(138, 106, 45, 0.38);
+  text-decoration-color: var(--artales-color-brand-gold-hover);
   text-underline-offset: 0.16em;
 }
 
@@ -2092,7 +2095,7 @@ body {
   color: var(--artales-color-text-primary);
   font-weight: 750;
   text-decoration: underline;
-  text-decoration-color: rgba(13, 21, 40, 0.18);
+  text-decoration-color: var(--artales-color-brand-gold-hover);
   text-underline-offset: 0.16em;
 }
 
@@ -2141,7 +2144,7 @@ body {
 .artales-work-detail-facts a {
   color: var(--artales-color-text-primary);
   text-decoration: underline;
-  text-decoration-color: rgba(138, 106, 45, 0.42);
+  text-decoration-color: var(--artales-color-brand-gold-hover);
   text-underline-offset: 0.16em;
 }
 
@@ -4478,7 +4481,6 @@ html[data-artales-theme="dark"] .artales-brand__variant--light {
   display: inline-flex;
 }
 
-.artales-public-shell,
 .artales-app-shell,
 .artales-workspace-shell {
   background:
@@ -4883,7 +4885,12 @@ html[data-artales-theme="dark"] .artales-locale-switcher__button--active {
 @media (min-width: 901px) {
   .artales-home-section--split {
     align-items: center;
-    grid-template-columns: minmax(280px, 0.72fr) minmax(0, 1.28fr);
+    gap: clamp(28px, 4vw, 48px);
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  }
+
+  .artales-home-section.artales-home-section--split h2 {
+    max-width: 13ch;
   }
 
   .artales-home-section__text {
@@ -4910,6 +4917,79 @@ html[data-artales-theme="dark"] .artales-locale-switcher__button--active {
   .artales-home-section h2 {
     max-width: none;
   }
+}
+
+/* ARTales public visual apply v0.1 — approved Paper / Ink / Gold surfaces. */
+html:not([data-artales-theme="dark"]) .artales-public-shell {
+  background: var(--artales-color-background-page);
+  color: var(--artales-color-text-primary);
+}
+
+html:not([data-artales-theme="dark"]) .artales-public-header {
+  background: var(--artales-color-background-surface);
+  border-bottom-color: var(--artales-color-border-strong);
+}
+
+html:not([data-artales-theme="dark"]) .artales-home-brand-panel,
+html:not([data-artales-theme="dark"]) .artales-home-feature-card,
+html:not([data-artales-theme="dark"]) .artales-home-section,
+html:not([data-artales-theme="dark"]) .artales-home-path-card,
+html:not([data-artales-theme="dark"]) .artales-home-final-cta {
+  background: var(--artales-color-background-surface);
+  border-color: var(--artales-color-border-subtle);
+}
+
+html:not([data-artales-theme="dark"]) .artales-home-section,
+html:not([data-artales-theme="dark"]) .artales-home-final-cta {
+  border-color: var(--artales-color-border-strong);
+}
+
+html:not([data-artales-theme="dark"]) .artales-home-eyebrow,
+html:not([data-artales-theme="dark"]) .artales-home-card-eyebrow,
+html:not([data-artales-theme="dark"]) .artales-home-panel-label,
+html:not([data-artales-theme="dark"]) .artales-public-kicker {
+  color: var(--artales-color-brand-gold-hover);
+}
+
+html:not([data-artales-theme="dark"]) .artales-home-intro,
+html:not([data-artales-theme="dark"]) .artales-home-feature-card p,
+html:not([data-artales-theme="dark"]) .artales-home-path-card p,
+html:not([data-artales-theme="dark"]) .artales-home-section p,
+html:not([data-artales-theme="dark"]) .artales-home-final-cta p,
+html:not([data-artales-theme="dark"]) .artales-gallery-card__subtitle,
+html:not([data-artales-theme="dark"]) .artales-gallery-card__meta {
+  color: var(--artales-color-text-secondary);
+}
+
+html:not([data-artales-theme="dark"]) .artales-gallery-card,
+html:not([data-artales-theme="dark"]) .artales-author-card,
+html:not([data-artales-theme="dark"]) .artales-work-detail-facts {
+  background: var(--artales-color-background-surface);
+  border-color: var(--artales-color-border-strong);
+}
+
+html:not([data-artales-theme="dark"]) .artales-gallery-card__summary,
+html:not([data-artales-theme="dark"])
+  .artales-gallery-hero
+  p:not(.artales-public-kicker) {
+  color: var(--artales-color-text-primary);
+}
+
+html:not([data-artales-theme="dark"]) .artales-work-detail-facts dt {
+  color: var(--artales-color-text-muted);
+}
+
+html:not([data-artales-theme="dark"]) .artales-button-secondary,
+html:not([data-artales-theme="dark"]) .artales-theme-toggle {
+  background: var(--artales-color-background-surface-muted);
+  border-color: var(--artales-color-border-strong);
+}
+
+html:not([data-artales-theme="dark"]) .artales-public-link--primary,
+html:not([data-artales-theme="dark"]) .artales-button {
+  background: var(--artales-color-background-inverse);
+  border-color: var(--artales-color-brand-gold);
+  color: var(--artales-color-text-inverse);
 }
 
 /* v0.10.14e — dark public card contrast polish */
@@ -5996,5 +6076,530 @@ html[data-artales-theme="dark"] .artales-work-editor-save-buttons button:first-c
 
   .artales-member-content aside[style*="position: sticky"] {
     margin-bottom: 24px !important;
+  }
+}
+
+/* ARTales public visual apply v0.1 — light/adaptive public surfaces only. */
+:root:not([data-artales-theme="dark"]) .artales-public-shell {
+  background: var(--artales-color-background-page);
+  color: var(--artales-color-text-primary);
+}
+
+:root:not([data-artales-theme="dark"]) .artales-public-header {
+  background: var(--artales-color-background-surface);
+  border-bottom-color: var(--artales-color-border-strong);
+  color: var(--artales-color-text-primary);
+}
+
+:root:not([data-artales-theme="dark"]) .artales-public-main,
+:root:not([data-artales-theme="dark"]) .artales-home-main {
+  color: var(--artales-color-text-primary);
+}
+
+:root:not([data-artales-theme="dark"]) .artales-home-brand-panel,
+:root:not([data-artales-theme="dark"]) .artales-home-feature-card,
+:root:not([data-artales-theme="dark"]) .artales-home-section,
+:root:not([data-artales-theme="dark"]) .artales-home-path-card,
+:root:not([data-artales-theme="dark"]) .artales-home-final-cta {
+  background: var(--artales-color-background-surface);
+  border-color: var(--artales-color-border-subtle);
+}
+
+:root:not([data-artales-theme="dark"]) .artales-home-footnote {
+  background: var(--artales-color-background-surface-muted);
+  border-top-color: var(--artales-color-border-strong);
+}
+
+:root:not([data-artales-theme="dark"]) .artales-button,
+:root:not([data-artales-theme="dark"]) .artales-public-link--primary {
+  background: var(--artales-color-background-inverse);
+  border-color: var(--artales-color-brand-gold);
+  color: var(--artales-color-text-inverse);
+}
+
+:root:not([data-artales-theme="dark"]) .artales-button-secondary,
+:root:not([data-artales-theme="dark"]) .artales-theme-toggle {
+  background: var(--artales-color-background-surface);
+  border-color: var(--artales-color-border-strong);
+  color: var(--artales-color-text-primary);
+}
+
+:root:not([data-artales-theme="dark"]) .artales-gallery-card,
+:root:not([data-artales-theme="dark"]) .artales-author-card,
+:root:not([data-artales-theme="dark"]) .artales-community-card,
+:root:not([data-artales-theme="dark"]) .artales-resource-card {
+  background: var(--artales-color-background-surface);
+  border-color: var(--artales-color-border-strong);
+  color: var(--artales-color-text-primary);
+}
+
+:root:not([data-artales-theme="dark"]) .artales-work-detail-facts,
+:root:not([data-artales-theme="dark"]) .artales-edition-language-note {
+  background: var(--artales-color-background-surface-muted);
+  border-color: var(--artales-color-border-strong);
+  color: var(--artales-color-text-primary);
+}
+
+:root:not([data-artales-theme="dark"]) .artales-work-detail-facts dt {
+  color: var(--artales-color-text-muted);
+}
+
+:root:not([data-artales-theme="dark"]) .artales-gallery-card__subtitle,
+:root:not([data-artales-theme="dark"]) .artales-gallery-card__summary,
+:root:not([data-artales-theme="dark"]) .artales-gallery-card__meta {
+  color: var(--artales-color-text-secondary);
+}
+
+/* ARTales public launch polish v0.1 — public surfaces and interaction only. */
+:root:not([data-artales-theme="dark"]) .artales-public-header {
+  border-bottom-color: var(--artales-color-border-subtle);
+  box-shadow: 0 1rem 2rem -2rem var(--artales-color-border-strong);
+}
+
+:root:not([data-artales-theme="dark"]) .artales-home-brand-panel {
+  background: var(--artales-color-background-surface-muted);
+  border-color: var(--artales-color-border-strong);
+  box-shadow: 0 1.25rem 3rem -2rem var(--artales-color-border-strong);
+}
+
+.artales-home-brand-panel .artales-brand--lg {
+  justify-content: center;
+  max-width: 100%;
+}
+
+.artales-home-brand-panel .artales-brand--lg .artales-brand__wordmark {
+  max-width: min(100%, 24rem);
+}
+
+:root:not([data-artales-theme="dark"]) .artales-home-feature-card,
+:root:not([data-artales-theme="dark"]) .artales-home-path-card,
+:root:not([data-artales-theme="dark"]) .artales-gallery-card,
+:root:not([data-artales-theme="dark"]) .artales-author-card,
+:root:not([data-artales-theme="dark"]) .artales-community-card,
+:root:not([data-artales-theme="dark"]) .artales-resource-card {
+  border-color: var(--artales-color-border-subtle);
+  box-shadow: 0 1.25rem 3rem -2rem var(--artales-color-border-strong);
+}
+
+:root:not([data-artales-theme="dark"]) .artales-work-detail-facts,
+:root:not([data-artales-theme="dark"]) .artales-edition-language-note {
+  border-color: var(--artales-color-border-subtle);
+  box-shadow: 0 1rem 2.5rem -2rem var(--artales-color-border-strong);
+}
+
+.artales-public-shell .artales-public-link,
+.artales-public-shell .artales-gallery-card h2 a,
+.artales-public-shell .artales-gallery-card__author-link,
+.artales-public-shell
+  .artales-gallery-card__meta
+  a:not(.artales-gallery-card__author-link),
+.artales-public-shell .artales-work-detail-facts a,
+.artales-home-shell .artales-home-path-card a {
+  text-decoration-color: transparent;
+  text-decoration-thickness: 0.08em;
+  text-underline-offset: 0.2em;
+  transition:
+    color 140ms ease,
+    text-decoration-color 140ms ease;
+}
+
+.artales-public-shell .artales-public-link:hover,
+.artales-public-shell .artales-gallery-card h2 a:hover,
+.artales-public-shell .artales-gallery-card__author-link:hover,
+.artales-public-shell
+  .artales-gallery-card__meta
+  a:not(.artales-gallery-card__author-link):hover,
+.artales-public-shell .artales-work-detail-facts a:hover,
+.artales-home-shell .artales-home-path-card a:hover {
+  color: var(--artales-color-brand-gold-hover);
+  text-decoration-color: currentColor;
+}
+
+.artales-public-shell .artales-button,
+.artales-public-shell .artales-button-secondary,
+.artales-public-shell .artales-theme-toggle {
+  transition:
+    background 140ms ease,
+    border-color 140ms ease,
+    color 140ms ease,
+    box-shadow 140ms ease,
+    transform 140ms ease;
+}
+
+:root:not([data-artales-theme="dark"])
+  .artales-public-shell
+  .artales-button:hover,
+:root:not([data-artales-theme="dark"])
+  .artales-public-shell
+  .artales-public-link--primary:hover {
+  background: var(--artales-color-background-inverse-deep);
+  border-color: var(--artales-color-brand-gold-hover);
+  color: var(--artales-color-text-inverse);
+}
+
+:root:not([data-artales-theme="dark"])
+  .artales-public-shell
+  .artales-button-secondary:hover,
+:root:not([data-artales-theme="dark"])
+  .artales-public-shell
+  .artales-theme-toggle:hover {
+  background: var(--artales-color-background-surface-muted);
+  border-color: var(--artales-color-brand-gold-hover);
+  color: var(--artales-color-text-primary);
+}
+
+/* ARTales public header brand + navigation refresh v0.1. */
+.artales-public-header {
+  background: var(--artales-color-background-surface);
+  border-bottom-color: var(--artales-color-brand-gold);
+  border-bottom-width: 1px;
+  box-shadow: none;
+  min-height: 76px;
+}
+
+.artales-public-header .artales-brand-link {
+  align-items: center;
+  min-height: 40px;
+}
+
+.artales-public-header .artales-brand__wordmark {
+  height: auto;
+  max-width: none;
+  width: clamp(11.5rem, 18vw, 13.5rem);
+}
+
+.artales-public-header__nav {
+  gap: 0.4rem 0.75rem;
+}
+
+.artales-public-header__nav > .artales-public-link:not(.artales-public-link--primary) {
+  color: var(--artales-color-text-primary);
+  font-weight: 700;
+  padding-block: 0.55rem;
+  text-decoration-thickness: 0.1em;
+  text-underline-offset: 0.35em;
+}
+
+.artales-public-header__nav > .artales-public-link:not(.artales-public-link--primary):hover,
+.artales-public-header__nav > .artales-public-link:not(.artales-public-link--primary):focus-visible,
+.artales-public-header__nav > .artales-public-link[aria-current="page"] {
+  color: var(--artales-color-text-primary);
+  text-decoration-color: var(--artales-color-brand-gold-hover);
+}
+
+.artales-public-header__nav .artales-theme-toggle,
+.artales-public-header__nav .artales-locale-switcher__button {
+  background: var(--artales-color-background-surface-muted);
+  border-color: var(--artales-color-border-subtle);
+  color: var(--artales-color-text-primary);
+  box-shadow: none;
+}
+
+.artales-public-header__nav .artales-theme-toggle:hover,
+.artales-public-header__nav .artales-theme-toggle:focus-visible,
+.artales-public-header__nav .artales-locale-switcher__button:hover,
+.artales-public-header__nav .artales-locale-switcher__button:focus-visible {
+  border-color: var(--artales-color-brand-gold-hover);
+}
+
+.artales-public-header__nav .artales-locale-switcher__button--active {
+  background: var(--artales-color-background-inverse);
+  border-color: var(--artales-color-brand-gold);
+  color: var(--artales-color-text-inverse);
+}
+
+.artales-public-header__nav .artales-public-link--primary {
+  border-color: var(--artales-color-brand-gold);
+  box-shadow: none;
+}
+
+html[data-artales-theme="dark"] .artales-public-header {
+  background: var(--artales-color-background-inverse);
+  border-bottom-color: var(--artales-color-brand-gold);
+}
+
+html[data-artales-theme="dark"]
+  .artales-public-header__nav
+  > .artales-public-link:not(.artales-public-link--primary) {
+  color: var(--artales-color-text-inverse);
+}
+
+html[data-artales-theme="dark"]
+  .artales-public-header__nav
+  > .artales-public-link:not(.artales-public-link--primary):hover,
+html[data-artales-theme="dark"]
+  .artales-public-header__nav
+  > .artales-public-link:not(.artales-public-link--primary):focus-visible,
+html[data-artales-theme="dark"]
+  .artales-public-header__nav
+  > .artales-public-link[aria-current="page"] {
+  color: var(--artales-color-text-inverse);
+}
+
+html[data-artales-theme="dark"] .artales-public-header__nav .artales-theme-toggle,
+html[data-artales-theme="dark"] .artales-public-header__nav .artales-locale-switcher__button {
+  background: var(--artales-color-background-surface-muted);
+  border-color: var(--artales-color-border-subtle);
+  color: var(--artales-color-text-primary);
+}
+
+html[data-artales-theme="dark"]
+  .artales-public-header__nav
+  .artales-locale-switcher__button--active {
+  background: var(--artales-color-brand-gold);
+  border-color: var(--artales-color-brand-gold);
+  color: var(--artales-color-background-inverse);
+}
+
+@media (max-width: 860px) {
+  .artales-public-header {
+    min-height: 0;
+  }
+
+  .artales-public-header .artales-brand__wordmark {
+    width: clamp(10.5rem, 48vw, 12rem);
+  }
+
+  .artales-public-header__nav > .artales-public-link:not(.artales-public-link--primary) {
+    background: transparent;
+    border: 0;
+    border-radius: 0;
+    padding: 0.45rem 0.2rem;
+  }
+}
+
+.artales-public-shell .artales-public-link:focus-visible,
+.artales-public-shell .artales-gallery-card h2 a:focus-visible,
+.artales-public-shell .artales-gallery-card__author-link:focus-visible,
+.artales-public-shell .artales-work-detail-facts a:focus-visible,
+.artales-public-shell .artales-button:focus-visible,
+.artales-public-shell .artales-button-secondary:focus-visible,
+.artales-public-shell .artales-theme-toggle:focus-visible {
+  outline: 2px solid var(--artales-color-brand-gold-hover);
+  outline-offset: 3px;
+}
+
+html[data-artales-theme="dark"] .artales-public-header {
+  background: var(--artales-paper);
+  border-bottom-color: var(--artales-border);
+  box-shadow: 0 1rem 2rem -2rem var(--artales-border-strong);
+}
+
+html[data-artales-theme="dark"] .artales-home-brand-panel {
+  border-color: var(--artales-border-strong);
+  box-shadow: var(--artales-soft-shadow);
+}
+
+html[data-artales-theme="dark"] .artales-public-header {
+  background: var(--artales-color-background-inverse);
+  border-bottom-color: var(--artales-color-brand-gold);
+  box-shadow: none;
+}
+
+/* ARTales final public visual QA v0.1 — light transition and dark detail prose. */
+:root:not([data-artales-theme="dark"]) .artales-public-header {
+  background: linear-gradient(
+    180deg,
+    var(--artales-color-background-surface) 0%,
+    var(--artales-color-background-page) 100%
+  );
+  border-bottom-color: var(--artales-color-border-subtle);
+  box-shadow: 0 1rem 2.5rem -2.4rem var(--artales-color-border-strong);
+}
+
+:root:not([data-artales-theme="dark"]) .artales-home-shell {
+  background:
+    linear-gradient(
+      180deg,
+      var(--artales-color-background-surface-muted) 0,
+      var(--artales-color-background-page) 8rem
+    );
+}
+
+html[data-artales-theme="dark"] .artales-work-detail-main {
+  color: var(--artales-color-text-inverse);
+}
+
+html[data-artales-theme="dark"] .artales-work-detail-hero > div > p,
+html[data-artales-theme="dark"]
+  .artales-work-detail-main
+  > section:not(.artales-work-detail-hero)
+  p,
+html[data-artales-theme="dark"] .artales-work-detail-main details dl {
+  color: rgba(247, 236, 210, 0.78) !important;
+}
+
+html[data-artales-theme="dark"] .artales-work-detail-main details summary,
+html[data-artales-theme="dark"] .artales-work-detail-main details dt,
+html[data-artales-theme="dark"] .artales-work-detail-main > section > h2 {
+  color: var(--artales-color-text-inverse);
+}
+
+html[data-artales-theme="dark"] .artales-work-detail-hero > div > p a,
+html[data-artales-theme="dark"] .artales-work-detail-main details a {
+  color: var(--artales-color-text-inverse) !important;
+}
+
+/* ARTales public surface completion v0.1 — informational and checkout pages. */
+.artales-home-shell .artales-public-header {
+  background: linear-gradient(
+    180deg,
+    var(--artales-color-background-surface) 0%,
+    var(--artales-color-background-surface-muted) 72%,
+    transparent 100%
+  );
+  border-bottom-color: transparent;
+  box-shadow: none;
+}
+
+html[data-artales-theme="dark"] .artales-home-shell .artales-public-header {
+  background: linear-gradient(
+    180deg,
+    var(--artales-color-background-inverse-deep) 0%,
+    var(--artales-color-background-inverse) 72%,
+    transparent 100%
+  );
+}
+
+.artales-home-main {
+  padding-top: clamp(32px, 5vw, 58px);
+  padding-bottom: 58px;
+}
+
+.artales-home-hero {
+  margin-bottom: clamp(40px, 6vw, 68px);
+}
+
+.artales-home-feature-grid,
+.artales-home-paths,
+.artales-home-section {
+  margin-bottom: clamp(34px, 5vw, 54px);
+}
+
+.artales-home-final-cta {
+  margin-bottom: clamp(28px, 4vw, 44px);
+}
+
+.artales-public-shell .artales-legal-main,
+.artales-public-shell .artales-checkout-coming-soon {
+  color: var(--artales-color-text-primary);
+}
+
+.artales-public-shell .artales-legal-card,
+.artales-public-shell .artales-legal-article,
+.artales-public-shell .artales-account-model-grid > article,
+.artales-public-shell .artales-menu-roadmap .artales-account-card,
+.artales-public-shell .artales-account-panel,
+.artales-public-shell .artales-credit-package-card,
+.artales-public-shell .artales-qr-payment-card {
+  background: var(--artales-color-background-surface);
+  border-color: var(--artales-color-border-subtle);
+  color: var(--artales-color-text-primary);
+}
+
+.artales-public-shell .artales-credits-pricebook-note,
+.artales-public-shell .artales-roadmap-wishlist,
+.artales-public-shell .artales-qr-payment-card--highlight,
+.artales-public-shell .artales-qr-eu-note {
+  background: var(--artales-color-background-surface-muted) !important;
+  border-color: var(--artales-color-border-strong) !important;
+}
+
+.artales-public-shell .artales-legal-hero p:not(.artales-public-kicker),
+.artales-public-shell .artales-legal-article p,
+.artales-public-shell .artales-legal-card p,
+.artales-public-shell .artales-account-model-grid p:not(.artales-account-card__label),
+.artales-public-shell .artales-menu-roadmap p:not(.artales-account-card__label),
+.artales-public-shell .artales-account-panel p:not(.artales-account-card__label),
+.artales-public-shell .artales-checkout-coming-soon > p:not(.artales-product-panel__eyebrow),
+.artales-public-shell .artales-credit-package-card p:not(.artales-account-card__label),
+.artales-public-shell .artales-credit-package-card__form label,
+.artales-public-shell .artales-qr-payment-card span,
+.artales-public-shell .artales-qr-payment-image {
+  color: var(--artales-color-text-secondary);
+}
+
+.artales-public-shell .artales-public-kicker,
+.artales-public-shell .artales-product-panel__eyebrow,
+.artales-public-shell .artales-account-card__label,
+.artales-public-shell .artales-credit-package-card__badge {
+  color: var(--artales-color-brand-gold-hover);
+}
+
+.artales-public-shell .artales-credit-package-card__badge {
+  background: var(--artales-color-brand-gold-muted);
+}
+
+.artales-public-shell .artales-credit-package-card__form select {
+  background: var(--artales-color-background-surface-muted);
+  border-color: var(--artales-color-border-strong);
+  color: var(--artales-color-text-primary);
+}
+
+html[data-artales-theme="dark"] .artales-public-shell .artales-legal-main,
+html[data-artales-theme="dark"] .artales-public-shell .artales-checkout-coming-soon {
+  color: var(--artales-color-text-inverse);
+}
+
+html[data-artales-theme="dark"] .artales-public-shell .artales-legal-card,
+html[data-artales-theme="dark"] .artales-public-shell .artales-legal-article,
+html[data-artales-theme="dark"] .artales-public-shell .artales-account-model-grid > article,
+html[data-artales-theme="dark"] .artales-public-shell .artales-menu-roadmap .artales-account-card,
+html[data-artales-theme="dark"] .artales-public-shell .artales-account-panel,
+html[data-artales-theme="dark"] .artales-public-shell .artales-credit-package-card,
+html[data-artales-theme="dark"] .artales-public-shell .artales-qr-payment-card {
+  background: var(--artales-color-background-inverse) !important;
+  border-color: var(--artales-color-border-strong) !important;
+  color: var(--artales-color-text-inverse) !important;
+}
+
+html[data-artales-theme="dark"] .artales-public-shell .artales-credits-pricebook-note,
+html[data-artales-theme="dark"] .artales-public-shell .artales-roadmap-wishlist,
+html[data-artales-theme="dark"] .artales-public-shell .artales-qr-payment-card--highlight,
+html[data-artales-theme="dark"] .artales-public-shell .artales-qr-eu-note {
+  background: var(--artales-color-background-inverse-deep) !important;
+  border-color: var(--artales-color-brand-gold) !important;
+}
+
+html[data-artales-theme="dark"] .artales-public-shell .artales-legal-hero p:not(.artales-public-kicker),
+html[data-artales-theme="dark"] .artales-public-shell .artales-legal-article p,
+html[data-artales-theme="dark"] .artales-public-shell .artales-legal-card p,
+html[data-artales-theme="dark"] .artales-public-shell .artales-account-model-grid p:not(.artales-account-card__label),
+html[data-artales-theme="dark"] .artales-public-shell .artales-menu-roadmap p:not(.artales-account-card__label),
+html[data-artales-theme="dark"] .artales-public-shell .artales-account-panel p:not(.artales-account-card__label),
+html[data-artales-theme="dark"] .artales-public-shell .artales-checkout-coming-soon > p:not(.artales-product-panel__eyebrow),
+html[data-artales-theme="dark"] .artales-public-shell .artales-credit-package-card p:not(.artales-account-card__label),
+html[data-artales-theme="dark"] .artales-public-shell .artales-credit-package-card__form label,
+html[data-artales-theme="dark"] .artales-public-shell .artales-qr-payment-card span,
+html[data-artales-theme="dark"] .artales-public-shell .artales-qr-payment-image {
+  color: var(--artales-color-text-inverse) !important;
+}
+
+html[data-artales-theme="dark"] .artales-public-shell .artales-public-kicker,
+html[data-artales-theme="dark"] .artales-public-shell .artales-product-panel__eyebrow,
+html[data-artales-theme="dark"] .artales-public-shell .artales-account-card__label,
+html[data-artales-theme="dark"] .artales-public-shell .artales-credit-package-card__badge,
+html[data-artales-theme="dark"] .artales-public-shell .artales-legal-back a,
+html[data-artales-theme="dark"] .artales-public-shell .artales-legal-contact a {
+  color: var(--artales-color-brand-gold-secondary) !important;
+}
+
+html[data-artales-theme="dark"] .artales-public-shell .artales-credit-package-card__form select {
+  background: var(--artales-color-background-inverse-deep) !important;
+  border-color: var(--artales-color-border-strong) !important;
+  color: var(--artales-color-text-inverse) !important;
+}
+
+@media (max-width: 640px) {
+  .artales-home-main {
+    padding-top: 22px !important;
+    padding-bottom: 44px;
+  }
+
+  .artales-home-hero,
+  .artales-home-feature-grid,
+  .artales-home-paths,
+  .artales-home-section {
+    margin-bottom: 32px !important;
   }
 }
