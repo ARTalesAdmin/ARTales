@@ -6434,3 +6434,167 @@ html[data-artales-theme="dark"] .artales-work-detail-hero > div > p a,
 html[data-artales-theme="dark"] .artales-work-detail-main details a {
   color: var(--artales-color-text-inverse) !important;
 }
+
+/* ARTales public surface completion v0.1 — informational and checkout pages. */
+.artales-home-shell .artales-public-header {
+  background: linear-gradient(
+    180deg,
+    var(--artales-color-background-surface) 0%,
+    var(--artales-color-background-surface-muted) 72%,
+    transparent 100%
+  );
+  border-bottom-color: transparent;
+  box-shadow: none;
+}
+
+html[data-artales-theme="dark"] .artales-home-shell .artales-public-header {
+  background: linear-gradient(
+    180deg,
+    var(--artales-color-background-inverse-deep) 0%,
+    var(--artales-color-background-inverse) 72%,
+    transparent 100%
+  );
+}
+
+.artales-home-main {
+  padding-top: clamp(32px, 5vw, 58px);
+  padding-bottom: 58px;
+}
+
+.artales-home-hero {
+  margin-bottom: clamp(40px, 6vw, 68px);
+}
+
+.artales-home-feature-grid,
+.artales-home-paths,
+.artales-home-section {
+  margin-bottom: clamp(34px, 5vw, 54px);
+}
+
+.artales-home-final-cta {
+  margin-bottom: clamp(28px, 4vw, 44px);
+}
+
+.artales-public-shell .artales-legal-main,
+.artales-public-shell .artales-checkout-coming-soon {
+  color: var(--artales-color-text-primary);
+}
+
+.artales-public-shell .artales-legal-card,
+.artales-public-shell .artales-legal-article,
+.artales-public-shell .artales-account-model-grid > article,
+.artales-public-shell .artales-menu-roadmap .artales-account-card,
+.artales-public-shell .artales-account-panel,
+.artales-public-shell .artales-credit-package-card,
+.artales-public-shell .artales-qr-payment-card {
+  background: var(--artales-color-background-surface);
+  border-color: var(--artales-color-border-subtle);
+  color: var(--artales-color-text-primary);
+}
+
+.artales-public-shell .artales-credits-pricebook-note,
+.artales-public-shell .artales-roadmap-wishlist,
+.artales-public-shell .artales-qr-payment-card--highlight,
+.artales-public-shell .artales-qr-eu-note {
+  background: var(--artales-color-background-surface-muted) !important;
+  border-color: var(--artales-color-border-strong) !important;
+}
+
+.artales-public-shell .artales-legal-hero p:not(.artales-public-kicker),
+.artales-public-shell .artales-legal-article p,
+.artales-public-shell .artales-legal-card p,
+.artales-public-shell .artales-account-model-grid p:not(.artales-account-card__label),
+.artales-public-shell .artales-menu-roadmap p:not(.artales-account-card__label),
+.artales-public-shell .artales-account-panel p:not(.artales-account-card__label),
+.artales-public-shell .artales-checkout-coming-soon > p:not(.artales-product-panel__eyebrow),
+.artales-public-shell .artales-credit-package-card p:not(.artales-account-card__label),
+.artales-public-shell .artales-credit-package-card__form label,
+.artales-public-shell .artales-qr-payment-card span,
+.artales-public-shell .artales-qr-payment-image {
+  color: var(--artales-color-text-secondary);
+}
+
+.artales-public-shell .artales-public-kicker,
+.artales-public-shell .artales-product-panel__eyebrow,
+.artales-public-shell .artales-account-card__label,
+.artales-public-shell .artales-credit-package-card__badge {
+  color: var(--artales-color-brand-gold-hover);
+}
+
+.artales-public-shell .artales-credit-package-card__badge {
+  background: var(--artales-color-brand-gold-muted);
+}
+
+.artales-public-shell .artales-credit-package-card__form select {
+  background: var(--artales-color-background-surface-muted);
+  border-color: var(--artales-color-border-strong);
+  color: var(--artales-color-text-primary);
+}
+
+html[data-artales-theme="dark"] .artales-public-shell .artales-legal-main,
+html[data-artales-theme="dark"] .artales-public-shell .artales-checkout-coming-soon {
+  color: var(--artales-color-text-inverse);
+}
+
+html[data-artales-theme="dark"] .artales-public-shell .artales-legal-card,
+html[data-artales-theme="dark"] .artales-public-shell .artales-legal-article,
+html[data-artales-theme="dark"] .artales-public-shell .artales-account-model-grid > article,
+html[data-artales-theme="dark"] .artales-public-shell .artales-menu-roadmap .artales-account-card,
+html[data-artales-theme="dark"] .artales-public-shell .artales-account-panel,
+html[data-artales-theme="dark"] .artales-public-shell .artales-credit-package-card,
+html[data-artales-theme="dark"] .artales-public-shell .artales-qr-payment-card {
+  background: var(--artales-color-background-inverse) !important;
+  border-color: var(--artales-color-border-strong) !important;
+  color: var(--artales-color-text-inverse) !important;
+}
+
+html[data-artales-theme="dark"] .artales-public-shell .artales-credits-pricebook-note,
+html[data-artales-theme="dark"] .artales-public-shell .artales-roadmap-wishlist,
+html[data-artales-theme="dark"] .artales-public-shell .artales-qr-payment-card--highlight,
+html[data-artales-theme="dark"] .artales-public-shell .artales-qr-eu-note {
+  background: var(--artales-color-background-inverse-deep) !important;
+  border-color: var(--artales-color-brand-gold) !important;
+}
+
+html[data-artales-theme="dark"] .artales-public-shell .artales-legal-hero p:not(.artales-public-kicker),
+html[data-artales-theme="dark"] .artales-public-shell .artales-legal-article p,
+html[data-artales-theme="dark"] .artales-public-shell .artales-legal-card p,
+html[data-artales-theme="dark"] .artales-public-shell .artales-account-model-grid p:not(.artales-account-card__label),
+html[data-artales-theme="dark"] .artales-public-shell .artales-menu-roadmap p:not(.artales-account-card__label),
+html[data-artales-theme="dark"] .artales-public-shell .artales-account-panel p:not(.artales-account-card__label),
+html[data-artales-theme="dark"] .artales-public-shell .artales-checkout-coming-soon > p:not(.artales-product-panel__eyebrow),
+html[data-artales-theme="dark"] .artales-public-shell .artales-credit-package-card p:not(.artales-account-card__label),
+html[data-artales-theme="dark"] .artales-public-shell .artales-credit-package-card__form label,
+html[data-artales-theme="dark"] .artales-public-shell .artales-qr-payment-card span,
+html[data-artales-theme="dark"] .artales-public-shell .artales-qr-payment-image {
+  color: var(--artales-color-text-inverse) !important;
+}
+
+html[data-artales-theme="dark"] .artales-public-shell .artales-public-kicker,
+html[data-artales-theme="dark"] .artales-public-shell .artales-product-panel__eyebrow,
+html[data-artales-theme="dark"] .artales-public-shell .artales-account-card__label,
+html[data-artales-theme="dark"] .artales-public-shell .artales-credit-package-card__badge,
+html[data-artales-theme="dark"] .artales-public-shell .artales-legal-back a,
+html[data-artales-theme="dark"] .artales-public-shell .artales-legal-contact a {
+  color: var(--artales-color-brand-gold-secondary) !important;
+}
+
+html[data-artales-theme="dark"] .artales-public-shell .artales-credit-package-card__form select {
+  background: var(--artales-color-background-inverse-deep) !important;
+  border-color: var(--artales-color-border-strong) !important;
+  color: var(--artales-color-text-inverse) !important;
+}
+
+@media (max-width: 640px) {
+  .artales-home-main {
+    padding-top: 22px !important;
+    padding-bottom: 44px;
+  }
+
+  .artales-home-hero,
+  .artales-home-feature-grid,
+  .artales-home-paths,
+  .artales-home-section {
+    margin-bottom: 32px !important;
+  }
+}
