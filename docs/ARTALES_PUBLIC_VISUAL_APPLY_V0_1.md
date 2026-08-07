@@ -2,120 +2,106 @@
 
 ## Status and intent
 
-This is a focused, develop-only visual apply preview for the approved ARTales
-public palette. It does not authorize promotion to `main`.
+This is a `develop`-only public visual apply preview. PR #91 mapped the
+approved palette into semantic tokens, and PR #94 added a deliberately small
+set of gold accents. Those previews remained subtle because later theme rules
+and many public cards still supplied legacy gradients, translucent white
+backgrounds, raw ink borders, and theme aliases instead of consuming the new
+semantic values directly.
 
-PR #91 mapped the approved palette into semantic tokens, while retaining the
-existing cascade and most raw recipes. PR #94 added a deliberately small gold
-accent pass. Both were subtle because later adaptive-theme rules, translucent
-white cards, legacy ink borders, and legacy surface aliases still won on many
-public selectors. This pass connects the main light/adaptive public surfaces to
-the approved semantic Paper, Ink, Gold, surface, border, and inverse tokens.
+This pass makes the approved Paper, Ink, and Gold relationship visible without
+changing token values, layout, typography, components, or routes. It is not an
+approval to merge or promote the result to `main`.
 
-## Public surfaces visually applied
+## Public surfaces applied
 
-- The public shell now sits directly on Paper rather than sharing the later
-  legacy launch gradient used by application/workspace shells.
-- The public header uses a warm surface and a restrained strong gold divider.
-- Homepage brand, feature, path, editorial section, and final CTA cards use the
-  warm semantic surface; the larger section and final CTA retain a stronger
-  gold edge for hierarchy.
-- Homepage labels and public kickers use the approved darker gold, while body
-  copy uses the approved primary/secondary text hierarchy.
-- Gallery/catalog cards, author cards, and work-detail facts use the warm
-  semantic surface with the strong gold border system.
-- Secondary public actions use the muted warm surface; primary public actions
-  use inverse Ink/Paper with a gold border.
-
-No standalone public footer selector exists in the current stylesheet or public
-TSX markup. The footer relationship is therefore represented by the Paper
-public shell and existing public link treatments; no DOM or route was added to
-manufacture a new footer in this CSS-only pass.
+- The light and adaptive public shell now rests directly on the Paper page
+  token; its header uses the warm surface token and a restrained gold border.
+- Homepage brand, feature, section, path, and final CTA panels use the warm
+  surface and semantic subtle border. The existing homepage footnote uses the
+  muted warm surface and strong border as the public footer treatment.
+- Public primary actions pair inverse Ink with Paper text and a gold edge;
+  secondary actions and the theme toggle use the warm surface and gold border.
+- Gallery/catalog, author, community, and resource cards use the warm public
+  surface, semantic primary text, and the stronger gold border.
+- Work-detail facts and edition language notes use the muted warm surface,
+  strong gold border, and semantic text hierarchy.
 
 ## Selectors changed
 
-The apply layer is limited to the non-dark public cascade:
+The apply block in `app/globals.css` is limited to the following public
+selectors, scoped with `:root:not([data-artales-theme="dark"])` so existing dark
+theme contrast recipes continue to work:
 
-- `.artales-public-shell`
-- `.artales-public-header`
+- `.artales-public-shell`, `.artales-public-header`, `.artales-public-main`,
+  and `.artales-home-main`
 - `.artales-home-brand-panel`, `.artales-home-feature-card`,
   `.artales-home-section`, `.artales-home-path-card`,
-  `.artales-home-final-cta`
-- `.artales-home-eyebrow`, `.artales-home-card-eyebrow`,
-  `.artales-home-panel-label`, `.artales-home-intro`, and public homepage copy
-- `.artales-public-kicker`
-- `.artales-gallery-card` and its subtitle, metadata, summary, and hero copy
-- `.artales-author-card`
-- `.artales-work-detail-facts` and its term labels
-- `.artales-button-secondary`, `.artales-theme-toggle`,
-  `.artales-public-link--primary`, and `.artales-button`
+  `.artales-home-final-cta`, and `.artales-home-footnote`
+- `.artales-button`, `.artales-public-link--primary`,
+  `.artales-button-secondary`, and `.artales-theme-toggle`
+- `.artales-gallery-card`, `.artales-author-card`,
+  `.artales-community-card`, and `.artales-resource-card`
+- `.artales-work-detail-facts`, `.artales-work-detail-facts dt`, and
+  `.artales-edition-language-note`
+- `.artales-gallery-card__subtitle`, `.artales-gallery-card__summary`, and
+  `.artales-gallery-card__meta`
 
-The previous combined launch-theme rule was narrowed from public, application,
-and workspace shells to application/workspace shells only. This prevents the
-legacy launch gradient from covering the semantic public Paper background and
-does not alter the application or workspace result.
+## Replaced visual recipe categories
 
-## Old recipe categories replaced
-
-The public apply layer replaces effective translucent-white card recipes,
-legacy launch surface aliases, raw ink borders, and raw light-theme CTA recipes
-with existing semantic surface, border, text, gold, and inverse tokens. It adds
-no new raw colors, gradients, shadows, spacing, typography, or layout rules.
-Dark-theme-specific public recipes remain intact and continue to win when
-`data-artales-theme="dark"` is active.
+The new declarations replace public-only cascade outcomes from translucent
+white cards, legacy light-theme surface aliases, raw ink borders, and the
+public shell gradient with semantic page, surface, text, border, inverse, and
+gold tokens. Existing shadows are retained, and no new raw colors or gradients
+are introduced.
 
 ## Expected visible effect
 
-In light mode and the non-dark adaptive state, the homepage and catalog should
-read as warm Paper with distinct cream surfaces, calm dark literary text, and
-selective gold edges and labels. Gallery cards and work facts should no longer
-look like generic translucent white panels. Primary actions remain restrained
-Ink buttons with a gold outline rather than broad gold fills. Dark mode should
-retain its established dark public treatment and readable gold accents.
+In light and adaptive-light preview, the page should read as Paper rather than
+generic cream, with warmer card layers, dark literary text, and measured gold
+edges around navigation, actions, catalogue cards, and work facts. Primary
+buttons remain calm Ink surfaces rather than broad gold fills. The result is a
+palette application, not a layout redesign, so there should be no movement or
+size change.
 
 ## Intentionally deferred
 
-- Dark-theme recipe remapping beyond preserving the current reviewed dark
-  treatment.
-- A dedicated public footer component or selector.
-- Reader styling and variables; reader pagination and parser work.
-- Admin, editor, member, account, auth, payment, credit, and other dense internal
-  UI selectors.
-- State/status colors, shadows, mobile layout, spacing, typography scale,
-  components, routes, assets, icons, manifests, service workers, packages,
-  database, environment, and Supabase behavior.
+- Existing dark-theme recipes are preserved and should receive regression and
+  contrast review rather than an incidental recolor in this light-surface pass.
+- Reader styles and variables, admin/editor/member/account and other dense
+  internal UI, authentication, payments, credits, and Supabase logic remain
+  untouched.
+- State colors, layout, spacing, typography scale, shadows, components, routes,
+  Tailwind configuration, assets, icons, manifest, service worker, packages,
+  database, and environment configuration are unchanged.
 
 ## Preview checklist
 
 Review the deployed `develop` preview:
 
-- [ ] Homepage on desktop: Paper shell, warm cards, text hierarchy, and section edges
-- [ ] Homepage on mobile: same palette relationship with no spacing or layout shift
-- [ ] Public header/navigation: warm header, gold divider, readable hover and focus
-- [ ] Public footer area: Paper relationship and existing public links remain readable
-- [ ] Gallery/catalog: warm cards, gold borders, metadata and summaries remain readable
-- [ ] Work detail: warm facts surface, label hierarchy, links, and adjacent cover
-- [ ] Public primary/secondary CTA and theme toggle: default, hover, and focus states
-- [ ] Light, dark, and adaptive/system theme behavior where available
-- [ ] Link, hover, focus, and text contrast across affected surfaces
-- [ ] No layout shift at desktop or mobile breakpoints
+- [ ] Homepage on desktop and mobile
+- [ ] Public header and navigation
+- [ ] Public homepage footnote/footer treatment
+- [ ] Gallery/catalog cards
+- [ ] Work-detail page and facts
+- [ ] Public primary and secondary CTA/buttons
+- [ ] Light, dark, and adaptive/system themes where available
+- [ ] Link, hover, and keyboard-focus readability
+- [ ] No layout shift or spacing change
 
-Automated CSS parsing validates syntax only. Visual contrast, OS-level adaptive
-initialization, and interaction states still require browser review in the
-preview deployment.
+Automated parsing can validate syntax, but the final color relationships and
+theme transitions require browser review in the deployed preview.
 
-## Delivery record and rollback
+## Delivery and rollback
 
 - **Changed files:** `app/globals.css` applies the public palette;
   `docs/ARTALES_PUBLIC_VISUAL_APPLY_V0_1.md` records scope and review guidance.
-- **Risk:** `medium` — this is an intentional public visual-system change across
-  several pages, with no data or behavior change.
-- **Target:** `develop first` — preview only; do not merge or promote to `main`
-  automatically.
+- **Risk:** `medium` — this is an intentional, visible public visual-system
+  change that requires responsive and theme regression review.
+- **Target:** `develop first` — preview only; do not promote automatically.
 - **DB:** `no`.
 - **Env:** `no`.
-- **Rollback notes:** revert the visual-apply commit to restore the previous
-  public launch gradient and legacy effective surface recipes. No data,
-  configuration, package, asset, component, or route rollback is required.
-  Recheck homepage, header, gallery, work detail, CTAs, and light/dark/adaptive
-  themes after rollback.
+- **Rollback:** revert the public visual-apply commit to restore the preceding
+  cascade. No data, environment, package, asset, component, or route rollback
+  is required. Then recheck the homepage, public shell, catalogue, work detail,
+  actions, and theme switching in the `develop` preview.

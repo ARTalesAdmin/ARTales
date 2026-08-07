@@ -6073,3 +6073,74 @@ html[data-artales-theme="dark"] .artales-work-editor-save-buttons button:first-c
     margin-bottom: 24px !important;
   }
 }
+
+/* ARTales public visual apply v0.1 — light/adaptive public surfaces only. */
+:root:not([data-artales-theme="dark"]) .artales-public-shell {
+  background: var(--artales-color-background-page);
+  color: var(--artales-color-text-primary);
+}
+
+:root:not([data-artales-theme="dark"]) .artales-public-header {
+  background: var(--artales-color-background-surface);
+  border-bottom-color: var(--artales-color-border-strong);
+  color: var(--artales-color-text-primary);
+}
+
+:root:not([data-artales-theme="dark"]) .artales-public-main,
+:root:not([data-artales-theme="dark"]) .artales-home-main {
+  color: var(--artales-color-text-primary);
+}
+
+:root:not([data-artales-theme="dark"]) .artales-home-brand-panel,
+:root:not([data-artales-theme="dark"]) .artales-home-feature-card,
+:root:not([data-artales-theme="dark"]) .artales-home-section,
+:root:not([data-artales-theme="dark"]) .artales-home-path-card,
+:root:not([data-artales-theme="dark"]) .artales-home-final-cta {
+  background: var(--artales-color-background-surface);
+  border-color: var(--artales-color-border-subtle);
+}
+
+:root:not([data-artales-theme="dark"]) .artales-home-footnote {
+  background: var(--artales-color-background-surface-muted);
+  border-top-color: var(--artales-color-border-strong);
+}
+
+:root:not([data-artales-theme="dark"]) .artales-button,
+:root:not([data-artales-theme="dark"]) .artales-public-link--primary {
+  background: var(--artales-color-background-inverse);
+  border-color: var(--artales-color-brand-gold);
+  color: var(--artales-color-text-inverse);
+}
+
+:root:not([data-artales-theme="dark"]) .artales-button-secondary,
+:root:not([data-artales-theme="dark"]) .artales-theme-toggle {
+  background: var(--artales-color-background-surface);
+  border-color: var(--artales-color-border-strong);
+  color: var(--artales-color-text-primary);
+}
+
+:root:not([data-artales-theme="dark"]) .artales-gallery-card,
+:root:not([data-artales-theme="dark"]) .artales-author-card,
+:root:not([data-artales-theme="dark"]) .artales-community-card,
+:root:not([data-artales-theme="dark"]) .artales-resource-card {
+  background: var(--artales-color-background-surface);
+  border-color: var(--artales-color-border-strong);
+  color: var(--artales-color-text-primary);
+}
+
+:root:not([data-artales-theme="dark"]) .artales-work-detail-facts,
+:root:not([data-artales-theme="dark"]) .artales-edition-language-note {
+  background: var(--artales-color-background-surface-muted);
+  border-color: var(--artales-color-border-strong);
+  color: var(--artales-color-text-primary);
+}
+
+:root:not([data-artales-theme="dark"]) .artales-work-detail-facts dt {
+  color: var(--artales-color-text-muted);
+}
+
+:root:not([data-artales-theme="dark"]) .artales-gallery-card__subtitle,
+:root:not([data-artales-theme="dark"]) .artales-gallery-card__summary,
+:root:not([data-artales-theme="dark"]) .artales-gallery-card__meta {
+  color: var(--artales-color-text-secondary);
+}
