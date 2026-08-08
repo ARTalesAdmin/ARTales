@@ -112,3 +112,13 @@ Revert the tables/status polish commit. This restores the prior token aliases,
 removes the narrowly scoped final cascade rules, and removes this follow-up
 note. No database, environment, migration, asset, deployment-order, or
 persistent-data recovery step is required.
+
+## Follow-up: sidebar and shell unification
+
+Manual `develop` preview after this tables/status pass found the old permanently
+dark sidebar visually inconsistent with the newly warm header and main area.
+The next scoped preview is documented in
+`ARTALES_INTERNAL_ZONE_SIDEBAR_SHELL_UNIFICATION_V0_1.md`; it makes the existing
+member/account sidebar and internal shell selectors consume the adaptive
+`--artales-internal-nav-*` and surface tokens. It does not change the table,
+status, Reader, editor, or workflow behavior covered or deferred here.
