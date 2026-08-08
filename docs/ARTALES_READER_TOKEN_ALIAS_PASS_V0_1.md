@@ -85,3 +85,11 @@ Revert the alias-pass commit. This removes only unused custom-property aliases
 and this documentation; no data, environment, asset, package or renderer
 rollback is required. After rollback, smoke-check all three reader themes in
 the develop preview.
+
+## Palette-mapping follow-up
+
+The subsequent first intentional visual palette preview keeps this alias and
+legacy-variable bridge intact while remapping its reader-owned source values.
+See `ARTALES_READER_PALETTE_MAPPING_PREVIEW_V0_1.md` for the reviewed old/new
+values, comfort rationale, preview matrix and rollback path. This does not
+change the value-preserving scope or result of the original alias-pass commit.

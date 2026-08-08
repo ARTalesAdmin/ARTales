@@ -3,29 +3,29 @@
   --reader-outer-bg:
     radial-gradient(
       circle at top,
-      rgba(217, 183, 110, 0.22),
+      rgba(224, 170, 71, 0.18),
       transparent 32rem
     ),
-    linear-gradient(180deg, #f4ead7 0%, #dbc59d 100%);
-  --reader-toolbar-bg: rgba(255, 250, 240, 0.86);
-  --reader-toolbar-border: rgba(13, 21, 40, 0.12);
-  --reader-toolbar-text: #071226;
-  --reader-toolbar-muted: rgba(13, 21, 40, 0.66);
-  --reader-control-bg: rgba(255, 255, 255, 0.62);
-  --reader-control-border: rgba(13, 21, 40, 0.16);
-  --reader-control-text: #071226;
-  --reader-control-option-bg: #fffaf0;
-  --reader-paper: #fffaf0;
-  --reader-paper-text: #17130f;
+    linear-gradient(180deg, #fdf3e2 0%, #dbc59d 100%);
+  --reader-toolbar-bg: rgba(253, 243, 226, 0.88);
+  --reader-toolbar-border: rgba(181, 134, 54, 0.18);
+  --reader-toolbar-text: #272827;
+  --reader-toolbar-muted: rgba(39, 40, 39, 0.7);
+  --reader-control-bg: rgba(255, 253, 247, 0.68);
+  --reader-control-border: rgba(39, 40, 39, 0.18);
+  --reader-control-text: #272827;
+  --reader-control-option-bg: #fffdf7;
+  --reader-paper: #fffdf7;
+  --reader-paper-text: #272827;
   --reader-paper-muted: #6c6258;
-  --reader-paper-border: rgba(165, 126, 56, 0.22);
+  --reader-paper-border: rgba(181, 134, 54, 0.24);
   --reader-paper-shadow: 0 28px 90px rgba(39, 29, 18, 0.18);
-  --reader-accent: #987331;
+  --reader-accent: #d19738;
   --reader-accent-strong: #6c4b18;
-  --reader-accent-soft: #ead39b;
-  --reader-bookmark: #9c6a2d;
+  --reader-accent-soft: rgba(224, 170, 71, 0.28);
+  --reader-bookmark: #d19738;
 
-  /* Reader semantic token aliases v0.1 — value-preserving runtime layer. */
+  /* Reader semantic token aliases v0.1 — legacy-variable bridge layer. */
   --reader-color-viewport-bg: var(--reader-outer-bg);
   --reader-color-toolbar-bg: var(--reader-toolbar-bg);
   --reader-color-toolbar-border: var(--reader-toolbar-border);
@@ -61,27 +61,27 @@
   --reader-outer-bg:
     radial-gradient(
       circle at top,
-      rgba(217, 183, 110, 0.18),
+      rgba(224, 170, 71, 0.16),
       transparent 34rem
     ),
-    linear-gradient(180deg, #f7f1e6 0%, #e7d4a0 100%);
-  --reader-toolbar-bg: rgba(255, 250, 240, 0.9);
-  --reader-toolbar-border: rgba(13, 21, 40, 0.12);
-  --reader-toolbar-text: #071226;
-  --reader-toolbar-muted: rgba(13, 21, 40, 0.66);
-  --reader-control-bg: rgba(255, 255, 255, 0.64);
-  --reader-control-border: rgba(13, 21, 40, 0.16);
-  --reader-control-text: #071226;
-  --reader-control-option-bg: #fffaf0;
+    linear-gradient(180deg, #fdf3e2 0%, #e7d4a0 100%);
+  --reader-toolbar-bg: rgba(253, 243, 226, 0.9);
+  --reader-toolbar-border: rgba(181, 134, 54, 0.18);
+  --reader-toolbar-text: #272827;
+  --reader-toolbar-muted: rgba(39, 40, 39, 0.7);
+  --reader-control-bg: rgba(255, 253, 247, 0.7);
+  --reader-control-border: rgba(39, 40, 39, 0.18);
+  --reader-control-text: #272827;
+  --reader-control-option-bg: #fffdf7;
   --reader-paper: #fffdf7;
-  --reader-paper-text: #17130f;
+  --reader-paper-text: #272827;
   --reader-paper-muted: #6c6258;
-  --reader-paper-border: rgba(165, 126, 56, 0.22);
-  --reader-paper-shadow: 0 28px 90px rgba(39, 29, 18, 0.16);
-  --reader-accent: #987331;
+  --reader-paper-border: rgba(181, 134, 54, 0.24);
+  --reader-paper-shadow: 0 28px 90px rgba(39, 40, 39, 0.16);
+  --reader-accent: #d19738;
   --reader-accent-strong: #6c4b18;
-  --reader-accent-soft: #ead39b;
-  --reader-bookmark: #a56d24;
+  --reader-accent-soft: rgba(224, 170, 71, 0.28);
+  --reader-bookmark: #d19738;
 }
 
 .artales-reader--theme-script {
@@ -105,11 +105,11 @@
   --reader-paper-muted: #6f553a;
   --reader-paper-border: rgba(104, 68, 29, 0.26);
   --reader-paper-shadow: 0 28px 90px rgba(52, 31, 16, 0.26);
-  --reader-accent: #7e501a;
+  --reader-accent: #b58636;
   --reader-accent-strong: #4d2d0d;
-  --reader-accent-soft: #d7b36d;
-  --reader-bookmark: #7e341a;
-  /* Preserve the existing script selected-control treatment exactly. */
+  --reader-accent-soft: rgba(181, 134, 54, 0.32);
+  --reader-bookmark: #b58636;
+  /* Preserve the script selected-control mapping and dark ink text. */
   --reader-color-selected-bg: var(--reader-accent);
   --reader-color-selected-text: #0d1528;
 }
@@ -118,28 +118,28 @@
   --reader-outer-bg:
     radial-gradient(
       circle at top,
-      rgba(217, 183, 110, 0.16),
+      rgba(224, 170, 71, 0.12),
       transparent 34rem
     ),
-    linear-gradient(180deg, #05070b 0%, #0b1324 100%);
-  --reader-toolbar-bg: rgba(5, 7, 11, 0.84);
-  --reader-toolbar-border: rgba(241, 216, 157, 0.18);
-  --reader-toolbar-text: #fff8e7;
-  --reader-toolbar-muted: rgba(255, 248, 231, 0.68);
-  --reader-control-bg: rgba(255, 248, 231, 0.05);
-  --reader-control-border: rgba(241, 216, 157, 0.28);
-  --reader-control-text: #fff8e7;
-  --reader-control-option-bg: #111827;
-  --reader-paper: #111827;
+    linear-gradient(180deg, #0f1315 0%, #141414 100%);
+  --reader-toolbar-bg: rgba(15, 19, 21, 0.88);
+  --reader-toolbar-border: rgba(224, 170, 71, 0.2);
+  --reader-toolbar-text: #fdf3e2;
+  --reader-toolbar-muted: rgba(253, 243, 226, 0.74);
+  --reader-control-bg: rgba(253, 243, 226, 0.06);
+  --reader-control-border: rgba(224, 170, 71, 0.3);
+  --reader-control-text: #fdf3e2;
+  --reader-control-option-bg: #141414;
+  --reader-paper: #141414;
   --reader-paper-text: #f7ecd8;
-  --reader-paper-muted: rgba(247, 236, 216, 0.66);
-  --reader-paper-border: rgba(241, 216, 157, 0.18);
+  --reader-paper-muted: rgba(247, 236, 216, 0.74);
+  --reader-paper-border: rgba(224, 170, 71, 0.2);
   --reader-paper-shadow: 0 32px 120px rgba(0, 0, 0, 0.42);
-  --reader-accent: #e7d4a0;
-  --reader-accent-strong: #f1d89d;
-  --reader-accent-soft: rgba(241, 216, 157, 0.18);
-  --reader-bookmark: #d6a846;
-  /* Preserve the existing dark selected-control treatment exactly. */
+  --reader-accent: #e0aa47;
+  --reader-accent-strong: #dca645;
+  --reader-accent-soft: rgba(224, 170, 71, 0.18);
+  --reader-bookmark: #dca645;
+  /* Preserve the dark selected-control mapping and dark ink text. */
   --reader-color-selected-bg: var(--reader-accent);
   --reader-color-selected-text: #0d1528;
 }
