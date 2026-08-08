@@ -103,3 +103,11 @@ to their direct legacy references and removes this document and the follow-up
 note from the alias-pass document. No data, environment, package, asset,
 renderer or theme-value rollback is required. After reverting, smoke-check the
 reader in light, script and dark on the develop preview.
+
+## Palette-mapping follow-up
+
+The subsequent first intentional visual palette preview changes the
+reader-owned source values behind these consumed aliases without changing the
+selector consumption set. See
+`ARTALES_READER_PALETTE_MAPPING_PREVIEW_V0_1.md`. This does not change the
+value-preserving scope or result of the original selector-consumption commit.
