@@ -1689,6 +1689,75 @@
   }
 }
 
+/* Reader mobile final QA v0.1.
+   Keep the narrow-screen corrections in a final, reader-only layer so the
+   established desktop, renderer, and pagination rules remain unchanged. */
+@media (max-width: 560px) {
+  .artales-reader-toolbar__settings-panel {
+    box-sizing: border-box;
+    max-height: calc(100dvh - env(safe-area-inset-top) - 96px);
+    max-width: 100%;
+    overflow-x: hidden;
+  }
+
+  .artales-reader-control-group,
+  .artales-reader-select-label,
+  .artales-reader-toolbar__action-row > * {
+    box-sizing: border-box;
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
+
+  .artales-reader-select-label select {
+    max-width: 58%;
+  }
+
+  .artales-reader__bookmark-marker {
+    left: 0;
+    max-width: calc(100% - 40px);
+    padding-right: 14px;
+    width: min(68%, 260px);
+  }
+
+  .artales-reader-page-nav {
+    margin-bottom: max(56px, env(safe-area-inset-bottom));
+  }
+}
+
+@media (max-width: 360px) {
+  .artales-reader-toolbar {
+    padding-left: max(8px, env(safe-area-inset-left));
+    padding-right: max(8px, env(safe-area-inset-right));
+  }
+
+  .artales-reader-toolbar__top-actions {
+    gap: 6px;
+    grid-template-columns: minmax(0, 1fr) minmax(80px, auto);
+  }
+
+  .artales-reader--layout-scroll .artales-reader__paper {
+    padding-left: 17px;
+    padding-right: 17px;
+  }
+
+  .artales-reader--layout-page .artales-reader__paper--paged,
+  .artales-reader--layout-spread .artales-reader__paper--paged {
+    margin-left: 6px;
+    margin-right: 6px;
+    padding-left: 16px;
+    padding-right: 16px;
+    width: min(100%, calc(100vw - 12px));
+  }
+
+  .artales-reader-side-nav--previous {
+    left: max(8px, env(safe-area-inset-left));
+  }
+
+  .artales-reader-side-nav--next {
+    right: max(8px, env(safe-area-inset-right));
+  }
+}
+
 /* Reader controls/access polish v0.1.
    Keep chrome states inside the reader semantic palette and leave reader
    layout, pagination, persistence, and entitlement behavior untouched. */
