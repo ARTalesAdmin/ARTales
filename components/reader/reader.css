@@ -51,8 +51,8 @@
   --reader-color-progress-text: var(--reader-toolbar-muted);
   --reader-color-bookmark: var(--reader-bookmark);
   --reader-color-bookmark-text: var(--reader-accent-strong);
-  background: var(--reader-outer-bg);
-  color: var(--reader-toolbar-text);
+  background: var(--reader-color-viewport-bg);
+  color: var(--reader-color-toolbar-text);
   font-family: Arial, Helvetica, sans-serif;
   min-height: 100vh;
 }
@@ -146,9 +146,9 @@
 
 .artales-reader-toolbar {
   backdrop-filter: blur(18px);
-  background: var(--reader-toolbar-bg);
-  border-bottom: 1px solid var(--reader-toolbar-border);
-  color: var(--reader-toolbar-text);
+  background: var(--reader-color-toolbar-bg);
+  border-bottom: 1px solid var(--reader-color-toolbar-border);
+  color: var(--reader-color-toolbar-text);
   display: grid;
   gap: 10px;
   padding: 12px clamp(14px, 4vw, 36px);
@@ -182,10 +182,10 @@
 .artales-reader-settings-toggle {
   align-items: center;
   appearance: none;
-  background: var(--reader-control-bg);
-  border: 1px solid var(--reader-control-border);
+  background: var(--reader-color-control-bg);
+  border: 1px solid var(--reader-color-control-border);
   border-radius: 999px;
-  color: var(--reader-control-text);
+  color: var(--reader-color-control-text);
   cursor: pointer;
   display: inline-flex;
   flex: 0 0 auto;
@@ -248,7 +248,7 @@
 }
 
 .artales-reader-toolbar__title {
-  color: var(--reader-toolbar-text);
+  color: var(--reader-color-toolbar-text);
   font-family: Georgia, "Times New Roman", serif;
   font-size: clamp(16px, 2.2vw, 24px);
   line-height: 1.1;
@@ -260,7 +260,7 @@
 }
 
 .artales-reader-toolbar__author {
-  color: var(--reader-toolbar-muted);
+  color: var(--reader-color-toolbar-muted);
   font-size: 12px;
   margin: 2px 0 0;
 }
@@ -286,9 +286,9 @@
 .artales-reader-primary-link,
 .artales-reader-exit-link {
   align-items: center;
-  border: 1px solid var(--reader-control-border);
+  border: 1px solid var(--reader-color-control-border);
   border-radius: 999px;
-  color: var(--reader-control-text);
+  color: var(--reader-color-control-text);
   display: inline-flex;
   flex: 0 0 auto;
   font-size: 12px;
@@ -304,7 +304,7 @@
 .artales-reader-ghost-button,
 .artales-reader-ghost-link,
 .artales-reader-exit-link {
-  background: var(--reader-control-bg);
+  background: var(--reader-color-control-bg);
 }
 
 .artales-reader-control-group button,
@@ -326,7 +326,7 @@
 .artales-reader-control-group button {
   background: transparent;
   border: 0;
-  color: var(--reader-control-text);
+  color: var(--reader-color-control-text);
   padding: 0;
 }
 
@@ -363,7 +363,7 @@
 
 .artales-reader-progress {
   align-items: center;
-  color: var(--reader-toolbar-muted);
+  color: var(--reader-color-progress-text);
   display: flex;
   flex: 0 0 auto;
   font-size: 12px;
@@ -389,7 +389,7 @@
 }
 
 .artales-reader-progress__track div {
-  background: var(--reader-accent);
+  background: var(--reader-color-progress-fill);
   height: 100%;
   transition: width 160ms ease;
 }
@@ -399,12 +399,12 @@
 }
 
 .artales-reader__paper {
-  background: var(--reader-paper);
-  border: 1px solid var(--reader-paper-border);
+  background: var(--reader-color-paper-bg);
+  border: 1px solid var(--reader-color-paper-border);
   border-radius: 30px;
-  box-shadow: var(--reader-paper-shadow);
+  box-shadow: var(--reader-shadow-paper);
   box-sizing: border-box;
-  color: var(--reader-paper-text);
+  color: var(--reader-color-paper-text);
   margin: 0 auto;
   min-height: min(82vh, 1120px);
   padding: clamp(34px, 6vw, 82px) clamp(22px, 7vw, 104px);

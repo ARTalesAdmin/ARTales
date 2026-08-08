@@ -74,6 +74,11 @@ Use a small selector-consumption pass for a few direct aliases, with computed
 value comparison across light, script and dark. Alternatively, prepare the
 palette-mapping evidence without applying a palette remap in the same change.
 
+The first value-preserving selector-consumption pass started after this alias
+layer was established. Its scope and exact replacements are recorded in
+`ARTALES_READER_SELECTOR_CONSUMPTION_V0_1.md`; the legacy variables remain the
+source values, and no palette mapping is part of that pass.
+
 ## Rollback
 
 Revert the alias-pass commit. This removes only unused custom-property aliases
