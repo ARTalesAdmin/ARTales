@@ -114,3 +114,10 @@ restores the previous value-preserving form aliases, and removes the new button
 aliases. No database, environment, asset, migration, deployment ordering, or
 persistent-data recovery step is required.
 
+## Follow-up
+
+The next `develop` preview pass builds on these form and action mappings with
+the same internal semantic palette for classed tables, list rows, badges,
+chips, alerts, and status messages. That follow-up remains presentation-only
+and continues to defer editor, media, payment, Reader, parser, and pagination
+work.
