@@ -4564,13 +4564,13 @@ html[data-artales-theme="dark"] {
   --artales-internal-list-hover-bg: #f8eddb;
 
   /* Navigation */
-  --artales-internal-nav-bg: #141414;
-  --artales-internal-nav-border: rgba(220, 166, 69, 0.34);
-  --artales-internal-nav-text: #fdf3e2;
-  --artales-internal-nav-muted: #d8cbb7;
-  --artales-internal-nav-active-bg: rgba(224, 170, 71, 0.14);
-  --artales-internal-nav-active-text: #e3aa46;
-  --artales-internal-nav-hover-bg: rgba(253, 243, 226, 0.08);
+  --artales-internal-nav-bg: #f3eadc;
+  --artales-internal-nav-border: rgba(39, 40, 39, 0.16);
+  --artales-internal-nav-text: #272827;
+  --artales-internal-nav-muted: #5f5247;
+  --artales-internal-nav-active-bg: rgba(224, 170, 71, 0.18);
+  --artales-internal-nav-active-text: #76531b;
+  --artales-internal-nav-hover-bg: rgba(181, 134, 54, 0.1);
 
   /* Status */
   --artales-internal-success-bg: #edf6ee;
@@ -6996,4 +6996,68 @@ html[data-artales-theme="dark"] .artales-account-empty-state {
   background: var(--artales-internal-surface-elevated) !important;
   border-color: var(--artales-internal-table-border) !important;
   color: var(--artales-internal-text-muted) !important;
+}
+
+
+/* Internal-zone sidebar and shell unification v0.1 — develop preview only. */
+.artales-app-shell,
+.artales-workspace-shell,
+.artales-account-shell,
+.artales-member-shell {
+  background:
+    radial-gradient(circle at 14% 0%, var(--artales-internal-accent-soft), transparent 33rem),
+    linear-gradient(
+      180deg,
+      var(--artales-internal-surface-elevated) 0%,
+      var(--artales-internal-bg) 100%
+    );
+  color: var(--artales-internal-text);
+}
+
+.artales-account-sidebar,
+.artales-member-sidebar {
+  background: var(--artales-internal-nav-bg);
+  border-color: var(--artales-internal-nav-border);
+  box-shadow: var(--artales-internal-shadow-card);
+  color: var(--artales-internal-nav-text);
+}
+
+.artales-member-sidebar__title,
+.artales-account-sidebar .artales-account-eyebrow {
+  color: var(--artales-internal-nav-text);
+}
+
+.artales-member-sidebar__subtitle,
+.artales-account-sidebar__hint {
+  color: var(--artales-internal-nav-muted);
+}
+
+.artales-member-nav__group,
+.artales-account-nav__group {
+  border-color: var(--artales-internal-nav-border);
+}
+
+.artales-member-nav__link,
+.artales-account-nav__link {
+  color: var(--artales-internal-nav-muted);
+}
+
+.artales-member-nav__link:hover,
+.artales-account-nav__link:hover {
+  background: var(--artales-internal-nav-hover-bg);
+  border-color: var(--artales-internal-nav-border);
+  color: var(--artales-internal-nav-text);
+}
+
+.artales-member-nav__link--active,
+.artales-account-nav__link--emphasis {
+  background: var(--artales-internal-nav-active-bg);
+  border-color: var(--artales-internal-nav-border);
+  color: var(--artales-internal-nav-active-text);
+}
+
+.artales-member-nav__link:focus-visible,
+.artales-account-nav__link:focus-visible {
+  outline: 3px solid var(--artales-internal-focus-ring);
+  outline-offset: 2px;
 }
