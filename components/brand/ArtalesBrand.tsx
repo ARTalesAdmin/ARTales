@@ -63,7 +63,7 @@ export default function ArtalesBrand({
   const wordmarkSize = getWordmarkSize(size)
   const markSize = getMarkSize(size)
 
-  const lockup = (
+  const lockup = isAdaptive ? (
     <span className={`artales-brand artales-brand--adaptive artales-brand--${size}`}>
       <span className="artales-brand__variant artales-brand__variant--dark">
         <Image
@@ -85,6 +85,17 @@ export default function ArtalesBrand({
           priority={false}
         />
       </span>
+    </span>
+  ) : (
+    <span className={`artales-brand artales-brand--${variant} artales-brand--${size}`}>
+      <Image
+        src={lockupSrc[imageVariant]}
+        alt={label}
+        width={289}
+        height={54}
+        className="artales-brand__wordmark"
+        priority={size !== "sm"}
+      />
     </span>
   )
 

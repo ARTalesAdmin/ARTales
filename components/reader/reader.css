@@ -229,6 +229,11 @@
   min-width: 0;
 }
 
+.artales-reader-toolbar__brand .artales-brand__wordmark {
+  max-width: none;
+  width: 116px;
+}
+
 .artales-reader-toolbar__title-wrap {
   min-width: 0;
 }
@@ -1552,8 +1557,8 @@
     padding-right: max(10px, env(safe-area-inset-right));
   }
 
-  .artales-reader-toolbar__brand .artales-brand__text {
-    font-size: 1rem;
+  .artales-reader-toolbar__brand .artales-brand__wordmark {
+    width: 104px;
   }
 
   .artales-reader-toolbar__author {
