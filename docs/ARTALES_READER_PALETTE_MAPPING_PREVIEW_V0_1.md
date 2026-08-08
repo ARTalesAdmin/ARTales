@@ -8,6 +8,14 @@ alias layer from the previous passes, toward the approved ARTales identity.
 The change is a **develop-only preview** and must not be promoted to `main`
 automatically.
 
+> **Follow-up:** The develop-only comfort softening pass that follows PR #111
+> keeps this mapping and its reader identities, but lowers surface, chrome and
+> accent intensity for calmer long-form reading. It changes reader-owned token
+> values only: no selector, layout or behavior changes are included. Sustained
+> reading comfort takes priority over decorative contrast. See
+> `ARTALES_READER_COMFORT_SOFTENING_V0_1.md` for the adjusted values and preview
+> checklist.
+
 - **Risk:** high, because the reader is a critical path even though this change
   is limited to CSS custom-property values.
 - **Target:** develop first.
