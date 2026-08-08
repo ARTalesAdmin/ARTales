@@ -76,6 +76,12 @@ representative account, member, and admin routes in both themes before and after
 Keep forms, tables, badges, workflow status styling, editor surfaces, and palette
 changes in later independently reviewable passes.
 
+The first selector-consumption pass subsequently started with the smallest safe
+shell and navigation-text subset. Its exact replacements, deferrals, and rollback
+are recorded in
+`ARTALES_INTERNAL_ZONE_SELECTOR_CONSUMPTION_V0_1.md`; the alias definitions in
+this document remain unchanged.
+
 ## Validation checklist
 
 - [x] `git diff --check`

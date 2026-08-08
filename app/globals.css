@@ -233,7 +233,7 @@ body {
 }
 
 .artales-member-sidebar__title {
-  color: var(--artales-gold-soft);
+  color: var(--artales-internal-nav-text);
   font-family: Georgia, "Times New Roman", serif;
   font-size: 1.45rem;
   font-weight: 700;
@@ -465,7 +465,7 @@ body {
       transparent 34rem
     ),
     linear-gradient(135deg, #f7f1e6 0%, #efe3ce 48%, #fdf8ed 100%);
-  color: var(--artales-ink);
+  color: var(--artales-internal-text);
   display: grid;
   gap: clamp(20px, 4vw, 36px);
   grid-template-columns: minmax(240px, 300px) minmax(0, 1fr);
@@ -506,7 +506,7 @@ body {
 }
 
 .artales-account-sidebar .artales-account-eyebrow {
-  color: var(--artales-gold-soft);
+  color: var(--artales-internal-nav-text);
 }
 
 .artales-account-nav {
@@ -1292,7 +1292,7 @@ body {
 
 /* v0.9.6 – admin dashboard / accounting foundation */
 .artales-admin-dashboard {
-  color: var(--artales-ink);
+  color: var(--artales-internal-text);
   margin: 0 auto;
   max-width: 1180px;
   padding: clamp(24px, 5vw, 56px);
@@ -4453,8 +4453,7 @@ html[data-artales-theme="dark"] {
   --artales-soft-shadow: 0 20px 64px rgba(0, 0, 0, 0.34);
 }
 
-/* ARTales internal/admin/member semantic token aliases v0.1.
- * Definitions only: no selector consumes this namespace yet. */
+/* ARTales internal/admin/member semantic token aliases v0.1. */
 :root {
   /* Core shell and surfaces */
   --artales-internal-bg: var(--artales-paper);
@@ -4561,8 +4560,12 @@ html[data-artales-theme="dark"] .artales-brand__variant--light {
 .artales-workspace-shell {
   background:
     radial-gradient(circle at 14% 0%, var(--artales-hero-glow), transparent 33rem),
-    linear-gradient(180deg, var(--artales-surface-strong) 0%, var(--artales-paper) 100%);
-  color: var(--artales-ink);
+    linear-gradient(
+      180deg,
+      var(--artales-internal-surface-elevated) 0%,
+      var(--artales-internal-bg) 100%
+    );
+  color: var(--artales-internal-text);
 }
 
 html[data-artales-theme="dark"] .artales-public-shell,
