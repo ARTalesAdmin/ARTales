@@ -4453,6 +4453,82 @@ html[data-artales-theme="dark"] {
   --artales-soft-shadow: 0 20px 64px rgba(0, 0, 0, 0.34);
 }
 
+/* ARTales internal/admin/member semantic token aliases v0.1.
+ * Definitions only: no selector consumes this namespace yet. */
+:root {
+  /* Core shell and surfaces */
+  --artales-internal-bg: var(--artales-paper);
+  --artales-internal-surface: var(--artales-surface);
+  --artales-internal-surface-muted: var(--artales-paper-warm);
+  --artales-internal-surface-elevated: var(--artales-surface-strong);
+  --artales-internal-border: var(--artales-border);
+  --artales-internal-border-strong: var(--artales-border-strong);
+
+  /* Text */
+  --artales-internal-text: var(--artales-ink);
+  --artales-internal-text-muted: var(--artales-muted);
+  --artales-internal-text-subtle: var(--artales-muted);
+  --artales-internal-heading: var(--artales-ink);
+
+  /* Accent and action */
+  --artales-internal-accent: var(--artales-gold);
+  --artales-internal-accent-strong: var(--artales-link);
+  --artales-internal-accent-soft: var(--artales-hero-glow);
+  --artales-internal-link: var(--artales-link);
+  --artales-internal-focus-ring: var(--artales-color-focus-ring);
+
+  /* Forms */
+  --artales-internal-form-bg: var(--artales-surface-strong);
+  --artales-internal-form-border: var(--artales-border);
+  --artales-internal-form-text: var(--artales-ink);
+  --artales-internal-form-placeholder: var(--artales-muted);
+  --artales-internal-form-focus-border: var(--artales-border-strong);
+  --artales-internal-form-disabled-bg: var(--artales-paper-warm);
+  --artales-internal-form-disabled-text: var(--artales-muted);
+
+  /* Tables and lists */
+  --artales-internal-table-header-bg: var(--artales-paper-warm);
+  --artales-internal-table-row-bg: var(--artales-surface);
+  --artales-internal-table-row-hover-bg: var(--artales-paper-warm);
+  --artales-internal-table-border: var(--artales-border);
+  --artales-internal-list-hover-bg: var(--artales-paper-warm);
+
+  /* Navigation */
+  --artales-internal-nav-bg: var(--artales-black);
+  --artales-internal-nav-border: var(--artales-border-strong);
+  --artales-internal-nav-text: var(--artales-gold-soft);
+  --artales-internal-nav-muted: var(--artales-muted);
+  --artales-internal-nav-active-bg: var(--artales-surface);
+  --artales-internal-nav-active-text: var(--artales-gold-soft);
+  --artales-internal-nav-hover-bg: var(--artales-surface);
+
+  /* Status */
+  --artales-internal-success-bg: var(--artales-surface);
+  --artales-internal-success-border: var(--artales-color-state-success);
+  --artales-internal-success-text: var(--artales-color-state-success);
+  --artales-internal-warning-bg: var(--artales-surface);
+  --artales-internal-warning-border: var(--artales-color-state-warning);
+  --artales-internal-warning-text: var(--artales-color-state-warning);
+  --artales-internal-danger-bg: var(--artales-surface);
+  --artales-internal-danger-border: var(--artales-color-state-error);
+  --artales-internal-danger-text: var(--artales-color-state-error);
+  --artales-internal-info-bg: var(--artales-surface);
+  --artales-internal-info-border: var(--artales-color-state-info);
+  --artales-internal-info-text: var(--artales-color-state-info);
+
+  /* Badges and chips */
+  --artales-internal-badge-bg: var(--artales-black);
+  --artales-internal-badge-border: var(--artales-border-strong);
+  --artales-internal-badge-text: var(--artales-gold-soft);
+  --artales-internal-badge-muted-bg: var(--artales-paper-warm);
+  --artales-internal-badge-muted-text: var(--artales-muted);
+
+  /* Elevation */
+  --artales-internal-shadow-card: var(--artales-soft-shadow);
+  --artales-internal-shadow-panel: var(--artales-soft-shadow);
+  --artales-internal-shadow-modal: var(--artales-shadow);
+}
+
 html,
 body {
   background: var(--background);
