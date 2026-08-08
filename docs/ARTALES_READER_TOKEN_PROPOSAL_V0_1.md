@@ -336,3 +336,9 @@ This proposal does not:
 Delivery metadata: **Risk: low** (documentation only); **Target: develop
 first**; **DB: no**; **Env: no**. Rollback is a revert of this documentation
 commit; no runtime, data, asset, package or environment rollback is required.
+
+## Delivery note: phase 3 alias pass
+
+Phase 3 has started with a value-preserving semantic alias layer in
+`components/reader/reader.css`. The reader aliases were added without selector
+consumption or palette mapping, so no visual output is expected to change.
