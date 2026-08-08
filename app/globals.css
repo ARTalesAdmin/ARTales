@@ -4468,6 +4468,20 @@ html[data-artales-theme="dark"] {
   --artales-internal-accent-soft: rgba(224, 170, 71, 0.16);
   --artales-internal-link: #e3aa46;
   --artales-internal-focus-ring: rgba(224, 170, 71, 0.42);
+  --artales-internal-form-bg: #1f1e1a;
+  --artales-internal-form-border: rgba(253, 243, 226, 0.2);
+  --artales-internal-form-text: #fdf3e2;
+  --artales-internal-form-placeholder: #b7aa97;
+  --artales-internal-form-focus-border: #e0aa47;
+  --artales-internal-form-disabled-bg: #1b1b19;
+  --artales-internal-form-disabled-text: #8f8577;
+  --artales-internal-button-primary-bg: #0f1315;
+  --artales-internal-button-primary-text: #fdf3e2;
+  --artales-internal-button-primary-hover-bg: #272827;
+  --artales-internal-button-secondary-bg: #1f1e1a;
+  --artales-internal-button-secondary-hover-bg: rgba(224, 170, 71, 0.16);
+  --artales-internal-button-disabled-bg: #1b1b19;
+  --artales-internal-button-disabled-text: #8f8577;
   --artales-internal-nav-bg: #0f1315;
   --artales-internal-nav-border: rgba(220, 166, 69, 0.34);
   --artales-internal-nav-text: #fdf3e2;
@@ -4503,13 +4517,22 @@ html[data-artales-theme="dark"] {
   --artales-internal-focus-ring: rgba(181, 134, 54, 0.38);
 
   /* Forms */
-  --artales-internal-form-bg: var(--artales-surface-strong);
-  --artales-internal-form-border: var(--artales-border);
-  --artales-internal-form-text: var(--artales-ink);
-  --artales-internal-form-placeholder: var(--artales-muted);
-  --artales-internal-form-focus-border: var(--artales-border-strong);
-  --artales-internal-form-disabled-bg: var(--artales-paper-warm);
-  --artales-internal-form-disabled-text: var(--artales-muted);
+  --artales-internal-form-bg: #fffaf4;
+  --artales-internal-form-border: rgba(39, 40, 39, 0.22);
+  --artales-internal-form-text: #272827;
+  --artales-internal-form-placeholder: #73685d;
+  --artales-internal-form-focus-border: #b58636;
+  --artales-internal-form-disabled-bg: #eee5d8;
+  --artales-internal-form-disabled-text: #73685d;
+
+  /* Buttons */
+  --artales-internal-button-primary-bg: #141414;
+  --artales-internal-button-primary-text: #fdf3e2;
+  --artales-internal-button-primary-hover-bg: #272827;
+  --artales-internal-button-secondary-bg: #fffaf4;
+  --artales-internal-button-secondary-hover-bg: rgba(224, 170, 71, 0.14);
+  --artales-internal-button-disabled-bg: #eee5d8;
+  --artales-internal-button-disabled-text: #73685d;
 
   /* Tables and lists */
   --artales-internal-table-header-bg: var(--artales-paper-warm);
@@ -6707,4 +6730,130 @@ html[data-artales-theme="dark"] .artales-public-shell .artales-credit-package-ca
   .artales-home-section {
     margin-bottom: 32px !important;
   }
+}
+
+/* Internal-zone forms and buttons polish v0.1 — develop preview only. */
+:where(.artales-account-form, .artales-member-form, .artales-member-inline-form, .artales-admin-dashboard form)
+  :where(input:not([type="checkbox"]):not([type="radio"]), select, textarea) {
+  background: var(--artales-internal-form-bg) !important;
+  border-color: var(--artales-internal-form-border) !important;
+  color: var(--artales-internal-form-text) !important;
+}
+
+:where(.artales-account-form, .artales-member-form, .artales-member-inline-form, .artales-admin-dashboard form)
+  :where(input, textarea)::placeholder {
+  color: var(--artales-internal-form-placeholder) !important;
+  opacity: 1;
+}
+
+:where(.artales-account-form, .artales-member-form, .artales-member-inline-form, .artales-admin-dashboard form)
+  :where(label, small) {
+  color: var(--artales-internal-text-muted);
+}
+
+:where(.artales-account-form, .artales-member-form, .artales-member-inline-form, .artales-admin-dashboard form)
+  :where(input, select, textarea):focus-visible {
+  border-color: var(--artales-internal-form-focus-border) !important;
+  outline: 3px solid var(--artales-internal-focus-ring);
+  outline-offset: 2px;
+}
+
+:where(.artales-account-form, .artales-member-form, .artales-member-inline-form, .artales-admin-dashboard form)
+  :where(input[type="checkbox"], input[type="radio"]) {
+  accent-color: var(--artales-internal-accent-strong);
+}
+
+:where(.artales-account-form, .artales-member-form, .artales-member-inline-form, .artales-admin-dashboard form)
+  :where(input, select, textarea):disabled {
+  background: var(--artales-internal-form-disabled-bg) !important;
+  border-color: var(--artales-internal-border) !important;
+  color: var(--artales-internal-form-disabled-text) !important;
+  cursor: not-allowed;
+  opacity: 1;
+}
+
+:where(
+    .artales-account-form,
+    .artales-member-form,
+    .artales-member-inline-form,
+    .artales-member-list-actions,
+    .artales-admin-dashboard__actions,
+    .artales-admin-dashboard form
+  )
+  :where(.artales-button, .artales-button-primary):not(.artales-button-secondary--danger) {
+  background: var(--artales-internal-button-primary-bg) !important;
+  border-color: var(--artales-internal-accent-strong) !important;
+  box-shadow: none;
+  color: var(--artales-internal-button-primary-text) !important;
+}
+
+:where(
+    .artales-account-form,
+    .artales-member-form,
+    .artales-member-inline-form,
+    .artales-member-list-actions,
+    .artales-admin-dashboard__actions,
+    .artales-admin-dashboard form
+  )
+  :where(.artales-button, .artales-button-primary):not(.artales-button-secondary--danger):hover {
+  background: var(--artales-internal-button-primary-hover-bg) !important;
+}
+
+:where(
+    .artales-account-form,
+    .artales-member-form,
+    .artales-member-inline-form,
+    .artales-member-list-actions,
+    .artales-admin-dashboard__actions,
+    .artales-admin-dashboard form
+  )
+  .artales-button-secondary:not(.artales-button-secondary--danger) {
+  background: var(--artales-internal-button-secondary-bg) !important;
+  border-color: var(--artales-internal-border-strong) !important;
+  box-shadow: none;
+  color: var(--artales-internal-text) !important;
+}
+
+:where(
+    .artales-account-form,
+    .artales-member-form,
+    .artales-member-inline-form,
+    .artales-member-list-actions,
+    .artales-admin-dashboard__actions,
+    .artales-admin-dashboard form
+  )
+  .artales-button-secondary:not(.artales-button-secondary--danger):hover {
+  background: var(--artales-internal-button-secondary-hover-bg) !important;
+  border-color: var(--artales-internal-form-focus-border) !important;
+}
+
+:where(
+    .artales-account-form,
+    .artales-member-form,
+    .artales-member-inline-form,
+    .artales-member-list-actions,
+    .artales-admin-dashboard__actions,
+    .artales-admin-dashboard form
+  )
+  :where(button, .artales-button, .artales-button-primary, .artales-button-secondary):focus-visible {
+  outline: 3px solid var(--artales-internal-focus-ring);
+  outline-offset: 3px;
+}
+
+:where(
+    .artales-account-form,
+    .artales-member-form,
+    .artales-member-inline-form,
+    .artales-member-list-actions,
+    .artales-admin-dashboard__actions,
+    .artales-admin-dashboard form
+  )
+  :where(button, .artales-button, .artales-button-primary, .artales-button-secondary):disabled {
+  background: var(--artales-internal-button-disabled-bg) !important;
+  border-color: var(--artales-internal-border) !important;
+  color: var(--artales-internal-button-disabled-text) !important;
+  box-shadow: none;
+  cursor: not-allowed;
+  opacity: 1;
+  transform: none;
 }
