@@ -24,6 +24,33 @@
   --reader-accent-strong: #6c4b18;
   --reader-accent-soft: #ead39b;
   --reader-bookmark: #9c6a2d;
+
+  /* Reader semantic token aliases v0.1 — value-preserving runtime layer. */
+  --reader-color-viewport-bg: var(--reader-outer-bg);
+  --reader-color-toolbar-bg: var(--reader-toolbar-bg);
+  --reader-color-toolbar-border: var(--reader-toolbar-border);
+  --reader-color-toolbar-text: var(--reader-toolbar-text);
+  --reader-color-toolbar-muted: var(--reader-toolbar-muted);
+  --reader-color-paper-bg: var(--reader-paper);
+  --reader-color-paper-text: var(--reader-paper-text);
+  --reader-color-paper-muted: var(--reader-paper-muted);
+  --reader-color-paper-border: var(--reader-paper-border);
+  --reader-color-paper-soft:
+    color-mix(in srgb, var(--reader-paper-text) 6%, transparent);
+  --reader-color-control-bg: var(--reader-control-bg);
+  --reader-color-control-border: var(--reader-control-border);
+  --reader-color-control-text: var(--reader-control-text);
+  --reader-color-native-option-bg: var(--reader-control-option-bg);
+  --reader-color-native-option-text: var(--reader-control-text);
+  --reader-color-selected-bg: var(--reader-accent-soft);
+  --reader-color-selected-text: var(--reader-accent-strong);
+  --reader-shadow-paper: var(--reader-paper-shadow);
+  --reader-color-progress-fill: var(--reader-accent);
+  --reader-color-progress-track:
+    color-mix(in srgb, var(--reader-toolbar-text) 18%, transparent);
+  --reader-color-progress-text: var(--reader-toolbar-muted);
+  --reader-color-bookmark: var(--reader-bookmark);
+  --reader-color-bookmark-text: var(--reader-accent-strong);
   background: var(--reader-outer-bg);
   color: var(--reader-toolbar-text);
   font-family: Arial, Helvetica, sans-serif;
@@ -82,6 +109,9 @@
   --reader-accent-strong: #4d2d0d;
   --reader-accent-soft: #d7b36d;
   --reader-bookmark: #7e341a;
+  /* Preserve the existing script selected-control treatment exactly. */
+  --reader-color-selected-bg: var(--reader-accent);
+  --reader-color-selected-text: #0d1528;
 }
 
 .artales-reader--theme-dark {
@@ -109,6 +139,9 @@
   --reader-accent-strong: #f1d89d;
   --reader-accent-soft: rgba(241, 216, 157, 0.18);
   --reader-bookmark: #d6a846;
+  /* Preserve the existing dark selected-control treatment exactly. */
+  --reader-color-selected-bg: var(--reader-accent);
+  --reader-color-selected-text: #0d1528;
 }
 
 .artales-reader-toolbar {
