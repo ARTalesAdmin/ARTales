@@ -316,6 +316,11 @@ Only after that no-op foundation lands should a second, small PR move shell back
 
 ## 10. Explicit non-scope
 
+> **Follow-up:** The value-preserving internal semantic token alias layer recommended
+> by this audit has started in
+> `ARTALES_INTERNAL_ZONE_TOKEN_ALIAS_PASS_V0_1.md`. The first pass defines the
+> namespace only; selector consumption and palette mapping remain deferred.
+
 - The known **Reader mobile page/spread layout issue**, where text blocks may break on phones. Track it as later Reader layout/pagination work.
 - Reader styling, Reader page/spread behavior, parser, content block generation, or pagination, including the cancelled v0.10.15k patch.
 - Database, SQL, environment, Supabase, storage policy, payment/credit/membership logic, or data changes.
