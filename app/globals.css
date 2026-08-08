@@ -4460,8 +4460,8 @@ html[data-artales-theme="dark"] {
   --artales-internal-border: rgba(253, 243, 226, 0.14);
   --artales-internal-border-strong: rgba(220, 166, 69, 0.36);
   --artales-internal-text: #fdf3e2;
-  --artales-internal-text-muted: #d8cbb7;
-  --artales-internal-text-subtle: #b7aa97;
+  --artales-internal-text-muted: #e1d3bd;
+  --artales-internal-text-subtle: #c9baa4;
   --artales-internal-heading: #fffaf0;
   --artales-internal-accent: #e3aa46;
   --artales-internal-accent-strong: #e0aa47;
@@ -4475,9 +4475,9 @@ html[data-artales-theme="dark"] {
   --artales-internal-form-focus-border: #e0aa47;
   --artales-internal-form-disabled-bg: #1b1b19;
   --artales-internal-form-disabled-text: #8f8577;
-  --artales-internal-button-primary-bg: #0f1315;
-  --artales-internal-button-primary-text: #fdf3e2;
-  --artales-internal-button-primary-hover-bg: #272827;
+  --artales-internal-button-primary-bg: #191b1b;
+  --artales-internal-button-primary-text: #f4e6d0;
+  --artales-internal-button-primary-hover-bg: #252623;
   --artales-internal-button-secondary-bg: #1f1e1a;
   --artales-internal-button-secondary-hover-bg: rgba(224, 170, 71, 0.16);
   --artales-internal-button-disabled-bg: #1b1b19;
@@ -4504,13 +4504,13 @@ html[data-artales-theme="dark"] {
   --artales-internal-badge-text: #f0d18f;
   --artales-internal-badge-muted-bg: #252522;
   --artales-internal-badge-muted-text: #d8cbb7;
-  --artales-internal-nav-bg: #0f1315;
-  --artales-internal-nav-border: rgba(220, 166, 69, 0.34);
-  --artales-internal-nav-text: #fdf3e2;
-  --artales-internal-nav-muted: #d8cbb7;
-  --artales-internal-nav-active-bg: rgba(224, 170, 71, 0.16);
-  --artales-internal-nav-active-text: #e3aa46;
-  --artales-internal-nav-hover-bg: rgba(253, 243, 226, 0.08);
+  --artales-internal-nav-bg: #111516;
+  --artales-internal-nav-border: rgba(224, 195, 142, 0.28);
+  --artales-internal-nav-text: #fff6e7;
+  --artales-internal-nav-muted: #e4d5bf;
+  --artales-internal-nav-active-bg: rgba(224, 170, 71, 0.14);
+  --artales-internal-nav-active-text: #efc775;
+  --artales-internal-nav-hover-bg: rgba(253, 243, 226, 0.1);
   --artales-internal-shadow-card: 0 14px 36px rgba(0, 0, 0, 0.28);
   --artales-internal-shadow-panel: 0 20px 54px rgba(0, 0, 0, 0.32);
 }
@@ -4564,13 +4564,13 @@ html[data-artales-theme="dark"] {
   --artales-internal-list-hover-bg: #f8eddb;
 
   /* Navigation */
-  --artales-internal-nav-bg: #f3eadc;
-  --artales-internal-nav-border: rgba(39, 40, 39, 0.16);
-  --artales-internal-nav-text: #272827;
-  --artales-internal-nav-muted: #5f5247;
-  --artales-internal-nav-active-bg: rgba(224, 170, 71, 0.18);
-  --artales-internal-nav-active-text: #76531b;
-  --artales-internal-nav-hover-bg: rgba(181, 134, 54, 0.1);
+  --artales-internal-nav-bg: #eee1cf;
+  --artales-internal-nav-border: rgba(73, 55, 37, 0.24);
+  --artales-internal-nav-text: #1f211f;
+  --artales-internal-nav-muted: #594a3e;
+  --artales-internal-nav-active-bg: rgba(181, 134, 54, 0.12);
+  --artales-internal-nav-active-text: #5f4318;
+  --artales-internal-nav-hover-bg: rgba(255, 250, 240, 0.58);
 
   /* Status */
   --artales-internal-success-bg: #edf6ee;

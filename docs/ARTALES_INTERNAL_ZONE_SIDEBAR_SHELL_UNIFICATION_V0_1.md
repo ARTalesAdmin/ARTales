@@ -103,3 +103,14 @@ light/default nav-token values, removes the final semantic sidebar/shell rules,
 and removes this documentation and its tables/status follow-up note. No DB,
 environment, migration, asset, deployment-order, or persistent-data recovery
 step is required.
+
+## Follow-up contrast tuning
+
+Manual preview confirmed that this first unified version was architecturally
+correct, but visually under-balanced: the light sidebar was too washed out and
+the dark theme muted some operational copy too strongly. A subsequent
+develop-only token tuning pass refines sidebar definition, navigation states,
+supporting-text readability, and dark primary-button restraint without undoing
+the unified adaptive architecture. See
+`ARTALES_INTERNAL_ZONE_SIDEBAR_THEME_TUNING_V0_1.md` for the value changes and
+preview checklist.
