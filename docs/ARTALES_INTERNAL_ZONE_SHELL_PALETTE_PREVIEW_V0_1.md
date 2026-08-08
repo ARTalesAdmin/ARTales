@@ -109,3 +109,12 @@ widths, migrate one passive internal card/panel family to the mapped semantic
 surface, border, text, and elevation tokens. Keep that selector-consumption PR
 small, and continue to defer forms, tables, statuses, and editor workflows to
 independent contrast and interaction reviews.
+
+## Follow-up: forms and buttons polish
+
+The next scoped preview now follows this shell palette in
+`ARTALES_INTERNAL_ZONE_FORMS_BUTTONS_POLISH_V0_1.md`. It consumes explicit
+internal form and button roles for named account/member forms and admin action
+areas while preserving danger styling and continuing to defer editor, table,
+status, Reader, and public-surface work. It remains `develop`-only and does not
+authorize promotion to `main`.
