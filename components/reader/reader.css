@@ -1656,3 +1656,148 @@
     bottom: max(18px, env(safe-area-inset-bottom));
   }
 }
+
+/* Reader controls/access polish v0.1.
+   Keep chrome states inside the reader semantic palette and leave reader
+   layout, pagination, persistence, and entitlement behavior untouched. */
+.artales-reader {
+  --reader-color-control-hover-bg:
+    color-mix(in srgb, var(--reader-color-control-text) 8%, var(--reader-color-control-bg));
+  --reader-color-control-disabled-bg:
+    color-mix(in srgb, var(--reader-color-control-text) 5%, transparent);
+  --reader-color-control-disabled-border:
+    color-mix(in srgb, var(--reader-color-control-text) 12%, transparent);
+  --reader-color-control-disabled-text:
+    color-mix(in srgb, var(--reader-color-control-text) 48%, transparent);
+  --reader-color-focus-ring:
+    color-mix(in srgb, var(--reader-color-bookmark) 62%, var(--reader-color-toolbar-text));
+}
+
+.artales-reader-toolbar__settings-panel {
+  background: color-mix(in srgb, var(--reader-color-toolbar-bg) 94%, var(--reader-color-paper-bg));
+  border-color: var(--reader-color-toolbar-border);
+  box-shadow: 0 12px 32px
+    color-mix(in srgb, var(--reader-color-toolbar-text) 8%, transparent);
+}
+
+.artales-reader-settings-toggle,
+.artales-reader-top-button,
+.artales-reader-ghost-button,
+.artales-reader-ghost-link,
+.artales-reader-exit-link,
+.artales-reader-primary-link,
+.artales-reader-control-group,
+.artales-reader-select-label,
+.artales-reader-page-nav button,
+.artales-reader-side-nav {
+  transition:
+    background-color 140ms ease,
+    border-color 140ms ease,
+    color 140ms ease,
+    box-shadow 140ms ease,
+    opacity 140ms ease;
+}
+
+.artales-reader-settings-toggle:hover,
+.artales-reader-top-button:hover,
+.artales-reader-ghost-button:hover,
+.artales-reader-ghost-link:hover,
+.artales-reader-exit-link:hover,
+.artales-reader-control-group:hover,
+.artales-reader-select-label:hover,
+.artales-reader-page-nav button:hover:not(:disabled) {
+  background: var(--reader-color-control-hover-bg);
+  border-color: color-mix(in srgb, var(--reader-color-control-text) 24%, transparent);
+}
+
+.artales-reader-top-button--focus[aria-pressed="true"] {
+  background: var(--reader-color-selected-bg);
+  border-color: color-mix(in srgb, var(--reader-color-selected-text) 34%, transparent);
+  color: var(--reader-color-selected-text);
+}
+
+.artales-reader-progress__track {
+  background: var(--reader-color-progress-track);
+  height: 5px;
+}
+
+.artales-reader-progress__track div {
+  background: color-mix(in srgb, var(--reader-color-progress-fill) 76%, var(--reader-color-toolbar-muted));
+}
+
+.artales-reader-select-label select {
+  background: color-mix(in srgb, var(--reader-color-control-text) 7%, transparent);
+  color: var(--reader-color-native-option-text);
+}
+
+.artales-reader-select-label option {
+  background: var(--reader-color-native-option-bg);
+  color: var(--reader-color-native-option-text);
+}
+
+.artales-reader__bookmark-marker {
+  background: color-mix(in srgb, var(--reader-color-bookmark) 16%, var(--reader-color-paper-bg));
+  border-left-color: var(--reader-color-bookmark);
+  box-shadow: 0 7px 20px
+    color-mix(in srgb, var(--reader-color-bookmark) 16%, transparent);
+  color: var(--reader-color-bookmark-text);
+}
+
+.artales-reader__bookmark-marker:hover {
+  background: color-mix(in srgb, var(--reader-color-bookmark) 23%, var(--reader-color-paper-bg));
+}
+
+.artales-reader__preview-note {
+  background: color-mix(in srgb, var(--reader-color-paper-text) 3%, transparent);
+  border: 1px solid var(--reader-color-paper-border);
+  border-radius: 14px;
+  padding: 14px 18px;
+}
+
+.artales-reader__preview-cta {
+  color: var(--reader-color-paper-muted);
+}
+
+.artales-reader__preview-cta .artales-button {
+  background: var(--reader-color-control-bg);
+  border: 1px solid color-mix(in srgb, var(--reader-color-bookmark) 34%, transparent);
+  border-radius: 999px;
+  box-shadow: none;
+  color: var(--reader-color-bookmark-text);
+  font-family: Arial, Helvetica, sans-serif;
+  min-height: 42px;
+  padding: 0.65rem 1rem;
+  text-decoration: none;
+}
+
+.artales-reader__preview-cta .artales-button:hover {
+  background: var(--reader-color-control-hover-bg);
+  border-color: var(--reader-color-bookmark);
+}
+
+.artales-reader-page-nav button:disabled,
+.artales-reader-side-nav:disabled {
+  background: var(--reader-color-control-disabled-bg);
+  border-color: var(--reader-color-control-disabled-border);
+  color: var(--reader-color-control-disabled-text);
+  cursor: not-allowed;
+  opacity: 1;
+}
+
+.artales-reader :is(
+  .artales-reader-settings-toggle,
+  .artales-reader-top-button,
+  .artales-reader-ghost-button,
+  .artales-reader-ghost-link,
+  .artales-reader-exit-link,
+  .artales-reader-primary-link,
+  .artales-reader-control-group button,
+  .artales-reader-select-label select,
+  .artales-reader__bookmark-marker,
+  .artales-reader__preview-cta .artales-button,
+  .artales-reader-page-nav button,
+  .artales-reader-side-nav
+):focus-visible {
+  outline: 2px solid var(--reader-color-focus-ring);
+  outline-offset: 3px;
+}
