@@ -492,10 +492,42 @@
 }
 
 .artales-reader__paper .artales-work-content {
-  --artales-text: var(--reader-paper-text);
-  --artales-muted: var(--reader-paper-muted);
-  --artales-border: var(--reader-paper-border);
-  --artales-soft: color-mix(in srgb, var(--reader-paper-text) 6%, transparent);
+  --artales-text: var(--reader-color-paper-text);
+  --artales-muted: var(--reader-color-paper-muted);
+  --artales-border: var(--reader-color-paper-border);
+  --artales-soft: var(--reader-color-paper-soft);
+}
+
+/* Reader long-form content QA v0.1.
+   Override only shared renderer colors that otherwise retain light-biased raw
+   values; typography, spacing, pagination, and public work detail stay intact. */
+.artales-reader__paper .artales-work-content :is(
+  .artales-quote,
+  .artales-dedication,
+  .artales-footnotes
+) {
+  color: var(--reader-color-paper-text);
+}
+
+.artales-reader__paper .artales-work-content :is(
+  .artales-note,
+  .artales-footnote-ref
+) {
+  background: var(--reader-color-paper-soft);
+  border-left-color: var(--reader-color-paper-border);
+  color: var(--reader-color-paper-text);
+}
+
+.artales-reader__paper
+  .artales-work-content.artales-renderer--edition-classic
+  :is(.artales-chapter h3, .artales-book-part h2) {
+  color: var(--reader-color-paper-text);
+}
+
+.artales-reader__paper .artales-work-content .artales-table-warning {
+  background: var(--reader-color-paper-soft);
+  border-color: var(--reader-color-paper-border);
+  color: var(--reader-color-paper-text);
 }
 
 .artales-reader__preview-note,
