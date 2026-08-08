@@ -87,7 +87,7 @@ export default function ReaderToolbar({
     <header className="artales-reader-toolbar">
       <div className="artales-reader-toolbar__top-row">
         <div className="artales-reader-toolbar__brand">
-          <ArtalesBrand variant={brandVariant} size="sm" showMark />
+          <ArtalesBrand variant={brandVariant} size="sm" mode="lockup" />
           <div className="artales-reader-toolbar__title-wrap">
             <p className="artales-reader-toolbar__mode">
               {mode === "preview" ? labels.preview : labels.onlineReader}
