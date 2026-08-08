@@ -68,6 +68,15 @@ semantic indirection through aliases that resolve to their exact former sources.
 It introduces no raw color, changes no existing color, and makes no visual design
 decision for the internal zone.
 
+## Follow-up palette preview
+
+The first controlled shell palette preview now follows this value-preserving
+consumption pass. It changes only the internal shell, navigation, text, accent,
+border, and card/panel elevation token values; the selector replacements listed
+above remain unchanged. See
+`ARTALES_INTERNAL_ZONE_SHELL_PALETTE_PREVIEW_V0_1.md` for the light/dark mappings,
+visible scope, preview checks, deferrals, and rollback path.
+
 ## Next recommended PR
 
 After review in `develop` and comparison in preview, audit one additional passive
