@@ -1,4 +1,6 @@
 import { requireCompletedAccountProfile } from "@/lib/account";
+import { getPublicDictionary } from "@/lib/i18n/public";
+import { getCookieLocale, resolveProfileLocale } from "@/lib/i18n/server";
 import { updateAccountProfile } from "./actions";
 
 export const dynamic = "force-dynamic";
@@ -7,18 +9,20 @@ type PageProps = {
   searchParams: Promise<{ error?: string; success?: string }>;
 };
 
-function getErrorMessage(error?: string) {
+type ProfileErrors = ReturnType<typeof getPublicDictionary>["account"]["profile"]["errors"];
+
+function getErrorMessage(error: string | undefined, messages: ProfileErrors) {
   switch (error) {
     case "missing":
-      return "Fill in your display name and handle.";
+      return messages.missing;
     case "handle":
-      return "Handle must have 3–30 characters and can contain only a-z, 0-9, dot, underscore or hyphen.";
+      return messages.handle;
     case "handle_taken":
-      return "This handle is already taken. Choose another one.";
+      return messages.handleTaken;
     case "handle_check":
-      return "ARTales could not check handle availability. Try again.";
+      return messages.handleCheck;
     case "save":
-      return "Profile could not be saved. Try again.";
+      return messages.save;
     default:
       return null;
   }
@@ -27,28 +31,29 @@ function getErrorMessage(error?: string) {
 export default async function AccountProfilePage({ searchParams }: PageProps) {
   const profile = await requireCompletedAccountProfile("/account/profile");
   const { error, success } = await searchParams;
-  const errorMessage = getErrorMessage(error);
+  const cookieLocale = await getCookieLocale();
+  const locale = resolveProfileLocale(profile, cookieLocale);
+  const dictionary = getPublicDictionary(locale).account.profile;
+  const errorMessage = getErrorMessage(error, dictionary.errors);
 
   return (
     <section className="artales-account-page artales-account-page--narrow">
-      <p className="artales-account-kicker">Profile</p>
-      <h1>Your ARTales identity</h1>
-      <p className="artales-account-lede">
-        Edit the visible name and handle used by your reader account and future ARTales records.
-      </p>
+      <p className="artales-account-kicker">{dictionary.kicker}</p>
+      <h1>{dictionary.title}</h1>
+      <p className="artales-account-lede">{dictionary.lede}</p>
 
       {errorMessage ? <p className="artales-account-alert">{errorMessage}</p> : null}
-      {success === "profile" ? <p className="artales-account-success">Profile saved.</p> : null}
+      {success === "profile" ? <p className="artales-account-success">{dictionary.saveSuccess}</p> : null}
 
       <form action={updateAccountProfile} className="artales-account-form">
         <label>
-          <span>Display name</span>
+          <span>{dictionary.displayName}</span>
           <input name="display_name" type="text" required defaultValue={profile.display_name ?? ""} />
-          <small>Visible name. Spaces and diacritics are allowed.</small>
+          <small>{dictionary.displayNameHelp}</small>
         </label>
 
         <label>
-          <span>Handle</span>
+          <span>{dictionary.handle}</span>
           <input
             name="handle"
             type="text"
@@ -58,10 +63,10 @@ export default async function AccountProfilePage({ searchParams }: PageProps) {
             pattern="[a-z0-9._-]{3,30}"
             defaultValue={profile.handle ?? ""}
           />
-          <small>Unique identifier. Use a-z, 0-9, dot, underscore or hyphen. No spaces or diacritics.</small>
+          <small>{dictionary.handleHelp}</small>
         </label>
 
-        <button type="submit" className="artales-account-submit">Save profile</button>
+        <button type="submit" className="artales-account-submit">{dictionary.save}</button>
       </form>
     </section>
   );
