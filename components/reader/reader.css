@@ -493,6 +493,7 @@
 .artales-reader__paper .artales-work-content {
   color: var(--reader-paper-text);
   font-size: calc(18px * var(--reader-font-scale));
+  line-height: 1.62;
   margin: 0 auto;
 }
 
@@ -519,8 +520,122 @@
   .artales-footnote-ref
 ) {
   background: var(--reader-color-paper-soft);
-  border-left-color: var(--reader-color-paper-border);
+  border: 0;
   color: var(--reader-color-paper-text);
+  padding: 0.75rem 1rem;
+}
+
+/* Reader content-block typography polish v0.1. These treatments remain
+   Reader-scoped so the shared public work renderer is not affected. */
+.artales-reader__paper .artales-work-content :is(
+  .artales-paragraph p,
+  .artales-letter-body p,
+  .artales-note p,
+  .artales-footnote-ref span,
+  .artales-footnotes li,
+  .artales-newspaper p,
+  .artales-preface p
+) {
+  hyphens: auto;
+  overflow-wrap: break-word;
+  text-align: justify;
+  text-justify: inter-word;
+}
+
+.artales-reader__paper .artales-work-content :is(
+  .artales-letter-body,
+  .artales-preface
+) p {
+  white-space: pre-line;
+}
+
+.artales-reader__paper .artales-work-content .artales-letter {
+  line-height: 1.58;
+}
+
+.artales-reader__paper .artales-work-content .artales-letter-body p,
+.artales-reader__paper .artales-work-content .artales-preface p {
+  margin-bottom: 0.85rem;
+}
+
+.artales-reader__paper .artales-work-content .artales-preface {
+  font-size: 0.98em;
+  line-height: 1.6;
+  margin-bottom: 2.5rem;
+  margin-top: 3rem;
+  max-width: 40rem;
+  text-align: left;
+}
+
+.artales-reader__paper .artales-work-content .artales-preface p:first-child {
+  color: var(--reader-color-paper-muted);
+  font-style: italic;
+}
+
+.artales-reader__paper .artales-work-content .artales-note {
+  box-shadow: inset 0.2rem 0 var(--reader-color-paper-soft);
+  line-height: 1.55;
+  margin-left: 0.5rem;
+}
+
+.artales-reader__paper .artales-work-content .artales-footnote-ref {
+  align-items: baseline;
+  line-height: 1.5;
+  margin-left: 0.5rem;
+}
+
+.artales-reader__paper .artales-work-content .artales-footnotes {
+  border-top: 0;
+  box-shadow: inset 0 1px var(--reader-color-paper-soft);
+  line-height: 1.5;
+  padding-top: 1.25rem;
+}
+
+.artales-reader__paper .artales-work-content .artales-newspaper {
+  border: 0;
+  column-count: 2;
+  column-gap: clamp(1.5rem, 4vw, 2.5rem);
+  column-rule: 1px solid var(--reader-color-paper-soft);
+  line-height: 1.52;
+  padding: 1.25rem 0;
+}
+
+.artales-reader__paper .artales-work-content .artales-newspaper p {
+  break-inside: avoid;
+  margin-bottom: 0.8rem;
+}
+
+.artales-reader__paper
+  .artales-work-content.artales-renderer--edition-classic {
+  line-height: 1.66;
+}
+
+.artales-reader--layout-page .artales-work-content .artales-newspaper,
+.artales-reader--layout-spread .artales-work-content .artales-newspaper {
+  column-count: 1;
+  column-rule: 0;
+}
+
+@media (max-width: 720px) {
+  .artales-reader__paper .artales-work-content .artales-newspaper {
+    column-count: 1;
+    column-rule: 0;
+  }
+}
+
+@media (max-width: 520px) {
+  .artales-reader__paper .artales-work-content :is(
+    .artales-paragraph p,
+    .artales-letter-body p,
+    .artales-note p,
+    .artales-footnote-ref span,
+    .artales-footnotes li,
+    .artales-newspaper p,
+    .artales-preface p
+  ) {
+    hyphens: manual;
+    text-align: left;
+  }
 }
 
 .artales-reader__paper
