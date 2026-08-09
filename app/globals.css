@@ -4513,6 +4513,8 @@ html[data-artales-theme="dark"] {
   --artales-internal-nav-hover-bg: rgba(253, 243, 226, 0.08);
   --artales-internal-shadow-card: 0 14px 36px rgba(0, 0, 0, 0.28);
   --artales-internal-shadow-panel: 0 20px 54px rgba(0, 0, 0, 0.32);
+  --artales-internal-shell-border: rgba(220, 166, 69, 0.2);
+  --artales-internal-panel-border: rgba(220, 166, 69, 0.22);
 }
 
 /* ARTales internal/admin/member semantic token aliases v0.1. */
@@ -4597,6 +4599,8 @@ html[data-artales-theme="dark"] {
   --artales-internal-shadow-card: 0 12px 32px rgba(15, 19, 21, 0.08);
   --artales-internal-shadow-panel: 0 18px 48px rgba(15, 19, 21, 0.1);
   --artales-internal-shadow-modal: var(--artales-shadow);
+  --artales-internal-shell-border: rgba(142, 98, 31, 0.24);
+  --artales-internal-panel-border: rgba(142, 98, 31, 0.28);
 }
 
 html,
@@ -7058,6 +7062,127 @@ html[data-artales-theme="dark"] .artales-member-sidebar {
   background: var(--artales-internal-nav-active-bg);
   border-color: var(--artales-internal-nav-border);
   color: var(--artales-internal-nav-active-text);
+}
+
+/* Internal shell seams and panel framing v0.1 — develop preview only. */
+:where(.artales-app-shell, .artales-workspace-shell) > .artales-public-header {
+  background: var(--artales-internal-surface-elevated);
+  border-bottom-color: var(--artales-internal-shell-border);
+  box-shadow: inset 0 -1px 0 var(--artales-internal-shell-border);
+  max-width: none;
+  position: relative;
+  width: 100%;
+  z-index: 1;
+}
+
+:where(.artales-account-shell, .artales-member-shell) {
+  background: var(--artales-internal-bg);
+}
+
+.artales-member-layout {
+  background: var(--artales-internal-bg);
+}
+
+:where(.artales-account-sidebar, .artales-member-sidebar) {
+  border-color: var(--artales-internal-shell-border);
+  box-shadow: none;
+}
+
+.artales-member-sidebar {
+  border-right-color: var(--artales-internal-shell-border);
+}
+
+:where(.artales-account-content, .artales-member-content, .artales-admin-dashboard) {
+  color: var(--artales-internal-text);
+}
+
+:where(
+    .artales-account-card,
+    .artales-account-panel,
+    .artales-account-form,
+    .artales-account-promo-panel,
+    .artales-account-stat-card,
+    .artales-account-theme-card,
+    .artales-account-list-item,
+    .artales-account-library-card,
+    .artales-account-book-card,
+    .artales-account-overview-hero,
+    .artales-account-library-hero,
+    .artales-member-card,
+    .artales-member-panel,
+    .artales-member-list-item,
+    .artales-admin-stat-card,
+    .artales-admin-dashboard__range,
+    .artales-admin-dashboard__panel,
+    .artales-admin-dashboard__wide-panel,
+    .artales-admin-table-wrap
+  ) {
+  background: var(--artales-internal-surface) !important;
+  border-color: var(--artales-internal-panel-border) !important;
+  box-shadow: var(--artales-internal-shadow-card);
+}
+
+:where(
+    .artales-account-panel,
+    .artales-account-promo-panel,
+    .artales-account-overview-hero,
+    .artales-account-library-hero,
+    .artales-member-panel,
+    .artales-admin-dashboard__wide-panel
+  ) {
+  box-shadow: var(--artales-internal-shadow-panel);
+}
+
+html[data-artales-theme="dark"]
+  :where(
+    .artales-account-card,
+    .artales-account-panel,
+    .artales-account-form,
+    .artales-account-promo-panel,
+    .artales-account-stat-card,
+    .artales-account-theme-card,
+    .artales-account-list-item,
+    .artales-account-library-card,
+    .artales-account-book-card,
+    .artales-account-overview-hero,
+    .artales-account-library-hero,
+    .artales-member-card,
+    .artales-member-panel,
+    .artales-member-list-item,
+    .artales-admin-stat-card,
+    .artales-admin-dashboard__range,
+    .artales-admin-dashboard__panel,
+    .artales-admin-dashboard__wide-panel,
+    .artales-admin-table-wrap
+  ) {
+  background: var(--artales-internal-surface) !important;
+  border-color: var(--artales-internal-panel-border) !important;
+  box-shadow: var(--artales-internal-shadow-card);
+}
+
+html[data-artales-theme="dark"]
+  :where(
+    .artales-account-panel,
+    .artales-account-promo-panel,
+    .artales-account-overview-hero,
+    .artales-account-library-hero,
+    .artales-member-panel,
+    .artales-admin-dashboard__wide-panel
+  ) {
+  box-shadow: var(--artales-internal-shadow-panel);
+}
+
+html[data-artales-theme="dark"]
+  :where(.artales-member-content, .artales-admin-dashboard)
+  :where(button, a[role="button"], a.rounded-full, a.rounded-xl, a.rounded-2xl) {
+  box-shadow: none;
+}
+
+@media (max-width: 860px) {
+  .artales-member-sidebar {
+    border-bottom: 1px solid var(--artales-internal-shell-border);
+    border-right: 0;
+  }
 }
 
 .artales-member-nav__link:focus-visible,
