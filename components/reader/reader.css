@@ -1413,7 +1413,7 @@
   }
 
   .artales-reader--focus .artales-reader-toolbar__title-wrap {
-    display: none;
+    display: block;
   }
 
   .artales-reader--focus.artales-reader--layout-page .artales-reader__stage,
@@ -2142,5 +2142,34 @@
     .artales-footnote-ref
   ) {
     margin-left: 0;
+  }
+}
+
+/* Reader reading-mode header overlap fix v0.1.
+   In focus (reading) mode the toolbar used to be fixed while paged stages
+   relied on a guessed top padding. Keep the chrome sticky and in flow for
+   page/spread only, so its actual height (including wrapped bookmark actions
+   and expanded settings) always reserves space above the paper. Scroll mode
+   retains the established fixed-focus treatment. */
+.artales-reader--focus:is(
+  .artales-reader--layout-page,
+  .artales-reader--layout-spread
+) .artales-reader-toolbar {
+  position: sticky;
+}
+
+.artales-reader--focus:is(
+  .artales-reader--layout-page,
+  .artales-reader--layout-spread
+) .artales-reader__stage {
+  padding-top: clamp(18px, 3vw, 34px);
+}
+
+@media (max-width: 560px) {
+  .artales-reader--focus:is(
+    .artales-reader--layout-page,
+    .artales-reader--layout-spread
+  ) .artales-reader__stage {
+    padding-top: 14px;
   }
 }
