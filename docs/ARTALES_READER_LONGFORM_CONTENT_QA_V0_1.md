@@ -11,6 +11,10 @@
 
 This pass follows PR #113, whose controls and access-state work was intentionally subtle. With the softer Reader palette accepted for continued work, this audit checks the next boundary: special long-form blocks rendered on Reader paper.
 
+## Follow-up
+
+The subsequent Reader content-block typography polish follows this QA pass with Reader-scoped treatments for annotation borders, authored letter/preface line breaks, justified editorial prose, responsive newspaper columns, and tighter long-form rhythm. It remains a separate develop-preview change and does not address the known mobile page/spread overflow bug. See `ARTALES_READER_CONTENT_BLOCKS_TYPOGRAPHY_POLISH_V0_1.md` for its full boundary and preview checklist.
+
 ## Content blocks reviewed
 
 - Normal paragraphs and in-content headings, including classic-edition chapter and book-part headings.
