@@ -99,3 +99,15 @@ Revert the single commit for this patch. That restores the previous login brand
 props, static login styling, sidebar/header spacing, form and panel token values,
 and unframed editor introductions. No data, asset, configuration, or schema
 rollback is required.
+
+## Follow-up after PR #129
+
+Manual light-mode preview exposed a cascade-specificity issue in the login
+intro and note text: the semantic token rule used `:where()`, so the earlier
+legacy class rules could remain authoritative. The focused follow-up maps those
+classes directly to the internal muted-text token and slightly tightens the
+existing internal-only header inset. Dark-mode token mappings, the adaptive
+login brand, public headers, authentication behavior, and all editor behavior
+remain unchanged. See
+`ARTALES_INTERNAL_ZONE_LOGIN_READABILITY_HEADER_ALIGNMENT_V0_1.md` for the
+preview and rollback checklist.
