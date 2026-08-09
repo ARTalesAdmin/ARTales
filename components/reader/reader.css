@@ -493,6 +493,7 @@
 .artales-reader__paper .artales-work-content {
   color: var(--reader-paper-text);
   font-size: calc(18px * var(--reader-font-scale));
+  line-height: 1.62;
   margin: 0 auto;
 }
 
@@ -519,8 +520,122 @@
   .artales-footnote-ref
 ) {
   background: var(--reader-color-paper-soft);
-  border-left-color: var(--reader-color-paper-border);
+  border: 0;
   color: var(--reader-color-paper-text);
+  padding: 0.75rem 1rem;
+}
+
+/* Reader content-block typography polish v0.1. These treatments remain
+   Reader-scoped so the shared public work renderer is not affected. */
+.artales-reader__paper .artales-work-content :is(
+  .artales-paragraph p,
+  .artales-letter-body p,
+  .artales-note p,
+  .artales-footnote-ref span,
+  .artales-footnotes li,
+  .artales-newspaper p,
+  .artales-preface p
+) {
+  hyphens: auto;
+  overflow-wrap: break-word;
+  text-align: justify;
+  text-justify: inter-word;
+}
+
+.artales-reader__paper .artales-work-content :is(
+  .artales-letter-body,
+  .artales-preface
+) p {
+  white-space: pre-line;
+}
+
+.artales-reader__paper .artales-work-content .artales-letter {
+  line-height: 1.58;
+}
+
+.artales-reader__paper .artales-work-content .artales-letter-body p,
+.artales-reader__paper .artales-work-content .artales-preface p {
+  margin-bottom: 0.85rem;
+}
+
+.artales-reader__paper .artales-work-content .artales-preface {
+  font-size: 0.98em;
+  line-height: 1.6;
+  margin-bottom: 2.5rem;
+  margin-top: 3rem;
+  max-width: 40rem;
+  text-align: left;
+}
+
+.artales-reader__paper .artales-work-content .artales-preface p:first-child {
+  color: var(--reader-color-paper-muted);
+  font-style: italic;
+}
+
+.artales-reader__paper .artales-work-content .artales-note {
+  box-shadow: inset 0.2rem 0 var(--reader-color-paper-soft);
+  line-height: 1.55;
+  margin-left: 0.5rem;
+}
+
+.artales-reader__paper .artales-work-content .artales-footnote-ref {
+  align-items: baseline;
+  line-height: 1.5;
+  margin-left: 0.5rem;
+}
+
+.artales-reader__paper .artales-work-content .artales-footnotes {
+  border-top: 0;
+  box-shadow: inset 0 1px var(--reader-color-paper-soft);
+  line-height: 1.5;
+  padding-top: 1.25rem;
+}
+
+.artales-reader__paper .artales-work-content .artales-newspaper {
+  border: 0;
+  column-count: 2;
+  column-gap: clamp(1.5rem, 4vw, 2.5rem);
+  column-rule: 1px solid var(--reader-color-paper-soft);
+  line-height: 1.52;
+  padding: 1.25rem 0;
+}
+
+.artales-reader__paper .artales-work-content .artales-newspaper p {
+  break-inside: avoid;
+  margin-bottom: 0.8rem;
+}
+
+.artales-reader__paper
+  .artales-work-content.artales-renderer--edition-classic {
+  line-height: 1.66;
+}
+
+.artales-reader--layout-page .artales-work-content .artales-newspaper,
+.artales-reader--layout-spread .artales-work-content .artales-newspaper {
+  column-count: 1;
+  column-rule: 0;
+}
+
+@media (max-width: 720px) {
+  .artales-reader__paper .artales-work-content .artales-newspaper {
+    column-count: 1;
+    column-rule: 0;
+  }
+}
+
+@media (max-width: 520px) {
+  .artales-reader__paper .artales-work-content :is(
+    .artales-paragraph p,
+    .artales-letter-body p,
+    .artales-note p,
+    .artales-footnote-ref span,
+    .artales-footnotes li,
+    .artales-newspaper p,
+    .artales-preface p
+  ) {
+    hyphens: manual;
+    text-align: left;
+  }
 }
 
 .artales-reader__paper
@@ -1906,4 +2021,126 @@
 ):focus-visible {
   outline: 2px solid var(--reader-color-focus-ring);
   outline-offset: 3px;
+}
+
+/* Reader mobile page/spread overflow fix v0.1.
+   Paged paper keeps its book-like dimensions on wide screens. On narrow
+   screens it becomes a content-sized sheet, while spread keeps both selected
+   pages reachable by stacking them instead of hiding the second page. */
+.artales-reader__stage,
+.artales-reader__paper,
+.artales-reader__page-content,
+.artales-reader__paper .artales-work-content {
+  box-sizing: border-box;
+  max-width: 100%;
+  min-width: 0;
+}
+
+.artales-reader__paper .artales-work-content :is(
+  .artales-block,
+  .artales-paragraph,
+  .artales-quote,
+  .artales-letter,
+  .artales-letter-body,
+  .artales-newspaper,
+  .artales-note,
+  .artales-footnote-ref,
+  .artales-footnotes,
+  .artales-preface,
+  .artales-afterword,
+  .artales-acknowledgement
+) {
+  box-sizing: border-box;
+  max-width: 100%;
+  min-width: 0;
+}
+
+.artales-reader__paper .artales-work-content :is(
+  p,
+  li,
+  blockquote,
+  .artales-letter-place-year,
+  .artales-letter-date-signature
+) {
+  hyphens: auto;
+  overflow-wrap: anywhere;
+  word-break: normal;
+}
+
+@media (max-width: 980px) {
+  .artales-reader--layout-spread .artales-reader__spread {
+    display: grid;
+    gap: clamp(16px, 4vw, 28px);
+    grid-template-columns: minmax(0, 1fr);
+    max-width: min(700px, calc(100vw - 24px));
+  }
+
+  .artales-reader--layout-spread .artales-reader__paper--paged {
+    aspect-ratio: auto;
+    grid-template-rows: auto auto auto;
+    height: auto;
+    min-height: min(82vh, 980px);
+    overflow: visible;
+  }
+
+  .artales-reader--layout-spread .artales-reader__page-content {
+    overflow: visible;
+  }
+
+  .artales-reader__paper--spread-left,
+  .artales-reader__paper--spread-right {
+    border: 1px solid var(--reader-color-paper-border);
+    border-radius: 24px;
+    display: grid;
+    transform: none;
+  }
+}
+
+@media (max-width: 720px) {
+  .artales-reader--layout-page .artales-reader__stage,
+  .artales-reader--layout-spread .artales-reader__stage {
+    padding-left: 10px;
+    padding-right: 10px;
+  }
+
+  .artales-reader--layout-page .artales-reader__paper--paged,
+  .artales-reader--layout-spread .artales-reader__paper--paged,
+  .artales-reader--focus.artales-reader--layout-page
+    .artales-reader__paper--paged,
+  .artales-reader--focus.artales-reader--layout-spread
+    .artales-reader__paper--paged {
+    aspect-ratio: auto;
+    grid-template-rows: auto auto auto;
+    height: auto;
+    margin-left: 0;
+    margin-right: 0;
+    min-height: min(78vh, 860px);
+    overflow: visible;
+    padding: 24px clamp(16px, 5vw, 28px);
+    width: 100%;
+  }
+
+  .artales-reader--layout-page .artales-reader__page-content,
+  .artales-reader--layout-spread .artales-reader__page-content {
+    overflow: visible;
+  }
+
+  .artales-reader--layout-page .artales-reader__paper .artales-work-content,
+  .artales-reader--layout-spread .artales-reader__paper .artales-work-content {
+    width: 100%;
+  }
+
+  .artales-reader__paper .artales-work-content .artales-newspaper {
+    column-count: 1;
+    column-gap: 0;
+    column-rule: 0;
+    columns: auto;
+  }
+
+  .artales-reader__paper .artales-work-content :is(
+    .artales-note,
+    .artales-footnote-ref
+  ) {
+    margin-left: 0;
+  }
 }
