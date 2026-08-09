@@ -7196,6 +7196,28 @@ html[data-artales-theme="dark"]
   padding-inline: clamp(14px, 1.5vw, 18px);
 }
 
+@media (min-width: 861px) {
+  :where(.artales-app-shell, .artales-workspace-shell) > .artales-public-header {
+    gap: clamp(12px, 1.5vw, 20px);
+    justify-content: flex-start;
+  }
+
+  :where(.artales-app-shell, .artales-workspace-shell)
+    > .artales-public-header
+    > .artales-public-header__nav {
+    flex: 1 1 auto;
+    justify-content: flex-start;
+    min-width: 0;
+  }
+
+  :where(.artales-app-shell, .artales-workspace-shell)
+    > .artales-public-header
+    > .artales-public-header__nav
+    > .artales-theme-toggle {
+    margin-inline-start: auto;
+  }
+}
+
 .artales-member-sidebar {
   padding-top: 18px;
 }
