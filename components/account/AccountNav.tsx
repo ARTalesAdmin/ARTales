@@ -1,5 +1,4 @@
 import Link from "next/link";
-import ArtalesBrand from "@/components/brand/ArtalesBrand";
 import { canAccessMemberZone, type PermissionProfile } from "@/lib/permissions";
 import { getPublicDictionary } from "@/lib/i18n/public";
 import { getCookieLocale, resolveProfileLocale } from "@/lib/i18n/server";
@@ -27,9 +26,6 @@ export default async function AccountNav({
 
   return (
     <aside className="artales-account-sidebar">
-      <div className="artales-account-brand">
-        <ArtalesBrand href="/account" variant="light" size="md" showMark />
-      </div>
       <p className="artales-account-eyebrow">{dictionary.eyebrow}</p>
       <p className="artales-account-sidebar__hint">{dictionary.hint}</p>
       <nav className="artales-account-nav" aria-label={dictionary.ariaLabel}>

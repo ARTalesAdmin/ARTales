@@ -7337,3 +7337,88 @@ html[data-artales-theme="dark"]
     padding: 24px 20px;
   }
 }
+
+/* Account-zone legacy visual sweep v0.1 — scoped to the reader account shell. */
+.artales-account-sidebar > .artales-account-eyebrow {
+  margin: 0;
+}
+
+.artales-account-sidebar .artales-account-nav__link:focus-visible {
+  outline: 3px solid var(--artales-internal-focus-ring);
+  outline-offset: 2px;
+}
+
+.artales-account-content :where(
+    .artales-community-row,
+    .artales-account-empty-state,
+    .artales-account-model-grid article,
+    .artales-account-flow-grid article,
+    .artales-account-role-steps article,
+    .artales-membership-status-grid article
+  ) {
+  background: var(--artales-internal-surface-muted);
+  border-color: var(--artales-internal-panel-border);
+  color: var(--artales-internal-text);
+}
+
+.artales-account-content :where(
+    .artales-community-row,
+    .artales-account-model-grid article,
+    .artales-account-flow-grid article,
+    .artales-membership-status-grid article
+  ) {
+  border-style: solid;
+  border-width: 1px;
+}
+
+.artales-account-content :where(
+    .artales-community-row p,
+    .artales-account-empty-state p,
+    .artales-account-model-grid article p,
+    .artales-account-flow-grid article p,
+    .artales-membership-status-grid article p
+  ) {
+  color: var(--artales-internal-text-muted);
+}
+
+.artales-account-content .artales-account-community-membrane,
+.artales-account-content .artales-account-membership-note {
+  background: var(--artales-internal-surface) !important;
+  border-color: var(--artales-internal-panel-border) !important;
+}
+
+.artales-account-content .artales-account-roadmap-card span,
+.artales-account-content .artales-account-flow-grid span,
+.artales-account-content .artales-account-badge {
+  background: var(--artales-internal-badge-bg);
+  border-color: var(--artales-internal-badge-border);
+  color: var(--artales-internal-badge-text);
+}
+
+.artales-account-content .artales-account-membership-price-strip span {
+  background: var(--artales-internal-badge-bg);
+  border: 1px solid var(--artales-internal-badge-border);
+  color: var(--artales-internal-badge-text);
+}
+
+.artales-account-content :where(
+    .artales-account-form input,
+    .artales-account-form select,
+    .artales-community-form select,
+    .artales-community-form textarea
+  ) {
+  background: var(--artales-internal-form-bg);
+  border-color: var(--artales-internal-form-border);
+  color: var(--artales-internal-form-text);
+}
+
+.artales-account-content :where(
+    .artales-account-form input,
+    .artales-account-form select,
+    .artales-community-form select,
+    .artales-community-form textarea
+  ):focus-visible {
+  border-color: var(--artales-internal-form-focus-border);
+  outline: 3px solid var(--artales-internal-focus-ring);
+  outline-offset: 2px;
+}
