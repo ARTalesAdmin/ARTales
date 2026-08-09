@@ -4469,7 +4469,7 @@ html[data-artales-theme="dark"] {
   --artales-internal-link: #e3aa46;
   --artales-internal-focus-ring: rgba(224, 170, 71, 0.42);
   --artales-internal-form-bg: #1f1e1a;
-  --artales-internal-form-border: rgba(253, 243, 226, 0.2);
+  --artales-internal-form-border: rgba(220, 166, 69, 0.24);
   --artales-internal-form-text: #fdf3e2;
   --artales-internal-form-placeholder: #b7aa97;
   --artales-internal-form-focus-border: #e0aa47;
@@ -4514,7 +4514,7 @@ html[data-artales-theme="dark"] {
   --artales-internal-shadow-card: 0 14px 36px rgba(0, 0, 0, 0.28);
   --artales-internal-shadow-panel: 0 20px 54px rgba(0, 0, 0, 0.32);
   --artales-internal-shell-border: rgba(220, 166, 69, 0.2);
-  --artales-internal-panel-border: rgba(220, 166, 69, 0.22);
+  --artales-internal-panel-border: rgba(220, 166, 69, 0.18);
 }
 
 /* ARTales internal/admin/member semantic token aliases v0.1. */
@@ -4542,7 +4542,7 @@ html[data-artales-theme="dark"] {
 
   /* Forms */
   --artales-internal-form-bg: #fffaf4;
-  --artales-internal-form-border: rgba(39, 40, 39, 0.22);
+  --artales-internal-form-border: rgba(142, 98, 31, 0.34);
   --artales-internal-form-text: #272827;
   --artales-internal-form-placeholder: #73685d;
   --artales-internal-form-focus-border: #b58636;
@@ -7189,4 +7189,128 @@ html[data-artales-theme="dark"]
 .artales-account-nav__link:focus-visible {
   outline: 3px solid var(--artales-internal-focus-ring);
   outline-offset: 2px;
+}
+
+/* Internal editor, login, alignment, and field clarity v0.1 — develop preview only. */
+:where(.artales-app-shell, .artales-workspace-shell) > .artales-public-header {
+  padding-inline: clamp(18px, 2vw, 24px);
+}
+
+.artales-member-sidebar {
+  padding-top: 18px;
+}
+
+.artales-member-sidebar__title {
+  margin-top: 0;
+}
+
+.artales-auth-shell {
+  background:
+    radial-gradient(circle at 14% 0%, var(--artales-internal-accent-soft), transparent 32rem),
+    linear-gradient(
+      180deg,
+      var(--artales-internal-surface-elevated) 0%,
+      var(--artales-internal-bg) 100%
+    );
+  color: var(--artales-internal-text);
+}
+
+.artales-auth-card {
+  background: var(--artales-internal-surface);
+  border-color: var(--artales-internal-panel-border);
+  box-shadow: var(--artales-internal-shadow-panel);
+}
+
+.artales-auth-card__brand .artales-brand__wordmark {
+  width: clamp(11.5rem, 42vw, 14.5rem);
+}
+
+:where(.artales-auth-eyebrow, .artales-member-content section:has(> p:first-child + h1) > p:first-child) {
+  color: var(--artales-internal-accent-strong) !important;
+}
+
+.artales-auth-title {
+  color: var(--artales-internal-heading);
+}
+
+:where(.artales-auth-lede, .artales-auth-note) {
+  color: var(--artales-internal-text-muted);
+}
+
+.artales-auth-note--muted {
+  color: var(--artales-internal-text-subtle);
+}
+
+.artales-auth-note a {
+  color: var(--artales-internal-link);
+}
+
+.artales-auth-form label span {
+  color: var(--artales-internal-text);
+}
+
+.artales-auth-form input {
+  background: var(--artales-internal-form-bg);
+  border-color: var(--artales-internal-form-border);
+  color: var(--artales-internal-form-text);
+}
+
+.artales-auth-form input:focus-visible {
+  border-color: var(--artales-internal-form-focus-border);
+  outline: 3px solid var(--artales-internal-focus-ring);
+  outline-offset: 2px;
+}
+
+.artales-auth-submit {
+  background: var(--artales-internal-button-primary-bg);
+  border-color: var(--artales-internal-accent-strong);
+  color: var(--artales-internal-button-primary-text);
+}
+
+.artales-auth-submit:hover {
+  background: var(--artales-internal-button-primary-hover-bg);
+}
+
+.artales-auth-submit:focus-visible {
+  outline: 3px solid var(--artales-internal-focus-ring);
+  outline-offset: 3px;
+}
+
+.artales-auth-alert {
+  background: var(--artales-internal-danger-bg);
+  border-color: var(--artales-internal-danger-border);
+  color: var(--artales-internal-danger-text);
+}
+
+.artales-auth-success {
+  background: var(--artales-internal-success-bg);
+  border-color: var(--artales-internal-success-border);
+  color: var(--artales-internal-success-text);
+}
+
+.artales-member-content section:has(> p:first-child + h1) {
+  background: var(--artales-internal-surface) !important;
+  border: 1px solid var(--artales-internal-panel-border) !important;
+  box-shadow: var(--artales-internal-shadow-panel);
+  padding: clamp(20px, 3vw, 30px);
+}
+
+html[data-artales-theme="dark"] .artales-auth-card,
+html[data-artales-theme="dark"]
+  .artales-member-content section:has(> p:first-child + h1) {
+  background: var(--artales-internal-surface) !important;
+  border-color: var(--artales-internal-panel-border) !important;
+  box-shadow: var(--artales-internal-shadow-panel);
+}
+
+@media (max-width: 640px) {
+  .artales-auth-shell {
+    align-items: flex-start;
+    padding: 18px;
+  }
+
+  .artales-auth-card {
+    border-radius: 22px;
+    padding: 24px 20px;
+  }
 }
