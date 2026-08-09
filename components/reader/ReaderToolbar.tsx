@@ -89,11 +89,13 @@ export default function ReaderToolbar({
         <div className="artales-reader-toolbar__brand">
           <ArtalesBrand variant={brandVariant} size="sm" mode="lockup" />
           <div className="artales-reader-toolbar__title-wrap">
-            <p className="artales-reader-toolbar__mode">
-              {mode === "preview" ? labels.preview : labels.onlineReader}
-            </p>
+            {!isFocusMode ? (
+              <p className="artales-reader-toolbar__mode">
+                {mode === "preview" ? labels.preview : labels.onlineReader}
+              </p>
+            ) : null}
             <h1 className="artales-reader-toolbar__title">{title}</h1>
-            {authorName ? (
+            {!isFocusMode && authorName ? (
               <p className="artales-reader-toolbar__author">{authorName}</p>
             ) : null}
           </div>
@@ -113,39 +115,41 @@ export default function ReaderToolbar({
               <div style={{ width: `${progress}%` }} />
             </div>
           </div>
-          {!bookmark ? (
-            <button
-              type="button"
-              className="artales-reader-top-button"
-              onClick={onBookmark}
-            >
-              {labels.bookmark}
-            </button>
-          ) : (
-            <div className="artales-reader-bookmark-actions" aria-label={labels.artalesBookmark}>
-              <button
-                type="button"
-                className="artales-reader-top-button"
-                onClick={onGoToBookmark}
-              >
-                {labels.goToBookmark}
-              </button>
+          {!isFocusMode ? (
+            !bookmark ? (
               <button
                 type="button"
                 className="artales-reader-top-button"
                 onClick={onBookmark}
               >
-                {labels.updateBookmark}
+                {labels.bookmark}
               </button>
-              <button
-                type="button"
-                className="artales-reader-top-button artales-reader-top-button--subtle"
-                onClick={onClearBookmark}
-              >
-                {labels.clearBookmark}
-              </button>
-            </div>
-          )}
+            ) : (
+              <div className="artales-reader-bookmark-actions" aria-label={labels.artalesBookmark}>
+                <button
+                  type="button"
+                  className="artales-reader-top-button"
+                  onClick={onGoToBookmark}
+                >
+                  {labels.goToBookmark}
+                </button>
+                <button
+                  type="button"
+                  className="artales-reader-top-button"
+                  onClick={onBookmark}
+                >
+                  {labels.updateBookmark}
+                </button>
+                <button
+                  type="button"
+                  className="artales-reader-top-button artales-reader-top-button--subtle"
+                  onClick={onClearBookmark}
+                >
+                  {labels.clearBookmark}
+                </button>
+              </div>
+            )
+          ) : null}
           <button
             type="button"
             className="artales-reader-top-button artales-reader-top-button--focus"
@@ -154,22 +158,24 @@ export default function ReaderToolbar({
           >
             {isFocusMode ? labels.exitFocusMode : labels.enterFocusMode}
           </button>
-          <button
-            type="button"
-            className="artales-reader-settings-toggle"
-            onClick={onToggleControls}
-            aria-expanded={!settings.controlsCollapsed}
-            aria-controls={controlsId}
-          >
-            <span aria-hidden="true">
-              {settings.controlsCollapsed ? "▾" : "▴"}
-            </span>
-            {settings.controlsCollapsed ? labels.showSettings : labels.hideSettings}
-          </button>
+          {!isFocusMode ? (
+            <button
+              type="button"
+              className="artales-reader-settings-toggle"
+              onClick={onToggleControls}
+              aria-expanded={!settings.controlsCollapsed}
+              aria-controls={controlsId}
+            >
+              <span aria-hidden="true">
+                {settings.controlsCollapsed ? "▾" : "▴"}
+              </span>
+              {settings.controlsCollapsed ? labels.showSettings : labels.hideSettings}
+            </button>
+          ) : null}
         </div>
       </div>
 
-      {!settings.controlsCollapsed ? (
+      {!isFocusMode && !settings.controlsCollapsed ? (
         <div id={controlsId} className="artales-reader-toolbar__settings-panel">
           <div
             className="artales-reader-toolbar__controls"

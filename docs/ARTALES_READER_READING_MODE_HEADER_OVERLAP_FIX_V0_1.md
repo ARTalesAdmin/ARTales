@@ -1,5 +1,7 @@
 # ARTales Reader reading-mode header overlap fix v0.1
 
+> **Follow-up:** `ARTALES_READER_FOCUS_MODE_CHROME_SIMPLIFICATION_V0_1.md` subsequently removes bookmark and settings chrome from focus mode. The sticky, in-flow page/spread toolbar treatment documented here remains the layout safeguard for the smaller focus toolbar; no pagination or page sizing behavior changes.
+
 ## Status and release scope
 
 - **Target:** `develop first`; this focused fix is intended for develop preview and is not approved for automatic promotion to `main`.
