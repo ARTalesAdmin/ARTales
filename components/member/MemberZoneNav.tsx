@@ -2,7 +2,6 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import ArtalesBrand from "@/components/brand/ArtalesBrand";
 import { getInternalDictionary } from "@/lib/i18n/internal";
 
 function isActivePath(pathname: string, href: string) {
@@ -36,7 +35,6 @@ export default function MemberZoneNav() {
 
   return (
     <aside className="artales-member-sidebar">
-      <ArtalesBrand href="/member" variant="light" size="sm" showMark />
       <p className="artales-member-sidebar__title">{member.zoneTitle}</p>
       <p className="artales-member-sidebar__subtitle">{member.zoneSubtitle}</p>
 

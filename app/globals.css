@@ -7015,7 +7015,11 @@ html[data-artales-theme="dark"] .artales-account-empty-state {
 }
 
 .artales-account-sidebar,
-.artales-member-sidebar {
+.artales-member-sidebar,
+html[data-artales-theme="light"] .artales-account-sidebar,
+html[data-artales-theme="light"] .artales-member-sidebar,
+html[data-artales-theme="dark"] .artales-account-sidebar,
+html[data-artales-theme="dark"] .artales-member-sidebar {
   background: var(--artales-internal-nav-bg);
   border-color: var(--artales-internal-nav-border);
   box-shadow: var(--artales-internal-shadow-card);
