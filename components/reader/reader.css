@@ -2022,3 +2022,125 @@
   outline: 2px solid var(--reader-color-focus-ring);
   outline-offset: 3px;
 }
+
+/* Reader mobile page/spread overflow fix v0.1.
+   Paged paper keeps its book-like dimensions on wide screens. On narrow
+   screens it becomes a content-sized sheet, while spread keeps both selected
+   pages reachable by stacking them instead of hiding the second page. */
+.artales-reader__stage,
+.artales-reader__paper,
+.artales-reader__page-content,
+.artales-reader__paper .artales-work-content {
+  box-sizing: border-box;
+  max-width: 100%;
+  min-width: 0;
+}
+
+.artales-reader__paper .artales-work-content :is(
+  .artales-block,
+  .artales-paragraph,
+  .artales-quote,
+  .artales-letter,
+  .artales-letter-body,
+  .artales-newspaper,
+  .artales-note,
+  .artales-footnote-ref,
+  .artales-footnotes,
+  .artales-preface,
+  .artales-afterword,
+  .artales-acknowledgement
+) {
+  box-sizing: border-box;
+  max-width: 100%;
+  min-width: 0;
+}
+
+.artales-reader__paper .artales-work-content :is(
+  p,
+  li,
+  blockquote,
+  .artales-letter-place-year,
+  .artales-letter-date-signature
+) {
+  hyphens: auto;
+  overflow-wrap: anywhere;
+  word-break: normal;
+}
+
+@media (max-width: 980px) {
+  .artales-reader--layout-spread .artales-reader__spread {
+    display: grid;
+    gap: clamp(16px, 4vw, 28px);
+    grid-template-columns: minmax(0, 1fr);
+    max-width: min(700px, calc(100vw - 24px));
+  }
+
+  .artales-reader--layout-spread .artales-reader__paper--paged {
+    aspect-ratio: auto;
+    grid-template-rows: auto auto auto;
+    height: auto;
+    min-height: min(82vh, 980px);
+    overflow: visible;
+  }
+
+  .artales-reader--layout-spread .artales-reader__page-content {
+    overflow: visible;
+  }
+
+  .artales-reader__paper--spread-left,
+  .artales-reader__paper--spread-right {
+    border: 1px solid var(--reader-color-paper-border);
+    border-radius: 24px;
+    display: grid;
+    transform: none;
+  }
+}
+
+@media (max-width: 720px) {
+  .artales-reader--layout-page .artales-reader__stage,
+  .artales-reader--layout-spread .artales-reader__stage {
+    padding-left: 10px;
+    padding-right: 10px;
+  }
+
+  .artales-reader--layout-page .artales-reader__paper--paged,
+  .artales-reader--layout-spread .artales-reader__paper--paged,
+  .artales-reader--focus.artales-reader--layout-page
+    .artales-reader__paper--paged,
+  .artales-reader--focus.artales-reader--layout-spread
+    .artales-reader__paper--paged {
+    aspect-ratio: auto;
+    grid-template-rows: auto auto auto;
+    height: auto;
+    margin-left: 0;
+    margin-right: 0;
+    min-height: min(78vh, 860px);
+    overflow: visible;
+    padding: 24px clamp(16px, 5vw, 28px);
+    width: 100%;
+  }
+
+  .artales-reader--layout-page .artales-reader__page-content,
+  .artales-reader--layout-spread .artales-reader__page-content {
+    overflow: visible;
+  }
+
+  .artales-reader--layout-page .artales-reader__paper .artales-work-content,
+  .artales-reader--layout-spread .artales-reader__paper .artales-work-content {
+    width: 100%;
+  }
+
+  .artales-reader__paper .artales-work-content .artales-newspaper {
+    column-count: 1;
+    column-gap: 0;
+    column-rule: 0;
+    columns: auto;
+  }
+
+  .artales-reader__paper .artales-work-content :is(
+    .artales-note,
+    .artales-footnote-ref
+  ) {
+    margin-left: 0;
+  }
+}

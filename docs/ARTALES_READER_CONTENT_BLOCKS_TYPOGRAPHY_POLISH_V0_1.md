@@ -58,7 +58,7 @@ Every new surface, divider, text, and muted treatment uses existing Reader seman
 - Public work detail, homepage, gallery, account, member, and internal styling.
 - Headings, captions, navigation, controls, metadata, and other UI chrome.
 
-The known mobile single-page/spread overflow bug remains a separate issue. This typography pass only adds narrow-width alignment and newspaper-column safety; it does **not** claim to solve mobile pagination or text overflow.
+The mobile single-page/spread overflow bug was handled in the separate **ARTales Reader mobile page/spread overflow fix v0.1** follow-up. This typography pass itself only adds narrow-width alignment and newspaper-column safety; its parser and pagination scope remains unchanged.
 
 ## Develop preview checklist
 
