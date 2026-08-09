@@ -1413,7 +1413,7 @@
   }
 
   .artales-reader--focus .artales-reader-toolbar__title-wrap {
-    display: none;
+    display: block;
   }
 
   .artales-reader--focus.artales-reader--layout-page .artales-reader__stage,

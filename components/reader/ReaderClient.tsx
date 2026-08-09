@@ -503,7 +503,7 @@ export default function ReaderClient({
   function renderScrollPaper() {
     return (
       <article className="artales-reader__paper" ref={paperRef}>
-        {bookmark && bookmarkMarkerTop != null ? (
+        {!isFocusMode && bookmark && bookmarkMarkerTop != null ? (
           <button
             type="button"
             className="artales-reader__bookmark-marker"
