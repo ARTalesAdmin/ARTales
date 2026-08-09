@@ -7193,7 +7193,7 @@ html[data-artales-theme="dark"]
 
 /* Internal editor, login, alignment, and field clarity v0.1 — develop preview only. */
 :where(.artales-app-shell, .artales-workspace-shell) > .artales-public-header {
-  padding-inline: clamp(18px, 2vw, 24px);
+  padding-inline: clamp(14px, 1.5vw, 18px);
 }
 
 .artales-member-sidebar {
@@ -7233,7 +7233,8 @@ html[data-artales-theme="dark"]
   color: var(--artales-internal-heading);
 }
 
-:where(.artales-auth-lede, .artales-auth-note) {
+.artales-auth-lede,
+.artales-auth-note {
   color: var(--artales-internal-text-muted);
 }
 
