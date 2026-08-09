@@ -55,7 +55,12 @@ export default async function LoginPage({ searchParams }: PageProps) {
     <main className="artales-auth-shell">
       <section className="artales-auth-card">
         <div className="artales-auth-card__brand">
-          <ArtalesBrand href="/gallery" variant="light" size="md" showMark />
+          <ArtalesBrand
+            href="/gallery"
+            variant="adaptive"
+            size="md"
+            mode="lockup"
+          />
         </div>
 
         <p className="artales-auth-eyebrow">ARTales access</p>
