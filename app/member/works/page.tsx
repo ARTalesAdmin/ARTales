@@ -3,6 +3,8 @@ import { requireEditorOrAdmin } from "@/lib/guards";
 import { getWorksForMember } from "@/lib/dbWorks";
 import { getLanguageLabel } from "@/lib/dictionaries/language";
 import { getStatusLabel } from "@/lib/dictionaries/status";
+import { WorksQuickNavigation } from "@/components/member/WorksQuickNavigation";
+import { csMember } from "@/lib/i18n/dictionaries/cs/member";
 
 export default async function MemberWorksPage() {
   await requireEditorOrAdmin();
@@ -66,6 +68,8 @@ export default async function MemberWorksPage() {
             Nové dílo
           </Link>
         </div>
+
+        <WorksQuickNavigation copy={csMember.worksQuickNavigation} />
       </section>
 
       <hr style={{ margin: "24px 0 32px 0" }} />

@@ -10,6 +10,10 @@
 
 **Env:** `no`
 
+> **Navazující implementace:** MVP interního autocomplete na `/member/works`
+> následovalo doporučení tohoto auditu. Veřejné hledání v Galerii zůstává
+> samostatným budoucím úkolem a tagy zůstávají mimo rozsah MVP.
+
 ## 1. Shrnutí a rozhodnutí
 
 Repozitář už má funkční editorový seznam všech děl na `/member/works`, vytvoření na `/member/works/new` a editaci na `/member/works/[slug]/edit`. Seznam je serverová stránka chráněná rolí editor/admin a jedním Supabase dotazem načítá díla bez omezení na status; z pohledu aplikačního kódu tedy zahrnuje `draft`, `review`, `published` i `archived`. Nemá hledání, filtry, záložky, stránkování ani query parametry a řadí pouze podle `title` vzestupně.
