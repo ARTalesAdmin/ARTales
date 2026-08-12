@@ -1,0 +1,28 @@
+export const enMember = {
+  zoneTitle: "Member zone",
+  zoneSubtitle: "ARTales internal workspace",
+  overview: "Overview",
+  works: "Works",
+  authors: "Authors",
+  collections: "Collections",
+  newWork: "New work",
+  newAuthor: "New author",
+  newCollection: "New collection",
+  publicGallery: "Public Gallery",
+  worksQuickNavigation: {
+    label: "Quick work search",
+    placeholder: "Search by title, author, or slug…",
+    helper: "Choose a work to open it for editing.",
+    loading: "Searching…",
+    noResults: "No matching work.",
+    error: "Search failed. Please try again.",
+    resultsLabel: "Matching works",
+    updated: "updated",
+    statuses: {
+      draft: "draft",
+      review: "in review",
+      published: "published",
+      archived: "archived",
+    },
+  },
+}
