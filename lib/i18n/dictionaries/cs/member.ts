@@ -9,4 +9,20 @@ export const csMember = {
   newAuthor: "Nový autor",
   newCollection: "Nová kolekce",
   publicGallery: "Veřejná galerie",
+  worksQuickNavigation: {
+    label: "Rychlé hledání díla",
+    placeholder: "Hledat podle názvu, autora nebo slug…",
+    helper: "Vyber dílo a otevře se jeho editace.",
+    loading: "Hledám…",
+    noResults: "Žádné odpovídající dílo.",
+    error: "Hledání se nepodařilo. Zkus to prosím znovu.",
+    resultsLabel: "Nalezená díla",
+    updated: "upraveno",
+    statuses: {
+      draft: "koncept",
+      review: "ke kontrole",
+      published: "publikované",
+      archived: "archivované",
+    },
+  },
 }

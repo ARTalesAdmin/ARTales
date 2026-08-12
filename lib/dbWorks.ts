@@ -147,6 +147,21 @@ export type MemberWorkListItem = {
   cover_image_caption: string | null
 }
 
+export type MemberWorkSearchResult = {
+  id: string
+  title: string
+  title_cs: string | null
+  title_en: string | null
+  slug: string
+  status: WorkStatus
+  updated_at: string | null
+  author: {
+    name: string
+    name_cs: string | null
+    name_en: string | null
+  } | null
+}
+
 export type WorkEditItem = {
   id: string
   title: string
@@ -1197,6 +1212,129 @@ export async function getWorksForMember(): Promise<MemberWorkListItem[]> {
         : null
     })(),
   }))
+}
+
+const WORK_SEARCH_LIMIT = 10
+
+function workSearchRank(work: MemberWorkSearchResult, normalizedQuery: string) {
+  const values = [work.title, work.title_cs, work.title_en, work.slug]
+    .filter((value): value is string => Boolean(value))
+    .map((value) => value.toLocaleLowerCase())
+
+  if (values.some((value) => value === normalizedQuery)) return 0
+  if (values.some((value) => value.startsWith(normalizedQuery))) return 1
+  return 2
+}
+
+/** Session-scoped, RLS-protected projection for the member works typeahead. */
+export async function searchWorksForMember(
+  rawQuery: string,
+): Promise<MemberWorkSearchResult[]> {
+  const query = rawQuery.trim().slice(0, 100)
+  if (query.length < 2) return []
+
+  const supabaseServer = await createClient()
+  const projection = `
+    id,
+    title,
+    title_cs,
+    title_en,
+    slug,
+    status,
+    updated_at,
+    authors:primary_author_id (name, name_cs, name_en)
+  `
+  const pattern = `%${query.replace(/[\\%_]/g, "\\$&")}%`
+  const fields = ["title", "title_cs", "title_en", "slug"] as const
+
+  const [fieldResponses, authorResponses] = await Promise.all([
+    Promise.all(
+      fields.map((field) =>
+        supabaseServer
+          .from("works")
+          .select(projection)
+          .ilike(field, pattern)
+          .order("updated_at", { ascending: false })
+          .limit(WORK_SEARCH_LIMIT),
+      ),
+    ),
+    Promise.all(
+      (["name", "name_cs", "name_en"] as const).map((field) =>
+        supabaseServer
+          .from("authors")
+          .select("id")
+          .ilike(field, pattern)
+          .limit(WORK_SEARCH_LIMIT),
+      ),
+    ),
+  ])
+
+  const firstError = fieldResponses.find(({ error }) => error)?.error
+  const authorError = authorResponses.find(({ error }) => error)?.error
+  if (firstError || authorError) {
+    console.error("DB error in searchWorksForMember:", firstError ?? authorError)
+    throw new Error("Failed to search works for member")
+  }
+
+  const authorIds = [...new Set(
+    authorResponses.flatMap(({ data }) => (data ?? []).map(({ id }) => String(id))),
+  )]
+  const authorWorksResponse = authorIds.length
+    ? await supabaseServer
+        .from("works")
+        .select(projection)
+        .in("primary_author_id", authorIds)
+        .order("updated_at", { ascending: false })
+        .limit(WORK_SEARCH_LIMIT)
+    : { data: [], error: null }
+
+  if (authorWorksResponse.error) {
+    console.error("DB error in searchWorksForMember author works:", authorWorksResponse.error)
+    throw new Error("Failed to search works for member")
+  }
+
+  const uuidResponse = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(query)
+    ? await supabaseServer.from("works").select(projection).eq("id", query).limit(1)
+    : { data: [], error: null }
+
+  if (uuidResponse.error) {
+    console.error("DB error in searchWorksForMember UUID:", uuidResponse.error)
+    throw new Error("Failed to search works for member")
+  }
+
+  const rows = [
+    ...(uuidResponse.data ?? []),
+    ...fieldResponses.flatMap(({ data }) => data ?? []),
+    ...(authorWorksResponse.data ?? []),
+  ] as unknown as Array<{
+    id: unknown; title: unknown; title_cs: unknown; title_en: unknown; slug: unknown
+    status: unknown; updated_at: unknown; authors?: RawRelationAuthor | RawRelationAuthor[]
+  }>
+
+  const unique = new Map<string, MemberWorkSearchResult>()
+  for (const row of rows) {
+    const author = normalizeAuthorRelation(row.authors)
+    unique.set(String(row.id), {
+      id: String(row.id),
+      title: String(row.title),
+      title_cs: row.title_cs == null ? null : String(row.title_cs),
+      title_en: row.title_en == null ? null : String(row.title_en),
+      slug: String(row.slug),
+      status: String(row.status) as WorkStatus,
+      updated_at: row.updated_at == null ? null : String(row.updated_at),
+      author: author ? {
+        name: String(author.name),
+        name_cs: author.name_cs == null ? null : String(author.name_cs),
+        name_en: author.name_en == null ? null : String(author.name_en),
+      } : null,
+    })
+  }
+
+  const normalizedQuery = query.toLocaleLowerCase()
+  return [...unique.values()]
+    .sort((a, b) => workSearchRank(a, normalizedQuery) - workSearchRank(b, normalizedQuery)
+      || (Date.parse(b.updated_at ?? "") || 0) - (Date.parse(a.updated_at ?? "") || 0))
+    .slice(0, WORK_SEARCH_LIMIT)
 }
 
 export async function getWorkForEditBySlug(
