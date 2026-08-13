@@ -79,9 +79,11 @@ export default function ReaderToolbar({
   const progress = Math.max(0, Math.min(100, Math.round(progressPercent)));
   const brandVariant = settings.theme === "dark" ? "light" : "dark";
   const controlsId = "artales-reader-settings-panel";
-  const isPagedMode = settings.layoutMode === "page" || settings.layoutMode === "spread";
   const isSpreadMode = settings.layoutMode === "spread";
   const pageLabel = formatPageRange(pageIndex, pageCount, isSpreadMode, labels);
+  const isCzech = labels.modeSpread === "Dvoustrana";
+  const pagedFlowLabel = isCzech ? "Stránkový tok" : "Paged flow";
+  const spreadLabel = isCzech ? "Dvoustrana" : "Two-page spread";
 
   return (
     <header className="artales-reader-toolbar">
@@ -105,12 +107,10 @@ export default function ReaderToolbar({
           <div
             className="artales-reader-progress artales-reader-progress--top"
             aria-label={
-              isPagedMode
-                ? `${pageLabel}, ${labels.readingProgress} ${progress}%`
-                : `${labels.readingProgress} ${progress}%`
+              `${pageLabel}, ${labels.readingProgress} ${progress}%`
             }
           >
-            <span>{isPagedMode ? pageLabel : `${progress}%`}</span>
+            <span>{pageLabel}</span>
             <div className="artales-reader-progress__track">
               <div style={{ width: `${progress}%` }} />
             </div>
@@ -207,9 +207,8 @@ export default function ReaderToolbar({
                   onLayoutModeChange(event.target.value as ReaderLayoutModeId)
                 }
               >
-                <option value="scroll">{labels.modeScroll}</option>
-                <option value="page">{labels.modePage}</option>
-                <option value="spread">{labels.modeSpread}</option>
+                <option value="pagedFlow">{pagedFlowLabel}</option>
+                <option value="spread">{spreadLabel}</option>
               </select>
             </label>
 

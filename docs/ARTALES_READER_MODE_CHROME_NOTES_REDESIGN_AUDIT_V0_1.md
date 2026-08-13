@@ -388,3 +388,10 @@ Revert its single documentation commit or remove this file. There is no runtime,
 - [ ] Confirm focus mode and browser fullscreen are removed, not retained as hidden preferences.
 - [ ] Confirm advanced-control default and preference ownership are deferred to Phase D.
 - [ ] Confirm local notes precede any separately approved account-sync/database work.
+
+## Phase 1 implementation follow-up
+
+Phase 1 implements the `pagedFlow` default and preserves `spread` for the
+`develop` preview. The toolbar/chrome simplification remains the next separate
+phase; notes and bookmarks redesign remain future work. Phase 1 does not change
+the parser or page-slicing algorithm.
