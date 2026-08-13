@@ -395,3 +395,7 @@ Phase 1 implements the `pagedFlow` default and preserves `spread` for the
 `develop` preview. The toolbar/chrome simplification remains the next separate
 phase; notes and bookmarks redesign remain future work. Phase 1 does not change
 the parser or page-slicing algorithm.
+
+## Phase 2 implementation note
+
+Phase 2 has implemented calm default Reader chrome and go-to-page. The existing single-bookmark behavior remains intentionally unchanged; notes/bookmarks redesign and account simple/advanced settings remain future work.

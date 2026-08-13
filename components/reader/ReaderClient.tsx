@@ -58,24 +58,24 @@ function getSpreadStartPage(pageIndex: number) {
 export default function ReaderClient({
   slug,
   title,
-  authorName,
   mode,
   blocks,
   fallbackContent,
   locale,
 }: ReaderClientProps) {
-  const [settings, setSettings] = useState<ReaderSettings>(() =>
-    loadReaderSettings(),
-  );
+  const [settings, setSettings] = useState<ReaderSettings>(() => ({
+    ...loadReaderSettings(),
+    controlsCollapsed: true,
+  }));
   const [progressPercent, setProgressPercent] = useState(0);
   const [pageIndex, setPageIndex] = useState(0);
   const [bookmark, setBookmark] = useState<ReaderBookmark | null>(null);
   const [turnDirection, setTurnDirection] = useState<"next" | "previous" | null>(null);
-  const [isFocusMode, setIsFocusMode] = useState(false);
   const restoredPagePosition = useRef(false);
   const flowRef = useRef<HTMLDivElement | null>(null);
   const turnTimerRef = useRef<number | null>(null);
-  const labels = getPublicDictionary(locale).reader;
+  const dictionary = getPublicDictionary(locale);
+  const labels = dictionary.reader;
 
   const isSpreadMode = settings.layoutMode === "spread";
   const pageStep = isSpreadMode ? 2 : 1;
@@ -91,21 +91,6 @@ export default function ReaderClient({
   useEffect(() => {
     saveReaderSettings(settings);
   }, [settings]);
-
-  useEffect(() => {
-    if (typeof document === "undefined") return;
-
-    const handleFullscreenChange = () => {
-      if (!document.fullscreenElement) {
-        setIsFocusMode(false);
-      }
-    };
-
-    document.addEventListener("fullscreenchange", handleFullscreenChange);
-    return () => {
-      document.removeEventListener("fullscreenchange", handleFullscreenChange);
-    };
-  }, []);
 
   useEffect(() => {
     setBookmark(loadReaderBookmark(slug));
@@ -278,26 +263,6 @@ export default function ReaderClient({
   }
 
 
-  async function handleToggleFocusMode() {
-    const nextFocusMode = !isFocusMode;
-    setIsFocusMode(nextFocusMode);
-    if (nextFocusMode) {
-      setSettings((current) => ({ ...current, controlsCollapsed: true }));
-    }
-
-    if (typeof document === "undefined") return;
-
-    try {
-      if (nextFocusMode && !document.fullscreenElement) {
-        await document.documentElement.requestFullscreen?.();
-      } else if (!nextFocusMode && document.fullscreenElement) {
-        await document.exitFullscreen?.();
-      }
-    } catch {
-      // Browser fullscreen can be blocked; the CSS focus mode still applies.
-    }
-  }
-
   function handleBookmark() {
     const nextProgress = getPageProgress(normalizedPageIndex, pageCount);
     const nextBookmark: ReaderBookmark = {
@@ -332,6 +297,17 @@ export default function ReaderClient({
   function handleClearBookmark() {
     clearReaderBookmark(slug);
     setBookmark(null);
+  }
+
+  function handleGoToPage(page: number) {
+    const requestedIndex = Math.max(0, Math.min(pageCount - 1, page - 1));
+    const nextIndex = isSpreadMode ? getSpreadStartPage(requestedIndex) : requestedIndex;
+    setPageIndex(nextIndex);
+    if (!isSpreadMode) {
+      flowRef.current
+        ?.querySelector<HTMLElement>(`[data-page-index="${nextIndex}"]`)
+        ?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
   }
 
 
@@ -396,12 +372,11 @@ export default function ReaderClient({
 
   return (
     <main
-      className={`artales-reader artales-reader--theme-${settings.theme} artales-reader--width-${settings.width} artales-reader--density-${settings.density} artales-reader--layout-${settings.layoutMode} artales-reader--pagefit-${settings.pageFit}${isFocusMode ? " artales-reader--focus" : ""}${turnDirection ? ` artales-reader--turn-${turnDirection}` : ""}`}
+      className={`artales-reader artales-reader--theme-${settings.theme} artales-reader--width-${settings.width} artales-reader--density-${settings.density} artales-reader--layout-${settings.layoutMode} artales-reader--pagefit-${settings.pageFit}${turnDirection ? ` artales-reader--turn-${turnDirection}` : ""}`}
       style={readerStyle}
     >
       <ReaderToolbar
         title={title}
-        authorName={authorName}
         detailHref={detailHref}
         mode={mode}
         fullHref={fullHref}
@@ -410,6 +385,7 @@ export default function ReaderClient({
         pageCount={pageCount}
         settings={settings}
         labels={labels}
+        chromeLabels={dictionary.public}
         bookmark={bookmark}
         onFontDelta={handleFontDelta}
         onThemeChange={(theme: ReaderThemeId) => updateSettings({ theme })}
@@ -422,8 +398,7 @@ export default function ReaderClient({
         onBookmark={handleBookmark}
         onGoToBookmark={handleGoToBookmark}
         onClearBookmark={handleClearBookmark}
-        isFocusMode={isFocusMode}
-        onToggleFocusMode={handleToggleFocusMode}
+        onGoToPage={handleGoToPage}
       />
 
       <section className="artales-reader__stage">
