@@ -47,6 +47,7 @@ export default function ReaderToolbar(props: ReaderToolbarProps) {
   const controlsId = "artales-reader-compact-menu";
   const inputId = "artales-reader-page-input";
   const menuRef = useRef<HTMLDivElement>(null);
+  const menuTriggerRef = useRef<HTMLButtonElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const [isPageEntryOpen, setIsPageEntryOpen] = useState(false);
   const [pageValue, setPageValue] = useState(String(currentPage));
@@ -61,7 +62,10 @@ export default function ReaderToolbar(props: ReaderToolbarProps) {
     };
     document.addEventListener("mousedown", closeOnOutsideClick);
     const closeOnEscape = (event: globalThis.KeyboardEvent) => {
-      if (event.key === "Escape") onToggleControls();
+      if (event.key === "Escape") {
+        onToggleControls();
+        menuTriggerRef.current?.focus();
+      }
     };
     document.addEventListener("keydown", closeOnEscape);
     return () => {
@@ -71,12 +75,15 @@ export default function ReaderToolbar(props: ReaderToolbarProps) {
   }, [onToggleControls, settings.controlsCollapsed]);
 
   const submitPage = () => {
-    const requestedPage = Number.parseInt(pageValue, 10);
-    if (!Number.isFinite(requestedPage)) {
+    const requestedPage = Number(pageValue);
+    if (!Number.isFinite(requestedPage) || pageValue.trim() === "") {
       setPageValue(String(currentPage));
       return;
     }
-    const safePage = Math.max(1, Math.min(props.pageCount, requestedPage));
+    const safePage = Math.max(
+      1,
+      Math.min(props.pageCount, Math.trunc(requestedPage)),
+    );
     props.onGoToPage(safePage);
     setPageValue(String(safePage));
     setIsPageEntryOpen(false);
@@ -84,6 +91,9 @@ export default function ReaderToolbar(props: ReaderToolbarProps) {
   const onPageKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {
     if (event.key === "Enter") submitPage();
     if (event.key === "Escape") {
+      // Cancel only page entry; do not let the menu's document-level Escape
+      // handler close an independently open compact menu at the same time.
+      event.stopPropagation();
       setPageValue(String(currentPage));
       setIsPageEntryOpen(false);
     }
@@ -115,8 +125,14 @@ export default function ReaderToolbar(props: ReaderToolbarProps) {
           )}
         </div>
         <div className="artales-reader-menu" ref={menuRef}>
-          <button type="button" className="artales-reader-menu__trigger" onClick={props.onToggleControls}
-            aria-expanded={!settings.controlsCollapsed} aria-controls={controlsId}>
+          <button
+            ref={menuTriggerRef}
+            type="button"
+            className="artales-reader-menu__trigger"
+            onClick={props.onToggleControls}
+            aria-expanded={!settings.controlsCollapsed}
+            aria-controls={controlsId}
+          >
             <span aria-hidden="true">•••</span><span className="artales-reader-sr-only">{chromeLabels.readerMenu}</span>
           </button>
           {!settings.controlsCollapsed ? (

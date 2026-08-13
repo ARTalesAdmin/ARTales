@@ -38,3 +38,12 @@ Parser behavior, slicing, work/editor content, media, entitlement/access, bookma
 ## Rollback
 
 Revert the Phase 2 commit/PR. Reader settings and saved progress/bookmarks require no migration or data rollback; the compatibility-normalized settings remain readable by the previous Reader.
+
+## Phase 1 + 2 stabilization note
+
+The focused stabilization pass is recorded in
+`ARTALES_READER_PHASE_1_2_STABILIZATION_V0_1.md`. It hardens complete-value
+page input validation and Escape behavior, and restores focus to the compact
+menu trigger when that menu closes with Escape. It does not redesign the
+toolbar or change page slicing. Production promotion remains a separate,
+explicitly approved step after the `develop` preview smoke test.

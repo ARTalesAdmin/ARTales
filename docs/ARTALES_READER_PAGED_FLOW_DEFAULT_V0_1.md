@@ -88,3 +88,12 @@ spread, and narrow spread after reverting.
 ## Phase 2 note
 
 Reader Phase 2 implements calm default chrome, a compact secondary-controls menu and go-to-page without changing paged-flow slicing or progress. Notes/bookmarks redesign and account simple/advanced reading settings remain future, separate work.
+
+## Phase 1 + 2 stabilization note
+
+The focused stabilization pass is recorded in
+`ARTALES_READER_PHASE_1_2_STABILIZATION_V0_1.md`. It preserves this mode model
+and page slicing, while ensuring an existing full-reader progress record is
+restored before the initial page-one state may be saved. Production promotion
+still requires the documented `develop` preview smoke test and explicit user
+approval.

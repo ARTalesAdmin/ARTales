@@ -71,6 +71,9 @@ export default function ReaderClient({
   const [pageIndex, setPageIndex] = useState(0);
   const [bookmark, setBookmark] = useState<ReaderBookmark | null>(null);
   const [turnDirection, setTurnDirection] = useState<"next" | "previous" | null>(null);
+  const [progressRestoreReady, setProgressRestoreReady] = useState(
+    mode !== "full",
+  );
   const restoredPagePosition = useRef(false);
   const flowRef = useRef<HTMLDivElement | null>(null);
   const turnTimerRef = useRef<number | null>(null);
@@ -117,7 +120,10 @@ export default function ReaderClient({
     restoredPagePosition.current = true;
 
     const saved = loadReaderProgress(slug);
-    if (!saved) return;
+    if (!saved) {
+      setProgressRestoreReady(true);
+      return;
+    }
     const legacyIndex = Math.round((saved.progressPercent / 100) * (pageCount - 1));
     const restoredIndex = Math.max(
       0,
@@ -131,12 +137,15 @@ export default function ReaderClient({
           ?.scrollIntoView({ block: "start" });
       }, 220);
     }
+    setProgressRestoreReady(true);
   }, [isSpreadMode, mode, pageCount, slug]);
 
   useEffect(() => {
     const nextProgress = getPageProgress(normalizedPageIndex, pageCount);
     setProgressPercent(nextProgress);
-    if (mode === "full") {
+    // Do not replace a saved position with page one during the initial render.
+    // The restore effect above first reads and applies the existing record.
+    if (mode === "full" && progressRestoreReady) {
       saveReaderProgress({
         slug,
         mode,
@@ -148,7 +157,14 @@ export default function ReaderClient({
         updatedAt: new Date().toISOString(),
       });
     }
-  }, [mode, normalizedPageIndex, pageCount, settings.layoutMode, slug]);
+  }, [
+    mode,
+    normalizedPageIndex,
+    pageCount,
+    progressRestoreReady,
+    settings.layoutMode,
+    slug,
+  ]);
 
   useEffect(() => {
     if (isSpreadMode) return;
