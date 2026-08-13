@@ -14,7 +14,14 @@ The menu retains the existing single-bookmark create/update, go-to and clear act
 
 ## Go to page
 
-Activating the page indicator exposes a numeric input. Enter confirms; Escape cancels. Numeric values outside the available range are clamped. Paged flow scrolls to the requested sheet; spread mode opens the spread containing that page (at its even zero-based start). This uses the existing `pageIndex` and `pageCount` and does not change slicing.
+Activating the page indicator exposes a numeric input. Enter confirms immediately;
+moving focus away confirms a valid value so the control also works with a mouse.
+Escape cancels and suppresses confirmation from the resulting blur. Empty or
+non-finite input resets to the current page without navigating. Numeric values
+outside the available range are clamped and decimals are truncated consistently.
+Paged flow scrolls to the requested sheet; spread mode opens the spread containing
+that page (at its even zero-based start). This uses the existing `pageIndex` and
+`pageCount` and does not change slicing or target-page computation.
 
 ## Accessibility
 
@@ -27,7 +34,10 @@ Parser behavior, slicing, work/editor content, media, entitlement/access, bookma
 ## Develop preview checklist
 
 - Open full and preview Readers in paged flow; confirm calm two-row chrome, progress and page indicator.
-- Jump to valid, low and high page numbers in paged flow and spread; test Enter and Escape.
+- Jump to valid, low, high and decimal page numbers in paged flow and spread;
+  test Enter, mouse blur and Escape followed by blur.
+- With the mouse, use the number stepper and click away; confirm the selected page
+  opens. Click away from empty/non-finite input and confirm it resets without a jump.
 - Open/close the menu by keyboard and pointer; test layout, theme, font, width and density.
 - Create, update, visit and clear the existing bookmark.
 - Test preview continuation and leave-reader links.

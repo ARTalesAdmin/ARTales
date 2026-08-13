@@ -29,10 +29,12 @@ small and isolated.
   reading progress.
 - Single bookmark: create/update, go-to, clear, legacy `scrollY` fallback, and
   current `pageIndex` records remain supported without a schema change.
-- Go-to-page: Enter confirms, Escape cancels, empty/non-numeric input is
-  rejected, finite out-of-range input is clamped, decimals are normalized to
-  an integer, first/last sheets are reachable, spread targets the containing
-  spread, and paged flow scrolls the selected sheet into view.
+- Go-to-page: Enter confirms immediately, a valid value confirms on blur for
+  mouse-only use, Escape cancels without the resulting blur navigating,
+  empty/non-numeric input resets without navigating, finite out-of-range input
+  is clamped, decimals are normalized to an integer, first/last sheets are
+  reachable, spread targets the containing spread, and paged flow scrolls the
+  selected sheet into view.
 - Compact menu: semantic trigger state, outside-click and Escape closing,
   closed-control removal from the DOM, theme/font/width/density/layout
   controls, bookmark actions, preview continuation, and leave-reader links.
@@ -55,6 +57,9 @@ small and isolated.
 3. Escape in the page field cancels only page entry instead of also bubbling to
    the compact menu's Escape listener. Escape used to close the compact menu
    now returns keyboard focus to its trigger.
+4. Leaving the page field now confirms a valid value, including one selected
+   with the number stepper. A cancelled or invalid entry closes safely without
+   an unintended page jump.
 
 No CSS change was required by this pass.
 
@@ -82,7 +87,9 @@ production promotion:
 - [ ] Create/update, visit, and clear a bookmark in both layouts; also verify a
       pre-existing single-bookmark record.
 - [ ] Go to page 1, the last page, zero, a value above the page count, an empty
-      value, text/pasted invalid input, and a decimal. Test Enter and Escape.
+      value, text/pasted invalid input, and a decimal. Test Enter, mouse blur,
+      the number stepper followed by blur, and Escape followed by blur; confirm
+      cancelled and invalid entries do not navigate.
 - [ ] In spread, confirm odd page requests open the spread containing that
       page. In paged flow, confirm the requested sheet scrolls into view and
       the toolbar count matches its sheet header/footer.

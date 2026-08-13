@@ -49,6 +49,7 @@ export default function ReaderToolbar(props: ReaderToolbarProps) {
   const menuRef = useRef<HTMLDivElement>(null);
   const menuTriggerRef = useRef<HTMLButtonElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const ignoreNextPageBlurRef = useRef(false);
   const [isPageEntryOpen, setIsPageEntryOpen] = useState(false);
   const [pageValue, setPageValue] = useState(String(currentPage));
 
@@ -74,7 +75,7 @@ export default function ReaderToolbar(props: ReaderToolbarProps) {
     };
   }, [onToggleControls, settings.controlsCollapsed]);
 
-  const submitPage = () => {
+  const submitPage = (onlyIfChanged = false) => {
     const requestedPage = Number(pageValue);
     if (!Number.isFinite(requestedPage) || pageValue.trim() === "") {
       setPageValue(String(currentPage));
@@ -84,9 +85,23 @@ export default function ReaderToolbar(props: ReaderToolbarProps) {
       1,
       Math.min(props.pageCount, Math.trunc(requestedPage)),
     );
-    props.onGoToPage(safePage);
+    if (!onlyIfChanged || safePage !== currentPage) props.onGoToPage(safePage);
     setPageValue(String(safePage));
+    ignoreNextPageBlurRef.current = true;
     setIsPageEntryOpen(false);
+  };
+  const onPageBlur = () => {
+    if (ignoreNextPageBlurRef.current) {
+      ignoreNextPageBlurRef.current = false;
+      return;
+    }
+    const requestedPage = Number(pageValue);
+    if (!Number.isFinite(requestedPage) || pageValue.trim() === "") {
+      setPageValue(String(currentPage));
+      setIsPageEntryOpen(false);
+      return;
+    }
+    submitPage(true);
   };
   const onPageKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {
     if (event.key === "Enter") submitPage();
@@ -94,6 +109,7 @@ export default function ReaderToolbar(props: ReaderToolbarProps) {
       // Cancel only page entry; do not let the menu's document-level Escape
       // handler close an independently open compact menu at the same time.
       event.stopPropagation();
+      ignoreNextPageBlurRef.current = true;
       setPageValue(String(currentPage));
       setIsPageEntryOpen(false);
     }
@@ -114,11 +130,11 @@ export default function ReaderToolbar(props: ReaderToolbarProps) {
             <label htmlFor={inputId} className="artales-reader-page-jump__form">
               <span className="artales-reader-sr-only">{chromeLabels.readerPageInputLabel}</span>
               <input ref={inputRef} id={inputId} type="number" min={1} max={props.pageCount} value={pageValue}
-                onChange={(event) => setPageValue(event.target.value)} onKeyDown={onPageKeyDown} />
+                onChange={(event) => setPageValue(event.target.value)} onKeyDown={onPageKeyDown} onBlur={onPageBlur} />
               <span>/ {props.pageCount}</span>
             </label>
           ) : (
-            <button type="button" className="artales-reader-page-jump__trigger" onClick={() => { setPageValue(String(currentPage)); setIsPageEntryOpen(true); }}
+            <button type="button" className="artales-reader-page-jump__trigger" onClick={() => { ignoreNextPageBlurRef.current = false; setPageValue(String(currentPage)); setIsPageEntryOpen(true); }}
               aria-label={chromeLabels.readerGoToPage}>
               {labels.page} {currentPage} / {props.pageCount}
             </button>
