@@ -44,7 +44,7 @@ export const defaultReaderSettings: ReaderSettings = {
   density: "comfortable",
   layoutMode: "pagedFlow",
   pageFit: "paper",
-  controlsCollapsed: false,
+  controlsCollapsed: true,
 };
 
 function normalizeLegacyTheme(value: unknown): ReaderThemeId {

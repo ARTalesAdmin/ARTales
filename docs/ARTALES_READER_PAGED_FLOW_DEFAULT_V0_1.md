@@ -84,3 +84,7 @@ unchanged localStorage key; `spread` remains identical, while an old build will
 fall back safely when it encounters the new `pagedFlow` value. Do not delete or
 rewrite user storage during rollback. Recheck open, resume, bookmark, desktop
 spread, and narrow spread after reverting.
+
+## Phase 2 note
+
+Reader Phase 2 implements calm default chrome, a compact secondary-controls menu and go-to-page without changing paged-flow slicing or progress. Notes/bookmarks redesign and account simple/advanced reading settings remain future, separate work.

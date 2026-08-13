@@ -239,4 +239,12 @@ export const enPublic = {
   checkoutEntitlementsActive: "Reader entitlements active",
   myLibrary: "My library",
   membershipOptions: "Membership options",
+  readerMenu: "Settings",
+  readerGoToPage: "Go to page",
+  readerPageInputLabel: "Page",
+  readerBookmarkSection: "Bookmark",
+  readerAppearanceSection: "Appearance",
+  readerPagedFlow: "Paged flow",
+  readerSpread: "Two-page spread",
+  readerLeave: "Leave reader",
 };
