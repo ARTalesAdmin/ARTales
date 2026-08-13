@@ -7,7 +7,7 @@ export type ReaderWidthId = (typeof readerWidthIds)[number];
 export const readerDensityIds = ["comfortable", "compact"] as const;
 export type ReaderDensityId = (typeof readerDensityIds)[number];
 
-export const readerLayoutModeIds = ["scroll", "page", "spread"] as const;
+export const readerLayoutModeIds = ["pagedFlow", "spread"] as const;
 export type ReaderLayoutModeId = (typeof readerLayoutModeIds)[number];
 
 export const readerPageFitIds = ["screen", "paper"] as const;
@@ -19,9 +19,8 @@ export type ReaderSettings = {
   theme: ReaderThemeId;
   density: ReaderDensityId;
   /**
-   * Display mode for online reading. Scroll stays the stable default/fallback;
-   * page mode is a viewport-based reading layer and a foundation for later
-   * dual-page/book-spread work. Spread mode renders two adjacent page sheets on wider screens and falls back to the same sliced page data.
+   * Paged flow is the default continuous reading experience. Spread renders
+   * two adjacent sheets on wider screens and retains its narrow-screen stack.
    */
   layoutMode: ReaderLayoutModeId;
   /**
@@ -43,9 +42,9 @@ export const defaultReaderSettings: ReaderSettings = {
   width: "normal",
   theme: "light",
   density: "comfortable",
-  layoutMode: "scroll",
+  layoutMode: "pagedFlow",
   pageFit: "paper",
-  controlsCollapsed: false,
+  controlsCollapsed: true,
 };
 
 function normalizeLegacyTheme(value: unknown): ReaderThemeId {
@@ -73,11 +72,10 @@ export function normalizeReaderSettings(value: unknown): ReaderSettings {
   const density = readerDensityIds.includes(raw.density as ReaderDensityId)
     ? (raw.density as ReaderDensityId)
     : defaultReaderSettings.density;
-  const layoutMode = readerLayoutModeIds.includes(
-    raw.layoutMode as ReaderLayoutModeId,
-  )
-    ? (raw.layoutMode as ReaderLayoutModeId)
-    : defaultReaderSettings.layoutMode;
+  // Both former normal-reading modes now open in the canonical paged flow.
+  // This tolerant read keeps existing localStorage safe without rewriting it.
+  const layoutMode: ReaderLayoutModeId =
+    raw.layoutMode === "spread" ? "spread" : "pagedFlow";
   // v0.10.3b: keep the stored field for backward compatibility, but normalize
   // legacy/screen values to the stable paper layout. The public Page size
   // control was removed because the screen-fit mode was confusing in real use.

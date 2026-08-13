@@ -610,7 +610,7 @@
   line-height: 1.66;
 }
 
-.artales-reader--layout-page .artales-work-content .artales-newspaper,
+.artales-reader--layout-pagedFlow .artales-work-content .artales-newspaper,
 .artales-reader--layout-spread .artales-work-content .artales-newspaper {
   column-count: 1;
   column-rule: 0;
@@ -763,22 +763,22 @@
   will-change: transform;
 }
 
-.artales-reader--layout-page .artales-reader__stage {
+.artales-reader--layout-pagedFlow .artales-reader__stage {
   padding-bottom: clamp(24px, 5vw, 58px);
   padding-top: clamp(18px, 3vw, 34px);
 }
 
-.artales-reader--layout-page.artales-reader--width-narrow
+.artales-reader--layout-pagedFlow.artales-reader--width-narrow
   .artales-reader__paper {
   max-width: 620px;
 }
 
-.artales-reader--layout-page.artales-reader--width-normal
+.artales-reader--layout-pagedFlow.artales-reader--width-normal
   .artales-reader__paper {
   max-width: 700px;
 }
 
-.artales-reader--layout-page.artales-reader--width-wide .artales-reader__paper {
+.artales-reader--layout-pagedFlow.artales-reader--width-wide .artales-reader__paper {
   max-width: 780px;
 }
 
@@ -855,21 +855,30 @@
   }
 }
 
-/* v0.10.1b+ — paged reader renders real page slices, not a clipped scroll viewport. */
-.artales-reader--layout-page .artales-reader__paper--paged {
+/* Paged flow composes the existing page slices into one calm vertical stream. */
+.artales-reader__paged-flow {
+  display: grid;
+  gap: clamp(24px, 4vw, 48px);
+  justify-items: center;
+  margin: 0 auto;
+  max-width: 100%;
+  width: 100%;
+}
+
+.artales-reader--layout-pagedFlow .artales-reader__paper--paged {
   display: grid;
   grid-template-rows: auto minmax(0, 1fr) auto;
   padding-bottom: clamp(34px, 4vw, 50px);
   row-gap: clamp(12px, 2.2vw, 22px);
 }
 
-.artales-reader--layout-page .artales-reader__page-content {
+.artales-reader--layout-pagedFlow .artales-reader__page-content {
   min-height: 0;
   overflow: hidden;
   transform: none;
 }
 
-.artales-reader--layout-page
+.artales-reader--layout-pagedFlow
   .artales-reader__page-content
   .artales-work-content {
   max-width: 100%;
@@ -917,21 +926,21 @@
   min-width: 24px;
 }
 
-.artales-reader--layout-page .artales-book-part,
-.artales-reader--layout-page .artales-chapter {
+.artales-reader--layout-pagedFlow .artales-book-part,
+.artales-reader--layout-pagedFlow .artales-chapter {
   page-break-after: avoid;
 }
 
-.artales-reader--layout-page .artales-paragraph p,
-.artales-reader--layout-page .artales-quote p,
-.artales-reader--layout-page .artales-letter p,
-.artales-reader--layout-page .artales-newspaper p {
+.artales-reader--layout-pagedFlow .artales-paragraph p,
+.artales-reader--layout-pagedFlow .artales-quote p,
+.artales-reader--layout-pagedFlow .artales-letter p,
+.artales-reader--layout-pagedFlow .artales-newspaper p {
   orphans: 3;
   widows: 3;
 }
 
 @media (max-width: 640px) {
-  .artales-reader--layout-page .artales-reader__paper--paged {
+  .artales-reader--layout-pagedFlow .artales-reader__paper--paged {
     padding-bottom: 26px;
   }
 
@@ -1019,42 +1028,42 @@
 }
 
 /* v0.10.3 — reader controls, localization & fit modes. */
-.artales-reader--layout-page .artales-reader__stage,
+.artales-reader--layout-pagedFlow .artales-reader__stage,
 .artales-reader--layout-spread .artales-reader__stage {
   min-height: calc(100vh - 120px);
   position: relative;
 }
 
-.artales-reader--pagefit-screen.artales-reader--layout-page
+.artales-reader--pagefit-screen.artales-reader--layout-pagedFlow
   .artales-reader__paper--paged,
 .artales-reader--pagefit-screen.artales-reader--layout-spread
   .artales-reader__paper--paged {
   max-height: calc(100vh - 230px);
 }
 
-.artales-reader--pagefit-paper.artales-reader--layout-page
+.artales-reader--pagefit-paper.artales-reader--layout-pagedFlow
   .artales-reader__paper--paged,
 .artales-reader--pagefit-paper.artales-reader--layout-spread
   .artales-reader__paper--paged {
   max-height: none;
 }
 
-.artales-reader--pagefit-paper.artales-reader--layout-page.artales-reader--width-narrow
+.artales-reader--pagefit-paper.artales-reader--layout-pagedFlow.artales-reader--width-narrow
   .artales-reader__paper--paged {
   width: min(620px, calc(100vw - 32px));
 }
 
-.artales-reader--pagefit-paper.artales-reader--layout-page.artales-reader--width-normal
+.artales-reader--pagefit-paper.artales-reader--layout-pagedFlow.artales-reader--width-normal
   .artales-reader__paper--paged {
   width: min(700px, calc(100vw - 32px));
 }
 
-.artales-reader--pagefit-paper.artales-reader--layout-page.artales-reader--width-wide
+.artales-reader--pagefit-paper.artales-reader--layout-pagedFlow.artales-reader--width-wide
   .artales-reader__paper--paged {
   width: min(780px, calc(100vw - 32px));
 }
 
-.artales-reader--pagefit-screen.artales-reader--layout-page
+.artales-reader--pagefit-screen.artales-reader--layout-pagedFlow
   .artales-reader__paper--paged {
   width: min(100%, 72vh);
 }
@@ -1186,7 +1195,7 @@
     right: 10px;
   }
 
-  .artales-reader--pagefit-screen.artales-reader--layout-page
+  .artales-reader--pagefit-screen.artales-reader--layout-pagedFlow
     .artales-reader__paper--paged,
   .artales-reader--pagefit-screen.artales-reader--layout-spread
     .artales-reader__paper--paged {
@@ -1232,7 +1241,7 @@
   max-width: 100%;
 }
 
-.artales-reader--layout-page .artales-reader__paper--paged,
+.artales-reader--layout-pagedFlow .artales-reader__paper--paged,
 .artales-reader--layout-spread .artales-reader__paper--paged {
   display: grid;
   grid-template-rows: 32px minmax(0, 1fr) 34px;
@@ -1240,7 +1249,7 @@
   row-gap: clamp(10px, 1.8vw, 18px);
 }
 
-.artales-reader--layout-page .artales-reader__page-content,
+.artales-reader--layout-pagedFlow .artales-reader__page-content,
 .artales-reader--layout-spread .artales-reader__page-content {
   align-self: stretch;
   min-height: 0;
@@ -1248,7 +1257,7 @@
   transform: none;
 }
 
-.artales-reader--layout-page .artales-reader__page-footer,
+.artales-reader--layout-pagedFlow .artales-reader__page-footer,
 .artales-reader--layout-spread .artales-reader__page-footer {
   align-self: end;
   height: 34px;
@@ -1256,7 +1265,7 @@
   padding-top: 9px;
 }
 
-.artales-reader--layout-page .artales-reader__page-header,
+.artales-reader--layout-pagedFlow .artales-reader__page-header,
 .artales-reader--layout-spread .artales-reader__page-header {
   height: 32px;
   min-height: 32px;
@@ -1283,12 +1292,12 @@
   padding-top: clamp(92px, 13vh, 150px);
 }
 
-.artales-reader--focus.artales-reader--layout-page .artales-reader__stage,
+.artales-reader--focus.artales-reader--layout-pagedFlow .artales-reader__stage,
 .artales-reader--focus.artales-reader--layout-spread .artales-reader__stage {
   min-height: 100vh;
 }
 
-.artales-reader--focus.artales-reader--pagefit-screen.artales-reader--layout-page
+.artales-reader--focus.artales-reader--pagefit-screen.artales-reader--layout-pagedFlow
   .artales-reader__paper--paged,
 .artales-reader--focus.artales-reader--pagefit-screen.artales-reader--layout-spread
   .artales-reader__paper--paged {
@@ -1304,7 +1313,7 @@
     grid-template-columns: 1fr;
   }
 
-  .artales-reader--layout-page .artales-reader__paper--paged,
+  .artales-reader--layout-pagedFlow .artales-reader__paper--paged,
   .artales-reader--layout-spread .artales-reader__paper--paged {
     grid-template-rows: 28px minmax(0, 1fr) 32px;
   }
@@ -1360,7 +1369,7 @@
   max-width: min(36vw, 520px);
 }
 
-.artales-reader--focus.artales-reader--layout-page .artales-reader__stage,
+.artales-reader--focus.artales-reader--layout-pagedFlow .artales-reader__stage,
 .artales-reader--focus.artales-reader--layout-spread .artales-reader__stage {
   align-items: center;
   display: flex;
@@ -1369,7 +1378,7 @@
   padding: 76px clamp(48px, 5vw, 92px) 28px;
 }
 
-.artales-reader--focus.artales-reader--layout-page .artales-reader__paper--paged {
+.artales-reader--focus.artales-reader--layout-pagedFlow .artales-reader__paper--paged {
   padding: clamp(30px, 3.6vw, 54px) clamp(34px, 4.4vw, 64px);
   width: min(820px, calc((100vh - 128px) * 0.707), calc(100vw - 140px));
 }
@@ -1392,13 +1401,13 @@
     flex-wrap: wrap;
   }
 
-  .artales-reader--focus.artales-reader--layout-page .artales-reader__stage,
+  .artales-reader--focus.artales-reader--layout-pagedFlow .artales-reader__stage,
   .artales-reader--focus.artales-reader--layout-spread .artales-reader__stage {
     padding-left: 16px;
     padding-right: 16px;
   }
 
-  .artales-reader--focus.artales-reader--layout-page .artales-reader__paper--paged,
+  .artales-reader--focus.artales-reader--layout-pagedFlow .artales-reader__paper--paged,
   .artales-reader--focus.artales-reader--layout-spread .artales-reader__paper--paged {
     width: min(700px, calc(100vw - 32px));
   }
@@ -1416,7 +1425,7 @@
     display: block;
   }
 
-  .artales-reader--focus.artales-reader--layout-page .artales-reader__stage,
+  .artales-reader--focus.artales-reader--layout-pagedFlow .artales-reader__stage,
   .artales-reader--focus.artales-reader--layout-spread .artales-reader__stage {
     padding-top: 78px;
   }
@@ -1447,7 +1456,7 @@
   max-height: calc(100vh - 82px);
 }
 
-.artales-reader--focus.artales-reader--layout-page .artales-reader__stage,
+.artales-reader--focus.artales-reader--layout-pagedFlow .artales-reader__stage,
 .artales-reader--focus.artales-reader--layout-spread .artales-reader__stage {
   align-items: center;
   display: flex;
@@ -1456,17 +1465,17 @@
   padding: 86px clamp(24px, 4vw, 64px) 34px;
 }
 
-.artales-reader--focus.artales-reader--layout-page .artales-reader__paper--paged {
+.artales-reader--focus.artales-reader--layout-pagedFlow .artales-reader__paper--paged {
   padding: clamp(54px, 5.6vw, 78px) clamp(38px, 7vw, 88px);
   width: min(700px, calc(100vw - 96px));
 }
 
-.artales-reader--focus.artales-reader--layout-page.artales-reader--width-narrow
+.artales-reader--focus.artales-reader--layout-pagedFlow.artales-reader--width-narrow
   .artales-reader__paper--paged {
   width: min(620px, calc(100vw - 96px));
 }
 
-.artales-reader--focus.artales-reader--layout-page.artales-reader--width-wide
+.artales-reader--focus.artales-reader--layout-pagedFlow.artales-reader--width-wide
   .artales-reader__paper--paged {
   width: min(780px, calc(100vw - 96px));
 }
@@ -1484,7 +1493,7 @@
     flex-wrap: wrap;
   }
 
-  .artales-reader--focus.artales-reader--layout-page .artales-reader__paper--paged,
+  .artales-reader--focus.artales-reader--layout-pagedFlow .artales-reader__paper--paged,
   .artales-reader--focus.artales-reader--layout-spread .artales-reader__paper--paged {
     width: min(700px, calc(100vw - 32px));
   }
@@ -1503,7 +1512,7 @@
     flex: 1 1 30%;
   }
 
-  .artales-reader--focus.artales-reader--layout-page .artales-reader__stage,
+  .artales-reader--focus.artales-reader--layout-pagedFlow .artales-reader__stage,
   .artales-reader--focus.artales-reader--layout-spread .artales-reader__stage {
     padding: 86px 10px 28px;
   }
@@ -1651,7 +1660,7 @@
     padding: clamp(30px, 6vw, 54px) clamp(22px, 6vw, 46px);
   }
 
-  .artales-reader--layout-page .artales-reader__stage,
+  .artales-reader--layout-pagedFlow .artales-reader__stage,
   .artales-reader--layout-spread .artales-reader__stage {
     min-height: calc(100dvh - 130px);
   }
@@ -1746,7 +1755,7 @@
     font-size: calc(17px * var(--reader-font-scale));
   }
 
-  .artales-reader--layout-page .artales-reader__paper--paged,
+  .artales-reader--layout-pagedFlow .artales-reader__paper--paged,
   .artales-reader--layout-spread .artales-reader__paper--paged {
     border-radius: 18px;
     margin-left: 8px;
@@ -1755,13 +1764,13 @@
     width: min(100%, calc(100vw - 16px));
   }
 
-  .artales-reader--layout-page .artales-reader__page-header,
+  .artales-reader--layout-pagedFlow .artales-reader__page-header,
   .artales-reader--layout-spread .artales-reader__page-header {
     height: 26px;
     min-height: 26px;
   }
 
-  .artales-reader--layout-page .artales-reader__page-footer,
+  .artales-reader--layout-pagedFlow .artales-reader__page-footer,
   .artales-reader--layout-spread .artales-reader__page-footer {
     height: 28px;
     min-height: 28px;
@@ -1860,7 +1869,7 @@
     padding-right: 17px;
   }
 
-  .artales-reader--layout-page .artales-reader__paper--paged,
+  .artales-reader--layout-pagedFlow .artales-reader__paper--paged,
   .artales-reader--layout-spread .artales-reader__paper--paged {
     margin-left: 6px;
     margin-right: 6px;
@@ -2097,15 +2106,15 @@
 }
 
 @media (max-width: 720px) {
-  .artales-reader--layout-page .artales-reader__stage,
+  .artales-reader--layout-pagedFlow .artales-reader__stage,
   .artales-reader--layout-spread .artales-reader__stage {
     padding-left: 10px;
     padding-right: 10px;
   }
 
-  .artales-reader--layout-page .artales-reader__paper--paged,
+  .artales-reader--layout-pagedFlow .artales-reader__paper--paged,
   .artales-reader--layout-spread .artales-reader__paper--paged,
-  .artales-reader--focus.artales-reader--layout-page
+  .artales-reader--focus.artales-reader--layout-pagedFlow
     .artales-reader__paper--paged,
   .artales-reader--focus.artales-reader--layout-spread
     .artales-reader__paper--paged {
@@ -2120,12 +2129,12 @@
     width: 100%;
   }
 
-  .artales-reader--layout-page .artales-reader__page-content,
+  .artales-reader--layout-pagedFlow .artales-reader__page-content,
   .artales-reader--layout-spread .artales-reader__page-content {
     overflow: visible;
   }
 
-  .artales-reader--layout-page .artales-reader__paper .artales-work-content,
+  .artales-reader--layout-pagedFlow .artales-reader__paper .artales-work-content,
   .artales-reader--layout-spread .artales-reader__paper .artales-work-content {
     width: 100%;
   }
@@ -2152,14 +2161,14 @@
    and expanded settings) always reserves space above the paper. Scroll mode
    retains the established fixed-focus treatment. */
 .artales-reader--focus:is(
-  .artales-reader--layout-page,
+  .artales-reader--layout-pagedFlow,
   .artales-reader--layout-spread
 ) .artales-reader-toolbar {
   position: sticky;
 }
 
 .artales-reader--focus:is(
-  .artales-reader--layout-page,
+  .artales-reader--layout-pagedFlow,
   .artales-reader--layout-spread
 ) .artales-reader__stage {
   padding-top: clamp(18px, 3vw, 34px);
@@ -2167,9 +2176,86 @@
 
 @media (max-width: 560px) {
   .artales-reader--focus:is(
-    .artales-reader--layout-page,
+    .artales-reader--layout-pagedFlow,
     .artales-reader--layout-spread
   ) .artales-reader__stage {
     padding-top: 14px;
   }
+}
+
+/* Reader Phase 2 — calm default chrome and compact controls. */
+.artales-reader-toolbar {
+  gap: 8px;
+  padding-block: 9px;
+}
+
+.artales-reader-toolbar__identity,
+.artales-reader-toolbar__reading-row {
+  align-items: center;
+  display: flex;
+  min-width: 0;
+}
+
+.artales-reader-toolbar__identity { gap: 14px; }
+.artales-reader-toolbar__identity .artales-brand__wordmark { width: 104px; }
+.artales-reader-toolbar__reading-row { gap: 12px; }
+.artales-reader-toolbar__reading-row .artales-reader-progress { flex: 1 1 auto; min-width: 80px; }
+.artales-reader-toolbar__reading-row .artales-reader-progress__track { width: 100%; }
+
+.artales-reader-page-jump__trigger,
+.artales-reader-menu__trigger,
+.artales-reader-menu__panel button,
+.artales-reader-menu__panel a,
+.artales-reader-menu__panel select,
+.artales-reader-page-jump input {
+  background: var(--reader-color-control-bg);
+  border: 1px solid var(--reader-color-control-border);
+  color: var(--reader-color-control-text);
+  font: inherit;
+}
+
+.artales-reader-page-jump__trigger,
+.artales-reader-menu__trigger {
+  border-radius: 999px;
+  cursor: pointer;
+  min-height: 34px;
+}
+.artales-reader-page-jump__trigger { font-size: 12px; padding: 5px 11px; white-space: nowrap; }
+.artales-reader-menu__trigger { font-weight: 800; letter-spacing: .12em; min-width: 40px; }
+.artales-reader-page-jump__form { align-items: center; display: flex; font-size: 12px; gap: 6px; white-space: nowrap; }
+.artales-reader-page-jump input { border-radius: 8px; padding: 6px; text-align: center; width: 58px; }
+.artales-reader-menu { position: relative; }
+.artales-reader-menu__panel {
+  background: var(--reader-color-toolbar-bg);
+  border: 1px solid var(--reader-color-toolbar-border);
+  border-radius: 14px;
+  box-shadow: 0 18px 45px rgba(30, 25, 20, .18);
+  display: grid;
+  gap: 14px;
+  max-height: min(70vh, 620px);
+  overflow-y: auto;
+  padding: 14px;
+  position: absolute;
+  right: 0;
+  top: calc(100% + 8px);
+  width: min(300px, calc(100vw - 28px));
+  z-index: 30;
+}
+.artales-reader-menu__panel section { display: grid; gap: 7px; }
+.artales-reader-menu__panel h2 { color: var(--reader-color-toolbar-muted); font-size: 11px; letter-spacing: .1em; margin: 0; text-transform: uppercase; }
+.artales-reader-menu__panel label { align-items: center; display: grid; font-size: 12px; gap: 8px; grid-template-columns: 78px 1fr; }
+.artales-reader-menu__panel select { border-radius: 8px; min-width: 0; padding: 7px; }
+.artales-reader-menu__panel button,
+.artales-reader-menu__panel a { border-radius: 8px; cursor: pointer; font-size: 12px; padding: 8px 10px; text-align: left; text-decoration: none; }
+.artales-reader-menu__panel nav { display: grid; gap: 7px; }
+.artales-reader-menu__font { align-items: center; display: grid; font-size: 12px; gap: 6px; grid-template-columns: 78px auto 1fr auto; }
+.artales-reader-menu__font button { text-align: center; }
+.artales-reader-sr-only { height: 1px; margin: -1px; overflow: hidden; padding: 0; position: absolute; width: 1px; clip: rect(0, 0, 0, 0); white-space: nowrap; }
+
+@media (max-width: 560px) {
+  .artales-reader-toolbar__identity { gap: 9px; }
+  .artales-reader-toolbar__identity .artales-brand__wordmark { width: 84px; }
+  .artales-reader-toolbar__title { font-size: 16px; max-width: calc(100vw - 130px); }
+  .artales-reader-toolbar__reading-row { gap: 7px; }
+  .artales-reader-page-jump__trigger { padding-inline: 8px; }
 }

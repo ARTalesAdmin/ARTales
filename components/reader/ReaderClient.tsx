@@ -45,21 +45,6 @@ type ReaderClientProps = {
   locale: SupportedLocale;
 };
 
-function getScrollProgress() {
-  if (typeof window === "undefined") return { scrollY: 0, progressPercent: 0 };
-  const scrollY =
-    window.scrollY || window.document.documentElement.scrollTop || 0;
-  const maxScroll = Math.max(
-    1,
-    document.documentElement.scrollHeight - window.innerHeight,
-  );
-  const progressPercent = Math.max(
-    0,
-    Math.min(100, (scrollY / maxScroll) * 100),
-  );
-  return { scrollY, progressPercent };
-}
-
 function getPageProgress(pageIndex: number, pageCount: number) {
   if (pageCount <= 1) return 100;
   return Math.max(0, Math.min(100, (pageIndex / (pageCount - 1)) * 100));
@@ -73,30 +58,28 @@ function getSpreadStartPage(pageIndex: number) {
 export default function ReaderClient({
   slug,
   title,
-  authorName,
   mode,
   blocks,
   fallbackContent,
   locale,
 }: ReaderClientProps) {
-  const [settings, setSettings] = useState<ReaderSettings>(() =>
-    loadReaderSettings(),
-  );
+  const [settings, setSettings] = useState<ReaderSettings>(() => ({
+    ...loadReaderSettings(),
+    controlsCollapsed: true,
+  }));
   const [progressPercent, setProgressPercent] = useState(0);
   const [pageIndex, setPageIndex] = useState(0);
   const [bookmark, setBookmark] = useState<ReaderBookmark | null>(null);
-  const [bookmarkMarkerTop, setBookmarkMarkerTop] = useState<number | null>(
-    null,
-  );
   const [turnDirection, setTurnDirection] = useState<"next" | "previous" | null>(null);
-  const [isFocusMode, setIsFocusMode] = useState(false);
-  const restoredInitialPosition = useRef(false);
+  const [progressRestoreReady, setProgressRestoreReady] = useState(
+    mode !== "full",
+  );
   const restoredPagePosition = useRef(false);
-  const paperRef = useRef<HTMLElement | null>(null);
+  const flowRef = useRef<HTMLDivElement | null>(null);
   const turnTimerRef = useRef<number | null>(null);
-  const labels = getPublicDictionary(locale).reader;
+  const dictionary = getPublicDictionary(locale);
+  const labels = dictionary.reader;
 
-  const isPagedMode = settings.layoutMode === "page" || settings.layoutMode === "spread";
   const isSpreadMode = settings.layoutMode === "spread";
   const pageStep = isSpreadMode ? 2 : 1;
   const detailHref = `/work/${slug}`;
@@ -107,27 +90,10 @@ export default function ReaderClient({
   );
   const pageCount = readerPages.length;
   const normalizedPageIndex = isSpreadMode ? getSpreadStartPage(pageIndex) : pageIndex;
-  const activePage =
-    readerPages[Math.min(normalizedPageIndex, pageCount - 1)] ?? readerPages[0];
 
   useEffect(() => {
     saveReaderSettings(settings);
   }, [settings]);
-
-  useEffect(() => {
-    if (typeof document === "undefined") return;
-
-    const handleFullscreenChange = () => {
-      if (!document.fullscreenElement) {
-        setIsFocusMode(false);
-      }
-    };
-
-    document.addEventListener("fullscreenchange", handleFullscreenChange);
-    return () => {
-      document.removeEventListener("fullscreenchange", handleFullscreenChange);
-    };
-  }, []);
 
   useEffect(() => {
     setBookmark(loadReaderBookmark(slug));
@@ -148,132 +114,38 @@ export default function ReaderClient({
     setPageIndex((current) => getSpreadStartPage(current));
   }, [isSpreadMode]);
 
-  const recalculateBookmarkMarker = useCallback(
-    (nextBookmark: ReaderBookmark | null) => {
-      if (
-        !nextBookmark ||
-        typeof window === "undefined" ||
-        !paperRef.current ||
-        isPagedMode
-      ) {
-        setBookmarkMarkerTop(null);
-        return;
-      }
-
-      const paperTop =
-        paperRef.current.getBoundingClientRect().top + window.scrollY;
-      const readingOffset = Math.min(
-        180,
-        Math.max(86, window.innerHeight * 0.16),
-      );
-      const approximateDocumentY = nextBookmark.scrollY + readingOffset;
-      const maxTop = Math.max(0, paperRef.current.scrollHeight - 24);
-      const nextTop = Math.max(
-        0,
-        Math.min(maxTop, approximateDocumentY - paperTop),
-      );
-
-      setBookmarkMarkerTop(nextTop);
-    },
-    [isPagedMode],
-  );
-
-  useEffect(() => {
-    recalculateBookmarkMarker(bookmark);
-  }, [
-    bookmark,
-    recalculateBookmarkMarker,
-    settings.fontScale,
-    settings.width,
-    settings.density,
-  ]);
-
-  useEffect(() => {
-    const onResize = () => recalculateBookmarkMarker(bookmark);
-    window.addEventListener("resize", onResize);
-    return () => window.removeEventListener("resize", onResize);
-  }, [bookmark, recalculateBookmarkMarker]);
-
-  useEffect(() => {
-    if (restoredInitialPosition.current) return;
-    restoredInitialPosition.current = true;
-    if (mode !== "full" || isPagedMode) return;
-
-    const saved = loadReaderProgress(slug);
-    if (!saved || saved.scrollY <= 0 || saved.layoutMode === "page" || saved.layoutMode === "spread") return;
-
-    const timeout = window.setTimeout(() => {
-      window.scrollTo({ top: saved.scrollY, behavior: "smooth" });
-    }, 220);
-
-    return () => window.clearTimeout(timeout);
-  }, [isPagedMode, mode, slug]);
-
   useEffect(() => {
     if (restoredPagePosition.current) return;
-    if (mode !== "full" || !isPagedMode || pageCount <= 1) return;
+    if (mode !== "full" || pageCount < 1) return;
     restoredPagePosition.current = true;
 
     const saved = loadReaderProgress(slug);
-    if (
-      (saved?.layoutMode !== "page" && saved?.layoutMode !== "spread") ||
-      typeof saved.pageIndex !== "number"
-    ) {
+    if (!saved) {
+      setProgressRestoreReady(true);
       return;
     }
-
-    const restoredIndex = Math.max(0, Math.min(pageCount - 1, saved.pageIndex));
+    const legacyIndex = Math.round((saved.progressPercent / 100) * (pageCount - 1));
+    const restoredIndex = Math.max(
+      0,
+      Math.min(pageCount - 1, saved.pageIndex ?? legacyIndex),
+    );
     setPageIndex(isSpreadMode ? getSpreadStartPage(restoredIndex) : restoredIndex);
-  }, [isPagedMode, isSpreadMode, mode, pageCount, slug]);
+    if (!isSpreadMode) {
+      window.setTimeout(() => {
+        flowRef.current
+          ?.querySelector<HTMLElement>(`[data-page-index="${restoredIndex}"]`)
+          ?.scrollIntoView({ block: "start" });
+      }, 220);
+    }
+    setProgressRestoreReady(true);
+  }, [isSpreadMode, mode, pageCount, slug]);
 
   useEffect(() => {
-    let frame = 0;
-    let timeout = 0;
-
-    const persist = () => {
-      if (isPagedMode) return;
-      const progress = getScrollProgress();
-      setProgressPercent(progress.progressPercent);
-      if (mode === "full") {
-        saveReaderProgress({
-          slug,
-          mode,
-          scrollY: progress.scrollY,
-          progressPercent: progress.progressPercent,
-          layoutMode: "scroll",
-          updatedAt: new Date().toISOString(),
-        });
-      }
-    };
-
-    const onScroll = () => {
-      if (isPagedMode) return;
-      window.cancelAnimationFrame(frame);
-      frame = window.requestAnimationFrame(() => {
-        const progress = getScrollProgress();
-        setProgressPercent(progress.progressPercent);
-        window.clearTimeout(timeout);
-        timeout = window.setTimeout(persist, 250);
-      });
-    };
-
-    persist();
-    window.addEventListener("scroll", onScroll, { passive: true });
-    window.addEventListener("resize", onScroll);
-
-    return () => {
-      window.cancelAnimationFrame(frame);
-      window.clearTimeout(timeout);
-      window.removeEventListener("scroll", onScroll);
-      window.removeEventListener("resize", onScroll);
-    };
-  }, [isPagedMode, mode, slug]);
-
-  useEffect(() => {
-    if (!isPagedMode) return;
     const nextProgress = getPageProgress(normalizedPageIndex, pageCount);
     setProgressPercent(nextProgress);
-    if (mode === "full") {
+    // Do not replace a saved position with page one during the initial render.
+    // The restore effect above first reads and applies the existing record.
+    if (mode === "full" && progressRestoreReady) {
       saveReaderProgress({
         slug,
         mode,
@@ -285,7 +157,42 @@ export default function ReaderClient({
         updatedAt: new Date().toISOString(),
       });
     }
-  }, [isPagedMode, mode, normalizedPageIndex, pageCount, settings.layoutMode, slug]);
+  }, [
+    mode,
+    normalizedPageIndex,
+    pageCount,
+    progressRestoreReady,
+    settings.layoutMode,
+    slug,
+  ]);
+
+  useEffect(() => {
+    if (isSpreadMode) return;
+    let frame = 0;
+    const updateActivePage = () => {
+      window.cancelAnimationFrame(frame);
+      frame = window.requestAnimationFrame(() => {
+        const sheets = flowRef.current?.querySelectorAll<HTMLElement>("[data-page-index]");
+        if (!sheets?.length) return;
+        const readingLine = window.innerHeight * 0.35;
+        let nextIndex = 0;
+        sheets.forEach((sheet) => {
+          if (sheet.getBoundingClientRect().top <= readingLine) {
+            nextIndex = Number(sheet.dataset.pageIndex ?? 0);
+          }
+        });
+        setPageIndex(nextIndex);
+      });
+    };
+    updateActivePage();
+    window.addEventListener("scroll", updateActivePage, { passive: true });
+    window.addEventListener("resize", updateActivePage);
+    return () => {
+      window.cancelAnimationFrame(frame);
+      window.removeEventListener("scroll", updateActivePage);
+      window.removeEventListener("resize", updateActivePage);
+    };
+  }, [isSpreadMode, pageCount]);
 
 
   const triggerPageTurn = useCallback((direction: "next" | "previous") => {
@@ -314,7 +221,7 @@ export default function ReaderClient({
   }, [pageCount, pageStep, triggerPageTurn]);
 
   useEffect(() => {
-    if (!isPagedMode) return;
+    if (!isSpreadMode) return;
 
     const onKeyDown = (event: KeyboardEvent) => {
       const target = event.target as HTMLElement | null;
@@ -331,7 +238,7 @@ export default function ReaderClient({
 
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [goToNextPage, goToPreviousPage, isPagedMode]);
+  }, [goToNextPage, goToPreviousPage, isSpreadMode]);
 
   const readerStyle = useMemo(
     () =>
@@ -361,7 +268,7 @@ export default function ReaderClient({
 
   function handleLayoutModeChange(layoutMode: ReaderLayoutModeId) {
     setSettings((current) => ({ ...current, layoutMode }));
-    if (layoutMode === "page" || layoutMode === "spread") {
+    if (layoutMode === "pagedFlow" || layoutMode === "spread") {
       setPageIndex((current) =>
         layoutMode === "spread"
           ? getSpreadStartPage(Math.min(current, pageCount - 1))
@@ -372,64 +279,32 @@ export default function ReaderClient({
   }
 
 
-  async function handleToggleFocusMode() {
-    const nextFocusMode = !isFocusMode;
-    setIsFocusMode(nextFocusMode);
-    if (nextFocusMode) {
-      setSettings((current) => ({ ...current, controlsCollapsed: true }));
-    }
-
-    if (typeof document === "undefined") return;
-
-    try {
-      if (nextFocusMode && !document.fullscreenElement) {
-        await document.documentElement.requestFullscreen?.();
-      } else if (!nextFocusMode && document.fullscreenElement) {
-        await document.exitFullscreen?.();
-      }
-    } catch {
-      // Browser fullscreen can be blocked; the CSS focus mode still applies.
-    }
-  }
-
   function handleBookmark() {
-    if (isPagedMode) {
-      const nextProgress = getPageProgress(normalizedPageIndex, pageCount);
-      const nextBookmark: ReaderBookmark = {
-        slug,
-        mode,
-        scrollY: normalizedPageIndex,
-        progressPercent: nextProgress,
-        pageIndex: normalizedPageIndex,
-        pageCount,
-        layoutMode: settings.layoutMode,
-        createdAt: new Date().toISOString(),
-      };
-      saveReaderBookmark(nextBookmark);
-      setBookmark(nextBookmark);
-      setBookmarkMarkerTop(null);
-      return;
-    }
-
-    const progress = getScrollProgress();
+    const nextProgress = getPageProgress(normalizedPageIndex, pageCount);
     const nextBookmark: ReaderBookmark = {
       slug,
       mode,
-      scrollY: progress.scrollY,
-      progressPercent: progress.progressPercent,
-      layoutMode: "scroll",
+      scrollY: normalizedPageIndex,
+      progressPercent: nextProgress,
+      pageIndex: normalizedPageIndex,
+      pageCount,
+      layoutMode: settings.layoutMode,
       createdAt: new Date().toISOString(),
     };
     saveReaderBookmark(nextBookmark);
     setBookmark(nextBookmark);
-    recalculateBookmarkMarker(nextBookmark);
   }
 
   function handleGoToBookmark() {
     if (!bookmark) return;
-    if (isPagedMode && typeof bookmark.pageIndex === "number") {
+    if (typeof bookmark.pageIndex === "number") {
       const nextIndex = Math.max(0, Math.min(pageCount - 1, bookmark.pageIndex));
       setPageIndex(isSpreadMode ? getSpreadStartPage(nextIndex) : nextIndex);
+      if (!isSpreadMode) {
+        flowRef.current
+          ?.querySelector<HTMLElement>(`[data-page-index="${nextIndex}"]`)
+          ?.scrollIntoView({ behavior: "smooth", block: "start" });
+      }
       return;
     }
     window.scrollTo({ top: bookmark.scrollY, behavior: "smooth" });
@@ -438,7 +313,17 @@ export default function ReaderClient({
   function handleClearBookmark() {
     clearReaderBookmark(slug);
     setBookmark(null);
-    setBookmarkMarkerTop(null);
+  }
+
+  function handleGoToPage(page: number) {
+    const requestedIndex = Math.max(0, Math.min(pageCount - 1, page - 1));
+    const nextIndex = isSpreadMode ? getSpreadStartPage(requestedIndex) : requestedIndex;
+    setPageIndex(nextIndex);
+    if (!isSpreadMode) {
+      flowRef.current
+        ?.querySelector<HTMLElement>(`[data-page-index="${nextIndex}"]`)
+        ?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
   }
 
 
@@ -453,7 +338,7 @@ export default function ReaderClient({
 
         <WorkContentRenderer
           blocks={page?.blocks ?? []}
-          fallbackContent={null}
+          fallbackContent={page?.blocks.length ? null : fallbackContent}
           formatPreset={
             settings.density === "compact" ? "readerCompact" : "readerComfort"
           }
@@ -481,6 +366,7 @@ export default function ReaderClient({
     const safePageNumber = Math.min(pageNumber + 1, pageCount);
     return (
       <article
+        data-page-index={pageNumber}
         className={`artales-reader__paper artales-reader__paper--paged ${extraClassName}`.trim()}
       >
         <header className="artales-reader__page-header" aria-hidden="true">
@@ -500,62 +386,13 @@ export default function ReaderClient({
     );
   }
 
-  function renderScrollPaper() {
-    return (
-      <article className="artales-reader__paper" ref={paperRef}>
-        {!isFocusMode && bookmark && bookmarkMarkerTop != null ? (
-          <button
-            type="button"
-            className="artales-reader__bookmark-marker"
-            style={{ top: `${bookmarkMarkerTop}px` }}
-            onClick={handleGoToBookmark}
-            aria-label={labels.goToSavedBookmark}
-            title={labels.goToBookmark}
-          >
-            <span>{labels.artalesBookmark}</span>
-          </button>
-        ) : null}
-
-        <div className="artales-reader__page-content">
-          {mode === "preview" ? (
-            <p className="artales-reader__preview-note">
-              {labels.previewNote}
-            </p>
-          ) : null}
-
-          <WorkContentRenderer
-            blocks={blocks}
-            fallbackContent={fallbackContent}
-            formatPreset={
-              settings.density === "compact"
-                ? "readerCompact"
-                : "readerComfort"
-            }
-            footnotesLabel={labels.footnotes}
-          />
-
-          {mode === "preview" ? (
-            <div className="artales-reader__preview-cta">
-              <p>{labels.previewShort}</p>
-              <a className="artales-button" href={fullHref}>
-                {labels.continueReading}
-              </a>
-            </div>
-          ) : null}
-        </div>
-      </article>
-    );
-  }
-
-
   return (
     <main
-      className={`artales-reader artales-reader--theme-${settings.theme} artales-reader--width-${settings.width} artales-reader--density-${settings.density} artales-reader--layout-${settings.layoutMode} artales-reader--pagefit-${settings.pageFit}${isFocusMode ? " artales-reader--focus" : ""}${turnDirection ? ` artales-reader--turn-${turnDirection}` : ""}`}
+      className={`artales-reader artales-reader--theme-${settings.theme} artales-reader--width-${settings.width} artales-reader--density-${settings.density} artales-reader--layout-${settings.layoutMode} artales-reader--pagefit-${settings.pageFit}${turnDirection ? ` artales-reader--turn-${turnDirection}` : ""}`}
       style={readerStyle}
     >
       <ReaderToolbar
         title={title}
-        authorName={authorName}
         detailHref={detailHref}
         mode={mode}
         fullHref={fullHref}
@@ -564,6 +401,7 @@ export default function ReaderClient({
         pageCount={pageCount}
         settings={settings}
         labels={labels}
+        chromeLabels={dictionary.public}
         bookmark={bookmark}
         onFontDelta={handleFontDelta}
         onThemeChange={(theme: ReaderThemeId) => updateSettings({ theme })}
@@ -576,16 +414,15 @@ export default function ReaderClient({
         onBookmark={handleBookmark}
         onGoToBookmark={handleGoToBookmark}
         onClearBookmark={handleClearBookmark}
-        isFocusMode={isFocusMode}
-        onToggleFocusMode={handleToggleFocusMode}
+        onGoToPage={handleGoToPage}
       />
 
       <section className="artales-reader__stage">
-        {!isPagedMode ? renderScrollPaper() : null}
-
-        {settings.layoutMode === "page"
-          ? renderPagedPaper(normalizedPageIndex, activePage)
-          : null}
+        {settings.layoutMode === "pagedFlow" ? (
+          <div className="artales-reader__paged-flow" ref={flowRef}>
+            {readerPages.map((page, index) => renderPagedPaper(index, page))}
+          </div>
+        ) : null}
 
         {isSpreadMode ? (
           <div className="artales-reader__spread">
@@ -609,7 +446,7 @@ export default function ReaderClient({
           </div>
         ) : null}
 
-        {isPagedMode ? (
+        {isSpreadMode ? (
           <>
             <button
               type="button"

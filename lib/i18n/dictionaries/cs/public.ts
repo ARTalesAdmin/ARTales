@@ -232,4 +232,12 @@ export const csPublic = {
   checkoutEntitlementsActive: "Přístupy aktivní",
   myLibrary: "Moje knihovna",
   membershipOptions: "Možnosti členství",
+  readerMenu: "Nastavení",
+  readerGoToPage: "Přejít na stránku",
+  readerPageInputLabel: "Stránka",
+  readerBookmarkSection: "Záložka",
+  readerAppearanceSection: "Vzhled",
+  readerPagedFlow: "Stránkový tok",
+  readerSpread: "Dvoustrana",
+  readerLeave: "Opustit čtečku",
 }

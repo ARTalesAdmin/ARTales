@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useEffect, useRef, useState, type KeyboardEvent } from "react";
 import ArtalesBrand from "@/components/brand/ArtalesBrand";
 import type { ReaderBookmark } from "@/lib/reader/readerStorage";
 import type {
@@ -12,11 +13,10 @@ import type {
 } from "@/lib/reader/readerSettings";
 import type { getPublicDictionary } from "@/lib/i18n/public";
 
-type ReaderLabels = ReturnType<typeof getPublicDictionary>["reader"];
+type Dictionary = ReturnType<typeof getPublicDictionary>;
 
 type ReaderToolbarProps = {
   title: string;
-  authorName?: string | null;
   detailHref: string;
   mode: "preview" | "full";
   fullHref: string;
@@ -24,7 +24,8 @@ type ReaderToolbarProps = {
   pageIndex: number;
   pageCount: number;
   settings: ReaderSettings;
-  labels: ReaderLabels;
+  labels: Dictionary["reader"];
+  chromeLabels: Dictionary["public"];
   bookmark: ReaderBookmark | null;
   onFontDelta: (delta: number) => void;
   onThemeChange: (theme: ReaderThemeId) => void;
@@ -35,260 +36,142 @@ type ReaderToolbarProps = {
   onBookmark: () => void;
   onGoToBookmark: () => void;
   onClearBookmark: () => void;
-  isFocusMode: boolean;
-  onToggleFocusMode: () => void;
+  onGoToPage: (page: number) => void;
 };
 
-function formatPageRange(
-  pageIndex: number,
-  pageCount: number,
-  isSpreadMode: boolean,
-  labels: ReaderLabels,
-) {
-  const currentPage = Math.min(pageIndex + 1, pageCount);
-  if (!isSpreadMode) return `${labels.page} ${currentPage} / ${pageCount}`;
+export default function ReaderToolbar(props: ReaderToolbarProps) {
+  const { settings, labels, chromeLabels, bookmark } = props;
+  const { onToggleControls } = props;
+  const progress = Math.max(0, Math.min(100, Math.round(props.progressPercent)));
+  const currentPage = Math.min(props.pageIndex + 1, props.pageCount);
+  const controlsId = "artales-reader-compact-menu";
+  const inputId = "artales-reader-page-input";
+  const menuRef = useRef<HTMLDivElement>(null);
+  const menuTriggerRef = useRef<HTMLButtonElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const ignoreNextPageBlurRef = useRef(false);
+  const [isPageEntryOpen, setIsPageEntryOpen] = useState(false);
+  const [pageValue, setPageValue] = useState(String(currentPage));
 
-  const spreadEndPage = Math.min(pageIndex + 2, pageCount);
-  return `${labels.pages} ${currentPage}${spreadEndPage > currentPage ? `–${spreadEndPage}` : ""} / ${pageCount}`;
-}
+  useEffect(() => {
+    if (isPageEntryOpen) inputRef.current?.select();
+  }, [isPageEntryOpen]);
+  useEffect(() => {
+    if (settings.controlsCollapsed) return;
+    const closeOnOutsideClick = (event: MouseEvent) => {
+      if (!menuRef.current?.contains(event.target as Node)) onToggleControls();
+    };
+    document.addEventListener("mousedown", closeOnOutsideClick);
+    const closeOnEscape = (event: globalThis.KeyboardEvent) => {
+      if (event.key === "Escape") {
+        onToggleControls();
+        menuTriggerRef.current?.focus();
+      }
+    };
+    document.addEventListener("keydown", closeOnEscape);
+    return () => {
+      document.removeEventListener("mousedown", closeOnOutsideClick);
+      document.removeEventListener("keydown", closeOnEscape);
+    };
+  }, [onToggleControls, settings.controlsCollapsed]);
 
-export default function ReaderToolbar({
-  title,
-  authorName,
-  detailHref,
-  mode,
-  fullHref,
-  progressPercent,
-  pageIndex,
-  pageCount,
-  settings,
-  labels,
-  bookmark,
-  onFontDelta,
-  onThemeChange,
-  onWidthChange,
-  onDensityChange,
-  onLayoutModeChange,
-  onToggleControls,
-  onBookmark,
-  onGoToBookmark,
-  onClearBookmark,
-  isFocusMode,
-  onToggleFocusMode,
-}: ReaderToolbarProps) {
-  const progress = Math.max(0, Math.min(100, Math.round(progressPercent)));
-  const brandVariant = settings.theme === "dark" ? "light" : "dark";
-  const controlsId = "artales-reader-settings-panel";
-  const isPagedMode = settings.layoutMode === "page" || settings.layoutMode === "spread";
-  const isSpreadMode = settings.layoutMode === "spread";
-  const pageLabel = formatPageRange(pageIndex, pageCount, isSpreadMode, labels);
+  const submitPage = (onlyIfChanged = false) => {
+    const requestedPage = Number(pageValue);
+    if (!Number.isFinite(requestedPage) || pageValue.trim() === "") {
+      setPageValue(String(currentPage));
+      return;
+    }
+    const safePage = Math.max(
+      1,
+      Math.min(props.pageCount, Math.trunc(requestedPage)),
+    );
+    if (!onlyIfChanged || safePage !== currentPage) props.onGoToPage(safePage);
+    setPageValue(String(safePage));
+    ignoreNextPageBlurRef.current = true;
+    setIsPageEntryOpen(false);
+  };
+  const onPageBlur = () => {
+    if (ignoreNextPageBlurRef.current) {
+      ignoreNextPageBlurRef.current = false;
+      return;
+    }
+    const requestedPage = Number(pageValue);
+    if (!Number.isFinite(requestedPage) || pageValue.trim() === "") {
+      setPageValue(String(currentPage));
+      setIsPageEntryOpen(false);
+      return;
+    }
+    submitPage(true);
+  };
+  const onPageKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {
+    if (event.key === "Enter") submitPage();
+    if (event.key === "Escape") {
+      // Cancel only page entry; do not let the menu's document-level Escape
+      // handler close an independently open compact menu at the same time.
+      event.stopPropagation();
+      ignoreNextPageBlurRef.current = true;
+      setPageValue(String(currentPage));
+      setIsPageEntryOpen(false);
+    }
+  };
 
   return (
     <header className="artales-reader-toolbar">
-      <div className="artales-reader-toolbar__top-row">
-        <div className="artales-reader-toolbar__brand">
-          <ArtalesBrand variant={brandVariant} size="sm" mode="lockup" />
-          <div className="artales-reader-toolbar__title-wrap">
-            {!isFocusMode ? (
-              <p className="artales-reader-toolbar__mode">
-                {mode === "preview" ? labels.preview : labels.onlineReader}
-              </p>
-            ) : null}
-            <h1 className="artales-reader-toolbar__title">{title}</h1>
-            {!isFocusMode && authorName ? (
-              <p className="artales-reader-toolbar__author">{authorName}</p>
-            ) : null}
-          </div>
+      <div className="artales-reader-toolbar__identity">
+        <ArtalesBrand variant={settings.theme === "dark" ? "light" : "dark"} size="sm" mode="lockup" />
+        <h1 className="artales-reader-toolbar__title">{props.title}</h1>
+      </div>
+      <div className="artales-reader-toolbar__reading-row">
+        <div className="artales-reader-progress" aria-label={`${labels.readingProgress} ${progress}%`}>
+          <div className="artales-reader-progress__track"><div style={{ width: `${progress}%` }} /></div>
         </div>
-
-        <div className="artales-reader-toolbar__top-actions">
-          <div
-            className="artales-reader-progress artales-reader-progress--top"
-            aria-label={
-              isPagedMode
-                ? `${pageLabel}, ${labels.readingProgress} ${progress}%`
-                : `${labels.readingProgress} ${progress}%`
-            }
-          >
-            <span>{isPagedMode ? pageLabel : `${progress}%`}</span>
-            <div className="artales-reader-progress__track">
-              <div style={{ width: `${progress}%` }} />
-            </div>
-          </div>
-          {!isFocusMode ? (
-            !bookmark ? (
-              <button
-                type="button"
-                className="artales-reader-top-button"
-                onClick={onBookmark}
-              >
-                {labels.bookmark}
-              </button>
-            ) : (
-              <div className="artales-reader-bookmark-actions" aria-label={labels.artalesBookmark}>
-                <button
-                  type="button"
-                  className="artales-reader-top-button"
-                  onClick={onGoToBookmark}
-                >
-                  {labels.goToBookmark}
-                </button>
-                <button
-                  type="button"
-                  className="artales-reader-top-button"
-                  onClick={onBookmark}
-                >
-                  {labels.updateBookmark}
-                </button>
-                <button
-                  type="button"
-                  className="artales-reader-top-button artales-reader-top-button--subtle"
-                  onClick={onClearBookmark}
-                >
-                  {labels.clearBookmark}
-                </button>
-              </div>
-            )
-          ) : null}
-          <button
-            type="button"
-            className="artales-reader-top-button artales-reader-top-button--focus"
-            onClick={onToggleFocusMode}
-            aria-pressed={isFocusMode}
-          >
-            {isFocusMode ? labels.exitFocusMode : labels.enterFocusMode}
-          </button>
-          {!isFocusMode ? (
-            <button
-              type="button"
-              className="artales-reader-settings-toggle"
-              onClick={onToggleControls}
-              aria-expanded={!settings.controlsCollapsed}
-              aria-controls={controlsId}
-            >
-              <span aria-hidden="true">
-                {settings.controlsCollapsed ? "▾" : "▴"}
-              </span>
-              {settings.controlsCollapsed ? labels.showSettings : labels.hideSettings}
+        <div className="artales-reader-page-jump">
+          {isPageEntryOpen ? (
+            <label htmlFor={inputId} className="artales-reader-page-jump__form">
+              <span className="artales-reader-sr-only">{chromeLabels.readerPageInputLabel}</span>
+              <input ref={inputRef} id={inputId} type="number" min={1} max={props.pageCount} value={pageValue}
+                onChange={(event) => setPageValue(event.target.value)} onKeyDown={onPageKeyDown} onBlur={onPageBlur} />
+              <span>/ {props.pageCount}</span>
+            </label>
+          ) : (
+            <button type="button" className="artales-reader-page-jump__trigger" onClick={() => { ignoreNextPageBlurRef.current = false; setPageValue(String(currentPage)); setIsPageEntryOpen(true); }}
+              aria-label={chromeLabels.readerGoToPage}>
+              {labels.page} {currentPage} / {props.pageCount}
             </button>
+          )}
+        </div>
+        <div className="artales-reader-menu" ref={menuRef}>
+          <button
+            ref={menuTriggerRef}
+            type="button"
+            className="artales-reader-menu__trigger"
+            onClick={props.onToggleControls}
+            aria-expanded={!settings.controlsCollapsed}
+            aria-controls={controlsId}
+          >
+            <span aria-hidden="true">•••</span><span className="artales-reader-sr-only">{chromeLabels.readerMenu}</span>
+          </button>
+          {!settings.controlsCollapsed ? (
+            <div id={controlsId} className="artales-reader-menu__panel">
+              <section><h2>{chromeLabels.readerBookmarkSection}</h2>
+                <button type="button" onClick={props.onBookmark}>{bookmark ? labels.updateBookmark : labels.bookmark}</button>
+                {bookmark ? <><button type="button" onClick={props.onGoToBookmark}>{labels.goToBookmark}</button><button type="button" onClick={props.onClearBookmark}>{labels.clearBookmark}</button></> : null}
+              </section>
+              <section><h2>{chromeLabels.readerAppearanceSection}</h2>
+                <label>{labels.mode}<select value={settings.layoutMode} onChange={(e) => props.onLayoutModeChange(e.target.value as ReaderLayoutModeId)}><option value="pagedFlow">{chromeLabels.readerPagedFlow}</option><option value="spread">{chromeLabels.readerSpread}</option></select></label>
+                <label>{labels.theme}<select value={settings.theme} onChange={(e) => props.onThemeChange(e.target.value as ReaderThemeId)}><option value="light">{labels.themeLight}</option><option value="script">{labels.themeScript}</option><option value="dark">{labels.themeDark}</option></select></label>
+                <label>{labels.width}<select value={settings.width} onChange={(e) => props.onWidthChange(e.target.value as ReaderWidthId)}><option value="narrow">{labels.widthNarrow}</option><option value="normal">{labels.widthNormal}</option><option value="wide">{labels.widthWide}</option></select></label>
+                <label>{labels.density}<select value={settings.density} onChange={(e) => props.onDensityChange(e.target.value as ReaderDensityId)}><option value="comfortable">{labels.densityComfort}</option><option value="compact">{labels.densityCompact}</option></select></label>
+                <div className="artales-reader-menu__font"><span>{labels.textSize}</span><button type="button" onClick={() => props.onFontDelta(-0.05)} aria-label={labels.decreaseFontSize}>A−</button><span>{Math.round(settings.fontScale * 100)}%</span><button type="button" onClick={() => props.onFontDelta(0.05)} aria-label={labels.increaseFontSize}>A+</button></div>
+              </section>
+              <nav aria-label={labels.readerActions}>
+                {props.mode === "preview" ? <Link href={props.fullHref}>{labels.continueReading}</Link> : null}
+                <Link href={props.detailHref}>{chromeLabels.readerLeave}</Link>
+              </nav>
+            </div>
           ) : null}
         </div>
       </div>
-
-      {!isFocusMode && !settings.controlsCollapsed ? (
-        <div id={controlsId} className="artales-reader-toolbar__settings-panel">
-          <div
-            className="artales-reader-toolbar__controls"
-            aria-label={labels.readerControls}
-          >
-            <div className="artales-reader-control-group" aria-label={labels.textSize}>
-              <button
-                type="button"
-                onClick={() => onFontDelta(-0.05)}
-                aria-label={labels.decreaseFontSize}
-              >
-                A-
-              </button>
-              <span>{Math.round(settings.fontScale * 100)}%</span>
-              <button
-                type="button"
-                onClick={() => onFontDelta(0.05)}
-                aria-label={labels.increaseFontSize}
-              >
-                A+
-              </button>
-            </div>
-
-            <label className="artales-reader-select-label">
-              {labels.mode}
-              <select
-                value={settings.layoutMode}
-                onChange={(event) =>
-                  onLayoutModeChange(event.target.value as ReaderLayoutModeId)
-                }
-              >
-                <option value="scroll">{labels.modeScroll}</option>
-                <option value="page">{labels.modePage}</option>
-                <option value="spread">{labels.modeSpread}</option>
-              </select>
-            </label>
-
-            <label className="artales-reader-select-label">
-              {labels.theme}
-              <select
-                value={settings.theme}
-                onChange={(event) =>
-                  onThemeChange(event.target.value as ReaderThemeId)
-                }
-              >
-                <option value="light">{labels.themeLight}</option>
-                <option value="script">{labels.themeScript}</option>
-                <option value="dark">{labels.themeDark}</option>
-              </select>
-            </label>
-
-            <label className="artales-reader-select-label">
-              {labels.width}
-              <select
-                value={settings.width}
-                onChange={(event) =>
-                  onWidthChange(event.target.value as ReaderWidthId)
-                }
-              >
-                <option value="narrow">{labels.widthNarrow}</option>
-                <option value="normal">{labels.widthNormal}</option>
-                <option value="wide">{labels.widthWide}</option>
-              </select>
-            </label>
-
-            <label className="artales-reader-select-label">
-              {labels.density}
-              <select
-                value={settings.density}
-                onChange={(event) =>
-                  onDensityChange(event.target.value as ReaderDensityId)
-                }
-              >
-                <option value="comfortable">{labels.densityComfort}</option>
-                <option value="compact">{labels.densityCompact}</option>
-              </select>
-            </label>
-          </div>
-
-          <div
-            className="artales-reader-toolbar__action-row"
-            aria-label={labels.readerActions}
-          >
-            {bookmark ? (
-              <>
-                <button
-                  type="button"
-                  className="artales-reader-ghost-button"
-                  onClick={onGoToBookmark}
-                >
-                  {labels.goToBookmark}
-                </button>
-                <button
-                  type="button"
-                  className="artales-reader-ghost-button"
-                  onClick={onClearBookmark}
-                >
-                  {labels.clearBookmark}
-                </button>
-              </>
-            ) : null}
-
-            {mode === "preview" ? (
-              <Link className="artales-reader-primary-link" href={fullHref}>
-                {labels.continueReading}
-              </Link>
-            ) : null}
-            <Link className="artales-reader-exit-link" href={detailHref}>
-              × {labels.exitReader}
-            </Link>
-          </div>
-        </div>
-      ) : null}
     </header>
   );
 }
