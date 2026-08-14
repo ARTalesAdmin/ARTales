@@ -406,3 +406,7 @@ Phase 3 implements account simple/advanced reading preferences and keeps
 advanced typography controls out of the Reader menu unless enabled. The
 notes/bookmarks redesign remains future work. Layout and advanced-control
 visibility remain local, so cross-device sync is also future work.
+
+## Phase 4 implementation note
+
+Phase 4 implements **Poznámky**: multiple notes, position capture, list, jump and single-item delete. The old bookmark is only a compatibility input and is imported without deleting its key. Signed-in notes use an authenticated API and private RLS-protected Supabase table; anonymous/network fallback remains local. See `ARTALES_READER_SYNCED_NOTES_PHASE_4_V0_1.md`.

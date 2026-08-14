@@ -65,3 +65,7 @@ shows typography controls only after the reader enables them; layout, theme,
 bookmark actions, preview continuation, and exit remain available. The
 notes/bookmarks redesign remains future work. Layout and advanced-control
 visibility remain device-local, so cross-device sync is also future work.
+
+## Phase 4 follow-up
+
+Phase 4 replaces the single-bookmark menu surface with **Poznámky**. Notes support multiple positions, jump/delete, local fallback and signed-in account sync behind owner-only RLS. Calm chrome, go-to-page, restore, pagedFlow and spread remain unchanged; the legacy bookmark key is retained after import.
