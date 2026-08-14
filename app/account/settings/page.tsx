@@ -3,6 +3,7 @@ import { getPublicDictionary } from "@/lib/i18n/public";
 import { getCookieLocale, resolveProfileLocale } from "@/lib/i18n/server";
 import { updateReaderPreferences } from "./actions";
 import ThemeToggle from "@/components/theme/ThemeToggle";
+import ReaderPreferencesForm from "@/components/account/ReaderPreferencesForm";
 
 export const dynamic = "force-dynamic";
 
@@ -41,65 +42,17 @@ export default async function AccountSettingsPage({ searchParams }: PageProps) {
         />
       </section>
 
-      <form action={updateReaderPreferences} className="artales-account-form">
-        <label>
-          <span>{dictionary.interfaceLanguage}</span>
-          <select name="preferred_locale" defaultValue={profile.preferred_locale ?? "en"}>
-            <option value="en">English</option>
-            <option value="cs">Čeština</option>
-          </select>
-          <small>{dictionary.interfaceLanguageHelp}</small>
-        </label>
-
-        <label>
-          <span>{dictionary.readerTheme}</span>
-          <select name="reader_theme" defaultValue={profile.reader_theme ?? "light"}>
-            <option value="light">{dictionary.themeLight}</option>
-            <option value="script">{dictionary.themeScript}</option>
-            <option value="dark">{dictionary.themeDark}</option>
-          </select>
-        </label>
-
-        <label>
-          <span>{dictionary.readingWidth}</span>
-          <select name="reader_width" defaultValue={profile.reader_width ?? "normal"}>
-            <option value="narrow">{dictionary.widthNarrow}</option>
-            <option value="normal">{dictionary.widthNormal}</option>
-            <option value="wide">{dictionary.widthWide}</option>
-          </select>
-        </label>
-
-        <label>
-          <span>{dictionary.textDensity}</span>
-          <select name="reader_density" defaultValue={profile.reader_density ?? "comfortable"}>
-            <option value="comfortable">{dictionary.densityComfortable}</option>
-            <option value="compact">{dictionary.densityCompact}</option>
-          </select>
-        </label>
-
-        <label>
-          <span>{dictionary.fontScale}</span>
-          <input
-            name="reader_font_scale"
-            type="number"
-            min="0.85"
-            max="1.3"
-            step="0.05"
-            defaultValue={String(profile.reader_font_scale ?? 1)}
-          />
-        </label>
-
-        <label className="artales-account-checkbox">
-          <input
-            name="reader_controls_collapsed"
-            type="checkbox"
-            defaultChecked={Boolean(profile.reader_controls_collapsed)}
-          />
-          <span>{dictionary.collapseControls}</span>
-        </label>
-
-        <button type="submit" className="artales-account-submit">{dictionary.save}</button>
-      </form>
+      <ReaderPreferencesForm
+        action={updateReaderPreferences}
+        copy={dictionary}
+        defaults={{
+          preferredLocale: profile.preferred_locale === "cs" ? "cs" : "en",
+          theme: profile.reader_theme === "script" || profile.reader_theme === "dark" ? profile.reader_theme : "light",
+          width: profile.reader_width === "narrow" || profile.reader_width === "wide" ? profile.reader_width : "normal",
+          density: profile.reader_density === "compact" ? "compact" : "comfortable",
+          fontScale: Number(profile.reader_font_scale ?? 1),
+        }}
+      />
     </section>
   );
 }

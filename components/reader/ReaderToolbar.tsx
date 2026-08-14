@@ -160,9 +160,11 @@ export default function ReaderToolbar(props: ReaderToolbarProps) {
               <section><h2>{chromeLabels.readerAppearanceSection}</h2>
                 <label>{labels.mode}<select value={settings.layoutMode} onChange={(e) => props.onLayoutModeChange(e.target.value as ReaderLayoutModeId)}><option value="pagedFlow">{chromeLabels.readerPagedFlow}</option><option value="spread">{chromeLabels.readerSpread}</option></select></label>
                 <label>{labels.theme}<select value={settings.theme} onChange={(e) => props.onThemeChange(e.target.value as ReaderThemeId)}><option value="light">{labels.themeLight}</option><option value="script">{labels.themeScript}</option><option value="dark">{labels.themeDark}</option></select></label>
-                <label>{labels.width}<select value={settings.width} onChange={(e) => props.onWidthChange(e.target.value as ReaderWidthId)}><option value="narrow">{labels.widthNarrow}</option><option value="normal">{labels.widthNormal}</option><option value="wide">{labels.widthWide}</option></select></label>
-                <label>{labels.density}<select value={settings.density} onChange={(e) => props.onDensityChange(e.target.value as ReaderDensityId)}><option value="comfortable">{labels.densityComfort}</option><option value="compact">{labels.densityCompact}</option></select></label>
-                <div className="artales-reader-menu__font"><span>{labels.textSize}</span><button type="button" onClick={() => props.onFontDelta(-0.05)} aria-label={labels.decreaseFontSize}>A−</button><span>{Math.round(settings.fontScale * 100)}%</span><button type="button" onClick={() => props.onFontDelta(0.05)} aria-label={labels.increaseFontSize}>A+</button></div>
+                {settings.showAdvancedReaderControls ? <>
+                  <label>{labels.width}<select value={settings.width} onChange={(e) => props.onWidthChange(e.target.value as ReaderWidthId)}><option value="narrow">{labels.widthNarrow}</option><option value="normal">{labels.widthNormal}</option><option value="wide">{labels.widthWide}</option></select></label>
+                  <label>{labels.density}<select value={settings.density} onChange={(e) => props.onDensityChange(e.target.value as ReaderDensityId)}><option value="comfortable">{labels.densityComfort}</option><option value="compact">{labels.densityCompact}</option></select></label>
+                  <div className="artales-reader-menu__font"><span>{labels.textSize}</span><button type="button" onClick={() => props.onFontDelta(-0.05)} aria-label={labels.decreaseFontSize}>A−</button><span>{Math.round(settings.fontScale * 100)}%</span><button type="button" onClick={() => props.onFontDelta(0.05)} aria-label={labels.increaseFontSize}>A+</button></div>
+                </> : null}
               </section>
               <nav aria-label={labels.readerActions}>
                 {props.mode === "preview" ? <Link href={props.fullHref}>{labels.continueReading}</Link> : null}

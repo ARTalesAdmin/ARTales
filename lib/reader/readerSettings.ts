@@ -35,6 +35,11 @@ export type ReaderSettings = {
    * controls and bookmark actions are collapsed.
    */
   controlsCollapsed: boolean;
+  /**
+   * Opt-in for typography controls in the compact Reader menu. The setting is
+   * local-first until the account profile has a compatible persistence field.
+   */
+  showAdvancedReaderControls: boolean;
 };
 
 export const defaultReaderSettings: ReaderSettings = {
@@ -45,6 +50,7 @@ export const defaultReaderSettings: ReaderSettings = {
   layoutMode: "pagedFlow",
   pageFit: "paper",
   controlsCollapsed: true,
+  showAdvancedReaderControls: false,
 };
 
 function normalizeLegacyTheme(value: unknown): ReaderThemeId {
@@ -90,6 +96,13 @@ export function normalizeReaderSettings(value: unknown): ReaderSettings {
     density,
     layoutMode,
     pageFit,
-    controlsCollapsed: Boolean(raw.controlsCollapsed),
+    controlsCollapsed:
+      typeof raw.controlsCollapsed === "boolean"
+        ? raw.controlsCollapsed
+        : defaultReaderSettings.controlsCollapsed,
+    showAdvancedReaderControls:
+      typeof raw.showAdvancedReaderControls === "boolean"
+        ? raw.showAdvancedReaderControls
+        : defaultReaderSettings.showAdvancedReaderControls,
   };
 }

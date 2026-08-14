@@ -399,3 +399,10 @@ the parser or page-slicing algorithm.
 ## Phase 2 implementation note
 
 Phase 2 has implemented calm default Reader chrome and go-to-page. The existing single-bookmark behavior remains intentionally unchanged; notes/bookmarks redesign and account simple/advanced settings remain future work.
+
+## Phase 3 implementation note
+
+Phase 3 implements account simple/advanced reading preferences and keeps
+advanced typography controls out of the Reader menu unless enabled. The
+notes/bookmarks redesign remains future work. Layout and advanced-control
+visibility remain local, so cross-device sync is also future work.
