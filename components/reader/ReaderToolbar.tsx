@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useEffect, useRef, useState, type KeyboardEvent } from "react";
 import ArtalesBrand from "@/components/brand/ArtalesBrand";
-import type { ReaderBookmark } from "@/lib/reader/readerStorage";
+import { readerNoteColors, type ReaderNote, type ReaderNoteColor } from "@/lib/reader/readerStorage";
 import type {
   ReaderDensityId,
   ReaderLayoutModeId,
@@ -26,21 +26,22 @@ type ReaderToolbarProps = {
   settings: ReaderSettings;
   labels: Dictionary["reader"];
   chromeLabels: Dictionary["public"];
-  bookmark: ReaderBookmark | null;
+  notes: ReaderNote[];
+  notesSyncState: "local" | "syncing" | "synced";
   onFontDelta: (delta: number) => void;
   onThemeChange: (theme: ReaderThemeId) => void;
   onWidthChange: (width: ReaderWidthId) => void;
   onDensityChange: (density: ReaderDensityId) => void;
   onLayoutModeChange: (layoutMode: ReaderLayoutModeId) => void;
   onToggleControls: () => void;
-  onBookmark: () => void;
-  onGoToBookmark: () => void;
-  onClearBookmark: () => void;
+  onAddNote: (input: { title: string; body: string; color: ReaderNoteColor }) => void;
+  onGoToNote: (note: ReaderNote) => void;
+  onDeleteNote: (note: ReaderNote) => void;
   onGoToPage: (page: number) => void;
 };
 
 export default function ReaderToolbar(props: ReaderToolbarProps) {
-  const { settings, labels, chromeLabels, bookmark } = props;
+  const { settings, labels, chromeLabels } = props;
   const { onToggleControls } = props;
   const progress = Math.max(0, Math.min(100, Math.round(props.progressPercent)));
   const currentPage = Math.min(props.pageIndex + 1, props.pageCount);
@@ -52,6 +53,10 @@ export default function ReaderToolbar(props: ReaderToolbarProps) {
   const ignoreNextPageBlurRef = useRef(false);
   const [isPageEntryOpen, setIsPageEntryOpen] = useState(false);
   const [pageValue, setPageValue] = useState(String(currentPage));
+  const [noteTitle, setNoteTitle] = useState("");
+  const [noteBody, setNoteBody] = useState("");
+  const [noteColor, setNoteColor] = useState<ReaderNoteColor>("gold");
+  const [isNoteFormOpen, setIsNoteFormOpen] = useState(false);
 
   useEffect(() => {
     if (isPageEntryOpen) inputRef.current?.select();
@@ -153,9 +158,29 @@ export default function ReaderToolbar(props: ReaderToolbarProps) {
           </button>
           {!settings.controlsCollapsed ? (
             <div id={controlsId} className="artales-reader-menu__panel">
-              <section><h2>{chromeLabels.readerBookmarkSection}</h2>
-                <button type="button" onClick={props.onBookmark}>{bookmark ? labels.updateBookmark : labels.bookmark}</button>
-                {bookmark ? <><button type="button" onClick={props.onGoToBookmark}>{labels.goToBookmark}</button><button type="button" onClick={props.onClearBookmark}>{labels.clearBookmark}</button></> : null}
+              <section className="artales-reader-notes"><h2>{labels.notes}</h2>
+                <div className="artales-reader-notes__heading">
+                  <button type="button" onClick={() => setIsNoteFormOpen((open) => !open)} aria-expanded={isNoteFormOpen}>{labels.addNote}</button>
+                  <span>{props.notesSyncState === "synced" ? labels.synced : props.notesSyncState === "syncing" ? labels.syncing : labels.localOnly}</span>
+                </div>
+                {isNoteFormOpen ? <form className="artales-reader-note-form" onSubmit={(event) => {
+                  event.preventDefault(); props.onAddNote({ title: noteTitle, body: noteBody, color: noteColor });
+                  setNoteTitle(""); setNoteBody(""); setIsNoteFormOpen(false);
+                }}>
+                  <label>{labels.noteTitle}<input value={noteTitle} maxLength={160} onChange={(event) => setNoteTitle(event.target.value)} /></label>
+                  <label>{labels.noteBody}<textarea value={noteBody} maxLength={4000} rows={3} onChange={(event) => setNoteBody(event.target.value)} /></label>
+                  <label>{labels.noteColor}<select value={noteColor} onChange={(event) => setNoteColor(event.target.value as ReaderNoteColor)}>{readerNoteColors.map((color) => <option value={color} key={color}>{labels.noteColors[color]}</option>)}</select></label>
+                  <button type="submit">{labels.saveNote}</button>
+                </form> : null}
+                <h3>{labels.myNotes}</h3>
+                {props.notes.length ? <ul className="artales-reader-notes__list">{props.notes.map((note) => {
+                  const noteName = note.title || `${labels.page} ${(note.pageIndex ?? 0) + 1}`;
+                  return <li key={note.id}>
+                    <span className={`artales-reader-note-color artales-reader-note-color--${note.color}`} aria-hidden="true" />
+                    <div><strong>{noteName}</strong>{note.body ? <p>{note.body}</p> : null}<small>{labels.page} {(note.pageIndex ?? 0) + 1}</small></div>
+                    <div className="artales-reader-notes__actions"><button type="button" onClick={() => props.onGoToNote(note)}>{labels.goToNote}</button><button type="button" onClick={() => props.onDeleteNote(note)} aria-label={`${labels.deleteNote}: ${noteName}`}>{labels.deleteNote}</button></div>
+                  </li>;
+                })}</ul> : <p className="artales-reader-notes__empty">{labels.noNotes}</p>}
               </section>
               <section><h2>{chromeLabels.readerAppearanceSection}</h2>
                 <label>{labels.mode}<select value={settings.layoutMode} onChange={(e) => props.onLayoutModeChange(e.target.value as ReaderLayoutModeId)}><option value="pagedFlow">{chromeLabels.readerPagedFlow}</option><option value="spread">{chromeLabels.readerSpread}</option></select></label>

@@ -12,14 +12,14 @@ import {
 import WorkContentRenderer from "@/components/work/WorkContentRenderer";
 import type { WorkBlock } from "@/lib/blocks";
 import {
-  clearReaderBookmark,
-  loadReaderBookmark,
+  loadReaderNotes,
   loadReaderProgress,
   loadReaderSettings,
-  saveReaderBookmark,
+  saveReaderNotes,
   saveReaderProgress,
   saveReaderSettings,
-  type ReaderBookmark,
+  type ReaderNote,
+  type ReaderNoteColor,
 } from "@/lib/reader/readerStorage";
 import {
   clampReaderFontScale,
@@ -69,7 +69,8 @@ export default function ReaderClient({
   }));
   const [progressPercent, setProgressPercent] = useState(0);
   const [pageIndex, setPageIndex] = useState(0);
-  const [bookmark, setBookmark] = useState<ReaderBookmark | null>(null);
+  const [notes, setNotes] = useState<ReaderNote[]>([]);
+  const [notesSyncState, setNotesSyncState] = useState<"local" | "syncing" | "synced">("local");
   const [turnDirection, setTurnDirection] = useState<"next" | "previous" | null>(null);
   const [progressRestoreReady, setProgressRestoreReady] = useState(
     mode !== "full",
@@ -77,6 +78,7 @@ export default function ReaderClient({
   const restoredPagePosition = useRef(false);
   const flowRef = useRef<HTMLDivElement | null>(null);
   const turnTimerRef = useRef<number | null>(null);
+  const notesSyncRunRef = useRef(0);
   const dictionary = getPublicDictionary(locale);
   const labels = dictionary.reader;
 
@@ -95,9 +97,66 @@ export default function ReaderClient({
     saveReaderSettings(settings);
   }, [settings]);
 
+  const syncNotes = useCallback(async () => {
+    const run = ++notesSyncRunRef.current;
+    const localNotes = loadReaderNotes(slug, labels.importedNote);
+    setNotes(localNotes);
+    setNotesSyncState("syncing");
+    try {
+      const response = await fetch(`/api/reader/notes?slug=${encodeURIComponent(slug)}`);
+      if (!response.ok) throw new Error("notes unavailable");
+      const payload = await response.json() as { signedIn: boolean };
+      if (!payload.signedIn) {
+        if (run === notesSyncRunRef.current) setNotesSyncState("local");
+        return;
+      }
+      for (const note of localNotes.filter((item) => item.source !== "synced")) {
+        const upload = await fetch("/api/reader/notes", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(note) });
+        if (!upload.ok) throw new Error("note upload failed");
+      }
+      const refreshed = await fetch(`/api/reader/notes?slug=${encodeURIComponent(slug)}`);
+      if (!refreshed.ok) throw new Error("notes refresh failed");
+      const refreshedPayload = await refreshed.json() as { notes: Array<Record<string, unknown>> };
+      const remoteNotes: ReaderNote[] = refreshedPayload.notes.map((row) => ({
+        id: String(row.id), slug: String(row.work_slug), userId: String(row.user_id),
+        title: row.title as string | null, body: row.body as string | null,
+        color: row.color as ReaderNoteColor, progressPercent: Number(row.progress_percent),
+        scrollY: Number(row.scroll_y), pageIndex: row.page_index == null ? undefined : Number(row.page_index),
+        pageCount: row.page_count == null ? undefined : Number(row.page_count),
+        layoutMode: row.layout_mode as ReaderNote["layoutMode"], createdAt: String(row.created_at),
+        updatedAt: String(row.updated_at), source: "synced",
+      }));
+      if (run !== notesSyncRunRef.current) return;
+      // A note may be created while requests are in flight. Keep any such
+      // local-only record instead of replacing it with the remote snapshot.
+      const currentLocal = loadReaderNotes(slug, labels.importedNote);
+      const merged = new Map(remoteNotes.map((note) => [note.id, note]));
+      currentLocal.filter((note) => note.source !== "synced").forEach((note) => {
+        if (!merged.has(note.id)) merged.set(note.id, note);
+      });
+      const nextNotes = [...merged.values()].sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
+      setNotes(nextNotes);
+      saveReaderNotes(slug, nextNotes);
+      setNotesSyncState("synced");
+    } catch {
+      if (run === notesSyncRunRef.current) setNotesSyncState("local");
+    }
+  }, [labels.importedNote, slug]);
+
   useEffect(() => {
-    setBookmark(loadReaderBookmark(slug));
-  }, [slug]);
+    void syncNotes();
+    const onOnline = () => void syncNotes();
+    const onVisibilityChange = () => {
+      if (document.visibilityState === "visible" && navigator.onLine) void syncNotes();
+    };
+    window.addEventListener("online", onOnline);
+    document.addEventListener("visibilitychange", onVisibilityChange);
+    return () => {
+      notesSyncRunRef.current += 1;
+      window.removeEventListener("online", onOnline);
+      document.removeEventListener("visibilitychange", onVisibilityChange);
+    };
+  }, [syncNotes]);
 
   useEffect(() => {
     return () => {
@@ -279,26 +338,28 @@ export default function ReaderClient({
   }
 
 
-  function handleBookmark() {
+  async function handleAddNote(input: { title: string; body: string; color: ReaderNoteColor }) {
     const nextProgress = getPageProgress(normalizedPageIndex, pageCount);
-    const nextBookmark: ReaderBookmark = {
-      slug,
-      mode,
+    const timestamp = new Date().toISOString();
+    const note: ReaderNote = {
+      id: crypto.randomUUID(), slug,
+      title: input.title.trim() || null, body: input.body.trim() || null, color: input.color,
       scrollY: normalizedPageIndex,
       progressPercent: nextProgress,
       pageIndex: normalizedPageIndex,
       pageCount,
       layoutMode: settings.layoutMode,
-      createdAt: new Date().toISOString(),
+      createdAt: timestamp, updatedAt: timestamp, source: "local",
     };
-    saveReaderBookmark(nextBookmark);
-    setBookmark(nextBookmark);
+    const next = [note, ...notes];
+    setNotes(next);
+    saveReaderNotes(slug, next);
+    if (navigator.onLine) void syncNotes();
   }
 
-  function handleGoToBookmark() {
-    if (!bookmark) return;
-    if (typeof bookmark.pageIndex === "number") {
-      const nextIndex = Math.max(0, Math.min(pageCount - 1, bookmark.pageIndex));
+  function handleGoToNote(note: ReaderNote) {
+    if (typeof note.pageIndex === "number") {
+      const nextIndex = Math.max(0, Math.min(pageCount - 1, note.pageIndex));
       setPageIndex(isSpreadMode ? getSpreadStartPage(nextIndex) : nextIndex);
       if (!isSpreadMode) {
         flowRef.current
@@ -307,12 +368,18 @@ export default function ReaderClient({
       }
       return;
     }
-    window.scrollTo({ top: bookmark.scrollY, behavior: "smooth" });
+    if (Number.isFinite(note.progressPercent)) {
+      handleGoToPage(Math.round((note.progressPercent / 100) * Math.max(0, pageCount - 1)) + 1);
+    } else window.scrollTo({ top: note.scrollY, behavior: "smooth" });
   }
 
-  function handleClearBookmark() {
-    clearReaderBookmark(slug);
-    setBookmark(null);
+  async function handleDeleteNote(note: ReaderNote) {
+    if (note.source === "synced") {
+      const response = await fetch(`/api/reader/notes?id=${encodeURIComponent(note.id)}`, { method: "DELETE" }).catch(() => null);
+      if (!response?.ok) return;
+    }
+    const next = notes.filter((item) => item.id !== note.id);
+    setNotes(next); saveReaderNotes(slug, next);
   }
 
   function handleGoToPage(page: number) {
@@ -402,7 +469,8 @@ export default function ReaderClient({
         settings={settings}
         labels={labels}
         chromeLabels={dictionary.public}
-        bookmark={bookmark}
+        notes={notes}
+        notesSyncState={notesSyncState}
         onFontDelta={handleFontDelta}
         onThemeChange={(theme: ReaderThemeId) => updateSettings({ theme })}
         onWidthChange={(width: ReaderWidthId) => updateSettings({ width })}
@@ -411,9 +479,9 @@ export default function ReaderClient({
         }
         onLayoutModeChange={handleLayoutModeChange}
         onToggleControls={handleToggleControls}
-        onBookmark={handleBookmark}
-        onGoToBookmark={handleGoToBookmark}
-        onClearBookmark={handleClearBookmark}
+        onAddNote={handleAddNote}
+        onGoToNote={handleGoToNote}
+        onDeleteNote={handleDeleteNote}
         onGoToPage={handleGoToPage}
       />
 

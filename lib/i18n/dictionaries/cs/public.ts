@@ -235,7 +235,7 @@ export const csPublic = {
   readerMenu: "Nastavení",
   readerGoToPage: "Přejít na stránku",
   readerPageInputLabel: "Stránka",
-  readerBookmarkSection: "Záložka",
+  readerBookmarkSection: "Poznámky",
   readerAppearanceSection: "Vzhled",
   readerPagedFlow: "Stránkový tok",
   readerSpread: "Dvoustrana",
