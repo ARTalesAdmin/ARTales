@@ -20,6 +20,8 @@ Release checklist:
 
 - [ ] If this release should notify stale clients, bump `public/version.json`.
 
+For the required `develop` → `main` promotion decision, marker naming convention, documented exception rule, and pull request checklist, follow [ARTales main release protocol v0.1](ARTALES_MAIN_RELEASE_PROTOCOL_V0_1.md).
+
 ## Current repository state and files inspected
 
 | Area | State before this change | Files inspected |
