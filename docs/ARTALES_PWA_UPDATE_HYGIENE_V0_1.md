@@ -8,6 +8,18 @@ The chosen mechanism is a static deployment marker (`public/version.json`) plus 
 
 `version.json` must be changed whenever a deployment should notify already-running clients. This explicit marker is intentionally independent of an environment variable or a package/build-script change. On a user's first visit after this mechanism is introduced, the current marker becomes the baseline without showing a misleading update banner.
 
+## Release-process requirement
+
+The update banner appears **only when `public/version.json` changes** from the version already recorded by a client. Therefore, every production release that should notify already-running browser or installed-app clients must update the marker as part of its release patch.
+
+This release step is intentionally manual for now. It keeps the update mechanism explicit and avoids package-script or build/deploy changes. Forgetting to update the marker does not break ARTales and does not prevent the new deployment from loading normally, but already-running clients will not receive the update banner for that release.
+
+Changing—or forgetting to change—the marker does not clear or otherwise alter localStorage, Reader progress, bookmarks, settings, or authentication. The runtime implementation continues to use only its dedicated `artales_app_version` key for version comparison. A future improvement may generate or update the marker automatically during build or deployment after that release integration has been designed and reviewed.
+
+Release checklist:
+
+- [ ] If this release should notify stale clients, bump `public/version.json`.
+
 ## Current repository state and files inspected
 
 | Area | State before this change | Files inspected |
