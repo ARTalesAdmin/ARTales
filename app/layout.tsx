@@ -61,7 +61,7 @@ export default async function RootLayout({
     <html lang={locale} data-artales-theme={initialTheme} style={{ colorScheme: initialTheme }} suppressHydrationWarning>
       <body>
         <ThemeScript initialTheme={initialTheme} />
-        <PwaRegister />
+        <PwaRegister locale={locale} />
         {children}
       </body>
     </html>
