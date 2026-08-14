@@ -1,5 +1,5 @@
 /* ARTales PWA service worker — conservative launch version. */
-const CACHE_NAME = "artales-pwa-v0109-brand-icons";
+const CACHE_NAME = "artales-pwa-v0110-update-hygiene";
 const BRAND_ASSET_URLS = [
   "/manifest.webmanifest",
   "/favicon.ico",
@@ -38,6 +38,10 @@ self.addEventListener("fetch", (event) => {
   const url = new URL(request.url);
   if (url.origin !== self.location.origin) return;
 
+  // The deployment marker must always reach the network. The client also uses
+  // `cache: no-store`; keeping it out of Cache Storage is an extra safeguard.
+  if (url.pathname === "/version.json") return;
+
   if (request.mode === "navigate") {
     event.respondWith(
       fetch(request).catch(() => caches.match("/offline.html"))
@@ -47,7 +51,15 @@ self.addEventListener("fetch", (event) => {
 
   if (BRAND_ASSET_URLS.includes(url.pathname)) {
     event.respondWith(
-      caches.match(request).then((cached) => cached || fetch(request))
+      fetch(request)
+        .then((response) => {
+          if (response.ok) {
+            const copy = response.clone();
+            void caches.open(CACHE_NAME).then((cache) => cache.put(request, copy));
+          }
+          return response;
+        })
+        .catch(() => caches.match(request))
     );
   }
 });

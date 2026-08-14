@@ -7361,6 +7361,41 @@ html[data-artales-theme="dark"]
   color: var(--artales-internal-text);
 }
 
+/* PWA update hygiene: unobtrusive, shared across public and signed-in shells. */
+.artales-update-banner {
+  position: fixed;
+  z-index: 1000;
+  right: 16px;
+  bottom: max(16px, env(safe-area-inset-bottom));
+  max-width: min(520px, calc(100vw - 32px));
+  padding: 12px 14px;
+  border: 1px solid var(--artales-internal-panel-border);
+  border-radius: 14px;
+  background: var(--artales-internal-surface);
+  color: var(--artales-internal-text);
+  box-shadow: var(--artales-internal-shadow-panel);
+  font-size: 0.9rem;
+  line-height: 1.4;
+}
+
+.artales-update-banner button {
+  margin-left: 10px;
+  padding: 5px 9px;
+  border: 1px solid var(--artales-internal-form-border);
+  border-radius: 999px;
+  background: var(--artales-internal-badge-bg);
+  color: var(--artales-internal-badge-text);
+  cursor: pointer;
+  font: inherit;
+  font-weight: 700;
+}
+
+.artales-update-banner button:focus-visible {
+  outline: 3px solid var(--artales-internal-focus-ring);
+  outline-offset: 2px;
+}
+
+
 .artales-account-content :where(
     .artales-community-row,
     .artales-account-model-grid article,
