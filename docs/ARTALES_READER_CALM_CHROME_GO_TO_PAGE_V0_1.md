@@ -57,3 +57,11 @@ page input validation and Escape behavior, and restores focus to the compact
 menu trigger when that menu closes with Escape. It does not redesign the
 toolbar or change page slicing. Production promotion remains a separate,
 explicitly approved step after the `develop` preview smoke test.
+
+## Phase 3 follow-up
+
+Phase 3 adds account simple/advanced reading preferences. The compact menu now
+shows typography controls only after the reader enables them; layout, theme,
+bookmark actions, preview continuation, and exit remain available. The
+notes/bookmarks redesign remains future work. Layout and advanced-control
+visibility remain device-local, so cross-device sync is also future work.

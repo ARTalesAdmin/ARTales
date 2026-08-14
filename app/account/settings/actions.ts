@@ -40,7 +40,6 @@ export async function updateReaderPreferences(formData: FormData): Promise<void>
     "comfortable" satisfies ReaderDensityId,
   );
   const fontScale = clampReaderFontScale(Number(formData.get("reader_font_scale") ?? 1));
-  const controlsCollapsed = formData.get("reader_controls_collapsed") === "on";
   const preferredLocale = normalizeChoice(
     String(formData.get("preferred_locale") ?? "en"),
     ["en", "cs"] as const,
@@ -56,7 +55,6 @@ export async function updateReaderPreferences(formData: FormData): Promise<void>
       reader_width: width,
       reader_density: density,
       reader_font_scale: fontScale,
-      reader_controls_collapsed: controlsCollapsed,
     })
     .eq("id", user.id);
 
