@@ -61,6 +61,10 @@ export function getReaderNotesKey(slug: string) {
   return `artales.reader.notes:${slug}`;
 }
 
+export function getReaderLegacyNoteImportKey(slug: string) {
+  return `artales.reader.notesLegacyImported:${slug}`;
+}
+
 function safeParse<T>(value: string | null): T | null {
   if (!value) return null;
   try {
@@ -129,7 +133,9 @@ export function loadReaderNotes(slug: string, importedTitle: string): ReaderNote
   const stored = safeParse<unknown[]>(window.localStorage.getItem(getReaderNotesKey(slug)));
   const notes = Array.isArray(stored) ? stored.filter(isReaderNote) : [];
   const legacy = loadReaderBookmark(slug);
-  if (legacy && !notes.some((note) => note.source === "legacy")) {
+  const legacyImportKey = getReaderLegacyNoteImportKey(slug);
+  const legacyAlreadyImported = window.localStorage.getItem(legacyImportKey) === "1";
+  if (legacy && !legacyAlreadyImported) {
     const timestamp = legacy.createdAt || new Date().toISOString();
     notes.push({
       id: crypto.randomUUID(),
@@ -147,6 +153,9 @@ export function loadReaderNotes(slug: string, importedTitle: string): ReaderNote
       source: "legacy",
     });
     saveReaderNotes(slug, notes);
+    // Keep the old bookmark as a backup, but persist migration completion
+    // separately because account sync normalizes the imported note to "synced".
+    window.localStorage.setItem(legacyImportKey, "1");
   }
   return notes.sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
 }

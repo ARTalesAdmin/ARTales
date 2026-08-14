@@ -78,6 +78,7 @@ export default function ReaderClient({
   const restoredPagePosition = useRef(false);
   const flowRef = useRef<HTMLDivElement | null>(null);
   const turnTimerRef = useRef<number | null>(null);
+  const notesSyncRunRef = useRef(0);
   const dictionary = getPublicDictionary(locale);
   const labels = dictionary.reader;
 
@@ -96,48 +97,66 @@ export default function ReaderClient({
     saveReaderSettings(settings);
   }, [settings]);
 
-  useEffect(() => {
-    let cancelled = false;
+  const syncNotes = useCallback(async () => {
+    const run = ++notesSyncRunRef.current;
     const localNotes = loadReaderNotes(slug, labels.importedNote);
     setNotes(localNotes);
-    const sync = async () => {
-      setNotesSyncState("syncing");
-      try {
-        const response = await fetch(`/api/reader/notes?slug=${encodeURIComponent(slug)}`);
-        if (!response.ok) throw new Error("notes unavailable");
-        const payload = await response.json() as { signedIn: boolean; notes: Record<string, unknown>[] };
-        if (!payload.signedIn) {
-          if (!cancelled) setNotesSyncState("local");
-          return;
-        }
-        for (const note of localNotes.filter((item) => item.source !== "synced")) {
-          const upload = await fetch("/api/reader/notes", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(note) });
-          if (!upload.ok) throw new Error("note upload failed");
-        }
-        const refreshed = await fetch(`/api/reader/notes?slug=${encodeURIComponent(slug)}`);
-        if (!refreshed.ok) throw new Error("notes refresh failed");
-        const refreshedPayload = await refreshed.json() as { notes: Array<Record<string, unknown>> };
-        const remoteNotes = refreshedPayload.notes.map((row) => ({
-          id: String(row.id), slug: String(row.work_slug), userId: String(row.user_id),
-          title: row.title as string | null, body: row.body as string | null,
-          color: row.color as ReaderNoteColor, progressPercent: Number(row.progress_percent),
-          scrollY: Number(row.scroll_y), pageIndex: row.page_index == null ? undefined : Number(row.page_index),
-          pageCount: row.page_count == null ? undefined : Number(row.page_count),
-          layoutMode: row.layout_mode as ReaderNote["layoutMode"], createdAt: String(row.created_at),
-          updatedAt: String(row.updated_at), source: "synced" as const,
-        }));
-        if (!cancelled) {
-          setNotes(remoteNotes);
-          saveReaderNotes(slug, remoteNotes);
-          setNotesSyncState("synced");
-        }
-      } catch {
-        if (!cancelled) setNotesSyncState("local");
+    setNotesSyncState("syncing");
+    try {
+      const response = await fetch(`/api/reader/notes?slug=${encodeURIComponent(slug)}`);
+      if (!response.ok) throw new Error("notes unavailable");
+      const payload = await response.json() as { signedIn: boolean };
+      if (!payload.signedIn) {
+        if (run === notesSyncRunRef.current) setNotesSyncState("local");
+        return;
       }
-    };
-    void sync();
-    return () => { cancelled = true; };
+      for (const note of localNotes.filter((item) => item.source !== "synced")) {
+        const upload = await fetch("/api/reader/notes", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(note) });
+        if (!upload.ok) throw new Error("note upload failed");
+      }
+      const refreshed = await fetch(`/api/reader/notes?slug=${encodeURIComponent(slug)}`);
+      if (!refreshed.ok) throw new Error("notes refresh failed");
+      const refreshedPayload = await refreshed.json() as { notes: Array<Record<string, unknown>> };
+      const remoteNotes: ReaderNote[] = refreshedPayload.notes.map((row) => ({
+        id: String(row.id), slug: String(row.work_slug), userId: String(row.user_id),
+        title: row.title as string | null, body: row.body as string | null,
+        color: row.color as ReaderNoteColor, progressPercent: Number(row.progress_percent),
+        scrollY: Number(row.scroll_y), pageIndex: row.page_index == null ? undefined : Number(row.page_index),
+        pageCount: row.page_count == null ? undefined : Number(row.page_count),
+        layoutMode: row.layout_mode as ReaderNote["layoutMode"], createdAt: String(row.created_at),
+        updatedAt: String(row.updated_at), source: "synced",
+      }));
+      if (run !== notesSyncRunRef.current) return;
+      // A note may be created while requests are in flight. Keep any such
+      // local-only record instead of replacing it with the remote snapshot.
+      const currentLocal = loadReaderNotes(slug, labels.importedNote);
+      const merged = new Map(remoteNotes.map((note) => [note.id, note]));
+      currentLocal.filter((note) => note.source !== "synced").forEach((note) => {
+        if (!merged.has(note.id)) merged.set(note.id, note);
+      });
+      const nextNotes = [...merged.values()].sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
+      setNotes(nextNotes);
+      saveReaderNotes(slug, nextNotes);
+      setNotesSyncState("synced");
+    } catch {
+      if (run === notesSyncRunRef.current) setNotesSyncState("local");
+    }
   }, [labels.importedNote, slug]);
+
+  useEffect(() => {
+    void syncNotes();
+    const onOnline = () => void syncNotes();
+    const onVisibilityChange = () => {
+      if (document.visibilityState === "visible" && navigator.onLine) void syncNotes();
+    };
+    window.addEventListener("online", onOnline);
+    document.addEventListener("visibilitychange", onVisibilityChange);
+    return () => {
+      notesSyncRunRef.current += 1;
+      window.removeEventListener("online", onOnline);
+      document.removeEventListener("visibilitychange", onVisibilityChange);
+    };
+  }, [syncNotes]);
 
   useEffect(() => {
     return () => {
@@ -335,13 +354,7 @@ export default function ReaderClient({
     const next = [note, ...notes];
     setNotes(next);
     saveReaderNotes(slug, next);
-    if (notesSyncState === "synced") {
-      const response = await fetch("/api/reader/notes", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(note) }).catch(() => null);
-      if (response?.ok) {
-        const synced = next.map((item) => item.id === note.id ? { ...item, source: "synced" as const } : item);
-        setNotes(synced); saveReaderNotes(slug, synced);
-      } else setNotesSyncState("local");
-    }
+    if (navigator.onLine) void syncNotes();
   }
 
   function handleGoToNote(note: ReaderNote) {

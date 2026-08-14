@@ -16,7 +16,7 @@ Migrace `2026-08-14_reader_synced_notes_phase4.sql` je aditivní. Po nasazení s
 
 - Settings, progress, bookmark a savedWorks klíče se nemažou ani nepřepisují.
 - Nová cache/fallback kolekce používá `artales.reader.notes:<slug>`.
-- Existující `artales.reader.bookmark:<slug>` se jednou převede na `Původní poznámka` / `Imported note` se zachovanou pozicí. Starý klíč zůstává jako záloha.
+- Existující `artales.reader.bookmark:<slug>` se jednou převede na `Původní poznámka` / `Imported note` se zachovanou pozicí. Dokončení importu se zapisuje do samostatného markeru `artales.reader.notesLegacyImported:<slug>`, takže změna zdroje na `synced` ani další reload import nezopakují. Starý klíč zůstává jako záloha.
 - Anonymní a síťově nedostupný Reader ukládá lokálně a ukazuje „Pouze v tomto zařízení“. Po přihlášení se lokální záznamy nejprve upsertují a až potom se cache nahradí odpovědí serveru.
 - Remote delete proběhne před odstraněním z lokální cache; neúspěch poznámku skrytě neztratí.
 
@@ -30,13 +30,16 @@ Přechod preferuje `pageIndex`; spread jej zarovná na obsahující dvoustranu a
 
 Synchronizace je reload/open based, nikoli realtime. Editace existujícího textu a cross-work dashboard nejsou součástí Phase 4. Offline záznam se nahraje při příštím otevření Readeru s platnou session a sítí.
 
+Reader navíc opakuje synchronizaci při návratu prohlížeče online a při návratu viditelné karty. Nová lokální poznámka spustí pokus o synchronizaci vždy, když je prohlížeč online, i když předchozí pokus skončil lokálním fallbackem. Neúspěšný pokus nikdy nenahrazuje ani nemaže lokální kolekci a nevyžaduje reload.
+
 ## Preview checklist
 
 - Otevřít pagedFlow i spread; ověřit restore a go-to-page beze změny.
 - Přidat více poznámek (také prázdnou), ověřit title/body/barvu a reload.
 - Přejít na poznámku v obou layoutech a smazat jen jednu.
-- Nasimulovat starý bookmark a ověřit jediný import bez smazání klíče.
-- Ověřit anonymní stav a přihlášenou synchronizaci desktop → telefon.
+- Nasimulovat starý bookmark, provést sync a několik reloadů; ověřit právě jeden import bez smazání starého klíče.
+- Vytvořit poznámku offline, obnovit připojení bez reloadu a ověřit její automatické nahrání.
+- Ověřit přihlášenou synchronizaci desktop → telefon po reloadu/otevření Readeru.
 - RLS ověřit dvěma účty; cizí operace nesmí zpřístupnit řádky.
 - Ověřit klávesnici, Escape/outside click, telefon a žádný overflow.
 - Ověřit Phase 3 preferences a nezměněný parser/page slicing.
