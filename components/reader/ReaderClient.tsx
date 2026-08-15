@@ -70,6 +70,8 @@ export default function ReaderClient({
   const [progressPercent, setProgressPercent] = useState(0);
   const [pageIndex, setPageIndex] = useState(0);
   const [notes, setNotes] = useState<ReaderNote[]>([]);
+  const [selectedNoteId, setSelectedNoteId] = useState<string | null>(null);
+  const [isNotesListExpanded, setIsNotesListExpanded] = useState<boolean | null>(null);
   const [notesSyncState, setNotesSyncState] = useState<"local" | "syncing" | "synced">("local");
   const [turnDirection, setTurnDirection] = useState<"next" | "previous" | null>(null);
   const [progressRestoreReady, setProgressRestoreReady] = useState(
@@ -92,6 +94,24 @@ export default function ReaderClient({
   );
   const pageCount = readerPages.length;
   const normalizedPageIndex = isSpreadMode ? getSpreadStartPage(pageIndex) : pageIndex;
+  const sortedNotes = useMemo(() => [...notes].sort((a, b) => {
+    const pageDifference = (a.pageIndex ?? Number.MAX_SAFE_INTEGER) - (b.pageIndex ?? Number.MAX_SAFE_INTEGER);
+    if (pageDifference) return pageDifference;
+    const progressDifference = a.progressPercent - b.progressPercent;
+    if (progressDifference) return progressDifference;
+    return a.createdAt.localeCompare(b.createdAt);
+  }), [notes]);
+  const selectedNoteIndex = sortedNotes.findIndex((note) => note.id === selectedNoteId);
+
+  useEffect(() => {
+    if (!sortedNotes.length) {
+      setSelectedNoteId(null);
+      return;
+    }
+    if (!sortedNotes.some((note) => note.id === selectedNoteId)) {
+      setSelectedNoteId(sortedNotes[0].id);
+    }
+  }, [selectedNoteId, sortedNotes]);
 
   useEffect(() => {
     saveReaderSettings(settings);
@@ -353,11 +373,13 @@ export default function ReaderClient({
     };
     const next = [note, ...notes];
     setNotes(next);
+    setSelectedNoteId(note.id);
     saveReaderNotes(slug, next);
     if (navigator.onLine) void syncNotes();
   }
 
   function handleGoToNote(note: ReaderNote) {
+    setSelectedNoteId(note.id);
     if (typeof note.pageIndex === "number") {
       const nextIndex = Math.max(0, Math.min(pageCount - 1, note.pageIndex));
       setPageIndex(isSpreadMode ? getSpreadStartPage(nextIndex) : nextIndex);
@@ -371,6 +393,12 @@ export default function ReaderClient({
     if (Number.isFinite(note.progressPercent)) {
       handleGoToPage(Math.round((note.progressPercent / 100) * Math.max(0, pageCount - 1)) + 1);
     } else window.scrollTo({ top: note.scrollY, behavior: "smooth" });
+  }
+
+  function handleMarkerClick(note: ReaderNote) {
+    handleGoToNote(note);
+    setSettings((current) => ({ ...current, controlsCollapsed: false }));
+    setIsNotesListExpanded(true);
   }
 
   async function handleDeleteNote(note: ReaderNote) {
@@ -431,11 +459,28 @@ export default function ReaderClient({
     children?: ReactNode,
   ) {
     const safePageNumber = Math.min(pageNumber + 1, pageCount);
+    const pageNotes = page
+      ? sortedNotes.filter((note) => note.pageIndex === pageNumber)
+      : [];
+    const selectedPageNote = pageNotes.find((note) => note.id === selectedNoteId);
+    const markerNote = pageNotes[0];
     return (
       <article
         data-page-index={pageNumber}
         className={`artales-reader__paper artales-reader__paper--paged ${extraClassName}`.trim()}
       >
+        {markerNote ? (
+          <button
+            type="button"
+            className={`artales-reader-note-marker artales-reader-note-marker--${markerNote.color}${selectedPageNote ? " artales-reader-note-marker--selected" : ""}`}
+            onClick={() => handleMarkerClick(markerNote)}
+            aria-label={`${labels.goToNoteOnPage} ${safePageNumber}`}
+            aria-pressed={Boolean(selectedPageNote)}
+            title={pageNotes.length > 1 ? `${labels.notesOnThisPage}: ${pageNotes.length}` : labels.noteOnThisPage}
+          >
+            {pageNotes.length > 1 ? <span aria-hidden="true">{pageNotes.length}</span> : null}
+          </button>
+        ) : null}
         <header className="artales-reader__page-header" aria-hidden="true">
           <span>{title}</span>
           <span>{safePageNumber}</span>
@@ -469,7 +514,11 @@ export default function ReaderClient({
         settings={settings}
         labels={labels}
         chromeLabels={dictionary.public}
-        notes={notes}
+        notes={sortedNotes}
+        selectedNoteId={selectedNoteId}
+        selectedNoteIndex={selectedNoteIndex}
+        isNotesListExpanded={isNotesListExpanded ?? sortedNotes.length <= 3}
+        onNotesListExpandedChange={setIsNotesListExpanded}
         notesSyncState={notesSyncState}
         onFontDelta={handleFontDelta}
         onThemeChange={(theme: ReaderThemeId) => updateSettings({ theme })}
@@ -481,6 +530,16 @@ export default function ReaderClient({
         onToggleControls={handleToggleControls}
         onAddNote={handleAddNote}
         onGoToNote={handleGoToNote}
+        onGoToPreviousNote={() => {
+          // Use the same select-and-jump path as list and marker actions.
+          if (selectedNoteIndex > 0) handleGoToNote(sortedNotes[selectedNoteIndex - 1]);
+        }}
+        onGoToNextNote={() => {
+          // Use the same select-and-jump path as list and marker actions.
+          if (selectedNoteIndex >= 0 && selectedNoteIndex < sortedNotes.length - 1) {
+            handleGoToNote(sortedNotes[selectedNoteIndex + 1]);
+          }
+        }}
         onDeleteNote={handleDeleteNote}
         onGoToPage={handleGoToPage}
       />

@@ -27,6 +27,9 @@ type ReaderToolbarProps = {
   labels: Dictionary["reader"];
   chromeLabels: Dictionary["public"];
   notes: ReaderNote[];
+  selectedNoteId: string | null;
+  selectedNoteIndex: number;
+  isNotesListExpanded: boolean;
   notesSyncState: "local" | "syncing" | "synced";
   onFontDelta: (delta: number) => void;
   onThemeChange: (theme: ReaderThemeId) => void;
@@ -36,6 +39,9 @@ type ReaderToolbarProps = {
   onToggleControls: () => void;
   onAddNote: (input: { title: string; body: string; color: ReaderNoteColor }) => void;
   onGoToNote: (note: ReaderNote) => void;
+  onGoToPreviousNote: () => void;
+  onGoToNextNote: () => void;
+  onNotesListExpandedChange: (expanded: boolean) => void;
   onDeleteNote: (note: ReaderNote) => void;
   onGoToPage: (page: number) => void;
 };
@@ -57,6 +63,7 @@ export default function ReaderToolbar(props: ReaderToolbarProps) {
   const [noteBody, setNoteBody] = useState("");
   const [noteColor, setNoteColor] = useState<ReaderNoteColor>("gold");
   const [isNoteFormOpen, setIsNoteFormOpen] = useState(false);
+  const selectedNote = props.notes.find((note) => note.id === props.selectedNoteId);
 
   useEffect(() => {
     if (isPageEntryOpen) inputRef.current?.select();
@@ -172,10 +179,24 @@ export default function ReaderToolbar(props: ReaderToolbarProps) {
                   <label>{labels.noteColor}<select value={noteColor} onChange={(event) => setNoteColor(event.target.value as ReaderNoteColor)}>{readerNoteColors.map((color) => <option value={color} key={color}>{labels.noteColors[color]}</option>)}</select></label>
                   <button type="submit">{labels.saveNote}</button>
                 </form> : null}
-                <h3>{labels.myNotes}</h3>
-                {props.notes.length ? <ul className="artales-reader-notes__list">{props.notes.map((note) => {
+                <div className="artales-reader-notes__navigation" aria-label={labels.noteNavigation}>
+                  <button type="button" onClick={props.onGoToPreviousNote} disabled={!props.notes.length || props.selectedNoteIndex <= 0} aria-label={labels.previousNote}>‹</button>
+                  <span aria-live="polite">{props.notes.length ? `${Math.max(0, props.selectedNoteIndex) + 1} / ${props.notes.length}` : "0 / 0"}</span>
+                  <button type="button" onClick={props.onGoToNextNote} disabled={!props.notes.length || props.selectedNoteIndex < 0 || props.selectedNoteIndex >= props.notes.length - 1} aria-label={labels.nextNote}>›</button>
+                </div>
+                {!props.isNotesListExpanded && selectedNote ? (
+                  <div className="artales-reader-notes__selected-summary" aria-live="polite">
+                    <span className={`artales-reader-note-color artales-reader-note-color--${selectedNote.color}`} aria-hidden="true" />
+                    <div><strong>{selectedNote.title || `${labels.page} ${(selectedNote.pageIndex ?? 0) + 1}`}</strong><small>{labels.page} {(selectedNote.pageIndex ?? 0) + 1}</small></div>
+                  </div>
+                ) : null}
+                {props.notes.length ? <button type="button" className="artales-reader-notes__list-toggle" onClick={() => props.onNotesListExpandedChange(!props.isNotesListExpanded)} aria-expanded={props.isNotesListExpanded} aria-controls="artales-reader-all-notes">
+                  {`${labels.allNotes} (${props.notes.length})`}<span aria-hidden="true">{props.isNotesListExpanded ? " −" : " +"}</span>
+                </button> : <h3>{labels.allNotes}</h3>}
+                {props.notes.length && props.isNotesListExpanded ? <ul id="artales-reader-all-notes" className="artales-reader-notes__list">{props.notes.map((note) => {
                   const noteName = note.title || `${labels.page} ${(note.pageIndex ?? 0) + 1}`;
-                  return <li key={note.id}>
+                  const isSelected = note.id === props.selectedNoteId;
+                  return <li key={note.id} className={isSelected ? "artales-reader-notes__item--selected" : undefined} aria-current={isSelected ? "location" : undefined}>
                     <span className={`artales-reader-note-color artales-reader-note-color--${note.color}`} aria-hidden="true" />
                     <div><strong>{noteName}</strong>{note.body ? <p>{note.body}</p> : null}<small>{labels.page} {(note.pageIndex ?? 0) + 1}</small></div>
                     <div className="artales-reader-notes__actions"><button type="button" onClick={() => props.onGoToNote(note)}>{labels.goToNote}</button><button type="button" onClick={() => props.onDeleteNote(note)} aria-label={`${labels.deleteNote}: ${noteName}`}>{labels.deleteNote}</button></div>
