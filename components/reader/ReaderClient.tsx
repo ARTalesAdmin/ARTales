@@ -71,6 +71,7 @@ export default function ReaderClient({
   const [pageIndex, setPageIndex] = useState(0);
   const [notes, setNotes] = useState<ReaderNote[]>([]);
   const [selectedNoteId, setSelectedNoteId] = useState<string | null>(null);
+  const [isNotesListExpanded, setIsNotesListExpanded] = useState<boolean | null>(null);
   const [notesSyncState, setNotesSyncState] = useState<"local" | "syncing" | "synced">("local");
   const [turnDirection, setTurnDirection] = useState<"next" | "previous" | null>(null);
   const [progressRestoreReady, setProgressRestoreReady] = useState(
@@ -394,6 +395,12 @@ export default function ReaderClient({
     } else window.scrollTo({ top: note.scrollY, behavior: "smooth" });
   }
 
+  function handleMarkerClick(note: ReaderNote) {
+    handleGoToNote(note);
+    setSettings((current) => ({ ...current, controlsCollapsed: false }));
+    setIsNotesListExpanded(true);
+  }
+
   async function handleDeleteNote(note: ReaderNote) {
     if (note.source === "synced") {
       const response = await fetch(`/api/reader/notes?id=${encodeURIComponent(note.id)}`, { method: "DELETE" }).catch(() => null);
@@ -456,7 +463,7 @@ export default function ReaderClient({
       ? sortedNotes.filter((note) => note.pageIndex === pageNumber)
       : [];
     const selectedPageNote = pageNotes.find((note) => note.id === selectedNoteId);
-    const markerNote = selectedPageNote ?? pageNotes[0];
+    const markerNote = pageNotes[0];
     return (
       <article
         data-page-index={pageNumber}
@@ -466,7 +473,7 @@ export default function ReaderClient({
           <button
             type="button"
             className={`artales-reader-note-marker artales-reader-note-marker--${markerNote.color}${selectedPageNote ? " artales-reader-note-marker--selected" : ""}`}
-            onClick={() => handleGoToNote(markerNote)}
+            onClick={() => handleMarkerClick(markerNote)}
             aria-label={`${labels.goToNoteOnPage} ${safePageNumber}`}
             aria-pressed={Boolean(selectedPageNote)}
             title={pageNotes.length > 1 ? `${labels.notesOnThisPage}: ${pageNotes.length}` : labels.noteOnThisPage}
@@ -510,6 +517,8 @@ export default function ReaderClient({
         notes={sortedNotes}
         selectedNoteId={selectedNoteId}
         selectedNoteIndex={selectedNoteIndex}
+        isNotesListExpanded={isNotesListExpanded ?? sortedNotes.length <= 3}
+        onNotesListExpandedChange={setIsNotesListExpanded}
         notesSyncState={notesSyncState}
         onFontDelta={handleFontDelta}
         onThemeChange={(theme: ReaderThemeId) => updateSettings({ theme })}
@@ -522,9 +531,11 @@ export default function ReaderClient({
         onAddNote={handleAddNote}
         onGoToNote={handleGoToNote}
         onGoToPreviousNote={() => {
+          // Use the same select-and-jump path as list and marker actions.
           if (selectedNoteIndex > 0) handleGoToNote(sortedNotes[selectedNoteIndex - 1]);
         }}
         onGoToNextNote={() => {
+          // Use the same select-and-jump path as list and marker actions.
           if (selectedNoteIndex >= 0 && selectedNoteIndex < sortedNotes.length - 1) {
             handleGoToNote(sortedNotes[selectedNoteIndex + 1]);
           }

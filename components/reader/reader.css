@@ -2285,6 +2285,10 @@
 .artales-reader-notes__navigation button { font-size: 18px; min-height: 36px; padding: 4px; text-align: center; }
 .artales-reader-notes__navigation button:disabled { cursor: default; opacity: .45; }
 .artales-reader-notes__navigation span { color: var(--reader-color-toolbar-muted); font-size: 12px; text-align: center; }
+.artales-reader-notes__selected-summary { align-items: center; background: var(--reader-color-selected-bg); border-radius: 8px; display: grid; gap: 8px; grid-template-columns: 8px minmax(0, 1fr); padding: 8px; }
+.artales-reader-notes__selected-summary div { display: grid; gap: 2px; min-width: 0; }
+.artales-reader-notes__selected-summary strong { font-size: 12px; overflow-wrap: anywhere; }
+.artales-reader-notes__selected-summary small { color: var(--reader-color-toolbar-muted); }
 .artales-reader-menu__panel .artales-reader-notes__list-toggle { align-items: center; display: flex; justify-content: space-between; width: 100%; }
 .artales-reader-note-form { display: grid; gap: 8px; min-width: 0; }
 .artales-reader-menu__panel .artales-reader-note-form label { align-items: start; grid-template-columns: 1fr; }
@@ -2308,6 +2312,7 @@
 .artales-reader-notes__actions button { min-height: 36px; }
 .artales-reader-notes__empty { color: var(--reader-color-toolbar-muted); font-size: 12px; margin: 0; }
 .artales-reader-note-marker {
+  appearance: none;
   background: var(--reader-note-marker-color, var(--reader-color-bookmark));
   border: 0;
   border-radius: 3px 0 0 3px;
@@ -2317,6 +2322,7 @@
   opacity: .76;
   padding: 0;
   position: absolute;
+  pointer-events: auto;
   right: 0;
   top: clamp(76px, 12%, 118px);
   width: 13px;
