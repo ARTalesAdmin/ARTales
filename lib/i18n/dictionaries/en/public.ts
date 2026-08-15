@@ -242,7 +242,7 @@ export const enPublic = {
   readerMenu: "Settings",
   readerGoToPage: "Go to page",
   readerPageInputLabel: "Page",
-  readerBookmarkSection: "Bookmark",
+  readerBookmarkSection: "Notes",
   readerAppearanceSection: "Appearance",
   readerPagedFlow: "Paged flow",
   readerSpread: "Two-page spread",

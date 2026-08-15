@@ -2279,6 +2279,66 @@
 .artales-reader-menu__panel nav { display: grid; gap: 7px; }
 .artales-reader-menu__font { align-items: center; display: grid; font-size: 12px; gap: 6px; grid-template-columns: 78px auto 1fr auto; }
 .artales-reader-menu__font button { text-align: center; }
+.artales-reader-notes__heading { align-items: center; display: flex; gap: 8px; justify-content: space-between; }
+.artales-reader-notes__heading > span { color: var(--reader-color-toolbar-muted); font-size: 10px; }
+.artales-reader-notes__navigation { align-items: center; display: grid; gap: 8px; grid-template-columns: 38px 1fr 38px; }
+.artales-reader-notes__navigation button { font-size: 18px; min-height: 36px; padding: 4px; text-align: center; }
+.artales-reader-notes__navigation button:disabled { cursor: default; opacity: .45; }
+.artales-reader-notes__navigation span { color: var(--reader-color-toolbar-muted); font-size: 12px; text-align: center; }
+.artales-reader-notes__selected-summary { align-items: center; background: var(--reader-color-selected-bg); border-radius: 8px; display: grid; gap: 8px; grid-template-columns: 8px minmax(0, 1fr); padding: 8px; }
+.artales-reader-notes__selected-summary div { display: grid; gap: 2px; min-width: 0; }
+.artales-reader-notes__selected-summary strong { font-size: 12px; overflow-wrap: anywhere; }
+.artales-reader-notes__selected-summary small { color: var(--reader-color-toolbar-muted); }
+.artales-reader-menu__panel .artales-reader-notes__list-toggle { align-items: center; display: flex; justify-content: space-between; width: 100%; }
+.artales-reader-note-form { display: grid; gap: 8px; min-width: 0; }
+.artales-reader-menu__panel .artales-reader-note-form label { align-items: start; grid-template-columns: 1fr; }
+.artales-reader-note-form input,
+.artales-reader-note-form textarea { background: var(--reader-color-control-bg); border: 1px solid var(--reader-color-control-border); border-radius: 8px; box-sizing: border-box; color: var(--reader-color-control-text); font: inherit; max-width: 100%; padding: 8px; resize: vertical; width: 100%; }
+.artales-reader-notes h3 { font-size: 12px; margin: 4px 0 0; }
+.artales-reader-notes__list { display: grid; gap: 8px; list-style: none; margin: 0; max-height: 230px; overflow-y: auto; padding: 0; }
+.artales-reader-notes__list li { align-items: start; border-top: 1px solid var(--reader-color-toolbar-border); display: grid; gap: 7px; grid-template-columns: 8px minmax(0, 1fr); padding-top: 8px; }
+.artales-reader-notes__list li.artales-reader-notes__item--selected { background: var(--reader-color-selected-bg); border-radius: 8px; box-shadow: inset 3px 0 var(--reader-accent); padding: 8px; }
+.artales-reader-notes__list strong,
+.artales-reader-notes__list p { overflow-wrap: anywhere; }
+.artales-reader-notes__list p { color: var(--reader-color-toolbar-muted); font-size: 11px; margin: 3px 0; white-space: pre-wrap; }
+.artales-reader-notes__list small { color: var(--reader-color-toolbar-muted); }
+.artales-reader-note-color { border-radius: 999px; display: block; height: 8px; margin-top: 4px; width: 8px; }
+.artales-reader-note-color--gold { background: #c59a4b; }
+.artales-reader-note-color--blue { background: #6689ad; }
+.artales-reader-note-color--green { background: #6f9677; }
+.artales-reader-note-color--rose { background: #b97883; }
+.artales-reader-note-color--violet { background: #8871a6; }
+.artales-reader-notes__actions { display: flex; gap: 6px; grid-column: 2; }
+.artales-reader-notes__actions button { min-height: 36px; }
+.artales-reader-notes__empty { color: var(--reader-color-toolbar-muted); font-size: 12px; margin: 0; }
+.artales-reader-note-marker {
+  appearance: none;
+  background: var(--reader-note-marker-color, var(--reader-color-bookmark));
+  border: 0;
+  border-radius: 3px 0 0 3px;
+  color: var(--reader-color-paper-text);
+  cursor: pointer;
+  height: 42px;
+  opacity: .76;
+  padding: 0;
+  position: absolute;
+  pointer-events: auto;
+  right: 0;
+  top: clamp(76px, 12%, 118px);
+  width: 13px;
+  z-index: 3;
+}
+.artales-reader-note-marker span { align-items: center; display: flex; font-size: 9px; font-weight: 700; height: 100%; justify-content: center; }
+.artales-reader-note-marker:hover,
+.artales-reader-note-marker:focus-visible,
+.artales-reader-note-marker--selected { opacity: 1; width: 17px; }
+.artales-reader-note-marker:focus-visible { outline: 2px solid var(--reader-accent); outline-offset: -3px; }
+.artales-reader-note-marker--gold { --reader-note-marker-color: #c59a4b; }
+.artales-reader-note-marker--blue { --reader-note-marker-color: #6689ad; }
+.artales-reader-note-marker--green { --reader-note-marker-color: #6f9677; }
+.artales-reader-note-marker--rose { --reader-note-marker-color: #b97883; }
+.artales-reader-note-marker--violet { --reader-note-marker-color: #8871a6; }
+.artales-reader__paper--spread-left .artales-reader-note-marker { border-radius: 0 3px 3px 0; left: 0; right: auto; }
 .artales-reader-sr-only { height: 1px; margin: -1px; overflow: hidden; padding: 0; position: absolute; width: 1px; clip: rect(0, 0, 0, 0); white-space: nowrap; }
 
 @media (max-width: 560px) {
@@ -2287,4 +2347,8 @@
   .artales-reader-toolbar__title { font-size: 16px; max-width: calc(100vw - 130px); }
   .artales-reader-toolbar__reading-row { gap: 7px; }
   .artales-reader-page-jump__trigger { padding-inline: 8px; }
+  .artales-reader-note-marker { height: 36px; top: 68px; width: 10px; }
+  .artales-reader-note-marker:hover,
+  .artales-reader-note-marker:focus-visible,
+  .artales-reader-note-marker--selected { width: 14px; }
 }
