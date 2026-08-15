@@ -71,3 +71,5 @@ visibility remain device-local, so cross-device sync is also future work.
 Phase 4 replaces the single-bookmark menu surface with **Poznámky**. Notes support multiple positions, jump/delete, local fallback and signed-in account sync behind owner-only RLS. Calm chrome, go-to-page, restore, pagedFlow and spread remain unchanged; the legacy bookmark key is retained after import.
 
 The legacy import is idempotent through a separate completion marker. Offline/local notes retry account sync after reconnect, on a visible-tab resume, and immediately after online creation without requiring a Reader reload.
+
+Phase 4 polish adds visible page markers and previous/current/next note navigation while keeping the full list collapsible. The calm chrome, go-to-page behavior and notes sync/storage/API/RLS remain unchanged.

@@ -47,3 +47,7 @@ Reader navíc opakuje synchronizaci při návratu prohlížeče online a při n�
 ## Rollback a verze
 
 Nejprve revertovat runtime commit/PR; lokální klíče a serverová data ponechat pro obnovu. Aditivní tabulku není nutné dropovat a destruktivní down migrace se nemá spouštět. Cleanup vyžaduje samostatné schválení. `public/version.json` se v develop PR nemění; až schválená promoce develop → main musí marker zvýšit podle hlavního release protokolu.
+
+## Phase 4 UX polish follow-up
+
+Develop-first polish adds visible page-margin note markers and previous/current/next note navigation, with a collapsible full list. Sync, storage, API and RLS architecture are unchanged. See `ARTALES_READER_NOTES_MARKERS_NAVIGATION_POLISH_V0_1.md`.
