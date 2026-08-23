@@ -16,6 +16,7 @@ import {
   type WorkFormValues,
 } from "@/lib/forms/workForm";
 import { slugify } from "@/lib/slug";
+import { recordWorkEditorialActivity } from "@/lib/editorialActivity";
 
 export const dynamic = "force-dynamic";
 
@@ -331,6 +332,13 @@ export async function POST(request: Request, context: RouteContext) {
 
       return toErrorResponse(insertError.message || "Změny bloků se nepodařilo uložit.", 500);
     }
+  }
+
+  try {
+    await recordWorkEditorialActivity(supabase, workId);
+  } catch (activityError) {
+    console.error("Unified work activity recording failed:", activityError);
+    return toErrorResponse("Změny byly uloženy, ale redakční aktivitu se nepodařilo zaznamenat.", 500);
   }
 
   return NextResponse.json({

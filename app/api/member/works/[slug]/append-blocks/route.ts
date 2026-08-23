@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getCurrentProfile } from "@/lib/auth";
 import { canEditContent } from "@/lib/permissions";
 import { createClient } from "@/lib/supabase/server";
+import { recordWorkEditorialActivity } from "@/lib/editorialActivity";
 import {
   sanitizeWorkBlocks,
   validateWorkBlocks,
@@ -107,6 +108,13 @@ export async function POST(request: Request, context: RouteContext) {
     }
 
     return toErrorResponse(insertError.message || "Nové bloky se nepodařilo uložit.", 500);
+  }
+
+  try {
+    await recordWorkEditorialActivity(supabase, String(work.id));
+  } catch (activityError) {
+    console.error("Large work append activity recording failed:", activityError);
+    return toErrorResponse("Bloky byly uloženy, ale redakční aktivitu se nepodařilo zaznamenat.", 500);
   }
 
   return NextResponse.json({

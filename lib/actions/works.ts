@@ -11,6 +11,7 @@ import {
   mapWorkFormValuesToInsertPayload,
   mapWorkFormValuesToUpdatePayload,
 } from "@/lib/forms/workForm"
+import { recordWorkEditorialActivity } from "@/lib/editorialActivity"
 
 type SupabaseClient = Awaited<ReturnType<typeof createClient>>
 
@@ -191,6 +192,7 @@ export async function createWork(formData: FormData): Promise<void> {
       values.collection_id
     )
     await syncWorkTags(supabase, profile.id, String(data.id), values.tag_ids)
+    await recordWorkEditorialActivity(supabase, String(data.id))
   } catch (relationError) {
     redirect(
       `/member/works/${payload.slug}/edit?error=save_failed&db_error=${encodeDbError(
@@ -293,6 +295,7 @@ export async function updateWork(
       values.collection_id
     )
     await syncWorkTags(supabase, profile.id, String(data.id), values.tag_ids)
+    await recordWorkEditorialActivity(supabase, String(data.id))
   } catch (relationError) {
     redirect(
       `/member/works/${originalSlug}/edit?error=save_failed&db_error=${encodeDbError(
