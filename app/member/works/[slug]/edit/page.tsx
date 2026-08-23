@@ -1,7 +1,7 @@
 import Link from "next/link"
 import { notFound } from "next/navigation"
 import { requireEditorOrAdmin } from "@/lib/guards"
-import { updateWork } from "@/lib/actions/works"
+import { updateWork, updateWorkResponsibility } from "@/lib/actions/works"
 import { createClient } from "@/lib/supabase/server"
 import { getCollectionsForMember } from "@/lib/dbCollections"
 import { getWorkForEditBySlug } from "@/lib/dbWorks"
@@ -9,6 +9,7 @@ import { getLanguageOptions } from "@/lib/dictionaries/language"
 import { getTagsForMember } from "@/lib/dbTags"
 import { getStatusOptions } from "@/lib/dictionaries/status"
 import WorkEditorForm from "@/components/editor/WorkEditorForm"
+import { listSubmissionRecipients } from "@/lib/dbSubmissionOptions"
 
 type PageProps = {
   params: Promise<{ slug: string }>
@@ -60,6 +61,8 @@ function getErrorMessage(error?: string) {
       return "Tento slug už existuje. Zvol jiný."
     case "save_failed":
       return "Dílo se nepodařilo uložit. Zkus to znovu."
+    case "responsibility_failed":
+      return "Odpovědného editora se nepodařilo uložit."
     default:
       return null
   }
@@ -71,6 +74,8 @@ function getSuccessMessage(success?: string) {
       return "Dílo bylo vytvořeno."
     case "work_updated":
       return "Dílo bylo uloženo."
+    case "responsibility_updated":
+      return "Odpovědný editor byl uložen."
     default:
       return null
   }
@@ -102,9 +107,10 @@ export default async function EditWorkPage({
   }
 
   const authors = (authorsData ?? []) as { id: string; name: string }[]
-  const [collections, tags] = await Promise.all([
+  const [collections, tags, recipients] = await Promise.all([
     getCollectionsForMember(),
     getTagsForMember(),
+    listSubmissionRecipients(),
   ])
   const languageOptions = getLanguageOptions("internal")
   const statusOptions = getStatusOptions("internal")
@@ -204,6 +210,29 @@ export default async function EditWorkPage({
           DB error: {decodeURIComponent(db_error)}
         </pre>
       ) : null}
+
+      <form
+        action={updateWorkResponsibility.bind(null, work.id, slug)}
+        className="artales-member-panel"
+        style={{ padding: "18px", marginBottom: "22px", display: "flex", gap: 12, alignItems: "end", flexWrap: "wrap" }}
+      >
+        <label style={{ flex: "1 1 320px" }}>
+          <strong>Odpovědný editor</strong>
+          <select
+            name="responsible_editor_id"
+            defaultValue={work.responsible_editor_id ?? ""}
+            style={{ display: "block", width: "100%", marginTop: 8, padding: "10px 12px" }}
+          >
+            <option value="">Bez určeného odpovědného editora</option>
+            {recipients.map((recipient) => (
+              <option key={recipient.id} value={recipient.id}>
+                {recipient.display_name}{recipient.handle ? ` (@${recipient.handle})` : ""}
+              </option>
+            ))}
+          </select>
+        </label>
+        <button type="submit" className="artales-button-secondary">Uložit odpovědnost</button>
+      </form>
 
       <WorkEditorForm
         mode="edit"

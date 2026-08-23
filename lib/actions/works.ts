@@ -316,3 +316,25 @@ export async function updateWork(
 
   redirect(`/member/works/${payload.slug}/edit?success=work_updated`)
 }
+
+export async function updateWorkResponsibility(
+  workId: string,
+  workSlug: string,
+  formData: FormData,
+): Promise<void> {
+  await requireEditorOrAdmin()
+  const supabase = await createClient()
+  const responsibleEditorId =
+    String(formData.get("responsible_editor_id") ?? "").trim() || null
+
+  const { error } = await supabase
+    .from("works")
+    .update({ responsible_editor_id: responsibleEditorId })
+    .eq("id", workId)
+
+  if (error) {
+    redirect(`/member/works/${workSlug}/edit?error=responsibility_failed`)
+  }
+
+  redirect(`/member/works/${workSlug}/edit?success=responsibility_updated`)
+}

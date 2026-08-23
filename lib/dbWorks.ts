@@ -168,6 +168,7 @@ export type MemberWorksSort = "changed_desc" | "title_asc" | "title_desc"
 
 export type WorkEditItem = {
   id: string
+  responsible_editor_id: string | null
   title: string
   title_cs: string | null
   title_en: string | null
@@ -316,6 +317,7 @@ type RawWorkDetailRow = {
 
 type RawWorkEditRow = {
   id: unknown
+  responsible_editor_id: unknown
   title: unknown
   title_cs: unknown
   title_en: unknown
@@ -1416,6 +1418,7 @@ export async function getWorkForEditBySlug(
     .from("works")
     .select(`
       id,
+      responsible_editor_id,
       title,
       title_cs,
       title_en,
@@ -1475,6 +1478,8 @@ export async function getWorkForEditBySlug(
 
   const editItem: WorkEditItem = {
     id,
+    responsible_editor_id:
+      row.responsible_editor_id == null ? null : String(row.responsible_editor_id),
     title: String(row.title),
     title_cs: row.title_cs == null ? null : String(row.title_cs),
     title_en: row.title_en == null ? null : String(row.title_en),

@@ -144,6 +144,13 @@ export default async function SubmissionsPage({ searchParams }: PageProps) {
                   {item.title}
                 </h2>
                 <p style={{ whiteSpace: "pre-wrap" }}>{item.description}</p>
+                {item.work_title ? (
+                  <p><strong>Dílo:</strong> {item.work_title}</p>
+                ) : null}
+                <p>
+                  <strong>Příjemce:</strong>{" "}
+                  {item.target_editor_name ?? "Kterýkoli editor"}
+                </p>
                 {item.file_note ? (
                   <p>
                     <strong>Soubor/poznámka:</strong> {item.file_note}

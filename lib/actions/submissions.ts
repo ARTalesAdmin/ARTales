@@ -35,6 +35,8 @@ export async function createSubmission(formData: FormData): Promise<void> {
   const description = String(formData.get("description") ?? "").trim();
   const fileNote = String(formData.get("file_note") ?? "").trim() || null;
   const workId = String(formData.get("work_id") ?? "").trim() || null;
+  const targetEditorUserId =
+    String(formData.get("target_editor_user_id") ?? "").trim() || null;
   const collectionId =
     String(formData.get("collection_id") ?? "").trim() || null;
 
@@ -51,6 +53,7 @@ export async function createSubmission(formData: FormData): Promise<void> {
       description,
       file_note: fileNote,
       work_id: workId,
+      target_editor_user_id: targetEditorUserId,
       collection_id: collectionId,
       status: "submitted",
     })
@@ -95,7 +98,9 @@ export async function reviewSubmission(
       reviewed_by_user_id: profile.id,
       reviewed_at: new Date().toISOString(),
     })
-    .eq("id", submissionId);
+    .eq("id", submissionId)
+    .select("id")
+    .single();
 
   if (error) {
     console.error("Submission review error:", error);

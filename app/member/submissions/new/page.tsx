@@ -1,9 +1,15 @@
 import Link from "next/link";
 import { createSubmission } from "@/lib/actions/submissions";
 import { requireMemberZoneAccess } from "@/lib/guards";
+import { listSubmissionRecipients, listSubmissionWorkOptions } from "@/lib/dbSubmissionOptions";
+import SubmissionRoutingFields from "@/components/submissions/SubmissionRoutingFields";
 
 export default async function NewSubmissionPage() {
   await requireMemberZoneAccess();
+  const [works, recipients] = await Promise.all([
+    listSubmissionWorkOptions(),
+    listSubmissionRecipients(),
+  ]);
 
   return (
     <main style={{ padding: "42px 32px", maxWidth: "860px", margin: "0 auto" }}>
@@ -44,6 +50,8 @@ export default async function NewSubmissionPage() {
           marginTop: "24px",
         }}
       >
+        <SubmissionRoutingFields works={works} recipients={recipients} />
+
         <label>
           <strong>Typ</strong>
           <select
