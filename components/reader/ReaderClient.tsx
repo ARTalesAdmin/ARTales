@@ -15,11 +15,13 @@ import {
   loadReaderNotes,
   loadReaderProgress,
   loadReaderSettings,
+  normalizeReaderProgress,
   saveReaderNotes,
   saveReaderProgress,
   saveReaderSettings,
   type ReaderNote,
   type ReaderNoteColor,
+  type ReaderProgress,
 } from "@/lib/reader/readerStorage";
 import {
   clampReaderFontScale,
@@ -81,6 +83,9 @@ export default function ReaderClient({
   const flowRef = useRef<HTMLDivElement | null>(null);
   const turnTimerRef = useRef<number | null>(null);
   const notesSyncRunRef = useRef(0);
+  const progressSyncRunRef = useRef(0);
+  const progressSignedInRef = useRef(false);
+  const suppressNextProgressSaveRef = useRef(false);
   const dictionary = getPublicDictionary(locale);
   const labels = dictionary.reader;
 
@@ -193,16 +198,7 @@ export default function ReaderClient({
     setPageIndex((current) => getSpreadStartPage(current));
   }, [isSpreadMode]);
 
-  useEffect(() => {
-    if (restoredPagePosition.current) return;
-    if (mode !== "full" || pageCount < 1) return;
-    restoredPagePosition.current = true;
-
-    const saved = loadReaderProgress(slug);
-    if (!saved) {
-      setProgressRestoreReady(true);
-      return;
-    }
+  const restoreProgress = useCallback((saved: ReaderProgress) => {
     const legacyIndex = Math.round((saved.progressPercent / 100) * (pageCount - 1));
     const restoredIndex = Math.max(
       0,
@@ -216,8 +212,76 @@ export default function ReaderClient({
           ?.scrollIntoView({ block: "start" });
       }, 220);
     }
-    setProgressRestoreReady(true);
-  }, [isSpreadMode, mode, pageCount, slug]);
+  }, [isSpreadMode, pageCount]);
+
+  const syncProgress = useCallback(async (restoreWinner: boolean) => {
+    if (mode !== "full" || pageCount < 1) return;
+    const run = ++progressSyncRunRef.current;
+    const local = loadReaderProgress(slug);
+    try {
+      const response = await fetch(`/api/reader/progress?slug=${encodeURIComponent(slug)}`);
+      if (!response.ok) throw new Error("progress unavailable");
+      const payload = await response.json() as { signedIn: boolean; progress: Record<string, unknown> | null };
+      progressSignedInRef.current = payload.signedIn;
+      const remote = payload.progress ? normalizeReaderProgress({
+        slug: String(payload.progress.work_slug),
+        mode: payload.progress.mode === "preview" ? "preview" : "full",
+        progressPercent: Number(payload.progress.progress_percent),
+        scrollY: Number(payload.progress.scroll_y),
+        pageIndex: payload.progress.page_index == null ? undefined : Number(payload.progress.page_index),
+        pageCount: payload.progress.page_count == null ? undefined : Number(payload.progress.page_count),
+        layoutMode: payload.progress.layout_mode as ReaderProgress["layoutMode"],
+        updatedAt: String(payload.progress.updated_at),
+      }, slug) : null;
+      if (run !== progressSyncRunRef.current) return;
+      const localTime = local ? Date.parse(local.updatedAt) : -1;
+      const remoteTime = remote ? Date.parse(remote.updatedAt) : -1;
+      const winner = remoteTime > localTime ? remote : local;
+      if (winner) {
+        saveReaderProgress(winner);
+        if (restoreWinner) {
+          suppressNextProgressSaveRef.current = true;
+          restoreProgress(winner);
+        }
+      }
+      if (payload.signedIn && local && localTime > remoteTime && navigator.onLine) {
+        await fetch("/api/reader/progress", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify(local),
+        });
+      }
+    } catch {
+      if (run !== progressSyncRunRef.current) return;
+      if (local && restoreWinner) {
+        suppressNextProgressSaveRef.current = true;
+        restoreProgress(local);
+      }
+    } finally {
+      if (run === progressSyncRunRef.current && restoreWinner) setProgressRestoreReady(true);
+    }
+  }, [mode, pageCount, restoreProgress, slug]);
+
+  useEffect(() => {
+    if (restoredPagePosition.current || mode !== "full" || pageCount < 1) return;
+    restoredPagePosition.current = true;
+    void syncProgress(true);
+    return () => { progressSyncRunRef.current += 1; };
+  }, [mode, pageCount, syncProgress]);
+
+  useEffect(() => {
+    if (mode !== "full") return;
+    const resync = () => { if (navigator.onLine) void syncProgress(true); };
+    const onVisibilityChange = () => {
+      if (document.visibilityState === "visible") resync();
+    };
+    window.addEventListener("online", resync);
+    document.addEventListener("visibilitychange", onVisibilityChange);
+    return () => {
+      window.removeEventListener("online", resync);
+      document.removeEventListener("visibilitychange", onVisibilityChange);
+    };
+  }, [mode, syncProgress]);
 
   useEffect(() => {
     const nextProgress = getPageProgress(normalizedPageIndex, pageCount);
@@ -225,7 +289,11 @@ export default function ReaderClient({
     // Do not replace a saved position with page one during the initial render.
     // The restore effect above first reads and applies the existing record.
     if (mode === "full" && progressRestoreReady) {
-      saveReaderProgress({
+      if (suppressNextProgressSaveRef.current) {
+        suppressNextProgressSaveRef.current = false;
+        return;
+      }
+      const progress: ReaderProgress = {
         slug,
         mode,
         scrollY: normalizedPageIndex,
@@ -234,7 +302,15 @@ export default function ReaderClient({
         progressPercent: nextProgress,
         layoutMode: settings.layoutMode,
         updatedAt: new Date().toISOString(),
-      });
+      };
+      saveReaderProgress(progress);
+      if (progressSignedInRef.current && navigator.onLine) {
+        void fetch("/api/reader/progress", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify(progress),
+        });
+      }
     }
   }, [
     mode,

@@ -88,9 +88,33 @@ export function saveReaderSettings(settings: ReaderSettings) {
 
 export function loadReaderProgress(slug: string): ReaderProgress | null {
   if (typeof window === "undefined") return null;
-  return safeParse<ReaderProgress>(
+  return normalizeReaderProgress(
     window.localStorage.getItem(getReaderProgressKey(slug)),
+    slug,
   );
+}
+
+export function normalizeReaderProgress(
+  value: string | ReaderProgress | null,
+  slug: string,
+): ReaderProgress | null {
+  const parsed = typeof value === "string" ? safeParse<unknown>(value) : value;
+  if (!parsed || typeof parsed !== "object") return null;
+  const progress = parsed as Partial<ReaderProgress>;
+  const updatedAt = Date.parse(progress.updatedAt ?? "");
+  const validLayout = progress.layoutMode === undefined ||
+    ["pagedFlow", "spread", "scroll", "page"].includes(progress.layoutMode);
+  if (
+    progress.slug !== slug ||
+    (progress.mode !== "preview" && progress.mode !== "full") ||
+    !Number.isFinite(progress.progressPercent) || progress.progressPercent! < 0 ||
+    progress.progressPercent! > 100 || !Number.isFinite(progress.scrollY) ||
+    (progress.pageIndex !== undefined && (!Number.isInteger(progress.pageIndex) || progress.pageIndex < 0)) ||
+    (progress.pageCount !== undefined && (!Number.isInteger(progress.pageCount) || progress.pageCount < 0)) ||
+    !validLayout ||
+    !Number.isFinite(updatedAt)
+  ) return null;
+  return progress as ReaderProgress;
 }
 
 export function saveReaderProgress(progress: ReaderProgress) {
