@@ -16,6 +16,7 @@ import {
   type WorkFormValues,
 } from "@/lib/forms/workForm";
 import { slugify } from "@/lib/slug";
+import { recordWorkEditorialActivity } from "@/lib/editorialActivity";
 
 export const dynamic = "force-dynamic";
 
@@ -333,12 +334,21 @@ export async function POST(request: Request, context: RouteContext) {
     }
   }
 
+  let activityWarning: "editorial_activity_failed" | undefined;
+  try {
+    await recordWorkEditorialActivity(supabase, workId);
+  } catch (activityError) {
+    console.error("Unified work activity recording failed:", activityError);
+    activityWarning = "editorial_activity_failed";
+  }
+
   return NextResponse.json({
     ok: true,
     slug: String(updatedWork.slug),
     deletedCount: changeSet.deletedBlockIds.length,
     updatedCount: changeSet.updatedBlocks.length,
     insertedCount,
+    activityWarning,
     message: "Uloženo.",
   });
 }

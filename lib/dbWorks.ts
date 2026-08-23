@@ -128,6 +128,7 @@ export type MemberWorkListItem = {
   summary_en: string | null
   canonical_language: string
   status: WorkStatus
+  content_changed_at: string | null
   origin_type: WorkOriginType
   author: {
     id: string
@@ -154,13 +155,16 @@ export type MemberWorkSearchResult = {
   title_en: string | null
   slug: string
   status: WorkStatus
-  updated_at: string | null
+  content_changed_at: string | null
   author: {
     name: string
     name_cs: string | null
     name_en: string | null
   } | null
 }
+
+export type MemberWorksMode = "all" | "mine" | "review"
+export type MemberWorksSort = "changed_desc" | "title_asc" | "title_desc"
 
 export type WorkEditItem = {
   id: string
@@ -1122,10 +1126,34 @@ export async function getPublishedWorksByCollectionId(
   })
 }
 
-export async function getWorksForMember(): Promise<MemberWorkListItem[]> {
+export async function getWorksForMember(
+  mode: MemberWorksMode = "all",
+  sort: MemberWorksSort = "changed_desc",
+  profileId?: string,
+): Promise<MemberWorkListItem[]> {
   const supabaseServer = await createClient()
 
-  const { data, error } = await supabaseServer
+  let selectedWorkIds: string[] | null = null
+  if (mode === "mine") {
+    if (!profileId) return []
+    const { data: activity, error: activityError } = await supabaseServer
+      .from("work_editor_activity")
+      .select("work_id")
+      .eq("user_id", profileId)
+    if (activityError) throw new Error(`Failed to load editor activity: ${activityError.message}`)
+    selectedWorkIds = (activity ?? []).map(({ work_id }) => String(work_id))
+  } else if (mode === "review") {
+    const { data: reviewWorks, error: reviewError } = await supabaseServer
+      .from("works")
+      .select("id")
+      .or("status.eq.review,submitted_for_review_at.not.is.null")
+    if (reviewError) throw new Error(`Failed to load review works: ${reviewError.message}`)
+    selectedWorkIds = (reviewWorks ?? []).map(({ id }) => String(id))
+  }
+
+  if (selectedWorkIds?.length === 0) return []
+
+  let worksQuery = supabaseServer
     .from("works")
     .select(`
       id,
@@ -1141,6 +1169,7 @@ export async function getWorksForMember(): Promise<MemberWorkListItem[]> {
       summary_en,
       canonical_language,
       status,
+      content_changed_at,
       origin_type,
       cover_image_request,
       cover_image_path,
@@ -1159,14 +1188,17 @@ export async function getWorksForMember(): Promise<MemberWorkListItem[]> {
         slug
       )
     `)
-    .order("title", { ascending: true })
+
+  if (selectedWorkIds) worksQuery = worksQuery.in("id", selectedWorkIds)
+
+  const { data, error } = await worksQuery
 
   if (error) {
     console.error("DB error in getWorksForMember:", error)
     throw new Error(`Failed to load works for member: ${error.message}`)
   }
 
-  return ((data ?? []) as RawGalleryWorkRow[]).map((row) => ({
+  const works = ((data ?? []) as Array<RawGalleryWorkRow & { content_changed_at?: unknown }>).map((row) => ({
     id: String(row.id),
     title: String(row.title),
     title_cs: row.title_cs == null ? null : String(row.title_cs),
@@ -1180,6 +1212,7 @@ export async function getWorksForMember(): Promise<MemberWorkListItem[]> {
     summary_en: row.summary_en == null ? null : String(row.summary_en),
     canonical_language: String(row.canonical_language),
     status: String(row.status) as WorkStatus,
+    content_changed_at: row.content_changed_at == null ? null : String(row.content_changed_at),
     origin_type: String(row.origin_type) as WorkOriginType,
     cover_image_request:
       row.cover_image_request == null ? null : String(row.cover_image_request),
@@ -1212,6 +1245,20 @@ export async function getWorksForMember(): Promise<MemberWorkListItem[]> {
         : null
     })(),
   }))
+
+  const displayTitle = (work: MemberWorkListItem) => work.title_cs || work.title_en || work.title
+  return works.sort((a, b) => {
+    if (sort === "title_asc" || sort === "title_desc") {
+      const comparison = displayTitle(a).localeCompare(displayTitle(b), "cs", { sensitivity: "base" })
+      return (sort === "title_asc" ? comparison : -comparison) || a.id.localeCompare(b.id)
+    }
+    if (a.content_changed_at && b.content_changed_at) {
+      return b.content_changed_at.localeCompare(a.content_changed_at) || a.id.localeCompare(b.id)
+    }
+    if (a.content_changed_at) return -1
+    if (b.content_changed_at) return 1
+    return displayTitle(a).localeCompare(displayTitle(b), "cs", { sensitivity: "base" }) || a.id.localeCompare(b.id)
+  })
 }
 
 const WORK_SEARCH_LIMIT = 10
@@ -1229,11 +1276,28 @@ function workSearchRank(work: MemberWorkSearchResult, normalizedQuery: string) {
 /** Session-scoped, RLS-protected projection for the member works typeahead. */
 export async function searchWorksForMember(
   rawQuery: string,
+  mode: MemberWorksMode = "all",
+  profileId?: string,
 ): Promise<MemberWorkSearchResult[]> {
   const query = rawQuery.trim().slice(0, 100)
   if (query.length < 2) return []
 
   const supabaseServer = await createClient()
+  let selectedWorkIds: string[] | null = null
+  if (mode === "mine") {
+    if (!profileId) return []
+    const { data, error } = await supabaseServer.from("work_editor_activity").select("work_id").eq("user_id", profileId)
+    if (error) throw new Error("Failed to scope member work search")
+    selectedWorkIds = (data ?? []).map(({ work_id }) => String(work_id))
+  } else if (mode === "review") {
+    const { data, error } = await supabaseServer
+      .from("works")
+      .select("id")
+      .or("status.eq.review,submitted_for_review_at.not.is.null")
+    if (error) throw new Error("Failed to scope member work search")
+    selectedWorkIds = (data ?? []).map(({ id }) => String(id))
+  }
+  if (selectedWorkIds?.length === 0) return []
   const projection = `
     id,
     title,
@@ -1241,7 +1305,7 @@ export async function searchWorksForMember(
     title_en,
     slug,
     status,
-    updated_at,
+    content_changed_at,
     authors:primary_author_id (name, name_cs, name_en)
   `
   const pattern = `%${query.replace(/[\\%_]/g, "\\$&")}%`
@@ -1249,14 +1313,14 @@ export async function searchWorksForMember(
 
   const [fieldResponses, authorResponses] = await Promise.all([
     Promise.all(
-      fields.map((field) =>
-        supabaseServer
+      fields.map((field) => {
+        let request = supabaseServer
           .from("works")
           .select(projection)
           .ilike(field, pattern)
-          .order("updated_at", { ascending: false })
-          .limit(WORK_SEARCH_LIMIT),
-      ),
+        if (selectedWorkIds) request = request.in("id", selectedWorkIds)
+        return request.order("content_changed_at", { ascending: false, nullsFirst: false }).limit(WORK_SEARCH_LIMIT)
+      }),
     ),
     Promise.all(
       (["name", "name_cs", "name_en"] as const).map((field) =>
@@ -1280,12 +1344,14 @@ export async function searchWorksForMember(
     authorResponses.flatMap(({ data }) => (data ?? []).map(({ id }) => String(id))),
   )]
   const authorWorksResponse = authorIds.length
-    ? await supabaseServer
+    ? await (() => {
+        let request = supabaseServer
         .from("works")
         .select(projection)
         .in("primary_author_id", authorIds)
-        .order("updated_at", { ascending: false })
-        .limit(WORK_SEARCH_LIMIT)
+        if (selectedWorkIds) request = request.in("id", selectedWorkIds)
+        return request.order("content_changed_at", { ascending: false, nullsFirst: false }).limit(WORK_SEARCH_LIMIT)
+      })()
     : { data: [], error: null }
 
   if (authorWorksResponse.error) {
@@ -1294,7 +1360,11 @@ export async function searchWorksForMember(
   }
 
   const uuidResponse = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(query)
-    ? await supabaseServer.from("works").select(projection).eq("id", query).limit(1)
+    ? await (() => {
+        let request = supabaseServer.from("works").select(projection).eq("id", query)
+        if (selectedWorkIds) request = request.in("id", selectedWorkIds)
+        return request.limit(1)
+      })()
     : { data: [], error: null }
 
   if (uuidResponse.error) {
@@ -1308,7 +1378,7 @@ export async function searchWorksForMember(
     ...(authorWorksResponse.data ?? []),
   ] as unknown as Array<{
     id: unknown; title: unknown; title_cs: unknown; title_en: unknown; slug: unknown
-    status: unknown; updated_at: unknown; authors?: RawRelationAuthor | RawRelationAuthor[]
+    status: unknown; content_changed_at: unknown; authors?: RawRelationAuthor | RawRelationAuthor[]
   }>
 
   const unique = new Map<string, MemberWorkSearchResult>()
@@ -1321,7 +1391,7 @@ export async function searchWorksForMember(
       title_en: row.title_en == null ? null : String(row.title_en),
       slug: String(row.slug),
       status: String(row.status) as WorkStatus,
-      updated_at: row.updated_at == null ? null : String(row.updated_at),
+      content_changed_at: row.content_changed_at == null ? null : String(row.content_changed_at),
       author: author ? {
         name: String(author.name),
         name_cs: author.name_cs == null ? null : String(author.name_cs),
@@ -1333,7 +1403,7 @@ export async function searchWorksForMember(
   const normalizedQuery = query.toLocaleLowerCase()
   return [...unique.values()]
     .sort((a, b) => workSearchRank(a, normalizedQuery) - workSearchRank(b, normalizedQuery)
-      || (Date.parse(b.updated_at ?? "") || 0) - (Date.parse(a.updated_at ?? "") || 0))
+      || (Date.parse(b.content_changed_at ?? "") || 0) - (Date.parse(a.content_changed_at ?? "") || 0))
     .slice(0, WORK_SEARCH_LIMIT)
 }
 

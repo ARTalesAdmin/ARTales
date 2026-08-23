@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getCurrentProfile } from "@/lib/auth";
 import { canEditContent } from "@/lib/permissions";
 import { createClient } from "@/lib/supabase/server";
+import { recordWorkEditorialActivity } from "@/lib/editorialActivity";
 import { sanitizeWorkBlocks, validateWorkBlocks } from "@/lib/blocks";
 
 export const dynamic = "force-dynamic";
@@ -112,10 +113,19 @@ export async function POST(request: Request, context: RouteContext) {
     return toErrorResponse(insertError.message || "Smazání bloků se nepodařilo uložit.", 500);
   }
 
+  let activityWarning: "editorial_activity_failed" | undefined;
+  try {
+    await recordWorkEditorialActivity(supabase, String(work.id));
+  } catch (activityError) {
+    console.error("Large work delete activity recording failed:", activityError);
+    activityWarning = "editorial_activity_failed";
+  }
+
   return NextResponse.json({
     ok: true,
     deletedCount: blockIds.length,
     changedCount: changedBlocks.length,
+    activityWarning,
     message:
       changedBlocks.length > 0
         ? `Uloženo smazání ${blockIds.length} bloků a úprava ${changedBlocks.length} ponechaných bloků. Po obnovení stránky bude editor i čtečka načítat novou verzi.`
