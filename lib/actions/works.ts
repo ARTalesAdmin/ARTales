@@ -192,13 +192,18 @@ export async function createWork(formData: FormData): Promise<void> {
       values.collection_id
     )
     await syncWorkTags(supabase, profile.id, String(data.id), values.tag_ids)
-    await recordWorkEditorialActivity(supabase, String(data.id))
   } catch (relationError) {
     redirect(
       `/member/works/${payload.slug}/edit?error=save_failed&db_error=${encodeDbError(
         relationError instanceof Error ? relationError.message : "relation_sync_failed"
       )}`
     )
+  }
+
+  try {
+    await recordWorkEditorialActivity(supabase, String(data.id))
+  } catch (activityError) {
+    console.error("Work creation activity recording failed:", activityError)
   }
 
   redirect(`/member/works/${payload.slug}/edit?success=work_created`)
@@ -295,13 +300,18 @@ export async function updateWork(
       values.collection_id
     )
     await syncWorkTags(supabase, profile.id, String(data.id), values.tag_ids)
-    await recordWorkEditorialActivity(supabase, String(data.id))
   } catch (relationError) {
     redirect(
       `/member/works/${originalSlug}/edit?error=save_failed&db_error=${encodeDbError(
         relationError instanceof Error ? relationError.message : "relation_sync_failed"
       )}`
     )
+  }
+
+  try {
+    await recordWorkEditorialActivity(supabase, String(data.id))
+  } catch (activityError) {
+    console.error("Work update activity recording failed:", activityError)
   }
 
   redirect(`/member/works/${payload.slug}/edit?success=work_updated`)

@@ -113,17 +113,19 @@ export async function POST(request: Request, context: RouteContext) {
     return toErrorResponse(insertError.message || "Smazání bloků se nepodařilo uložit.", 500);
   }
 
+  let activityWarning: "editorial_activity_failed" | undefined;
   try {
     await recordWorkEditorialActivity(supabase, String(work.id));
   } catch (activityError) {
     console.error("Large work delete activity recording failed:", activityError);
-    return toErrorResponse("Změny byly uloženy, ale redakční aktivitu se nepodařilo zaznamenat.", 500);
+    activityWarning = "editorial_activity_failed";
   }
 
   return NextResponse.json({
     ok: true,
     deletedCount: blockIds.length,
     changedCount: changedBlocks.length,
+    activityWarning,
     message:
       changedBlocks.length > 0
         ? `Uloženo smazání ${blockIds.length} bloků a úprava ${changedBlocks.length} ponechaných bloků. Po obnovení stránky bude editor i čtečka načítat novou verzi.`

@@ -1146,7 +1146,7 @@ export async function getWorksForMember(
     const { data: reviewWorks, error: reviewError } = await supabaseServer
       .from("works")
       .select("id")
-      .eq("status", "review")
+      .or("status.eq.review,submitted_for_review_at.not.is.null")
     if (reviewError) throw new Error(`Failed to load review works: ${reviewError.message}`)
     selectedWorkIds = (reviewWorks ?? []).map(({ id }) => String(id))
   }
@@ -1290,7 +1290,10 @@ export async function searchWorksForMember(
     if (error) throw new Error("Failed to scope member work search")
     selectedWorkIds = (data ?? []).map(({ work_id }) => String(work_id))
   } else if (mode === "review") {
-    const { data, error } = await supabaseServer.from("works").select("id").eq("status", "review")
+    const { data, error } = await supabaseServer
+      .from("works")
+      .select("id")
+      .or("status.eq.review,submitted_for_review_at.not.is.null")
     if (error) throw new Error("Failed to scope member work search")
     selectedWorkIds = (data ?? []).map(({ id }) => String(id))
   }

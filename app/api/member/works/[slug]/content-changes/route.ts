@@ -334,11 +334,12 @@ export async function POST(request: Request, context: RouteContext) {
     }
   }
 
+  let activityWarning: "editorial_activity_failed" | undefined;
   try {
     await recordWorkEditorialActivity(supabase, workId);
   } catch (activityError) {
     console.error("Unified work activity recording failed:", activityError);
-    return toErrorResponse("Změny byly uloženy, ale redakční aktivitu se nepodařilo zaznamenat.", 500);
+    activityWarning = "editorial_activity_failed";
   }
 
   return NextResponse.json({
@@ -347,6 +348,7 @@ export async function POST(request: Request, context: RouteContext) {
     deletedCount: changeSet.deletedBlockIds.length,
     updatedCount: changeSet.updatedBlocks.length,
     insertedCount,
+    activityWarning,
     message: "Uloženo.",
   });
 }

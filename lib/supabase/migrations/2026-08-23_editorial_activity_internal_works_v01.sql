@@ -22,6 +22,7 @@ create index if not exists work_editor_activity_user_last_idx
 
 alter table public.work_editor_activity enable row level security;
 
+drop policy if exists "Editors can read editorial activity" on public.work_editor_activity;
 create policy "Editors can read editorial activity"
 on public.work_editor_activity for select to authenticated
 using (exists (
@@ -29,6 +30,7 @@ using (exists (
   where p.id = auth.uid() and p.is_active = true and p.role in ('admin', 'editor')
 ));
 
+drop policy if exists "Editors can insert own editorial activity" on public.work_editor_activity;
 create policy "Editors can insert own editorial activity"
 on public.work_editor_activity for insert to authenticated
 with check (
@@ -38,6 +40,7 @@ with check (
   )
 );
 
+drop policy if exists "Editors can update own editorial activity" on public.work_editor_activity;
 create policy "Editors can update own editorial activity"
 on public.work_editor_activity for update to authenticated
 using (user_id = auth.uid())
