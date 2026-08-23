@@ -11,6 +11,7 @@ import {
   mapWorkFormValuesToInsertPayload,
   mapWorkFormValuesToUpdatePayload,
 } from "@/lib/forms/workForm"
+import { recordWorkEditorialActivity } from "@/lib/editorialActivity"
 
 type SupabaseClient = Awaited<ReturnType<typeof createClient>>
 
@@ -199,6 +200,12 @@ export async function createWork(formData: FormData): Promise<void> {
     )
   }
 
+  try {
+    await recordWorkEditorialActivity(supabase, String(data.id))
+  } catch (activityError) {
+    console.error("Work creation activity recording failed:", activityError)
+  }
+
   redirect(`/member/works/${payload.slug}/edit?success=work_created`)
 }
 
@@ -299,6 +306,12 @@ export async function updateWork(
         relationError instanceof Error ? relationError.message : "relation_sync_failed"
       )}`
     )
+  }
+
+  try {
+    await recordWorkEditorialActivity(supabase, String(data.id))
+  } catch (activityError) {
+    console.error("Work update activity recording failed:", activityError)
   }
 
   redirect(`/member/works/${payload.slug}/edit?success=work_updated`)

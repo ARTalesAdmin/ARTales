@@ -9,6 +9,12 @@ export const csMember = {
   newAuthor: "Nový autor",
   newCollection: "Nová kolekce",
   publicGallery: "Veřejná galerie",
+  worksList: {
+    modes: { all: "Všechna díla", mine: "Moje díla", review: "Ke kontrole" },
+    sorts: { changed_desc: "Poslední změna", title_asc: "A–Z", title_desc: "Z–A" },
+    changedAt: "Naposledy změněno",
+    noRecordedChange: "Zatím bez záznamu redakční změny",
+  },
   worksQuickNavigation: {
     label: "Rychlé hledání díla",
     placeholder: "Hledat podle názvu, autora nebo slug…",

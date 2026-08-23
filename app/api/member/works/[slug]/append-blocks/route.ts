@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getCurrentProfile } from "@/lib/auth";
 import { canEditContent } from "@/lib/permissions";
 import { createClient } from "@/lib/supabase/server";
+import { recordWorkEditorialActivity } from "@/lib/editorialActivity";
 import {
   sanitizeWorkBlocks,
   validateWorkBlocks,
@@ -109,11 +110,20 @@ export async function POST(request: Request, context: RouteContext) {
     return toErrorResponse(insertError.message || "Nové bloky se nepodařilo uložit.", 500);
   }
 
+  let activityWarning: "editorial_activity_failed" | undefined;
+  try {
+    await recordWorkEditorialActivity(supabase, String(work.id));
+  } catch (activityError) {
+    console.error("Large work append activity recording failed:", activityError);
+    activityWarning = "editorial_activity_failed";
+  }
+
   return NextResponse.json({
     ok: true,
     appendedCount: appendedBlocks.length,
     skippedCount: 0,
     stagedOnly: true,
+    activityWarning,
     message: `Uloženo ${appendedBlocks.length} nových bloků do dávkové vrstvy. Po obnovení stránky budou součástí editoru.`,
   });
 }

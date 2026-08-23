@@ -2,7 +2,7 @@
 
 import Link from "next/link"
 import { useEffect, useId, useRef, useState } from "react"
-import type { MemberWorkSearchResult, WorkStatus } from "@/lib/dbWorks"
+import type { MemberWorkSearchResult, MemberWorksMode, WorkStatus } from "@/lib/dbWorks"
 
 type Copy = {
   label: string
@@ -16,7 +16,7 @@ type Copy = {
   statuses: Record<WorkStatus, string>
 }
 
-export function WorksQuickNavigation({ copy }: { copy: Copy }) {
+export function WorksQuickNavigation({ copy, mode }: { copy: Copy; mode: MemberWorksMode }) {
   const listboxId = useId()
   const requestNumber = useRef(0)
   const [query, setQuery] = useState("")
@@ -43,7 +43,7 @@ export function WorksQuickNavigation({ copy }: { copy: Copy }) {
       setFailed(false)
       setOpen(true)
       try {
-        const response = await fetch(`/member/works/search?q=${encodeURIComponent(normalized)}`, {
+        const response = await fetch(`/member/works/search?q=${encodeURIComponent(normalized)}&mode=${mode}`, {
           cache: "no-store",
           signal: controller.signal,
         })
@@ -65,7 +65,7 @@ export function WorksQuickNavigation({ copy }: { copy: Copy }) {
       window.clearTimeout(timer)
       controller.abort()
     }
-  }, [query])
+  }, [mode, query])
 
   function openActiveResult() {
     const result = results[activeIndex]
@@ -132,7 +132,7 @@ export function WorksQuickNavigation({ copy }: { copy: Copy }) {
               <span style={{ display: "block", fontSize: "14px", opacity: 0.78 }}>
                 {[work.author?.name_cs ?? work.author?.name_en ?? work.author?.name, copy.statuses[work.status], `/${work.slug}`].filter(Boolean).join(" · ")}
               </span>
-              {work.updated_at ? <span style={{ display: "block", fontSize: "13px", opacity: 0.65 }}>{copy.updated} {new Intl.DateTimeFormat("cs-CZ").format(new Date(work.updated_at))}</span> : null}
+              {work.content_changed_at ? <span style={{ display: "block", fontSize: "13px", opacity: 0.65 }}>{copy.updated} {new Intl.DateTimeFormat("cs-CZ", { dateStyle: "short", timeStyle: "short" }).format(new Date(work.content_changed_at))}</span> : null}
             </Link>
           )) : null}
         </div>

@@ -1,15 +1,22 @@
 import Link from "next/link";
 import { requireEditorOrAdmin } from "@/lib/guards";
-import { getWorksForMember } from "@/lib/dbWorks";
+import { getWorksForMember, type MemberWorksMode, type MemberWorksSort } from "@/lib/dbWorks";
 import { getLanguageLabel } from "@/lib/dictionaries/language";
 import { getStatusLabel } from "@/lib/dictionaries/status";
 import { WorksQuickNavigation } from "@/components/member/WorksQuickNavigation";
 import { csMember } from "@/lib/i18n/dictionaries/cs/member";
 
-export default async function MemberWorksPage() {
-  await requireEditorOrAdmin();
+type PageProps = { searchParams: Promise<{ mode?: string; sort?: string }> };
 
-  const works = await getWorksForMember();
+export default async function MemberWorksPage({ searchParams }: PageProps) {
+  const profile = await requireEditorOrAdmin();
+  const params = await searchParams;
+  const mode: MemberWorksMode = params.mode === "mine" || params.mode === "review" ? params.mode : "all";
+  const sort: MemberWorksSort = params.sort === "title_asc" || params.sort === "title_desc" ? params.sort : "changed_desc";
+
+  const works = await getWorksForMember(mode, sort, profile.id);
+  const modeLabels: Record<MemberWorksMode, string> = csMember.worksList.modes;
+  const sortLabels: Record<MemberWorksSort, string> = csMember.worksList.sorts;
 
   return (
     <main
@@ -69,13 +76,30 @@ export default async function MemberWorksPage() {
           </Link>
         </div>
 
-        <WorksQuickNavigation copy={csMember.worksQuickNavigation} />
+        <nav aria-label="Režim seznamu děl" style={{ display: "flex", gap: "10px", flexWrap: "wrap", marginTop: "24px" }}>
+          {(Object.keys(modeLabels) as MemberWorksMode[]).map((value) => (
+            <Link key={value} href={`/member/works?mode=${value}&sort=${sort}`} aria-current={mode === value ? "page" : undefined} style={{ fontWeight: mode === value ? 700 : 400 }}>
+              {modeLabels[value]}
+            </Link>
+          ))}
+        </nav>
+
+        <form method="get" style={{ marginTop: "18px", display: "flex", gap: "10px", alignItems: "center" }}>
+          <input type="hidden" name="mode" value={mode} />
+          <label htmlFor="works-sort">Řazení:</label>
+          <select id="works-sort" name="sort" defaultValue={sort}>
+            {(Object.keys(sortLabels) as MemberWorksSort[]).map((value) => <option key={value} value={value}>{sortLabels[value]}</option>)}
+          </select>
+          <button type="submit">Seřadit</button>
+        </form>
+
+        <WorksQuickNavigation copy={csMember.worksQuickNavigation} mode={mode} />
       </section>
 
       <hr style={{ margin: "24px 0 32px 0" }} />
 
       {works.length === 0 ? (
-        <p>Zatím neexistují žádná díla.</p>
+        <p>{mode === "mine" ? "Zatím tu nejsou díla s tvou zaznamenanou redakční změnou." : mode === "review" ? "Žádná díla nyní nečekají na kontrolu." : "Zatím neexistují žádná díla."}</p>
       ) : (
         <div
           style={{
@@ -113,7 +137,7 @@ export default async function MemberWorksPage() {
                       lineHeight: 1.15,
                     }}
                   >
-                    {work.title}
+                    {work.title_cs || work.title_en || work.title}
                   </h2>
 
                   {work.subtitle ? (
@@ -141,6 +165,13 @@ export default async function MemberWorksPage() {
                       <strong>Kolekce:</strong> {work.collection.title}
                     </p>
                   ) : null}
+
+                  <p style={{ margin: "8px 0 0" }}>
+                    <strong>{csMember.worksList.changedAt}:</strong>{" "}
+                    {work.content_changed_at
+                      ? new Intl.DateTimeFormat("cs-CZ", { dateStyle: "medium", timeStyle: "short", timeZone: "Europe/Prague" }).format(new Date(work.content_changed_at))
+                      : csMember.worksList.noRecordedChange}
+                  </p>
                 </div>
 
                 <div

@@ -9,6 +9,12 @@ export const enMember = {
   newAuthor: "New author",
   newCollection: "New collection",
   publicGallery: "Public Gallery",
+  worksList: {
+    modes: { all: "All works", mine: "My works", review: "For review" },
+    sorts: { changed_desc: "Last changed", title_asc: "A–Z", title_desc: "Z–A" },
+    changedAt: "Last changed",
+    noRecordedChange: "No editorial change recorded yet",
+  },
   worksQuickNavigation: {
     label: "Quick work search",
     placeholder: "Search by title, author, or slug…",
