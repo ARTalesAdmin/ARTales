@@ -698,8 +698,17 @@
 
 .artales-reader--layout-spread
   .artales-work-content
+  .artales-table-scroll--scroll
+  .artales-table {
+  table-layout: fixed;
+  width: 100%;
+}
+
+.artales-reader--layout-spread
+  .artales-work-content
   .artales-table
   :is(th, td) {
+  overflow-wrap: anywhere;
   padding: 0.48rem 0.52rem;
 }
 
