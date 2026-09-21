@@ -441,14 +441,21 @@
 .artales-table-scroll {
   border: 1px solid var(--artales-border);
   border-radius: 16px;
-  overflow: visible;
   max-width: 100%;
+  overflow-x: auto;
+  overflow-y: visible;
+  -webkit-overflow-scrolling: touch;
 }
 
 .artales-table {
   border-collapse: collapse;
   table-layout: fixed;
   width: 100%;
+}
+
+.artales-table-scroll--scroll .artales-table {
+  min-width: max(100%, 34rem);
+  table-layout: auto;
 }
 
 .artales-table caption {
@@ -523,16 +530,6 @@
 
 
 @media (max-width: 640px) {
-  .artales-table-scroll--scroll {
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
-  }
-
-  .artales-table-scroll--scroll .artales-table {
-    min-width: 34rem;
-    table-layout: auto;
-  }
-
   .artales-table-scroll--scroll .artales-table th,
   .artales-table-scroll--scroll .artales-table td {
     min-width: 8.5rem;
