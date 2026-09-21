@@ -1026,6 +1026,15 @@
   width: 100%;
 }
 
+.artales-reader__spread--measurement {
+  left: -200vw;
+  pointer-events: none;
+  position: fixed;
+  top: 0;
+  visibility: hidden;
+  z-index: -1;
+}
+
 .artales-reader--layout-spread .artales-reader__paper--paged {
   aspect-ratio: 1 / 1.414;
   max-width: none;
