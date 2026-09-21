@@ -690,6 +690,19 @@
   overflow-wrap: break-word;
 }
 
+.artales-reader--layout-spread
+  .artales-work-content
+  .artales-table {
+  font-size: 0.94em;
+}
+
+.artales-reader--layout-spread
+  .artales-work-content
+  .artales-table
+  :is(th, td) {
+  padding: 0.48rem 0.52rem;
+}
+
 .artales-reader__preview-note,
 .artales-reader__preview-cta {
   color: var(--reader-paper-muted);
