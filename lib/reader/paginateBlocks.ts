@@ -10,6 +10,15 @@ export type ReaderPage = {
   estimatedWeight: number;
 };
 
+export type TableBlockMeasurement = {
+  availableHeight: number;
+  firstChromeHeight: number;
+  continuationChromeHeight: number;
+  rowHeights: number[];
+};
+
+export type TableBlockMeasurements = Record<string, TableBlockMeasurement>;
+
 const PAGE_BREAK_BLOCKS = new Set<WorkBlock["type"]>(["book_part", "chapter"]);
 const KEEP_TOGETHER_BLOCKS = new Set<WorkBlock["type"]>([
   "headline",
@@ -198,13 +207,92 @@ function getTableRowWeight(row: string[]) {
   return Math.max(90, textLength * 0.72 + longestCell * 0.18 + 42);
 }
 
+function buildTableFragments(
+  block: WorkBlock,
+  rows: string[][][],
+): WorkBlock[] {
+  const fields = normalizeTableBlockFields(block.fields);
+  if (rows.length <= 1) return [block];
+
+  return rows.map((chunkRows, index) => {
+    const fragmentFields = {
+      ...fields,
+      rows: chunkRows,
+      caption: index === 0 ? fields.caption : "",
+    };
+
+    return {
+      ...block,
+      id: `${block.id || block.type}-table-page-${index}`,
+      content: getTableBlockPlainText(fragmentFields),
+      fields: fragmentFields,
+    };
+  });
+}
+
+function splitTableBlockMeasured(
+  block: WorkBlock,
+  measurement: TableBlockMeasurement,
+): WorkBlock[] {
+  const fields = normalizeTableBlockFields(block.fields);
+  if (
+    fields.rows.length <= 1 ||
+    measurement.rowHeights.length !== fields.rows.length ||
+    measurement.availableHeight <= 0
+  ) {
+    return [block];
+  }
+
+  const safeHeight = Math.max(0, measurement.availableHeight - 6);
+  const rowChunks: string[][][] = [];
+  let currentRows: string[][] = [];
+  let currentHeight = measurement.firstChromeHeight;
+
+  fields.rows.forEach((row, index) => {
+    const rowHeight = Math.max(0, measurement.rowHeights[index] ?? 0);
+    const chromeHeight =
+      rowChunks.length === 0
+        ? measurement.firstChromeHeight
+        : measurement.continuationChromeHeight;
+
+    if (
+      currentRows.length > 0 &&
+      currentHeight + rowHeight > safeHeight
+    ) {
+      rowChunks.push(currentRows);
+      currentRows = [];
+      currentHeight = measurement.continuationChromeHeight;
+    }
+
+    if (currentRows.length === 0) {
+      currentHeight =
+        rowChunks.length === 0 ? measurement.firstChromeHeight : chromeHeight;
+    }
+
+    currentRows.push(row);
+    currentHeight += rowHeight;
+  });
+
+  if (currentRows.length > 0) rowChunks.push(currentRows);
+  return buildTableFragments(block, rowChunks);
+}
+
 function splitTableBlock(
   block: WorkBlock,
   budget: number,
   settings: ReaderSettings,
+  tableMeasurements: TableBlockMeasurements,
 ): WorkBlock[] {
   const fields = normalizeTableBlockFields(block.fields);
   if (fields.rows.length <= 1) return [block];
+
+  const measured = tableMeasurements[block.id];
+  if (measured) {
+    const measuredFragments = splitTableBlockMeasured(block, measured);
+    if (measuredFragments.length > 1 || measured.rowHeights.length === fields.rows.length) {
+      return measuredFragments;
+    }
+  }
 
   const headerWeight =
     (fields.headers?.reduce((sum, cell) => sum + cell.trim().length, 0) ?? 0) +
@@ -234,30 +322,18 @@ function splitTableBlock(
   }
 
   if (currentRows.length > 0) rowChunks.push(currentRows);
-  if (rowChunks.length <= 1) return [block];
-
-  return rowChunks.map((rows, index) => {
-    const fragmentFields = {
-      ...fields,
-      rows,
-      caption: index === 0 ? fields.caption : "",
-    };
-
-    return {
-      ...block,
-      id: `${block.id || block.type}-table-page-${index}`,
-      content: getTableBlockPlainText(fragmentFields),
-      fields: fragmentFields,
-    };
-  });
+  return buildTableFragments(block, rowChunks);
 }
 
 function splitBlock(
   block: WorkBlock,
   budget: number,
   settings: ReaderSettings,
+  tableMeasurements: TableBlockMeasurements,
 ): WorkBlock[] {
-  if (block.type === "table") return splitTableBlock(block, budget, settings);
+  if (block.type === "table") {
+    return splitTableBlock(block, budget, settings, tableMeasurements);
+  }
 
   const text = getBlockText(block);
   if (!text || KEEP_TOGETHER_BLOCKS.has(block.type)) return [block];
@@ -362,12 +438,13 @@ function pushPage(
 export function paginateReaderBlocks(
   blocks: WorkBlock[],
   settings: ReaderSettings,
+  tableMeasurements: TableBlockMeasurements = {},
 ): ReaderPage[] {
   const budget = getPageBudget(settings);
   const softBudget = Math.round(budget * 0.9);
   const maxBudget = Math.round(budget * 1.08);
   const splitBlocks = blocks.flatMap((block) =>
-    splitBlock(block, budget, settings),
+    splitBlock(block, budget, settings, tableMeasurements),
   );
   const pages: ReaderPage[] = [];
   let currentBlocks: WorkBlock[] = [];
