@@ -211,7 +211,7 @@ function splitTableBlock(
     (fields.caption?.trim().length ?? 0) +
     180;
   const tableBudgetMultiplier =
-    settings.layoutMode === "spread" ? 0.54 : 0.72;
+    settings.layoutMode === "spread" ? 0.63 : 0.72;
   const rowBudget = Math.max(
     360,
     Math.round(budget * tableBudgetMultiplier) - headerWeight,
