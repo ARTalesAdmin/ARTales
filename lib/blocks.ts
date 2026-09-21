@@ -31,10 +31,18 @@ export type TableBlockFields = {
   first_column_header?: boolean;
   alignment?: TableBlockAlignment[];
   responsive_mode?: TableBlockResponsiveMode;
+  column_widths?: number[];
 };
 
 export type WorkBlockFieldValue =
-  string | string[] | string[][] | boolean | number | null | undefined;
+  | string
+  | string[]
+  | string[][]
+  | number[]
+  | boolean
+  | number
+  | null
+  | undefined;
 
 export type WorkBlockFields = Record<string, WorkBlockFieldValue>;
 
@@ -299,6 +307,12 @@ export function normalizeTableBlockFields(value: unknown): TableBlockFields {
   const alignment = rawAlignment?.map((item) =>
     item === "center" || item === "right" ? item : "left",
   ) as TableBlockAlignment[] | undefined;
+  const columnCount = headers?.length || rows[0]?.length || 0;
+  const columnWidths = Array.isArray(raw.column_widths)
+    ? raw.column_widths
+        .map((item) => Number(item))
+        .filter((item) => Number.isFinite(item) && item > 0)
+    : undefined;
 
   return {
     ...(headers && headers.length > 0 ? { headers } : {}),
@@ -308,6 +322,9 @@ export function normalizeTableBlockFields(value: unknown): TableBlockFields {
       raw.first_column_header === true || raw.first_column_header === "true",
     ...(alignment && alignment.length > 0 ? { alignment } : {}),
     responsive_mode: responsiveMode,
+    ...(columnWidths && columnWidths.length === columnCount
+      ? { column_widths: columnWidths }
+      : {}),
   };
 }
 
@@ -345,6 +362,153 @@ export function getTableBlockPlainText(fields: TableBlockFields): string {
     lines.push(fields.headers.join(" | "));
   for (const row of fields.rows) lines.push(row.join(" | "));
   return lines.join("\n");
+}
+
+function getTableCellWidthScore(value: string) {
+  const text = value
+    .replace(/<\/?(?:em|i)>/gi, "")
+    .replace(/\s+/g, " ")
+    .trim();
+  if (!text) return 0;
+
+  const words = text.split(" ").filter(Boolean);
+  const longestWord = words.reduce(
+    (longest, word) => Math.max(longest, word.length),
+    0,
+  );
+
+  return (
+    Math.sqrt(Math.min(text.length, 180)) +
+    Math.sqrt(Math.min(longestWord, 48)) * 0.8
+  );
+}
+
+function getTableScorePercentile(values: number[], percentile: number) {
+  if (values.length === 0) return 0;
+  const sorted = [...values].sort((a, b) => a - b);
+  const index = Math.min(
+    sorted.length - 1,
+    Math.max(0, Math.floor((sorted.length - 1) * percentile)),
+  );
+  return sorted[index];
+}
+
+function normalizeTableWidthPercentages(
+  values: number[],
+  columnCount: number,
+): number[] | null {
+  if (
+    values.length !== columnCount ||
+    values.some((value) => !Number.isFinite(value) || value <= 0)
+  ) {
+    return null;
+  }
+
+  const total = values.reduce((sum, value) => sum + value, 0);
+  if (total <= 0) return null;
+
+  const result = values.map((value) =>
+    Number(((value / total) * 100).toFixed(1)),
+  );
+  const roundedTotal = result.reduce((sum, value) => sum + value, 0);
+  result[result.length - 1] = Number(
+    (result[result.length - 1] + 100 - roundedTotal).toFixed(1),
+  );
+  return result;
+}
+
+export function getAdaptiveTableColumnWidths(
+  fields: TableBlockFields,
+): number[] {
+  const columnCount = getTableColumnCount(fields);
+  if (columnCount <= 0) return [];
+  if (columnCount === 1) return [100];
+
+  const explicitWidths = normalizeTableWidthPercentages(
+    fields.column_widths ?? [],
+    columnCount,
+  );
+  if (explicitWidths) return explicitWidths;
+
+  const scores = Array.from({ length: columnCount }, (_, columnIndex) => {
+    const bodyScores = fields.rows
+      .map((row) => getTableCellWidthScore(row[columnIndex] ?? ""))
+      .filter((score) => score > 0);
+    const average =
+      bodyScores.length > 0
+        ? bodyScores.reduce((sum, score) => sum + score, 0) /
+          bodyScores.length
+        : 0;
+    const upperQuartile = getTableScorePercentile(bodyScores, 0.75);
+    const headerScore = getTableCellWidthScore(
+      fields.headers?.[columnIndex] ?? "",
+    );
+
+    return Math.max(
+      1,
+      average * 0.55 + upperQuartile * 0.35 + headerScore * 0.35,
+    );
+  });
+
+  const minimumShare =
+    columnCount >= 5
+      ? 0.1
+      : columnCount === 4
+        ? 0.12
+        : columnCount === 3
+          ? 0.15
+          : 0.22;
+  const maximumShare =
+    columnCount >= 5
+      ? 0.5
+      : columnCount === 4
+        ? 0.58
+        : columnCount === 3
+          ? 0.65
+          : 0.78;
+
+  const widths = scores.map((score) => score / scores.reduce((a, b) => a + b, 0));
+
+  // Iteratively clamp extreme columns and redistribute the remaining space.
+  for (let pass = 0; pass < columnCount * 2; pass += 1) {
+    let fixedShare = 0;
+    let flexibleScore = 0;
+    const fixed = new Set<number>();
+
+    widths.forEach((share, index) => {
+      if (share <= minimumShare) {
+        widths[index] = minimumShare;
+        fixedShare += minimumShare;
+        fixed.add(index);
+      } else if (share >= maximumShare) {
+        widths[index] = maximumShare;
+        fixedShare += maximumShare;
+        fixed.add(index);
+      } else {
+        flexibleScore += scores[index];
+      }
+    });
+
+    if (fixed.size === 0 || fixed.size === columnCount) break;
+
+    const remainingShare = Math.max(0, 1 - fixedShare);
+    let changed = false;
+    widths.forEach((_, index) => {
+      if (fixed.has(index)) return;
+      const next =
+        flexibleScore > 0
+          ? (scores[index] / flexibleScore) * remainingShare
+          : remainingShare / (columnCount - fixed.size);
+      if (Math.abs(next - widths[index]) > 0.0001) changed = true;
+      widths[index] = next;
+    });
+    if (!changed) break;
+  }
+
+  return (
+    normalizeTableWidthPercentages(widths, columnCount) ??
+    new Array(columnCount).fill(Number((100 / columnCount).toFixed(1)))
+  );
 }
 
 function normalizeLetterBlock(candidate: Record<string, unknown>): WorkBlock {
