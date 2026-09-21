@@ -195,7 +195,7 @@ function getTableRowWeight(row: string[]) {
     0,
   );
 
-  return Math.max(120, textLength * 1.12 + longestCell * 0.42 + 70);
+  return Math.max(90, textLength * 0.72 + longestCell * 0.18 + 42);
 }
 
 function splitTableBlock(block: WorkBlock, budget: number): WorkBlock[] {
@@ -228,7 +228,11 @@ function splitTableBlock(block: WorkBlock, budget: number): WorkBlock[] {
   if (rowChunks.length <= 1) return [block];
 
   return rowChunks.map((rows, index) => {
-    const fragmentFields = { ...fields, rows };
+    const fragmentFields = {
+      ...fields,
+      rows,
+      caption: index === 0 ? fields.caption : "",
+    };
 
     return {
       ...block,
