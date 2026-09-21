@@ -1,4 +1,8 @@
-import type { WorkBlock } from "@/lib/blocks";
+import {
+  getTableBlockPlainText,
+  normalizeTableBlockFields,
+  type WorkBlock,
+} from "@/lib/blocks";
 import type { ReaderSettings } from "./readerSettings";
 
 export type ReaderPage = {
@@ -184,7 +188,60 @@ function cloneBlock(
   };
 }
 
+function getTableRowWeight(row: string[]) {
+  const textLength = row.reduce((sum, cell) => sum + cell.trim().length, 0);
+  const longestCell = row.reduce(
+    (longest, cell) => Math.max(longest, cell.trim().length),
+    0,
+  );
+
+  return Math.max(120, textLength * 1.12 + longestCell * 0.42 + 70);
+}
+
+function splitTableBlock(block: WorkBlock, budget: number): WorkBlock[] {
+  const fields = normalizeTableBlockFields(block.fields);
+  if (fields.rows.length <= 1) return [block];
+
+  const headerWeight =
+    (fields.headers?.reduce((sum, cell) => sum + cell.trim().length, 0) ?? 0) +
+    (fields.caption?.trim().length ?? 0) +
+    180;
+  const rowBudget = Math.max(420, Math.round(budget * 0.72) - headerWeight);
+  const rowChunks: string[][][] = [];
+  let currentRows: string[][] = [];
+  let currentWeight = 0;
+
+  for (const row of fields.rows) {
+    const rowWeight = getTableRowWeight(row);
+
+    if (currentRows.length > 0 && currentWeight + rowWeight > rowBudget) {
+      rowChunks.push(currentRows);
+      currentRows = [];
+      currentWeight = 0;
+    }
+
+    currentRows.push(row);
+    currentWeight += rowWeight;
+  }
+
+  if (currentRows.length > 0) rowChunks.push(currentRows);
+  if (rowChunks.length <= 1) return [block];
+
+  return rowChunks.map((rows, index) => {
+    const fragmentFields = { ...fields, rows };
+
+    return {
+      ...block,
+      id: `${block.id || block.type}-table-page-${index}`,
+      content: getTableBlockPlainText(fragmentFields),
+      fields: fragmentFields,
+    };
+  });
+}
+
 function splitBlock(block: WorkBlock, budget: number): WorkBlock[] {
+  if (block.type === "table") return splitTableBlock(block, budget);
+
   const text = getBlockText(block);
   if (!text || KEEP_TOGETHER_BLOCKS.has(block.type)) return [block];
 
@@ -245,6 +302,14 @@ function getBlockWeight(block: WorkBlock) {
       return 280;
     case "image":
       return 920;
+    case "table": {
+      const fields = normalizeTableBlockFields(block.fields);
+      const rowsWeight = fields.rows.reduce(
+        (sum, row) => sum + getTableRowWeight(row),
+        0,
+      );
+      return rowsWeight + 220;
+    }
     case "note":
     case "footnote":
       return base * 1.26 + 120;
@@ -291,6 +356,14 @@ export function paginateReaderBlocks(
 
   for (const block of splitBlocks) {
     const weight = getBlockWeight(block);
+
+    if (block.type === "table") {
+      pushPage(pages, currentBlocks, currentWeight);
+      pushPage(pages, [block], weight);
+      currentBlocks = [];
+      currentWeight = 0;
+      continue;
+    }
     const nextWouldOverflow = currentBlocks.length > 0 && currentWeight + weight > maxBudget;
     const shouldStartNewPage =
       currentBlocks.length > 0 &&
