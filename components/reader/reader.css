@@ -682,12 +682,12 @@
 .artales-reader--layout-pagedFlow
   .artales-work-content
   .artales-table
-  :is(th, td),
+  :is(caption, th, td),
 .artales-reader--layout-spread
   .artales-work-content
   .artales-table
-  :is(th, td) {
-  overflow-wrap: break-word;
+  :is(caption, th, td) {
+  overflow-wrap: anywhere;
 }
 
 .artales-reader--layout-spread
@@ -1024,6 +1024,15 @@
   max-width: min(1460px, calc(100vw - 44px));
   perspective: 1800px;
   width: 100%;
+}
+
+.artales-reader__spread--measurement {
+  left: -200vw;
+  pointer-events: none;
+  position: fixed;
+  top: 0;
+  visibility: hidden;
+  z-index: -1;
 }
 
 .artales-reader--layout-spread .artales-reader__paper--paged {

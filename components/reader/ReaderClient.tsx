@@ -3,6 +3,7 @@
 import {
   useCallback,
   useEffect,
+  useLayoutEffect,
   useMemo,
   useRef,
   useState,
@@ -29,7 +30,12 @@ import {
   type ReaderThemeId,
   type ReaderWidthId,
 } from "@/lib/reader/readerSettings";
-import { paginateReaderBlocks, type ReaderPage } from "@/lib/reader/paginateBlocks";
+import {
+  paginateReaderBlocks,
+  type ReaderPage,
+  type TableBlockMeasurement,
+  type TableBlockMeasurements,
+} from "@/lib/reader/paginateBlocks";
 import { getPublicDictionary } from "@/lib/i18n/public";
 import type { SupportedLocale } from "@/lib/i18n/config";
 import ReaderToolbar from "./ReaderToolbar";
@@ -54,6 +60,88 @@ function getSpreadStartPage(pageIndex: number) {
   return Math.max(0, pageIndex - (pageIndex % 2));
 }
 
+function getOriginalTableBlockId(blockId: string) {
+  return blockId.replace(/-table-page-\d+$/, "");
+}
+
+function getOuterHeight(element: HTMLElement) {
+  const rect = element.getBoundingClientRect();
+  const style = window.getComputedStyle(element);
+  const marginTop = Number.parseFloat(style.marginTop) || 0;
+  const marginBottom = Number.parseFloat(style.marginBottom) || 0;
+  return rect.height + marginTop + marginBottom;
+}
+
+function roundMeasurement(value: number) {
+  return Math.round(value * 2) / 2;
+}
+
+function collectTableMeasurements(root: HTMLElement): TableBlockMeasurements {
+  const fragments = Array.from(
+    root.querySelectorAll<HTMLElement>("[data-table-block-id]"),
+  );
+  const grouped = new Map<
+    string,
+    {
+      availableHeight: number;
+      fragments: Array<{
+        chromeHeight: number;
+        rowHeights: number[];
+      }>;
+    }
+  >();
+
+  for (const fragment of fragments) {
+    const blockId = fragment.dataset.tableBlockId;
+    if (!blockId) continue;
+
+    const originId = getOriginalTableBlockId(blockId);
+    const pageContent = fragment.closest<HTMLElement>(
+      ".artales-reader__page-content",
+    );
+    if (!pageContent) continue;
+
+    const rowHeights = Array.from(
+      fragment.querySelectorAll<HTMLElement>("tbody tr"),
+    ).map((row) => roundMeasurement(row.getBoundingClientRect().height));
+    const rowsHeight = rowHeights.reduce((sum, height) => sum + height, 0);
+    const chromeHeight = Math.max(
+      0,
+      roundMeasurement(getOuterHeight(fragment) - rowsHeight),
+    );
+    const availableHeight = roundMeasurement(
+      pageContent.getBoundingClientRect().height,
+    );
+
+    const current = grouped.get(originId) ?? {
+      availableHeight,
+      fragments: [],
+    };
+    current.availableHeight = Math.min(
+      current.availableHeight,
+      availableHeight,
+    );
+    current.fragments.push({ chromeHeight, rowHeights });
+    grouped.set(originId, current);
+  }
+
+  const measurements: TableBlockMeasurements = {};
+
+  for (const [blockId, group] of grouped) {
+    const first = group.fragments[0];
+    if (!first) continue;
+    const continuation = group.fragments[1] ?? first;
+
+    measurements[blockId] = {
+      availableHeight: group.availableHeight,
+      firstChromeHeight: first.chromeHeight,
+      continuationChromeHeight: continuation.chromeHeight,
+      rowHeights: group.fragments.flatMap((fragment) => fragment.rowHeights),
+    } satisfies TableBlockMeasurement;
+  }
+
+  return measurements;
+}
 
 export default function ReaderClient({
   slug,
@@ -79,6 +167,10 @@ export default function ReaderClient({
   );
   const restoredPagePosition = useRef(false);
   const flowRef = useRef<HTMLDivElement | null>(null);
+  const spreadMeasurementRef = useRef<HTMLDivElement | null>(null);
+  const tableMeasurementSignatureRef = useRef("");
+  const [tableMeasurements, setTableMeasurements] =
+    useState<TableBlockMeasurements>({});
   const turnTimerRef = useRef<number | null>(null);
   const notesSyncRunRef = useRef(0);
   const dictionary = getPublicDictionary(locale);
@@ -89,8 +181,8 @@ export default function ReaderClient({
   const detailHref = `/work/${slug}`;
   const fullHref = `/reader/${slug}?mode=full`;
   const readerPages = useMemo(
-    () => paginateReaderBlocks(blocks, settings),
-    [blocks, settings],
+    () => paginateReaderBlocks(blocks, settings, tableMeasurements),
+    [blocks, settings, tableMeasurements],
   );
   const pageCount = readerPages.length;
   const normalizedPageIndex = isSpreadMode ? getSpreadStartPage(pageIndex) : pageIndex;
@@ -102,6 +194,55 @@ export default function ReaderClient({
     return a.createdAt.localeCompare(b.createdAt);
   }), [notes]);
   const selectedNoteIndex = sortedNotes.findIndex((note) => note.id === selectedNoteId);
+
+  useEffect(() => {
+    tableMeasurementSignatureRef.current = "";
+    setTableMeasurements({});
+  }, [
+    settings.density,
+    settings.fontScale,
+    settings.layoutMode,
+    settings.width,
+  ]);
+
+  useEffect(() => {
+    let frame = 0;
+    const resetMeasurements = () => {
+      window.cancelAnimationFrame(frame);
+      frame = window.requestAnimationFrame(() => {
+        tableMeasurementSignatureRef.current = "";
+        setTableMeasurements({});
+      });
+    };
+
+    window.addEventListener("resize", resetMeasurements);
+    return () => {
+      window.cancelAnimationFrame(frame);
+      window.removeEventListener("resize", resetMeasurements);
+    };
+  }, []);
+
+  useLayoutEffect(() => {
+    const root = isSpreadMode
+      ? spreadMeasurementRef.current
+      : flowRef.current;
+    if (!root) return;
+
+    const nextMeasurements = collectTableMeasurements(root);
+    if (Object.keys(nextMeasurements).length === 0) return;
+
+    const signature = JSON.stringify(nextMeasurements);
+    if (signature === tableMeasurementSignatureRef.current) return;
+
+    tableMeasurementSignatureRef.current = signature;
+    setTableMeasurements(nextMeasurements);
+  }, [
+    isSpreadMode,
+    readerPages,
+    settings.density,
+    settings.fontScale,
+    settings.width,
+  ]);
 
   useEffect(() => {
     if (!sortedNotes.length) {
@@ -548,6 +689,20 @@ export default function ReaderClient({
         {settings.layoutMode === "pagedFlow" ? (
           <div className="artales-reader__paged-flow" ref={flowRef}>
             {readerPages.map((page, index) => renderPagedPaper(index, page))}
+          </div>
+        ) : null}
+
+        {isSpreadMode ? (
+          <div
+            ref={spreadMeasurementRef}
+            className="artales-reader__spread artales-reader__spread--measurement"
+            aria-hidden="true"
+          >
+            {readerPages.map((page, index) =>
+              page.blocks.some((block) => block.type === "table")
+                ? renderPagedPaper(index, page)
+                : null,
+            )}
           </div>
         ) : null}
 
