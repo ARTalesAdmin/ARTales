@@ -198,7 +198,11 @@ function getTableRowWeight(row: string[]) {
   return Math.max(90, textLength * 0.72 + longestCell * 0.18 + 42);
 }
 
-function splitTableBlock(block: WorkBlock, budget: number): WorkBlock[] {
+function splitTableBlock(
+  block: WorkBlock,
+  budget: number,
+  settings: ReaderSettings,
+): WorkBlock[] {
   const fields = normalizeTableBlockFields(block.fields);
   if (fields.rows.length <= 1) return [block];
 
@@ -206,7 +210,12 @@ function splitTableBlock(block: WorkBlock, budget: number): WorkBlock[] {
     (fields.headers?.reduce((sum, cell) => sum + cell.trim().length, 0) ?? 0) +
     (fields.caption?.trim().length ?? 0) +
     180;
-  const rowBudget = Math.max(420, Math.round(budget * 0.72) - headerWeight);
+  const tableBudgetMultiplier =
+    settings.layoutMode === "spread" ? 0.54 : 0.72;
+  const rowBudget = Math.max(
+    360,
+    Math.round(budget * tableBudgetMultiplier) - headerWeight,
+  );
   const rowChunks: string[][][] = [];
   let currentRows: string[][] = [];
   let currentWeight = 0;
@@ -243,8 +252,12 @@ function splitTableBlock(block: WorkBlock, budget: number): WorkBlock[] {
   });
 }
 
-function splitBlock(block: WorkBlock, budget: number): WorkBlock[] {
-  if (block.type === "table") return splitTableBlock(block, budget);
+function splitBlock(
+  block: WorkBlock,
+  budget: number,
+  settings: ReaderSettings,
+): WorkBlock[] {
+  if (block.type === "table") return splitTableBlock(block, budget, settings);
 
   const text = getBlockText(block);
   if (!text || KEEP_TOGETHER_BLOCKS.has(block.type)) return [block];
@@ -353,7 +366,9 @@ export function paginateReaderBlocks(
   const budget = getPageBudget(settings);
   const softBudget = Math.round(budget * 0.9);
   const maxBudget = Math.round(budget * 1.08);
-  const splitBlocks = blocks.flatMap((block) => splitBlock(block, budget));
+  const splitBlocks = blocks.flatMap((block) =>
+    splitBlock(block, budget, settings),
+  );
   const pages: ReaderPage[] = [];
   let currentBlocks: WorkBlock[] = [];
   let currentWeight = 0;
