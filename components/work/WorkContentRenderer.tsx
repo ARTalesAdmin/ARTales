@@ -157,6 +157,7 @@ function renderTableBlock(block: WorkBlock, key: string) {
       key={key}
       className="artales-block artales-table-figure"
       data-block-type={block.type}
+      data-table-block-id={block.id}
     >
       <div
         className={`artales-table-scroll artales-table-scroll--${fields.responsive_mode ?? "scroll"}`}
