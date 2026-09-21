@@ -675,8 +675,16 @@
   .artales-table-scroll--scroll
   .artales-table {
   min-width: 0;
-  table-layout: auto;
   width: 100%;
+}
+
+.artales-reader--layout-pagedFlow
+  .artales-work-content
+  .artales-table--adaptive,
+.artales-reader--layout-spread
+  .artales-work-content
+  .artales-table--adaptive {
+  table-layout: fixed;
 }
 
 .artales-reader--layout-pagedFlow

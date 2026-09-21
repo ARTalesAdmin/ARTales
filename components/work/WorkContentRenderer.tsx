@@ -1,6 +1,7 @@
 import type { CSSProperties, ReactNode } from "react";
 import type { TableBlockAlignment, WorkBlock } from "@/lib/blocks";
 import {
+  getAdaptiveTableColumnWidths,
   normalizeTableBlockFields,
   validateTableBlockFields,
   WORK_BLOCK_TYPE_META,
@@ -138,6 +139,7 @@ function renderTableBlock(block: WorkBlock, key: string) {
   const fields = normalizeTableBlockFields(block.fields);
   const error = validateTableBlockFields(fields);
   const columnCount = fields.headers?.length || fields.rows[0]?.length || 0;
+  const columnWidths = getAdaptiveTableColumnWidths(fields);
 
   if (error) {
     return (
@@ -165,7 +167,15 @@ function renderTableBlock(block: WorkBlock, key: string) {
         role="region"
         aria-label={fields.caption || "Tabulka"}
       >
-        <table className="artales-table">
+        <table className="artales-table artales-table--adaptive">
+          <colgroup>
+            {columnWidths.map((width, columnIndex) => (
+              <col
+                key={`column-${columnIndex}`}
+                style={{ width: `${width}%` }}
+              />
+            ))}
+          </colgroup>
           {fields.caption ? (
             <caption>{renderInlineRichText(fields.caption)}</caption>
           ) : null}
