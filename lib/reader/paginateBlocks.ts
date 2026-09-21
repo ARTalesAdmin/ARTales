@@ -1,4 +1,5 @@
 import {
+  getAdaptiveTableColumnWidths,
   getTableBlockPlainText,
   normalizeTableBlockFields,
   type WorkBlock,
@@ -212,13 +213,25 @@ function buildTableFragments(
   rows: string[][][],
 ): WorkBlock[] {
   const fields = normalizeTableBlockFields(block.fields);
-  if (rows.length <= 1) return [block];
+  const columnWidths = getAdaptiveTableColumnWidths(fields);
+  if (rows.length <= 1) {
+    return [
+      {
+        ...block,
+        fields: {
+          ...fields,
+          column_widths: columnWidths,
+        },
+      },
+    ];
+  }
 
   return rows.map((chunkRows, index) => {
     const fragmentFields = {
       ...fields,
       rows: chunkRows,
       caption: index === 0 ? fields.caption : "",
+      column_widths: columnWidths,
     };
 
     return {
