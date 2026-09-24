@@ -135,6 +135,19 @@ function getTableCellAlign(
   return value === "center" || value === "right" ? value : "left";
 }
 
+function getTableBodyBackground(
+  fields: ReturnType<typeof normalizeTableBlockFields>,
+  rowIndex: number,
+  columnIndex: number,
+) {
+  return (
+    fields.cell_backgrounds?.[rowIndex]?.[columnIndex] ||
+    fields.row_backgrounds?.[rowIndex] ||
+    fields.column_backgrounds?.[columnIndex] ||
+    undefined
+  );
+}
+
 function renderTableBlock(block: WorkBlock, key: string) {
   const fields = normalizeTableBlockFields(block.fields);
   const error = validateTableBlockFields(fields);
@@ -162,12 +175,29 @@ function renderTableBlock(block: WorkBlock, key: string) {
       data-table-block-id={block.id}
     >
       <div
-        className={`artales-table-scroll artales-table-scroll--${fields.responsive_mode ?? "scroll"}`}
+        className={[
+          "artales-table-scroll",
+          `artales-table-scroll--${fields.responsive_mode ?? "scroll"}`,
+          fields.border_outer
+            ? "artales-table-scroll--outer-border"
+            : "artales-table-scroll--no-outer-border",
+        ].join(" ")}
         tabIndex={0}
         role="region"
         aria-label={fields.caption || "Tabulka"}
       >
-        <table className="artales-table artales-table--adaptive">
+        <table
+          className={[
+            "artales-table",
+            "artales-table--adaptive",
+            fields.border_rows
+              ? "artales-table--row-borders"
+              : "artales-table--no-row-borders",
+            fields.border_columns
+              ? "artales-table--column-borders"
+              : "artales-table--no-column-borders",
+          ].join(" ")}
+        >
           <colgroup>
             {columnWidths.map((width, columnIndex) => (
               <col
@@ -179,7 +209,9 @@ function renderTableBlock(block: WorkBlock, key: string) {
           {fields.caption ? (
             <caption>{renderInlineRichText(fields.caption)}</caption>
           ) : null}
-          {fields.headers && fields.headers.length > 0 ? (
+          {fields.show_column_headers !== false &&
+          fields.headers &&
+          fields.headers.length > 0 ? (
             <thead>
               <tr>
                 {fields.headers.map((header, cellIndex) => (
@@ -188,6 +220,8 @@ function renderTableBlock(block: WorkBlock, key: string) {
                     scope="col"
                     style={{
                       textAlign: getTableCellAlign(fields.alignment, cellIndex),
+                      backgroundColor:
+                        fields.column_backgrounds?.[cellIndex] || undefined,
                     }}
                   >
                     {renderInlineRichText(header)}
@@ -203,6 +237,11 @@ function renderTableBlock(block: WorkBlock, key: string) {
                   const cell = row[cellIndex] ?? "";
                   const style = {
                     textAlign: getTableCellAlign(fields.alignment, cellIndex),
+                    backgroundColor: getTableBodyBackground(
+                      fields,
+                      rowIndex,
+                      cellIndex,
+                    ),
                   };
 
                   if (fields.first_column_header && cellIndex === 0) {
