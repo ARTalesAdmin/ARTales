@@ -72,15 +72,85 @@ function normalizeTableShape(fields: TableBlockFields): TableBlockFields {
       ? fields.alignment[index]
       : "left",
   ) as TableBlockAlignment[];
+  const columnBackgrounds = Array.from({ length: columnCount }).map(
+    (_, index) => fields.column_backgrounds?.[index] ?? "",
+  );
+  const rowBackgrounds = normalizedRows.map(
+    (_, index) => fields.row_backgrounds?.[index] ?? "",
+  );
+  const cellBackgrounds = normalizedRows.map((row, rowIndex) =>
+    row.map(
+      (_, columnIndex) =>
+        fields.cell_backgrounds?.[rowIndex]?.[columnIndex] ?? "",
+    ),
+  );
+  const columnWidths =
+    fields.column_widths?.length === columnCount
+      ? fields.column_widths
+      : undefined;
 
   return {
     ...(headers ? { headers } : {}),
     rows: normalizedRows,
     caption: fields.caption ?? "",
     first_column_header: Boolean(fields.first_column_header),
+    show_column_headers: fields.show_column_headers !== false,
+    border_outer: Boolean(fields.border_outer),
+    border_rows: Boolean(fields.border_rows),
+    border_columns: Boolean(fields.border_columns),
     alignment,
     responsive_mode: fields.responsive_mode === "stack" ? "stack" : "scroll",
+    ...(columnWidths ? { column_widths: columnWidths } : {}),
+    column_backgrounds: columnBackgrounds,
+    row_backgrounds: rowBackgrounds,
+    cell_backgrounds: cellBackgrounds,
   };
+}
+
+function TableColorControl({
+  label,
+  value,
+  onChange,
+}: {
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+}) {
+  return (
+    <label
+      style={{
+        display: "inline-flex",
+        alignItems: "center",
+        gap: "6px",
+        fontSize: "12px",
+        marginTop: "6px",
+      }}
+    >
+      <span>{label}</span>
+      <input
+        type="color"
+        value={value || "#efe5cd"}
+        onChange={(event) => onChange(event.target.value)}
+        title={label}
+        style={{ width: "30px", height: "26px", padding: 0 }}
+      />
+      <button
+        type="button"
+        onClick={() => onChange("")}
+        disabled={!value}
+        style={{
+          border: 0,
+          background: "transparent",
+          cursor: value ? "pointer" : "default",
+          opacity: value ? 0.8 : 0.35,
+          padding: "2px 4px",
+          fontSize: "12px",
+        }}
+      >
+        Bez barvy
+      </button>
+    </label>
+  );
 }
 
 function collapseWhitespace(value: string) {
@@ -457,7 +527,15 @@ export default function WorkBlocksEditor({
   function addTableRow(index: number) {
     updateTableFields(index, (fields) => {
       const columnCount = Math.max(2, getTableColumnCount(fields));
-      return { ...fields, rows: [...fields.rows, Array(columnCount).fill("")] };
+      return {
+        ...fields,
+        rows: [...fields.rows, Array(columnCount).fill("")],
+        row_backgrounds: [...(fields.row_backgrounds ?? []), ""],
+        cell_backgrounds: [
+          ...(fields.cell_backgrounds ?? []),
+          Array(columnCount).fill(""),
+        ],
+      };
     });
   }
 
@@ -465,6 +543,8 @@ export default function WorkBlocksEditor({
     updateTableFields(index, (fields) => ({
       ...fields,
       rows: fields.rows.filter((_, i) => i !== rowIndex),
+      row_backgrounds: fields.row_backgrounds?.filter((_, i) => i !== rowIndex),
+      cell_backgrounds: fields.cell_backgrounds?.filter((_, i) => i !== rowIndex),
     }));
   }
 
@@ -478,6 +558,12 @@ export default function WorkBlocksEditor({
           : undefined,
         rows: fields.rows.map((row) => [...row, ""]),
         alignment: [...(fields.alignment ?? []), "left"],
+        column_widths: undefined,
+        column_backgrounds: [...(fields.column_backgrounds ?? []), ""],
+        cell_backgrounds: fields.rows.map((_, rowIndex) => [
+          ...(fields.cell_backgrounds?.[rowIndex] ?? []),
+          "",
+        ]),
       };
     });
   }
@@ -492,6 +578,13 @@ export default function WorkBlocksEditor({
         headers: fields.headers?.filter((_, i) => i !== columnIndex),
         rows: fields.rows.map((row) => row.filter((_, i) => i !== columnIndex)),
         alignment: fields.alignment?.filter((_, i) => i !== columnIndex),
+        column_widths: undefined,
+        column_backgrounds: fields.column_backgrounds?.filter(
+          (_, i) => i !== columnIndex,
+        ),
+        cell_backgrounds: fields.cell_backgrounds?.map((row) =>
+          row.filter((_, i) => i !== columnIndex),
+        ),
       };
     });
   }
@@ -511,6 +604,71 @@ export default function WorkBlocksEditor({
       ...fields,
       first_column_header: enabled,
     }));
+  }
+
+  function updateTableShowColumnHeaders(index: number, enabled: boolean) {
+    updateTableFields(index, (fields) => ({
+      ...fields,
+      show_column_headers: enabled,
+    }));
+  }
+
+  function updateTableBorder(
+    index: number,
+    field: "border_outer" | "border_rows" | "border_columns",
+    enabled: boolean,
+  ) {
+    updateTableFields(index, (fields) => ({
+      ...fields,
+      [field]: enabled,
+    }));
+  }
+
+  function updateTableColumnBackground(
+    index: number,
+    columnIndex: number,
+    color: string,
+  ) {
+    updateTableFields(index, (fields) => {
+      const columnCount = Math.max(2, getTableColumnCount(fields));
+      const backgrounds = Array.from({ length: columnCount }).map(
+        (_, i) => fields.column_backgrounds?.[i] ?? "",
+      );
+      backgrounds[columnIndex] = color;
+      return { ...fields, column_backgrounds: backgrounds };
+    });
+  }
+
+  function updateTableRowBackground(
+    index: number,
+    rowIndex: number,
+    color: string,
+  ) {
+    updateTableFields(index, (fields) => {
+      const backgrounds = fields.rows.map(
+        (_, i) => fields.row_backgrounds?.[i] ?? "",
+      );
+      backgrounds[rowIndex] = color;
+      return { ...fields, row_backgrounds: backgrounds };
+    });
+  }
+
+  function updateTableCellBackground(
+    index: number,
+    rowIndex: number,
+    columnIndex: number,
+    color: string,
+  ) {
+    updateTableFields(index, (fields) => {
+      const columnCount = Math.max(2, getTableColumnCount(fields));
+      const backgrounds = fields.rows.map((row, r) =>
+        Array.from({ length: columnCount }).map(
+          (_, c) => fields.cell_backgrounds?.[r]?.[c] ?? "",
+        ),
+      );
+      backgrounds[rowIndex][columnIndex] = color;
+      return { ...fields, cell_backgrounds: backgrounds };
+    });
   }
 
   function setImageUploadPatch(
@@ -1508,6 +1666,26 @@ export default function WorkBlocksEditor({
                           >
                             <input
                               type="checkbox"
+                              checked={tableFields.show_column_headers !== false}
+                              onChange={(e) =>
+                                updateTableShowColumnHeaders(
+                                  index,
+                                  e.target.checked,
+                                )
+                              }
+                            />
+                            Zobrazit hlavičku sloupců v Readeru
+                          </label>
+                          <label
+                            style={{
+                              display: "inline-flex",
+                              gap: "8px",
+                              alignItems: "center",
+                              fontSize: "14px",
+                            }}
+                          >
+                            <input
+                              type="checkbox"
                               checked={Boolean(tableFields.first_column_header)}
                               onChange={(e) =>
                                 updateTableFirstColumnHeader(
@@ -1546,6 +1724,78 @@ export default function WorkBlocksEditor({
                             </select>
                           </label>
                         </div>
+
+                        <div
+                          style={{
+                            display: "flex",
+                            gap: "14px",
+                            flexWrap: "wrap",
+                            alignItems: "center",
+                            padding: "10px 12px",
+                            borderRadius: "12px",
+                            background: "#fbf7ed",
+                            border: "1px solid rgba(13, 21, 40, 0.1)",
+                          }}
+                        >
+                          <strong style={{ fontSize: "13px" }}>
+                            Ohraničení
+                          </strong>
+                          {[
+                            ["border_outer", "Vnější rám"],
+                            ["border_rows", "Vodorovné linky"],
+                            ["border_columns", "Svislé linky"],
+                          ].map(([field, label]) => (
+                            <label
+                              key={field}
+                              style={{
+                                display: "inline-flex",
+                                gap: "6px",
+                                alignItems: "center",
+                                fontSize: "13px",
+                              }}
+                            >
+                              <input
+                                type="checkbox"
+                                checked={Boolean(
+                                  tableFields[
+                                    field as
+                                      | "border_outer"
+                                      | "border_rows"
+                                      | "border_columns"
+                                  ],
+                                )}
+                                onChange={(event) =>
+                                  updateTableBorder(
+                                    index,
+                                    field as
+                                      | "border_outer"
+                                      | "border_rows"
+                                      | "border_columns",
+                                    event.target.checked,
+                                  )
+                                }
+                              />
+                              {label}
+                            </label>
+                          ))}
+                          <span style={{ fontSize: "12px", opacity: 0.7 }}>
+                            Bez všech tří voleb je tabulka pouze textově
+                            uspořádaná.
+                          </span>
+                        </div>
+
+                        {tableFields.show_column_headers === false ? (
+                          <p
+                            style={{
+                              margin: 0,
+                              fontSize: "12px",
+                              opacity: 0.72,
+                            }}
+                          >
+                            Názvy „Sloupec 1…“ zůstávají v editoru pro
+                            orientaci, ale v Readeru se nevykreslí.
+                          </p>
+                        ) : null}
 
                         <div
                           style={{
@@ -1608,6 +1858,21 @@ export default function WorkBlocksEditor({
                                       >
                                         Odebrat sloupec
                                       </button>
+                                      <TableColorControl
+                                        label="Pozadí sloupce"
+                                        value={
+                                          tableFields.column_backgrounds?.[
+                                            columnIndex
+                                          ] ?? ""
+                                        }
+                                        onChange={(color) =>
+                                          updateTableColumnBackground(
+                                            index,
+                                            columnIndex,
+                                            color,
+                                          )
+                                        }
+                                      />
                                     </th>
                                   ),
                                 )}
@@ -1654,6 +1919,22 @@ export default function WorkBlocksEditor({
                                             resize: "vertical",
                                           }}
                                         />
+                                        <TableColorControl
+                                          label="Pozadí buňky"
+                                          value={
+                                            tableFields.cell_backgrounds?.[
+                                              rowIndex
+                                            ]?.[columnIndex] ?? ""
+                                          }
+                                          onChange={(color) =>
+                                            updateTableCellBackground(
+                                              index,
+                                              rowIndex,
+                                              columnIndex,
+                                              color,
+                                            )
+                                          }
+                                        />
                                       </td>
                                     ),
                                   )}
@@ -1665,6 +1946,21 @@ export default function WorkBlocksEditor({
                                       verticalAlign: "top",
                                     }}
                                   >
+                                    <TableColorControl
+                                      label="Pozadí řádku"
+                                      value={
+                                        tableFields.row_backgrounds?.[
+                                          rowIndex
+                                        ] ?? ""
+                                      }
+                                      onChange={(color) =>
+                                        updateTableRowBackground(
+                                          index,
+                                          rowIndex,
+                                          color,
+                                        )
+                                      }
+                                    />
                                     <button
                                       type="button"
                                       disabled={tableFields.rows.length <= 1}
@@ -1701,6 +1997,9 @@ export default function WorkBlocksEditor({
                           <table
                             style={{
                               borderCollapse: "collapse",
+                              border: tableFields.border_outer
+                                ? "1px solid rgba(13, 21, 40, 0.22)"
+                                : "none",
                               marginTop: "8px",
                               minWidth: `${Math.max(columnCount * 150, 360)}px`,
                               width: "100%",
@@ -1717,7 +2016,8 @@ export default function WorkBlocksEditor({
                                 {tableFields.caption}
                               </caption>
                             ) : null}
-                            {tableFields.headers &&
+                            {tableFields.show_column_headers !== false &&
+                            tableFields.headers &&
                             tableFields.headers.length > 0 ? (
                               <thead>
                                 <tr>
@@ -1727,8 +2027,19 @@ export default function WorkBlocksEditor({
                                         key={`preview-header-${cellIndex}`}
                                         scope="col"
                                         style={{
-                                          border:
-                                            "1px solid rgba(13, 21, 40, 0.16)",
+                                          borderTop: "none",
+                                          borderLeft:
+                                            tableFields.border_columns &&
+                                            cellIndex > 0
+                                              ? "1px solid rgba(13, 21, 40, 0.16)"
+                                              : "none",
+                                          borderBottom: tableFields.border_rows
+                                            ? "1px solid rgba(13, 21, 40, 0.16)"
+                                            : "none",
+                                          backgroundColor:
+                                            tableFields.column_backgrounds?.[
+                                              cellIndex
+                                            ] || undefined,
                                           padding: "6px",
                                           textAlign: "left",
                                         }}
@@ -1750,8 +2061,29 @@ export default function WorkBlocksEditor({
                                         key={`preview-cell-${rowIndex}-${cellIndex}`}
                                         scope="row"
                                         style={{
-                                          border:
-                                            "1px solid rgba(13, 21, 40, 0.16)",
+                                          borderTop:
+                                            tableFields.border_rows &&
+                                            (rowIndex > 0 ||
+                                              tableFields.show_column_headers !==
+                                                false)
+                                              ? "1px solid rgba(13, 21, 40, 0.16)"
+                                              : "none",
+                                          borderLeft:
+                                            tableFields.border_columns &&
+                                            cellIndex > 0
+                                              ? "1px solid rgba(13, 21, 40, 0.16)"
+                                              : "none",
+                                          backgroundColor:
+                                            tableFields.cell_backgrounds?.[
+                                              rowIndex
+                                            ]?.[cellIndex] ||
+                                            tableFields.row_backgrounds?.[
+                                              rowIndex
+                                            ] ||
+                                            tableFields.column_backgrounds?.[
+                                              cellIndex
+                                            ] ||
+                                            undefined,
                                           padding: "6px",
                                           textAlign: "left",
                                         }}
@@ -1762,8 +2094,29 @@ export default function WorkBlocksEditor({
                                       <td
                                         key={`preview-cell-${rowIndex}-${cellIndex}`}
                                         style={{
-                                          border:
-                                            "1px solid rgba(13, 21, 40, 0.16)",
+                                          borderTop:
+                                            tableFields.border_rows &&
+                                            (rowIndex > 0 ||
+                                              tableFields.show_column_headers !==
+                                                false)
+                                              ? "1px solid rgba(13, 21, 40, 0.16)"
+                                              : "none",
+                                          borderLeft:
+                                            tableFields.border_columns &&
+                                            cellIndex > 0
+                                              ? "1px solid rgba(13, 21, 40, 0.16)"
+                                              : "none",
+                                          backgroundColor:
+                                            tableFields.cell_backgrounds?.[
+                                              rowIndex
+                                            ]?.[cellIndex] ||
+                                            tableFields.row_backgrounds?.[
+                                              rowIndex
+                                            ] ||
+                                            tableFields.column_backgrounds?.[
+                                              cellIndex
+                                            ] ||
+                                            undefined,
                                           padding: "6px",
                                         }}
                                       >

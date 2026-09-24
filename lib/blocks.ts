@@ -29,9 +29,16 @@ export type TableBlockFields = {
   rows: string[][];
   caption?: string;
   first_column_header?: boolean;
+  show_column_headers?: boolean;
+  border_outer?: boolean;
+  border_rows?: boolean;
+  border_columns?: boolean;
   alignment?: TableBlockAlignment[];
   responsive_mode?: TableBlockResponsiveMode;
   column_widths?: number[];
+  column_backgrounds?: string[];
+  row_backgrounds?: string[];
+  cell_backgrounds?: string[][];
 };
 
 export type WorkBlockFieldValue =
@@ -236,8 +243,15 @@ export function createEmptyBlock(type: WorkBlockType = "chapter"): WorkBlock {
         rows: [["", ""]],
         caption: "",
         first_column_header: false,
+        show_column_headers: false,
+        border_outer: false,
+        border_rows: false,
+        border_columns: false,
         alignment: ["left", "left"],
         responsive_mode: "scroll",
+        column_backgrounds: ["", ""],
+        row_backgrounds: [""],
+        cell_backgrounds: [["", ""]],
       },
     };
   }
@@ -288,6 +302,38 @@ function normalizeTableRows(value: unknown): string[][] {
     .map((row) => (row as unknown[]).map((cell) => normalizeContent(cell)));
 }
 
+function normalizeTableBoolean(value: unknown, fallback: boolean) {
+  if (value === true || value === "true") return true;
+  if (value === false || value === "false") return false;
+  return fallback;
+}
+
+function normalizeTableColor(value: unknown) {
+  const color = normalizeContent(value);
+  return /^#[0-9a-f]{6}$/i.test(color) ? color.toLowerCase() : "";
+}
+
+function normalizeTableColorArray(value: unknown, length: number) {
+  const source = Array.isArray(value) ? value : [];
+  return Array.from({ length }).map((_, index) =>
+    normalizeTableColor(source[index]),
+  );
+}
+
+function normalizeTableColorMatrix(
+  value: unknown,
+  rowCount: number,
+  columnCount: number,
+) {
+  const source = Array.isArray(value) ? value : [];
+  return Array.from({ length: rowCount }).map((_, rowIndex) => {
+    const row = Array.isArray(source[rowIndex]) ? source[rowIndex] : [];
+    return Array.from({ length: columnCount }).map((__, columnIndex) =>
+      normalizeTableColor(row[columnIndex]),
+    );
+  });
+}
+
 function getTableColumnCount(fields: TableBlockFields): number {
   if (fields.headers && fields.headers.length > 0) return fields.headers.length;
   return fields.rows[0]?.length ?? 0;
@@ -313,6 +359,19 @@ export function normalizeTableBlockFields(value: unknown): TableBlockFields {
         .map((item) => Number(item))
         .filter((item) => Number.isFinite(item) && item > 0)
     : undefined;
+  const columnBackgrounds = normalizeTableColorArray(
+    raw.column_backgrounds,
+    columnCount,
+  );
+  const rowBackgrounds = normalizeTableColorArray(
+    raw.row_backgrounds,
+    rows.length,
+  );
+  const cellBackgrounds = normalizeTableColorMatrix(
+    raw.cell_backgrounds,
+    rows.length,
+    columnCount,
+  );
 
   return {
     ...(headers && headers.length > 0 ? { headers } : {}),
@@ -320,11 +379,18 @@ export function normalizeTableBlockFields(value: unknown): TableBlockFields {
     caption: normalizeContent(raw.caption ?? ""),
     first_column_header:
       raw.first_column_header === true || raw.first_column_header === "true",
+    show_column_headers: normalizeTableBoolean(raw.show_column_headers, true),
+    border_outer: normalizeTableBoolean(raw.border_outer, true),
+    border_rows: normalizeTableBoolean(raw.border_rows, true),
+    border_columns: normalizeTableBoolean(raw.border_columns, false),
     ...(alignment && alignment.length > 0 ? { alignment } : {}),
     responsive_mode: responsiveMode,
     ...(columnWidths && columnWidths.length === columnCount
       ? { column_widths: columnWidths }
       : {}),
+    column_backgrounds: columnBackgrounds,
+    row_backgrounds: rowBackgrounds,
+    cell_backgrounds: cellBackgrounds,
   };
 }
 
@@ -358,8 +424,13 @@ export function validateTableBlockFields(
 export function getTableBlockPlainText(fields: TableBlockFields): string {
   const lines: string[] = [];
   if (fields.caption) lines.push(fields.caption);
-  if (fields.headers && fields.headers.length > 0)
+  if (
+    fields.show_column_headers !== false &&
+    fields.headers &&
+    fields.headers.length > 0
+  ) {
     lines.push(fields.headers.join(" | "));
+  }
   for (const row of fields.rows) lines.push(row.join(" | "));
   return lines.join("\n");
 }
@@ -440,9 +511,10 @@ export function getAdaptiveTableColumnWidths(
           bodyScores.length
         : 0;
     const upperQuartile = getTableScorePercentile(bodyScores, 0.75);
-    const headerScore = getTableCellWidthScore(
-      fields.headers?.[columnIndex] ?? "",
-    );
+    const headerScore =
+      fields.show_column_headers !== false
+        ? getTableCellWidthScore(fields.headers?.[columnIndex] ?? "")
+        : 0;
 
     return Math.max(
       1,
