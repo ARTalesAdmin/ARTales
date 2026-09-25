@@ -377,3 +377,11 @@ komentářů a komunitních anotací do této ani navazující library práce ne
 - **Rollback notes:** revert dokumentačního commitu.
 - **Test checklist:** `git diff --check`, kontrola rozsahu a product review v
   develop PR; runtime testy nejsou pro docs-only patch relevantní.
+
+## Stav navazující implementace (v0.1)
+
+Synchronizovaný Reader progress byl implementován jako technický předpoklad
+budoucího hubu Moje knihovna. Moje knihovna ani její výběrová pravidla se v tomto
+kroku nemění; jejich realizace zůstává samostatným budoucím PR po ověření progress
+syncu v develop preview. Progress je signál historie čtení, nikoli trvalé
+odemknutí díla.
