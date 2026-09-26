@@ -2,15 +2,18 @@ import Link from "next/link"
 import { requireEditorOrAdmin } from "@/lib/guards"
 import { getWorkCandidates } from "@/lib/dbCandidates"
 import { csMember } from "@/lib/i18n/dictionaries/cs/member"
+import { isCandidatesFixturePreview } from "@/lib/fixtures/workCandidates"
 
 export default async function WorkCandidatesPage() {
   await requireEditorOrAdmin()
   const candidates = await getWorkCandidates()
   const copy = csMember.candidates
+  const fixturePreview = isCandidatesFixturePreview()
 
   return (
     <main style={{ padding: "48px 32px", maxWidth: "1100px", margin: "0 auto", lineHeight: 1.6 }}>
       <p><Link href="/member">{"<- Zpět do členské zóny"}</Link></p>
+      {fixturePreview ? <aside style={{ padding: 14, marginBottom: 20, border: "1px solid #d5b56b", background: "#fff8e8" }}><strong>Fixture preview</strong> · Ukázková data nejsou persistentní a žádný zápis nejde do Supabase.</aside> : null}
       <section style={{ marginBottom: 28 }}>
         <p style={{ fontSize: 14, textTransform: "uppercase", letterSpacing: 1, opacity: .7 }}>ARTales · Editor</p>
         <h1 style={{ fontSize: 40, marginBottom: 10 }}>{copy.title}</h1>
