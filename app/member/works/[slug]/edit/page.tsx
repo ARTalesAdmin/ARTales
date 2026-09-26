@@ -158,6 +158,21 @@ export default async function EditWorkPage({
         >
           Editace díla
         </h1>
+        <Link
+          href={`/member/works/${work.slug}/reader`}
+          target="_blank"
+          rel="noreferrer"
+          style={{
+            display: "inline-block",
+            padding: "10px 14px",
+            border: "1px solid #111",
+            textDecoration: "none",
+            color: "#111",
+            fontWeight: 600,
+          }}
+        >
+          Náhled ve čtečce
+        </Link>
       </section>
 
       {errorMessage ? (
