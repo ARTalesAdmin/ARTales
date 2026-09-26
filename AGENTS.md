@@ -1,5 +1,7 @@
 # Pokyny pro agenty v repozitáři ARTales
 
+> Pro pokračování napříč chaty načti také `docs/ARTALES_DURABLE_CHECKPOINT.md`. Je to **neautoritativní** stavový checkpoint; živý kód, databáze, tento soubor, workflow/release policy a explicitní uživatelské autorizace mají přednost.
+
 ARTales je spuštěný kulturní a čtenářský projekt. Produkci vždy chraňte.
 
 - `main` je produkční větev pro `artales.net`; `develop` je sandbox a preview větev pro `ar-tales.vercel.app`.
