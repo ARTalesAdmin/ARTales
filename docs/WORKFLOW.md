@@ -45,3 +45,26 @@ Podle typu změny ověřte zejména:
 - že stávající kritické funkce zůstaly funkční.
 
 Pokud je výsledek nejasný nebo rizikový, změnu neposouvejte do produkce. Vraťte ji k úpravě s konkrétním popisem problému.
+
+
+## Ephemeral Supabase pro databázové preview
+
+Pro změny se schématem, RLS, Supabase funkcemi nebo další databázovou logikou se může použít dočasná Supabase preview branch.
+
+Pravidla:
+
+1. Branch vzniká pouze pro konkrétní aktivní testovací session, ne jako trvale běžící `develop` databáze.
+2. Branch vychází z produkčního schématu/migrací, ale neobsahuje produkční data.
+3. Do branch se aplikují pouze migrace a testovací data potřebná pro právě ověřovaný blok.
+4. V příslušném PR nebo testovací poznámce se eviduje:
+   - Supabase branch name a project ref,
+   - účel testu,
+   - čas otevření,
+   - aplikované migrace,
+   - výsledek testu,
+   - potvrzení času smazání.
+5. Nexus/AI nesmí použít ephemeral branch jako nový zdroj autoritativních produkčních dat ani z ní samostatně provést produkční apply.
+6. Po dokončení testovací session se branch smaže. Branch nemá zůstávat aktivní přes noc.
+7. Pokud cleanup neproběhne, jde o provozní incident k nápravě při nejbližší kontrole, nikoli o schválený persistentní stav.
+
+Vercel preview a Supabase preview jsou dvě oddělené vrstvy. Databázový preview test je považován za kompletní teprve tehdy, když Vercel preview používá správnou ephemeral Supabase branch nebo když je jiným způsobem výslovně ověřeno, proti které DB preview běží.
