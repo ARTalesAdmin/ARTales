@@ -3,8 +3,7 @@ import type { WorkCandidate } from "@/lib/dbCandidates"
 export function isCandidatesFixturePreview() {
   return (
     process.env.ARTALES_FIXTURE_MODE === "candidates" &&
-    process.env.VERCEL_ENV === "preview" &&
-    process.env.VERCEL_GIT_COMMIT_REF === "develop"
+    process.env.VERCEL_ENV !== "production"
   )
 }
 
