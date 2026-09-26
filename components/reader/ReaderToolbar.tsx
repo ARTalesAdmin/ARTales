@@ -27,6 +27,7 @@ type ReaderToolbarProps = {
   labels: Dictionary["reader"];
   chromeLabels: Dictionary["public"];
   notes: ReaderNote[];
+  notesEnabled?: boolean;
   selectedNoteId: string | null;
   selectedNoteIndex: number;
   isNotesListExpanded: boolean;
@@ -165,7 +166,7 @@ export default function ReaderToolbar(props: ReaderToolbarProps) {
           </button>
           {!settings.controlsCollapsed ? (
             <div id={controlsId} className="artales-reader-menu__panel">
-              <section className="artales-reader-notes"><h2>{labels.notes}</h2>
+              {props.notesEnabled !== false ? <section className="artales-reader-notes"><h2>{labels.notes}</h2>
                 <div className="artales-reader-notes__heading">
                   <button type="button" onClick={() => setIsNoteFormOpen((open) => !open)} aria-expanded={isNoteFormOpen}>{labels.addNote}</button>
                   <span>{props.notesSyncState === "synced" ? labels.synced : props.notesSyncState === "syncing" ? labels.syncing : labels.localOnly}</span>
@@ -202,7 +203,7 @@ export default function ReaderToolbar(props: ReaderToolbarProps) {
                     <div className="artales-reader-notes__actions"><button type="button" onClick={() => props.onGoToNote(note)}>{labels.goToNote}</button><button type="button" onClick={() => props.onDeleteNote(note)} aria-label={`${labels.deleteNote}: ${noteName}`}>{labels.deleteNote}</button></div>
                   </li>;
                 })}</ul> : <p className="artales-reader-notes__empty">{labels.noNotes}</p>}
-              </section>
+              </section> : null}
               <section><h2>{chromeLabels.readerAppearanceSection}</h2>
                 <label>{labels.mode}<select value={settings.layoutMode} onChange={(e) => props.onLayoutModeChange(e.target.value as ReaderLayoutModeId)}><option value="pagedFlow">{chromeLabels.readerPagedFlow}</option><option value="spread">{chromeLabels.readerSpread}</option></select></label>
                 <label>{labels.theme}<select value={settings.theme} onChange={(e) => props.onThemeChange(e.target.value as ReaderThemeId)}><option value="light">{labels.themeLight}</option><option value="script">{labels.themeScript}</option><option value="dark">{labels.themeDark}</option></select></label>
