@@ -1803,28 +1803,44 @@ export default function WorkEditorForm(props: Props) {
           ))}
         </div>
         {mode === "edit" && slug ? (
-          <div style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
-            <Link
-              href={`/dilo/${slug}`}
-              target="_blank"
-              style={{ color: "#111", textDecoration: "underline" }}
-            >
-              Otevřít veřejný detail
-            </Link>
-            <Link
-              href={`/reader/${slug}?mode=preview`}
-              target="_blank"
-              style={{ color: "#111", textDecoration: "underline" }}
-            >
-              Otevřít ukázku ve čtečce
-            </Link>
-            <Link
-              href={`/reader/${slug}?mode=full`}
-              target="_blank"
-              style={{ color: "#111", textDecoration: "underline" }}
-            >
-              Otevřít celé dílo ve čtečce
-            </Link>
+          <div style={{ display: "grid", gap: "10px" }}>
+            <div style={{ display: "flex", gap: "10px", flexWrap: "wrap", alignItems: "baseline" }}>
+              <strong>Interní zobrazení:</strong>
+              <Link
+                href={`/member/works/${slug}/reader`}
+                target="_blank"
+                style={{ color: "#111", textDecoration: "underline" }}
+              >
+                Otevřít interní čtečku
+              </Link>
+            </div>
+
+            {initialData.status === "published" ? (
+              <div style={{ display: "flex", gap: "10px", flexWrap: "wrap", alignItems: "baseline" }}>
+                <strong>Zákaznické zobrazení:</strong>
+                <Link
+                  href={`/dilo/${slug}`}
+                  target="_blank"
+                  style={{ color: "#111", textDecoration: "underline" }}
+                >
+                  Veřejný detail
+                </Link>
+                <Link
+                  href={`/reader/${slug}?mode=preview`}
+                  target="_blank"
+                  style={{ color: "#111", textDecoration: "underline" }}
+                >
+                  Ukázka
+                </Link>
+                <Link
+                  href={`/reader/${slug}?mode=full`}
+                  target="_blank"
+                  style={{ color: "#111", textDecoration: "underline" }}
+                >
+                  Celé dílo
+                </Link>
+              </div>
+            ) : null}
           </div>
         ) : null}
       </section>
