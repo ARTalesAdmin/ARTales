@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import { fixtureEditorProfile, isCandidatesFixturePreview } from "@/lib/fixtures/workCandidates";
 import { getCurrentProfile } from "@/lib/auth";
 import {
   canAccessMemberZone,
@@ -32,6 +33,10 @@ export async function requireMemberZoneAccess() {
 }
 
 export async function requireEditorOrAdmin() {
+  if (isCandidatesFixturePreview()) {
+    return fixtureEditorProfile;
+  }
+
   const profile = await requireAuthenticatedProfile();
 
   if (!canEditContent(profile)) {

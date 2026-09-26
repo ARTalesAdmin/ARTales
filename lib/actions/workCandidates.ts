@@ -3,6 +3,7 @@
 import { redirect } from "next/navigation"
 import { requireEditorOrAdmin } from "@/lib/guards"
 import { createClient } from "@/lib/supabase/server"
+import { isCandidatesFixturePreview } from "@/lib/fixtures/workCandidates"
 
 const ALLOWED_STATUS = new Set(["new","checking","ready","accepted","deferred","review_required","rejected"])
 const ALLOWED_RIGHTS = new Set(["unknown","clear","partial","alternate_edition_required","review_required","deferred","blocked"])
@@ -18,6 +19,10 @@ function nullable(value: string) {
 }
 
 export async function createWorkCandidate(formData: FormData): Promise<void> {
+  if (isCandidatesFixturePreview()) {
+    redirect("/member/candidates?fixture=write-disabled")
+  }
+
   const profile = await requireEditorOrAdmin()
   const supabase = await createClient()
 
@@ -58,6 +63,10 @@ export async function createWorkCandidate(formData: FormData): Promise<void> {
 }
 
 export async function updateWorkCandidate(id: string, formData: FormData): Promise<void> {
+  if (isCandidatesFixturePreview()) {
+    redirect(`/member/candidates/${id}?fixture=write-disabled`)
+  }
+
   const profile = await requireEditorOrAdmin()
   const supabase = await createClient()
 

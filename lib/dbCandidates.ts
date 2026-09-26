@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server"
+import { fixtureWorkCandidates, getFixtureCandidate, isCandidatesFixturePreview } from "@/lib/fixtures/workCandidates"
 
 export type WorkCandidateStatus =
   | "new"
@@ -55,6 +56,8 @@ export type WorkCandidate = {
 }
 
 export async function getWorkCandidates(): Promise<WorkCandidate[]> {
+  if (isCandidatesFixturePreview()) return fixtureWorkCandidates
+
   const supabase = await createClient()
   const { data, error } = await supabase
     .from("work_candidates")
@@ -67,6 +70,8 @@ export async function getWorkCandidates(): Promise<WorkCandidate[]> {
 }
 
 export async function getWorkCandidateById(id: string): Promise<WorkCandidate | null> {
+  if (isCandidatesFixturePreview()) return getFixtureCandidate(id)
+
   const supabase = await createClient()
   const { data, error } = await supabase
     .from("work_candidates")

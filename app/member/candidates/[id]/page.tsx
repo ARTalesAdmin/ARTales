@@ -4,6 +4,7 @@ import { requireEditorOrAdmin } from "@/lib/guards"
 import { getWorkCandidateById } from "@/lib/dbCandidates"
 import { updateWorkCandidate } from "@/lib/actions/workCandidates"
 import { csMember } from "@/lib/i18n/dictionaries/cs/member"
+import { isCandidatesFixturePreview } from "@/lib/fixtures/workCandidates"
 
 type Props = {
   params: Promise<{ id: string }>
@@ -18,11 +19,13 @@ export default async function WorkCandidateDetailPage({ params, searchParams }: 
   if (!candidate) notFound()
 
   const copy = csMember.candidates
+  const fixturePreview = isCandidatesFixturePreview()
   const action = updateWorkCandidate.bind(null, id)
 
   return (
     <main style={{ padding: "48px 32px", maxWidth: 900, margin: "0 auto", lineHeight: 1.6 }}>
       <p><Link href="/member/candidates">{"<- Zpět na kandidáty"}</Link></p>
+      {fixturePreview ? <aside style={{ padding: 14, marginBottom: 20, border: "1px solid #d5b56b", background: "#fff8e8" }}><strong>Fixture preview</strong> · Změny formuláře se v tomto režimu neukládají.</aside> : null}
       <h1>{candidate.proposed_title}</h1>
       <p style={{ fontSize: 18 }}>{candidate.proposed_author_name}</p>
 
