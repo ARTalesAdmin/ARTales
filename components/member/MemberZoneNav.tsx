@@ -16,6 +16,7 @@ export default function MemberZoneNav() {
   const primaryLinks = [
     { href: "/member", label: member.overview },
     { href: "/member/works", label: member.works },
+    { href: "/member/candidates", label: "Kandidáti" },
     { href: "/member/authors", label: member.authors },
     { href: "/member/collections", label: member.collections },
     { href: "/member/tags", label: "Tagy" },
@@ -29,6 +30,7 @@ export default function MemberZoneNav() {
 
   const creationLinks = [
     { href: "/member/works/new", label: member.newWork },
+    { href: "/member/candidates/new", label: "Nový kandidát" },
     { href: "/member/authors/new", label: member.newAuthor },
     { href: "/member/collections/new", label: member.newCollection },
   ];
