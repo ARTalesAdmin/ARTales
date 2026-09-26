@@ -27,6 +27,9 @@ Při pochybnostech použijte vyšší úroveň rizika.
 - PR musí uvést `DB: yes`, pokud mění schéma, data, policies, storage, SQL nebo Supabase chování; jinak `DB: no`.
 - Změna s `DB: yes` musí popsat pořadí nasazení, zálohu nebo ochranu dat, zpětnou kompatibilitu a rollback.
 - Produkční databázový zásah nelze odvodit jen ze schválení kódu; vyžaduje samostatné výslovné potvrzení.
+- Pokud je pro test DB změny vytvořena ephemeral Supabase branch, PR musí uvést její branch name/project ref a stav cleanupu.
+- Ephemeral branch se považuje za testovací prostředek na dobu aktivní session. Nesmí zůstat běžet přes noc a její existence sama neopravňuje k merge/apply do produkce.
+- Produkční apply se vždy provádí odděleně po výslovném schválení uživatele; Supabase branch merge se nesmí použít jako tichá zkratka kolem tohoto gate.
 
 ## Proměnné prostředí
 

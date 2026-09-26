@@ -7,6 +7,10 @@ ARTales je spuštěný kulturní a čtenářský projekt. Produkci vždy chraňt
 - Do `main` nikdy neposílejte změny přímo ani je neslučujte. Produkční nasazení vyžaduje výslovné schválení uživatele.
 - Neměňte produkční proměnné prostředí a nespouštějte destruktivní databázové operace.
 - SQL migrace přidávejte pouze na výslovné zadání.
+- Pro DB změny určené k testu používejte ephemeral Supabase branch, pokud je pro daný blok zřízena. Ephemeral branch je dočasná testovací infrastruktura, nikdy produkční datový zdroj.
+- Ephemeral Supabase branch smí existovat jen po dobu aktivní testovací session. Po dokončení testu ji smažte; nenechávejte ji běžet přes noc.
+- Při práci přes Nexus/AI vždy evidujte ephemeral branch v příslušném PR nebo testovací poznámce: branch name/project ref, účel, čas otevření a potvrzení smazání.
+- Bez výslovné autorizace nepřenášejte data ani změny z ephemeral branch do produkční Supabase a nemergujte Supabase branch do production.
 - Platby, AT kredity, členství, reader, editor, parser a Supabase logiku měňte pouze na výslovné zadání.
 - Zrušený patch **v0.10.15k — Table Pagination & Generated Header Fix** nepoužívejte ani neoživujte bez nového výslovného schválení. Tabulky, parser a stránkování readeru patří do pozdější samostatné práce v sandboxu.
 - Držte se rozsahu úkolu. V jeho větvi lze opravit build nebo typové chyby, které změna sama způsobila.
