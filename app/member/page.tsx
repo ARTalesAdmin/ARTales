@@ -104,6 +104,9 @@ export default async function MemberPage() {
               <Link className="artales-button-secondary" href="/member/works">
                 Díla
               </Link>
+              <Link className="artales-button-secondary" href="/member/candidates">
+                Kandidáti
+              </Link>
               <Link className="artales-button-secondary" href="/member/authors">
                 Autoři
               </Link>
