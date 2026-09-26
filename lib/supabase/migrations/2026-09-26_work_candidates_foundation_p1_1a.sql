@@ -50,6 +50,10 @@ create index if not exists work_candidates_matched_work_idx
 
 alter table public.work_candidates enable row level security;
 
+revoke all on table public.work_candidates from anon;
+grant select, insert, update on table public.work_candidates to authenticated;
+grant select, insert, update on table public.work_candidates to service_role;
+
 drop policy if exists "Editors can read work candidates" on public.work_candidates;
 create policy "Editors can read work candidates"
 on public.work_candidates for select to authenticated
@@ -85,13 +89,3 @@ with check (
   )
 );
 
-drop policy if exists "Editors can delete unaccepted work candidates" on public.work_candidates;
-create policy "Editors can delete unaccepted work candidates"
-on public.work_candidates for delete to authenticated
-using (
-  status <> 'accepted'
-  and exists (
-    select 1 from public.profiles p
-    where p.id = auth.uid() and p.is_active = true and p.role in ('admin','editor')
-  )
-);
