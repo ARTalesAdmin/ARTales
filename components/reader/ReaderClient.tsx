@@ -49,6 +49,8 @@ type ReaderClientProps = {
   blocks: WorkBlock[];
   fallbackContent?: string | null;
   locale: SupportedLocale;
+  editorPreview?: boolean;
+  editorReturnHref?: string;
 };
 
 function getPageProgress(pageIndex: number, pageCount: number) {
@@ -150,6 +152,8 @@ export default function ReaderClient({
   blocks,
   fallbackContent,
   locale,
+  editorPreview = false,
+  editorReturnHref,
 }: ReaderClientProps) {
   const [settings, setSettings] = useState<ReaderSettings>(() => ({
     ...loadReaderSettings(),
@@ -178,8 +182,10 @@ export default function ReaderClient({
 
   const isSpreadMode = settings.layoutMode === "spread";
   const pageStep = isSpreadMode ? 2 : 1;
-  const detailHref = `/work/${slug}`;
-  const fullHref = `/reader/${slug}?mode=full`;
+  const detailHref = editorReturnHref ?? `/work/${slug}`;
+  const fullHref = editorPreview
+    ? editorReturnHref ?? `/member/works/${slug}/edit`
+    : `/reader/${slug}?mode=full`;
   const readerPages = useMemo(
     () => paginateReaderBlocks(blocks, settings, tableMeasurements),
     [blocks, settings, tableMeasurements],
@@ -259,6 +265,12 @@ export default function ReaderClient({
   }, [settings]);
 
   const syncNotes = useCallback(async () => {
+    if (editorPreview) {
+      setNotes([]);
+      setNotesSyncState("local");
+      return;
+    }
+
     const run = ++notesSyncRunRef.current;
     const localNotes = loadReaderNotes(slug, labels.importedNote);
     setNotes(localNotes);
@@ -302,7 +314,7 @@ export default function ReaderClient({
     } catch {
       if (run === notesSyncRunRef.current) setNotesSyncState("local");
     }
-  }, [labels.importedNote, slug]);
+  }, [editorPreview, labels.importedNote, slug]);
 
   useEffect(() => {
     void syncNotes();
@@ -336,7 +348,7 @@ export default function ReaderClient({
 
   useEffect(() => {
     if (restoredPagePosition.current) return;
-    if (mode !== "full" || pageCount < 1) return;
+    if (editorPreview || mode !== "full" || pageCount < 1) return;
     restoredPagePosition.current = true;
 
     const saved = loadReaderProgress(slug);
@@ -358,14 +370,14 @@ export default function ReaderClient({
       }, 220);
     }
     setProgressRestoreReady(true);
-  }, [isSpreadMode, mode, pageCount, slug]);
+  }, [editorPreview, isSpreadMode, mode, pageCount, slug]);
 
   useEffect(() => {
     const nextProgress = getPageProgress(normalizedPageIndex, pageCount);
     setProgressPercent(nextProgress);
     // Do not replace a saved position with page one during the initial render.
     // The restore effect above first reads and applies the existing record.
-    if (mode === "full" && progressRestoreReady) {
+    if (!editorPreview && mode === "full" && progressRestoreReady) {
       saveReaderProgress({
         slug,
         mode,
@@ -378,6 +390,7 @@ export default function ReaderClient({
       });
     }
   }, [
+    editorPreview,
     mode,
     normalizedPageIndex,
     pageCount,
@@ -656,6 +669,7 @@ export default function ReaderClient({
         labels={labels}
         chromeLabels={dictionary.public}
         notes={sortedNotes}
+        notesEnabled={!editorPreview}
         selectedNoteId={selectedNoteId}
         selectedNoteIndex={selectedNoteIndex}
         isNotesListExpanded={isNotesListExpanded ?? sortedNotes.length <= 3}
