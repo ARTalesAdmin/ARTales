@@ -1,5 +1,5 @@
 -- ARTales P1-1A — lightweight work candidates foundation.
--- Candidates exist before accepted works and are visible only to active editors/admins.
+-- Canonical migration: candidates exist before accepted works and are visible only to active editors/admins.
 
 create table if not exists public.work_candidates (
   id uuid primary key default gen_random_uuid(),
@@ -44,9 +44,19 @@ create index if not exists work_candidates_not_before_idx
   on public.work_candidates(not_before)
   where not_before is not null;
 
+create index if not exists work_candidates_matched_author_idx
+  on public.work_candidates(matched_author_id)
+  where matched_author_id is not null;
+
 create index if not exists work_candidates_matched_work_idx
   on public.work_candidates(matched_work_id)
   where matched_work_id is not null;
+
+create index if not exists work_candidates_created_by_idx
+  on public.work_candidates(created_by);
+
+create index if not exists work_candidates_updated_by_idx
+  on public.work_candidates(updated_by);
 
 alter table public.work_candidates enable row level security;
 
@@ -59,18 +69,22 @@ create policy "Editors can read work candidates"
 on public.work_candidates for select to authenticated
 using (exists (
   select 1 from public.profiles p
-  where p.id = auth.uid() and p.is_active = true and p.role in ('admin','editor')
+  where p.id = (select auth.uid())
+    and p.is_active = true
+    and p.role in ('admin','editor')
 ));
 
 drop policy if exists "Editors can create work candidates" on public.work_candidates;
 create policy "Editors can create work candidates"
 on public.work_candidates for insert to authenticated
 with check (
-  created_by = auth.uid()
-  and updated_by = auth.uid()
+  created_by = (select auth.uid())
+  and updated_by = (select auth.uid())
   and exists (
     select 1 from public.profiles p
-    where p.id = auth.uid() and p.is_active = true and p.role in ('admin','editor')
+    where p.id = (select auth.uid())
+      and p.is_active = true
+      and p.role in ('admin','editor')
   )
 );
 
@@ -79,13 +93,16 @@ create policy "Editors can update work candidates"
 on public.work_candidates for update to authenticated
 using (exists (
   select 1 from public.profiles p
-  where p.id = auth.uid() and p.is_active = true and p.role in ('admin','editor')
+  where p.id = (select auth.uid())
+    and p.is_active = true
+    and p.role in ('admin','editor')
 ))
 with check (
-  updated_by = auth.uid()
+  updated_by = (select auth.uid())
   and exists (
     select 1 from public.profiles p
-    where p.id = auth.uid() and p.is_active = true and p.role in ('admin','editor')
+    where p.id = (select auth.uid())
+      and p.is_active = true
+      and p.role in ('admin','editor')
   )
 );
-
