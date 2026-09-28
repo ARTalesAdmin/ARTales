@@ -27,6 +27,8 @@ export const csMember = {
     normalizedTitle: "Normalizovaný název",
     normalizedAuthor: "Normalizovaný autor",
     authorLifeDates: "Životní data autora",
+    authorBirthYear: "Rok narození autora",
+    authorDeathYear: "Rok úmrtí autora",
     firstPublication: "První vydání",
     discoveryIdentityNote: "Poznámka k identitě",
     discoveryShortlistTitle: "Nalezené zdroje / edice",
