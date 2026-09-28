@@ -4,6 +4,14 @@ import { isCandidatesFixturePreview } from "@/lib/fixtures/workCandidates"
 export type CandidateSourceStatus = "candidate" | "preferred" | "needs_review" | "rejected"
 export type CandidateSourceIdentityMatch = "strong" | "partial" | "uncertain"
 
+export type CandidateDiscoveryIdentity = {
+  normalized_title: string
+  normalized_author: string
+  author_life_dates: string | null
+  first_publication: string | null
+  identity_note: string | null
+}
+
 export type CandidateSourceOption = {
   id: string
   candidate_id: string
@@ -85,4 +93,25 @@ export function getCandidateSourceOptions(candidate: WorkCandidate): CandidateSo
       note: "Projected from the current single-source candidate fields until P1-1C persistence is normalized.",
     },
   ]
+}
+
+
+export function getCandidateDiscoveryIdentity(candidate: WorkCandidate): CandidateDiscoveryIdentity {
+  if (isCandidatesFixturePreview() && candidate.id === "00000000-0000-4000-8000-000000000101") {
+    return {
+      normalized_title: "The House of the Wolfings",
+      normalized_author: "William Morris",
+      author_life_dates: "1834–1896",
+      first_publication: "1889",
+      identity_note: "Fixture: normalized work/author identity is treated as a strong match for exercising the discovery workflow.",
+    }
+  }
+
+  return {
+    normalized_title: candidate.proposed_title,
+    normalized_author: candidate.proposed_author_name,
+    author_life_dates: null,
+    first_publication: null,
+    identity_note: "Using candidate identity until normalized discovery metadata is persisted.",
+  }
 }
