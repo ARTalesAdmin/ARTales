@@ -59,15 +59,16 @@ export default async function WorkCandidateDetailPage({ params, searchParams }: 
           <h2 style={{ margin: 0 }}>{copy.discoverySection}</h2>
           <label>{copy.discovery}<select name="discovery_status" defaultValue={candidate.discovery_status} style={{ display:"block",width:"100%",padding:12 }}>{Object.entries(copy.discoveryStatuses).map(([key,label])=><option key={key} value={key}>{label}</option>)}</select></label>
 
-          <aside style={{ padding: 14, border: "1px solid #d8d0c5", background: "#faf8f4" }}>
+          <aside style={{ padding: 14, border: "1px solid #d8d0c5", background: "#faf8f4", display: "grid", gap: 12 }}>
             <strong>{copy.discoveryIdentityTitle}</strong>
-            <dl style={{ display: "grid", gridTemplateColumns: "max-content 1fr", gap: "4px 12px", marginBottom: 0 }}>
-              <dt>{copy.normalizedTitle}</dt><dd>{discoveryIdentity.normalized_title}</dd>
-              <dt>{copy.normalizedAuthor}</dt><dd>{discoveryIdentity.normalized_author}</dd>
-              <dt>{copy.authorLifeDates}</dt><dd>{discoveryIdentity.author_life_dates ?? "—"}</dd>
-              <dt>{copy.firstPublication}</dt><dd>{discoveryIdentity.first_publication ?? "—"}</dd>
-              <dt>{copy.discoveryIdentityNote}</dt><dd>{discoveryIdentity.identity_note ?? "—"}</dd>
-            </dl>
+            <label>{copy.normalizedTitle}<input name="normalized_title" defaultValue={candidate.normalized_title ?? discoveryIdentity.normalized_title} style={{ display:"block",width:"100%",padding:12 }} /></label>
+            <label>{copy.normalizedAuthor}<input name="normalized_author_name" defaultValue={candidate.normalized_author_name ?? discoveryIdentity.normalized_author} style={{ display:"block",width:"100%",padding:12 }} /></label>
+            <div style={{ display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:12 }}>
+              <label>{copy.authorBirthYear}<input name="normalized_author_birth_year" type="number" min="0" max="3000" defaultValue={candidate.normalized_author_birth_year ?? ""} style={{ display:"block",width:"100%",padding:12 }} /></label>
+              <label>{copy.authorDeathYear}<input name="normalized_author_death_year" type="number" min="0" max="3000" defaultValue={candidate.normalized_author_death_year ?? ""} style={{ display:"block",width:"100%",padding:12 }} /></label>
+              <label>{copy.firstPublication}<input name="first_publication_year" type="number" min="0" max="3000" defaultValue={candidate.first_publication_year ?? ""} style={{ display:"block",width:"100%",padding:12 }} /></label>
+            </div>
+            <label>{copy.discoveryIdentityNote}<textarea name="identity_reason" rows={3} defaultValue={candidate.identity_reason ?? discoveryIdentity.identity_note ?? ""} style={{ display:"block",width:"100%",padding:12 }} /></label>
           </aside>
 
           <div style={{ display: "grid", gap: 12 }}>
