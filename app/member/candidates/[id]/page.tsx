@@ -6,6 +6,7 @@ import { updateWorkCandidate } from "@/lib/actions/workCandidates"
 import { csMember } from "@/lib/i18n/dictionaries/cs/member"
 import { isCandidatesFixturePreview } from "@/lib/fixtures/workCandidates"
 import { getCandidateTriageBlockers } from "@/lib/candidateTriage"
+import { getCandidateSourceOptions } from "@/lib/candidateSources"
 
 type Props = {
   params: Promise<{ id: string }>
@@ -23,6 +24,7 @@ export default async function WorkCandidateDetailPage({ params, searchParams }: 
   const fixturePreview = isCandidatesFixturePreview()
   const action = updateWorkCandidate.bind(null, id)
   const triageBlockers = getCandidateTriageBlockers(candidate)
+  const sourceOptions = getCandidateSourceOptions(candidate)
 
   return (
     <main style={{ padding: "48px 32px", maxWidth: 900, margin: "0 auto", lineHeight: 1.6 }}>
@@ -50,6 +52,27 @@ export default async function WorkCandidateDetailPage({ params, searchParams }: 
         <section className="artales-member-panel" style={{ padding: 22, display: "grid", gap: 16 }}>
           <h2 style={{ margin: 0 }}>{copy.discoverySection}</h2>
           <label>{copy.discovery}<select name="discovery_status" defaultValue={candidate.discovery_status} style={{ display:"block",width:"100%",padding:12 }}>{Object.entries(copy.discoveryStatuses).map(([key,label])=><option key={key} value={key}>{label}</option>)}</select></label>
+
+          <div style={{ display: "grid", gap: 12 }}>
+            <h3 style={{ margin: 0 }}>{copy.discoveryShortlistTitle}</h3>
+            {sourceOptions.length === 0 ? <p style={{ margin: 0 }}>{copy.discoveryShortlistEmpty}</p> : sourceOptions.map((source) => (
+              <article key={source.id} style={{ padding: 14, border: "1px solid #d8d0c5", borderRadius: 8, background: source.status === "preferred" ? "#f6fff6" : "#fff" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
+                  <div>
+                    <strong>{source.reference}</strong>
+                    <div style={{ fontSize: 14, opacity: .8 }}>{copy.discoveryProvider}: {source.provider} · {source.source_type}{source.language ? ` · ${source.language}` : ""}</div>
+                  </div>
+                  <div style={{ fontSize: 14 }}>
+                    <strong>{copy.discoverySourceStatus}:</strong> {copy.sourceStatuses[source.status]} · <strong>{copy.discoveryIdentityMatch}:</strong> {copy.identityMatches[source.identity_match]}
+                  </div>
+                </div>
+                {source.publication_facts ? <p style={{ margin: "10px 0 0" }}><strong>{copy.discoveryPublicationFacts}:</strong> {source.publication_facts}</p> : null}
+                {source.note ? <p style={{ margin: "6px 0 0" }}><strong>{copy.discoveryNote}:</strong> {source.note}</p> : null}
+                {source.url ? <p style={{ margin: "8px 0 0" }}><a href={source.url} target="_blank" rel="noreferrer">{source.url}</a></p> : null}
+              </article>
+            ))}
+          </div>
+
           <label>{copy.sourceType}<input name="selected_source_type" defaultValue={candidate.selected_source_type ?? ""} style={{ display:"block",width:"100%",padding:12 }} /></label>
           <label>{copy.sourceReference}<input name="selected_source_reference" defaultValue={candidate.selected_source_reference ?? ""} style={{ display:"block",width:"100%",padding:12 }} /></label>
           <label>{copy.sourceUrl}<input name="selected_source_url" type="url" defaultValue={candidate.selected_source_url ?? ""} style={{ display:"block",width:"100%",padding:12 }} /></label>
