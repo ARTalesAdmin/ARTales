@@ -4,6 +4,7 @@ import { redirect } from "next/navigation"
 import { requireEditorOrAdmin } from "@/lib/guards"
 import { createClient } from "@/lib/supabase/server"
 import { isCandidatesFixturePreview } from "@/lib/fixtures/workCandidates"
+import { canCandidateAdvance, requiresRightsReason } from "@/lib/candidateTriage"
 
 const ALLOWED_STATUS = new Set(["new","checking","ready","accepted","deferred","review_required","rejected"])
 const ALLOWED_RIGHTS = new Set(["unknown","clear","partial","alternate_edition_required","review_required","deferred","blocked"])
@@ -91,6 +92,14 @@ export async function updateWorkCandidate(id: string, formData: FormData): Promi
   }
   if (!ALLOWED_STATUS.has(status) || !ALLOWED_RIGHTS.has(rightsStatus) || !ALLOWED_DISCOVERY.has(discoveryStatus) || !ALLOWED_ORIGIN.has(origin)) {
     redirect(`/member/candidates/${id}?error=status_invalid`)
+  }
+
+  if (requiresRightsReason(rightsStatus as any) && !rightsReason) {
+    redirect(`/member/candidates/${id}?error=rights_reason_required`)
+  }
+
+  if (!canCandidateAdvance(status as any, discoveryStatus as any, rightsStatus as any, nullable(notBefore))) {
+    redirect(`/member/candidates/${id}?error=triage_blocked`)
   }
 
   const reviewRequired =

@@ -5,6 +5,7 @@ import { getWorkCandidateById } from "@/lib/dbCandidates"
 import { updateWorkCandidate } from "@/lib/actions/workCandidates"
 import { csMember } from "@/lib/i18n/dictionaries/cs/member"
 import { isCandidatesFixturePreview } from "@/lib/fixtures/workCandidates"
+import { getCandidateTriageBlockers } from "@/lib/candidateTriage"
 
 type Props = {
   params: Promise<{ id: string }>
@@ -21,6 +22,7 @@ export default async function WorkCandidateDetailPage({ params, searchParams }: 
   const copy = csMember.candidates
   const fixturePreview = isCandidatesFixturePreview()
   const action = updateWorkCandidate.bind(null, id)
+  const triageBlockers = getCandidateTriageBlockers(candidate)
 
   return (
     <main style={{ padding: "48px 32px", maxWidth: 900, margin: "0 auto", lineHeight: 1.6 }}>
@@ -55,6 +57,15 @@ export default async function WorkCandidateDetailPage({ params, searchParams }: 
 
         <section className="artales-member-panel" style={{ padding: 22, display: "grid", gap: 16 }}>
           <h2 style={{ margin: 0 }}>{copy.rightsSection}</h2>
+          <aside style={{ padding: 14, border: triageBlockers.length ? "1px solid #d6b26b" : "1px solid #9c9", background: triageBlockers.length ? "#fff8e8" : "#f6fff6" }}>
+            <strong>{copy.triageTitle}</strong>
+            <p style={{ margin: "6px 0 0" }}>{triageBlockers.length ? copy.triageBlocked : copy.triageClear}</p>
+            {triageBlockers.length ? (
+              <ul style={{ marginBottom: 0 }}>
+                {triageBlockers.map((blocker) => <li key={blocker}>{copy.triageBlockers[blocker]}</li>)}
+              </ul>
+            ) : null}
+          </aside>
           <label>{copy.rights}<select name="rights_status" defaultValue={candidate.rights_status} style={{ display:"block",width:"100%",padding:12 }}>{Object.entries(copy.rightsStatuses).map(([key,label])=><option key={key} value={key}>{label}</option>)}</select></label>
           <label>{copy.jurisdiction}<input name="jurisdiction" defaultValue={candidate.jurisdiction} style={{ display:"block",width:"100%",padding:12 }} /></label>
           <label>{copy.rightsReason}<textarea name="rights_reason" rows={4} defaultValue={candidate.rights_reason ?? ""} style={{ display:"block",width:"100%",padding:12 }} /></label>
