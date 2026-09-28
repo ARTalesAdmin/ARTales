@@ -1,6 +1,6 @@
 import type { WorkCandidate } from "@/lib/dbCandidates"
 import type { CandidateSourceOption } from "@/lib/candidateSources"
-import { createClient } from "@/lib/supabase/server"
+import type { PersistedCandidateComponentRightRow } from "@/lib/dbCandidateDetails"
 import { isCandidatesFixturePreview } from "@/lib/fixtures/workCandidates"
 
 export type CandidateRightsComponentType =
@@ -42,25 +42,17 @@ function labelFor(component: CandidateRightsComponentType) {
   }[component]
 }
 
-export async function getCandidateComponentRights(
+export function getCandidateComponentRights(
   candidate: WorkCandidate,
   sources: CandidateSourceOption[],
-): Promise<CandidateComponentRight[]> {
+  persistedRows: PersistedCandidateComponentRightRow[] = [],
+): CandidateComponentRight[] {
   if (isCandidatesFixturePreview() && candidate.id === "00000000-0000-4000-8000-000000000101") {
     return wolfingsFixtureRights
   }
 
-  const supabase = await createClient()
-  const { data, error } = await supabase
-    .from("work_candidate_component_rights")
-    .select("id,candidate_id,source_id,component_type,decision,reason,publication_effect")
-    .eq("candidate_id", candidate.id)
-    .order("created_at", { ascending: true })
-
-  if (error) throw new Error(`Failed to load candidate component rights: ${error.message}`)
-
-  if ((data ?? []).length > 0) {
-    return (data ?? []).map((row: any) => ({
+  if (persistedRows.length > 0) {
+    return persistedRows.map((row) => ({
       id: row.id,
       candidate_id: row.candidate_id,
       source_id: row.source_id,
