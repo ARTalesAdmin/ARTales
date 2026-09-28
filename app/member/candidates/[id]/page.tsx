@@ -7,6 +7,7 @@ import { csMember } from "@/lib/i18n/dictionaries/cs/member"
 import { isCandidatesFixturePreview } from "@/lib/fixtures/workCandidates"
 import { getCandidateTriageBlockers } from "@/lib/candidateTriage"
 import { getCandidateDiscoveryIdentity, getCandidateSourceOptions } from "@/lib/candidateSources"
+import { getCandidateComponentRights, getComponentRightsSummary } from "@/lib/candidateComponentRights"
 
 type Props = {
   params: Promise<{ id: string }>
@@ -26,6 +27,8 @@ export default async function WorkCandidateDetailPage({ params, searchParams }: 
   const triageBlockers = getCandidateTriageBlockers(candidate)
   const sourceOptions = getCandidateSourceOptions(candidate)
   const discoveryIdentity = getCandidateDiscoveryIdentity(candidate)
+  const componentRights = getCandidateComponentRights(candidate, sourceOptions)
+  const componentRightsSummary = getComponentRightsSummary(componentRights)
 
   return (
     <main style={{ padding: "48px 32px", maxWidth: 900, margin: "0 auto", lineHeight: 1.6 }}>
@@ -106,6 +109,42 @@ export default async function WorkCandidateDetailPage({ params, searchParams }: 
           <label>{copy.rightsReason}<textarea name="rights_reason" rows={4} defaultValue={candidate.rights_reason ?? ""} style={{ display:"block",width:"100%",padding:12 }} /></label>
           <label>{copy.notBefore}<input name="not_before" type="date" defaultValue={candidate.not_before ?? ""} style={{ display:"block",width:"100%",padding:12 }} /></label>
           {candidate.review_required ? <p style={{ margin:0, padding:12, border:"1px solid #e0c39a", background:"#fff8ed" }}>{copy.reviewRequired}</p> : null}
+
+          <div style={{ display: "grid", gap: 12 }}>
+            <h3 style={{ margin: 0 }}>{copy.componentRightsTitle}</h3>
+            {componentRights.length === 0 ? <p style={{ margin: 0 }}>{copy.componentRightsEmpty}</p> : (
+              <>
+                <aside style={{ padding: 14, border: "1px solid #d8d0c5", background: componentRightsSummary.sourceBlocked ? "#fff1f1" : componentRightsSummary.requiresReview ? "#fff8e8" : "#f6fff6" }}>
+                  <strong>{copy.componentRightsSummary}</strong>
+                  <p style={{ margin: "6px 0 0" }}>
+                    {componentRightsSummary.sourceBlocked
+                      ? copy.componentRightsBlocked
+                      : componentRightsSummary.requiresReview
+                        ? copy.componentRightsReview
+                        : componentRightsSummary.excludedCount > 0
+                          ? copy.componentRightsExcluded
+                          : copy.componentRightsUsable}
+                  </p>
+                </aside>
+                <div style={{ display: "grid", gap: 10 }}>
+                  {componentRights.map((right) => (
+                    <article key={right.id} style={{ padding: 14, border: "1px solid #d8d0c5", borderRadius: 8 }}>
+                      <div style={{ display: "flex", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
+                        <div>
+                          <strong>{copy.componentTypes[right.component]}</strong>
+                          <div style={{ fontSize: 14, opacity: .8 }}>{right.label}</div>
+                        </div>
+                        <div style={{ fontSize: 14 }}>
+                          <strong>{copy.componentDecision}:</strong> {copy.componentDecisions[right.decision]} · <strong>{copy.publicationEffect}:</strong> {copy.publicationEffects[right.publication_effect]}
+                        </div>
+                      </div>
+                      <p style={{ margin: "8px 0 0" }}>{right.reason}</p>
+                    </article>
+                  ))}
+                </div>
+              </>
+            )}
+          </div>
         </section>
 
         <button className="artales-button-primary" type="submit">{copy.save}</button>
