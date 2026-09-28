@@ -1,5 +1,5 @@
 import type { WorkCandidate } from "@/lib/dbCandidates"
-import { createClient } from "@/lib/supabase/server"
+import type { PersistedCandidateSourceRow } from "@/lib/dbCandidateDetails"
 import { isCandidatesFixturePreview } from "@/lib/fixtures/workCandidates"
 
 export type CandidateSourceStatus = "candidate" | "preferred" | "needs_review" | "rejected"
@@ -69,23 +69,17 @@ const fixtureSources: CandidateSourceOption[] = [
   },
 ]
 
-export async function getCandidateSourceOptions(candidate: WorkCandidate): Promise<CandidateSourceOption[]> {
+export function getCandidateSourceOptions(
+  candidate: WorkCandidate,
+  persistedRows: PersistedCandidateSourceRow[] = [],
+): CandidateSourceOption[] {
   if (isCandidatesFixturePreview()) {
     const options = fixtureSources.filter((source) => source.candidate_id === candidate.id)
     if (options.length) return options
   }
 
-  const supabase = await createClient()
-  const { data, error } = await supabase
-    .from("work_candidate_sources")
-    .select("id,candidate_id,provider,source_type,source_reference,source_url,language,publication_facts,identity_match,status,note")
-    .eq("candidate_id", candidate.id)
-    .order("created_at", { ascending: true })
-
-  if (error) throw new Error(`Failed to load candidate sources: ${error.message}`)
-
-  if ((data ?? []).length > 0) {
-    return (data ?? []).map((row: any) => ({
+  if (persistedRows.length > 0) {
+    return persistedRows.map((row) => ({
       id: row.id,
       candidate_id: row.candidate_id,
       provider: row.provider,
