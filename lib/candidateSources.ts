@@ -1,4 +1,5 @@
 import type { WorkCandidate } from "@/lib/dbCandidates"
+import type { PersistedCandidateSourceRow } from "@/lib/dbCandidateDetails"
 import { isCandidatesFixturePreview } from "@/lib/fixtures/workCandidates"
 
 export type CandidateSourceStatus = "candidate" | "preferred" | "needs_review" | "rejected"
@@ -68,33 +69,47 @@ const fixtureSources: CandidateSourceOption[] = [
   },
 ]
 
-export function getCandidateSourceOptions(candidate: WorkCandidate): CandidateSourceOption[] {
+export function getCandidateSourceOptions(
+  candidate: WorkCandidate,
+  persistedRows: PersistedCandidateSourceRow[] = [],
+): CandidateSourceOption[] {
   if (isCandidatesFixturePreview()) {
     const options = fixtureSources.filter((source) => source.candidate_id === candidate.id)
     if (options.length) return options
   }
 
-  if (!candidate.selected_source_reference && !candidate.selected_source_url && !candidate.selected_source_type) {
-    return []
+  if (persistedRows.length > 0) {
+    return persistedRows.map((row) => ({
+      id: row.id,
+      candidate_id: row.candidate_id,
+      provider: row.provider,
+      source_type: row.source_type,
+      reference: row.source_reference,
+      url: row.source_url,
+      language: row.language,
+      publication_facts: row.publication_facts,
+      identity_match: row.identity_match,
+      status: candidate.preferred_source_id === row.id ? "preferred" : row.status,
+      note: row.note,
+    }))
   }
 
-  return [
-    {
-      id: `legacy-selected-${candidate.id}`,
-      candidate_id: candidate.id,
-      provider: "Selected source",
-      source_type: candidate.selected_source_type ?? "unknown",
-      reference: candidate.selected_source_reference ?? "selected source",
-      url: candidate.selected_source_url,
-      language: null,
-      publication_facts: null,
-      identity_match: "strong",
-      status: "preferred",
-      note: "Projected from the current single-source candidate fields until P1-1C persistence is normalized.",
-    },
-  ]
-}
+  if (!candidate.selected_source_reference && !candidate.selected_source_url && !candidate.selected_source_type) return []
 
+  return [{
+    id: `legacy-selected-${candidate.id}`,
+    candidate_id: candidate.id,
+    provider: "Selected source",
+    source_type: candidate.selected_source_type ?? "unknown",
+    reference: candidate.selected_source_reference ?? "selected source",
+    url: candidate.selected_source_url,
+    language: null,
+    publication_facts: null,
+    identity_match: "strong",
+    status: "preferred",
+    note: "Legacy candidate source projection; save the candidate to persist it in the normalized source table.",
+  }]
+}
 
 export function getCandidateDiscoveryIdentity(candidate: WorkCandidate): CandidateDiscoveryIdentity {
   if (isCandidatesFixturePreview() && candidate.id === "00000000-0000-4000-8000-000000000101") {
@@ -107,11 +122,15 @@ export function getCandidateDiscoveryIdentity(candidate: WorkCandidate): Candida
     }
   }
 
+  const birth = candidate.normalized_author_birth_year ?? null
+  const death = candidate.normalized_author_death_year ?? null
+  const lifeDates = birth || death ? `${birth ?? "?"}–${death ?? "?"}` : null
+
   return {
-    normalized_title: candidate.proposed_title,
-    normalized_author: candidate.proposed_author_name,
-    author_life_dates: null,
-    first_publication: null,
-    identity_note: "Using candidate identity until normalized discovery metadata is persisted.",
+    normalized_title: candidate.normalized_title ?? candidate.proposed_title,
+    normalized_author: candidate.normalized_author_name ?? candidate.proposed_author_name,
+    author_life_dates: lifeDates,
+    first_publication: candidate.first_publication_year?.toString() ?? null,
+    identity_note: candidate.identity_reason ?? "Using candidate identity until normalized discovery metadata is confirmed.",
   }
 }
