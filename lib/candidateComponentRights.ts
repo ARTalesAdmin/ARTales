@@ -1,23 +1,14 @@
 import type { WorkCandidate } from "@/lib/dbCandidates"
 import type { CandidateSourceOption } from "@/lib/candidateSources"
+import { createClient } from "@/lib/supabase/server"
 import { isCandidatesFixturePreview } from "@/lib/fixtures/workCandidates"
 
 export type CandidateRightsComponentType =
-  | "WORK_CONTENT"
-  | "EDITION_CONTENT"
-  | "TRANSLATION"
-  | "SOURCE_WRAPPER"
-  | "EDITORIAL_ADDITION"
-  | "ASSET"
-  | "UNKNOWN"
+  | "WORK_CONTENT" | "EDITION_CONTENT" | "TRANSLATION" | "SOURCE_WRAPPER"
+  | "EDITORIAL_ADDITION" | "ASSET" | "UNKNOWN"
 
 export type CandidateRightsDecision =
-  | "usable"
-  | "exclude"
-  | "review_required"
-  | "alternate_edition_required"
-  | "blocked"
-  | "not_applicable"
+  | "usable" | "exclude" | "review_required" | "alternate_edition_required" | "blocked" | "not_applicable"
 
 export type CandidateComponentRight = {
   id: string
@@ -31,74 +22,54 @@ export type CandidateComponentRight = {
 }
 
 const wolfingsFixtureRights: CandidateComponentRight[] = [
-  {
-    id: "wolfings-work-content",
-    candidate_id: "00000000-0000-4000-8000-000000000101",
-    source_id: "fixture-source-wolfings-gutenberg",
-    component: "WORK_CONTENT",
-    label: "Original work text",
-    decision: "usable",
-    reason: "Fixture: William Morris died in 1896; work-level text is treated as usable for the EU/CZ workflow preview.",
-    publication_effect: "allow",
-  },
-  {
-    id: "wolfings-edition-content",
-    candidate_id: "00000000-0000-4000-8000-000000000101",
-    source_id: "fixture-source-wolfings-gutenberg",
-    component: "EDITION_CONTENT",
-    label: "Edition / transcription text",
-    decision: "review_required",
-    reason: "Concrete transcription and edition-specific contributions still require provenance review before ingest.",
-    publication_effect: "review",
-  },
-  {
-    id: "wolfings-translation",
-    candidate_id: "00000000-0000-4000-8000-000000000101",
-    source_id: "fixture-source-wolfings-gutenberg",
-    component: "TRANSLATION",
-    label: "Translation",
-    decision: "not_applicable",
-    reason: "The selected fixture source is English original-language text, so no translation is selected.",
-    publication_effect: "allow",
-  },
-  {
-    id: "wolfings-wrapper",
-    candidate_id: "00000000-0000-4000-8000-000000000101",
-    source_id: "fixture-source-wolfings-gutenberg",
-    component: "SOURCE_WRAPPER",
-    label: "Project Gutenberg wrapper",
-    decision: "exclude",
-    reason: "Project Gutenberg headers, license/footer text, and source wrapper are not part of the literary work and must be removed from ARTales content.",
-    publication_effect: "exclude_component",
-  },
-  {
-    id: "wolfings-editorial",
-    candidate_id: "00000000-0000-4000-8000-000000000101",
-    source_id: "fixture-source-wolfings-gutenberg",
-    component: "EDITORIAL_ADDITION",
-    label: "Transcriber / editorial notes",
-    decision: "exclude",
-    reason: "Source-specific transcriber or editorial notes should not be imported unless separately reviewed and intentionally retained.",
-    publication_effect: "exclude_component",
-  },
-  {
-    id: "wolfings-assets",
-    candidate_id: "00000000-0000-4000-8000-000000000101",
-    source_id: "fixture-source-wolfings-gutenberg",
-    component: "ASSET",
-    label: "Illustrations / source assets",
-    decision: "review_required",
-    reason: "Any illustrations, cover images, or embedded assets need separate rights provenance. Text clearance does not clear assets.",
-    publication_effect: "review",
-  },
+  { id:"wolfings-work-content",candidate_id:"00000000-0000-4000-8000-000000000101",source_id:"fixture-source-wolfings-gutenberg",component:"WORK_CONTENT",label:"Original work text",decision:"usable",reason:"Fixture: William Morris died in 1896; work-level text is treated as usable for the EU/CZ workflow preview.",publication_effect:"allow" },
+  { id:"wolfings-edition-content",candidate_id:"00000000-0000-4000-8000-000000000101",source_id:"fixture-source-wolfings-gutenberg",component:"EDITION_CONTENT",label:"Edition / transcription text",decision:"review_required",reason:"Concrete transcription and edition-specific contributions still require provenance review before ingest.",publication_effect:"review" },
+  { id:"wolfings-translation",candidate_id:"00000000-0000-4000-8000-000000000101",source_id:"fixture-source-wolfings-gutenberg",component:"TRANSLATION",label:"Translation",decision:"not_applicable",reason:"The selected fixture source is English original-language text, so no translation is selected.",publication_effect:"allow" },
+  { id:"wolfings-wrapper",candidate_id:"00000000-0000-4000-8000-000000000101",source_id:"fixture-source-wolfings-gutenberg",component:"SOURCE_WRAPPER",label:"Project Gutenberg wrapper",decision:"exclude",reason:"Project Gutenberg headers, license/footer text, and source wrapper are not part of the literary work and must be removed from ARTales content.",publication_effect:"exclude_component" },
+  { id:"wolfings-editorial",candidate_id:"00000000-0000-4000-8000-000000000101",source_id:"fixture-source-wolfings-gutenberg",component:"EDITORIAL_ADDITION",label:"Transcriber / editorial notes",decision:"exclude",reason:"Source-specific transcriber or editorial notes should not be imported unless separately reviewed and intentionally retained.",publication_effect:"exclude_component" },
+  { id:"wolfings-assets",candidate_id:"00000000-0000-4000-8000-000000000101",source_id:"fixture-source-wolfings-gutenberg",component:"ASSET",label:"Illustrations / source assets",decision:"review_required",reason:"Any illustrations, cover images, or embedded assets need separate rights provenance. Text clearance does not clear assets.",publication_effect:"review" },
 ]
 
-export function getCandidateComponentRights(
+function labelFor(component: CandidateRightsComponentType) {
+  return {
+    WORK_CONTENT:"Work content",
+    EDITION_CONTENT:"Edition content",
+    TRANSLATION:"Translation",
+    SOURCE_WRAPPER:"Source wrapper",
+    EDITORIAL_ADDITION:"Editorial addition",
+    ASSET:"Asset",
+    UNKNOWN:"Unknown component",
+  }[component]
+}
+
+export async function getCandidateComponentRights(
   candidate: WorkCandidate,
   sources: CandidateSourceOption[],
-): CandidateComponentRight[] {
+): Promise<CandidateComponentRight[]> {
   if (isCandidatesFixturePreview() && candidate.id === "00000000-0000-4000-8000-000000000101") {
     return wolfingsFixtureRights
+  }
+
+  const supabase = await createClient()
+  const { data, error } = await supabase
+    .from("work_candidate_component_rights")
+    .select("id,candidate_id,source_id,component_type,decision,reason,publication_effect")
+    .eq("candidate_id", candidate.id)
+    .order("created_at", { ascending: true })
+
+  if (error) throw new Error(`Failed to load candidate component rights: ${error.message}`)
+
+  if ((data ?? []).length > 0) {
+    return (data ?? []).map((row: any) => ({
+      id: row.id,
+      candidate_id: row.candidate_id,
+      source_id: row.source_id,
+      component: row.component_type,
+      label: labelFor(row.component_type),
+      decision: row.decision,
+      reason: row.reason,
+      publication_effect: row.publication_effect,
+    }))
   }
 
   const preferred = sources.find((source) => source.status === "preferred") ?? null
@@ -129,11 +100,8 @@ export function getCandidateComponentRights(
 }
 
 export function getComponentRightsSummary(rights: CandidateComponentRight[]) {
-  const blockers = rights.filter((right) =>
-    right.publication_effect === "block_source" || right.publication_effect === "review"
-  )
+  const blockers = rights.filter((right) => right.publication_effect === "block_source" || right.publication_effect === "review")
   const excluded = rights.filter((right) => right.publication_effect === "exclude_component")
-
   return {
     canUseSourceAsIs: blockers.length === 0 && excluded.length === 0,
     requiresReview: blockers.some((right) => right.publication_effect === "review"),
