@@ -104,7 +104,8 @@ alter table public.work_candidates
   add constraint work_candidates_preferred_source_fk
     foreign key (preferred_source_id, id)
     references public.work_candidate_sources(id, candidate_id)
-    on delete set null;
+    on delete no action
+    deferrable initially deferred;
 
 create index if not exists work_candidates_preferred_source_idx
   on public.work_candidates(preferred_source_id)
@@ -186,7 +187,8 @@ create table if not exists public.work_candidate_promotion_attempts (
   constraint work_candidate_promotion_attempts_source_fk
     foreign key (preferred_source_id, candidate_id)
     references public.work_candidate_sources(id, candidate_id)
-    on delete set null,
+    on delete no action
+    deferrable initially deferred,
 
   constraint work_candidate_promotion_promoted_has_work
     check (result <> 'promoted' or created_work_id is not null)
