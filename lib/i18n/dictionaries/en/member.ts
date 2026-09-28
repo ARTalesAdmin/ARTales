@@ -27,6 +27,8 @@ export const enMember = {
     normalizedTitle: "Normalized title",
     normalizedAuthor: "Normalized author",
     authorLifeDates: "Author life dates",
+    authorBirthYear: "Author birth year",
+    authorDeathYear: "Author death year",
     firstPublication: "First publication",
     discoveryIdentityNote: "Identity note",
     discoveryShortlistTitle: "Discovered sources / editions",
