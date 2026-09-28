@@ -8,6 +8,7 @@ import { isCandidatesFixturePreview } from "@/lib/fixtures/workCandidates"
 import { getCandidateTriageBlockers } from "@/lib/candidateTriage"
 import { getCandidateDiscoveryIdentity, getCandidateSourceOptions } from "@/lib/candidateSources"
 import { getCandidateComponentRights, getComponentRightsSummary } from "@/lib/candidateComponentRights"
+import { getCandidatePromotionGate } from "@/lib/candidatePromotionGate"
 
 type Props = {
   params: Promise<{ id: string }>
@@ -29,6 +30,7 @@ export default async function WorkCandidateDetailPage({ params, searchParams }: 
   const discoveryIdentity = getCandidateDiscoveryIdentity(candidate)
   const componentRights = getCandidateComponentRights(candidate, sourceOptions)
   const componentRightsSummary = getComponentRightsSummary(componentRights)
+  const promotionGate = getCandidatePromotionGate(candidate, sourceOptions, componentRights)
 
   return (
     <main style={{ padding: "48px 32px", maxWidth: 900, margin: "0 auto", lineHeight: 1.6 }}>
@@ -145,6 +147,20 @@ export default async function WorkCandidateDetailPage({ params, searchParams }: 
               </>
             )}
           </div>
+        </section>
+
+        <section className="artales-member-panel" style={{ padding: 22, display: "grid", gap: 12 }}>
+          <h2 style={{ margin: 0 }}>{copy.promotionGateTitle}</h2>
+          <aside style={{ padding: 14, border: "1px solid #d8d0c5", background: promotionGate.eligible ? "#f6fff6" : "#fff8e8" }}>
+            <strong>{promotionGate.eligible ? copy.promotionEligible : copy.promotionBlocked}</strong>
+            {promotionGate.preferredSource ? <p style={{ margin: "6px 0 0" }}><strong>{copy.promotionPreferredSource}:</strong> {promotionGate.preferredSource.reference}</p> : null}
+            {!promotionGate.eligible ? (
+              <ul style={{ marginBottom: 0 }}>
+                {promotionGate.blockers.map((blocker) => <li key={blocker}>{copy.promotionBlockers[blocker]}</li>)}
+              </ul>
+            ) : null}
+          </aside>
+          <p style={{ margin: 0, opacity: .8 }}>{copy.promotionActionDeferred}</p>
         </section>
 
         <button className="artales-button-primary" type="submit">{copy.save}</button>
