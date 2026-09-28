@@ -95,6 +95,12 @@ create index if not exists work_candidate_sources_candidate_idx
 create index if not exists work_candidate_sources_identity_idx
   on public.work_candidate_sources(candidate_id, identity_match);
 
+create index if not exists work_candidate_sources_created_by_idx
+  on public.work_candidate_sources(created_by);
+
+create index if not exists work_candidate_sources_updated_by_idx
+  on public.work_candidate_sources(updated_by);
+
 -- Preferred source belongs to the candidate and is represented once on the candidate root.
 alter table public.work_candidates
   add column if not exists preferred_source_id uuid null;
@@ -108,8 +114,12 @@ alter table public.work_candidates
     deferrable initially deferred;
 
 create index if not exists work_candidates_preferred_source_idx
-  on public.work_candidates(preferred_source_id)
+  on public.work_candidates(preferred_source_id, id)
   where preferred_source_id is not null;
+
+create index if not exists work_candidates_promoted_by_idx
+  on public.work_candidates(promoted_by)
+  where promoted_by is not null;
 
 -- 4) Rights decision per component of a concrete source.
 create table if not exists public.work_candidate_component_rights (
@@ -163,6 +173,19 @@ create table if not exists public.work_candidate_component_rights (
 create index if not exists work_candidate_component_rights_candidate_idx
   on public.work_candidate_component_rights(candidate_id, source_id);
 
+create index if not exists work_candidate_component_rights_source_fk_idx
+  on public.work_candidate_component_rights(source_id, candidate_id);
+
+create index if not exists work_candidate_component_rights_reviewed_by_idx
+  on public.work_candidate_component_rights(reviewed_by)
+  where reviewed_by is not null;
+
+create index if not exists work_candidate_component_rights_created_by_idx
+  on public.work_candidate_component_rights(created_by);
+
+create index if not exists work_candidate_component_rights_updated_by_idx
+  on public.work_candidate_component_rights(updated_by);
+
 create index if not exists work_candidate_component_rights_review_idx
   on public.work_candidate_component_rights(candidate_id, publication_effect)
   where publication_effect in ('review','block_source');
@@ -196,6 +219,17 @@ create table if not exists public.work_candidate_promotion_attempts (
 
 create index if not exists work_candidate_promotion_attempts_candidate_idx
   on public.work_candidate_promotion_attempts(candidate_id, created_at desc);
+
+create index if not exists work_candidate_promotion_attempts_source_fk_idx
+  on public.work_candidate_promotion_attempts(preferred_source_id, candidate_id)
+  where preferred_source_id is not null;
+
+create index if not exists work_candidate_promotion_attempts_actor_idx
+  on public.work_candidate_promotion_attempts(actor_user_id);
+
+create index if not exists work_candidate_promotion_attempts_created_work_idx
+  on public.work_candidate_promotion_attempts(created_work_id)
+  where created_work_id is not null;
 
 -- 6) RLS: editor/admin only, matching the candidate foundation.
 alter table public.work_candidate_sources enable row level security;
