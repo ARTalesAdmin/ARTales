@@ -4,11 +4,19 @@ import { getWorkCandidates } from "@/lib/dbCandidates"
 import { csMember } from "@/lib/i18n/dictionaries/cs/member"
 import { isCandidatesFixturePreview } from "@/lib/fixtures/workCandidates"
 
-export default async function WorkCandidatesPage() {
+type Props = { searchParams: Promise<{ status?: string; rights?: string; discovery?: string }> }
+
+export default async function WorkCandidatesPage({ searchParams }: Props) {
   await requireEditorOrAdmin()
   const candidates = await getWorkCandidates()
+  const filters = await searchParams
   const copy = csMember.candidates
   const fixturePreview = isCandidatesFixturePreview()
+  const visibleCandidates = candidates.filter((candidate) =>
+    (!filters.status || candidate.status === filters.status) &&
+    (!filters.rights || candidate.rights_status === filters.rights) &&
+    (!filters.discovery || candidate.discovery_status === filters.discovery)
+  )
 
   return (
     <main style={{ padding: "48px 32px", maxWidth: "1100px", margin: "0 auto", lineHeight: 1.6 }}>
@@ -25,13 +33,23 @@ export default async function WorkCandidatesPage() {
       </section>
 
       <section className="artales-member-panel" style={{ padding: 20, marginBottom: 24 }}>
+        <h2 style={{ marginTop: 0 }}>{copy.filters}</h2>
+        <form method="get" style={{ display: "grid", gridTemplateColumns: "repeat(3,minmax(0,1fr)) auto", gap: 12, alignItems: "end" }}>
+          <label>{copy.status}<select name="status" defaultValue={filters.status ?? ""} style={{ display:"block",width:"100%",padding:10 }}><option value="">{copy.all}</option>{Object.entries(copy.statuses).map(([key,label])=><option key={key} value={key}>{label}</option>)}</select></label>
+          <label>{copy.rights}<select name="rights" defaultValue={filters.rights ?? ""} style={{ display:"block",width:"100%",padding:10 }}><option value="">{copy.all}</option>{Object.entries(copy.rightsStatuses).map(([key,label])=><option key={key} value={key}>{label}</option>)}</select></label>
+          <label>{copy.discovery}<select name="discovery" defaultValue={filters.discovery ?? ""} style={{ display:"block",width:"100%",padding:10 }}><option value="">{copy.all}</option>{Object.entries(copy.discoveryStatuses).map(([key,label])=><option key={key} value={key}>{label}</option>)}</select></label>
+          <button className="artales-button-secondary" type="submit">Použít</button>
+        </form>
+      </section>
+
+      <section className="artales-member-panel" style={{ padding: 20, marginBottom: 24 }}>
         <h2 style={{ marginTop: 0 }}>{copy.watcherTitle}</h2>
         <p style={{ marginBottom: 0 }}>{copy.watcherPlaceholder}</p>
       </section>
 
-      {candidates.length === 0 ? <p>{copy.empty}</p> : (
+      {visibleCandidates.length === 0 ? <p>{copy.empty}</p> : (
         <div style={{ display: "grid", gap: 14 }}>
-          {candidates.map((candidate) => (
+          {visibleCandidates.map((candidate) => (
             <article key={candidate.id} className="artales-member-panel" style={{ padding: 20 }}>
               <div style={{ display: "flex", justifyContent: "space-between", gap: 20, flexWrap: "wrap" }}>
                 <div>
