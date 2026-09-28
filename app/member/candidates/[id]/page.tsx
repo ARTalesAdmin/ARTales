@@ -137,11 +137,22 @@ export default async function WorkCandidateDetailPage({ params, searchParams }: 
                           <strong>{copy.componentTypes[right.component]}</strong>
                           <div style={{ fontSize: 14, opacity: .8 }}>{right.label}</div>
                         </div>
-                        <div style={{ fontSize: 14 }}>
-                          <strong>{copy.componentDecision}:</strong> {copy.componentDecisions[right.decision]} · <strong>{copy.publicationEffect}:</strong> {copy.publicationEffects[right.publication_effect]}
+                        <div style={{ fontSize: 14, display: "grid", gap: 8, minWidth: 240 }}>
+                          <label>{copy.componentDecision}
+                            <select name={`component_decision__${right.component}`} defaultValue={right.decision} style={{ display:"block",width:"100%",padding:8 }}>
+                              {Object.entries(copy.componentDecisions).map(([key,label]) => <option key={key} value={key}>{label}</option>)}
+                            </select>
+                          </label>
+                          <label>{copy.publicationEffect}
+                            <select name={`component_effect__${right.component}`} defaultValue={right.publication_effect} style={{ display:"block",width:"100%",padding:8 }}>
+                              {Object.entries(copy.publicationEffects).map(([key,label]) => <option key={key} value={key}>{label}</option>)}
+                            </select>
+                          </label>
                         </div>
                       </div>
-                      <p style={{ margin: "8px 0 0" }}>{right.reason}</p>
+                      <label style={{ display:"block", marginTop: 8 }}>{copy.rightsReason}
+                        <textarea name={`component_reason__${right.component}`} rows={3} defaultValue={right.reason} style={{ display:"block",width:"100%",padding:10 }} />
+                      </label>
                     </article>
                   ))}
                 </div>
