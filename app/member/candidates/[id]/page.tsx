@@ -6,7 +6,7 @@ import { updateWorkCandidate } from "@/lib/actions/workCandidates"
 import { csMember } from "@/lib/i18n/dictionaries/cs/member"
 import { isCandidatesFixturePreview } from "@/lib/fixtures/workCandidates"
 import { getCandidateTriageBlockers } from "@/lib/candidateTriage"
-import { getCandidateSourceOptions } from "@/lib/candidateSources"
+import { getCandidateDiscoveryIdentity, getCandidateSourceOptions } from "@/lib/candidateSources"
 
 type Props = {
   params: Promise<{ id: string }>
@@ -25,6 +25,7 @@ export default async function WorkCandidateDetailPage({ params, searchParams }: 
   const action = updateWorkCandidate.bind(null, id)
   const triageBlockers = getCandidateTriageBlockers(candidate)
   const sourceOptions = getCandidateSourceOptions(candidate)
+  const discoveryIdentity = getCandidateDiscoveryIdentity(candidate)
 
   return (
     <main style={{ padding: "48px 32px", maxWidth: 900, margin: "0 auto", lineHeight: 1.6 }}>
@@ -52,6 +53,17 @@ export default async function WorkCandidateDetailPage({ params, searchParams }: 
         <section className="artales-member-panel" style={{ padding: 22, display: "grid", gap: 16 }}>
           <h2 style={{ margin: 0 }}>{copy.discoverySection}</h2>
           <label>{copy.discovery}<select name="discovery_status" defaultValue={candidate.discovery_status} style={{ display:"block",width:"100%",padding:12 }}>{Object.entries(copy.discoveryStatuses).map(([key,label])=><option key={key} value={key}>{label}</option>)}</select></label>
+
+          <aside style={{ padding: 14, border: "1px solid #d8d0c5", background: "#faf8f4" }}>
+            <strong>{copy.discoveryIdentityTitle}</strong>
+            <dl style={{ display: "grid", gridTemplateColumns: "max-content 1fr", gap: "4px 12px", marginBottom: 0 }}>
+              <dt>{copy.normalizedTitle}</dt><dd>{discoveryIdentity.normalized_title}</dd>
+              <dt>{copy.normalizedAuthor}</dt><dd>{discoveryIdentity.normalized_author}</dd>
+              <dt>{copy.authorLifeDates}</dt><dd>{discoveryIdentity.author_life_dates ?? "—"}</dd>
+              <dt>{copy.firstPublication}</dt><dd>{discoveryIdentity.first_publication ?? "—"}</dd>
+              <dt>{copy.discoveryIdentityNote}</dt><dd>{discoveryIdentity.identity_note ?? "—"}</dd>
+            </dl>
+          </aside>
 
           <div style={{ display: "grid", gap: 12 }}>
             <h3 style={{ margin: 0 }}>{copy.discoveryShortlistTitle}</h3>
