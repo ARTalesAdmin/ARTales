@@ -89,7 +89,7 @@ export function getCandidateSourceOptions(
       language: row.language,
       publication_facts: row.publication_facts,
       identity_match: row.identity_match,
-      status: candidate.preferred_source_id === row.id ? "preferred" : row.status,
+      status: candidate.preferred_source_id === row.id && row.status === "candidate" ? "preferred" : row.status,
       note: row.note,
     }))
   }
@@ -105,9 +105,10 @@ export function getCandidateSourceOptions(
     url: candidate.selected_source_url,
     language: null,
     publication_facts: null,
-    identity_match: "strong",
+    // Legacy fields describe an option; they cannot prove edition identity.
+    identity_match: "uncertain",
     status: "preferred",
-    note: "Legacy candidate source projection; save the candidate to persist it in the normalized source table.",
+    note: "Legacy source is unverified. Save and explicitly review a normalized source before promotion.",
   }]
 }
 

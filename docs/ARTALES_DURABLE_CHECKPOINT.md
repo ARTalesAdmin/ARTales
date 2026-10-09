@@ -14,6 +14,11 @@ Current `develop` after today's work:
 Detailed dated Phoenix snapshot:
 - `docs/ARTALES_PHOENIX_2026-09-28.md`
 
+Current resumed-ingest plan, component-wise capture/rights safeguards and PR #194 status (verify live):
+- `docs/ARTALES_PHOENIX_2026-10-09_INGEST.md`
+
+The 2026-09-28 P1-2C1 next action remains relevant but is now part of the 2026-10-09 prioritized multi-PR ingest plan. The newer Phoenix does not supersede explicit governance or authorization.
+
 ## Candidate / rights program status
 
 Completed on `develop`:
