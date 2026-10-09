@@ -35,6 +35,7 @@ export type PersistedCandidateComponentRightRow = {
     | "not_applicable"
   reason: string
   publication_effect: "allow" | "exclude_component" | "block_source" | "review"
+  not_before: string | null
 }
 
 export async function getPersistedCandidateSources(candidateId: string): Promise<PersistedCandidateSourceRow[]> {
@@ -49,12 +50,13 @@ export async function getPersistedCandidateSources(candidateId: string): Promise
   return (data ?? []) as PersistedCandidateSourceRow[]
 }
 
-export async function getPersistedCandidateComponentRights(candidateId: string): Promise<PersistedCandidateComponentRightRow[]> {
+export async function getPersistedCandidateComponentRights(candidateId: string, sourceId: string): Promise<PersistedCandidateComponentRightRow[]> {
   const supabase = await createClient()
   const { data, error } = await supabase
     .from("work_candidate_component_rights")
-    .select("id,candidate_id,source_id,component_type,decision,reason,publication_effect")
+    .select("id,candidate_id,source_id,component_type,decision,reason,publication_effect,not_before")
     .eq("candidate_id", candidateId)
+    .eq("source_id", sourceId)
     .order("created_at", { ascending: true })
 
   if (error) throw new Error(`Failed to load candidate component rights: ${error.message}`)
