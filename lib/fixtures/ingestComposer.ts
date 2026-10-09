@@ -10,7 +10,7 @@ export type FixtureCapture = { sourceId: string; sourceLabel: string; title: str
 export type AnchoredBlock = {
   block: WorkBlock; sourceId: string; componentId: string; start: number; end: number;
   recipe: "chapter" | "prose" | "verse";
-  layoutVariant?: "airy_verse"; // bounded fixture-only presentation recipe
+  layoutVariant?: "airy_verse" | "comfortable_prose" | "open_chapter"; // bounded fixture-only presentation recipe
 };
 export type ExcludedComponent = { id: string; kind: CapturedKind; label: string; decision: RightsDecision | "missing"; reason: string };
 
@@ -142,6 +142,30 @@ export function recomposeFixtureVerse(
   const revised = previous.map((item) => item.block.id === targetBlockId
     ? { ...item, layoutVariant: "airy_verse" as const }
     : item);
+  if (!inspectSourceIntegrity(capture, revised).ok) {
+    throw new Error("Recomposition refused: output differs from source.");
+  }
+  return revised;
+}
+
+/** Local fixture-only region recomposition, selecting a bounded recipe by block type. */
+export function recomposeFixtureRegion(
+  capture: FixtureCapture,
+  previous: AnchoredBlock[],
+  targetBlockId: string,
+): AnchoredBlock[] {
+  if (!inspectSourceIntegrity(capture, previous).ok) {
+    throw new Error("Recomposition refused: source integrity failed.");
+  }
+  const selected = previous.find((item) => item.block.id === targetBlockId);
+  if (!selected) throw new Error("Recomposition refused: source span not found.");
+  const variant = selected.block.type === "poem" ? "airy_verse"
+    : selected.block.type === "paragraph" ? "comfortable_prose"
+    : selected.block.type === "chapter" ? "open_chapter" : null;
+  if (!variant) throw new Error("Recomposition refused: unsupported block type.");
+  const revised: AnchoredBlock[] = previous.map((item) =>
+    item.block.id === targetBlockId ? { ...item, layoutVariant: variant } : item,
+  );
   if (!inspectSourceIntegrity(capture, revised).ok) {
     throw new Error("Recomposition refused: output differs from source.");
   }
