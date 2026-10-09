@@ -25,17 +25,17 @@ export function getCandidatePromotionGate(
 ): CandidatePromotionGate {
   const blockers: CandidatePromotionBlocker[] = []
 
-  if (candidate.matched_work_id) blockers.push("already_promoted")
+  if (candidate.matched_work_id || candidate.promoted_at) blockers.push("already_promoted")
 
   if (candidate.status !== "ready" && candidate.status !== "accepted") {
     blockers.push("candidate_not_ready")
   }
 
-  if (getCandidateTriageBlockers(candidate).length > 0) {
+  if (candidate.review_required || getCandidateTriageBlockers(candidate).length > 0) {
     blockers.push("triage_blocked")
   }
 
-  const preferredSource = sources.find((source) => source.status === "preferred") ?? null
+  const preferredSource = sources.find((source) => source.status === "preferred" && source.candidate_id === candidate.id) ?? null
   // The UI may show legacy/fixture source projections, but only the persisted
   // preferred-source relationship is allowed to pass the promotion gate.
   if (!preferredSource || !candidate.preferred_source_id ||
@@ -48,7 +48,7 @@ export function getCandidatePromotionGate(
   // Rights belong to a concrete source/edition, not to the candidate as a
   // whole. Decisions about a different source must not affect this one.
   const selectedRights = preferredSource
-    ? componentRights.filter((right) => right.source_id === preferredSource.id)
+    ? componentRights.filter((right) => right.source_id === preferredSource.id && right.candidate_id === candidate.id)
     : []
   const hasAllowedWorkContent = selectedRights.some(
     (right) =>
