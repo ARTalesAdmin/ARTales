@@ -10,6 +10,7 @@ export type FixtureCapture = { sourceId: string; sourceLabel: string; title: str
 export type AnchoredBlock = {
   block: WorkBlock; sourceId: string; componentId: string; start: number; end: number;
   recipe: "chapter" | "prose" | "verse";
+  layoutVariant?: "airy_verse"; // bounded fixture-only presentation recipe
 };
 export type ExcludedComponent = { id: string; kind: CapturedKind; label: string; decision: RightsDecision | "missing"; reason: string };
 
@@ -123,4 +124,26 @@ export function composeFixtureSection(capture: FixtureCapture) {
     });
   }
   return { blocks, excluded, qa: inspectSourceIntegrity(capture, blocks), releaseAllowed: false as const };
+}
+
+/** Recompose only a selected poem's layout; never modify source text, order or spans. */
+export function recomposeFixtureVerse(
+  capture: FixtureCapture,
+  previous: AnchoredBlock[],
+  targetBlockId: string,
+): AnchoredBlock[] {
+  if (!inspectSourceIntegrity(capture, previous).ok) {
+    throw new Error("Recomposition refused: source integrity failed.");
+  }
+  const selected = previous.find((item) => item.block.id === targetBlockId);
+  if (!selected || selected.block.type !== "poem" || selected.recipe !== "verse") {
+    throw new Error("Recomposition refused: select an existing verse block.");
+  }
+  const revised = previous.map((item) => item.block.id === targetBlockId
+    ? { ...item, layoutVariant: "airy_verse" as const }
+    : item);
+  if (!inspectSourceIntegrity(capture, revised).ok) {
+    throw new Error("Recomposition refused: output differs from source.");
+  }
+  return revised;
 }

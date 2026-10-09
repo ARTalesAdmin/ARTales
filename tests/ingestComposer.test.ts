@@ -4,6 +4,7 @@ import {
   INGEST_FIXTURE,
   composeFixtureSection,
   inspectSourceIntegrity,
+  recomposeFixtureVerse,
 } from "../lib/fixtures/ingestComposer";
 
 const result = composeFixtureSection(INGEST_FIXTURE);
@@ -56,4 +57,23 @@ test("reordering, tampering and missing spans fail QA", () => {
   assert.equal(inspectSourceIntegrity(INGEST_FIXTURE, corrupted).ok, false);
   assert.equal(inspectSourceIntegrity(INGEST_FIXTURE, result.blocks.slice(1)).ok, false);
   assert.equal(inspectSourceIntegrity(INGEST_FIXTURE, [...result.blocks, result.blocks[0]]).ok, false);
+});
+
+
+test("targeted verse recomposition preserves every source span and is idempotent", () => {
+  const verse = result.blocks.find((item) => item.block.type === "poem");
+  assert.ok(verse);
+  const revised = recomposeFixtureVerse(INGEST_FIXTURE, result.blocks, verse.block.id);
+  assert.equal(inspectSourceIntegrity(INGEST_FIXTURE, revised).ok, true);
+  assert.equal(revised.find((item) => item.block.id === verse.block.id)?.layoutVariant, "airy_verse");
+  for (let index = 0; index < result.blocks.length; index++) {
+    assert.deepEqual(revised[index].block, result.blocks[index].block);
+    assert.equal(revised[index].start, result.blocks[index].start);
+    assert.equal(revised[index].end, result.blocks[index].end);
+    if (result.blocks[index].block.id !== verse.block.id) assert.strictEqual(revised[index], result.blocks[index]);
+  }
+  assert.deepEqual(recomposeFixtureVerse(INGEST_FIXTURE, revised, verse.block.id), revised);
+  assert.throws(() => recomposeFixtureVerse(INGEST_FIXTURE, result.blocks, "unknown-id"));
+  assert.throws(() => recomposeFixtureVerse(INGEST_FIXTURE, result.blocks, result.blocks[0].block.id));
+  assert.throws(() => recomposeFixtureVerse(INGEST_FIXTURE, result.blocks.slice(1), verse.block.id));
 });

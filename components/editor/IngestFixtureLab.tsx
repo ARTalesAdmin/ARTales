@@ -1,7 +1,10 @@
 "use client";
 import { useState } from "react";
 import WorkContentRenderer from "@/components/work/WorkContentRenderer";
-import { INGEST_FIXTURE, composeFixtureSection } from "@/lib/fixtures/ingestComposer";
+import {
+  INGEST_FIXTURE, composeFixtureSection, inspectSourceIntegrity, recomposeFixtureVerse,
+  type AnchoredBlock,
+} from "@/lib/fixtures/ingestComposer";
 import "./ingest-fixture-lab.css";
 
 const artifact = composeFixtureSection(INGEST_FIXTURE);
@@ -21,8 +24,10 @@ const rightsLabels = {
 export default function IngestFixtureLab() {
   const [selectedId, setSelectedId] = useState(firstVerseId);
   const [stage, setStage] = useState<Stage>("draft");
-  const selected = artifact.blocks.find((item) => item.block.id === selectedId);
-  const adjusted = stage === "recomposed" || stage === "accepted";
+  const [blocks, setBlocks] = useState<AnchoredBlock[]>(() => artifact.blocks);
+  const [returnedBlockId, setReturnedBlockId] = useState<string | null>(null);
+  const qa = inspectSourceIntegrity(INGEST_FIXTURE, blocks);
+  const selected = blocks.find((item) => item.block.id === selectedId);
   const component = INGEST_FIXTURE.components.find((item) => item.id === selected?.componentId);
 
   return <main className="ingest-lab">
@@ -31,8 +36,8 @@ export default function IngestFixtureLab() {
       <p className="ingest-lab__kicker">ARTales · Ingest / Adaptive Composer / Reader QA</p>
       <h1>První složená kapitola</h1>
       <p>Izolovaný prototyp z <strong>fiktivního rukopisu</strong>. Vlevo je doslovný zdroj, vpravo reálné bloky ARTales vykreslené existující komponentou WorkContentRenderer. Žádná data se neukládají.</p>
-      <div className="ingest-lab__status"><strong>{artifact.qa.ok ? "Textová integrita: OK" : "Textová integrita: CHYBA"}</strong>
-        <span>{artifact.qa.verifiedBlocks}/{artifact.blocks.length} shodných bloků</span>
+      <div className="ingest-lab__status"><strong>{qa.ok ? "Textová integrita: OK" : "Textová integrita: CHYBA"}</strong>
+        <span>{qa.verifiedBlocks}/{blocks.length} shodných bloků</span>
         <span>{artifact.excluded.length} oddělených komponent</span>
         <span>Publikování zamčeno</span>
       </div>
@@ -56,7 +61,7 @@ export default function IngestFixtureLab() {
         <p className="ingest-lab__kicker">02 · Immutable source</p>
         <h2>Originál</h2>
         <p className="ingest-lab__muted">{INGEST_FIXTURE.title}</p>
-        {artifact.blocks.map((item) => <article key={item.block.id} className={"ingest-lab__segment" + (selectedId === item.block.id ? " is-selected" : "")}>
+        {blocks.map((item) => <article key={item.block.id} className={"ingest-lab__segment" + (selectedId === item.block.id ? " is-selected" : "")}>
           <button aria-pressed={selectedId === item.block.id} onClick={() => setSelectedId(item.block.id)} type="button">
             Originál · znaky {item.start}–{item.end}
           </button>
@@ -68,11 +73,11 @@ export default function IngestFixtureLab() {
         <h2>Sestavená kapitola</h2>
         <div className="ingest-lab__paper">
           <p className="ingest-lab__muted">Kapitola I · ukázková sazba</p>
-          {artifact.blocks.map((item) => <article key={item.block.id} className={"ingest-lab__segment" + (selectedId === item.block.id ? " is-selected" : "")}>
+          {blocks.map((item) => <article key={item.block.id} className={"ingest-lab__segment" + (selectedId === item.block.id ? " is-selected" : "")}>
             <button aria-pressed={selectedId === item.block.id} onClick={() => setSelectedId(item.block.id)} type="button">
               {item.block.type} · {item.recipe} · {item.block.id}
             </button>
-            <div className={item.block.type === "poem" && !adjusted ? "ingest-lab__tight-verse" : ""}>
+            <div className={item.block.type === "poem" && item.layoutVariant !== "airy_verse" ? "ingest-lab__tight-verse" : ""}>
               <WorkContentRenderer blocks={[item.block]} />
             </div>
           </article>)}
@@ -92,12 +97,18 @@ export default function IngestFixtureLab() {
       </div> : null}
       <div className="ingest-lab__actions">
         <strong role="status">{stageLabels[stage]}</strong>
-        {stage === "draft" && <button disabled={selected?.block.type !== "poem"} onClick={() => setStage("returned")} type="button">Vrátit vybrané verše</button>}
-        {stage === "returned" && <button onClick={() => setStage("recomposed")} type="button">Znovu vysázet oblast</button>}
-        {stage === "recomposed" && <button onClick={() => setStage("accepted")} type="button">Přijmout lokálně</button>}
-        {stage === "accepted" && <button onClick={() => { setSelectedId(firstVerseId); setStage("draft"); }} type="button">Obnovit ukázku</button>}
+        {stage === "draft" && <button disabled={selected?.block.type !== "poem"} onClick={() => { setReturnedBlockId(selectedId); setStage("returned"); }} type="button">Vrátit vybrané verše</button>}
+        {stage === "returned" && <button onClick={() => {
+          if (!returnedBlockId) return;
+          const revised = recomposeFixtureVerse(INGEST_FIXTURE, blocks, returnedBlockId);
+          setBlocks(revised);
+          setSelectedId(returnedBlockId);
+          setStage("recomposed");
+        }} type="button">Znovu vysázet označený blok</button>}
+        {stage === "recomposed" && <button disabled={!qa.ok} onClick={() => { if (qa.ok) setStage("accepted"); }} type="button">Přijmout lokálně</button>}
+        {stage === "accepted" && <button onClick={() => { setBlocks(artifact.blocks); setReturnedBlockId(null); setSelectedId(firstVerseId); setStage("draft"); }} type="button">Obnovit ukázku</button>}
       </div>
-      {artifact.qa.issues.length ? <ul>{artifact.qa.issues.map((issue) => <li key={issue}>{issue}</li>)}</ul> : null}
+      {qa.issues.length ? <ul>{qa.issues.map((issue) => <li key={issue}>{issue}</li>)}</ul> : null}
       <p className="ingest-lab__muted">Bez AI modelu, DB zápisu, autorizace publikace a Nexus workerů. Fiktivní text nepředstavuje právní clearance díla The House of the Wolfings.</p>
     </section>
   </main>;
