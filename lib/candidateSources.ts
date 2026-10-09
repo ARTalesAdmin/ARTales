@@ -105,9 +105,10 @@ export function getCandidateSourceOptions(
     url: candidate.selected_source_url,
     language: null,
     publication_facts: null,
-    identity_match: "strong",
+    // Legacy fields describe an option; they cannot prove edition identity.
+    identity_match: "uncertain",
     status: "preferred",
-    note: "Legacy candidate source projection; save the candidate to persist it in the normalized source table.",
+    note: "Legacy source is unverified. Save and explicitly review a normalized source before promotion.",
   }]
 }
 
