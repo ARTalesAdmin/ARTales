@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { getCandidatePromotionGate } from "@/lib/candidatePromotionGate"
+import { getCandidateDraftReadiness } from "@/lib/candidateDraftReadiness"
 import type { WorkCandidate } from "@/lib/dbCandidates"
 import type { CandidateSourceOption } from "@/lib/candidateSources"
 import type { CandidateComponentRight } from "@/lib/candidateComponentRights"
@@ -79,6 +79,7 @@ const labels: Record<string, string> = {
   component_rights_review: "Některá právní komponenta není vyřešena.",
   component_rights_blocked: "Vybraný zdroj obsahuje nepoužitelnou komponentu.",
   author_match_required: "Chybí ověřený autor v ARTales.",
+  author_identity_unverified: "Identita autora ještě není potvrzena.",
   source_language_required: "Není ověřen jazyk konkrétní edice.",
 }
 
@@ -96,11 +97,9 @@ export default function CandidatePromotionLab() {
     }
     return right
   })
-  const gate = getCandidatePromotionGate(candidate, [source], rights)
-  const blockers: string[] = [...gate.blockers]
-  if (!candidate.matched_author_id) blockers.push("author_match_required")
-  if (!source.language) blockers.push("source_language_required")
-  const eligible = blockers.length === 0
+  const readiness = getCandidateDraftReadiness(candidate, [source], rights)
+  const blockers: string[] = readiness.blockers
+  const eligible = readiness.eligible
   const panelStyle: React.CSSProperties = { border: "1px solid var(--artales-line, #d6c9b8)", borderRadius: 12, padding: 20 }
 
   return (
