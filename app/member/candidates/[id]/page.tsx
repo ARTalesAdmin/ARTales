@@ -2,6 +2,7 @@ import Link from "next/link"
 import { notFound } from "next/navigation"
 import { requireEditorOrAdmin } from "@/lib/guards"
 import { getWorkCandidateById } from "@/lib/dbCandidates"
+import { getPersistedCandidateSources, getPersistedCandidateComponentRights } from "@/lib/dbCandidateDetails"
 import { updateWorkCandidate } from "@/lib/actions/workCandidates"
 import { csMember } from "@/lib/i18n/dictionaries/cs/member"
 import { isCandidatesFixturePreview } from "@/lib/fixtures/workCandidates"
@@ -25,10 +26,17 @@ export default async function WorkCandidateDetailPage({ params, searchParams }: 
   const copy = csMember.candidates
   const fixturePreview = isCandidatesFixturePreview()
   const action = updateWorkCandidate.bind(null, id)
+  // Fixture mode is deliberately isolated from authenticated Supabase reads.
+  // In DB mode, do not evaluate rights or promotion against synthetic projections.
+  const persistedSources = fixturePreview ? [] : await getPersistedCandidateSources(candidate.id)
+  const persistedRights = fixturePreview || !candidate.preferred_source_id
+    ? []
+    : await getPersistedCandidateComponentRights(candidate.id, candidate.preferred_source_id)
+
   const triageBlockers = getCandidateTriageBlockers(candidate)
-  const sourceOptions = getCandidateSourceOptions(candidate)
+  const sourceOptions = getCandidateSourceOptions(candidate, persistedSources)
   const discoveryIdentity = getCandidateDiscoveryIdentity(candidate)
-  const componentRights = getCandidateComponentRights(candidate, sourceOptions)
+  const componentRights = getCandidateComponentRights(candidate, sourceOptions, persistedRights)
   const componentRightsSummary = getComponentRightsSummary(componentRights)
   const promotionGate = getCandidatePromotionGate(candidate, sourceOptions, componentRights)
 
