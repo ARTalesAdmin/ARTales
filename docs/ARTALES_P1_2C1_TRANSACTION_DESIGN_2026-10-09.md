@@ -68,3 +68,12 @@ No merge of a real write button or promotion RPC until: canonical migration gene
 - **Security/design defect in current trial SQL:** `origin_type='public_domain'` and source label inferred from provider name, without explicit provenance/edition-rights evidence. DO NOT treat this SQL as production-ready or apply it to production. Require independently reviewed explicit origin/source mapping, stronger edition identity facts and all required rights decisions before proceeding to live action.
 - The trial SQL is retained only as nonproduction reference. It is **not** a canonical migration; follow Supabase CLI migration workflow for final version.
 - **Cleanup confirmed:** deleted branch via Supabase and re-listed branches: only production `main` remained. No persistent staging created. No production mutation.
+
+## P1-2C1 proof V2 — 2026-10-09
+
+- Added noncanonical, **ephemeral-only** SQL prototype at `docs/prototypes/ARTALES_P1_2C1_EPHEMERAL_PROOF_V2.sql`.
+- The prototype adds optional source-level draft mapping fields (`draft_origin_type`, `draft_source_label`), explicit `provenance_basis`, and named review stamp. None are applied to production. Promotion must fail closed when they are incomplete, stale or not reviewed by an active editor.
+- Function remains `SECURITY INVOKER`, verifies `auth.uid()`, locks the candidate plus selected source and rights, creates a draft only, and appends a source-scoped gate snapshot. It does not handle automatically creating authors or publication.
+- **Unverified**: V2 SQL has not been executed or synthetically exercised. The attempt to create a new ephemeral branch was blocked by tooling safety checks; a subsequent branch listing confirmed only main exists. No new test branch was created or left running. Do not use V2 in production.
+- Follow-up implementation gap: editor persistence must safely set explicit provenance and review stamps, rather than leaving new source columns null. Next controlled test must cover authenticated editor success, roles, rights failures, double-call, rollback and concurrency.
+- Additional security review: owner privileges/RLS and ordering of candidate/source/rights locks; ensure updates to rights cannot race the promotion transaction.
