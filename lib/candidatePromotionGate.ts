@@ -50,23 +50,38 @@ export function getCandidatePromotionGate(
   const selectedRights = preferredSource
     ? componentRights.filter((right) => right.source_id === preferredSource.id)
     : []
-  const workContentAllowed = selectedRights.some(
+  const hasAllowedWorkContent = selectedRights.some(
     (right) =>
       right.component === "WORK_CONTENT" &&
       right.decision === "usable" &&
       right.publication_effect === "allow",
   )
+  // A clean original text does not clear an edition, transcription, translation
+  // or illustration. The selected edition must be explicitly assessed.
+  const hasReviewedEdition = selectedRights.some(
+    (right) =>
+      right.component === "EDITION_CONTENT" &&
+      (
+        (right.decision === "usable" && right.publication_effect === "allow") ||
+        (right.decision === "exclude" && right.publication_effect === "exclude_component") ||
+        (right.decision === "not_applicable" && right.publication_effect === "allow")
+      ),
+  )
   const today = new Date().toISOString().slice(0, 10)
-  if (
-    !workContentAllowed ||
-    selectedRights.some((right) =>
-      right.publication_effect === "review" ||
-      right.decision === "review_required" ||
-      right.decision === "alternate_edition_required" ||
-      (right.decision === "exclude" && right.publication_effect !== "exclude_component") ||
-      (right.publication_effect !== "exclude_component" && Boolean(right.not_before && right.not_before > today))
+  const inconsistentOrPending = selectedRights.some((right) => {
+    const validPair =
+      (right.decision === "usable" && right.publication_effect === "allow") ||
+      (right.decision === "exclude" && right.publication_effect === "exclude_component") ||
+      (right.decision === "not_applicable" && right.publication_effect === "allow")
+    return (
+      !validPair ||
+      // A blocked or time-restricted component may be excluded, but must
+      // never be silently retained in the ingestible snapshot.
+      (right.publication_effect !== "exclude_component" &&
+        Boolean(right.not_before && right.not_before > today))
     )
-  ) {
+  })
+  if (!hasAllowedWorkContent || !hasReviewedEdition || inconsistentOrPending) {
     blockers.push("component_rights_review")
   }
 
