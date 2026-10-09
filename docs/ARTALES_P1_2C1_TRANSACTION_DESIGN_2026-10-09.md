@@ -56,3 +56,15 @@ No merge of a real write button or promotion RPC until: canonical migration gene
 - GitHub branch has no promotion DDL and no real write action. Supabase production was inspected SELECT-only. No ephemeral Supabase branch exists; creation has a cost-confirmation boundary, therefore no branch was created silently. Do not mark P1-2C1 complete.
 - `origin_type` and `source_label` must be selected from explicit source/legal provenance, not guessed from the candidate title or Gutenberg hostname. `matched_author_id` must point to an existing verified author, and draft-only constraints must exist on the test DB before promotion.
 - Important: Current UI form creates a source identity with `identity_match=strong` whenever discovery is complete; the final server-side transaction must not trust a status label alone as evidence of edition rights. Real evidence and component decision review remains an editorial responsibility.
+
+## Ephemeral DB proof, 2026-10-09 (closed)
+
+- Temporary branch: `artales-p1-2c1-proof-20261009` / `dhmkebwjulsksppskxpi` (branch ID `880a847d-90c5-4b7c-9c99-04a05361b4e0`); cost rate quoted USD 0.01344/hour. No production data carried over; `works` rows = 0 before test.
+- Applied pre-existing P1-1A and P1-2A candidate migrations successfully to branch **only**.
+- Applied the trial SQL from `docs/prototypes/ARTALES_P1_2C1_EPHEMERAL_PROOF_ONLY.sql` to branch **only**; function compiled.
+- Checked `prosecdef=false` (SECURITY INVOKER), `anon EXECUTE=false`, `authenticated EXECUTE=true`.
+- Anonymous/no editor identity SQL call returned expected `42501 editor_authorization_required`.
+- **NOT PROVEN:** synthetic editor+author+rights success, duplicate/idempotency, rollback under failure, concurrent requests, editor/admin RLS read/write interaction. No full E2E run.
+- **Security/design defect in current trial SQL:** `origin_type='public_domain'` and source label inferred from provider name, without explicit provenance/edition-rights evidence. DO NOT treat this SQL as production-ready or apply it to production. Require independently reviewed explicit origin/source mapping, stronger edition identity facts and all required rights decisions before proceeding to live action.
+- The trial SQL is retained only as nonproduction reference. It is **not** a canonical migration; follow Supabase CLI migration workflow for final version.
+- **Cleanup confirmed:** deleted branch via Supabase and re-listed branches: only production `main` remained. No persistent staging created. No production mutation.
