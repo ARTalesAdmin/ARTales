@@ -11,7 +11,6 @@ declare
   v_c public.work_candidates%rowtype;
   v_s public.work_candidate_sources%rowtype;
   v_a public.authors%rowtype;
-  v_rights jsonb;
   v_blockers text[] := array[]::text[];
   v_work_id uuid;
   v_slug text;
@@ -116,8 +115,7 @@ begin
     return jsonb_build_object('result','blocked','blockers',to_jsonb(v_blockers));
   end if;
 
-  -- Fail closed on translation until editorial mapping supports it.
-  -- Candidate rights_status='clear' alone is not evidence of publication permission.
+  -- Trial-only mapping: final promotion requires independently reviewed explicit\n  -- origin/provenance and full component snapshot mapping. Not production-ready.
   v_slug:=left(regexp_replace(lower(btrim(coalesce(v_c.normalized_title,v_c.proposed_title))),
     '[^a-z0-9]+','-','g'),48);
   v_slug:=trim(both '-' from v_slug);
