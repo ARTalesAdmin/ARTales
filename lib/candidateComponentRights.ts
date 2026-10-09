@@ -19,6 +19,7 @@ export type CandidateComponentRight = {
   decision: CandidateRightsDecision
   reason: string
   publication_effect: "allow" | "exclude_component" | "block_source" | "review"
+  not_before?: string | null
 }
 
 const wolfingsFixtureRights: CandidateComponentRight[] = [
@@ -61,6 +62,7 @@ export function getCandidateComponentRights(
       decision: row.decision,
       reason: row.reason,
       publication_effect: row.publication_effect,
+      not_before: row.not_before,
     }))
   }
 
