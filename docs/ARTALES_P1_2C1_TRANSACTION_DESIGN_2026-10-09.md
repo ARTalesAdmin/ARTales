@@ -47,3 +47,12 @@ Two streams initially: A transactional Candidate->Draft + UI once proven, B fixt
 ## Exit criteria
 
 No merge of a real write button or promotion RPC until: canonical migration generated with Supabase CLI, ephemeral DB branch test including rollback/idempotency/concurrency/roles, cleanup confirmed, review and explicit authorization. Production schema and `main` stay untouched.
+
+## Continuation 2026-10-09 (main thread)
+
+- The second ARTales chat is now running independently on Ingest / Adaptive Composer / Reader QA; this branch owns P1-2C1 only. No shared files or Nexus queue.
+- A new reusable **read-only** `lib/candidateDraftReadiness.ts` checks the existing rights/source gate plus verified author link, normalized identity, and selected source language. The interactive fixture lab now uses this shared check rather than duplicate UI logic.
+- Regression cases were added in `tests/candidateDraftReadiness.test.ts`. Executing the Node tests is **pending**. Neither these tests nor the fixture lab prove atomic RPC behaviour.
+- GitHub branch has no promotion DDL and no real write action. Supabase production was inspected SELECT-only. No ephemeral Supabase branch exists; creation has a cost-confirmation boundary, therefore no branch was created silently. Do not mark P1-2C1 complete.
+- `origin_type` and `source_label` must be selected from explicit source/legal provenance, not guessed from the candidate title or Gutenberg hostname. `matched_author_id` must point to an existing verified author, and draft-only constraints must exist on the test DB before promotion.
+- Important: Current UI form creates a source identity with `identity_match=strong` whenever discovery is complete; the final server-side transaction must not trust a status label alone as evidence of edition rights. Real evidence and component decision review remains an editorial responsibility.
