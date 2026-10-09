@@ -1,0 +1,29 @@
+.ingest-lab { color:var(--artales-color-text-primary); max-width:1400px; margin:auto; padding:clamp(18px,3vw,40px); display:grid; gap:22px; line-height:1.6 }
+.ingest-lab__intro { max-width:900px }
+.ingest-lab__intro h1 { font:700 clamp(2.1rem,4vw,3.4rem)/1.12 Georgia,serif; letter-spacing:-.04em; margin:4px 0 }
+.ingest-lab__kicker { color:var(--artales-color-text-muted); font-size:.75rem; font-weight:800; text-transform:uppercase; letter-spacing:.1em; margin:0 0 8px }
+.ingest-lab__panel { min-width:0; border:1px solid var(--artales-color-border-subtle); border-radius:18px; background:var(--artales-color-background-surface-muted,#fffdf8); padding:clamp(16px,2vw,24px) }
+.ingest-lab__panel h2 { margin:0; font:700 clamp(1.3rem,2vw,1.8rem)/1.2 Georgia,serif }
+.ingest-lab__status { display:flex; flex-wrap:wrap; gap:12px; margin-top:18px }
+.ingest-lab__status > * { border:1px solid var(--artales-color-border-strong); border-radius:999px; padding:5px 12px; font-size:.82rem }
+.ingest-lab__rights { display:grid; gap:6px }
+.ingest-lab__right { border-top:1px solid var(--artales-color-border-subtle); display:grid; gap:8px; grid-template-columns:minmax(120px,1fr) minmax(110px,1fr) minmax(90px,.8fr) minmax(160px,2fr); align-items:center; padding:10px 0; overflow-wrap:anywhere }
+.ingest-lab__right strong { font-size:.78rem }
+.ingest-lab__right b { color:var(--artales-color-text-secondary); font-size:.84rem }
+.ingest-lab__right small { color:var(--artales-color-text-muted) }
+.ingest-lab__columns { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:18px; align-items:start }
+.ingest-lab__segment { border:2px solid transparent; border-radius:10px; padding:8px; margin:10px -8px }
+.ingest-lab__segment.is-selected { background:var(--artales-color-brand-gold-muted); border-color:var(--artales-color-border-strong) }
+.ingest-lab__segment > button { display:block; cursor:pointer; border:0; border-bottom:1px dashed var(--artales-color-border-strong); padding:4px 0; background:none; color:var(--artales-color-text-secondary); font-size:.73rem; font-weight:700; text-align:left; overflow-wrap:anywhere; max-width:100%; margin-bottom:10px }
+.ingest-lab__segment > button:focus-visible,.ingest-lab__actions button:focus-visible { outline:3px solid var(--artales-color-focus-ring); outline-offset:3px }
+.ingest-lab__segment pre { font:1rem/1.85 Georgia,serif; white-space:pre-wrap; overflow-wrap:anywhere; margin:0 }
+.ingest-lab__paper { padding:clamp(12px,2vw,28px); border:1px solid var(--artales-color-border-strong); background:var(--artales-color-background-page); box-shadow:0 10px 32px var(--artales-color-brand-gold-muted) }
+.ingest-lab__tight-verse .artales-poem-text { line-height:1.05 }
+.ingest-lab__tight-verse .artales-poem { margin-block:0 }
+.ingest-lab__inspection { padding:12px 16px; border-radius:12px; background:var(--artales-color-brand-gold-muted); overflow-wrap:anywhere }
+.ingest-lab__actions { margin:18px 0; display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:12px }
+.ingest-lab__actions button { border:1px solid var(--artales-color-border-strong); border-radius:999px; padding:10px 16px; cursor:pointer; background:var(--artales-color-action-primary-bg); color:var(--artales-color-action-primary-text); font-weight:800 }
+.ingest-lab__actions button:disabled { cursor:not-allowed; opacity:.42 }
+.ingest-lab__muted { color:var(--artales-color-text-muted); font-size:.86rem }
+@media(max-width:1000px) { .ingest-lab__columns { grid-template-columns:1fr } }
+@media(max-width:650px) { .ingest-lab__right { grid-template-columns:1fr; gap:2px } }
