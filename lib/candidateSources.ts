@@ -89,7 +89,7 @@ export function getCandidateSourceOptions(
       language: row.language,
       publication_facts: row.publication_facts,
       identity_match: row.identity_match,
-      status: candidate.preferred_source_id === row.id ? "preferred" : row.status,
+      status: candidate.preferred_source_id === row.id && row.status === "candidate" ? "preferred" : row.status,
       note: row.note,
     }))
   }
