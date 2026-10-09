@@ -89,3 +89,22 @@ test("inconsistent rights decision and effect fails closed", () => {
 test("a candidate cannot be promoted twice", () => {
   assert.ok(gate({ ...candidate, matched_work_id: "work-123" }).blockers.includes("already_promoted"))
 })
+
+
+test("pending human review is a blocker even when summary triage is clear", () => {
+  assert.ok(gate({ ...candidate, review_required: true }).blockers.includes("triage_blocked"))
+})
+
+test("rights tied to a different candidate cannot authorize this one", () => {
+  const otherCandidateRights = rights.map((right) => ({ ...right, candidate_id: "other-candidate" }))
+  assert.ok(gate(candidate, [source], otherCandidateRights).blockers.includes("component_rights_review"))
+})
+
+test("a preferred source from a different candidate does not authorize promotion", () => {
+  const foreignSource = { ...source, candidate_id: "other-candidate" }
+  assert.ok(gate(candidate, [foreignSource], rights).blockers.includes("preferred_source_missing"))
+})
+
+test("a candidate already stamped promoted cannot produce another draft", () => {
+  assert.ok(gate({ ...candidate, promoted_at: "2026-10-09T18:00:00Z" }).blockers.includes("already_promoted"))
+})
