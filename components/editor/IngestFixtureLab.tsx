@@ -20,6 +20,7 @@ import {
   type FixtureIssueCategory,
   type FixtureIssueReport,
 } from "@/lib/fixtures/ingestIssue";
+import { createPairedFixturePages } from "@/lib/fixtures/pairedPages";
 import "./ingest-fixture-lab.css";
 
 const artifact = composeFixtureSection(INGEST_FIXTURE);
@@ -71,8 +72,16 @@ export default function IngestFixtureLab() {
   const [notice, setNotice] = useState("");
   const [fontScale, setFontScale] = useState(1);
   const [readerOnly, setReaderOnly] = useState(false);
+  const [pageIndex, setPageIndex] = useState(0);
+  const [reviewFinished, setReviewFinished] = useState(false);
   const qa = inspectSourceIntegrity(INGEST_FIXTURE, blocks);
   const selected = blocks.find((item) => item.block.id === selectedId);
+  const paired = createPairedFixturePages(blocks, 3000, 430);
+  const activePage = paired.composedPages[Math.min(pageIndex, paired.composedPages.length - 1)];
+  const sourcePage = paired.sourcePages[(activePage?.sourcePage ?? 1) - 1] ?? [];
+  const visibleBlocks = activePage?.blocks ?? [];
+  const activeComposedPageNumber = activePage?.page ?? 1;
+  const activeSourcePageNumber = activePage?.sourcePage ?? 1;
   const selectedIndex = blocks.findIndex((item) => item.block.id === selectedId);
   const canMarkBoundary = selectedIndex >= 0 && selectedIndex < blocks.length - 1;
   const canLocalRecompose = !boundaryAfter && getFixtureCorrectionLane(issue, {kind: "block", blockId: selectedId}) === "local_recipe";
@@ -243,28 +252,33 @@ export default function IngestFixtureLab() {
         <div className="ingest-lab__indicators" aria-label="Stav textové kontroly">
           <span className={qa.ok ? "ingest-lab__verified" : "ingest-lab__error"}>{qa.ok ? "Text ověřen · " + qa.verifiedBlocks + "/" + blocks.length : "Neshoda se zdrojem"}</span>
           <span>{savedRecords.length} přijatých oprav · {savedIssues.length} připomínek</span>
-          <span>Bez publikace a bez odesílání do Nexus/AT</span>
+          <span>Koncept · bez publikace</span>
         </div>
       </section>
 
+      <nav className="ingest-lab__pagination" aria-label="Listování spárovanými stránkami">
+        <button type="button" disabled={pageIndex === 0 || locked} onClick={() => { setPageIndex((value) => Math.max(0, value - 1)); setBoundaryAfter(false); }}>← Předchozí</button>
+        <span>Originál {activeSourcePageNumber} / {paired.sourcePages.length} · ARTales {activeComposedPageNumber} / {paired.composedPages.length}</span>
+        <button type="button" disabled={pageIndex >= paired.composedPages.length - 1 || locked} onClick={() => { setPageIndex((value) => Math.min(paired.composedPages.length - 1, value + 1)); setBoundaryAfter(false); }}>Další →</button>
+      </nav>
       <div className={"ingest-lab__spread" + (readerOnly ? " ingest-lab__spread--reader-only" : "")} aria-label="Čtenářské porovnání originálu a složené kapitoly">
         {!readerOnly && <section className="ingest-lab__page" aria-labelledby="ingest-source-heading">
           <div className="ingest-lab__page-top"><span>ORIGINÁL</span><span>Neměnný zdroj</span></div>
           <div className="ingest-lab__page-heading"><h2 id="ingest-source-heading">Zdrojový rukopis</h2><p>{INGEST_FIXTURE.author}</p></div>
           <div className="ingest-lab__page-content">
-            {blocks.map((item) => <article key={item.block.id} className={"ingest-lab__region" + (selectedId === item.block.id ? " ingest-lab__region--selected" : "")}>
+            {sourcePage.map((item) => <article key={item.block.id} className={"ingest-lab__region" + (selectedId === item.block.id ? " ingest-lab__region--selected" : "")}>
               <button type="button" disabled={locked} aria-pressed={selectedId === item.block.id} aria-label={"Označit oblast originálu " + item.start + " až " + item.end} onClick={() => chooseBlock(item.block.id)} className="ingest-lab__mark">{selectedId === item.block.id ? "● Označeno" : "+ Označit"}</button>
               <SourceBlock item={item} />
             </article>)}
           </div>
-          <footer className="ingest-lab__folio"><span>Fiktivní zdroj</span><span>01</span></footer>
+          <footer className="ingest-lab__folio"><span>Fiktivní zdroj</span><span>{activeSourcePageNumber}</span></footer>
         </section>}
 
         <section className="ingest-lab__page ingest-lab__page--composed" aria-labelledby="ingest-reader-heading">
           <div className="ingest-lab__page-top"><span>ARTales READER</span><span>Náhled složených bloků</span></div>
           <div className="ingest-lab__page-heading"><h2 id="ingest-reader-heading">Cesta za řekou</h2><p>Ukázková kapitola · automaticky sestavená</p></div>
           <div className="ingest-lab__page-content">
-            {blocks.map((item) => {
+            {visibleBlocks.map((item) => {
               const variant = item.layoutVariant ?? (item.block.type === "poem" ? "dense_verse" : "default");
               return <article key={item.block.id} className={"ingest-lab__region ingest-lab__composition--" + variant + (selectedId === item.block.id ? " ingest-lab__region--selected" : "")}>
                 <button type="button" disabled={locked} aria-pressed={selectedId === item.block.id} aria-label={"Označit blok " + item.block.type} onClick={() => chooseBlock(item.block.id)} className="ingest-lab__mark">{selectedId === item.block.id ? "● Označeno" : "+ Označit"}</button>
@@ -272,7 +286,7 @@ export default function IngestFixtureLab() {
               </article>;
             })}
           </div>
-          <footer className="ingest-lab__folio"><span>ARTales · pracovní sazba</span><span>02</span></footer>
+          <footer className="ingest-lab__folio"><span>ARTales · pracovní sazba</span><span>{activeComposedPageNumber}</span></footer>
         </section>
       </div>
 
@@ -317,6 +331,11 @@ export default function IngestFixtureLab() {
         </div>}
         {notice && <p className="ingest-lab__notice" role="status">{notice}</p>}
         {qa.issues.length > 0 && <ul className="ingest-lab__errors">{qa.issues.map((item) => <li key={item}>{item}</li>)}</ul>}
+        <div className="ingest-lab__finish">
+          <button type="button" className="ingest-lab__primary" onClick={() => { setReviewFinished(true); setNotice("Kontrola kapitoly uzavřena v ukázkovém režimu. Trvalé odeslání a inbox zatím nejsou napojeny."); }}>Označit kontrolu jako hotovou</button>
+          {reviewFinished && <strong role="status">✓ Kontrola dokončena · fixture · bez odeslání</strong>}
+          <a href="/member/candidates">Opustit kontrolu</a>
+        </div>
         <div className="ingest-lab__feedback-footer">
           <p><strong>Podklad pro učení Nexus/AT:</strong> pouze lokální záznam. Automatické odeslání ani trénování neprobíhá.</p>
           <button type="button" disabled={!savedRecords.length} onClick={exportFeedback}>Exportovat uložené připomínky (JSON)</button>
