@@ -1,0 +1,30 @@
+# ARTales Editorial Inbox — 2026-10-10 pilot / handoff
+
+Goal: ARTales must independently offer editors a shared task inbox ("na rozebrání"), atomic claim and return, without requiring Nexus. Admin can queue an eligible *candidate review* task. A later stage creates actual content-editing tasks only after a verified, immutable rights dossier and draft promotion.
+
+## Scope and safety
+- Dedicated feature branch from develop `4f630c4a581ef85c70b25ea6c9f3ecb6050a7c88`. No Nexus queue, main changes or production Supabase apply.
+- SQL migration generated via Supabase CLI 2.120.0 (`supabase migration new artales_editorial_tasks_pilot`). Files: `supabase/migrations/20261010111107_artales_editorial_tasks_pilot.sql`.
+- `editorial_tasks` and `editorial_task_events`: only active editor/admin can SELECT via RLS; no direct client INSERT/UPDATE/DELETE grants. Every claim/return logs an event. Task target references candidate OR work, not both.
+- RPC `claim_editorial_task` atomically updates only an OPEN task. Concurrent claims result in one winner; losers receive unavailable. `return_editorial_task` requires owning editor or admin. Explicit actor checks `auth.uid()`.
+- Only active admin may `create_editorial_task_for_candidate`. It re-reads candidate while locked, requires ready/accepted, completed discovery, matched identity, non-reviewed overall rights, and an existing preferred source; still only creates a **legal_review** task. It does not assert legal validity. Duplicate enqueue is idempotent via `source_system+source_external_id`. At most one task of the type for the candidate.
+- ***Security debt/important review:*** The exposed functions are `SECURITY DEFINER`. Although anon/public execute is revoked, each has explicit actor/role checks and empty search_path, they need independent Supabase security advisor, RLS/permission/trigger review and readback proof before integration. Do not apply to production without fresh explicit approval.
+- UI routes: `/member/editorial-tasks` (editor/admin inbox) and `/member/admin/queue-candidates` (admin can queue candidate review). Server actions use end-user Supabase session and redirect on error.
+- These are the first steps only; no AI call, no paid job runner, no actual editorial artifact creation, no durable catalog run budget table, no automatic publication or retraction.
+- The feature assumes candidate foundation/persistence migrations from develop exist on DB. Production presently lacks these, so routes show DB-unavailable state until environment is prepared.
+
+## Next end-to-end pilot
+1. Create short-lived Supabase branch, apply existing candidate migrations and this migration with synthetic profiles/candidates.
+2. Verify read-only scopes for admin/editor, deny anon/member, concurrent claims and return policies, duplicate enqueue, append-only events, RPC ownership, invalid UUID, no task for blocked candidate. Confirm RLS and advisor results.
+3. Connect preview deployment to explicitly scoped ephemeral DB, not live production database; verify authenticated editor login and task claim in browser.
+4. Integrate catalog screening with *trusted signed rights dossier*; automatic candidate creation with bounded spend and checkpoint. Only then promote legally eligible source to draft and generate `edit_text` task. User's desired destination is 5 candidate-to-editorial-ready titles, not a reservoir of candidates.
+5. Future editorial phases: text QA / revision / visuals assignment (e.g. Ivana / Ajwen via actual user profile, never guessed user ID) / release gate; costs and legal challenge / unpublish audits later. Do not add production auto-publish.
+
+## Separate parallel stream
+PR #196 owns ingest/composition/editor Reader. PR #197 owns catalog/rights synthetic batch demo. This PR works on separate files except sidebar/dashboard links; integrate sequentially with current develop head.
+
+## Tests not yet performed
+SQL not applied to ephemeral DB; Node/TypeScript/UI tests not run; Vercel build must be checked. This is a **draft with known unverified privileged functions** and must not be described as a working database-backed inbox until confirmed.
+
+## Rollback
+Before production apply: revert PR. If applied to ephemeral, delete the branch after tests. A future production release requires a non-destructive migration rollout and explicit owner approval, plus availability/accessibility proof for old app versions.
