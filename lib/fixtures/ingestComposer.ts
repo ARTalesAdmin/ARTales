@@ -23,6 +23,14 @@ const originalText = [
   "  a kdo se ráno vydá dál,",
   "  ten najde cestu, již si přál.", "",
   "Když zazněl poslední verš, řeka už byla vidět. Na protějším břehu stál někdo s lucernou a čekal, až Hana udělá první krok.",
+  "Pak se břeh ponořil do mlhy. Hana přemýšlela, zda je světlo skutečné, nebo jen jeho odraz na vlnách. V dálce se ozval krok, ale v mokrém písku po něm nezůstala jediná stopa.", "",
+  "Cesta se zdála přímá, a přesto se za každou vrbou rozdělovala. U prvního rozcestí ležel dřevěný ukazatel bez nápisu. Hana se rozhodla, že se nebude vracet, dokud nenajde jeho ztracené slovo.", "",
+  "Na břehu rostly vysoké traviny, jejichž stébla se v podvečer nakláněla stejným směrem. Někdo mezi nimi před lety vyšlapal pěšinu. Nebyla široká, ale poskytovala přesně tolik místa, aby člověk neztratil odvahu.", "",
+  "V dálce se objevil most z tmavého dřeva. Uprostřed mostu chybělo prkno a přes prázdné místo bylo vidět proud. Hana se opřela o zábradlí, nadechla se chladného vzduchu a chvíli pozorovala vodu.", "",
+  "Z protější strany se ozvalo volání. Nebylo hlasité, přesto znělo tak jasně, jako by někdo stál hned vedle ní. Hana poznala několik slov, avšak jejich význam se jí vytratil dříve, než je stačila vyslovit.", "",
+  "Pod mostem proplul malý člun bez veslaře. Jeho příď byla ozdobena vybledlou kresbou ptáka a na dně ležela prázdná sklenice. Připomnělo jí to místo, které kdysi znala, ale jeho jméno nedokázala vybavit.", "",
+  "Hana přešla na druhý břeh až ve chvíli, kdy se světlo lucerny znovu pohnulo. Muž, který ji nesl, ustoupil z cesty a ukázal ke starému sadu. Ani jeden z nich nepromluvil; večer měl své vlastní otázky.", "",
+  "V sadu bylo sucho. Zahradní cestičky pokrývalo spadané listí a za zdí stál neobydlený dům. Hana otevřela vrátka, která nevrzala, a položila ruku na studený kámen. Teprve tehdy pochopila, že její cesta nezačala u řeky.", "",
 ].join("\n");
 
 export const INGEST_FIXTURE: FixtureCapture = {
