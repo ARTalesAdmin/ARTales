@@ -283,3 +283,34 @@
   .ingest-lab--docked .ingest-lab__subbar-count { display: none; }
   .ingest-lab--docked .ingest-lab__review-bottom { gap: 5px; }
 }
+
+/* v4 reading-first layout. Compact dock takes only one line until opened. */
+.ingest-lab--docked.ingest-lab--bottom .ingest-lab__review--docked {
+  height: 46px; max-height: 46px; min-height: 46px;
+  overflow: hidden; padding: 6px 16px;
+}
+.ingest-lab--docked.ingest-lab--bottom .ingest-lab__review--docked > :not(.ingest-lab__review-heading) { display: none; }
+.ingest-lab--docked.ingest-lab--bottom .ingest-lab__review-title,
+.ingest-lab--docked.ingest-lab--bottom .ingest-lab__review-status { display:none; }
+.ingest-lab--docked .ingest-lab__review-collapse {
+  display: inline-flex; align-items:center; min-height:32px; padding:5px 13px;
+  border: 1px solid #bfa984; border-radius:8px; color:#2c261f; background:#f5e8cf;
+  font-size:13px; font-weight:700;
+}
+.ingest-lab--docked.ingest-lab--bottom .ingest-lab__review-heading { justify-content:flex-start; }
+.ingest-lab--docked.ingest-lab--side .ingest-lab__review-collapse { margin-bottom:8px; }
+.ingest-lab--docked .ingest-lab__toolbar { padding-top:5px; padding-bottom:5px; }
+.ingest-lab--docked .ingest-lab__subbar { padding-top:4px; padding-bottom:4px; }
+.ingest-lab--docked .ingest-lab__spread--workspace { padding:4px; gap:5px; }
+.ingest-lab--docked .ingest-lab__page--source .ingest-lab__page-content { font-size:calc(13px * var(--fixture-font-scale)); line-height:1.55; }
+.ingest-lab--docked .ingest-lab__page--composed .artales-work-content { font-size:calc(17px * var(--fixture-font-scale)); }
+.ingest-lab--docked .ingest-lab__sheet { min-height:100%; }
+.ingest-lab--docked .ingest-lab__spread--continuous .ingest-lab__sheet { max-width:none; }
+.ingest-lab--docked .ingest-lab__page--composed .artales-paragraph p { margin-bottom:12px; }
+.ingest-lab--docked .ingest-lab__region { margin-top:0; margin-bottom:0; }
+@media(max-width:1180px) {
+  .ingest-lab--docked.ingest-lab--side .ingest-lab__review--docked { max-height: min(42dvh,250px); overflow-y:auto; }
+}
+@media(max-width:650px) {
+  .ingest-lab--docked.ingest-lab--bottom .ingest-lab__review--docked { height:43px;min-height:43px;max-height:43px; }
+}

@@ -16,7 +16,7 @@ import {
   createFixtureIssueReport, type FixtureIssueReport, type FixtureIssueAnchor,
 } from "@/lib/fixtures/ingestIssue";
 import { EDITORIAL_PRESETS, getEditorialPreset, routeFixtureIssue } from "@/lib/fixtures/editorialPresets";
-import { createPairedFixturePages } from "@/lib/fixtures/pairedPages";
+import { alignedScrollTop } from "@/lib/fixtures/pairedScroll";
 import "./ingest-fixture-lab.css";
 
 const artifact = composeFixtureSection(INGEST_FIXTURE);
@@ -65,8 +65,8 @@ export default function IngestFixtureLab() {
   const [blocks, setBlocks] = useState<AnchoredBlock[]>(() => artifact.blocks);
   const [selectedId, setSelectedId] = useState(initialId);
   const [pageIndex, setPageIndex] = useState(0);
-  const [formatMode, setFormatMode] = useState<FormatMode>("a4");
-  const [panelOnSide, setPanelOnSide] = useState(true);
+  const [formatMode, setFormatMode] = useState<FormatMode>("continuous");
+  const [panelOnSide, setPanelOnSide] = useState(false);
   const [revealTick, setRevealTick] = useState(0);
   const [readerOnly, setReaderOnly] = useState(false);
   const [mobilePane, setMobilePane] = useState<Pane>("artales");
@@ -87,7 +87,7 @@ export default function IngestFixtureLab() {
   const qa = useMemo(() => inspectSourceIntegrity(INGEST_FIXTURE, blocks), [blocks]);
   // Deliberately smaller origin typography: one source page may pair with 2-3 ARTales pages.
   // Character budgets are fixture approximations, NOT measured Reader pagination.
-  const paired = useMemo(() => createPairedFixturePages(blocks, 1250, 450), [blocks]);
+  const paired = { sourcePages: [blocks], composedPages: [{ page: 1, sourcePage: 1, blocks }] };
   const activeIndex = Math.min(pageIndex, Math.max(0, paired.composedPages.length - 1));
   const activePage = paired.composedPages[activeIndex];
   const sourceFolio = activePage?.sourcePage ?? 1;
@@ -118,7 +118,7 @@ export default function IngestFixtureLab() {
     if (!id) return;
     const index = blocks.findIndex((item) => item.block.id === id);
     if (index < 0) return;
-    if (formatMode === "a4" && !shownArtales.some((item) => item.block.id === id)) return;
+
     const frame = window.requestAnimationFrame(() => {
       ignoreScrollUntilRef.current = { source: performance.now() + 220, artales: performance.now() + 220 };
       scrollPaneToRegion(sourceRef.current, index);
@@ -137,11 +137,7 @@ export default function IngestFixtureLab() {
     pendingRevealRef.current = id;
     setSelectedId(id);
     setRevealTick((value) => value + 1);
-    if (formatMode === "a4") {
-      const counterpartPage = paired.composedPages.findIndex((page) =>
-        page.blocks.some((item) => item.block.id === id));
-      if (counterpartPage >= 0) setPageIndex(counterpartPage);
-    }
+
     if (window.matchMedia("(max-width: 850px)").matches && !readerOnly) {
       setMobilePane(side === "source" ? "artales" : "source");
     }
@@ -156,28 +152,32 @@ export default function IngestFixtureLab() {
   }
 
   function handleContinuousScroll(side: Pane) {
-    if (formatMode !== "continuous" || locked) return;
+    if (locked || readerOnly) return;
     if (performance.now() < ignoreScrollUntilRef.current[side]) return;
     if (scrollFrameRef.current !== null) window.cancelAnimationFrame(scrollFrameRef.current);
     scrollFrameRef.current = window.requestAnimationFrame(() => {
       scrollFrameRef.current = null;
       const pane = side === "source" ? sourceRef.current : artalesRef.current;
-      const opposite: Pane = side === "source" ? "artales" : "source";
-      const counterpart = opposite === "source" ? sourceRef.current : artalesRef.current;
-      if (!pane || !counterpart) return;
-      const regions = pane.querySelectorAll<HTMLElement>("[data-region-index]");
-      const threshold = pane.getBoundingClientRect().top + Math.min(120, pane.clientHeight * 0.24);
-      let active: HTMLElement | null = regions[0] ?? null;
-      for (const region of regions) {
-        if (region.getBoundingClientRect().top <= threshold) active = region;
-        else break;
+      const otherSide: Pane = side === "source" ? "artales" : "source";
+      const other = otherSide === "source" ? sourceRef.current : artalesRef.current;
+      if (!pane || !other || !other.clientWidth) return;
+      const offsets = (element: HTMLElement) => {
+        const top = element.getBoundingClientRect().top;
+        return Array.from(element.querySelectorAll<HTMLElement>("[data-region-index]"),
+          (node) => node.getBoundingClientRect().top - top + element.scrollTop);
+      };
+      try {
+        const target = alignedScrollTop({
+          sourceStarts: offsets(pane), targetStarts: offsets(other),
+          sourceScrollTop: pane.scrollTop, sourceClientHeight: pane.clientHeight,
+          sourceScrollHeight: pane.scrollHeight, targetClientHeight: other.clientHeight,
+          targetScrollHeight: other.scrollHeight,
+        });
+        ignoreScrollUntilRef.current[otherSide] = performance.now() + 100;
+        other.scrollTop = target;
+      } catch {
+        // Responsive remount: wait for the next scroll frame.
       }
-      const index = Number(active?.dataset.regionIndex);
-      if (!Number.isInteger(index) || !blocks[index]) return;
-      setSelectedId((previous) => previous === blocks[index].block.id ? previous : blocks[index].block.id);
-      ignoreScrollUntilRef.current[opposite] = performance.now() + 240;
-      // Semantic anchors move at different pixel speeds: never mirror scroll percentages.
-      scrollPaneToRegion(counterpart, index);
     });
   }
 
@@ -187,25 +187,9 @@ export default function IngestFixtureLab() {
   }
 
   function flagCurrentPageBreak() {
-    if (locked || formatMode !== "a4" || activeIndex >= paired.composedPages.length - 1) return;
-    const lastBlock = activePage?.blocks[activePage.blocks.length - 1];
-    if (!lastBlock) return;
-    pendingRevealRef.current = lastBlock.block.id;
-    setSelectedId(lastBlock.block.id);
-    setPresetId("page.bad_break");
-    setEditorNote("");
-    setNotice("Označen předěl za koncem této stránky ARTales. Potvrďte připomínku v panelu.");
-  }
-
-  function changePage(delta: number) {
     if (locked) return;
-    const nextIndex = Math.max(0, Math.min(activeIndex + delta, paired.composedPages.length - 1));
-    const first = paired.composedPages[nextIndex]?.blocks[0]?.block.id;
-    if (first) {
-      pendingRevealRef.current = first;
-      setSelectedId(first);
-    }
-    setPageIndex(nextIndex);
+    setPresetId("page.bad_break");
+    setNotice("Vyberte nežádoucí předěl v textu. Přesné stránky bude určovat měřený Reader.");
   }
 
   function saveIssueLocally() {
@@ -379,16 +363,7 @@ export default function IngestFixtureLab() {
 
       <div className="ingest-lab__subbar">
         <span>{qa.ok ? "✓ Originál ověřen" : "⚠ Neshoda se zdrojem"}</span>
-        {formatMode === "a4" ? (
-          <nav className="ingest-lab__pagination" aria-label="Listovat ARTales verzí">
-            <button type="button" disabled={activeIndex === 0 || locked} onClick={() => changePage(-1)} aria-label="Předchozí stránka ARTales">‹</button>
-            <span>Originál {sourceFolio}/{paired.sourcePages.length} · ARTales {composedFolio}/{paired.composedPages.length}</span>
-            <button type="button" disabled={activeIndex >= paired.composedPages.length - 1 || locked} onClick={() => changePage(1)} aria-label="Další stránka ARTales">›</button>
-            {activeIndex < paired.composedPages.length - 1 &&
-              <button type="button" className="ingest-lab__page-flag" disabled={locked}
-                onClick={flagCurrentPageBreak} title="Nahlásit nevhodný konec aktuální stránky ARTales">⚑ Předěl stránky</button>}
-          </nav>
-        ) : <span>Kontinuální srovnání · posuv podle souvisejícího úseku</span>}
+        <span>{formatMode === "a4" ? "A4 · průběžný vizuální náhled bez falešných folií" : "Synchronizované kontinuální čtení"}</span>
         <span className="ingest-lab__subbar-count">{savedReviews.length} oprav · {savedIssues.length} připomínek</span>
       </div>
 
@@ -432,6 +407,8 @@ export default function IngestFixtureLab() {
 
       <section className="ingest-lab__review ingest-lab__review--docked" aria-label="Panel redakčních připomínek">
         <div className="ingest-lab__review-heading">
+          <button type="button" className="ingest-lab__review-collapse" aria-label="Rozbalit nebo sbalit panel připomínek"
+            onClick={() => setPanelOnSide((old) => !old)}>{panelOnSide ? "Sbalit" : "✎ Připomínka / rozbalit"}</button>
           <div className="ingest-lab__review-title">
             <strong>✎ {reviewFinished ? "Kontrola uzavřena" : pendingRevision ? "Zkontrolovat novou sazbu" : "Připomínka k textu"}</strong>
             <span>{selected ? "Vybraný úsek: " + selected.block.type + " · " + selected.start + "–" + selected.end : "Klikněte na problémový úsek"}</span>
