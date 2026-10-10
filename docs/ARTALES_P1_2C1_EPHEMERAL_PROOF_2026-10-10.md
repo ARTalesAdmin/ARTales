@@ -23,4 +23,4 @@ Scope: candidate → one draft, edition provenance; no Nexus worker queue and no
 - Second ARTales chat works in isolated PR #196. Coordinate by rebasing on develop after merges, never rewriting the other chat's files.
 
 ## Cleanup
-Ephemeral branch must be deleted before session closure. Record verified deletion in this document or PR once completed.
+**CLEANED UP:** Supabase delete_branch returned success. Subsequent list_branches showed only production main; the ephemeral branch and synthetic test data are gone. No production modifications were performed.
