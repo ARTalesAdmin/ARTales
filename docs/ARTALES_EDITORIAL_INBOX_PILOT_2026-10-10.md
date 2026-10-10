@@ -28,3 +28,9 @@ SQL not applied to ephemeral DB; Node/TypeScript/UI tests not run; Vercel build 
 
 ## Rollback
 Before production apply: revert PR. If applied to ephemeral, delete the branch after tests. A future production release requires a non-destructive migration rollout and explicit owner approval, plus availability/accessibility proof for old app versions.
+
+## 2026-10-10 corrective security review
+- The first SQL draft contained a malformed PL/pgSQL delimiter (`as $ ... end $`) in the enqueue function, which Vercel's TypeScript build did not test. Replaced the migration content before any DB apply.
+- Public RPCs now use `SECURITY INVOKER` and normal authenticated grants under explicit RLS; mutable columns are whitelisted. Task transition/audit triggers reside in an unexposed `artales_internal` schema with revoked direct execute, and preserve an append-only event trail atomically. The triggers are privileged and still require function body/advisor review on ephemeral DB.
+- Candidate review task remains legally non-authoritative and never creates a draft or grants rights. Source origin/external unique key prevents duplicate enqueue. This corrective patch is not database-validated yet.
+- Ephemeral branch cost on 2026-10-10 checked at USD 0.01344/hour. No fresh ephemeral branch opened during this security correction; await separate cost-confirmation workflow for a short-lived proof, then delete it within the same session.
