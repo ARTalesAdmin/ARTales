@@ -76,6 +76,52 @@ function splitWithOffsets(raw: string) {
   return spans;
 }
 
+
+/**
+ * Turn an unusually long Gutenberg-like single prose blob into bounded
+ * source-exact chunks. Splits favour sentence/word boundaries; no characters
+ * are normalized, reordered or discarded, including inter-sentence spaces.
+ * Structural inference for a real imported edition remains a later stage.
+ */
+function segmentLargeProseSpan(span: { start: number; end: number; text: string }, maxChars = 1000) {
+  if (span.text.length <= maxChars) return [span];
+  const result: typeof span[] = [];
+  let cursor = 0;
+  while (span.text.length - cursor > maxChars) {
+    const limit = cursor + maxChars;
+    const earliest = cursor + Math.floor(maxChars * 0.55);
+    let split = -1;
+    // Prefer a completed sentence near the target size.
+    for (let index = limit; index >= earliest; index--) {
+      const previous = span.text[index - 1];
+      if ((previous === "." || previous === "!" || previous === "?" || previous === "…") &&
+          /\\s/u.test(span.text[index] ?? "")) {
+        split = index;
+        break;
+      }
+    }
+    if (split < 0) {
+      for (let index = limit; index >= earliest; index--) {
+        if (/\\s/u.test(span.text[index] ?? "")) {
+          split = index + 1;
+          break;
+        }
+      }
+    }
+    if (split < 0 || split <= cursor) split = limit;
+    result.push({
+      start: span.start + cursor,
+      end: span.start + split,
+      text: span.text.slice(cursor, split),
+    });
+    cursor = split;
+  }
+  if (cursor < span.text.length) {
+    result.push({ start: span.start + cursor, end: span.end, text: span.text.slice(cursor) });
+  }
+  return result;
+}
+
 export function inspectSourceIntegrity(capture: FixtureCapture, blocks: AnchoredBlock[]) {
   const issues: string[] = [];
   const ids = new Set<string>();
@@ -126,9 +172,13 @@ export function composeFixtureSection(capture: FixtureCapture) {
       const type: WorkBlock["type"] = index === 0 && /^(?:[IVXLCDM]+\.\s+|Kapitola\s+\S)/iu.test(text)
         ? "chapter" : lines.length > 1 && lines.every((line) => /^[ \t]{2,}\S/u.test(line))
           ? "poem" : "paragraph";
-      blocks.push({ sourceId: capture.sourceId, componentId: part.id, start, end,
-        recipe: type === "chapter" ? "chapter" : type === "poem" ? "verse" : "prose",
-        block: { id: part.id + ":" + start + "-" + end, type, content: text, editor_note: null } });
+      const spans = type === "paragraph" ? segmentLargeProseSpan({ start, end, text }) : [{ start, end, text }];
+      for (const segment of spans) {
+        blocks.push({ sourceId: capture.sourceId, componentId: part.id, start: segment.start, end: segment.end,
+          recipe: type === "chapter" ? "chapter" : type === "poem" ? "verse" : "prose",
+          block: { id: part.id + ":" + segment.start + "-" + segment.end, type,
+            content: segment.text, editor_note: null } });
+      }
     });
   }
   return { blocks, excluded, qa: inspectSourceIntegrity(capture, blocks), releaseAllowed: false as const };

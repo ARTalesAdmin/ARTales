@@ -22,11 +22,14 @@ export type FixtureIssueAnchor =
   | { kind: "block"; blockId: string }
   | { kind: "boundary_after"; blockId: string; nextBlockId: string };
 export type FixtureViewContext = {
-  renderer: "fixture-static-spread-v1";
+  renderer: "fixture-static-spread-v1" | "fixture-paired-a4-v2" | "fixture-continuous-v2";
   readerMode: "comparison" | "reader_only";
   fontScale: number;
   viewportWidth: number;
   viewportHeight: number;
+  formatMode?: "a4" | "continuous";
+  originalPage?: number;
+  artalesPage?: number;
 };
 export type FixtureIssueReport = {
   schema: "artales.fixture.editorial-issue.v1";
@@ -35,6 +38,7 @@ export type FixtureIssueReport = {
   anchor: FixtureIssueAnchor;
   sourceSpan: { start: number; end: number };
   category: FixtureIssueCategory;
+  presetCode?: string;
   editorNote: string;
   viewContext: FixtureViewContext;
   recordedAt: string;
@@ -58,6 +62,7 @@ export function createFixtureIssueReport(args: {
   blocks: AnchoredBlock[];
   anchor: FixtureIssueAnchor;
   category: FixtureIssueCategory;
+  presetCode?: string;
   editorNote: string;
   viewContext: FixtureViewContext;
   recordedAt: string;
@@ -77,7 +82,7 @@ export function createFixtureIssueReport(args: {
   if (!Number.isFinite(Date.parse(recordedAt)) || new Date(recordedAt).toISOString() !== recordedAt) {
     throw new Error("Issue record refused: invalid timestamp.");
   }
-  if (viewContext.renderer !== "fixture-static-spread-v1" ||
+  if (!["fixture-static-spread-v1", "fixture-paired-a4-v2", "fixture-continuous-v2"].includes(viewContext.renderer) ||
       (viewContext.readerMode !== "comparison" && viewContext.readerMode !== "reader_only") ||
       !Number.isFinite(viewContext.fontScale) || viewContext.fontScale < 0.5 ||
       viewContext.fontScale > 2 ||
@@ -88,6 +93,11 @@ export function createFixtureIssueReport(args: {
     throw new Error("Issue record refused: invalid preview display context.");
   }
 
+  if ((viewContext.formatMode !== undefined && viewContext.formatMode !== "a4" && viewContext.formatMode !== "continuous") ||
+    (viewContext.originalPage !== undefined && (!Number.isInteger(viewContext.originalPage) || viewContext.originalPage < 1)) ||
+    (viewContext.artalesPage !== undefined && (!Number.isInteger(viewContext.artalesPage) || viewContext.artalesPage < 1))) {
+    throw new Error("Issue record refused: invalid page context.");
+  }
   const index = blocks.findIndex((item) => item.block.id === anchor.blockId);
   if (index < 0) {
     throw new Error("Issue record refused: source block not found.");
@@ -108,6 +118,7 @@ export function createFixtureIssueReport(args: {
     anchor,
     sourceSpan: { start: item.start, end: item.end },
     category,
+    ...(args.presetCode ? { presetCode: args.presetCode } : {}),
     editorNote,
     viewContext: { ...viewContext },
     recordedAt,

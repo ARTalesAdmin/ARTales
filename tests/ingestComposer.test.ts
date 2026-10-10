@@ -78,3 +78,16 @@ test("targeted verse recomposition preserves every source span and is idempotent
   assert.throws(() => recomposeFixtureVerse(INGEST_FIXTURE, result.blocks, result.blocks[0].block.id));
   assert.throws(() => recomposeFixtureVerse(INGEST_FIXTURE, result.blocks.slice(1), verse.block.id));
 });
+
+test("Gutenberg-style single long prose blob is segmented without losing source characters", () => {
+  const sample = structuredClone(INGEST_FIXTURE);
+  const blob = ("The night was quiet. A traveler listened to the distant river. ").repeat(100);
+  sample.components[0].raw = blob;
+  const composed = composeFixtureSection(sample);
+  assert.ok(composed.blocks.length >= 5);
+  assert.ok(composed.blocks.every((item) => item.block.type === "paragraph"));
+  assert.ok(composed.blocks.every((item) => item.block.content.length <= 1001));
+  assert.equal(composed.blocks.map((item) => item.block.content).join(""), blob);
+  assert.deepEqual(composed.blocks.map((item) => item.start), composed.blocks.map((item, index) => index === 0 ? 0 : composed.blocks[index - 1].end));
+  assert.equal(composed.qa.ok, true);
+});

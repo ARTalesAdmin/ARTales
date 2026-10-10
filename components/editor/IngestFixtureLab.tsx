@@ -1,361 +1,457 @@
 "use client";
 
-import { useEffect, useState, type CSSProperties } from "react";
+import {
+  useEffect, useLayoutEffect, useMemo, useRef, useState,
+  type CSSProperties, type KeyboardEvent,
+} from "react";
 import WorkContentRenderer from "@/components/work/WorkContentRenderer";
 import {
-  INGEST_FIXTURE,
-  composeFixtureSection,
-  inspectSourceIntegrity,
-  recomposeFixtureRegion,
-  type AnchoredBlock,
+  INGEST_FIXTURE, composeFixtureSection, inspectSourceIntegrity,
+  recomposeFixtureRegion, type AnchoredBlock,
 } from "@/lib/fixtures/ingestComposer";
 import {
-  createFixtureReviewRecord,
-  type FixtureReviewRecord,
+  createFixtureReviewRecord, type FixtureReviewRecord,
 } from "@/lib/fixtures/ingestReview";
 import {
-  createFixtureIssueReport,
-  getFixtureCorrectionLane,
-  type FixtureIssueAnchor,
-  type FixtureIssueCategory,
-  type FixtureIssueReport,
+  createFixtureIssueReport, type FixtureIssueReport, type FixtureIssueAnchor,
 } from "@/lib/fixtures/ingestIssue";
+import { EDITORIAL_PRESETS, getEditorialPreset, routeFixtureIssue } from "@/lib/fixtures/editorialPresets";
 import { createPairedFixturePages } from "@/lib/fixtures/pairedPages";
 import "./ingest-fixture-lab.css";
 
 const artifact = composeFixtureSection(INGEST_FIXTURE);
 const initialId = artifact.blocks[0]?.block.id ?? "";
-const STORAGE_KEY = "artales:ingest-fixture:editorial-reviews:v1";
-const ISSUE_STORAGE_KEY = "artales:ingest-fixture:editorial-issues:v1";
-const extendedIssues: { value: FixtureIssueCategory; label: string }[] = [
-  { value: "unsure", label: "Nevím / neumím zařadit" },
-  { value: "pagination", label: "Stránkování / konec stránky" },
-  { value: "line_break", label: "Zalomení řádku nebo odstavce" },
-  { value: "typography", label: "Sazba a typografie" },
-  { value: "structure", label: "Členění a struktura" },
-  { value: "readability", label: "Čitelnost" },
-  { value: "other", label: "Jiné" },
-];
+const REVIEW_KEY = "artales:ingest-fixture:editorial-reviews:v1";
+const ISSUE_KEY = "artales:ingest-fixture:editorial-issues:v1";
+const SESSION_KEY = "artales:ingest-fixture:session-summary:v1";
+type FormatMode = "a4" | "continuous";
+type Pane = "source" | "artales";
+type PendingRevision = { before: AnchoredBlock[]; blockId: string; note: string };
 
-type ReviewStage = "select" | "returned" | "recomposed" | "accepted" | "saved";
-
-function isSavedFixtureReview(value: unknown): value is FixtureReviewRecord {
+function safeReview(value: unknown): value is FixtureReviewRecord {
   if (!value || typeof value !== "object") return false;
-  const record = value as Partial<FixtureReviewRecord>;
-  return record.schema === "artales.fixture.editorial-feedback.v1" &&
-    record.sourceId === INGEST_FIXTURE.sourceId && record.fixtureOnly === true &&
-    record.deliveredToNexus === false && record.decision === "accepted" &&
-    typeof record.editorNote === "string" && typeof record.blockId === "string" &&
-    typeof record.acceptedAt === "string";
+  const item = value as Partial<FixtureReviewRecord>;
+  return item.schema === "artales.fixture.editorial-feedback.v1" &&
+    item.sourceId === INGEST_FIXTURE.sourceId && item.fixtureOnly === true &&
+    item.deliveredToNexus === false && item.decision === "accepted";
+}
+function safeIssue(value: unknown): value is FixtureIssueReport {
+  if (!value || typeof value !== "object") return false;
+  const item = value as Partial<FixtureIssueReport>;
+  return item.schema === "artales.fixture.editorial-issue.v1" &&
+    item.sourceId === INGEST_FIXTURE.sourceId &&
+    item.fixtureOnly === true && item.deliveredToNexus === false;
 }
 
 function SourceBlock({ item }: { item: AnchoredBlock }) {
-  const part = INGEST_FIXTURE.components.find((component) => component.id === item.componentId);
-  const text = part?.raw.slice(item.start, item.end) ?? "";
-  if (item.block.type === "chapter") return <h3 className="ingest-lab__source-chapter">{text}</h3>;
-  if (item.block.type === "poem") return <p className="ingest-lab__source-poem">{text}</p>;
-  return <p className="ingest-lab__source-prose">{text}</p>;
+  const component = INGEST_FIXTURE.components.find((part) => part.id === item.componentId);
+  const content = component?.raw.slice(item.start, item.end) ?? "";
+  if (item.block.type === "chapter") return <h3 className="ingest-lab__source-chapter">{content}</h3>;
+  if (item.block.type === "poem") return <p className="ingest-lab__source-poem">{content}</p>;
+  return <p className="ingest-lab__source-prose">{content}</p>;
+}
+
+function scrollPaneToRegion(pane: HTMLElement | null, index: number, behavior: ScrollBehavior = "auto") {
+  if (!pane || pane.clientWidth === 0) return;
+  const region = pane.querySelector<HTMLElement>('[data-region-index="' + index + '"]');
+  if (!region) return;
+  const paneRect = pane.getBoundingClientRect();
+  const rect = region.getBoundingClientRect();
+  const top = pane.scrollTop + rect.top - paneRect.top - Math.min(120, pane.clientHeight * 0.24);
+  pane.scrollTo({ top: Math.max(0, top), behavior });
 }
 
 export default function IngestFixtureLab() {
   const [blocks, setBlocks] = useState<AnchoredBlock[]>(() => artifact.blocks);
   const [selectedId, setSelectedId] = useState(initialId);
-  const [stage, setStage] = useState<ReviewStage>("select");
-  const [issue, setIssue] = useState<FixtureIssueCategory>("unsure");
-  const [boundaryAfter, setBoundaryAfter] = useState(false);
-  const [savedIssues, setSavedIssues] = useState<FixtureIssueReport[]>([]);
-  const [editorNote, setEditorNote] = useState("");
-  const [returnedId, setReturnedId] = useState<string | null>(null);
-  const [previousBlocks, setPreviousBlocks] = useState<AnchoredBlock[] | null>(null);
-  const [acceptedRecord, setAcceptedRecord] = useState<FixtureReviewRecord | null>(null);
-  const [savedRecords, setSavedRecords] = useState<FixtureReviewRecord[]>([]);
-  const [notice, setNotice] = useState("");
-  const [fontScale, setFontScale] = useState(1);
-  const [readerOnly, setReaderOnly] = useState(false);
   const [pageIndex, setPageIndex] = useState(0);
+  const [formatMode, setFormatMode] = useState<FormatMode>("a4");
+  const [readerOnly, setReaderOnly] = useState(false);
+  const [mobilePane, setMobilePane] = useState<Pane>("artales");
+  const [fontScale, setFontScale] = useState(1);
+  const [presetId, setPresetId] = useState("unknown");
+  const [editorNote, setEditorNote] = useState("");
+  const [pendingRevision, setPendingRevision] = useState<PendingRevision | null>(null);
+  const [savedReviews, setSavedReviews] = useState<FixtureReviewRecord[]>([]);
+  const [savedIssues, setSavedIssues] = useState<FixtureIssueReport[]>([]);
   const [reviewFinished, setReviewFinished] = useState(false);
-  const qa = inspectSourceIntegrity(INGEST_FIXTURE, blocks);
+  const [notice, setNotice] = useState("");
+  const sourceRef = useRef<HTMLElement | null>(null);
+  const artalesRef = useRef<HTMLElement | null>(null);
+  const pendingRevealRef = useRef<string | null>(null);
+  const scrollFrameRef = useRef<number | null>(null);
+  const ignoreScrollUntilRef = useRef({ source: 0, artales: 0 });
+
+  const qa = useMemo(() => inspectSourceIntegrity(INGEST_FIXTURE, blocks), [blocks]);
+  // Deliberately smaller origin typography: one source page may pair with 2-3 ARTales pages.
+  // Character budgets are fixture approximations, NOT measured Reader pagination.
+  const paired = useMemo(() => createPairedFixturePages(blocks, 1250, 450), [blocks]);
+  const activeIndex = Math.min(pageIndex, Math.max(0, paired.composedPages.length - 1));
+  const activePage = paired.composedPages[activeIndex];
+  const sourceFolio = activePage?.sourcePage ?? 1;
+  const composedFolio = activePage?.page ?? 1;
+  const shownSource = formatMode === "a4" ? (paired.sourcePages[sourceFolio - 1] ?? []) : blocks;
+  const shownArtales = formatMode === "a4" ? (activePage?.blocks ?? []) : blocks;
   const selected = blocks.find((item) => item.block.id === selectedId);
-  const paired = createPairedFixturePages(blocks, 3000, 430);
-  const activePage = paired.composedPages[Math.min(pageIndex, paired.composedPages.length - 1)];
-  const sourcePage = paired.sourcePages[(activePage?.sourcePage ?? 1) - 1] ?? [];
-  const visibleBlocks = activePage?.blocks ?? [];
-  const activeComposedPageNumber = activePage?.page ?? 1;
-  const activeSourcePageNumber = activePage?.sourcePage ?? 1;
   const selectedIndex = blocks.findIndex((item) => item.block.id === selectedId);
-  const canMarkBoundary = selectedIndex >= 0 && selectedIndex < blocks.length - 1;
-  const canLocalRecompose = !boundaryAfter && getFixtureCorrectionLane(issue, {kind: "block", blockId: selectedId}) === "local_recipe";
-  const requiresNote = issue === "unsure" || issue === "other";
-  const effectiveNote = editorNote.trim() || (requiresNote ? "" : extendedIssues.find((item) => item.value === issue)?.label ?? "");
-  const canSubmitNote = effectiveNote.length >= 3;
-  const locked = stage === "returned" || stage === "recomposed" || stage === "accepted";
+  const preset = getEditorialPreset(presetId);
+  const note = editorNote.trim() || (preset.needsNote ? "" : preset.label);
+  const canSubmit = Boolean(selected) && qa.ok && note.length >= 3 && !pendingRevision && !reviewFinished;
+  const locked = Boolean(pendingRevision) || reviewFinished;
+  const fontStyle = { "--fixture-font-scale": fontScale } as CSSProperties;
 
   useEffect(() => {
     try {
-      const raw = window.localStorage.getItem(STORAGE_KEY);
-      if (raw) {
-        const parsed: unknown = JSON.parse(raw);
-        if (Array.isArray(parsed)) setSavedRecords(parsed.filter(isSavedFixtureReview).slice(-25));
-      }
-      const issueRaw = window.localStorage.getItem(ISSUE_STORAGE_KEY);
-      if (issueRaw) {
-        const issues: unknown = JSON.parse(issueRaw);
-        if (Array.isArray(issues)) {
-          setSavedIssues(issues.filter((entry): entry is FixtureIssueReport =>
-            Boolean(entry && typeof entry === "object" &&
-              entry.schema === "artales.fixture.editorial-issue.v1" &&
-              entry.sourceId === INGEST_FIXTURE.sourceId &&
-              entry.fixtureOnly === true && entry.deliveredToNexus === false)
-          ).slice(-25));
-        }
-      }
+      const reviews = JSON.parse(window.localStorage.getItem(REVIEW_KEY) ?? "[]") as unknown;
+      const issues = JSON.parse(window.localStorage.getItem(ISSUE_KEY) ?? "[]") as unknown;
+      if (Array.isArray(reviews)) setSavedReviews(reviews.filter(safeReview).slice(-25));
+      if (Array.isArray(issues)) setSavedIssues(issues.filter(safeIssue).slice(-25));
     } catch {
-      // Private browsing may disable storage. The editor still works in memory.
+      setNotice("Lokální historie není přístupná; nové rozhodnutí lze stále zkontrolovat.");
     }
   }, []);
 
-  function chooseBlock(id: string) {
-    if (!locked) { setSelectedId(id); setNotice(""); }
-  }
+  useLayoutEffect(() => {
+    const id = pendingRevealRef.current;
+    if (!id) return;
+    const index = blocks.findIndex((item) => item.block.id === id);
+    if (index < 0) return;
+    if (formatMode === "a4" && !shownArtales.some((item) => item.block.id === id)) return;
+    const frame = window.requestAnimationFrame(() => {
+      ignoreScrollUntilRef.current = { source: performance.now() + 220, artales: performance.now() + 220 };
+      scrollPaneToRegion(sourceRef.current, index);
+      scrollPaneToRegion(artalesRef.current, index);
+      pendingRevealRef.current = null;
+    });
+    return () => window.cancelAnimationFrame(frame);
+  }, [selectedId, pageIndex, formatMode, readerOnly, mobilePane, blocks, shownArtales]);
 
-  function submitEditorialIssue() {
-    if (!selected || !qa.ok || !canSubmitNote) return;
-    if (canLocalRecompose) {
-      try {
-        setPreviousBlocks(blocks);
-        setReturnedId(selected.block.id);
-        setBlocks(recomposeFixtureRegion(INGEST_FIXTURE, blocks, selected.block.id));
-        setStage("recomposed");
-        setNotice("Rychlá korekce hotová; zkontrolujte návrh a potvrďte jej.");
-      } catch (error) {
-        setNotice(error instanceof Error ? error.message : "Rychlá oprava nebyla možná.");
-      }
-      return;
+  useEffect(() => () => {
+    if (scrollFrameRef.current !== null) window.cancelAnimationFrame(scrollFrameRef.current);
+  }, []);
+
+  function selectRegion(id: string, side: Pane) {
+    if (locked) return;
+    pendingRevealRef.current = id;
+    setSelectedId(id);
+    if (formatMode === "a4") {
+      const counterpartPage = paired.composedPages.findIndex((page) =>
+        page.blocks.some((item) => item.block.id === id));
+      if (counterpartPage >= 0) setPageIndex(counterpartPage);
     }
-    saveUnresolvedIssue();
-  }
-
-  function saveUnresolvedIssue() {
-    if (!selected || !canSubmitNote || !qa.ok) return;
-    const index = blocks.findIndex((item) => item.block.id === selected.block.id);
-    const next = blocks[index + 1];
-    const anchor: FixtureIssueAnchor = boundaryAfter && next
-      ? { kind: "boundary_after", blockId: selected.block.id, nextBlockId: next.block.id }
-      : { kind: "block", blockId: selected.block.id };
-    try {
-      const record = createFixtureIssueReport({
-        capture: INGEST_FIXTURE, blocks, anchor, category: issue, editorNote: effectiveNote,
-        viewContext: {
-          renderer: "fixture-static-spread-v1",
-          readerMode: readerOnly ? "reader_only" : "comparison",
-          fontScale,
-          viewportWidth: window.innerWidth,
-          viewportHeight: window.innerHeight,
-        },
-        recordedAt: new Date().toISOString(),
-      });
-      const nextIssues = [...savedIssues, record].slice(-25);
-      window.localStorage.setItem(ISSUE_STORAGE_KEY, JSON.stringify(nextIssues));
-      setSavedIssues(nextIssues);
-      setEditorNote("");
-      setNotice("Připomínka uložena lokálně. AI oprava zatím neprobíhá; až bude k dispozici, lze ji navázat na tento záznam.");
-    } catch (error) {
-      setNotice(error instanceof Error ? error.message : "Záznam připomínky selhal.");
+    if (window.matchMedia("(max-width: 850px)").matches && !readerOnly) {
+      setMobilePane(side === "source" ? "artales" : "source");
     }
-  }
-
-  function returnForCorrection() {
-    if (!selected || editorNote.trim().length < 3 || !qa.ok ||
-        boundaryAfter || getFixtureCorrectionLane(issue, { kind: "block", blockId: selected.block.id }) !== "local_recipe") return;
-    setReturnedId(selected.block.id);
-    setPreviousBlocks(blocks);
-    setStage("returned");
     setNotice("");
   }
 
-  function recompose() {
-    if (!returnedId) return;
+  function onRegionKey(event: KeyboardEvent<HTMLDivElement>, id: string, side: Pane) {
+    if (event.key === "Enter" || event.key === " ") {
+      event.preventDefault();
+      selectRegion(id, side);
+    }
+  }
+
+  function handleContinuousScroll(side: Pane) {
+    if (formatMode !== "continuous" || locked) return;
+    if (performance.now() < ignoreScrollUntilRef.current[side]) return;
+    if (scrollFrameRef.current !== null) window.cancelAnimationFrame(scrollFrameRef.current);
+    scrollFrameRef.current = window.requestAnimationFrame(() => {
+      scrollFrameRef.current = null;
+      const pane = side === "source" ? sourceRef.current : artalesRef.current;
+      const opposite: Pane = side === "source" ? "artales" : "source";
+      const counterpart = opposite === "source" ? sourceRef.current : artalesRef.current;
+      if (!pane || !counterpart) return;
+      const regions = pane.querySelectorAll<HTMLElement>("[data-region-index]");
+      const threshold = pane.getBoundingClientRect().top + Math.min(120, pane.clientHeight * 0.24);
+      let active: HTMLElement | null = regions[0] ?? null;
+      for (const region of regions) {
+        if (region.getBoundingClientRect().top <= threshold) active = region;
+        else break;
+      }
+      const index = Number(active?.dataset.regionIndex);
+      if (!Number.isInteger(index) || !blocks[index]) return;
+      setSelectedId((previous) => previous === blocks[index].block.id ? previous : blocks[index].block.id);
+      ignoreScrollUntilRef.current[opposite] = performance.now() + 240;
+      // Semantic anchors move at different pixel speeds: never mirror scroll percentages.
+      scrollPaneToRegion(counterpart, index);
+    });
+  }
+
+  function changeFormat(next: FormatMode) {
+    pendingRevealRef.current = selectedId;
+    setFormatMode(next);
+  }
+
+  function changePage(delta: number) {
+    if (locked) return;
+    const nextIndex = Math.max(0, Math.min(activeIndex + delta, paired.composedPages.length - 1));
+    const first = paired.composedPages[nextIndex]?.blocks[0]?.block.id;
+    if (first) {
+      pendingRevealRef.current = first;
+      setSelectedId(first);
+    }
+    setPageIndex(nextIndex);
+  }
+
+  function saveIssueLocally() {
+    if (!selected || !canSubmit) return;
+    const next = blocks[selectedIndex + 1];
+    const anchor: FixtureIssueAnchor = preset.boundary && next
+      ? { kind: "boundary_after", blockId: selected.block.id, nextBlockId: next.block.id }
+      : { kind: "block", blockId: selected.block.id };
     try {
-      const revised = recomposeFixtureRegion(INGEST_FIXTURE, blocks, returnedId);
-      setBlocks(revised);
-      setSelectedId(returnedId);
-      setStage("recomposed");
-      setNotice("");
+      const issue = createFixtureIssueReport({
+        capture: INGEST_FIXTURE, blocks, anchor,
+        category: preset.category, editorNote: note,
+        presetCode: preset.id,
+        viewContext: {
+          renderer: formatMode === "a4" ? "fixture-paired-a4-v2" : "fixture-continuous-v2",
+          readerMode: readerOnly ? "reader_only" : "comparison",
+          fontScale, viewportWidth: window.innerWidth, viewportHeight: window.innerHeight,
+          formatMode, originalPage: formatMode === "a4" ? sourceFolio : undefined,
+          artalesPage: formatMode === "a4" ? composedFolio : undefined,
+        },
+        recordedAt: new Date().toISOString(),
+      });
+      const nextIssues = [...savedIssues, issue].slice(-25);
+      window.localStorage.setItem(ISSUE_KEY, JSON.stringify(nextIssues));
+      setSavedIssues(nextIssues);
+      setEditorNote("");
+      setPresetId("unknown");
+      setNotice("Připomínka uložena v tomto prohlížeči. V produkci by šla do fronty; zde se žádná úloha nespouští.");
     } catch (error) {
-      setNotice(error instanceof Error ? error.message : "Přepracování nebylo možné.");
+      setNotice(error instanceof Error ? error.message : "Připomínku se nepodařilo uložit.");
+    }
+  }
+
+  function submitIssue() {
+    if (!selected || !canSubmit) return;
+    const lane = routeFixtureIssue(preset.id, selected.block.type);
+    if (lane === "deferred_fixture") {
+      saveIssueLocally();
+      return;
+    }
+    try {
+      const next = recomposeFixtureRegion(INGEST_FIXTURE, blocks, selected.block.id);
+      setPendingRevision({ before: blocks, blockId: selected.block.id, note });
+      setBlocks(next);
+      pendingRevealRef.current = selected.block.id;
+      setNotice("Nová sazba je zobrazena přímo v knize. Text nebyl změněn.");
+    } catch (error) {
+      setNotice(error instanceof Error ? error.message : "Návrh opravy nelze vytvořit.");
     }
   }
 
   function acceptRevision() {
-    if (!returnedId || !previousBlocks || !qa.ok) return;
+    if (!pendingRevision || !qa.ok) return;
     try {
       const record = createFixtureReviewRecord({
-        capture: INGEST_FIXTURE,
-        before: previousBlocks,
-        after: blocks,
-        blockId: returnedId,
-        issue: "typography",
-        editorNote: effectiveNote,
-        acceptedAt: new Date().toISOString(),
+        capture: INGEST_FIXTURE, before: pendingRevision.before, after: blocks,
+        blockId: pendingRevision.blockId, issue: "typography",
+        editorNote: pendingRevision.note, acceptedAt: new Date().toISOString(),
       });
-      setAcceptedRecord(record);
-      setStage("accepted");
-      setNotice("");
+      const nextReviews = [...savedReviews, record].slice(-25);
+      window.localStorage.setItem(REVIEW_KEY, JSON.stringify(nextReviews));
+      setSavedReviews(nextReviews);
+      setPendingRevision(null);
+      setPresetId("unknown");
+      setEditorNote("");
+      setNotice("Oprava přijata a uložena lokálně. Můžete pokračovat v kontrole.");
     } catch (error) {
-      setNotice(error instanceof Error ? error.message : "Revize neprošla kontrolou.");
+      setNotice(error instanceof Error ? error.message : "Přijetí se nepodařilo uložit.");
     }
   }
 
-  function cancelCorrection() {
-    if (previousBlocks) setBlocks(previousBlocks);
-    setReturnedId(null);
-    setPreviousBlocks(null);
-    setAcceptedRecord(null);
-    setStage("select");
-    setNotice("Vrácení zrušeno; předchozí sazba obnovena.");
+  function rejectRevision() {
+    if (!pendingRevision) return;
+    setBlocks(pendingRevision.before);
+    pendingRevealRef.current = pendingRevision.blockId;
+    setPendingRevision(null);
+    setNotice("Návrh opravy byl vrácen, předchozí sazba obnovena.");
   }
 
-  function saveLocalFeedback() {
-    if (!acceptedRecord || !qa.ok) return;
+  function finishReview() {
+    if (!qa.ok || pendingRevision) return;
     try {
-      const next = [...savedRecords.filter((record) =>
-        !(record.blockId === acceptedRecord.blockId && record.acceptedAt === acceptedRecord.acceptedAt)), acceptedRecord].slice(-25);
-      window.localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
-      setSavedRecords(next);
-      setStage("saved");
-      setNotice("Rozhodnutí je uložené pouze v tomto prohlížeči; Nexus/AT je nedostal.");
+      const summary = {
+        schema: "artales.fixture.review-session.v1",
+        sourceId: INGEST_FIXTURE.sourceId,
+        editionId: "fixture:river-edition:cs:v1",
+        editionVersion: "fixture-1",
+        actor: "fixture-editor",
+        completedAt: new Date().toISOString(),
+        acceptedCorrections: savedReviews.length,
+        deferredIssues: savedIssues.length,
+        integrity: "verified",
+        fixtureOnly: true,
+        deliveredToInbox: false,
+      };
+      window.localStorage.setItem(SESSION_KEY, JSON.stringify(summary));
+      setReviewFinished(true);
+      setNotice("Kontrola uzavřena a souhrn uložen lokálně. Skutečný inbox a audit v databázi ještě nejsou napojené.");
     } catch {
-      setNotice("Prohlížeč lokální uložení odmítl. Rozhodnutí zůstává pouze v této relaci.");
+      setNotice("Nelze bezpečně uložit souhrn kontroly. Dokončení neproběhlo.");
     }
   }
 
-  function exportFeedback() {
-    if (!savedRecords.length) return;
-    const file = new Blob([JSON.stringify({ fixtureOnly: true, schema: "artales.fixture.feedback-export.v1", records: savedRecords }, null, 2)], { type: "application/json" });
-    const url = URL.createObjectURL(file);
+  function exportFixtureNotes() {
+    const content = JSON.stringify({
+      schema: "artales.fixture.editorial-feedback-export.v1",
+      sourceId: INGEST_FIXTURE.sourceId, accepted: savedReviews, unresolved: savedIssues,
+    }, null, 2);
+    const url = URL.createObjectURL(new Blob([content], { type: "application/json" }));
     const anchor = document.createElement("a");
     anchor.href = url;
-    anchor.download = "artales-fixture-editorial-feedback.json";
+    anchor.download = "artales-editorial-fixture.json";
     document.body.appendChild(anchor);
     anchor.click();
     anchor.remove();
     window.setTimeout(() => URL.revokeObjectURL(url), 1000);
   }
 
-  function startNextReview() {
-    setStage("select");
-    setPreviousBlocks(null);
-    setReturnedId(null);
-    setAcceptedRecord(null);
-    setEditorNote("");
-    setNotice("");
+  const regionIndex = new Map(blocks.map((item, index) => [item.block.id, index]));
+  function regions(items: AnchoredBlock[], pane: Pane) {
+    return items.map((item) => {
+      const active = selectedId === item.block.id;
+      const variant = item.layoutVariant ?? (item.block.type === "poem" ? "dense_verse" : "default");
+      return (
+        <div key={item.block.id} role="button" tabIndex={locked ? -1 : 0}
+          aria-pressed={active} aria-label={"Označit související úsek " + item.block.type}
+          data-region-index={regionIndex.get(item.block.id)}
+          className={"ingest-lab__region ingest-lab__composition--" + variant + (active ? " ingest-lab__region--selected" : "")}
+          onClick={() => selectRegion(item.block.id, pane)}
+          onKeyDown={(event) => onRegionKey(event, item.block.id, pane)}>
+          <span className="ingest-lab__mark" aria-hidden="true">{active ? "●" : "＋"}</span>
+          {pane === "source" ? <SourceBlock item={item} /> : <WorkContentRenderer blocks={[item.block]} />}
+        </div>
+      );
+    });
   }
 
-  const fontStyle = { "--fixture-font-scale": fontScale } as CSSProperties;
+  const groups = Array.from(new Set(EDITORIAL_PRESETS.map((item) => item.group)));
   return (
-    <main className="ingest-lab" style={fontStyle}>
+    <main className="ingest-lab ingest-lab--docked" style={fontStyle}>
       <header className="ingest-lab__toolbar">
-        <div className="ingest-lab__brand"><strong>ARTales</strong><span>Redakční čtečka · fixture</span></div>
-        <div className="ingest-lab__toolbar-actions" aria-label="Nastavení náhledu">
-          <button type="button" onClick={() => setReaderOnly((value) => !value)} aria-pressed={readerOnly}>
-            {readerOnly ? "Ukázat srovnání" : "Jen sestavený Reader"}
-          </button>
-          <button type="button" aria-label="Zmenšit písmo" disabled={fontScale <= 0.9} onClick={() => setFontScale((value) => Math.max(0.9, Math.round((value - 0.1) * 10) / 10))}>A−</button>
-          <button type="button" aria-label="Zvětšit písmo" disabled={fontScale >= 1.2} onClick={() => setFontScale((value) => Math.min(1.2, Math.round((value + 0.1) * 10) / 10))}>A+</button>
+        <div className="ingest-lab__brand">
+          <strong>ARTales</strong>
+          <span>Cesta za řekou · redakční kontrola · testovací edice</span>
+        </div>
+        <div className="ingest-lab__toolbar-actions">
+          <div className="ingest-lab__format-switch" role="group" aria-label="Režim čtení">
+            <button type="button" aria-pressed={formatMode === "a4"}
+              onClick={() => changeFormat("a4")}>A4</button>
+            <button type="button" aria-pressed={formatMode === "continuous"}
+              onClick={() => changeFormat("continuous")}>Kontinuální</button>
+          </div>
+          <button type="button" className="ingest-lab__minor" onClick={() => {
+            pendingRevealRef.current = selectedId;
+            setReaderOnly((previous) => !previous);
+          }}>{readerOnly ? "Srovnat" : "Jen ARTales"}</button>
+          <button type="button" aria-label="Zmenšit písmo" className="ingest-lab__minor" disabled={fontScale <= 0.9}
+            onClick={() => setFontScale((value) => Math.max(0.9, Math.round((value - 0.1) * 10) / 10))}>A−</button>
+          <button type="button" aria-label="Zvětšit písmo" className="ingest-lab__minor" disabled={fontScale >= 1.2}
+            onClick={() => setFontScale((value) => Math.min(1.2, Math.round((value + 0.1) * 10) / 10))}>A+</button>
         </div>
       </header>
 
-      <section className="ingest-lab__intro" aria-labelledby="ingest-fixture-title">
-        <p className="ingest-lab__eyebrow">Interní náhled · fiktivní literární text · bez databáze</p>
-        <h1 id="ingest-fixture-title">Cesta za řekou</h1>
-        <p>Originál a sestavená kapitola vedle sebe. Označte místo, napište, co nevyhovuje, a porovnejte cílenou opravu před přijetím.</p>
-        <div className="ingest-lab__indicators" aria-label="Stav textové kontroly">
-          <span className={qa.ok ? "ingest-lab__verified" : "ingest-lab__error"}>{qa.ok ? "Text ověřen · " + qa.verifiedBlocks + "/" + blocks.length : "Neshoda se zdrojem"}</span>
-          <span>{savedRecords.length} přijatých oprav · {savedIssues.length} připomínek</span>
-          <span>Koncept · bez publikace</span>
-        </div>
-      </section>
+      <div className="ingest-lab__subbar">
+        <span>{qa.ok ? "✓ Originál ověřen" : "⚠ Neshoda se zdrojem"}</span>
+        {formatMode === "a4" ? (
+          <nav className="ingest-lab__pagination" aria-label="Listovat ARTales verzí">
+            <button type="button" disabled={activeIndex === 0 || locked} onClick={() => changePage(-1)} aria-label="Předchozí stránka ARTales">‹</button>
+            <span>Originál {sourceFolio}/{paired.sourcePages.length} · ARTales {composedFolio}/{paired.composedPages.length}</span>
+            <button type="button" disabled={activeIndex >= paired.composedPages.length - 1 || locked} onClick={() => changePage(1)} aria-label="Další stránka ARTales">›</button>
+          </nav>
+        ) : <span>Kontinuální srovnání · posuv podle souvisejícího úseku</span>}
+        <span className="ingest-lab__subbar-count">{savedReviews.length} oprav · {savedIssues.length} připomínek</span>
+      </div>
 
-      <nav className="ingest-lab__pagination" aria-label="Listování spárovanými stránkami">
-        <button type="button" disabled={pageIndex === 0 || locked} onClick={() => { setPageIndex((value) => Math.max(0, value - 1)); setBoundaryAfter(false); }}>← Předchozí</button>
-        <span>Originál {activeSourcePageNumber} / {paired.sourcePages.length} · ARTales {activeComposedPageNumber} / {paired.composedPages.length}</span>
-        <button type="button" disabled={pageIndex >= paired.composedPages.length - 1 || locked} onClick={() => { setPageIndex((value) => Math.min(paired.composedPages.length - 1, value + 1)); setBoundaryAfter(false); }}>Další →</button>
-      </nav>
-      <div className={"ingest-lab__spread" + (readerOnly ? " ingest-lab__spread--reader-only" : "")} aria-label="Čtenářské porovnání originálu a složené kapitoly">
-        {!readerOnly && <section className="ingest-lab__page" aria-labelledby="ingest-source-heading">
-          <div className="ingest-lab__page-top"><span>ORIGINÁL</span><span>Neměnný zdroj</span></div>
-          <div className="ingest-lab__page-heading"><h2 id="ingest-source-heading">Zdrojový rukopis</h2><p>{INGEST_FIXTURE.author}</p></div>
-          <div className="ingest-lab__page-content">
-            {sourcePage.map((item) => <article key={item.block.id} className={"ingest-lab__region" + (selectedId === item.block.id ? " ingest-lab__region--selected" : "")}>
-              <button type="button" disabled={locked} aria-pressed={selectedId === item.block.id} aria-label={"Označit oblast originálu " + item.start + " až " + item.end} onClick={() => chooseBlock(item.block.id)} className="ingest-lab__mark">{selectedId === item.block.id ? "● Označeno" : "+ Označit"}</button>
-              <SourceBlock item={item} />
-            </article>)}
-          </div>
-          <footer className="ingest-lab__folio"><span>Fiktivní zdroj</span><span>{activeSourcePageNumber}</span></footer>
-        </section>}
+      {!readerOnly && <div className="ingest-lab__mobile-tabs" role="group" aria-label="Zobrazená verze">
+        <button type="button" aria-pressed={mobilePane === "source"} onClick={() => {
+          pendingRevealRef.current = selectedId; setMobilePane("source");
+        }}>Originál</button>
+        <button type="button" aria-pressed={mobilePane === "artales"} onClick={() => {
+          pendingRevealRef.current = selectedId; setMobilePane("artales");
+        }}>ARTales</button>
+      </div>}
 
-        <section className="ingest-lab__page ingest-lab__page--composed" aria-labelledby="ingest-reader-heading">
-          <div className="ingest-lab__page-top"><span>ARTales READER</span><span>Náhled složených bloků</span></div>
-          <div className="ingest-lab__page-heading"><h2 id="ingest-reader-heading">Cesta za řekou</h2><p>Ukázková kapitola · automaticky sestavená</p></div>
-          <div className="ingest-lab__page-content">
-            {visibleBlocks.map((item) => {
-              const variant = item.layoutVariant ?? (item.block.type === "poem" ? "dense_verse" : "default");
-              return <article key={item.block.id} className={"ingest-lab__region ingest-lab__composition--" + variant + (selectedId === item.block.id ? " ingest-lab__region--selected" : "")}>
-                <button type="button" disabled={locked} aria-pressed={selectedId === item.block.id} aria-label={"Označit blok " + item.block.type} onClick={() => chooseBlock(item.block.id)} className="ingest-lab__mark">{selectedId === item.block.id ? "● Označeno" : "+ Označit"}</button>
-                <WorkContentRenderer blocks={[item.block]} />
-              </article>;
-            })}
+      <div className={"ingest-lab__spread ingest-lab__spread--workspace" +
+        (readerOnly ? " ingest-lab__spread--reader-only" : "") +
+        (formatMode === "continuous" ? " ingest-lab__spread--continuous" : "")}>
+        {!readerOnly && (
+          <section className={"ingest-lab__page ingest-lab__page--source" +
+            (mobilePane !== "source" ? " ingest-lab__page--mobile-hidden" : "")}
+            ref={sourceRef} aria-label="Originál, samostatně posuvná čtecí oblast"
+            onScroll={() => handleContinuousScroll("source")}>
+            <div className="ingest-lab__sheet">
+              <div className="ingest-lab__page-top"><span>ORIGINÁL</span><span>{formatMode === "a4" ? "Strana " + sourceFolio : "Souvislý text"}</span></div>
+              <div className="ingest-lab__page-heading"><h2>Zdrojový rukopis</h2><p>Fiktivní literární text</p></div>
+              <div className="ingest-lab__page-content">{regions(shownSource, "source")}</div>
+              <footer className="ingest-lab__folio"><span>Zdrojová edice</span><span>{formatMode === "a4" ? sourceFolio : "—"}</span></footer>
+            </div>
+          </section>
+        )}
+        <section className={"ingest-lab__page ingest-lab__page--composed" +
+          (!readerOnly && mobilePane !== "artales" ? " ingest-lab__page--mobile-hidden" : "")}
+          ref={artalesRef} aria-label="ARTales, samostatně posuvná čtecí oblast"
+          onScroll={() => handleContinuousScroll("artales")}>
+          <div className="ingest-lab__sheet">
+            <div className="ingest-lab__page-top"><span>ARTales Reader</span><span>{formatMode === "a4" ? "Strana " + composedFolio : "Souvislý text"}</span></div>
+            <div className="ingest-lab__page-heading"><h2>Cesta za řekou</h2><p>Pracovní sestavená edice</p></div>
+            <div className="ingest-lab__page-content">{regions(shownArtales, "artales")}</div>
+            <footer className="ingest-lab__folio"><span>ARTales · pracovní sazba</span><span>{formatMode === "a4" ? composedFolio : "—"}</span></footer>
           </div>
-          <footer className="ingest-lab__folio"><span>ARTales · pracovní sazba</span><span>{activeComposedPageNumber}</span></footer>
         </section>
       </div>
 
-      <section className="ingest-lab__review" aria-labelledby="ingest-review-heading">
+      <section className="ingest-lab__review ingest-lab__review--docked" aria-label="Panel redakčních připomínek">
         <div className="ingest-lab__review-heading">
-          <div><p className="ingest-lab__eyebrow">Redakční kontrola</p><h2 id="ingest-review-heading">Připomínka k vybrané oblasti</h2></div>
-          <span className="ingest-lab__review-status" role="status">{{ select: "Výběr", returned: "Vráceno", recomposed: "Přepracováno", accepted: "Přijato", saved: "Uloženo lokálně" }[stage]}</span>
+          <div className="ingest-lab__review-title">
+            <strong>{reviewFinished ? "Kontrola uzavřena" : pendingRevision ? "Zkontrolovat novou sazbu" : "Připomínka ke knize"}</strong>
+            <span>{selected ? "Označen " + selected.block.type + " · úsek " + selected.start + "–" + selected.end : "Klikněte na problémový úsek"}</span>
+          </div>
+          <span className="ingest-lab__review-status">{reviewFinished ? "Dokončeno lokálně" : pendingRevision ? "Nový návrh" : "Pracovní kontrola"}</span>
         </div>
-        {selected && <p className="ingest-lab__anchor"><strong>{selected.block.type}</strong> · úsek {selected.start}–{selected.end} · vazba na zdroj <code>{selected.componentId}</code></p>}
-        {stage === "select" && <div className="ingest-lab__review-grid">
-          <label>Co je podle vás špatně?
-            <select value={issue} onChange={(event) => setIssue(event.target.value as FixtureIssueCategory)}>
-              {extendedIssues.map(({ value, label }) => <option key={value} value={value}>{label}</option>)}
-            </select>
-          </label>
-          <label>Co je potřeba opravit?
-            <textarea value={editorNote} maxLength={1000} rows={3} onChange={(event) => setEditorNote(event.target.value)} placeholder={requiresNote ? "Co vám na této části nesedí?" : "Volitelné: upřesnění připomínky"} />
-          </label>
-          <label className="ingest-lab__boundary-control"><input type="checkbox" checked={boundaryAfter} disabled={!canMarkBoundary} onChange={(event) => setBoundaryAfter(event.target.checked)}/> Označit problém na hranici mezi touto a následující oblastí (např. nevhodný konec stránky)</label>
-          <div className="ingest-lab__form-actions"><button type="button" className="ingest-lab__primary" disabled={!selected || !canSubmitNote || !qa.ok} onClick={submitEditorialIssue}>Odeslat připomínku</button></div>
-          <p className="ingest-lab__route-note">ARTales vyhodnotí připomínku automaticky. Jednoduchou typografii přepočítá v náhledu; ostatní problémy bezpečně uloží k pozdějšímu řešení. Fixture zatím neodesílá úlohy do Nexu.</p>
-        </div>}
-        {stage === "returned" && <div className="ingest-lab__review-step">
-          <p><strong>Připomínka zaznamenána:</strong> {editorNote}</p>
-          <p>Vrácena je pouze oblast {selected?.start}–{selected?.end}. Text originálu je uzamčený.</p>
-          <div className="ingest-lab__actions"><button type="button" className="ingest-lab__primary" onClick={recompose}>Přepracovat označený blok</button><button type="button" onClick={cancelCorrection}>Zrušit</button></div>
-        </div>}
-        {stage === "recomposed" && <div className="ingest-lab__review-step">
-          <p><strong>Nová sazba je v pravé stránce.</strong> Ostatní bloky nebyly změněny. Kontrola zdrojového textu: {qa.ok ? "beze změny" : "CHYBA"}.</p>
-          <div className="ingest-lab__actions"><button type="button" className="ingest-lab__primary" disabled={!qa.ok} onClick={acceptRevision}>Přijmout přepracování</button><button type="button" onClick={cancelCorrection}>Vrátit k předchozí sazbě</button></div>
-        </div>}
-        {stage === "accepted" && <div className="ingest-lab__review-step">
-          <p>Revize přijata. Zatím je pouze v paměti stránky. Uložení níže vytváří metadata redakčního rozhodnutí, nikoli změnu vydávaného díla.</p>
-          <div className="ingest-lab__actions"><button type="button" className="ingest-lab__primary" onClick={saveLocalFeedback}>Uložit rozhodnutí do prohlížeče</button><button type="button" onClick={cancelCorrection}>Zrušit přijetí</button></div>
-        </div>}
-        {stage === "saved" && <div className="ingest-lab__review-step">
-          <p>Rozhodnutí uložené lokálně. Obsahuje ID zdroje a úseku, připomínku, původní a novou sazbu, ověření integrity a přijetí editorem.</p>
-          <div className="ingest-lab__actions"><button type="button" className="ingest-lab__primary" onClick={startNextReview}>Označit další oblast</button></div>
-        </div>}
-        {notice && <p className="ingest-lab__notice" role="status">{notice}</p>}
-        {qa.issues.length > 0 && <ul className="ingest-lab__errors">{qa.issues.map((item) => <li key={item}>{item}</li>)}</ul>}
-        <div className="ingest-lab__finish">
-          <button type="button" className="ingest-lab__primary" onClick={() => { setReviewFinished(true); setNotice("Kontrola kapitoly uzavřena v ukázkovém režimu. Trvalé odeslání a inbox zatím nejsou napojeny."); }}>Označit kontrolu jako hotovou</button>
-          {reviewFinished && <strong role="status">✓ Kontrola dokončena · fixture · bez odeslání</strong>}
-          <a href="/member/candidates">Opustit kontrolu</a>
-        </div>
-        <div className="ingest-lab__feedback-footer">
-          <p><strong>Podklad pro učení Nexus/AT:</strong> pouze lokální záznam. Automatické odeslání ani trénování neprobíhá.</p>
-          <button type="button" disabled={!savedRecords.length} onClick={exportFeedback}>Exportovat uložené připomínky (JSON)</button>
+        {!reviewFinished && !pendingRevision && (
+          <div className="ingest-lab__review-inline">
+            <label className="ingest-lab__select-label">Problém
+              <select value={presetId} onChange={(event) => setPresetId(event.target.value)}>
+                {groups.map((group) => (
+                  <optgroup label={group} key={group}>
+                    {EDITORIAL_PRESETS.filter((item) => item.group === group).map((item) =>
+                      <option key={item.id} value={item.id}>{item.label}</option>)}
+                  </optgroup>
+                ))}
+              </select>
+            </label>
+            <label className="ingest-lab__note-label">Poznámka {preset.needsNote ? "(nutná)" : "(volitelná)"}
+              <input type="text" maxLength={1000} value={editorNote}
+                onChange={(event) => setEditorNote(event.target.value)}
+                placeholder={preset.needsNote ? "Co přesně vám zde nesedí?" : "Případné upřesnění…"}
+                onKeyDown={(event) => { if (event.key === "Enter" && canSubmit) submitIssue(); }} />
+            </label>
+            <button type="button" className="ingest-lab__primary" disabled={!canSubmit} onClick={submitIssue}>Odeslat</button>
+          </div>
+        )}
+        {!reviewFinished && pendingRevision && (
+          <div className="ingest-lab__review-inline ingest-lab__review-inline--decision">
+            <p>Upravená sazba je zvýrazněna v ARTales. Text je beze změny. Přijmout tuto lokální opravu?</p>
+            <button type="button" className="ingest-lab__primary" disabled={!qa.ok} onClick={acceptRevision}>Přijmout a uložit</button>
+            <button type="button" className="ingest-lab__secondary" onClick={rejectRevision}>Vrátit</button>
+          </div>
+        )}
+        <div className="ingest-lab__review-bottom">
+          <span className="ingest-lab__notice" role="status">{notice || (formatMode === "a4" ? "A4 náhled používá přibližné stránkové členění; ostrý Reader bude měřený." : "Související bloky se při posuvu párují podle textu.")}</span>
+          <div className="ingest-lab__review-actions">
+            {(savedReviews.length > 0 || savedIssues.length > 0) &&
+              <details className="ingest-lab__technical"><summary>Historie fixture</summary>
+                <p>{savedReviews.length} lokálních přijetí, {savedIssues.length} dosud nevyřešených připomínek.</p>
+                <button type="button" onClick={exportFixtureNotes}>Export JSON</button>
+              </details>}
+            <button type="button" className="ingest-lab__secondary" disabled={!qa.ok || Boolean(pendingRevision) || reviewFinished} onClick={finishReview}>Dokončit kontrolu</button>
+            <a href="/member/candidates">Odejít</a>
+          </div>
         </div>
       </section>
     </main>
