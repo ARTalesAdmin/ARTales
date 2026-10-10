@@ -37,12 +37,6 @@ const extendedIssues: { value: FixtureIssueCategory; label: string }[] = [
 ];
 
 type ReviewStage = "select" | "returned" | "recomposed" | "accepted" | "saved";
-type Issue = FixtureReviewRecord["issue"];
-const issueLabels: Record<Issue, string> = {
-  typography: "Sazba a typografie",
-  structure: "Členění a struktura",
-  readability: "Čitelnost",
-};
 
 function isSavedFixtureReview(value: unknown): value is FixtureReviewRecord {
   if (!value || typeof value !== "object") return false;
