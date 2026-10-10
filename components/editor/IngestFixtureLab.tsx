@@ -66,6 +66,8 @@ export default function IngestFixtureLab() {
   const [selectedId, setSelectedId] = useState(initialId);
   const [pageIndex, setPageIndex] = useState(0);
   const [formatMode, setFormatMode] = useState<FormatMode>("a4");
+  const [panelOnSide, setPanelOnSide] = useState(true);
+  const [revealTick, setRevealTick] = useState(0);
   const [readerOnly, setReaderOnly] = useState(false);
   const [mobilePane, setMobilePane] = useState<Pane>("artales");
   const [fontScale, setFontScale] = useState(1);
@@ -124,7 +126,7 @@ export default function IngestFixtureLab() {
       pendingRevealRef.current = null;
     });
     return () => window.cancelAnimationFrame(frame);
-  }, [selectedId, pageIndex, formatMode, readerOnly, mobilePane, blocks, shownArtales]);
+  }, [selectedId, pageIndex, formatMode, readerOnly, mobilePane, blocks, shownArtales, revealTick]);
 
   useEffect(() => () => {
     if (scrollFrameRef.current !== null) window.cancelAnimationFrame(scrollFrameRef.current);
@@ -134,6 +136,7 @@ export default function IngestFixtureLab() {
     if (locked) return;
     pendingRevealRef.current = id;
     setSelectedId(id);
+    setRevealTick((value) => value + 1);
     if (formatMode === "a4") {
       const counterpartPage = paired.composedPages.findIndex((page) =>
         page.blocks.some((item) => item.block.id === id));
@@ -181,6 +184,17 @@ export default function IngestFixtureLab() {
   function changeFormat(next: FormatMode) {
     pendingRevealRef.current = selectedId;
     setFormatMode(next);
+  }
+
+  function flagCurrentPageBreak() {
+    if (locked || formatMode !== "a4" || activeIndex >= paired.composedPages.length - 1) return;
+    const lastBlock = activePage?.blocks[activePage.blocks.length - 1];
+    if (!lastBlock) return;
+    pendingRevealRef.current = lastBlock.block.id;
+    setSelectedId(lastBlock.block.id);
+    setPresetId("page.bad_break");
+    setEditorNote("");
+    setNotice("Označen předěl za koncem této stránky ARTales. Potvrďte připomínku v panelu.");
   }
 
   function changePage(delta: number) {
@@ -314,15 +328,18 @@ export default function IngestFixtureLab() {
   function regions(items: AnchoredBlock[], pane: Pane) {
     return items.map((item) => {
       const active = selectedId === item.block.id;
+      const flagged = savedIssues.some((entry) => entry.anchor.blockId === item.block.id);
       const variant = item.layoutVariant ?? (item.block.type === "poem" ? "dense_verse" : "default");
       return (
         <div key={item.block.id} role="button" tabIndex={locked ? -1 : 0}
           aria-pressed={active} aria-label={"Označit související úsek " + item.block.type}
           data-region-index={regionIndex.get(item.block.id)}
-          className={"ingest-lab__region ingest-lab__composition--" + variant + (active ? " ingest-lab__region--selected" : "")}
+          className={"ingest-lab__region ingest-lab__composition--" + variant +
+            (active ? " ingest-lab__region--selected" : "") +
+            (flagged ? " ingest-lab__region--flagged" : "")}
           onClick={() => selectRegion(item.block.id, pane)}
           onKeyDown={(event) => onRegionKey(event, item.block.id, pane)}>
-          <span className="ingest-lab__mark" aria-hidden="true">{active ? "●" : "＋"}</span>
+          <span className="ingest-lab__mark" aria-hidden="true">{flagged ? "⚑" : active ? "✎" : "＋"}</span>
           {pane === "source" ? <SourceBlock item={item} /> : <WorkContentRenderer blocks={[item.block]} />}
         </div>
       );
@@ -331,13 +348,18 @@ export default function IngestFixtureLab() {
 
   const groups = Array.from(new Set(EDITORIAL_PRESETS.map((item) => item.group)));
   return (
-    <main className="ingest-lab ingest-lab--docked" style={fontStyle}>
+    <main className={"ingest-lab ingest-lab--docked " +
+      (panelOnSide ? "ingest-lab--side" : "ingest-lab--bottom")} style={fontStyle}>
       <header className="ingest-lab__toolbar">
         <div className="ingest-lab__brand">
           <strong>ARTales</strong>
           <span>Cesta za řekou · redakční kontrola · testovací edice</span>
         </div>
         <div className="ingest-lab__toolbar-actions">
+          <button type="button" className="ingest-lab__panel-toggle"
+            title="Přepnout polohu poznámek" onClick={() => setPanelOnSide((value) => !value)}>
+            {panelOnSide ? "Panel dole" : "Panel vpravo"}
+          </button>
           <div className="ingest-lab__format-switch" role="group" aria-label="Režim čtení">
             <button type="button" aria-pressed={formatMode === "a4"}
               onClick={() => changeFormat("a4")}>A4</button>
@@ -362,6 +384,9 @@ export default function IngestFixtureLab() {
             <button type="button" disabled={activeIndex === 0 || locked} onClick={() => changePage(-1)} aria-label="Předchozí stránka ARTales">‹</button>
             <span>Originál {sourceFolio}/{paired.sourcePages.length} · ARTales {composedFolio}/{paired.composedPages.length}</span>
             <button type="button" disabled={activeIndex >= paired.composedPages.length - 1 || locked} onClick={() => changePage(1)} aria-label="Další stránka ARTales">›</button>
+            {activeIndex < paired.composedPages.length - 1 &&
+              <button type="button" className="ingest-lab__page-flag" disabled={locked}
+                onClick={flagCurrentPageBreak} title="Nahlásit nevhodný konec aktuální stránky ARTales">⚑ Předěl stránky</button>}
           </nav>
         ) : <span>Kontinuální srovnání · posuv podle souvisejícího úseku</span>}
         <span className="ingest-lab__subbar-count">{savedReviews.length} oprav · {savedIssues.length} připomínek</span>
@@ -408,12 +433,13 @@ export default function IngestFixtureLab() {
       <section className="ingest-lab__review ingest-lab__review--docked" aria-label="Panel redakčních připomínek">
         <div className="ingest-lab__review-heading">
           <div className="ingest-lab__review-title">
-            <strong>{reviewFinished ? "Kontrola uzavřena" : pendingRevision ? "Zkontrolovat novou sazbu" : "Připomínka ke knize"}</strong>
-            <span>{selected ? "Označen " + selected.block.type + " · úsek " + selected.start + "–" + selected.end : "Klikněte na problémový úsek"}</span>
+            <strong>✎ {reviewFinished ? "Kontrola uzavřena" : pendingRevision ? "Zkontrolovat novou sazbu" : "Připomínka k textu"}</strong>
+            <span>{selected ? "Vybraný úsek: " + selected.block.type + " · " + selected.start + "–" + selected.end : "Klikněte na problémový úsek"}</span>
           </div>
           <span className="ingest-lab__review-status">{reviewFinished ? "Dokončeno lokálně" : pendingRevision ? "Nový návrh" : "Pracovní kontrola"}</span>
         </div>
-        {!reviewFinished && !pendingRevision && (
+        {!reviewFinished && !pendingRevision && <>
+          <p className="ingest-lab__review-hint">Klikněte na úsek v jedné z knih – zvýrazní se i protějšek. Pak vyberte problém a odešlete.</p>
           <div className="ingest-lab__review-inline">
             <label className="ingest-lab__select-label">Problém
               <select value={presetId} onChange={(event) => setPresetId(event.target.value)}>
@@ -431,9 +457,9 @@ export default function IngestFixtureLab() {
                 placeholder={preset.needsNote ? "Co přesně vám zde nesedí?" : "Případné upřesnění…"}
                 onKeyDown={(event) => { if (event.key === "Enter" && canSubmit) submitIssue(); }} />
             </label>
-            <button type="button" className="ingest-lab__primary" disabled={!canSubmit} onClick={submitIssue}>Odeslat</button>
+            <button type="button" className="ingest-lab__primary" disabled={!canSubmit} onClick={submitIssue}>Odeslat připomínku</button>
           </div>
-        )}
+        </>}
         {!reviewFinished && pendingRevision && (
           <div className="ingest-lab__review-inline ingest-lab__review-inline--decision">
             <p>Upravená sazba je zvýrazněna v ARTales. Text je beze změny. Přijmout tuto lokální opravu?</p>

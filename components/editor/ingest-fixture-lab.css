@@ -131,3 +131,155 @@
   .ingest-lab--docked .ingest-lab__toolbar,
   .ingest-lab__subbar, .ingest-lab__mobile-tabs, .ingest-lab--docked .ingest-lab__review { display: none; }
 }
+
+
+/* Fixture editor shell v3: fill the actual viewport and dock the notes beside the book. */
+.ingest-lab--docked {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100dvh;
+  min-height: 0;
+  max-width: none;
+  z-index: 1000;
+  gap: 0;
+  overflow: hidden;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-areas:
+    "header"
+    "subbar"
+    "workspace"
+    "notes";
+  grid-template-rows: auto auto minmax(0, 1fr) auto;
+}
+.ingest-lab--docked .ingest-lab__toolbar { grid-area: header; }
+.ingest-lab--docked .ingest-lab__subbar { grid-area: subbar; }
+.ingest-lab--docked .ingest-lab__spread--workspace { grid-area: workspace; min-height: 0; }
+.ingest-lab--docked .ingest-lab__review--docked {
+  grid-area: notes;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  max-height: min(44dvh, 270px);
+}
+.ingest-lab--docked .ingest-lab__page { min-height: 0; }
+.ingest-lab--docked .ingest-lab__panel-toggle {
+  background: transparent;
+  color: #f7ead6;
+  border: 1px solid #7c6c57;
+  border-radius: 7px;
+  padding: 7px 10px;
+}
+.ingest-lab--docked .ingest-lab__pagination .ingest-lab__page-flag {
+  color: #62451e;
+  background: #fbecd1;
+  border: 1px solid #cbb186;
+  border-radius: 8px;
+  padding: 6px 11px;
+  font-size: 12px;
+}
+.ingest-lab--docked .ingest-lab__region--flagged {
+  border-left: 3px solid #aa7d3d;
+}
+.ingest-lab--docked .ingest-lab__region--flagged .ingest-lab__mark {
+  color: #a47121;
+  font-size: 14px;
+}
+.ingest-lab--docked .ingest-lab__review-hint {
+  color: #70604a;
+  font-size: 12px;
+  line-height: 1.5;
+  margin: 8px 0 2px;
+}
+.ingest-lab--docked .ingest-lab__review-inline select,
+.ingest-lab--docked .ingest-lab__review-inline input {
+  min-height: 39px;
+}
+@media (min-width: 1181px) {
+  .ingest-lab--docked.ingest-lab--side {
+    grid-template-columns: minmax(0, 1fr) clamp(310px, 24vw, 370px);
+    grid-template-areas:
+      "header header"
+      "subbar subbar"
+      "workspace notes";
+    grid-template-rows: auto auto minmax(0, 1fr);
+  }
+  .ingest-lab--docked.ingest-lab--side .ingest-lab__review--docked {
+    max-height: none;
+    height: 100%;
+    border-top: 0;
+    border-left: 2px solid #c5ad86;
+    overflow-y: auto;
+    box-shadow: -4px 0 24px rgba(24,18,10,.05);
+    padding: 18px 15px;
+  }
+  .ingest-lab--docked.ingest-lab--side .ingest-lab__review-heading {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+  .ingest-lab--docked.ingest-lab--side .ingest-lab__review-title {
+    display: grid;
+    gap: 5px;
+  }
+  .ingest-lab--docked.ingest-lab--side .ingest-lab__review-inline {
+    grid-template-columns: minmax(0, 1fr);
+    align-items: stretch;
+    gap: 15px;
+    margin-top: 18px;
+  }
+  .ingest-lab--docked.ingest-lab--side .ingest-lab__review-inline > label {
+    grid-column: 1;
+  }
+  .ingest-lab--docked.ingest-lab--side .ingest-lab__review-inline > button {
+    width: 100%;
+    min-height: 43px;
+  }
+  .ingest-lab--docked.ingest-lab--side .ingest-lab__review-bottom {
+    align-items: stretch;
+    flex-direction: column;
+    gap: 15px;
+    margin-top: 20px;
+  }
+  .ingest-lab--docked.ingest-lab--side .ingest-lab__review-actions {
+    align-items: flex-start;
+    justify-content: space-between;
+  }
+  .ingest-lab--docked.ingest-lab--side .ingest-lab__spread--workspace {
+    padding: 7px;
+  }
+}
+@media (max-width: 1180px) {
+  .ingest-lab--docked .ingest-lab__panel-toggle { display: none; }
+  .ingest-lab--docked {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas:
+      "header"
+      "subbar"
+      "workspace"
+      "notes";
+    grid-template-rows: auto auto minmax(0, 1fr) auto;
+  }
+}
+@media (max-width: 850px) {
+  .ingest-lab--docked {
+    grid-template-areas:
+      "header"
+      "subbar"
+      "tabs"
+      "workspace"
+      "notes";
+    grid-template-rows: auto auto auto minmax(0, 1fr) auto;
+  }
+  .ingest-lab--docked .ingest-lab__mobile-tabs { grid-area: tabs; }
+  .ingest-lab--docked .ingest-lab__review--docked {
+    max-height: min(44dvh, 265px);
+  }
+}
+@media (max-width: 650px) {
+  .ingest-lab--docked .ingest-lab__review--docked { max-height: min(44dvh, 240px); }
+  .ingest-lab--docked .ingest-lab__review-hint { display: none; }
+  .ingest-lab--docked .ingest-lab__toolbar-actions { gap: 3px; }
+  .ingest-lab--docked .ingest-lab__toolbar-actions button { padding: 5px 7px; font-size: 12px; }
+  .ingest-lab--docked .ingest-lab__subbar-count { display: none; }
+  .ingest-lab--docked .ingest-lab__review-bottom { gap: 5px; }
+}
