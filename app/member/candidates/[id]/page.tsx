@@ -1,6 +1,7 @@
 import Link from "next/link"
 import { notFound } from "next/navigation"
 import { requireEditorOrAdmin } from "@/lib/guards"
+import { getServerSupabaseConnection } from "@/lib/supabase/connectionIsolation"
 import { getWorkCandidateById } from "@/lib/dbCandidates"
 import { getPersistedCandidateSources, getPersistedCandidateComponentRights } from "@/lib/dbCandidateDetails"
 import { updateWorkCandidate } from "@/lib/actions/workCandidates"
@@ -17,7 +18,7 @@ type Props = {
 }
 
 export default async function WorkCandidateDetailPage({ params, searchParams }: Props) {
-  await requireEditorOrAdmin()
+  if (!isCandidatesFixturePreview() || getServerSupabaseConnection().enabled) await requireEditorOrAdmin()
   const { id } = await params
   const { error, success } = await searchParams
   const candidate = await getWorkCandidateById(id)
