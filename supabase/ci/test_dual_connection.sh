@@ -11,7 +11,7 @@ BEGIN;
 SET LOCAL ROLE authenticated;
 SELECT set_config('request.jwt.claim.sub','$actor',true);
 SELECT public.promote_candidate_to_edit_text('$candidate'::uuid)->>'result' AS result;
-\\! touch $marker
+\! touch $marker
 SELECT pg_sleep($sleep_seconds);
 COMMIT;
 SQL
@@ -64,7 +64,7 @@ run_pair() {
   wait "$pid"
   grep -q 'promoted' "$first_log"
   assert_single "$candidate"
-  promote_second "$candidate" "5s" | grep -q '^already_promoted || { echo "retry not idempotent" >&2; exit 1; }
+  promote_second "$candidate" "5s" | grep -q '^already_promoted$' || { echo "retry not idempotent" >&2; exit 1; }
   rm -f "$marker" "$first_log" "$second_log"
   trap - EXIT
   echo "PASS: $mode independent sessions, single draft/task/audit, idempotent retry"
