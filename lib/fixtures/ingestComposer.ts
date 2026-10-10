@@ -95,14 +95,14 @@ function segmentLargeProseSpan(span: { start: number; end: number; text: string 
     for (let index = limit; index >= earliest; index--) {
       const previous = span.text[index - 1];
       if ((previous === "." || previous === "!" || previous === "?" || previous === "…") &&
-          /\\s/u.test(span.text[index] ?? "")) {
+          /\s/u.test(span.text[index] ?? "")) {
         split = index;
         break;
       }
     }
     if (split < 0) {
       for (let index = limit; index >= earliest; index--) {
-        if (/\\s/u.test(span.text[index] ?? "")) {
+        if (/\s/u.test(span.text[index] ?? "")) {
           split = index + 1;
           break;
         }
