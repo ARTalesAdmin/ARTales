@@ -85,6 +85,9 @@ export default function IngestFixtureLab() {
   const selectedIndex = blocks.findIndex((item) => item.block.id === selectedId);
   const canMarkBoundary = selectedIndex >= 0 && selectedIndex < blocks.length - 1;
   const canLocalRecompose = !boundaryAfter && getFixtureCorrectionLane(issue, {kind: "block", blockId: selectedId}) === "local_recipe";
+  const requiresNote = issue === "unsure" || issue === "other";
+  const effectiveNote = editorNote.trim() || (requiresNote ? "" : extendedIssues.find((item) => item.value === issue)?.label ?? "");
+  const canSubmitNote = effectiveNote.length >= 3;
   const locked = stage === "returned" || stage === "recomposed" || stage === "accepted";
 
   useEffect(() => {
@@ -116,12 +119,24 @@ export default function IngestFixtureLab() {
   }
 
   function submitEditorialIssue() {
-    if (canLocalRecompose) return returnForCorrection();
-    return saveUnresolvedIssue();
+    if (!selected || !qa.ok || !canSubmitNote) return;
+    if (canLocalRecompose) {
+      try {
+        setPreviousBlocks(blocks);
+        setReturnedId(selected.block.id);
+        setBlocks(recomposeFixtureRegion(INGEST_FIXTURE, blocks, selected.block.id));
+        setStage("recomposed");
+        setNotice("Rychlá korekce hotová; zkontrolujte návrh a potvrďte jej.");
+      } catch (error) {
+        setNotice(error instanceof Error ? error.message : "Rychlá oprava nebyla možná.");
+      }
+      return;
+    }
+    saveUnresolvedIssue();
   }
 
   function saveUnresolvedIssue() {
-    if (!selected || editorNote.trim().length < 3 || !qa.ok) return;
+    if (!selected || !canSubmitNote || !qa.ok) return;
     const index = blocks.findIndex((item) => item.block.id === selected.block.id);
     const next = blocks[index + 1];
     const anchor: FixtureIssueAnchor = boundaryAfter && next
@@ -129,7 +144,7 @@ export default function IngestFixtureLab() {
       : { kind: "block", blockId: selected.block.id };
     try {
       const record = createFixtureIssueReport({
-        capture: INGEST_FIXTURE, blocks, anchor, category: issue, editorNote,
+        capture: INGEST_FIXTURE, blocks, anchor, category: issue, editorNote: effectiveNote,
         viewContext: {
           renderer: "fixture-static-spread-v1",
           readerMode: readerOnly ? "reader_only" : "comparison",
@@ -180,7 +195,7 @@ export default function IngestFixtureLab() {
         after: blocks,
         blockId: returnedId,
         issue: "typography",
-        editorNote,
+        editorNote: effectiveNote,
         acceptedAt: new Date().toISOString(),
       });
       setAcceptedRecord(record);
@@ -308,10 +323,10 @@ export default function IngestFixtureLab() {
             </select>
           </label>
           <label>Co je potřeba opravit?
-            <textarea value={editorNote} maxLength={1000} rows={3} onChange={(event) => setEditorNote(event.target.value)} placeholder="Např. verše jsou příliš sevřené; ponechat přesné znění a upravit pouze řádkování." />
+            <textarea value={editorNote} maxLength={1000} rows={3} onChange={(event) => setEditorNote(event.target.value)} placeholder={requiresNote ? "Co vám na této části nesedí?" : "Volitelné: upřesnění připomínky"} />
           </label>
           <label className="ingest-lab__boundary-control"><input type="checkbox" checked={boundaryAfter} disabled={!canMarkBoundary} onChange={(event) => setBoundaryAfter(event.target.checked)}/> Označit problém na hranici mezi touto a následující oblastí (např. nevhodný konec stránky)</label>
-          <div className="ingest-lab__form-actions"><button type="button" className="ingest-lab__primary" disabled={!selected || editorNote.trim().length < 3 || !qa.ok} onClick={submitEditorialIssue}>Odeslat připomínku</button></div>
+          <div className="ingest-lab__form-actions"><button type="button" className="ingest-lab__primary" disabled={!selected || !canSubmitNote || !qa.ok} onClick={submitEditorialIssue}>Odeslat připomínku</button></div>
           <p className="ingest-lab__route-note">ARTales vyhodnotí připomínku automaticky. Jednoduchou typografii přepočítá v náhledu; ostatní problémy bezpečně uloží k pozdějšímu řešení. Fixture zatím neodesílá úlohy do Nexu.</p>
         </div>}
         {stage === "returned" && <div className="ingest-lab__review-step">
