@@ -71,10 +71,3 @@ run_pair() {
 }
 run_pair 11111111-1111-4111-8111-111111111111 success
 run_pair 33333333-3333-4333-8333-333333333333 timeout
- || { echo "retry not idempotent" >&2; exit 1; }
-  rm -f "$marker" "$first_log" "$second_log"
-  trap - EXIT
-  echo "PASS: $mode independent sessions, single draft/task/audit, idempotent retry"
-}
-run_pair 11111111-1111-4111-8111-111111111111 success
-run_pair 33333333-3333-4333-8333-333333333333 timeout
