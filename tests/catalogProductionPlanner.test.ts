@@ -61,3 +61,27 @@ test("source requiring further scan does not count toward target",()=>{
  assert.equal(result.qualified.length,0)
  assert.equal(result.decisions.at(-1)?.reason,"full_scan_requested_result_pending")
 })
+
+test("sub-cent full scans never overrun budget after rounded comparisons",()=>{
+ const a=candidate("tiny-a"), b=candidate("tiny-b")
+ a.fullScanCostUsd=.0049
+ b.fullScanCostUsd=.0049
+ const result=planCatalogProduction([a,b],{...policy,fullScanBudgetUsd:.005})
+ assert.equal(result.qualified.length,1)
+ assert.equal(result.stopReason,"screening_budget")
+})
+test("sub-cent prescreens cannot be silently treated as free",()=>{
+ const a=candidate("tiny-a"),b=candidate("tiny-b")
+ a.prescreenCostUsd=.0049
+ b.prescreenCostUsd=.0049
+ const result=planCatalogProduction([a,b],{...policy,prescreenBudgetUsd:.005})
+ assert.equal(result.decisions.filter(x=>x.reason==="prescreen_budget_limit").length,1)
+})
+test("editorial reservation uses exact bounded micro-units",()=>{
+ const a=candidate("cheap-a"),b=candidate("cheap-b")
+ a.estimatedEditorialCostUsd=.0049
+ b.estimatedEditorialCostUsd=.0049
+ const result=planCatalogProduction([a,b],{...policy,editorialBudgetUsd:.005})
+ assert.equal(result.qualified.length,1)
+ assert.equal(result.stopReason,"editorial_budget")
+})
