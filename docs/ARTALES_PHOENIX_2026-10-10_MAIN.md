@@ -59,3 +59,13 @@ Avoid long scaffolding loops: prioritize **one complete synthetic/ephemeral vert
 - Work ID stable, source edition snapshot immutable, work revision and editorial task separate.
 - No automatic publication or take-down is active. Publication and legal challenge hold/revert need separately approved releases.
 - User asked for an end-of-day Phoenix handoff and a ready-to-copy startup prompt for new main thread.
+
+## Ready-to-copy opening prompt for the next MAIN thread
+
+> Pokračujeme v hlavním vývoji ARTales po Phoenix 2026-10-10. Pracujeme současně ve druhém vlákně na ingestu/Readeru. Načti z `ARTalesAdmin/ARTales`: `AGENTS.md`, `docs/WORKFLOW.md`, `docs/RELEASE_POLICY.md`, `docs/ARTALES_DURABLE_CHECKPOINT.md`, `docs/ARTALES_PHOENIX_2026-10-10_MAIN.md` (zatím v dokumentačním PR #199, dokud nebude mergnuto) a `docs/ARTALES_EDITORIAL_TASK_CONTRACT_V1_2026-10-10.md` (zatím v PR #198). Ověř aktuální `develop`, `main`, Supabase branches a otevřené PR #196/#197/#198/#199. Neodvozuj aktuální stav pouze ze starých checkpointů.
+>
+> Cíl: admin ručně zadá požadovaný počet **komerčně vydatelných titulů** a rozpočet, ARTales vybírá/doplňuje kandidáty s rovnováhou žánrů/autorů, dělá levný prescreen, strojový/AI právní sken konkrétních edic a oddělených komponent (text/překlad/ilustrace/metadata/wrapper), archivuje důkazy/snapshoty, připraví jen bezpečně způsobilé koncepty a založí editorskou práci v interní frontě. Editor si úkol převezme, zkontroluje text a Reader, vrátí ukotvenou připomínku, schválí opravenou revizi; vizuály a publikace navazují se samostatnými branami. Právní kontrola je primárně strojová, člověk řeší výjimky. První pilot může být admin-only a nemusí být plně autonomní. Nexus worker queue nepoužívej.
+>
+> Rozdělení: PR #196/vlastní druhé vlákno vlastní ingest/composer/Reader; naše hlavní vlákno vlastní katalog/práva (#197), editor task backend/inbox (#198), serverové propojení, audit a rozpočtovou politiku. Contract v1 je v #198, koordinační zpráva je přímo v #196. Nekolidovat na stejných souborech.
+>
+> Priorita: nejdřív zreviduj #196 (zelený Vercel ≠ vizuální E2E), potom #197 (spustit reálné Node testy a QA), #198 (po aktualizaci vůči novému develop, vyřešit společný admin dashboard, dokončit concurrency/RLS/adversarial QA na krátké ephemeral Supabase a smazat). Merge pouze po kontrole a autorizaci. Produkční `main` a Supabase nech nedotčené; produkční DB apply vyžaduje samostatnou autorizaci. Pak implementuj nejmenší skutečný serverový vertical slice admin dávka → kandidát → ověřený source dossier → koncept → editor úkol, ne další pouhou simulaci. Výslovně odlišuj implementované, otestované a plánované. Po prvním kroku připrav další kontrolovatelné PR.
