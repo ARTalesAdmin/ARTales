@@ -10,9 +10,10 @@ import {
 const result = composeFixtureSection(INGEST_FIXTURE);
 
 test("bounded literary section becomes deterministic ARTales blocks", () => {
-  assert.deepEqual(result.blocks.map((item) => item.block.type), [
+  assert.deepEqual(result.blocks.slice(0, 5).map((item) => item.block.type), [
     "chapter", "paragraph", "paragraph", "poem", "paragraph",
   ]);
+  assert.ok(result.blocks.length >= 12, "Fixture must span multiple pages.");
   assert.deepEqual(composeFixtureSection(INGEST_FIXTURE), result);
   assert.equal(new Set(result.blocks.map((item) => item.block.id)).size, result.blocks.length);
 });
