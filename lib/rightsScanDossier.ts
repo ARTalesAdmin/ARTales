@@ -1,9 +1,9 @@
 /**
- * A deterministic, read-only machine-screening gate.
+ * Synthetic / structural preflight for a machine-generated rights dossier.
  *
- * Model output is untrusted evidence extraction, not a legal authorization.
- * Only a server-side, versioned policy may accept a complete source/edition
- * evidence dossier for draft staging. Publishing remains a separate decision.
+ * All inputs must be treated as claims until verified by a trusted capture
+ * service. A structurally complete dossier may be proposed for draft staging;
+ * this function neither verifies copyright nor authorizes a DB write/publication.
  */
 export type RightsComponentKind =
   | "WORK_CONTENT" | "EDITION_CONTENT" | "TRANSLATION"
@@ -21,9 +21,21 @@ export type CapturedComponent = {
   archiveRef: string
 }
 
+export type SourceCaptureManifest = {
+  rawSourceSha256: string
+  rawSourceByteLength: number
+  rawSourceArchiveRef: string
+  capturedAt: string
+  inventoryComplete: boolean
+  collectorVersion: string
+}
+
 export type RightsEvidence = {
   id: string
   type: "primary_record" | "license" | "edition_metadata" | "automated_analysis" | "human_opinion"
+  sourceId: string
+  editionId: string
+  componentIds: string[]
   sourceUri: string
   archiveRef: string
   sha256: string
@@ -52,6 +64,7 @@ export type RightsScanDossier = {
   targetJurisdiction: string
   policyVersion: string
   scanner: { engine: string; version: string; ranAt: string }
+  capture: SourceCaptureManifest
   snapshots: CapturedComponent[]
   evidence: RightsEvidence[]
   decisions: ComponentRightsDecision[]
@@ -60,8 +73,9 @@ export type RightsScanDossier = {
 export type RightsScanIssue = {
   componentId: string | null
   code:
-    | "invalid_dossier" | "missing_text" | "missing_decision"
-    | "unknown_component" | "unreliable_snapshot" | "duplicate_or_foreign_record"
+    | "invalid_dossier" | "missing_text" | "missing_edition_assessment"
+    | "missing_decision" | "unknown_component" | "unreliable_snapshot"
+    | "source_capture_incomplete" | "duplicate_or_foreign_record"
     | "insufficient_evidence" | "unsupported_inclusion" | "review_requested"
     | "high_risk_inclusion" | "unverified_exclusion"
 }
@@ -69,6 +83,7 @@ export type RightsScanIssue = {
 export type RightsScanEvaluation = {
   outcome: "candidate_draft_eligible" | "needs_specialist_review" | "source_blocked"
   issues: RightsScanIssue[]
+  // These are only suggested IDs, not an executable ingest authorization.
   includedSnapshotIds: string[]
   excludedSnapshotIds: string[]
   assessmentOrigin: "automated"
@@ -76,14 +91,15 @@ export type RightsScanEvaluation = {
 }
 
 const sha256Pattern = /^[a-f0-9]{64}$/i
-const validTime = (s: string) => Boolean(s) && Number.isFinite(Date.parse(s))
-const substantive = (s: string) => typeof s === "string" && s.trim().length >= 20
+const validTime = (value: string) =>
+  typeof value === "string" && Boolean(value) && Number.isFinite(Date.parse(value))
+const substantive = (value: string) => typeof value === "string" && value.trim().length >= 20
 const primaryEvidence = new Set(["primary_record", "license", "edition_metadata"])
 
 export function evaluateRightsScan(d: RightsScanDossier): RightsScanEvaluation {
   const issues: RightsScanIssue[] = []
-  const includedSnapshotIds: string[] = []
-  const excludedSnapshotIds: string[] = []
+  const proposedInclude: string[] = []
+  const proposedExclude: string[] = []
   let blocked = false
   const issue = (code: RightsScanIssue["code"], componentId: string | null = null) =>
     issues.push({ code, componentId })
@@ -93,37 +109,63 @@ export function evaluateRightsScan(d: RightsScanDossier): RightsScanEvaluation {
     !d.editionId || !d.snapshotSetId || !d.targetJurisdiction ||
     !d.policyVersion || !d.scanner.engine || !d.scanner.version ||
     !validTime(d.scanner.ranAt) || d.snapshots.length === 0
-  ) {
-    issue("invalid_dossier")
-  }
+  ) issue("invalid_dossier")
 
-  const evidence = new Map<string, RightsEvidence>()
-  for (const e of d.evidence) {
-    if (evidence.has(e.id) || !e.id || !e.sourceUri || !e.archiveRef ||
-        !sha256Pattern.test(e.sha256) || !validTime(e.capturedAt) ||
-        !substantive(e.claim) || e.jurisdiction !== d.targetJurisdiction) {
-      issue("duplicate_or_foreign_record")
-    }
-    evidence.set(e.id, e)
-  }
+  const capture = d.capture
+  if (
+    !capture || !sha256Pattern.test(capture.rawSourceSha256) ||
+    !Number.isSafeInteger(capture.rawSourceByteLength) ||
+    capture.rawSourceByteLength <= 0 || !capture.rawSourceArchiveRef ||
+    !validTime(capture.capturedAt) || !capture.collectorVersion ||
+    !capture.inventoryComplete ||
+    (validTime(d.scanner.ranAt) && Date.parse(capture.capturedAt) > Date.parse(d.scanner.ranAt))
+  ) issue("source_capture_incomplete")
 
   const snapshots = new Map<string, CapturedComponent>()
+  const invalidSnapshots = new Set<string>()
   for (const s of d.snapshots) {
     if (!s.id || snapshots.has(s.id) || s.sourceId !== d.sourceId ||
         s.editionId !== d.editionId) {
       issue("duplicate_or_foreign_record", s.id)
+      invalidSnapshots.add(s.id)
     }
     snapshots.set(s.id, s)
     if (!sha256Pattern.test(s.sha256) || !Number.isSafeInteger(s.byteLength) ||
-        s.byteLength <= 0 || !validTime(s.capturedAt) || !s.archiveRef) {
+        s.byteLength <= 0 || !validTime(s.capturedAt) || !s.archiveRef ||
+        (validTime(s.capturedAt) && validTime(d.scanner.ranAt) &&
+        Date.parse(s.capturedAt) > Date.parse(d.scanner.ranAt))) {
       issue("unreliable_snapshot", s.id)
+      invalidSnapshots.add(s.id)
     }
-    if (s.kind === "UNKNOWN") issue("unknown_component", s.id)
+    if (s.kind === "UNKNOWN") {
+      issue("unknown_component", s.id)
+      invalidSnapshots.add(s.id)
+    }
+  }
+
+  const evidence = new Map<string, RightsEvidence>()
+  const invalidEvidence = new Set<string>()
+  for (const e of d.evidence) {
+    if (
+      !e.id || evidence.has(e.id) || e.sourceId !== d.sourceId ||
+      e.editionId !== d.editionId || !Array.isArray(e.componentIds) ||
+      e.componentIds.length === 0 || e.componentIds.some(id => !snapshots.has(id)) ||
+      !e.sourceUri || !/^https:\/\//i.test(e.sourceUri) || !e.archiveRef ||
+      !sha256Pattern.test(e.sha256) || !validTime(e.capturedAt) ||
+      !substantive(e.claim) || e.jurisdiction !== d.targetJurisdiction ||
+      (validTime(e.capturedAt) && validTime(d.scanner.ranAt) &&
+       Date.parse(e.capturedAt) > Date.parse(d.scanner.ranAt))
+    ) {
+      issue("duplicate_or_foreign_record")
+      invalidEvidence.add(e.id)
+    }
+    evidence.set(e.id, e)
   }
 
   const decisions = new Map<string, ComponentRightsDecision>()
   for (const decision of d.decisions) {
-    if (decisions.has(decision.componentId) || !snapshots.has(decision.componentId)) {
+    if (!decision.componentId || decisions.has(decision.componentId) ||
+        !snapshots.has(decision.componentId)) {
       issue("duplicate_or_foreign_record", decision.componentId)
     }
     decisions.set(decision.componentId, decision)
@@ -144,41 +186,55 @@ export function evaluateRightsScan(d: RightsScanDossier): RightsScanEvaluation {
         issue("unverified_exclusion", s.id)
         continue
       }
-      excludedSnapshotIds.push(s.id)
+      proposedExclude.push(s.id)
       continue
     }
-    // An 'include' may never be approved purely on a generated model opinion.
+
     if (decision.finding === "denied") {
       issue("unsupported_inclusion", s.id)
       blocked = true
       continue
     }
     if (decision.finding !== "supported" || decision.confidence !== "high" ||
-        !substantive(decision.rationale) || decision.evidenceIds.length === 0) {
+        !substantive(decision.rationale) || decision.evidenceIds.length === 0 ||
+        invalidSnapshots.has(s.id)) {
       issue("insufficient_evidence", s.id)
       continue
     }
+
     const proofs = decision.evidenceIds.map(id => evidence.get(id))
-    if (proofs.some(e => !e) || !proofs.some(e => e && primaryEvidence.has(e.type))) {
+    if (
+      proofs.some(e => !e || invalidEvidence.has(e.id) || !e.componentIds.includes(s.id)) ||
+      !proofs.some(e => e && primaryEvidence.has(e.type))
+    ) {
       issue("insufficient_evidence", s.id)
       continue
     }
-    // Included third-party translation/artwork requires an enhanced, separate
-    // license/provenance policy. The AI must escalate rather than assume usage.
+
+    // A translation or illustration requires a separate verified rights route.
+    // It is never cleared just by claiming high AI confidence.
     if (s.kind === "TRANSLATION" || s.kind === "ASSET") {
       issue("high_risk_inclusion", s.id)
       continue
     }
-    includedSnapshotIds.push(s.id)
+    proposedInclude.push(s.id)
   }
 
   if (!d.snapshots.some(s => s.kind === "WORK_CONTENT" &&
-    includedSnapshotIds.includes(s.id))) issue("missing_text")
+    proposedInclude.includes(s.id))) issue("missing_text")
+  if (!d.snapshots.some(s => s.kind === "EDITION_CONTENT" &&
+    (proposedInclude.includes(s.id) || proposedExclude.includes(s.id)))) {
+    issue("missing_edition_assessment")
+  }
 
+  // A caller must never consume a partial set of "include" IDs while any
+  // related legal/capture/identity record is unresolved.
+  const outcome = blocked ? "source_blocked" :
+    issues.length ? "needs_specialist_review" : "candidate_draft_eligible"
   return {
-    outcome: blocked ? "source_blocked" :
-      issues.length > 0 ? "needs_specialist_review" : "candidate_draft_eligible",
-    issues, includedSnapshotIds, excludedSnapshotIds,
+    outcome, issues,
+    includedSnapshotIds: outcome === "candidate_draft_eligible" ? proposedInclude : [],
+    excludedSnapshotIds: outcome === "candidate_draft_eligible" ? proposedExclude : [],
     assessmentOrigin: "automated",
     publicationAuthorized: false,
   }
