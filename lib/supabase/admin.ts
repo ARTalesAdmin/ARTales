@@ -1,7 +1,12 @@
 import { createClient } from "@supabase/supabase-js";
+import { getServerSupabaseConnection } from "@/lib/supabase/connectionIsolation";
 
 export function createAdminClient() {
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const target = getServerSupabaseConnection();
+  if (!target.enabled) throw new Error("Supabase administrative operations disabled for this environment.");
+  // Never reuse a production service key on a disposable branch.
+  if (target.reason === "ephemeral") throw new Error("An isolated ephemeral service key is required for admin operations.");
+  const supabaseUrl = target.url;
   const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
   if (!supabaseUrl) {

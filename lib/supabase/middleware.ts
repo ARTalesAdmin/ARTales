@@ -1,14 +1,17 @@
 import { createServerClient } from "@supabase/ssr"
 import { NextResponse, type NextRequest } from "next/server"
+import { getServerSupabaseConnection } from "@/lib/supabase/connectionIsolation"
 
 export async function updateSession(request: NextRequest) {
   const response = NextResponse.next({
     request,
   })
 
+  const target = getServerSupabaseConnection()
+  if (!target.enabled) return response
   const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    target.url,
+    target.anonKey,
     {
       cookies: {
         getAll() {
