@@ -10,8 +10,8 @@ create table public.candidate_source_captures (
   included_inventory jsonb not null check(jsonb_typeof(included_inventory)='array'),
   provenance_note text not null check(length(btrim(provenance_note))>=40),
   captured_by uuid not null references public.profiles(id),
-  reviewed_by uuid not null references public.profiles(id),
-  reviewed_at timestamptz not null,
+  reviewed_by uuid null references public.profiles(id),
+  reviewed_at timestamptz null,
   created_at timestamptz not null default now(),
   constraint captured_source_fk foreign key(source_id,candidate_id)
     references public.work_candidate_sources(id,candidate_id) on delete restrict,
@@ -29,15 +29,13 @@ create policy "Editorial staff read candidate source captures" on public.candida
 -- synthetic captures on a disposable branch only, not real-world rights clearance.
 create function public.register_candidate_source_capture(
  p_candidate_id uuid,p_source_id uuid,p_text text,p_inventory jsonb,
- p_provenance_note text,p_reviewer_id uuid)
+ p_provenance_note text)
 returns jsonb language plpgsql security definer set search_path=''
 as $rpc$
 declare v_actor uuid:=auth.uid();v_digest text;v_id uuid;
 begin
  if v_actor is null or not exists(select 1 from public.profiles p where p.id=v_actor and p.is_active and p.role='admin')
  then raise exception 'admin_required' using errcode='42501';end if;
- if p_reviewer_id=v_actor or not exists(select 1 from public.profiles p where p.id=p_reviewer_id and p.is_active and p.role in ('admin','editor'))
- then return jsonb_build_object('result','blocked','reason','independent_reviewer_required');end if;
  if p_text is null or length(p_text)=0 or length(p_text)>10000000
  or p_inventory is null or jsonb_typeof(p_inventory)<>'array'
  or jsonb_array_length(p_inventory)=0 or length(btrim(coalesce(p_provenance_note,'')))<40
@@ -47,15 +45,15 @@ begin
  -- Inventory is not a legal attestation. Re-verify rights and snapshot at promotion.
  v_digest:=encode(extensions.digest(convert_to(p_text,'UTF8'),'sha256'),'hex');
  insert into public.candidate_source_captures(candidate_id,source_id,source_text,source_sha256,
-   included_inventory,provenance_note,captured_by,reviewed_by,reviewed_at)
- values(p_candidate_id,p_source_id,p_text,v_digest,p_inventory,p_provenance_note,v_actor,p_reviewer_id,now())
+   included_inventory,provenance_note,captured_by)
+ values(p_candidate_id,p_source_id,p_text,v_digest,p_inventory,p_provenance_note,v_actor)
  returning id into v_id;
- return jsonb_build_object('result','recorded_for_review','capture_id',v_id,'sha256',v_digest);
+ return jsonb_build_object('result','pending_independent_review','capture_id',v_id,'sha256',v_digest);
 exception when unique_violation then
  return jsonb_build_object('result','already_captured');
 end $rpc$;
-revoke all on function public.register_candidate_source_capture(uuid,uuid,text,jsonb,text,uuid) from public,anon,authenticated;
-grant execute on function public.register_candidate_source_capture(uuid,uuid,text,jsonb,text,uuid) to authenticated;
+revoke all on function public.register_candidate_source_capture(uuid,uuid,text,jsonb,text) from public,anon,authenticated;
+grant execute on function public.register_candidate_source_capture(uuid,uuid,text,jsonb,text) to authenticated;
 
 -- Existing triggers reject every edit_text insert. Permit one narrow RPC-controlled
 -- work-task insertion after complete lock/gate checking.
@@ -131,7 +129,8 @@ begin
  then return jsonb_build_object('result','blocked','reason','source_unverified');end if;
  select * into v_capture from public.candidate_source_captures
    where candidate_id=p_candidate_id and source_id=v_s.id for update;
- if not found or v_capture.reviewed_at<v_s.updated_at or
+ if not found or v_capture.reviewed_by is null or v_capture.reviewed_at is null or
+   v_capture.reviewed_at<v_s.updated_at or
    v_capture.source_sha256<>encode(extensions.digest(convert_to(v_capture.source_text,'UTF8'),'sha256'),'hex')
    or v_capture.reviewed_by=v_capture.captured_by
    or not exists(select 1 from public.profiles p where p.id=v_capture.reviewed_by and p.is_active and p.role in ('admin','editor'))
