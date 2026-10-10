@@ -34,3 +34,15 @@ Before production apply: revert PR. If applied to ephemeral, delete the branch a
 - Public RPCs now use `SECURITY INVOKER` and normal authenticated grants under explicit RLS; mutable columns are whitelisted. Task transition/audit triggers reside in an unexposed `artales_internal` schema with revoked direct execute, and preserve an append-only event trail atomically. The triggers are privileged and still require function body/advisor review on ephemeral DB.
 - Candidate review task remains legally non-authoritative and never creates a draft or grants rights. Source origin/external unique key prevents duplicate enqueue. This corrective patch is not database-validated yet.
 - Ephemeral branch cost on 2026-10-10 checked at USD 0.01344/hour. No fresh ephemeral branch opened during this security correction; await separate cost-confirmation workflow for a short-lived proof, then delete it within the same session.
+
+## Ephemeral SQL verification — 2026-10-10 (closed)
+- Project `pmczalupwbyxltpesfxi` / branch `artales-editorial-inbox-proof-20261010`; price quoted USD 0.01344 per hour. Branch ID `0140d684-d410-4e71-8933-ce6ebe698c48`.
+- Applied candidate foundation, candidate persistence, and this editorial inbox migration successfully **on ephemeral only**. Production project was not modified.
+- Verified public RPC `claim_editorial_task`, `return_editorial_task`, `create_editorial_task_for_candidate` have `prosecdef=false`, `anon EXECUTE=false`, `authenticated EXECUTE=true`.
+- Synthetic admin/user and candidate+source: first enqueue + repeat resulted in **one** task and **one** created audit event.
+- Synthetic editor: first claim, repeated claim, return resulted in task `open`, no assigned editor, and **three** audit events (created, claimed, returned).
+- Test transactions rolled back. Post-rollback counts: candidates=0, tasks=0, events=0.
+- Unauthenticated `authenticated` role without user identity invoked claim and received expected `42501 editor_role_required`.
+- Supabase security advisors had earlier pre-existing flags for `page_views`/`work_contributors` RLS with no policies, `public.set_updated_at` mutable search path, and 11 other public anon-executable SECURITY DEFINER functions; **no claim that the baseline is clean**. No newly introduced public SECURITY DEFINER RPC.
+- **NOT VERIFIED:** two independent sessions simultaneously claiming same ID, member-role denial with real JWT, direct-column bypass attempts, full browser preview authenticated against ephemeral, complete negative role matrix, production migration compatibility. These remain blocking review items.
+- CLEANUP: branch deletion returned success; subsequent list showed only production main. No ephemeral left running.
