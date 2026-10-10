@@ -48,6 +48,7 @@ export default async function AdminDashboardPage({ searchParams }: PageProps) {
           <Link className="artales-button-secondary" href={`/member/admin/dashboard?range=${oppositeRange}`}>
             {range === "month" ? "Zobrazit celkem" : "Zobrazit tento měsíc"}
           </Link>
+          <Link className="artales-button-secondary" href="/member/admin/queue-candidates">Kandidáti k předání</Link>
           <Link className="artales-button-secondary" href="/member/admin/payments">
             QR platby
           </Link>
