@@ -24,7 +24,7 @@ import { createPairedFixturePages } from "@/lib/fixtures/pairedPages";
 import "./ingest-fixture-lab.css";
 
 const artifact = composeFixtureSection(INGEST_FIXTURE);
-const initialId = artifact.blocks.find((item) => item.block.type === "poem")?.block.id ?? artifact.blocks[0]?.block.id ?? "";
+const initialId = artifact.blocks[0]?.block.id ?? "";
 const STORAGE_KEY = "artales:ingest-fixture:editorial-reviews:v1";
 const ISSUE_STORAGE_KEY = "artales:ingest-fixture:editorial-issues:v1";
 const extendedIssues: { value: FixtureIssueCategory; label: string }[] = [
@@ -113,6 +113,11 @@ export default function IngestFixtureLab() {
 
   function chooseBlock(id: string) {
     if (!locked) { setSelectedId(id); setNotice(""); }
+  }
+
+  function submitEditorialIssue() {
+    if (canLocalRecompose) return returnForCorrection();
+    return saveUnresolvedIssue();
   }
 
   function saveUnresolvedIssue() {
@@ -306,11 +311,8 @@ export default function IngestFixtureLab() {
             <textarea value={editorNote} maxLength={1000} rows={3} onChange={(event) => setEditorNote(event.target.value)} placeholder="Např. verše jsou příliš sevřené; ponechat přesné znění a upravit pouze řádkování." />
           </label>
           <label className="ingest-lab__boundary-control"><input type="checkbox" checked={boundaryAfter} disabled={!canMarkBoundary} onChange={(event) => setBoundaryAfter(event.target.checked)}/> Označit problém na hranici mezi touto a následující oblastí (např. nevhodný konec stránky)</label>
-          <div className="ingest-lab__form-actions">
-            <button type="button" className="ingest-lab__primary" disabled={!selected || editorNote.trim().length < 3 || !qa.ok || !canLocalRecompose} onClick={returnForCorrection}>Vyzkoušet rychlou opravu</button>
-            <button type="button" disabled={!selected || editorNote.trim().length < 3 || !qa.ok} onClick={saveUnresolvedIssue}>Uložit připomínku pro pozdější korekci</button>
-          </div>
-          <p className="ingest-lab__route-note">Rychlá ukázková úprava je dostupná pouze pro typografii jednoho bloku. Stránkování, zalamování i „Nevím“ se zatím bezpečně uloží jako připomínka, bez předstírání dokončené AI opravy.</p>
+          <div className="ingest-lab__form-actions"><button type="button" className="ingest-lab__primary" disabled={!selected || editorNote.trim().length < 3 || !qa.ok} onClick={submitEditorialIssue}>Odeslat připomínku</button></div>
+          <p className="ingest-lab__route-note">ARTales vyhodnotí připomínku automaticky. Jednoduchou typografii přepočítá v náhledu; ostatní problémy bezpečně uloží k pozdějšímu řešení. Fixture zatím neodesílá úlohy do Nexu.</p>
         </div>}
         {stage === "returned" && <div className="ingest-lab__review-step">
           <p><strong>Připomínka zaznamenána:</strong> {editorNote}</p>
