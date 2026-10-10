@@ -1,5 +1,15 @@
 # ARTales durable checkpoint — 2026-09-28
 
+## Current continuation — 2026-10-10 after #196/#197/#198 integration
+
+**Authoritative instruction documents still take precedence.** Latest verified `develop` HEAD: `41a55757cb87b6a5b717f6b6921f35b141af96bc`; production `main` unchanged in this integration. PR [#196](https://github.com/ARTalesAdmin/ARTales/pull/196), [#197](https://github.com/ARTalesAdmin/ARTales/pull/197), [#198](https://github.com/ARTalesAdmin/ARTales/pull/198) merged into develop; PR [#199](https://github.com/ARTalesAdmin/ARTales/pull/199) updates this documentation. Full reconciled log and next-step handoff: [`docs/ARTALES_PHOENIX_2026-10-10_MAIN.md`](./ARTALES_PHOENIX_2026-10-10_MAIN.md).
+
+PR #198's SQL schema is source code in develop, NOT a production Supabase apply. Real authenticated browser E2E remains open. Both ephemeral Supabase test branches deleted; no production data used. Next product milestone: a provenance- and snapshot-gated atomic candidate→draft→`edit_text` task primitive, then connect admin bounded catalog execution. No Nexus worker queue; no modification of second thread's Reader/Composer files. Future `main` release and production DB apply need separate approval.
+
+Previous sections below this one are historical and may contain older PR status and HEAD claims.
+
+---
+
 > **Status:** non-authoritative continuation checkpoint.
 >
 > This document is the current ARTales handoff index. Live code/database state, `AGENTS.md`, `docs/WORKFLOW.md`, `docs/RELEASE_POLICY.md`, and explicit user authorization remain authoritative.
