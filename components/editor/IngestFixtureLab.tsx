@@ -13,11 +13,28 @@ import {
   createFixtureReviewRecord,
   type FixtureReviewRecord,
 } from "@/lib/fixtures/ingestReview";
+import {
+  createFixtureIssueReport,
+  getFixtureCorrectionLane,
+  type FixtureIssueAnchor,
+  type FixtureIssueCategory,
+  type FixtureIssueReport,
+} from "@/lib/fixtures/ingestIssue";
 import "./ingest-fixture-lab.css";
 
 const artifact = composeFixtureSection(INGEST_FIXTURE);
 const initialId = artifact.blocks.find((item) => item.block.type === "poem")?.block.id ?? artifact.blocks[0]?.block.id ?? "";
 const STORAGE_KEY = "artales:ingest-fixture:editorial-reviews:v1";
+const ISSUE_STORAGE_KEY = "artales:ingest-fixture:editorial-issues:v1";
+const extendedIssues: { value: FixtureIssueCategory; label: string }[] = [
+  { value: "unsure", label: "Nevím / neumím zařadit" },
+  { value: "pagination", label: "Stránkování / konec stránky" },
+  { value: "line_break", label: "Zalomení řádku nebo odstavce" },
+  { value: "typography", label: "Sazba a typografie" },
+  { value: "structure", label: "Členění a struktura" },
+  { value: "readability", label: "Čitelnost" },
+  { value: "other", label: "Jiné" },
+];
 
 type ReviewStage = "select" | "returned" | "recomposed" | "accepted" | "saved";
 type Issue = FixtureReviewRecord["issue"];
@@ -49,7 +66,9 @@ export default function IngestFixtureLab() {
   const [blocks, setBlocks] = useState<AnchoredBlock[]>(() => artifact.blocks);
   const [selectedId, setSelectedId] = useState(initialId);
   const [stage, setStage] = useState<ReviewStage>("select");
-  const [issue, setIssue] = useState<Issue>("typography");
+  const [issue, setIssue] = useState<FixtureIssueCategory>("unsure");
+  const [boundaryAfter, setBoundaryAfter] = useState(false);
+  const [savedIssues, setSavedIssues] = useState<FixtureIssueReport[]>([]);
   const [editorNote, setEditorNote] = useState("");
   const [returnedId, setReturnedId] = useState<string | null>(null);
   const [previousBlocks, setPreviousBlocks] = useState<AnchoredBlock[] | null>(null);
@@ -60,6 +79,9 @@ export default function IngestFixtureLab() {
   const [readerOnly, setReaderOnly] = useState(false);
   const qa = inspectSourceIntegrity(INGEST_FIXTURE, blocks);
   const selected = blocks.find((item) => item.block.id === selectedId);
+  const selectedIndex = blocks.findIndex((item) => item.block.id === selectedId);
+  const canMarkBoundary = selectedIndex >= 0 && selectedIndex < blocks.length - 1;
+  const canLocalRecompose = !boundaryAfter && getFixtureCorrectionLane(issue, {kind: "block", blockId: selectedId}) === "local_recipe";
   const locked = stage === "returned" || stage === "recomposed" || stage === "accepted";
 
   useEffect(() => {
@@ -68,6 +90,18 @@ export default function IngestFixtureLab() {
       if (!raw) return;
       const parsed: unknown = JSON.parse(raw);
       if (Array.isArray(parsed)) setSavedRecords(parsed.filter(isSavedFixtureReview).slice(-25));
+      const issueRaw = window.localStorage.getItem(ISSUE_STORAGE_KEY);
+      if (issueRaw) {
+        const issues: unknown = JSON.parse(issueRaw);
+        if (Array.isArray(issues)) {
+          setSavedIssues(issues.filter((entry): entry is FixtureIssueReport =>
+            Boolean(entry && typeof entry === "object" &&
+              entry.schema === "artales.fixture.editorial-issue.v1" &&
+              entry.sourceId === INGEST_FIXTURE.sourceId &&
+              entry.fixtureOnly === true && entry.deliveredToNexus === false)
+          ).slice(-25));
+        }
+      }
     } catch {
       // Private browsing may disable storage. The editor still works in memory.
     }
@@ -77,8 +111,38 @@ export default function IngestFixtureLab() {
     if (!locked) { setSelectedId(id); setNotice(""); }
   }
 
-  function returnForCorrection() {
+  function saveUnresolvedIssue() {
     if (!selected || editorNote.trim().length < 3 || !qa.ok) return;
+    const index = blocks.findIndex((item) => item.block.id === selected.block.id);
+    const next = blocks[index + 1];
+    const anchor: FixtureIssueAnchor = boundaryAfter && next
+      ? { kind: "boundary_after", blockId: selected.block.id, nextBlockId: next.block.id }
+      : { kind: "block", blockId: selected.block.id };
+    try {
+      const record = createFixtureIssueReport({
+        capture: INGEST_FIXTURE, blocks, anchor, category: issue, editorNote,
+        viewContext: {
+          renderer: "fixture-static-spread-v1",
+          readerMode: readerOnly ? "reader_only" : "comparison",
+          fontScale,
+          viewportWidth: window.innerWidth,
+          viewportHeight: window.innerHeight,
+        },
+        recordedAt: new Date().toISOString(),
+      });
+      const nextIssues = [...savedIssues, record].slice(-25);
+      window.localStorage.setItem(ISSUE_STORAGE_KEY, JSON.stringify(nextIssues));
+      setSavedIssues(nextIssues);
+      setEditorNote("");
+      setNotice("Připomínka uložena lokálně. AI oprava zatím neprobíhá; až bude k dispozici, lze ji navázat na tento záznam.");
+    } catch (error) {
+      setNotice(error instanceof Error ? error.message : "Záznam připomínky selhal.");
+    }
+  }
+
+  function returnForCorrection() {
+    if (!selected || editorNote.trim().length < 3 || !qa.ok ||
+        boundaryAfter || getFixtureCorrectionLane(issue, { kind: "block", blockId: selected.block.id }) !== "local_recipe") return;
     setReturnedId(selected.block.id);
     setPreviousBlocks(blocks);
     setStage("returned");
@@ -183,7 +247,7 @@ export default function IngestFixtureLab() {
         <p>Originál a sestavená kapitola vedle sebe. Označte místo, napište, co nevyhovuje, a porovnejte cílenou opravu před přijetím.</p>
         <div className="ingest-lab__indicators" aria-label="Stav textové kontroly">
           <span className={qa.ok ? "ingest-lab__verified" : "ingest-lab__error"}>{qa.ok ? "Text ověřen · " + qa.verifiedBlocks + "/" + blocks.length : "Neshoda se zdrojem"}</span>
-          <span>{savedRecords.length} lokálně uložených rozhodnutí</span>
+          <span>{savedRecords.length} přijatých oprav · {savedIssues.length} připomínek</span>
           <span>Bez publikace a bez odesílání do Nexus/AT</span>
         </div>
       </section>
@@ -224,15 +288,20 @@ export default function IngestFixtureLab() {
         </div>
         {selected && <p className="ingest-lab__anchor"><strong>{selected.block.type}</strong> · úsek {selected.start}–{selected.end} · vazba na zdroj <code>{selected.componentId}</code></p>}
         {stage === "select" && <div className="ingest-lab__review-grid">
-          <label>Typ problému
-            <select value={issue} onChange={(event) => setIssue(event.target.value as Issue)}>
-              {Object.entries(issueLabels).map(([id, label]) => <option key={id} value={id}>{label}</option>)}
+          <label>Co je podle vás špatně?
+            <select value={issue} onChange={(event) => setIssue(event.target.value as FixtureIssueCategory)}>
+              {extendedIssues.map(({ value, label }) => <option key={value} value={value}>{label}</option>)}
             </select>
           </label>
           <label>Co je potřeba opravit?
             <textarea value={editorNote} maxLength={1000} rows={3} onChange={(event) => setEditorNote(event.target.value)} placeholder="Např. verše jsou příliš sevřené; ponechat přesné znění a upravit pouze řádkování." />
           </label>
-          <button type="button" className="ingest-lab__primary" disabled={!selected || editorNote.trim().length < 3 || !qa.ok} onClick={returnForCorrection}>Vrátit vybranou oblast s poznámkou</button>
+          <label className="ingest-lab__boundary-control"><input type="checkbox" checked={boundaryAfter} disabled={!canMarkBoundary} onChange={(event) => setBoundaryAfter(event.target.checked)}/> Označit problém na hranici mezi touto a následující oblastí (např. nevhodný konec stránky)</label>
+          <div className="ingest-lab__form-actions">
+            <button type="button" className="ingest-lab__primary" disabled={!selected || editorNote.trim().length < 3 || !qa.ok || !canLocalRecompose} onClick={returnForCorrection}>Vyzkoušet rychlou opravu</button>
+            <button type="button" disabled={!selected || editorNote.trim().length < 3 || !qa.ok} onClick={saveUnresolvedIssue}>Uložit připomínku pro pozdější korekci</button>
+          </div>
+          <p className="ingest-lab__route-note">Rychlá ukázková úprava je dostupná pouze pro typografii jednoho bloku. Stránkování, zalamování i „Nevím“ se zatím bezpečně uloží jako připomínka, bez předstírání dokončené AI opravy.</p>
         </div>}
         {stage === "returned" && <div className="ingest-lab__review-step">
           <p><strong>Připomínka zaznamenána:</strong> {editorNote}</p>
@@ -254,7 +323,7 @@ export default function IngestFixtureLab() {
         {notice && <p className="ingest-lab__notice" role="status">{notice}</p>}
         {qa.issues.length > 0 && <ul className="ingest-lab__errors">{qa.issues.map((item) => <li key={item}>{item}</li>)}</ul>}
         <div className="ingest-lab__feedback-footer">
-          <p><strong>Podklad pro učení Nexus/AT:</strong> pouze lokální ukázkový záznam. Žádné automatické odeslání ani trénování neprobíhá.</p>
+          <p><strong>Podklad pro učení Nexus/AT:</strong> pouze lokální záznam. Automatické odeslání ani trénování neprobíhá.</p>
           <button type="button" disabled={!savedRecords.length} onClick={exportFeedback}>Exportovat uložené připomínky (JSON)</button>
         </div>
       </section>
