@@ -81,9 +81,10 @@ export default function IngestFixtureLab() {
   useEffect(() => {
     try {
       const raw = window.localStorage.getItem(STORAGE_KEY);
-      if (!raw) return;
-      const parsed: unknown = JSON.parse(raw);
-      if (Array.isArray(parsed)) setSavedRecords(parsed.filter(isSavedFixtureReview).slice(-25));
+      if (raw) {
+        const parsed: unknown = JSON.parse(raw);
+        if (Array.isArray(parsed)) setSavedRecords(parsed.filter(isSavedFixtureReview).slice(-25));
+      }
       const issueRaw = window.localStorage.getItem(ISSUE_STORAGE_KEY);
       if (issueRaw) {
         const issues: unknown = JSON.parse(issueRaw);
@@ -164,7 +165,7 @@ export default function IngestFixtureLab() {
         before: previousBlocks,
         after: blocks,
         blockId: returnedId,
-        issue,
+        issue: "typography",
         editorNote,
         acceptedAt: new Date().toISOString(),
       });
