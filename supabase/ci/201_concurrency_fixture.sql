@@ -2,7 +2,8 @@
 -- Exercises DB RLS + RPC behavior; does not constitute external legal clearance.
 begin;
 create extension if not exists pgtap with schema extensions;
--- No pgTAP plan; persistent synthetic fixture solely for this disposable CI database.
+-- Seven setup assertions; committed synthetic fixture solely for disposable local CI.
+select plan(7);
 
 -- Authentication subjects are synthetic. Never run this file on a linked project.
 insert into auth.users(id,email,role,aud,instance_id) values
@@ -117,5 +118,6 @@ select is((select reviewed_by from public.candidate_source_captures where candid
  'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb'::uuid,'reviewer ID comes from second actor session');
 
 
+select * from finish();
 reset role;
 commit;
