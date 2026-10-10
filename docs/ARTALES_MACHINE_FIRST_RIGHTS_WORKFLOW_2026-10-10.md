@@ -33,3 +33,9 @@ The editor's normal job is work quality: text, literary fidelity, layout, artwor
 
 ## Parallel integration
 Changes touch only new library, tests and this document; ingest composer/Reader PR #196 keeps its own area. Commit to a feature branch and bring via PR to `develop`, never change `main` or production DB without a separate authorization.
+
+## 2026-10-10 continuation — fixture dossier lab
+- Added a preview-only `/lab/rights-scan` with four synthetic scenarios, component detail, challenge action and JSON manifest download. This is browser-local, not a persisted claim, real AI scan or legally sufficient archival copy. It never writes to Supabase, never authorizes publication, and returns 404 in production.
+- Tightened the pure validator: captured-source inventory must be complete, original text and edition material are assessed separately, evidence must belong to the exact source/edition/component, and missing/invalid records fail closed without returning a partial approved include list.
+- Added tests for incomplete inventory, unassessed edition, foreign evidence and all-or-nothing include IDs. These need Node execution; Vercel READY is not a substitute.
+- The current demo uses synthetic hashes and `example.invalid` primary-evidence URLs. A model passing this lab cannot establish legal authorization. A future trusted capture adapter must independently verify actual bytes/hash, archive evidence, check rights by jurisdiction and source version, and create an immutable signed dossier before any publication decision.
