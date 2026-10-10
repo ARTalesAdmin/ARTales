@@ -56,3 +56,11 @@ Product owner target: “Deliver 5 publishable and commercially usable titles.�
 - `tests/catalogProductionPlanner.test.ts` covers genre priority, commercial gate, no automatic unlicensed translation, spending bounds, refill and round-robin dispatch.
 - It consumes **supplied** candidate screens; does not discover titles, call an AI model, spend money, create tasks, assign real editors, create drafts, or publish. It never reports a title as published (`actualPublished:0`). Tests are authored but not yet executed.
 - Follow-up: verified scan dossier/policy linkage, costs and persistent run state, actual candidate generation/refill with external sources, task-inbox domain/RLS, evidence package retrieval/export, publication/takedown governance.
+
+## 2026-10-10 — admin-run MVP boundary
+- Added **preview-only, admin-authenticated** `/member/admin/catalog-production` and a link from Admin dashboard.
+- Admin inputs target count and an upper-limit budget, then manually triggers an in-browser synthetic run: the planning + deterministic rights scan validate a bounded, internally generated **fictional** candidate cohort and show shortlisted editorial-ready proposals, chronological decisions, limits and downloadable JSON report.
+- The pilot has **no AI calls, candidate Supabase inserts, paid operations, durable job state, real editor inbox insertion, or publishing**. UI explicitly labels demo and disables persistence. A run may be repeated only in local browser; it is not a server-side persisted task.
+- Actual MVP still needs scoped admin-only server executor, idempotency token, `catalog_runs` and `catalog_run_items` protected by RLS, atomic cost ceilings and event log, candidate generation + source provenance capture and real research, checkpoint/resume, rights dossier storage and draft/inbox write transactions.
+- Production legal permissions and source-trust gates must not infer rights from generated fixture claims. Admin initiation ≠ blanket publication authorization. Separate publish/unpublish rollback controls and audit remain required.
+- Second thread retains ingest/Reader ownership in PR #196; this PR should not edit its files.
