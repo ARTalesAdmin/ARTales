@@ -77,8 +77,23 @@ begin
  then raise exception 'editor_required' using errcode='42501';end if;
  if length(btrim(coalesce(p_review_note,'')))<40
  then return jsonb_build_object('result','blocked','reason','review_note_required');end if;
- select * into v_capture from public.candidate_source_captures where id=p_capture_id for update;
+ -- Discover immutable binding without locking capture first.
+ select * into v_capture from public.candidate_source_captures where id=p_capture_id;
  if not found then return jsonb_build_object('result','blocked','reason','capture_missing');end if;
+ -- Canonical lock order shared with promotion:
+ -- candidate -> source -> rights rows -> capture.
+ select * into v_candidate from public.work_candidates where id=v_capture.candidate_id for update;
+ select * into v_source from public.work_candidate_sources where id=v_capture.source_id
+   and candidate_id=v_capture.candidate_id for update;
+ if v_candidate.id is null or v_source.id is null
+   or v_candidate.preferred_source_id is distinct from v_capture.source_id
+ then return jsonb_build_object('result','blocked','reason','source_mismatch');end if;
+ perform 1 from public.work_candidate_component_rights where candidate_id=v_capture.candidate_id
+   and source_id=v_capture.source_id order by component_type for update;
+ select * into v_capture from public.candidate_source_captures where id=p_capture_id for update;
+ if not found or v_capture.candidate_id is distinct from v_candidate.id
+   or v_capture.source_id is distinct from v_source.id
+ then return jsonb_build_object('result','blocked','reason','capture_binding_changed');end if;
  if v_actor=v_capture.captured_by then
    return jsonb_build_object('result','blocked','reason','self_review_forbidden');end if;
  if v_capture.reviewed_by is not null then
@@ -86,14 +101,6 @@ begin
  v_digest:=encode(extensions.digest(convert_to(v_capture.source_text,'UTF8'),'sha256'),'hex');
  if p_expected_sha256 is distinct from v_digest or v_capture.source_sha256<>v_digest
  then return jsonb_build_object('result','blocked','reason','digest_mismatch');end if;
- select * into v_candidate from public.work_candidates where id=v_capture.candidate_id for share;
- select * into v_source from public.work_candidate_sources where id=v_capture.source_id
-   and candidate_id=v_capture.candidate_id for share;
- if v_candidate.id is null or v_source.id is null
-   or v_candidate.preferred_source_id is distinct from v_capture.source_id
- then return jsonb_build_object('result','blocked','reason','source_mismatch');end if;
- perform 1 from public.work_candidate_component_rights where candidate_id=v_capture.candidate_id
-   and source_id=v_capture.source_id order by component_type for share;
  select coalesce(jsonb_agg(to_jsonb(r) order by r.component_type,r.id),'[]'::jsonb)
  into v_rights from public.work_candidate_component_rights r
  where r.candidate_id=v_capture.candidate_id and r.source_id=v_capture.source_id;
@@ -182,6 +189,11 @@ begin
  if not found or v_s.status<>'candidate' or v_s.identity_match<>'strong'
    or v_s.language is null or v_s.language !~ '^[A-Za-z]{2,3}(-[A-Za-z0-9]{2,8})*$'
  then return jsonb_build_object('result','blocked','reason','source_unverified');end if;
+ -- Both RPCs lock in the same order to avoid review/promotion deadlocks.
+ -- candidate and source are already locked; next rights, finally capture.
+ perform 1 from public.work_candidate_component_rights r
+   where r.candidate_id=p_candidate_id and r.source_id=v_s.id
+   order by r.component_type for update;
  select * into v_capture from public.candidate_source_captures
    where candidate_id=p_candidate_id and source_id=v_s.id for update;
  if not found or v_capture.reviewed_by is null or v_capture.reviewed_at is null or
@@ -192,8 +204,6 @@ begin
  then return jsonb_build_object('result','blocked','reason','source_capture_stale_or_unverified');end if;
  -- A manually entered rights checkbox cannot create review-grade clearance.
  -- A reviewer must sign off separately; required components must exist.
- perform 1 from public.work_candidate_component_rights r
-   where r.candidate_id=p_candidate_id and r.source_id=v_s.id for update;
  select count(*) filter(where component_type in('WORK_CONTENT','EDITION_CONTENT')
    and ((component_type='WORK_CONTENT' and decision='usable' and publication_effect='allow')
      or (component_type='EDITION_CONTENT' and ((decision='usable' and publication_effect='allow') or
