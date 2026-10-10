@@ -94,7 +94,12 @@ export type CatalogRunPlan = {
 const allowedGenres: CatalogGenre[] = ["prose","poetry","drama","fairy_tale","essay","other"]
 const dollars = (value:number) => Math.round(value * 100) / 100
 const nonnegative = (value:number) => Number.isFinite(value) && value >= 0
-const cents = (value:number) => Math.round(value * 100)
+// Screening costs can be smaller than one cent. Round charges UP and
+// available budgets DOWN to micro-USD, never round a positive charge to zero.
+const MICRO_USD = 1_000_000
+const safeMoney = (value:number) => nonnegative(value) && value <= Number.MAX_SAFE_INTEGER / MICRO_USD
+const chargeMicros = (value:number) => value === 0 ? 0 : Math.max(1, Math.ceil(value * MICRO_USD - 1e-7))
+const budgetMicros = (value:number) => Math.floor(value * MICRO_USD + 1e-7)
 const supported = (scan:CandidateScreen, asOf:string): boolean => {
   if (scan.outcome !== "provisionally_clear" ||
       !scan.snapshotSetId || !scan.dossierRef ||
@@ -127,7 +132,7 @@ export function planCatalogProduction(
   if (!Number.isInteger(policy.targetTitles) || policy.targetTitles < 1 ||
       !Number.isInteger(policy.maxFullScans) || policy.maxFullScans < 0 ||
       !Number.isInteger(policy.maxPerAuthor) || policy.maxPerAuthor < 1 ||
-      [policy.prescreenBudgetUsd,policy.fullScanBudgetUsd,policy.editorialBudgetUsd].some(x=>!nonnegative(x)) ||
+      [policy.prescreenBudgetUsd,policy.fullScanBudgetUsd,policy.editorialBudgetUsd].some(x=>!safeMoney(x)) ||
       !/^\d{4}-\d{2}-\d{2}$/.test(policy.asOf)) {
     throw new Error("invalid_catalog_policy")
   }
@@ -136,7 +141,7 @@ export function planCatalogProduction(
     if (!c.id || unique.has(c.id) || !c.authorId ||
         !allowedGenres.includes(c.genre) || !Number.isFinite(c.priority) ||
         c.priority<0 || c.priority>100 ||
-        [c.prescreenCostUsd,c.fullScanCostUsd,c.estimatedEditorialCostUsd].some(x=>!nonnegative(x)))
+        [c.prescreenCostUsd,c.fullScanCostUsd,c.estimatedEditorialCostUsd].some(x=>!safeMoney(x)))
       throw new Error("invalid_catalog_candidate")
     unique.add(c.id)
   }
@@ -145,6 +150,7 @@ export function planCatalogProduction(
   const decisions:CatalogDecision[] = []
   const needsHumanReview:string[] = []
   let preSpent = 0, scanSpent = 0, editReserved = 0, scans = 0
+  let preMicros = 0, scanMicros = 0, editMicros = 0
   let budgetHit = false, editorialBudgetHit = false
   const pool:CatalogCandidate[] = []
 
@@ -157,11 +163,13 @@ export function planCatalogProduction(
 
   // Cheap prescreen of a bounded list, in supplied order (a future AI extends it).
   for (const c of candidates) {
-    if (cents(preSpent+c.prescreenCostUsd)>cents(policy.prescreenBudgetUsd)) {
+    const cost = chargeMicros(c.prescreenCostUsd)
+    if (preMicros + cost > budgetMicros(policy.prescreenBudgetUsd)) {
       budgetHit=true
       record(c,"deferred","prescreen_budget_limit")
       continue
     }
+    preMicros+=cost
     preSpent+=c.prescreenCostUsd
     if(c.prescreen==="skip") {
       record(c,"skip","not_viable_in_prescreen",c.prescreenCostUsd)
@@ -187,12 +195,14 @@ export function planCatalogProduction(
       record(c,"deferred","author_diversity_limit")
       continue
     }
-    if (scans>=policy.maxFullScans || cents(scanSpent+c.fullScanCostUsd)>cents(policy.fullScanBudgetUsd)) {
+    const scanCost = chargeMicros(c.fullScanCostUsd)
+    if (scans>=policy.maxFullScans || scanMicros + scanCost > budgetMicros(policy.fullScanBudgetUsd)) {
       budgetHit=true
       record(c,"deferred","full_scan_budget_limit")
       continue
     }
     scans++
+    scanMicros+=scanCost
     scanSpent+=c.fullScanCostUsd
     if (!c.screen) {
       record(c,"reviewed","full_scan_requested_result_pending",0,c.fullScanCostUsd)
@@ -207,11 +217,13 @@ export function planCatalogProduction(
       record(c,"escalate","commercial_clearance_unproven_or_outdated",0,c.fullScanCostUsd)
       continue
     }
-    if(cents(editReserved+c.estimatedEditorialCostUsd)>cents(policy.editorialBudgetUsd)) {
+    const editCost = chargeMicros(c.estimatedEditorialCostUsd)
+    if(editMicros + editCost > budgetMicros(policy.editorialBudgetUsd)) {
       editorialBudgetHit=true
       record(c,"deferred","editorial_budget_limit",0,c.fullScanCostUsd)
       continue
     }
+    editMicros+=editCost
     editReserved+=c.estimatedEditorialCostUsd
     const assignment=policy.assignment==="round_robin"&&policy.editorIds.length
       ? policy.editorIds[qualified.length%policy.editorIds.length]
@@ -230,7 +242,7 @@ export function planCatalogProduction(
   const missing=Math.max(0,policy.targetTitles-qualified.length)
   const depleted=pool.length===0
   const canAffordMore=!budgetHit && scans<policy.maxFullScans &&
-    cents(scanSpent)<cents(policy.fullScanBudgetUsd)
+    scanMicros<budgetMicros(policy.fullScanBudgetUsd)
   const refillRequested=missing>0 && depleted && canAffordMore && !editorialBudgetHit
   const replenishmentGenres=allowedGenres
     .filter(g=>(policy.genreTargets[g]??0)>countGenre(qualified,g))
