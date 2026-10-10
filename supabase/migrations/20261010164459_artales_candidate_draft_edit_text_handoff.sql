@@ -13,6 +13,8 @@ create table public.candidate_source_captures (
   reviewed_by uuid null references public.profiles(id),
   reviewed_at timestamptz null,
   review_note text null,
+  draft_origin_type public.work_origin_type null,
+  draft_source_label public.work_source_label null,
   candidate_fingerprint text null,
   source_fingerprint text null,
   rights_fingerprint text null,
@@ -61,7 +63,8 @@ grant execute on function public.register_candidate_source_capture(uuid,uuid,tex
 
 -- A separate actor explicitly approves the exact persisted snapshot.
 create function public.review_candidate_source_capture(
- p_capture_id uuid,p_expected_sha256 text,p_review_note text)
+ p_capture_id uuid,p_expected_sha256 text,p_review_note text,
+ p_origin_type public.work_origin_type,p_source_label public.work_source_label)
 returns jsonb language plpgsql security definer set search_path=''
 as $rpc$
 declare
@@ -77,6 +80,8 @@ begin
  then raise exception 'editor_required' using errcode='42501';end if;
  if length(btrim(coalesce(p_review_note,'')))<40
  then return jsonb_build_object('result','blocked','reason','review_note_required');end if;
+ if p_origin_type is null or p_source_label is null
+ then return jsonb_build_object('result','blocked','reason','explicit_source_classification_required');end if;
  -- Discover immutable binding without locking capture first.
  select * into v_capture from public.candidate_source_captures where id=p_capture_id;
  if not found then return jsonb_build_object('result','blocked','reason','capture_missing');end if;
@@ -108,14 +113,15 @@ begin
  then return jsonb_build_object('result','blocked','reason','rights_missing');end if;
  update public.candidate_source_captures set reviewed_by=v_actor,
    reviewed_at=clock_timestamp(),review_note=p_review_note,
+   draft_origin_type=p_origin_type,draft_source_label=p_source_label,
    candidate_fingerprint=encode(extensions.digest(convert_to(to_jsonb(v_candidate)::text,'UTF8'),'sha256'),'hex'),
    source_fingerprint=encode(extensions.digest(convert_to(to_jsonb(v_source)::text,'UTF8'),'sha256'),'hex'),
    rights_fingerprint=encode(extensions.digest(convert_to(v_rights::text,'UTF8'),'sha256'),'hex')
  where id=p_capture_id and reviewed_by is null;
  return jsonb_build_object('result','review_recorded','capture_id',p_capture_id);
 end $rpc$;
-revoke all on function public.review_candidate_source_capture(uuid,text,text) from public,anon,authenticated;
-grant execute on function public.review_candidate_source_capture(uuid,text,text) to authenticated;
+revoke all on function public.review_candidate_source_capture(uuid,text,text,public.work_origin_type,public.work_source_label) from public,anon,authenticated;
+grant execute on function public.review_candidate_source_capture(uuid,text,text,public.work_origin_type,public.work_source_label) to authenticated;
 
 -- Existing triggers reject every edit_text insert. Permit one narrow RPC-controlled
 -- work-task insertion after complete lock/gate checking.
@@ -197,6 +203,7 @@ begin
  select * into v_capture from public.candidate_source_captures
    where candidate_id=p_candidate_id and source_id=v_s.id for update;
  if not found or v_capture.reviewed_by is null or v_capture.reviewed_at is null or
+   v_capture.draft_origin_type is null or v_capture.draft_source_label is null or
    v_capture.reviewed_at<v_s.updated_at or
    v_capture.source_sha256<>encode(extensions.digest(convert_to(v_capture.source_text,'UTF8'),'sha256'),'hex')
    or v_capture.reviewed_by=v_capture.captured_by
@@ -234,6 +241,13 @@ begin
     from public.work_candidate_component_rights r
     where r.candidate_id=p_candidate_id and r.source_id=v_s.id)
  then return jsonb_build_object('result','blocked','reason','review_invalidated');end if;
+ -- The reviewer's explicit provenance classification must match translation rights.
+ if v_capture.draft_origin_type<>'translation'::public.work_origin_type
+    and exists(select 1 from public.work_candidate_component_rights r
+     where r.candidate_id=p_candidate_id and r.source_id=v_s.id
+       and r.component_type='TRANSLATION'
+       and r.decision='usable' and r.publication_effect='allow')
+ then return jsonb_build_object('result','blocked','reason','translation_origin_mismatch');end if;
  -- Inventory must be explicit, including excluded wrapper / assets decisions.
  if jsonb_array_length(v_capture.included_inventory)=0 or not exists(
    select 1 from jsonb_array_elements(v_capture.included_inventory) el
@@ -248,7 +262,7 @@ begin
  insert into public.works(title,slug,summary,content,content_blocks,canonical_language,
    origin_type,source_label,source_reference,edition_source_url,status,primary_author_id,created_by,updated_by)
  values(v_c.proposed_title,v_slug,'','', '[]'::jsonb,v_s.language,
-   'public_domain'::public.work_origin_type,'manual'::public.work_source_label,
+   v_capture.draft_origin_type,v_capture.draft_source_label,
    v_s.source_reference,v_s.source_url,'draft'::public.work_status,
    v_c.matched_author_id,v_actor,v_actor)
  returning id into v_work_id;
@@ -263,7 +277,8 @@ begin
    result,blockers,gate_snapshot,created_work_id)
  values(p_candidate_id,v_actor,v_s.id,'promoted','[]'::jsonb,
    jsonb_build_object('version','P1-2C1B','capture_id',v_capture.id,'sha256',v_capture.source_sha256,
-     'source_id',v_s.id,'reviewed_by',v_capture.reviewed_by,'reviewed_at',v_capture.reviewed_at),
+     'source_id',v_s.id,'reviewed_by',v_capture.reviewed_by,'reviewed_at',v_capture.reviewed_at,
+     'origin_type',v_capture.draft_origin_type::text,'source_label',v_capture.draft_source_label::text),
    v_work_id);
  return jsonb_build_object('result','promoted','work_id',v_work_id,'task_id',v_task,'slug',v_slug);
 end $rpc$;
