@@ -2,7 +2,7 @@
 -- Exercises DB RLS + RPC behavior; does not constitute external legal clearance.
 begin;
 create extension if not exists pgtap with schema extensions;
-select plan(21);
+select plan(22);
 
 -- Authentication subjects are synthetic. Never run this file on a linked project.
 insert into auth.users(id,email,role,aud,instance_id) values
