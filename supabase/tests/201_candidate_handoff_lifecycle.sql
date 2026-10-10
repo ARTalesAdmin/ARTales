@@ -98,7 +98,7 @@ select is((public.review_candidate_source_capture(
  (select source_sha256 from public.candidate_source_captures where candidate_id='11111111-1111-4111-8111-111111111111'),
  'Independent review note is explicitly required and sufficiently long.',
  'public_domain'::public.work_origin_type,'manual'::public.work_source_label
-))->>'result','self_review_forbidden','submitting admin cannot review own snapshot');
+))->>'reason','self_review_forbidden','submitting admin cannot review own snapshot');
 
 -- Second actor: distinct logged-in editor; no caller-supplied reviewer ID.
 select set_config('request.jwt.claim.sub','bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',true);
