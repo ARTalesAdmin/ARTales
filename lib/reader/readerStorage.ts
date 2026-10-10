@@ -74,6 +74,22 @@ function safeParse<T>(value: string | null): T | null {
   }
 }
 
+/**
+ * Returns null when this device has no usable shared Reader preference record.
+ * The fixture uses presence to distinguish first-run setup from existing settings.
+ * Existing Reader consumers and storage semantics remain unchanged.
+ */
+export function getStoredReaderSettings(): ReaderSettings | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const raw: unknown = safeParse(window.localStorage.getItem(settingsKey));
+    if (!raw || typeof raw !== "object" || Array.isArray(raw)) return null;
+    return normalizeReaderSettings(raw);
+  } catch {
+    return null;
+  }
+}
+
 export function loadReaderSettings(): ReaderSettings {
   if (typeof window === "undefined") return defaultReaderSettings;
   return normalizeReaderSettings(
