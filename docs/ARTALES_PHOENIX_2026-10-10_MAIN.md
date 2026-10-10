@@ -1,5 +1,30 @@
 # ARTales Phoenix — 2026-10-10: main-thread integration handoff
 
+## Live reconciliation after integration — 2026-10-10 (supersedes older status fields below)
+
+**Verified `develop` HEAD:** `41a55757cb87b6a5b717f6b6921f35b141af96bc`. **Production `main` (last verified):** `171df191eb54dbcef7bb015f748138c630428b2f`; verify again before any release. Both are distinct; no merge to main was authorized. **Production Supabase:** `nmhdwmszbwgrgfbmlguu`; candidate/editorial migrations have NOT been production-applied.
+
+| PR | Outcome in `develop` | Merge commit |
+| --- | --- | --- |
+| [#196](https://github.com/ARTalesAdmin/ARTales/pull/196) | Merged: ingest/Composer fixture and source-anchored comparative Reader | `a6a1652c2a611dc372331acf2e71ab4ddc3f9520` |
+| [#197](https://github.com/ARTalesAdmin/ARTales/pull/197) | Merged: catalog/rights **synthetic** planner and admin fixture, including sub-cent budget fix (29/29 tests + TypeScript passed) | `60cac24a8f89f3b9e6f6fd8bfbfb199a6c21eaa1` |
+| [#198](https://github.com/ARTalesAdmin/ARTales/pull/198) | Merged: ARTales-native candidate legal-review inbox schema, RLS, claim/return audit; DB migration file merged but **NOT applied to production** | `41a55757cb87b6a5b717f6b6921f35b141af96bc` |
+| [#199](https://github.com/ARTalesAdmin/ARTales/pull/199) | This documentation-only updated Phoenix; **merge not authorized yet** | open/draft until separately approved |
+
+**Evidence / limitations:** On ephemeral Supabase branch `syxtzwkekuxqtbtfwzgk`, candidate+editorial migrations applied, synthetic admin enqueue and deduplication, member/anon denial, direct immutable field and audit tamper denial, editor claim / admin return, and two competing attempts giving one winner were verified. Baseline Supabase security-advisor warnings remain unrelated to #198. A later Vercel Sandbox successfully installed Chromium/Playwright while another ephemeral DB `oywotbmnsroaeblqttpf` accepted migrations; automatic test-user authentication was blocked by execution security tooling, so **authenticated browser E2E was not completed**. Both ephemeral DB branches have been deleted; sandbox stopped; final Supabase branch readback showed only `main`. **No production credential, DB apply, or release changes.**
+
+**Revised acceptance boundary:** #198 *code/schema as files* is integrated into `develop`; authenticated full browser + isolated DB E2E and production schema/release approval remain separate, explicit gates before operating with real books. Its present queue only creates candidate `legal_review` tasks; it does **not** create `edit_text` tasks, content revisions, or final book clearance. The #196 dual-reader test is PC-first editorial UI; mobile editorial multi-pane test was waived by the architect (consumer Reader remains mobile).
+
+**Immediate next implementation:** create a separate feature branch from current `develop` for canonical P1-2C1 transactional promotion **and** a safe bridge to real `edit_text` tasks. Review/reuse `docs/prototypes/ARTALES_P1_2C1_EPHEMERAL_PROOF_V2.sql` only as an untrusted starting artifact, and respect `docs/ARTALES_EDITORIAL_TASK_CONTRACT_V1_2026-10-10.md`. Do not promote simply because a model/fixture marked rights `clear`: require concrete edition/source-specific reviewed component decisions, auditable provenance, immutable snapshot/evidence binding before treating the output as publication-capable; fail closed when these are absent. Create at most one draft/task per source/candidate transaction, with rollback and genuine two-session negative tests; after that integrate a bounded admin catalog run, persisted per-run budget/cost ceilings and eventually paid source research. Never use Nexus workers or modify second-thread Reader fixture sources.
+
+### Updated next-thread startup prompt
+
+> Pokračujeme v hlavním vývoji ARTales. Načti aktuální `develop` (po merge #196/#197/#198 je checkpoint HEAD `41a55757cb87`), `main`, `AGENTS.md`, `docs/WORKFLOW.md`, `docs/RELEASE_POLICY.md`, `docs/ARTALES_DURABLE_CHECKPOINT.md`, `docs/ARTALES_PHOENIX_2026-10-10_MAIN.md` a `docs/ARTALES_EDITORIAL_TASK_CONTRACT_V1_2026-10-10.md`. Ověř živý stav #199 i nových integračních PR a Supabase branches. #196 Reader fixture, #197 katalog/rights syntetický plánovač a #198 candidate legal-review fronta jsou merged do develop; neznamená to produkční DB apply či funkční automatické publikování. Autentizované browser E2E proti dočasné databázi ještě chybí. Pokračuj na nové feature větvi nejmenším skutečným transakčním obloukem: kandidát + konkrétní zdroj + auditované důkazy → jediný koncept → redakční edit_text task. Když chybí důvěryhodné právní/snapshot podklady, fail closed; nedělej falešný clearance. Následně propojit s ruční admin dávkou, rozpočtovým limitem a editor UI. Druhé vlákno vlastní Reader/Composer a source-anchored QA. Žádné Nexus workers, zásahy do main ani produkční Supabase bez samostatné autorizace. Každý merge zvlášť; ephemeral branch jen na krátké testy a po testu smazat.
+
+**Historical snapshot warning:** sections below this reconciliation describe the state *before* #196/#197/#198 merged. Retain as provenance only; do not follow their former PR order or old readiness/HEAD claims as current instructions.
+
+---
+
 > NON-AUTHORITATIVE checkpoint. Live code, database, `AGENTS.md`, `docs/WORKFLOW.md`, `docs/RELEASE_POLICY.md`, and fresh user authorization always override these notes. Written to close a very long main thread and restart safely. No merge or production DB apply is implied.
 
 ## Product mandate
