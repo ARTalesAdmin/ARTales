@@ -17,6 +17,8 @@ import {
 } from "@/lib/fixtures/ingestIssue";
 import { EDITORIAL_PRESETS, getEditorialPreset, routeFixtureIssue } from "@/lib/fixtures/editorialPresets";
 import { alignedScrollTop } from "@/lib/fixtures/pairedScroll";
+import { clampReaderFontScale, type ReaderThemeId } from "@/lib/reader/readerSettings";
+import { DEFAULT_FIXTURE_READING_PREFERENCES, normalizeFixtureReadingPreferences, type FixtureFormatMode } from "@/lib/fixtures/readerPreferences";
 import "./ingest-fixture-lab.css";
 
 const artifact = composeFixtureSection(INGEST_FIXTURE);
@@ -24,7 +26,13 @@ const initialId = artifact.blocks[0]?.block.id ?? "";
 const REVIEW_KEY = "artales:ingest-fixture:editorial-reviews:v1";
 const ISSUE_KEY = "artales:ingest-fixture:editorial-issues:v1";
 const SESSION_KEY = "artales:ingest-fixture:session-summary:v1";
-type FormatMode = "a4" | "continuous";
+const READING_KEY = "artales:ingest-fixture:reading-preferences:v1";
+const themeOptions: { id: ReaderThemeId; label: string; detail: string }[] = [
+  { id: "light", label: "Světlé", detail: "Tmavý text na světlém papíru" },
+  { id: "script", label: "Rukopis", detail: "Teplý sépiový papír" },
+  { id: "dark", label: "Tmavé", detail: "Světlý text na tmavém podkladu" },
+];
+type FormatMode = FixtureFormatMode;
 type Pane = "source" | "artales";
 type PendingRevision = { before: AnchoredBlock[]; blockId: string; note: string };
 
@@ -64,8 +72,12 @@ function scrollPaneToRegion(pane: HTMLElement | null, index: number, behavior: S
 export default function IngestFixtureLab() {
   const [blocks, setBlocks] = useState<AnchoredBlock[]>(() => artifact.blocks);
   const [selectedId, setSelectedId] = useState(initialId);
-  const [pageIndex, setPageIndex] = useState(0);
-  const [formatMode, setFormatMode] = useState<FormatMode>("continuous");
+  const [formatMode, setFormatMode] = useState<FormatMode>(DEFAULT_FIXTURE_READING_PREFERENCES.formatMode);
+  const [readerTheme, setReaderTheme] = useState<ReaderThemeId>(DEFAULT_FIXTURE_READING_PREFERENCES.theme);
+  const [settingsOpen, setSettingsOpen] = useState(true);
+  const [readingSettingsReady, setReadingSettingsReady] = useState(false);
+  const [readingSettingsConfirmed, setReadingSettingsConfirmed] = useState(false);
+  const [fullscreen, setFullscreen] = useState(false);
   const [panelOnSide, setPanelOnSide] = useState(false);
   const [revealTick, setRevealTick] = useState(0);
   const [readerOnly, setReaderOnly] = useState(false);
@@ -78,6 +90,7 @@ export default function IngestFixtureLab() {
   const [savedIssues, setSavedIssues] = useState<FixtureIssueReport[]>([]);
   const [reviewFinished, setReviewFinished] = useState(false);
   const [notice, setNotice] = useState("");
+  const workspaceRef = useRef<HTMLElement | null>(null);
   const sourceRef = useRef<HTMLElement | null>(null);
   const artalesRef = useRef<HTMLElement | null>(null);
   const pendingRevealRef = useRef<string | null>(null);
@@ -87,13 +100,10 @@ export default function IngestFixtureLab() {
   const qa = useMemo(() => inspectSourceIntegrity(INGEST_FIXTURE, blocks), [blocks]);
   // Deliberately smaller origin typography: one source page may pair with 2-3 ARTales pages.
   // Character budgets are fixture approximations, NOT measured Reader pagination.
-  const paired = { sourcePages: [blocks], composedPages: [{ page: 1, sourcePage: 1, blocks }] };
-  const activeIndex = Math.min(pageIndex, Math.max(0, paired.composedPages.length - 1));
-  const activePage = paired.composedPages[activeIndex];
-  const sourceFolio = activePage?.sourcePage ?? 1;
-  const composedFolio = activePage?.page ?? 1;
-  const shownSource = formatMode === "a4" ? (paired.sourcePages[sourceFolio - 1] ?? []) : blocks;
-  const shownArtales = formatMode === "a4" ? (activePage?.blocks ?? []) : blocks;
+  // The fixture keeps both complete editions present. A4 changes only the
+  // paper silhouette; measured Reader pagination is a separate milestone.
+  const shownSource = blocks;
+  const shownArtales = blocks;
   const selected = blocks.find((item) => item.block.id === selectedId);
   const selectedIndex = blocks.findIndex((item) => item.block.id === selectedId);
   const preset = getEditorialPreset(presetId);
@@ -101,6 +111,75 @@ export default function IngestFixtureLab() {
   const canSubmit = Boolean(selected) && qa.ok && note.length >= 3 && !pendingRevision && !reviewFinished;
   const locked = Boolean(pendingRevision) || reviewFinished;
   const fontStyle = { "--fixture-font-scale": fontScale } as CSSProperties;
+
+  useEffect(() => {
+    try {
+      const saved = window.localStorage.getItem(READING_KEY);
+      if (saved) {
+        const settings = normalizeFixtureReadingPreferences(JSON.parse(saved) as unknown);
+        setFormatMode(settings.formatMode);
+        setReaderTheme(settings.theme);
+        setFontScale(settings.fontScale);
+        const confirmed = (JSON.parse(saved) as { confirmed?: unknown }).confirmed === true;
+        setReadingSettingsConfirmed(confirmed);
+        setSettingsOpen(!confirmed);
+      }
+    } catch {
+      // Fixture can be used without persistent storage.
+    }
+    setReadingSettingsReady(true);
+  }, []);
+
+  useEffect(() => {
+    if (!readingSettingsReady) return;
+    try {
+      window.localStorage.setItem(READING_KEY, JSON.stringify({
+        formatMode, theme: readerTheme, fontScale, confirmed: readingSettingsConfirmed,
+      }));
+    } catch {
+      // Private browsing is still fully usable for this fixture.
+    }
+  }, [readingSettingsReady, formatMode, readerTheme, fontScale, readingSettingsConfirmed]);
+
+  useEffect(() => {
+    const handleChange = () => {
+      setFullscreen(document.fullscreenElement === workspaceRef.current);
+    };
+    document.addEventListener("fullscreenchange", handleChange);
+    return () => document.removeEventListener("fullscreenchange", handleChange);
+  }, []);
+
+  async function toggleFullscreen() {
+    const workspace = workspaceRef.current;
+    if (!workspace || !document.fullscreenEnabled) {
+      setNotice("Prohlížeč nepovolil fullscreen aplikace. Můžete použít klávesu F11.");
+      return;
+    }
+    try {
+      if (document.fullscreenElement === workspace) {
+        await document.exitFullscreen();
+      } else {
+        await workspace.requestFullscreen();
+        setReadingSettingsConfirmed(true);
+        setSettingsOpen(false);
+      }
+      pendingRevealRef.current = selectedId;
+      setRevealTick((value) => value + 1);
+    } catch {
+      setNotice("Nepodařilo se přepnout do celé obrazovky. Zkuste klávesu F11.");
+    }
+  }
+
+  function confirmReadingSettings() {
+    setReadingSettingsConfirmed(true);
+    setSettingsOpen(false);
+  }
+
+  function changeFontSize(delta: number) {
+    pendingRevealRef.current = selectedId;
+    setFontScale((value) => clampReaderFontScale(value + delta));
+    setRevealTick((value) => value + 1);
+  }
 
   useEffect(() => {
     try {
@@ -126,7 +205,7 @@ export default function IngestFixtureLab() {
       pendingRevealRef.current = null;
     });
     return () => window.cancelAnimationFrame(frame);
-  }, [selectedId, pageIndex, formatMode, readerOnly, mobilePane, blocks, shownArtales, revealTick]);
+  }, [selectedId, formatMode, readerOnly, mobilePane, blocks, shownArtales, revealTick]);
 
   useEffect(() => () => {
     if (scrollFrameRef.current !== null) window.cancelAnimationFrame(scrollFrameRef.current);
@@ -207,8 +286,7 @@ export default function IngestFixtureLab() {
           renderer: formatMode === "a4" ? "fixture-paired-a4-v2" : "fixture-continuous-v2",
           readerMode: readerOnly ? "reader_only" : "comparison",
           fontScale, viewportWidth: window.innerWidth, viewportHeight: window.innerHeight,
-          formatMode, originalPage: formatMode === "a4" ? sourceFolio : undefined,
-          artalesPage: formatMode === "a4" ? composedFolio : undefined,
+          formatMode,
         },
         recordedAt: new Date().toISOString(),
       });
@@ -332,7 +410,8 @@ export default function IngestFixtureLab() {
 
   const groups = Array.from(new Set(EDITORIAL_PRESETS.map((item) => item.group)));
   return (
-    <main className={"ingest-lab ingest-lab--docked " +
+    <main ref={workspaceRef} className={"ingest-lab ingest-lab--docked " +
+      "ingest-lab--theme-" + readerTheme + " " +
       (panelOnSide ? "ingest-lab--side" : "ingest-lab--bottom")} style={fontStyle}>
       <header className="ingest-lab__toolbar">
         <div className="ingest-lab__brand">
@@ -340,27 +419,94 @@ export default function IngestFixtureLab() {
           <span>Cesta za řekou · redakční kontrola · testovací edice</span>
         </div>
         <div className="ingest-lab__toolbar-actions">
-          <button type="button" className="ingest-lab__panel-toggle"
-            title="Přepnout polohu poznámek" onClick={() => setPanelOnSide((value) => !value)}>
-            {panelOnSide ? "Panel dole" : "Panel vpravo"}
+          <button type="button" className="ingest-lab__settings-trigger"
+            aria-expanded={settingsOpen} aria-controls="fixture-reading-settings"
+            onClick={() => setSettingsOpen((open) => !open)}>
+            ⚙ Nastavení čtení
           </button>
-          <div className="ingest-lab__format-switch" role="group" aria-label="Režim čtení">
-            <button type="button" aria-pressed={formatMode === "a4"}
-              onClick={() => changeFormat("a4")}>A4</button>
-            <button type="button" aria-pressed={formatMode === "continuous"}
-              onClick={() => changeFormat("continuous")}>Kontinuální</button>
-          </div>
+          <button type="button" className="ingest-lab__fullscreen-trigger"
+            onClick={() => void toggleFullscreen()} aria-pressed={fullscreen}
+            title={fullscreen ? "Opustit celou obrazovku (Esc)" : "Přepnout aplikaci na celou obrazovku"}>
+            {fullscreen ? "⤢ Opustit fullscreen" : "⛶ Celá obrazovka"}
+          </button>
           <button type="button" className="ingest-lab__minor" onClick={() => {
             pendingRevealRef.current = selectedId;
             setReaderOnly((previous) => !previous);
           }}>{readerOnly ? "Srovnat" : "Jen ARTales"}</button>
-          <button type="button" aria-label="Zmenšit písmo" className="ingest-lab__minor" disabled={fontScale <= 0.9}
-            onClick={() => setFontScale((value) => Math.max(0.9, Math.round((value - 0.1) * 10) / 10))}>A−</button>
-          <button type="button" aria-label="Zvětšit písmo" className="ingest-lab__minor" disabled={fontScale >= 1.2}
-            onClick={() => setFontScale((value) => Math.min(1.2, Math.round((value + 0.1) * 10) / 10))}>A+</button>
+          <button type="button" className="ingest-lab__panel-toggle"
+            title="Přepnout polohu poznámek" onClick={() => setPanelOnSide((value) => !value)}>
+            {panelOnSide ? "Panel dole" : "Panel vpravo"}
+          </button>
         </div>
       </header>
 
+      {settingsOpen && (
+        <section id="fixture-reading-settings" className="ingest-lab__reading-settings"
+          aria-labelledby="fixture-reading-settings-title">
+          <div className="ingest-lab__reading-settings-top">
+            <div>
+              <p className="ingest-lab__settings-eyebrow">Před zahájením kontroly</p>
+              <h2 id="fixture-reading-settings-title">Nastavení čtení</h2>
+            </div>
+            <button type="button" className="ingest-lab__settings-close" aria-label="Zavřít nastavení"
+              onClick={confirmReadingSettings}>✕</button>
+          </div>
+          <fieldset className="ingest-lab__settings-group">
+            <legend>Rozložení textu</legend>
+            <div className="ingest-lab__settings-choices">
+              <label className={formatMode === "continuous" ? "is-active" : ""}>
+                <input type="radio" name="fixture-reading-mode" value="continuous"
+                  checked={formatMode === "continuous"} onChange={() => changeFormat("continuous")} />
+                <strong>Souvislý tok</strong>
+                <small>Plynulé synchronní čtení</small>
+              </label>
+              <label className={formatMode === "a4" ? "is-active" : ""}>
+                <input type="radio" name="fixture-reading-mode" value="a4"
+                  checked={formatMode === "a4"} onChange={() => changeFormat("a4")} />
+                <strong>Stránky A4</strong>
+                <small>Zatím náhled papíru</small>
+              </label>
+            </div>
+          </fieldset>
+          <fieldset className="ingest-lab__settings-group">
+            <legend>Barva papíru a textu</legend>
+            <div className="ingest-lab__theme-choices">
+              {themeOptions.map((theme) => (
+                <label key={theme.id} className={"ingest-lab__theme-choice " +
+                  "ingest-lab__theme-choice--" + theme.id +
+                  (readerTheme === theme.id ? " is-active" : "")} title={theme.detail}>
+                  <input type="radio" name="fixture-reading-theme" value={theme.id}
+                    checked={readerTheme === theme.id} onChange={() => setReaderTheme(theme.id)} />
+                  <span className="ingest-lab__theme-swatch" aria-hidden="true">Aa</span>
+                  <strong>{theme.label}</strong>
+                </label>
+              ))}
+            </div>
+          </fieldset>
+          <div className="ingest-lab__settings-size">
+            <strong>Velikost textu</strong>
+            <div role="group" aria-label="Velikost textu">
+              <button type="button" onClick={() => changeFontSize(-0.05)} disabled={fontScale <= 0.85}
+                aria-label="Zmenšit text">A−</button>
+              <span>{Math.round(fontScale * 100)} %</span>
+              <button type="button" onClick={() => changeFontSize(0.05)} disabled={fontScale >= 1.3}
+                aria-label="Zvětšit text">A+</button>
+            </div>
+          </div>
+          <p className="ingest-lab__settings-note">
+            Volby se ukládají pouze v prohlížeči. Fyzické stránkování A4 zatím
+            není měřené – čísla stran proto nezobrazujeme.
+          </p>
+          <div className="ingest-lab__settings-footer">
+            <button type="button" className="ingest-lab__settings-confirm"
+              onClick={confirmReadingSettings}>Pokračovat ke kontrole</button>
+            <button type="button" className="ingest-lab__settings-fullscreen"
+              onClick={() => { void toggleFullscreen(); }}>
+              ⛶ Začít na celou obrazovku
+            </button>
+          </div>
+        </section>
+      )}
       <div className="ingest-lab__subbar">
         <span>{qa.ok ? "✓ Originál ověřen" : "⚠ Neshoda se zdrojem"}</span>
         <span>{formatMode === "a4" ? "A4 · průběžný vizuální náhled bez falešných folií" : "Synchronizované kontinuální čtení"}</span>
@@ -385,10 +531,10 @@ export default function IngestFixtureLab() {
             ref={sourceRef} aria-label="Originál, samostatně posuvná čtecí oblast"
             onScroll={() => handleContinuousScroll("source")}>
             <div className="ingest-lab__sheet">
-              <div className="ingest-lab__page-top"><span>ORIGINÁL</span><span>{formatMode === "a4" ? "Strana " + sourceFolio : "Souvislý text"}</span></div>
+              <div className="ingest-lab__page-top"><span>ORIGINÁL</span><span>{formatMode === "a4" ? "Náhled A4" : "Souvislý text"}</span></div>
               <div className="ingest-lab__page-heading"><h2>Zdrojový rukopis</h2><p>Fiktivní literární text</p></div>
               <div className="ingest-lab__page-content">{regions(shownSource, "source")}</div>
-              <footer className="ingest-lab__folio"><span>Zdrojová edice</span><span>{formatMode === "a4" ? sourceFolio : "—"}</span></footer>
+              <footer className="ingest-lab__folio"><span>Zdrojová edice</span><span>{formatMode === "a4" ? "A4" : "—"}</span></footer>
             </div>
           </section>
         )}
@@ -397,10 +543,10 @@ export default function IngestFixtureLab() {
           ref={artalesRef} aria-label="ARTales, samostatně posuvná čtecí oblast"
           onScroll={() => handleContinuousScroll("artales")}>
           <div className="ingest-lab__sheet">
-            <div className="ingest-lab__page-top"><span>ARTales Reader</span><span>{formatMode === "a4" ? "Strana " + composedFolio : "Souvislý text"}</span></div>
+            <div className="ingest-lab__page-top"><span>ARTales Reader</span><span>{formatMode === "a4" ? "Náhled A4" : "Souvislý text"}</span></div>
             <div className="ingest-lab__page-heading"><h2>Cesta za řekou</h2><p>Pracovní sestavená edice</p></div>
             <div className="ingest-lab__page-content">{regions(shownArtales, "artales")}</div>
-            <footer className="ingest-lab__folio"><span>ARTales · pracovní sazba</span><span>{formatMode === "a4" ? composedFolio : "—"}</span></footer>
+            <footer className="ingest-lab__folio"><span>ARTales · pracovní sazba</span><span>{formatMode === "a4" ? "A4" : "—"}</span></footer>
           </div>
         </section>
       </div>

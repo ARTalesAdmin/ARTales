@@ -314,3 +314,323 @@
 @media(max-width:650px) {
   .ingest-lab--docked.ingest-lab--bottom .ingest-lab__review--docked { height:43px;min-height:43px;max-height:43px; }
 }
+
+
+/* Reader themes correspond to lib/reader/readerSettings.ts (light / script / dark). */
+.ingest-lab--theme-light {
+  --fixture-viewport: #eae1d3;
+  --fixture-paper: #faf7ef;
+  --fixture-ink: #302f2c;
+  --fixture-muted: #6b6259;
+  --fixture-border: #d4c5a8;
+  --fixture-chrome: #f6f0e5;
+  --fixture-selection: rgba(184,137,63,.2);
+}
+.ingest-lab--theme-script {
+  --fixture-viewport: #dbc7a7;
+  --fixture-paper: #f3e8d3;
+  --fixture-ink: #33281d;
+  --fixture-muted: #735f4b;
+  --fixture-border: #ba9e76;
+  --fixture-chrome: #e8d9be;
+  --fixture-selection: rgba(164,123,63,.22);
+}
+.ingest-lab--theme-dark {
+  --fixture-viewport: #171817;
+  --fixture-paper: #1d1c1a;
+  --fixture-ink: #e0d8ca;
+  --fixture-muted: #b5aa9b;
+  --fixture-border: #51483b;
+  --fixture-chrome: #25231f;
+  --fixture-selection: rgba(181,138,75,.27);
+}
+.ingest-lab--docked {
+  background: var(--fixture-viewport);
+  color: var(--fixture-ink);
+}
+.ingest-lab--docked:fullscreen {
+  position: fixed;
+  inset: 0;
+  width: 100vw;
+  height: 100dvh;
+}
+.ingest-lab--docked .ingest-lab__toolbar {
+  background: #0d1528;
+  color: #f8ecd9;
+  border-bottom: 1px solid #59482e;
+  padding: 7px clamp(12px,2vw,26px);
+  min-height: 48px;
+  gap: 14px;
+}
+.ingest-lab--docked .ingest-lab__brand {
+  display: flex;
+  gap: 11px;
+  align-items: center;
+  min-width: 0;
+}
+.ingest-lab--docked .ingest-lab__brand strong { color: #e6bc78; }
+.ingest-lab--docked .ingest-lab__brand span { color: #efe0c8; }
+.ingest-lab--docked .ingest-lab__toolbar-actions { gap: 7px; }
+.ingest-lab--docked .ingest-lab__toolbar-actions button {
+  min-height: 35px;
+  border-radius: 8px;
+  font-weight: 700;
+  font-size: 13px;
+}
+.ingest-lab--docked .ingest-lab__toolbar-actions .ingest-lab__settings-trigger {
+  background: #edc487;
+  color: #241a10;
+  border: 1px solid #edc487;
+  padding: 7px 13px;
+}
+.ingest-lab--docked .ingest-lab__toolbar-actions .ingest-lab__settings-trigger[aria-expanded="true"] {
+  background: #fff0cb;
+  border-color: #ffffff;
+}
+.ingest-lab--docked .ingest-lab__toolbar-actions .ingest-lab__fullscreen-trigger {
+  background: #1e314d;
+  color: #ffffff;
+  border: 1px solid #92a6c0;
+  padding: 7px 13px;
+}
+.ingest-lab--docked .ingest-lab__toolbar-actions .ingest-lab__fullscreen-trigger[aria-pressed="true"] {
+  background: #284e44;
+  border-color: #8bc5a4;
+}
+.ingest-lab--docked .ingest-lab__toolbar-actions .ingest-lab__minor,
+.ingest-lab--docked .ingest-lab__toolbar-actions .ingest-lab__panel-toggle {
+  color: #eee1cd;
+  background: #1e293f;
+  border: 1px solid #69778d;
+  padding: 7px 10px;
+}
+.ingest-lab--docked .ingest-lab__subbar {
+  color: var(--fixture-ink);
+  border-bottom: 1px solid var(--fixture-border);
+  background: var(--fixture-chrome);
+}
+.ingest-lab--docked .ingest-lab__page {
+  background: var(--fixture-viewport);
+  color: var(--fixture-ink);
+  border-color: var(--fixture-border);
+}
+.ingest-lab--docked .ingest-lab__sheet,
+.ingest-lab--docked .ingest-lab__page--composed .ingest-lab__sheet {
+  background: var(--fixture-paper);
+  color: var(--fixture-ink);
+}
+.ingest-lab--docked .ingest-lab__page-heading,
+.ingest-lab--docked .ingest-lab__page-top,
+.ingest-lab--docked .ingest-lab__folio {
+  border-color: var(--fixture-border);
+  color: var(--fixture-muted);
+}
+.ingest-lab--docked .ingest-lab__page-heading h2,
+.ingest-lab--docked .ingest-lab__page-heading p,
+.ingest-lab--docked .ingest-lab__source-chapter,
+.ingest-lab--docked .ingest-lab__source-poem,
+.ingest-lab--docked .ingest-lab__source-prose {
+  color: var(--fixture-ink);
+}
+.ingest-lab--docked .ingest-lab__page-heading p { color: var(--fixture-muted); }
+.ingest-lab--docked .artales-work-content {
+  --artales-text: var(--fixture-ink);
+  --artales-muted: var(--fixture-muted);
+  --artales-border: var(--fixture-border);
+  --artales-soft: var(--fixture-paper);
+  color: var(--fixture-ink);
+}
+.ingest-lab--docked .artales-work-content .artales-block,
+.ingest-lab--docked .artales-work-content .artales-chapter h3,
+.ingest-lab--docked .artales-work-content .artales-quote,
+.ingest-lab--docked .artales-work-content .artales-dedication { color: var(--fixture-ink); }
+.ingest-lab--docked .ingest-lab__region--selected {
+  background: var(--fixture-selection);
+  border-color: #b88b4b;
+}
+.ingest-lab--docked .ingest-lab__region--flagged { border-left-color: #d0a05d; }
+.ingest-lab--docked .ingest-lab__review--docked {
+  color: var(--fixture-ink);
+  background: var(--fixture-paper);
+  border-color: var(--fixture-border);
+}
+.ingest-lab--docked .ingest-lab__review-title span,
+.ingest-lab--docked .ingest-lab__review-hint,
+.ingest-lab--docked .ingest-lab__review-inline label,
+.ingest-lab--docked .ingest-lab__review-bottom .ingest-lab__notice,
+.ingest-lab--docked .ingest-lab__technical,
+.ingest-lab--docked .ingest-lab__review-actions a {
+  color: var(--fixture-muted);
+}
+.ingest-lab--docked .ingest-lab__review-inline input,
+.ingest-lab--docked .ingest-lab__review-inline select {
+  background: var(--fixture-paper);
+  border-color: var(--fixture-border);
+  color: var(--fixture-ink);
+}
+.ingest-lab--docked .ingest-lab__review-collapse,
+.ingest-lab--docked .ingest-lab__secondary {
+  background: var(--fixture-chrome);
+  color: var(--fixture-ink);
+  border-color: var(--fixture-border);
+}
+
+/* A deliberately compact, high-contrast first-run setup panel. */
+.ingest-lab--docked .ingest-lab__reading-settings {
+  position: absolute;
+  z-index: 40;
+  top: 56px;
+  right: clamp(12px,2vw,26px);
+  width: min(440px,calc(100vw - 24px));
+  max-height: calc(100dvh - 72px);
+  overflow-y: auto;
+  border: 1px solid #b28a52;
+  border-radius: 15px;
+  padding: 19px;
+  color: #29251f;
+  background: #fffaf0;
+  box-shadow: 0 22px 75px rgba(16,19,20,.32);
+}
+.ingest-lab__reading-settings-top {
+  display: flex;
+  align-items: start;
+  justify-content: space-between;
+  gap: 14px;
+}
+.ingest-lab__reading-settings-top h2 {
+  margin: 0;
+  font: 600 26px/1.18 Georgia,serif;
+  color: #2d261e;
+}
+.ingest-lab__settings-eyebrow {
+  margin: 0 0 4px;
+  font-size: 11px;
+  letter-spacing: .1em;
+  font-weight: 800;
+  text-transform: uppercase;
+  color: #7e5b32;
+}
+.ingest-lab__settings-close {
+  flex: 0 0 auto;
+  border: 1px solid #d4c19f;
+  background: #fff;
+  border-radius: 8px;
+  padding: 6px 10px;
+  color: #3d3327;
+}
+.ingest-lab__settings-group {
+  padding: 0;
+  margin: 17px 0 0;
+  border: 0;
+  min-width: 0;
+}
+.ingest-lab__settings-group legend,
+.ingest-lab__settings-size > strong {
+  font-size: 13px;
+  font-weight: 800;
+  color: #493a2a;
+  padding: 0;
+  margin-bottom: 8px;
+}
+.ingest-lab__settings-choices,
+.ingest-lab__theme-choices { display: grid; gap: 9px; }
+.ingest-lab__settings-choices { grid-template-columns: repeat(2,minmax(0,1fr)); }
+.ingest-lab__theme-choices { grid-template-columns: repeat(3,minmax(0,1fr)); }
+.ingest-lab__settings-choices label,
+.ingest-lab__theme-choice {
+  position: relative;
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+  padding: 10px;
+  border: 2px solid #d3c1a2;
+  border-radius: 10px;
+  background: #fff;
+  color: #2d2924;
+  cursor: pointer;
+}
+.ingest-lab__settings-choices label.is-active,
+.ingest-lab__theme-choice.is-active {
+  border-color: #8a581a;
+  background: #fbf0da;
+  box-shadow: inset 0 0 0 1px #8a581a;
+}
+.ingest-lab__settings-choices label input,
+.ingest-lab__theme-choice input {
+  accent-color: #8a581a;
+  width: 16px;
+  height: 16px;
+  margin: 0;
+}
+.ingest-lab__settings-choices strong,
+.ingest-lab__theme-choice strong { font-size: 13px; font-weight: 800; }
+.ingest-lab__settings-choices small { font-size: 11px; color: #685a46; line-height: 1.3; }
+.ingest-lab__theme-choice { text-align: center; align-items:center; justify-items:center; }
+.ingest-lab__theme-choice input { position: absolute; top: 7px; left: 7px; }
+.ingest-lab__theme-swatch {
+  display: grid;
+  place-items: center;
+  width: 50px;
+  height: 46px;
+  border-radius: 7px;
+  font: 700 20px Georgia,serif;
+  border: 1px solid rgba(0,0,0,.15);
+}
+.ingest-lab__theme-choice--light .ingest-lab__theme-swatch { background: #faf7ef; color: #302f2c; }
+.ingest-lab__theme-choice--script .ingest-lab__theme-swatch { background: #f3e8d3; color: #33281d; }
+.ingest-lab__theme-choice--dark .ingest-lab__theme-swatch { background: #1d1c1a; color: #e0d8ca; }
+.ingest-lab__settings-size {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 15px;
+  margin-top: 20px;
+}
+.ingest-lab__settings-size > div { display:flex; align-items:center; gap: 11px; }
+.ingest-lab__settings-size button {
+  min-width: 36px;
+  min-height: 34px;
+  border: 1px solid #ab906d;
+  color: #2e281f;
+  background: white;
+  border-radius: 8px;
+}
+.ingest-lab__settings-size span { min-width: 48px; text-align:center; font-size: 13px; font-weight:800; }
+.ingest-lab__settings-note { font-size: 11px; line-height: 1.5; color: #6e604f; margin: 13px 0; }
+.ingest-lab__settings-footer { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.ingest-lab__settings-footer button {
+  border-radius: 9px;
+  min-height: 44px;
+  padding: 8px 12px;
+  font-size: 12px;
+  font-weight: 800;
+}
+.ingest-lab__settings-confirm { color: #fff; background: #0d1528; border: 1px solid #0d1528; }
+.ingest-lab__settings-fullscreen { color:#29221a; background:#e8bd7e; border:1px solid #b78b50; }
+.ingest-lab--docked .ingest-lab__toolbar button:focus-visible,
+.ingest-lab--docked .ingest-lab__reading-settings button:focus-visible,
+.ingest-lab--docked .ingest-lab__reading-settings input:focus-visible,
+.ingest-lab--docked .ingest-lab__reading-settings label:focus-within {
+  outline: 3px solid #a57323;
+  outline-offset: 2px;
+}
+@media (max-width: 700px) {
+  .ingest-lab--docked .ingest-lab__reading-settings {
+    top: 97px;
+    right: 8px;
+    width: calc(100vw - 16px);
+    max-height: calc(100dvh - 108px);
+    padding: 14px;
+  }
+  .ingest-lab--docked .ingest-lab__toolbar-actions {
+    gap: 4px;
+  }
+  .ingest-lab--docked .ingest-lab__toolbar-actions button {
+    font-size: 11px;
+    padding: 6px 8px;
+  }
+  .ingest-lab__settings-choices { grid-template-columns: 1fr 1fr; }
+}
+@media (max-width: 380px) {
+  .ingest-lab__settings-footer { grid-template-columns: 1fr; }
+}
