@@ -1,5 +1,15 @@
 # ARTales durable checkpoint — 2026-09-28
 
+## Current continuation — Phoenix 2026-10-10 PR #200 / isolated CI handoff
+
+**Newest checked handoff:** [`ARTALES_PHOENIX_2026-10-10_PR200_CI_HANDOFF.md`](./ARTALES_PHOENIX_2026-10-10_PR200_CI_HANDOFF.md). **New test environment playbook:** [`ARTALES_DATABASE_TEST_ENVIRONMENT_2026-10-10.md`](./ARTALES_DATABASE_TEST_ENVIRONMENT_2026-10-10.md). These docs are prepared on documentation-only branch `docs/artales-phoenix-pr200-ci-20261010` and are not authoritative until merged; live GitHub and explicit authorizations still win.
+
+Verified 2026-10-10: develop HEAD `867afd9253a6ab28c1b39d73677a18ab9d34c367` (PR #201 preview isolation merged), production main `171df191eb54dbcef7bb015f748138c630428b2f`. PR #200 **Draft**, HEAD `a7095aa26921becab48ab02af706e97896123880`; local GitHub Actions Supabase + pgTAP exists on #200 branch. CI run #3 **12/12 PASS**; run #5 **33/34 FAIL**. Only failure: test compares `result` with `self_review_forbidden`, but function correctly returns `result=blocked, reason=self_review_forbidden`; fix test assertion to `reason`, rerun, then implement real dual-connection concurrency test and finalize SECURITY DEFINER audit. No merge of #200, no production DB apply.
+
+Cost/safety: GitHub runner uses disposable local PostgreSQL/Supabase and synthetic test data; no persistent paid dev branch. Production Supabase shows only `main` and baseline migration `20260926142755_remote_schema`; Preview credentials separated from Production. For signed Auth or Vercel integration E2E, use only short-lived separately cost-approved ephemeral cloud Supabase, clean up and verify. All older sections below this marker are historical and may refer to superseded HEAD/PR stages.
+
+---
+
 ## Current continuation — 2026-10-10 after #196/#197/#198 integration
 
 **Authoritative instruction documents still take precedence.** Latest verified `develop` HEAD: `41a55757cb87b6a5b717f6b6921f35b141af96bc`; production `main` unchanged in this integration. PR [#196](https://github.com/ARTalesAdmin/ARTales/pull/196), [#197](https://github.com/ARTalesAdmin/ARTales/pull/197), [#198](https://github.com/ARTalesAdmin/ARTales/pull/198) merged into develop; PR [#199](https://github.com/ARTalesAdmin/ARTales/pull/199) updates this documentation. Full reconciled log and next-step handoff: [`docs/ARTALES_PHOENIX_2026-10-10_MAIN.md`](./ARTALES_PHOENIX_2026-10-10_MAIN.md).
