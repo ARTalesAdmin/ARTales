@@ -29,6 +29,7 @@ export default async function WorkCandidatesPage({ searchParams }: Props) {
         <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
           <Link className="artales-button-primary" href="/member/candidates/new">{copy.newCandidate}</Link>
           <Link className="artales-button-secondary" href="/member/resources">{copy.methodology}</Link>
+          {fixturePreview ? <Link className="artales-button-secondary" href="/member/candidates/promotion-preview">Ukázka: kandidát → koncept</Link> : null}
         </div>
       </section>
 
