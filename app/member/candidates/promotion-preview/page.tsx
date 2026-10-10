@@ -1,6 +1,7 @@
 import Link from "next/link"
 import { notFound } from "next/navigation"
 import { requireEditorOrAdmin } from "@/lib/guards"
+import { getServerSupabaseConnection } from "@/lib/supabase/connectionIsolation"
 import { isCandidatesFixturePreview } from "@/lib/fixtures/workCandidates"
 
 const scenarios = [
@@ -39,7 +40,7 @@ const scenarios = [
 
 export default async function CandidatePromotionPreviewPage() {
   if (!isCandidatesFixturePreview()) notFound()
-  await requireEditorOrAdmin()
+  if (getServerSupabaseConnection().enabled) await requireEditorOrAdmin()
 
   return (
     <main style={{ maxWidth: 1080, margin: "0 auto", padding: "40px 24px", lineHeight: 1.55 }}>
