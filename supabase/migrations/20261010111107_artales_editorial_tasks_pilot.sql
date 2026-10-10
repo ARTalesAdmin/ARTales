@@ -17,6 +17,7 @@ create table public.editorial_tasks (
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
   constraint editorial_task_target_check check (num_nonnulls(candidate_id,work_id)=1),
+  constraint editorial_task_completion_check check(status <> 'completed' or completed_at is not null),
   constraint editorial_task_claim_status_check check (
     (status='open' and assignee_user_id is null and claimed_at is null)
     or (status='claimed' and assignee_user_id is not null and claimed_at is not null)
@@ -58,10 +59,10 @@ begin
     return jsonb_build_object('result','blocked');
  end if;
  -- This is only a candidate review task. It is NOT a clearance for publication or ingestion.
- select id into v_task from public.editorial_tasks where candidate_id=p_candidate_id and kind='edit_text' and status in ('open','claimed') limit 1;
+ select id into v_task from public.editorial_tasks where candidate_id=p_candidate_id and kind='legal_review' and status in ('open','claimed') limit 1;
  if v_task is not null then return jsonb_build_object('result','already_queued','task_id',v_task); end if;
  insert into public.editorial_tasks(candidate_id,kind,title,created_by,source_system,source_external_id)
- values(p_candidate_id,'edit_text','Prověřit kandidáta: '||left(v_candidate.proposed_title,200),v_actor,'artales','candidate-review:'||p_candidate_id::text)
+ values(p_candidate_id,'legal_review','Doprověřit kandidáta: '||left(v_candidate.proposed_title,200),v_actor,'artales','candidate-review:'||p_candidate_id::text)
  returning id into v_task;
  insert into public.editorial_task_events(task_id,event_type,actor_id) values(v_task,'created',v_actor);
  return jsonb_build_object('result','queued_for_review','task_id',v_task);
