@@ -4,7 +4,16 @@
 >
 > This document is the current ARTales handoff index. Live code/database state, `AGENTS.md`, `docs/WORKFLOW.md`, `docs/RELEASE_POLICY.md`, and explicit user authorization remain authoritative.
 
-## Current continuation point
+## Current main-thread Phoenix (2026-10-10)
+
+- **Current full main-thread integration handoff:** `docs/ARTALES_PHOENIX_2026-10-10_MAIN.md` (this checkpoint's companion, pending separate documentation-only PR into `develop`). Verify live GitHub/DB heads before continuing.
+- On 2026-10-10, `develop` head was `4f630c4a581ef85c70b25ea6c9f3ecb6050a7c88`, production `main` head `171df191eb54dbcef7bb015f748138c630428b2f`.
+- #196 ingest/Reader fixture, #197 machine-first rights and admin catalog fixture, #198 editorial inbox/RLS were all open **drafts**, not merged. See new Phoenix for exact heads and risks.
+- Shared `Editorial Task Contract v1` resides on #198 branch; second thread coordinated via a PR #196 comment.
+- All short-lived Supabase test branches had been deleted. No production candidate/inbox DB migration was applied.
+- Read this section/new Phoenix **before older 2026-09-28 action text**, which is historical and not the newest task ordering. These notes remain nonauthoritative.
+
+## Historical continuation point (2026-09-28; superseded by dated Phoenix)
 
 Current `develop` after today's work:
 - PR #191 — P1-2A canonical candidate persistence migrations — merged.
