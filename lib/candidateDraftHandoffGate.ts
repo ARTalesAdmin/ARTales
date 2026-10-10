@@ -19,7 +19,7 @@ export type CaptureEnvelope = {
   snapshotSetRef: string
   capturedAt: string
   sourceSha256: string
-  components: readonly CapturedComponent[]
+  components: CapturedComponent[]
   inventoryComplete: boolean
   attestationVerified: boolean
   provenanceReviewedAt?: string
