@@ -26,3 +26,13 @@ The code gate alone is **not the whole network isolation boundary**. The Vercel 
 
 ## Risk / rollback
 High: authentication and DB routing. Target `develop` only. DB: no. Env: yes, future separately authorized Preview-only operations. No `main` or production Supabase changes. Revert this PR from `develop` if regression; rollback of Preview env must never reconnect preview to production without explicit risk approval.
+
+## Applied Vercel Preview environment isolation (2026-10-10)
+
+With architect authorization, Vercel project `ar-tales` was updated **without changing any production values**:
+- Existing `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY` now target `production` only.
+- Existing `SUPABASE_SERVICE_ROLE_KEY` now targets `production` only.
+- Two new Preview-only encrypted values are set to an intentionally unavailable `.invalid` URL and placeholder publishable key. Values are not secrets and are not suitable for writes.
+- A readback of Vercel environment scopes confirms exactly these five scoped entries.
+
+This is a **configuration update**, not evidence that already-built immutable preview artifacts were retroactively rebuilt. Any older preview URLs compiled with previous `NEXT_PUBLIC_*` values must not be used for logged-in testing; re-deploy current commit to verify it gets the new Preview-only values. Production is unaffected. For an ephemeral DB E2E, create isolated branch, configure exact branch-scoped URL/key/ref temporarily and remove them before deleting the branch; no persistent Supabase branch.
