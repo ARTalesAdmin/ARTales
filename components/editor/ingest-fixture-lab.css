@@ -81,3 +81,11 @@
 .ingest-lab__form-actions button { background:transparent; border:1px solid #bda887; border-radius:999px; color:#513e24; font-size:13px; font-weight:800; padding:11px 17px; }
 .ingest-lab__form-actions button.ingest-lab__primary { background:#0d1528; border-color:#0d1528; color:#fff9ef; }
 .ingest-lab__route-note { color:#6b5b47; font-size:12px; grid-column:1 / -1; margin:0; }
+
+.ingest-lab__pagination { align-items:center; display:flex; flex-wrap:wrap; gap:14px; justify-content:center; margin:14px auto 20px; }
+.ingest-lab__pagination span { color:#655441; font-weight:700; font-size:13px; }
+.ingest-lab__pagination button { background:#fffaf0; color:#392f25; border:1px solid #c7b28f; border-radius:99px; padding:9px 17px; font-weight:700; }
+.ingest-lab__finish { align-items:center; border-top:1px solid #dec9a6; display:flex; flex-wrap:wrap; gap:16px; margin-top:25px; padding-top:18px; }
+.ingest-lab__finish button { border:1px solid #0d1528; border-radius:99px; background:#0d1528; color:white; padding:11px 17px; font-weight:800; }
+.ingest-lab__finish strong { color:#28623e; font-size:13px; }
+.ingest-lab__finish a { color:#594222; font-size:13px; }
