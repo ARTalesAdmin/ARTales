@@ -18,7 +18,13 @@ import {
 import { EDITORIAL_PRESETS, getEditorialPreset, routeFixtureIssue } from "@/lib/fixtures/editorialPresets";
 import { alignedScrollTop } from "@/lib/fixtures/pairedScroll";
 import { clampReaderFontScale, type ReaderThemeId } from "@/lib/reader/readerSettings";
-import { DEFAULT_FIXTURE_READING_PREFERENCES, normalizeFixtureReadingPreferences, type FixtureFormatMode } from "@/lib/fixtures/readerPreferences";
+import {
+  DEFAULT_FIXTURE_READING_PREFERENCES,
+  resolveFixtureReadingPreferences,
+  type FixtureFormatMode,
+  type FixtureProfileReaderDefaults,
+} from "@/lib/fixtures/readerPreferences";
+import { getStoredReaderSettings, loadReaderSettings, saveReaderSettings } from "@/lib/reader/readerStorage";
 import "./ingest-fixture-lab.css";
 
 const artifact = composeFixtureSection(INGEST_FIXTURE);
@@ -26,7 +32,9 @@ const initialId = artifact.blocks[0]?.block.id ?? "";
 const REVIEW_KEY = "artales:ingest-fixture:editorial-reviews:v1";
 const ISSUE_KEY = "artales:ingest-fixture:editorial-issues:v1";
 const SESSION_KEY = "artales:ingest-fixture:session-summary:v1";
+// Legacy v1 fixture preferences are read once for migration only.
 const READING_KEY = "artales:ingest-fixture:reading-preferences:v1";
+const FORMAT_KEY = "artales:ingest-fixture:format:v2";
 const themeOptions: { id: ReaderThemeId; label: string; detail: string }[] = [
   { id: "light", label: "Světlé", detail: "Tmavý text na světlém papíru" },
   { id: "script", label: "Rukopis", detail: "Teplý sépiový papír" },
@@ -69,14 +77,15 @@ function scrollPaneToRegion(pane: HTMLElement | null, index: number, behavior: S
   pane.scrollTo({ top: Math.max(0, top), behavior });
 }
 
-export default function IngestFixtureLab() {
+export default function IngestFixtureLab({
+  profileReaderDefaults = null,
+}: { profileReaderDefaults?: FixtureProfileReaderDefaults | null }) {
   const [blocks, setBlocks] = useState<AnchoredBlock[]>(() => artifact.blocks);
   const [selectedId, setSelectedId] = useState(initialId);
   const [formatMode, setFormatMode] = useState<FormatMode>(DEFAULT_FIXTURE_READING_PREFERENCES.formatMode);
   const [readerTheme, setReaderTheme] = useState<ReaderThemeId>(DEFAULT_FIXTURE_READING_PREFERENCES.theme);
-  const [settingsOpen, setSettingsOpen] = useState(true);
-  const [readingSettingsReady, setReadingSettingsReady] = useState(false);
-  const [readingSettingsConfirmed, setReadingSettingsConfirmed] = useState(false);
+  // Closed until hydration: existing Reader/profile users should not see a modal flash.
+  const [settingsOpen, setSettingsOpen] = useState(false);
   const [fullscreen, setFullscreen] = useState(false);
   const [panelOnSide, setPanelOnSide] = useState(false);
   const [revealTick, setRevealTick] = useState(0);
@@ -113,33 +122,39 @@ export default function IngestFixtureLab() {
   const fontStyle = { "--fixture-font-scale": fontScale } as CSSProperties;
 
   useEffect(() => {
+    // Existing Reader preferences take priority. Profile defaults only fill a
+    // new device; the fixture does not write to production profile records.
+    const shared = getStoredReaderSettings();
+    let previous: unknown = null;
+    let savedFormat: unknown = null;
     try {
-      const saved = window.localStorage.getItem(READING_KEY);
-      if (saved) {
-        const settings = normalizeFixtureReadingPreferences(JSON.parse(saved) as unknown);
-        setFormatMode(settings.formatMode);
-        setReaderTheme(settings.theme);
-        setFontScale(settings.fontScale);
-        const confirmed = (JSON.parse(saved) as { confirmed?: unknown }).confirmed === true;
-        setReadingSettingsConfirmed(confirmed);
-        setSettingsOpen(!confirmed);
-      }
+      const raw = window.localStorage.getItem(READING_KEY);
+      if (raw) previous = JSON.parse(raw) as unknown;
+      savedFormat = window.localStorage.getItem(FORMAT_KEY);
     } catch {
-      // Fixture can be used without persistent storage.
+      // Storage access may be disabled; continue with the safe profile/defaults.
     }
-    setReadingSettingsReady(true);
-  }, []);
+    const result = resolveFixtureReadingPreferences({
+      sharedReaderSettings: shared,
+      profileDefaults: profileReaderDefaults,
+      previousFixtureSettings: previous,
+      savedFixtureFormat: savedFormat,
+    });
+    setReaderTheme(result.preferences.theme);
+    setFontScale(result.preferences.fontScale);
+    setFormatMode(result.preferences.formatMode);
+    setSettingsOpen(result.needsFirstRunSetup);
 
-  useEffect(() => {
-    if (!readingSettingsReady) return;
-    try {
-      window.localStorage.setItem(READING_KEY, JSON.stringify({
-        formatMode, theme: readerTheme, fontScale, confirmed: readingSettingsConfirmed,
-      }));
-    } catch {
-      // Private browsing is still fully usable for this fixture.
+    // Restore existing profile / confirmed legacy preferences into the same
+    // local Reader store only when this device has no usable shared record.
+    if (!shared && !result.needsFirstRunSetup) {
+      try {
+        saveReaderSettings(result.sharedReaderSettings);
+      } catch {
+        // Editor stays usable if browser storage is unavailable.
+      }
     }
-  }, [readingSettingsReady, formatMode, readerTheme, fontScale, readingSettingsConfirmed]);
+  }, [profileReaderDefaults]);
 
   useEffect(() => {
     const handleChange = () => {
@@ -159,9 +174,9 @@ export default function IngestFixtureLab() {
       if (document.fullscreenElement === workspace) {
         await document.exitFullscreen();
       } else {
+        // Explicit fullscreen click can also confirm a first-run selection.
+        if (settingsOpen) confirmReadingSettings();
         await workspace.requestFullscreen();
-        setReadingSettingsConfirmed(true);
-        setSettingsOpen(false);
       }
       pendingRevealRef.current = selectedId;
       setRevealTick((value) => value + 1);
@@ -171,7 +186,20 @@ export default function IngestFixtureLab() {
   }
 
   function confirmReadingSettings() {
-    setReadingSettingsConfirmed(true);
+    // Theme and text size intentionally share the actual ARTales Reader store.
+    // A4 here is only a paper silhouette, so it is NOT mapped to the real
+    // Reader spread setting. Keep that fixture-only choice separate.
+    try {
+      saveReaderSettings({
+        ...loadReaderSettings(),
+        theme: readerTheme,
+        fontScale,
+      });
+      window.localStorage.setItem(FORMAT_KEY, formatMode);
+      setNotice("");
+    } catch {
+      setNotice("Čtenářské preference nelze v tomto prohlížeči uložit. Nastavení zůstane pouze pro tuto relaci.");
+    }
     setSettingsOpen(false);
   }
 
@@ -421,7 +449,7 @@ export default function IngestFixtureLab() {
         <div className="ingest-lab__toolbar-actions">
           <button type="button" className="ingest-lab__settings-trigger"
             aria-expanded={settingsOpen} aria-controls="fixture-reading-settings"
-            onClick={() => setSettingsOpen((open) => !open)}>
+            onClick={() => settingsOpen ? confirmReadingSettings() : setSettingsOpen(true)}>
             ⚙ Nastavení čtení
           </button>
           <button type="button" className="ingest-lab__fullscreen-trigger"
@@ -494,8 +522,9 @@ export default function IngestFixtureLab() {
             </div>
           </div>
           <p className="ingest-lab__settings-note">
-            Volby se ukládají pouze v prohlížeči. Fyzické stránkování A4 zatím
-            není měřené – čísla stran proto nezobrazujeme.
+            Barvu a velikost textu sdílíme s běžným Readerem v tomto prohlížeči.
+            Hodnoty profilu používáme jako výchozí; tato fixture profil na serveru nemění.
+            Režim A4 je zatím pouze náhled papíru.
           </p>
           <div className="ingest-lab__settings-footer">
             <button type="button" className="ingest-lab__settings-confirm"
