@@ -52,6 +52,11 @@ export default async function AdminDashboardPage({ searchParams }: PageProps) {
           <Link className="artales-button-secondary" href="/member/admin/payments">
             QR platby
           </Link>
+          {process.env.VERCEL_ENV === "preview" || process.env.NODE_ENV === "development" ? (
+            <Link className="artales-button-secondary" href="/member/admin/catalog-production">
+              Spustit katalogovou dávku (DEMO)
+            </Link>
+          ) : null}
           <Link className="artales-button" href={`/member/admin/dashboard/export?range=${range}`}>
             Stáhnout CSV
           </Link>
