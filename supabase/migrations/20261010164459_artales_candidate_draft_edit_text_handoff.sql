@@ -12,6 +12,10 @@ create table public.candidate_source_captures (
   captured_by uuid not null references public.profiles(id),
   reviewed_by uuid null references public.profiles(id),
   reviewed_at timestamptz null,
+  review_note text null,
+  candidate_fingerprint text null,
+  source_fingerprint text null,
+  rights_fingerprint text null,
   created_at timestamptz not null default now(),
   constraint captured_source_fk foreign key(source_id,candidate_id)
     references public.work_candidate_sources(id,candidate_id) on delete restrict,
@@ -54,6 +58,57 @@ exception when unique_violation then
 end $rpc$;
 revoke all on function public.register_candidate_source_capture(uuid,uuid,text,jsonb,text) from public,anon,authenticated;
 grant execute on function public.register_candidate_source_capture(uuid,uuid,text,jsonb,text) to authenticated;
+
+-- A separate actor explicitly approves the exact persisted snapshot.
+create function public.review_candidate_source_capture(
+ p_capture_id uuid,p_expected_sha256 text,p_review_note text)
+returns jsonb language plpgsql security definer set search_path=''
+as $rpc$
+declare
+ v_actor uuid:=auth.uid();
+ v_capture public.candidate_source_captures%rowtype;
+ v_candidate public.work_candidates%rowtype;
+ v_source public.work_candidate_sources%rowtype;
+ v_rights jsonb;
+ v_digest text;
+begin
+ if v_actor is null or not exists(select 1 from public.profiles p where p.id=v_actor
+   and p.is_active and p.role in ('admin','editor'))
+ then raise exception 'editor_required' using errcode='42501';end if;
+ if length(btrim(coalesce(p_review_note,'')))<40
+ then return jsonb_build_object('result','blocked','reason','review_note_required');end if;
+ select * into v_capture from public.candidate_source_captures where id=p_capture_id for update;
+ if not found then return jsonb_build_object('result','blocked','reason','capture_missing');end if;
+ if v_actor=v_capture.captured_by then
+   return jsonb_build_object('result','blocked','reason','self_review_forbidden');end if;
+ if v_capture.reviewed_by is not null then
+   return jsonb_build_object('result','already_reviewed');end if;
+ v_digest:=encode(extensions.digest(convert_to(v_capture.source_text,'UTF8'),'sha256'),'hex');
+ if p_expected_sha256 is distinct from v_digest or v_capture.source_sha256<>v_digest
+ then return jsonb_build_object('result','blocked','reason','digest_mismatch');end if;
+ select * into v_candidate from public.work_candidates where id=v_capture.candidate_id for share;
+ select * into v_source from public.work_candidate_sources where id=v_capture.source_id
+   and candidate_id=v_capture.candidate_id for share;
+ if v_candidate.id is null or v_source.id is null
+   or v_candidate.preferred_source_id is distinct from v_capture.source_id
+ then return jsonb_build_object('result','blocked','reason','source_mismatch');end if;
+ perform 1 from public.work_candidate_component_rights where candidate_id=v_capture.candidate_id
+   and source_id=v_capture.source_id order by component_type for share;
+ select coalesce(jsonb_agg(to_jsonb(r) order by r.component_type,r.id),'[]'::jsonb)
+ into v_rights from public.work_candidate_component_rights r
+ where r.candidate_id=v_capture.candidate_id and r.source_id=v_capture.source_id;
+ if jsonb_array_length(v_rights)<2
+ then return jsonb_build_object('result','blocked','reason','rights_missing');end if;
+ update public.candidate_source_captures set reviewed_by=v_actor,
+   reviewed_at=clock_timestamp(),review_note=p_review_note,
+   candidate_fingerprint=encode(extensions.digest(convert_to(to_jsonb(v_candidate)::text,'UTF8'),'sha256'),'hex'),
+   source_fingerprint=encode(extensions.digest(convert_to(to_jsonb(v_source)::text,'UTF8'),'sha256'),'hex'),
+   rights_fingerprint=encode(extensions.digest(convert_to(v_rights::text,'UTF8'),'sha256'),'hex')
+ where id=p_capture_id and reviewed_by is null;
+ return jsonb_build_object('result','review_recorded','capture_id',p_capture_id);
+end $rpc$;
+revoke all on function public.review_candidate_source_capture(uuid,text,text) from public,anon,authenticated;
+grant execute on function public.review_candidate_source_capture(uuid,text,text) to authenticated;
 
 -- Existing triggers reject every edit_text insert. Permit one narrow RPC-controlled
 -- work-task insertion after complete lock/gate checking.
@@ -157,6 +212,18 @@ begin
      and r.component_type='WORK_CONTENT' and r.decision='usable' and r.publication_effect='allow') or
    not exists(select 1 from public.work_candidate_component_rights r where r.candidate_id=p_candidate_id and r.source_id=v_s.id and r.component_type='EDITION_CONTENT')
  then return jsonb_build_object('result','blocked','reason','component_rights_unverified');end if;
+ -- Approval is invalid if candidate, edition or rights changed.
+ if v_capture.candidate_fingerprint is distinct from
+   encode(extensions.digest(convert_to(to_jsonb(v_c)::text,'UTF8'),'sha256'),'hex')
+ or v_capture.source_fingerprint is distinct from
+   encode(extensions.digest(convert_to(to_jsonb(v_s)::text,'UTF8'),'sha256'),'hex')
+ or v_capture.rights_fingerprint is distinct from
+   (select encode(extensions.digest(convert_to(
+      coalesce(jsonb_agg(to_jsonb(r) order by r.component_type,r.id),'[]'::jsonb)::text,
+      'UTF8'),'sha256'),'hex')
+    from public.work_candidate_component_rights r
+    where r.candidate_id=p_candidate_id and r.source_id=v_s.id)
+ then return jsonb_build_object('result','blocked','reason','review_invalidated');end if;
  -- Inventory must be explicit, including excluded wrapper / assets decisions.
  if jsonb_array_length(v_capture.included_inventory)=0 or not exists(
    select 1 from jsonb_array_elements(v_capture.included_inventory) el
