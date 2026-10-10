@@ -74,3 +74,10 @@
 @media(max-width:960px) { .ingest-lab__spread { grid-template-columns: 1fr; max-width: 710px; } .ingest-lab__page { min-height: 0; } }
 @media(max-width:620px) { .ingest-lab { padding: 0 12px 40px; } .ingest-lab__toolbar { margin: 0 -12px; padding: 12px; } .ingest-lab__brand { gap: 5px; } .ingest-lab__brand span { font-size: 11px; } .ingest-lab__intro { margin-top: 20px; } .ingest-lab__review-grid { grid-template-columns: 1fr; } .ingest-lab__review-grid > button { justify-self: stretch; } .ingest-lab__page { padding: 21px 16px; } }
 @media print { .ingest-lab__toolbar, .ingest-lab__review, .ingest-lab__mark, .ingest-lab__intro { display: none; } .ingest-lab__page { box-shadow: none; } }
+
+.ingest-lab__boundary-control { align-items:center; display:flex!important; flex-direction:row; gap:10px; grid-column:1 / -1; line-height:1.5; }
+.ingest-lab__boundary-control input { accent-color:#916a2f; height:18px; width:18px; flex-shrink:0; }
+.ingest-lab__form-actions { display:flex; flex-wrap:wrap; gap:10px; grid-column:1 / -1; justify-content:flex-end; }
+.ingest-lab__form-actions button { background:transparent; border:1px solid #bda887; border-radius:999px; color:#513e24; font-size:13px; font-weight:800; padding:11px 17px; }
+.ingest-lab__form-actions button.ingest-lab__primary { background:#0d1528; border-color:#0d1528; color:#fff9ef; }
+.ingest-lab__route-note { color:#6b5b47; font-size:12px; grid-column:1 / -1; margin:0; }
