@@ -43,6 +43,31 @@ create policy "Editorial can read tasks" on public.editorial_tasks for select to
 create policy "Editorial can read task events" on public.editorial_task_events for select to authenticated
  using(exists(select 1 from public.profiles p where p.id=(select auth.uid()) and p.is_active=true and p.role in ('editor','admin')));
 -- No direct writes to either table; only role-bound RPCs execute validated transitions.
+create function public.create_editorial_task_for_candidate(p_candidate_id uuid)
+returns jsonb language plpgsql security definer set search_path=''
+as $
+declare v_actor uuid:=auth.uid(); v_candidate public.work_candidates%rowtype; v_task uuid;
+begin
+ if v_actor is null or not exists(select 1 from public.profiles p where p.id=v_actor and p.is_active and p.role='admin') then
+   raise exception 'admin_role_required' using errcode='42501';
+ end if;
+ select * into v_candidate from public.work_candidates where id=p_candidate_id for update;
+ if not found or v_candidate.status not in ('ready','accepted') or v_candidate.rights_status<>'clear'
+    or v_candidate.review_required or v_candidate.discovery_status<>'complete'
+    or v_candidate.identity_status<>'matched' or v_candidate.preferred_source_id is null then
+    return jsonb_build_object('result','blocked');
+ end if;
+ -- This is only a candidate review task. It is NOT a clearance for publication or ingestion.
+ select id into v_task from public.editorial_tasks where candidate_id=p_candidate_id and kind='edit_text' and status in ('open','claimed') limit 1;
+ if v_task is not null then return jsonb_build_object('result','already_queued','task_id',v_task); end if;
+ insert into public.editorial_tasks(candidate_id,kind,title,created_by,source_system,source_external_id)
+ values(p_candidate_id,'edit_text','Prověřit kandidáta: '||left(v_candidate.proposed_title,200),v_actor,'artales','candidate-review:'||p_candidate_id::text)
+ returning id into v_task;
+ insert into public.editorial_task_events(task_id,event_type,actor_id) values(v_task,'created',v_actor);
+ return jsonb_build_object('result','queued_for_review','task_id',v_task);
+end $;
+revoke all on function public.create_editorial_task_for_candidate(uuid) from public,anon,authenticated;
+grant execute on function public.create_editorial_task_for_candidate(uuid) to authenticated;
 create function public.claim_editorial_task(p_task_id uuid)
 returns jsonb language plpgsql security definer set search_path=''
 as $$
