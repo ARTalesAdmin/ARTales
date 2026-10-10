@@ -1,5 +1,6 @@
 import Link from "next/link"
 import { requireEditorOrAdmin } from "@/lib/guards"
+import { getServerSupabaseConnection } from "@/lib/supabase/connectionIsolation"
 import { getWorkCandidates } from "@/lib/dbCandidates"
 import { csMember } from "@/lib/i18n/dictionaries/cs/member"
 import { isCandidatesFixturePreview } from "@/lib/fixtures/workCandidates"
@@ -7,7 +8,7 @@ import { isCandidatesFixturePreview } from "@/lib/fixtures/workCandidates"
 type Props = { searchParams: Promise<{ status?: string; rights?: string; discovery?: string }> }
 
 export default async function WorkCandidatesPage({ searchParams }: Props) {
-  await requireEditorOrAdmin()
+  if (!isCandidatesFixturePreview() || getServerSupabaseConnection().enabled) await requireEditorOrAdmin()
   const candidates = await getWorkCandidates()
   const filters = await searchParams
   const copy = csMember.candidates
