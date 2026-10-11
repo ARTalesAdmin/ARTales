@@ -162,7 +162,7 @@ export function screenCapturedTextRights(input:TextRightsInput,checkedAt:string)
  const textParts=input.components.filter(c=>c.kind===selectedKind&&c.byte_start!==null);
  if(textParts.length===0)add("selected_text_not_captured");
  for(const part of textParts){
-  const text=decoded.slice(0,0)||new TextDecoder("utf-8",{fatal:true})
+  const text=new TextDecoder("utf-8",{fatal:true})
    .decode(bytes.subarray(part.byte_start!,part.byte_end!));
   if(/\[(?:Illustration|Image|Translation|Translator|Translated by)\b/i.test(text))
    add("embedded_rights_components_unseparated");
