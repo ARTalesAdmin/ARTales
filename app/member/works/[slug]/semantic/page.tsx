@@ -10,6 +10,9 @@ import {composeSemanticPg11} from "@/lib/semantic/compose";
 import {walkSemanticAtoms} from "@/lib/semantic/compose";
 import {getSemanticPageUnits} from "@/lib/semantic/readerProjection";
 import {projectSemanticProseText} from "@/lib/semantic/displayText";
+import {createClient} from "@/lib/supabase/server";
+import {verifySignedReadback} from "@/lib/semantic/verifySignedReadback";
+import type {SemanticRevision} from "@/lib/semantic/model";
 
 export const dynamic="force-dynamic";
 export const metadata={robots:{index:false,follow:false}};
@@ -27,6 +30,21 @@ export default async function AliceSemanticWorkbench({params}:Props){
   const bytes=readFileSync(join(process.cwd(),"tests/fixtures/gutenberg/pg11-2016-gitenberg-11-0.txt"));
   const pinned=captureGutenbergBytes(bytes,getPg11FixtureRequest());
   const {revision,original_raw}=composeSemanticPg11(pinned,{work_id:work.id,work_slug:work.slug,chapter_only:false});
+  let saved:SemanticRevision|null=null;
+  let savedMessage="E2 readback unavailable in this isolated environment.";
+  // Read-only, never writes. A missing/mismatched DB capability blocks verification.
+  try{
+    const db=await createClient();
+    const {data,error}=await db.rpc("get_semantic_v2_editor_state",{p_work_id:work.id});
+    if(error)savedMessage="E2 readback unavailable; no stored revision has been trusted.";
+    else if(data?.result==="not_started")savedMessage="No persistent E2 draft for this work.";
+    else if(data?.result==="ready"){
+      saved=verifySignedReadback(data,{work_id:work.id,slug:work.slug}).revision;
+      savedMessage="Verified signed E2 draft — QA only, not approved for publication.";
+    }else savedMessage="Stored E2 draft denied or unverified.";
+  }catch{
+    saved=null;savedMessage="Stored revision verification blocked; preview remains read-only.";
+  }
   const units=getSemanticPageUnits(revision);
   const newText=walkSemanticAtoms(revision.blocks).map(a=>a.raw).join("");
   const oldText=observed.blocks.map(b=>b.content).join("\n\n");
@@ -39,6 +57,10 @@ export default async function AliceSemanticWorkbench({params}:Props){
       <strong>Pouze čtení. Žádné ukládání, schválení ani publikování.</strong>
       <p>Zdroj je přesný lokální pinned Gutenberg #11, nikoli dosud důvěryhodně zachycený produkční snapshot. Stará verze je aktuálně pozorovaný obsah existujícího díla, ne nezávisle archivovaná evidence. Právní a redakční kontroly dosud nejsou uzavřené.</p>
     </div>
+    <aside role="status" style={{border:"1px solid #999",padding:12,marginBottom:16}}>
+      <strong>Persistentní revize:</strong> {savedMessage}
+      {saved?<p>Head <code>{saved.revision_ref}</code> · round {saved.round} · publikace zamčena</p>:null}
+    </aside>
     <p>Zdroj SHA-256: <code>{pinned.bytes_sha256}</code> · sémantická revize: <code>{revision.revision_ref}</code> · {revision.blocks.filter(x=>x.kind==="chapter").length} kapitol · {units.length} sémantických jednotek.</p>
     <section aria-label="Trojité porovnání" style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(280px,1fr))",gap:12}}>
       <article style={{minWidth:0}}><h2>Archivní Gutenberg #11</h2><p>Lokální přesný zdroj · bez právního schválení</p><pre style={{whiteSpace:"pre-wrap",overflowWrap:"anywhere",maxHeight:580,overflow:"auto",border:"1px solid #bbb",padding:16}}>{original_raw}</pre></article>
