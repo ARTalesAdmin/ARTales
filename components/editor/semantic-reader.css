@@ -5,17 +5,23 @@
 .semantic-reader__triptych{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px;max-width:1680px;margin:auto}
 .semantic-reader__triptych>section{min-width:0;border:1px solid #d9cfbf;border-radius:10px;padding:16px;background:#faf7f0}
 .semantic-reader__triptych h2{font:600 16px system-ui;color:#4a4038;margin-bottom:12px}
+.semantic-reader__triptych--focus{display:block;max-width:1280px}
+.semantic-reader__triptych--focus>section{max-width:100%;margin:auto}
+.semantic-reader__viewport{margin-inline:auto;min-width:0;box-sizing:border-box}
+.semantic-reader__viewport[data-focused="true"]{border:1px dashed #a69d91;padding:12px;background:#eae4d8;border-radius:8px}
 .semantic-reader__original{font:13px/1.7 ui-monospace,monospace;white-space:pre-wrap;overflow-wrap:anywhere;max-height:75vh;overflow:auto}
 .semantic-reader__pages{display:flex;flex-direction:column;gap:14px}
 .semantic-reader__pages--spread{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}
+.semantic-reader__pages--spread{grid-template-columns:repeat(2,minmax(0,1fr))}
+.semantic-reader__triptych:not(.semantic-reader__triptych--focus) .semantic-reader__pages--spread{grid-template-columns:1fr}
 .semantic-reader__page{padding:24px 18px;background:#fffdf8;border:1px solid #e7e0d5;border-radius:6px;min-width:0;overflow:auto;font-size:calc(1rem * var(--reader-scale, 1));line-height:1.65}
 .semantic-reader__page h3,.semantic-reader__page h4{line-height:1.3}
-.semantic-reader__page p{text-align:left;white-space:pre-wrap;overflow-wrap:anywhere;margin-bottom:1em}
+.semantic-reader__page p{text-align:left;white-space:normal;overflow-wrap:break-word;margin-bottom:1em}
 .semantic-reader__page footer{font:11px system-ui;color:#736b60;border-top:1px solid #e9e1d4;margin-top:20px;padding-top:8px}
 .semantic-reader__poem{margin:1rem 0;padding:0}
 .semantic-reader__stanza{margin:0 0 0.8em;white-space:pre}
 .semantic-reader__poem--stanza_airy .semantic-reader__stanza{margin-bottom:1.5em}
 .semantic-reader__verse{white-space:pre-wrap;overflow-wrap:anywhere}
-.semantic-reader__atom{white-space:pre-wrap}
+.semantic-reader__atom{white-space:inherit}
 @media(max-width:1150px){.semantic-reader__triptych{grid-template-columns:1fr 1fr}.semantic-reader__triptych>section:last-child{grid-column:1/-1}}
 @media(max-width:650px){.semantic-reader{padding:8px}.semantic-reader__triptych{grid-template-columns:1fr}.semantic-reader__triptych>section:last-child{grid-column:auto}.semantic-reader__pages--spread{grid-template-columns:1fr}.semantic-reader__page{padding:14px}.semantic-reader__original{max-height:35vh}}
