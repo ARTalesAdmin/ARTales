@@ -6,6 +6,7 @@ on:
       - 'supabase/ci/profile_authority_lockdown_assembly.sql'
       - 'supabase/ci/test_profile_authority_lockdown.sql'
       - 'supabase/ci/test_profile_authority_signed_e2e.mjs'
+      - 'supabase/ci/test_profile_auth_trigger_parity.sql'
       - '.github/workflows/artales-profile-authority-qa.yml'
   workflow_dispatch:
 permissions:
@@ -35,6 +36,8 @@ jobs:
         run: psql -X -v ON_ERROR_STOP=1 -f supabase/ci/profile_authority_lockdown_assembly.sql
       - name: Assert role protections and profile compatibility
         run: psql -X -v ON_ERROR_STOP=1 -f supabase/ci/test_profile_authority_lockdown.sql
+      - name: Match production auth trigger in disposable local fixture
+        run: psql -X -v ON_ERROR_STOP=1 -f supabase/ci/test_profile_auth_trigger_parity.sql
       - name: Signed GoTrue and PostgREST privilege regression
         run: node supabase/ci/test_profile_authority_signed_e2e.mjs
       - name: Discard isolated database
