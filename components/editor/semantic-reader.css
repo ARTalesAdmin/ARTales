@@ -63,3 +63,12 @@
 .semantic-reader__paired-scroll.semantic-reader__viewport{height:min(76dvh,850px)}
 .semantic-reader__paired-scroll .semantic-reader__page{min-height:0}
 @media(max-width:650px){.semantic-reader__paired-scroll{height:min(75dvh,730px)}}
+
+.semantic-reader__note-lab{max-width:1280px;margin:0 auto 16px;padding:14px;background:#faf7f0;border:1px solid #d9cfbf;border-radius:10px;display:flex;flex-wrap:wrap;align-items:center;gap:10px;font:14px system-ui}
+.semantic-reader__note-lab h2{width:100%;margin:0;font:600 16px system-ui}
+.semantic-reader__note-lab>p{width:100%;margin:0;color:#625b52}
+.semantic-reader__note-lab label{display:flex;flex-direction:column;gap:5px;min-width:150px;flex:1}
+.semantic-reader__note-lab input,.semantic-reader__note-lab textarea,.semantic-reader__note-lab select{width:100%;max-width:100%;box-sizing:border-box;font:inherit;padding:7px}
+.semantic-reader__note-lab button{font:inherit;cursor:pointer}
+.semantic-reader__note-entry{display:flex;align-items:center;flex-wrap:wrap;gap:10px;padding:7px;border:1px solid #ded4c4;border-radius:6px}
+.semantic-reader__note-lab [aria-live]{width:100%}
