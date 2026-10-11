@@ -1,0 +1,16 @@
+begin;
+create extension if not exists pgtap with schema extensions;
+select plan(11);
+select has_function('public','stage_semantic_v2_draft',array['uuid','uuid','uuid','text','text','uuid','uuid'],'signed draft RPC present');
+select has_function('public','return_semantic_v2_revision',array['uuid','uuid','text','text','text','uuid'],'anchored return RPC present');
+select is(has_function_privilege('anon','public.stage_semantic_v2_draft(uuid,uuid,uuid,text,text,uuid,uuid)','EXECUTE'),false,'anon no draft writes');
+select is(has_function_privilege('authenticated','public.stage_semantic_v2_draft(uuid,uuid,uuid,text,text,uuid,uuid)','EXECUTE'),true,'signed draft RPC only');
+select is(has_function_privilege('anon','public.return_semantic_v2_revision(uuid,uuid,text,text,text,uuid)','EXECUTE'),false,'anon no review writes');
+select is(has_schema_privilege('authenticated','artales_evidence','USAGE'),false,'private evidence schema hidden');
+select is(has_table_privilege('authenticated','artales_evidence.semantic_v2_drafts','INSERT'),false,'no direct draft forging');
+select is(has_table_privilege('authenticated','artales_evidence.semantic_v2_review_issues','INSERT'),false,'no direct review forging');
+select is((select count(*)::integer from pg_trigger where tgrelid='artales_evidence.semantic_v2_drafts'::regclass and tgname='immutable_semantic_v2_drafts'),1,'append-only drafts');
+select is((select count(*)::integer from pg_trigger where tgrelid='artales_evidence.semantic_v2_review_issues'::regclass and tgname='immutable_semantic_v2_review_issues'),1,'append-only issues');
+select is((select count(*)::integer from pg_policies where schemaname='artales_evidence' and tablename in ('semantic_v2_drafts','semantic_v2_heads','semantic_v2_review_issues')),0,'no exposed RLS policies');
+select * from finish();
+rollback;
