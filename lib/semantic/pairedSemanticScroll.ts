@@ -13,7 +13,8 @@ export function synchronizeSemanticPanes(source:SemanticPaneGeometry,target:Sema
   const sourceMax=Math.max(0,source.scrollHeight-source.clientHeight);
   const targetMax=Math.max(0,target.scrollHeight-target.clientHeight);
   if(sourceMax<=0||targetMax<=0)return 0;
-  const map=new Map(target.markers.map(mark=>[mark.regionIndex,mark.top]));
+  const map=new Map<number,number>();
+  for(const mark of target.markers){if(!map.has(mark.regionIndex))map.set(mark.regionIndex,mark.top);}
   const ordered=[...source.markers].sort((a,b)=>a.regionIndex-b.regionIndex);
   const xs:number[]=[];
   const ys:number[]=[];
