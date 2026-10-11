@@ -1,0 +1,24 @@
+import assert from "node:assert/strict";
+import test from "node:test";
+import {proveAliceFlow} from "../lib/pilots/aliceVerticalProof";
+test("Alice pinned source -> rights escalation -> semantic composition -> anchored return never publishes",()=>{
+ const p=proveAliceFlow();
+ assert.equal(p.schema,"artales.alice.vertical-proof.v1");
+ assert.equal(p.mode,"synthetic_read_only");
+ assert.equal(p.source_bytes,173595);
+ assert.equal(p.source_sha256,"49a0b2726606e1290ac03a63978fa1dd1bd38a8d805704d98265f393533ea094");
+ assert.equal(p.source_component_count,6);
+ assert.equal(p.rights_outcome,"needs_specialist_review");
+ assert.ok(p.rights_issues.includes("insufficient_evidence"));
+ assert.equal(p.source_composition_verified,true);
+ assert.equal(p.semantic_schema,"artales.semantic-text.v2");
+ assert.notEqual(p.semantic_initial_revision,p.semantic_corrected_revision);
+ assert.equal(p.revision_parent,p.semantic_initial_revision);
+ assert.equal(p.review_issues,1);
+ assert.equal(p.legacy_comparison,"synthetic_comparison");
+ assert.equal(p.release_allowed,false);
+ assert.equal(p.actual_legacy_reconciliation,false);
+ assert.equal(p.database_writes,0);
+ assert.equal(p.live_editions_changed,0);
+ assert.ok(p.missing_gates.includes("independent_editor_review"));
+});
