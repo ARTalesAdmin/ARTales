@@ -1,0 +1,27 @@
+name: ARTales Alice E1 real work binding QA
+on:
+  pull_request:
+    branches: [develop]
+    paths:
+      - 'lib/pilots/legacyWorkBinding.ts'
+      - 'tests/legacyWorkBinding.test.ts'
+      - '.github/workflows/artales-alice-real-work-binding-qa.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  binding-qa:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - name: Work identity and fail-closed source binding
+        run: npx tsx --test tests/legacyWorkBinding.test.ts
+      - name: TypeScript
+        run: npx tsc --noEmit
+      - name: ESLint
+        run: npx eslint lib/pilots/legacyWorkBinding.ts tests/legacyWorkBinding.test.ts
