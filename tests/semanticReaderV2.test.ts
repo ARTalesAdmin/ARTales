@@ -3,7 +3,7 @@ import {readFileSync} from "node:fs";
 import {createHash} from "node:crypto";
 import test from "node:test";
 import {captureGutenbergBytes,getPg11FixtureRequest} from "../lib/ingest/gutenbergSnapshot";
-import {composeSemanticPg11,composeSemanticRevision,submitSemanticIssue,recomposeSemanticLayout,verifySemanticRevision,walkSemanticAtoms} from "../lib/semantic/compose";
+import {composeSemanticPg11,composeSemanticRevision,submitSemanticIssue,recomposeSemanticLayout,verifySemanticRevision,walkSemanticAtoms,proposeSemanticTitlePage,DEFAULT_CHAPTER_PRESENTATION} from "../lib/semantic/compose";
 import {projectSemanticReader,verifyReaderProjection,remapLegacyPosition,locateReaderAnchor} from "../lib/semantic/readerProjection";
 import {compareAliceThreeWays,syntheticLegacyFixture} from "../lib/semantic/tripleQA";
 const bytes=readFileSync("tests/fixtures/gutenberg/pg11-2016-gitenberg-11-0.txt");
@@ -110,4 +110,45 @@ test("browser measured heights cause deterministic repagination without text los
  assert.equal(verifyReaderProjection(rev,measured).ok,true);
  assert.ok(measured.length>=baseline.length);
  assert.throws(()=>projectSemanticReader(rev,{mode:"paged",viewport_width:400,viewport_height:850,font_scale:1,measured_unit_heights:{[first.id]:-1}}),/measured/);
+});
+
+test("chapter spacing is a validated layout hint rather than a source newline",()=>{
+ assert.equal(rev.blocks[0].kind,"chapter");
+ if(rev.blocks[0].kind!=="chapter")throw Error("missing chapter");
+ assert.deepEqual(rev.blocks[0].presentation,DEFAULT_CHAPTER_PRESENTATION);
+ const first=walkSemanticAtoms(rev.blocks).find(a=>a.raw.includes("Alice was beginning"))!;
+ const flags={align:"justify" as const,indent:"medium" as const,space_before:"normal" as const,space_after:"generous" as const};
+ const issue=submitSemanticIssue(rev,{id:"editor-layout-1",target_atom_id:first.id,
+   kind:"typography",reason:"Improve paragraph alignment and indentation",
+   requested_layout:"block_presentation",requested_presentation:flags});
+ const after=recomposeSemanticLayout(rev,issue,sample.original_raw);
+ verifySemanticRevision(after,sample.original_raw);
+ assert.equal(after.parent_revision_ref,rev.revision_ref);
+ assert.notEqual(after.revision_sha256,rev.revision_sha256);
+ assert.deepEqual(walkSemanticAtoms(after.blocks).map(a=>a.id),walkSemanticAtoms(rev.blocks).map(a=>a.id));
+ const second=walkSemanticAtoms(after.blocks).find(a=>a.id!==first.id&&a.raw.length>70&&!a.raw.startsWith("CHAPTER"))!;
+ const issue2=submitSemanticIssue(after,{id:"editor-layout-2",target_atom_id:second.id,
+   kind:"readability",reason:"Increase separation",requested_layout:"block_presentation",
+   requested_presentation:{align:"left",indent:"small",space_before:"none",space_after:"normal"}});
+ const final=recomposeSemanticLayout(after,issue2,sample.original_raw);
+ verifySemanticRevision(final,sample.original_raw);
+ assert.throws(()=>recomposeSemanticLayout(after,issue,sample.original_raw),/Stale/);
+ assert.throws(()=>submitSemanticIssue(rev,{id:"bad-flags",target_atom_id:first.id,kind:"typography",reason:"Invalid styling",
+   requested_layout:"block_presentation",requested_presentation:{...flags,align:"unsafe" as "left"}}),/Unsafe/);
+});
+test("title-page draft has revision ancestry but no source atom or publisher approval",()=>{
+ const original=walkSemanticAtoms(rev.blocks).map(x=>x.id);
+ const titled=proposeSemanticTitlePage(rev,{title:"Alice's Adventures in Wonderland",authors:["Lewis Carroll"]});
+ assert.equal(titled.title_page?.brand,"ARTales");
+ assert.equal(titled.title_page?.review_state,"awaiting_editor_review");
+ assert.equal(titled.parent_revision_ref,rev.revision_ref);
+ assert.notEqual(titled.revision_ref,rev.revision_ref);
+ assert.deepEqual(walkSemanticAtoms(titled.blocks).map(x=>x.id),original);
+ assert.equal(titled.release_allowed,false);
+ const pages=projectSemanticReader(titled,{mode:"paged",viewport_width:700,viewport_height:850,font_scale:1});
+ assert.equal(pages[0].units[0].kind,"title_page");
+ assert.equal(pages[0].units.length,1);
+ assert.equal(verifyReaderProjection(titled,pages).ok,true);
+ assert.throws(()=>proposeSemanticTitlePage(rev,{title:"Bad ISBN 123",authors:["Lewis Carroll"]}),/ISBN/);
+ assert.throws(()=>proposeSemanticTitlePage(rev,{title:"<script>",authors:["Lewis Carroll"]}),/title page/);
 });
