@@ -4,7 +4,8 @@ import {createHash} from "node:crypto";
 import test from "node:test";
 import {captureGutenbergBytes,getPg11FixtureRequest} from "../lib/ingest/gutenbergSnapshot";
 import {composeSemanticPg11,composeSemanticRevision,submitSemanticIssue,recomposeSemanticLayout,verifySemanticRevision,walkSemanticAtoms,proposeSemanticTitlePage,DEFAULT_CHAPTER_PRESENTATION} from "../lib/semantic/compose";
-import {projectSemanticReader,verifyReaderProjection,remapLegacyPosition,locateReaderAnchor,splitParagraphUnit,getSemanticPageUnits} from "../lib/semantic/readerProjection";
+import {projectSemanticReader,verifyReaderProjection,remapLegacyPosition,locateReaderAnchor,splitParagraphUnit,getSemanticPageUnits,chooseSemanticParagraphBreak} from "../lib/semantic/readerProjection";
+import {resolveQaProjectionMode,sourceOffsetForReaderPage} from "../lib/semantic/qaReaderModes";
 import {compareAliceThreeWays,syntheticLegacyFixture} from "../lib/semantic/tripleQA";
 const bytes=readFileSync("tests/fixtures/gutenberg/pg11-2016-gitenberg-11-0.txt");
 const source=captureGutenbergBytes(bytes,getPg11FixtureRequest());
@@ -166,4 +167,22 @@ test("paragraph fragments preserve original atom and contiguous source offsets",
  const corrupt=structuredClone(pages), fragment=corrupt.flatMap(p=>p.units).find(x=>x.fragment)!;
  fragment.fragment!.start++;
  assert.throws(()=>verifyReaderProjection(rev,corrupt),/fragment/);
+});
+
+test("semicolon preferred over arbitrary cut, strong punctuation takes precedence",()=>{
+ const raw="There was a long enough phrase with plenty of words; but then the Rabbit walked further ahead to discover more.";
+ const edge=raw.indexOf("but then")+7;
+ const at=chooseSemanticParagraphBreak(raw,0,edge,raw.length);
+ assert.equal(at,raw.indexOf("but then"));
+ assert.equal(raw.slice(0,at).trimEnd().endsWith(";"),true);
+ assert.equal(chooseSemanticParagraphBreak("An unfinished sentence with no natural semantic break in reach",0,33),null);
+});
+test("reader surfaces use canonical flow/spread, mobile suppresses spread, editor always pages",()=>{
+ assert.equal(resolveQaProjectionMode("editor","spread",900,1440),"paged");
+ assert.equal(resolveQaProjectionMode("reader","scroll",900,1440),"scroll");
+ assert.equal(resolveQaProjectionMode("reader","spread",900,1440),"spread");
+ assert.equal(resolveQaProjectionMode("reader","spread",900,360),"scroll");
+ assert.equal(resolveQaProjectionMode("reader","spread",360,1440),"scroll");
+ const pages=projectSemanticReader(rev,{mode:"paged",viewport_width:350,viewport_height:700,font_scale:1});
+ assert.ok(sourceOffsetForReaderPage(pages,0,.5)>=0);
 });
