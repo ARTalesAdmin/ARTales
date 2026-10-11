@@ -10,7 +10,7 @@ const bytes=readFileSync("tests/fixtures/gutenberg/pg11-2016-gitenberg-11-0.txt"
 const source=captureGutenbergBytes(bytes,getPg11FixtureRequest());
 const sample=composeSemanticPg11(source,{work_id:"fixture:alice",work_slug:"alices-adventures-in-wonderland"});
 const rev=sample.revision;
-const sha=(s:string)=>createHash("sha256").update(s).digest("hex");
+const sha=(s:string|Uint8Array)=>createHash("sha256").update(s).digest("hex");
 test("Gutenberg #11 uses new semantic hierarchy and no WorkBlock output",()=>{
  verifySemanticRevision(rev,sample.original_raw);
  assert.equal(rev.schema,"artales.semantic-text.v2");
