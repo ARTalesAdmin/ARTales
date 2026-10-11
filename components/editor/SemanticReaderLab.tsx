@@ -3,8 +3,8 @@ import {useEffect, useMemo, useRef, useState, type CSSProperties} from "react";
 import {projectSemanticProseText} from "@/lib/semantic/displayText";
 import {resolveQaProjectionMode, buildSemanticSourceRegions} from "@/lib/semantic/qaReaderModes";
 import {synchronizeSemanticPanes} from "@/lib/semantic/pairedSemanticScroll";
-import {createSessionReaderNote,locateSessionReaderNote,noteAnchorForUnit,type SessionReaderNote} from "@/lib/semantic/qaNoteSession";
-import type {ReaderNoteColor} from "@/lib/reader/readerStorage";
+import {createSessionReaderNote,locateSessionReaderNote,locateAndSortSessionNotes,selectActiveQaReadingUnit,type SessionReaderNote} from "@/lib/semantic/qaNoteSession";
+import SemanticReaderNotesQa from "./SemanticReaderNotesQa";
 import {getProfileReaderSettings, type FixtureProfileReaderDefaults} from "@/lib/fixtures/readerPreferences";
 import {defaultReaderSettings, type ReaderDensityId} from "@/lib/reader/readerSettings";
 import type {SemanticRevision, SemanticNode, SemanticAtom, SemanticPoem, SemanticBlockPresentation, SemanticPageUnit} from "@/lib/semantic/model";
@@ -102,10 +102,10 @@ export default function SemanticReaderLab({revision,original,profileReaderDefaul
   const [focus,setFocus]=useState(false);
   const [metrics,setMetrics]=useState<BrowserMeasurements|null>(null);
   const [qaNotes,setQaNotes]=useState<SessionReaderNote[]>([]);
-  const [selectedUnit,setSelectedUnit]=useState<string|null>(null);
-  const [noteTitle,setNoteTitle]=useState("");
-  const [noteBody,setNoteBody]=useState("");
-  const [noteColor,setNoteColor]=useState<ReaderNoteColor>("gold");
+  const [selectedNoteId,setSelectedNoteId]=useState<string|null>(null);
+  const [notesListExpanded,setNotesListExpanded]=useState<boolean|null>(null);
+  const [readingPosition,setReadingPosition]=useState<{unitId:string;pageIndex:number}|null>(null);
+  const [openNotesRequest,setOpenNotesRequest]=useState(0);
   const [noteFeedback,setNoteFeedback]=useState("");
   const frameRef=useRef<HTMLDivElement>(null);
   const sourceRef=useRef<HTMLDivElement>(null);
@@ -128,33 +128,92 @@ export default function SemanticReaderLab({revision,original,profileReaderDefaul
     measured_unit_heights:measured?.heights,
   }),[revision,mode,scale,effectiveDensity,measured,fallbackWidth]);
   const integrity=verifyReaderProjection(revision,pages);
-  const anchorable=pages.flatMap(page=>page.units.map(unit=>({unit,pageIndex:page.index})))
-    .filter(entry=>Boolean(noteAnchorForUnit(revision,entry.unit)));
-  const chosen=anchorable.find(entry=>entry.unit.id===selectedUnit)??anchorable[0];
-  const addQaNote=()=>{
-    if(!chosen)return;
+  const locatedNotes=useMemo(()=>locateAndSortSessionNotes(revision,pages,qaNotes),[revision,pages,qaNotes]);
+  const selectedNoteIndex=locatedNotes.findIndex(item=>item.saved.note.id===selectedNoteId);
+  const expanded=notesListExpanded??locatedNotes.length<=3;
+  const pageUnits=useMemo(()=>new Map(pages.flatMap(page=>
+    page.units.map(unit=>[unit.id,{unit,pageIndex:page.index}] as const))),[pages]);
+  const currentUnit=readingPosition?pageUnits.get(readingPosition.unitId):null;
+
+  const addQaNote=(input:{title:string;body:string;color:import("@/lib/reader/readerStorage").ReaderNoteColor}):boolean=>{
+    if(!currentUnit||currentUnit.unit.kind==="title_page"){
+      setNoteFeedback("Posuň se na text díla, aby se poznámka měla kam ukotvit.");
+      return false;
+    }
     try{
-      const saved=createSessionReaderNote(revision,chosen.unit,{
-        id:crypto.randomUUID(),title:noteTitle,body:noteBody,color:noteColor,
-        now:new Date().toISOString(),pageIndex:chosen.pageIndex,pageCount:pages.length,
+      const saved=createSessionReaderNote(revision,currentUnit.unit,{
+        id:crypto.randomUUID(),...input,
+        now:new Date().toISOString(),pageIndex:currentUnit.pageIndex,pageCount:pages.length,
         layoutMode:mode==="spread"?"spread":"pagedFlow",
       });
-      setQaNotes(current=>[...current,saved]);setNoteTitle("");setNoteBody("");
-      setNoteFeedback("Testovací poznámka přidána jen do této relace.");
-    }catch(e){setNoteFeedback(e instanceof Error?e.message:"Poznámku nelze vytvořit.");}
+      setQaNotes(current=>[...current,saved]);
+      setSelectedNoteId(saved.note.id);
+      setNoteFeedback("Testovací poznámka přidána pouze do této relace.");
+      return true;
+    }catch(e){
+      setNoteFeedback(e instanceof Error?e.message:"Poznámku nelze vytvořit.");
+      return false;
+    }
   };
   const jumpToQaNote=(saved:SessionReaderNote)=>{
     const location=locateSessionReaderNote(revision,pages,saved);
     if(location.status!=="exact"||!location.unitId){
       setNoteFeedback("Kotva není dostupná; původní poznámka zůstává zachována.");return;
     }
-    const units=frameRef.current?.querySelectorAll<HTMLElement>("[data-page-unit-id]");
+    const units=frameRef.current?.querySelectorAll<HTMLElement>('[data-qa-projection="visible"] [data-page-unit-id]');
     const target=[...(units??[])].find(node=>node.dataset.pageUnitId===location.unitId);
     if(!target){setNoteFeedback("Cílový blok ještě není vykreslen.");return;}
+    setSelectedNoteId(saved.note.id);
     target.scrollIntoView({behavior:"smooth",block:"center"});
     setNoteFeedback("Návrat podle obsahové kotvy, nikoli původního čísla stránky.");
   };
+  const goToRelativeNote=(delta:number)=>{
+    const index=selectedNoteIndex+delta;
+    if(index>=0&&index<locatedNotes.length)jumpToQaNote(locatedNotes[index].saved);
+  };
+  const deleteQaNote=(saved:SessionReaderNote)=>{
+    setQaNotes(notes=>notes.filter(n=>n.note.id!==saved.note.id));
+    if(selectedNoteId===saved.note.id)setSelectedNoteId(null);
+    setNoteFeedback("Testovací poznámka smazána pouze z této relace.");
+  };
 
+  useEffect(()=>{
+    const list=locatedNotes;
+    if(list.length===0){
+      setSelectedNoteId(previous=>previous===null?previous:null);
+    }else if(!list.some(item=>item.saved.note.id===selectedNoteId)){
+      setSelectedNoteId(list[0].saved.note.id);
+    }
+  },[locatedNotes,selectedNoteId]);
+  useEffect(()=>{
+    if(!focus){setReadingPosition(previous=>previous===null?previous:null);return;}
+    let frame=0;
+    const update=()=>{
+      cancelAnimationFrame(frame);
+      frame=requestAnimationFrame(()=>{
+        const root=frameRef.current;
+        const visible=root?.querySelector<HTMLElement>('[data-qa-projection="visible"]');
+        if(!visible)return;
+        const measured=[...visible.querySelectorAll<HTMLElement>("[data-page-unit-id]")].map(element=>{
+          const entry=pageUnits.get(element.dataset.pageUnitId??"");
+          const rect=element.getBoundingClientRect();
+          return {
+            unitId:element.dataset.pageUnitId??"",
+            pageIndex:entry?.pageIndex??-1,top:rect.top,bottom:rect.bottom,
+            anchorable:Boolean(entry&&entry.unit.kind!=="title_page"&&entry.unit.source_atom_ids.length),
+          };
+        });
+        const next=selectActiveQaReadingUnit(measured,window.innerHeight*0.35,window.innerHeight);
+        setReadingPosition(previous=>(previous?.unitId===next?.unitId&&previous?.pageIndex===next?.pageIndex)
+          ?previous:next);
+      });
+    };
+    window.addEventListener("scroll",update,{passive:true});
+    window.addEventListener("resize",update);
+    update();
+    return()=>{cancelAnimationFrame(frame);window.removeEventListener("scroll",update);
+      window.removeEventListener("resize",update);};
+  },[focus,pageUnits]);
   useEffect(()=>{
     const update=()=>setDeviceWidth(window.innerWidth);
     update();window.addEventListener("resize",update);
@@ -254,27 +313,13 @@ export default function SemanticReaderLab({revision,original,profileReaderDefaul
         </span>
       </div>
     </header>
-    {focus&&<section className="semantic-reader__note-lab" aria-label="Testování čtenářských poznámek">
-      <h2>Poznámky · izolované QA</h2>
-      <p>Poznámky zůstávají pouze v paměti náhledu; obnovení stránky je smaže. Žádný zápis do účtu.</p>
-      <label>Místo v textu <select aria-label="Místo poznámky" value={chosen?.unit.id??""}
-        onChange={e=>setSelectedUnit(e.target.value)}>
-        {anchorable.map(({unit,pageIndex})=><option key={unit.id} value={unit.id}>
-          {"Strana "+(pageIndex+1)+" · "+unit.kind+" · "+unit.id.slice(-14)}</option>)}
-      </select></label>
-      <label>Název <input maxLength={160} value={noteTitle} onChange={e=>setNoteTitle(e.target.value)} /></label>
-      <label>Text poznámky <textarea maxLength={4000} value={noteBody} onChange={e=>setNoteBody(e.target.value)} /></label>
-      <label>Barva <select value={noteColor} onChange={e=>setNoteColor(e.target.value as ReaderNoteColor)}>
-        {(["gold","blue","green","rose","violet"] as const).map(color=><option key={color} value={color}>{color}</option>)}
-      </select></label>
-      <button type="button" disabled={!chosen} onClick={addQaNote}>Uložit testovací poznámku</button>
-      <div aria-live="polite">{noteFeedback}</div>
-      {qaNotes.map(saved=><div key={saved.note.id} className="semantic-reader__note-entry">
-        <span>{saved.note.title||"Bez názvu"} · {saved.note.color}</span>
-        <button type="button" onClick={()=>jumpToQaNote(saved)}>Přejít na poznámku</button>
-        <button type="button" onClick={()=>setQaNotes(notes=>notes.filter(n=>n.note.id!==saved.note.id))}>Smazat</button>
-      </div>)}
-    </section>}
+    {focus&&<SemanticReaderNotesQa notes={locatedNotes} selectedNoteId={selectedNoteId}
+      selectedNoteIndex={selectedNoteIndex} listExpanded={expanded} status={noteFeedback}
+      canAddNote={Boolean(currentUnit&&currentUnit.unit.kind!=="title_page")}
+      openRequest={openNotesRequest}
+      onAdd={addQaNote} onGoTo={jumpToQaNote}
+      onPrevious={()=>goToRelativeNote(-1)} onNext={()=>goToRelativeNote(1)}
+      onListExpanded={setNotesListExpanded} onDelete={deleteQaNote}/>}
     <div className={"semantic-reader__triptych"+(focus?" semantic-reader__triptych--focus":"")}>
       {!focus&&<section aria-label="Archivní Gutenberg"><h2>Gutenberg #11 · originál</h2>
         <div ref={sourceRef} className="semantic-reader__paired-scroll semantic-reader__source-sheet"
@@ -300,9 +345,24 @@ export default function SemanticReaderLab({revision,original,profileReaderDefaul
           <div className={"semantic-reader__pages semantic-reader__pages--"+mode} data-qa-projection="visible">
             {pages.map(page=><article className="semantic-reader__page" key={page.index}
               data-page-index={page.index} data-overflow={page.overflow} data-mode={mode}>
-              {page.units.map(u=><div className="semantic-reader__unit" key={u.id} data-page-unit-id={u.id}
-                {...(regionIndices.has(u.fragment?.original_unit_id??u.id)?{"data-region-index":regionIndices.get(u.fragment?.original_unit_id??u.id)}:{})}>
-                {unitView(u)}</div>)}
+              {page.units.map(u=>{
+                const notesAtUnit=focus?locatedNotes.filter(item=>item.unitId===u.id):[];
+                const first=notesAtUnit[0];
+                const selectedHere=notesAtUnit.some(item=>item.saved.note.id===selectedNoteId);
+                return <div className="semantic-reader__unit" key={u.id} data-page-unit-id={u.id}
+                  {...(regionIndices.has(u.fragment?.original_unit_id??u.id)?{"data-region-index":regionIndices.get(u.fragment?.original_unit_id??u.id)}:{})}>
+                  {first&&<button type="button"
+                    className={"semantic-reader__note-marker artales-reader-note-marker--"+first.saved.note.color+
+                      (selectedHere?" semantic-reader__note-marker--selected":"")}
+                    title={notesAtUnit.length>1?"Poznámky na tomto místě: "+notesAtUnit.length:"Poznámka na tomto místě"}
+                    aria-label={"Otevřít poznámky na straně "+(page.index+1)}
+                    onClick={()=>{
+                      jumpToQaNote(first.saved);setNotesListExpanded(true);setOpenNotesRequest(x=>x+1);
+                    }}>
+                    {notesAtUnit.length>1?notesAtUnit.length:null}
+                  </button>}
+                  {unitView(u)}</div>;
+              })}
               <footer>QA strana {page.index+1}
                 {page.overflow==="scroll_unit"?" · dlouhý celek, bez rozdělení":""}
               </footer>
