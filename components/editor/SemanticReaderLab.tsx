@@ -25,6 +25,7 @@ function nodeView(n:SemanticNode):React.ReactNode{
    {n.kind==="chapter"?<h2>{inline(n.heading)}</h2>:<h3>{inline(n.heading)}</h3>}
    {n.children.map(nodeView)}</section>;
  if(n.kind==="poem")return <div key={n.id}>{poem(n)}</div>;
+ if(!("atom" in n))return null;
  const body=inline(n.atom);
  if(n.kind==="quote"||n.kind==="epigraph")return <blockquote key={n.id}>{body}</blockquote>;
  if(n.kind==="footnote")return <aside key={n.id} role="note"><sup>{n.footnote_label??"*"}</sup>{body}</aside>;
@@ -58,8 +59,8 @@ export default function SemanticReaderLab({revision,original,legacySynthetic}:Pr
      <div className={"semantic-reader__pages semantic-reader__pages--"+mode}>
      {pages.map(page=><article className="semantic-reader__page" key={page.index} data-overflow={page.overflow}>
        {page.units.map(u=>u.kind==="chapter_heading"||u.kind==="section_heading"?
-        <div key={u.id}>{u.kind==="chapter_heading"?<h3>{inline((u.node as Extract<SemanticNode,{kind:"chapter"}>).heading)}</h3>:
-          <h4>{inline((u.node as Extract<SemanticNode,{kind:"section"}>).heading)}</h4>}</div>:
+        <div key={u.id}>{u.kind==="chapter_heading"?<h3>{inline((u.node as Extract<SemanticNode,{kind:"chapter"|"section"}>).heading)}</h3>:
+          <h4>{inline((u.node as Extract<SemanticNode,{kind:"chapter"|"section"}>).heading)}</h4>}</div>:
         <div key={u.id}>{u.node.kind==="chapter"||u.node.kind==="section"?null:nodeView(u.node)}</div>)}
        <footer>QA strana {page.index+1}{page.overflow==="scroll_unit"?" · dlouhý celek, bez rozdělení":""}</footer>
      </article>)}
