@@ -43,11 +43,12 @@ test("tampering and incomplete or overlapped ranges are refused",()=>{
  assert.throws(()=>screenCapturedTextRights({...base,components:[...base.components,{...base.components[0]}]},"2026-10-11T19:00:00.000Z"),/duplicate/);
 });
 test("USA rights uncertainty, express prohibition and modern US first publication stop eligibility",()=>{
- const unknown=screenCapturedTextRights({...base,source:{...base.source,us_rights:{...base.source.us_rights,status:"unknown"}}},"2026-10-11T19:00:00.000Z");
+ const cleared={...base,translators:[{...translator,living:false,death_year:1901}]};
+ const unknown=screenCapturedTextRights({...cleared,source:{...base.source,us_rights:{...base.source.us_rights,status:"unknown"}}},"2026-10-11T19:00:00.000Z");
  assert.equal(unknown.decision,"needs_facts");
- const forbidden=screenCapturedTextRights({...base,source:{...base.source,rights_notices:[{scope:"translation",kind:"no_reuse",excerpt:"No reuse allowed",evidence_url:"https://example.org/notice"}]}},"2026-10-11T19:00:00.000Z");
+ const forbidden=screenCapturedTextRights({...cleared,source:{...base.source,rights_notices:[{scope:"translation",kind:"no_reuse",excerpt:"No reuse allowed",evidence_url:"https://example.org/notice"}]}},"2026-10-11T19:00:00.000Z");
  assert.equal(forbidden.decision,"find_alternative_source");
- const recent=screenCapturedTextRights({...base,source:{...base.source,us_rights:{status:"public_domain",basis:"first_us_publication",evidence_url:"https://example.org/pub",selected_version_publication_year:2001,first_published_in_us:true}}},"2026-10-11T19:00:00.000Z");
+ const recent=screenCapturedTextRights({...cleared,source:{...base.source,us_rights:{status:"public_domain",basis:"first_us_publication",evidence_url:"https://example.org/pub",selected_version_publication_year:2001,first_published_in_us:true}}},"2026-10-11T19:00:00.000Z");
  assert.equal(recent.decision,"needs_facts");
 });
 test("header extractor reads machine credits but does not invent legal clearance",()=>{
