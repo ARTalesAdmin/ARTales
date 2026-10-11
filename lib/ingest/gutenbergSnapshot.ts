@@ -293,7 +293,10 @@ export function composePg11Pilot(snapshot: ImmutableSourceSnapshot, chapterOnly 
     }],
   };
   const artifact = composeFixtureSection(capture);
-  const blocks: OriginalAnchoredBlock[] = artifact.blocks.map((entry) => {\n    const item = /^CHAPTER [IVXLCDM]+\\./.test(entry.block.content)\n      ? { ...entry, recipe: "chapter" as const, block: { ...entry.block, type: "chapter" as const } }\n      : entry;
+  const blocks: OriginalAnchoredBlock[] = artifact.blocks.map((entry) => {
+    const item = /^CHAPTER [IVXLCDM]+\./.test(entry.block.content)
+      ? { ...entry, recipe: "chapter" as const, block: { ...entry.block, type: "chapter" as const } }
+      : entry;
     const a = byteAtChar[item.start], b = byteAtChar[item.end];
     if (a === undefined || b === undefined || b <= a) throw new Error("Lost exact original source byte anchor.");
     const exactSource = Buffer.from(snapshot.raw_utf8, "utf8").subarray(a, b).toString("utf8").replace(/\r\n/g, "\n");
