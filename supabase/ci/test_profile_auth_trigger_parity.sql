@@ -1,19 +1,15 @@
--- TEST-ONLY parity fixture, no production migration:
--- remote_schema defines artales_sync_profile_from_auth_user_v081() but omits
--- its auth.users trigger; production has zz_artales_profile_sync_v081 enabled.
--- This connects the function in disposable local CI before signed GoTrue tests.
+-- Local test assertion: canonical migration must install production-equivalent
+-- auth.users trigger. Never create it from test-only SQL.
 do $fixture$
 begin
- if exists (
-   select 1 from pg_trigger
-   where tgrelid='auth.users'::regclass
+ if not exists (
+   select 1 from pg_catalog.pg_trigger
+   where tgrelid='auth.users'::pg_catalog.regclass
      and tgname='zz_artales_profile_sync_v081'
+     and tgenabled='O'
      and not tgisinternal
  ) then
-   raise exception 'test expected no existing local auth sync trigger: review drift';
+   raise exception 'missing enabled production-equivalent auth sync trigger';
  end if;
 end
 $fixture$;
-create trigger zz_artales_profile_sync_v081
-  after insert on auth.users
-  for each row execute function public.artales_sync_profile_from_auth_user_v081();
