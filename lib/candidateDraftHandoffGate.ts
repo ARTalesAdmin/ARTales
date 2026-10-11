@@ -1,3 +1,4 @@
+import type {TextRightsSnapshot} from "./rights/sourceTextEligibility";
 /**
  * Server-side preflight inputs are loaded from trusted persisted records.
  * This module is NOT legal clearance: a caller must verify signatures, binary
@@ -59,4 +60,26 @@ export function inspectCapturedSource(e: CaptureEnvelope): {eligibleForDraftHand
   }
   const blockers=[...b]
   return {eligibleForDraftHandoff:blockers.length===0,blockers}
+}
+
+/**
+ * Mandatory second preflight for generic captured text before draft handoff.
+ * Not a DB authorization: signed locked SQL must separately enforce the result.
+ */
+export function inspectTextRightsDraftHandoff(capture:CaptureEnvelope,rights:TextRightsSnapshot){
+ const base=inspectCapturedSource(capture);
+ const blockers:string[]=[...base.blockers];
+ if(rights.candidate_id!==capture.candidateId||
+  rights.source_sha256!==capture.sourceSha256||
+  rights.captured_at!==capture.capturedAt||
+  rights.decision!=="eligible_for_editorial_draft"||
+  rights.publication_authorized!==false)blockers.push("text_rights_ineligible");
+ if(rights.included.length===0||rights.included.some(id=>
+  !capture.components.some(c=>c.componentId===id&&c.included&&c.decision==="usable")))
+  blockers.push("included_component_mismatch");
+ if(capture.components.some(c=>
+  c.included&&!rights.included.includes(c.componentId))||
+  rights.components.some(c=>c.action==="hold"&&capture.components.some(x=>x.componentId===c.id&&x.included)))
+  blockers.push("excluded_or_held_component_included");
+ return {eligibleForDraftHandoff:blockers.length===0,blockers:[...new Set(blockers)]};
 }
