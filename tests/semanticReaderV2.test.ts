@@ -5,7 +5,8 @@ import test from "node:test";
 import {captureGutenbergBytes,getPg11FixtureRequest} from "../lib/ingest/gutenbergSnapshot";
 import {composeSemanticPg11,composeSemanticRevision,submitSemanticIssue,recomposeSemanticLayout,verifySemanticRevision,walkSemanticAtoms,proposeSemanticTitlePage,DEFAULT_CHAPTER_PRESENTATION} from "../lib/semantic/compose";
 import {projectSemanticReader,verifyReaderProjection,remapLegacyPosition,locateReaderAnchor,splitParagraphUnit,getSemanticPageUnits,chooseSemanticParagraphBreak} from "../lib/semantic/readerProjection";
-import {resolveQaProjectionMode,sourceOffsetForReaderPage} from "../lib/semantic/qaReaderModes";
+import {resolveQaProjectionMode,sourceOffsetForReaderPage,buildSemanticSourceRegions} from "../lib/semantic/qaReaderModes";
+import {synchronizeSemanticPanes} from "../lib/semantic/pairedSemanticScroll";
 import {compareAliceThreeWays,syntheticLegacyFixture} from "../lib/semantic/tripleQA";
 const bytes=readFileSync("tests/fixtures/gutenberg/pg11-2016-gitenberg-11-0.txt");
 const source=captureGutenbergBytes(bytes,getPg11FixtureRequest());
@@ -185,4 +186,19 @@ test("reader surfaces use canonical flow/spread, mobile suppresses spread, edito
  assert.equal(resolveQaProjectionMode("reader","spread",360,1440),"scroll");
  const pages=projectSemanticReader(rev,{mode:"paged",viewport_width:350,viewport_height:700,font_scale:1});
  assert.ok(sourceOffsetForReaderPage(pages,0,.5)>=0);
+});
+
+test("source/composed QA spans reconstruct original and paired scroll works both directions",()=>{
+ const units=getSemanticPageUnits(rev);
+ const original=rev.source.normalized_text;
+ const regions=buildSemanticSourceRegions(original,units);
+ assert.equal(regions.map(x=>x.text).join(""),original);
+ const left={markers:[{regionIndex:0,top:0},{regionIndex:1,top:250},{regionIndex:2,top:500}],
+   scrollTop:260,clientHeight:280,scrollHeight:1000};
+ const right={markers:[{regionIndex:0,top:0},{regionIndex:1,top:500},{regionIndex:2,top:1100}],
+   scrollTop:0,clientHeight:280,scrollHeight:1800};
+ const target=synchronizeSemanticPanes(left,right);
+ const back=synchronizeSemanticPanes({...right,scrollTop:target},{...left,scrollTop:0});
+ assert.ok(target>0);
+ assert.ok(back>=0 && back<=left.scrollHeight-left.clientHeight);
 });
