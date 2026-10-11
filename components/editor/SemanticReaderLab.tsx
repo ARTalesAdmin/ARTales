@@ -1,14 +1,17 @@
 "use client";
 import {useEffect, useMemo, useRef, useState, type CSSProperties} from "react";
 import {projectSemanticProseText} from "@/lib/semantic/displayText";
-import {resolveQaProjectionMode, sourceOffsetForReaderPage} from "@/lib/semantic/qaReaderModes";
+import {resolveQaProjectionMode, buildSemanticSourceRegions} from "@/lib/semantic/qaReaderModes";
+import {synchronizeSemanticPanes} from "@/lib/semantic/pairedSemanticScroll";
 import {getProfileReaderSettings, type FixtureProfileReaderDefaults} from "@/lib/fixtures/readerPreferences";
 import {defaultReaderSettings, type ReaderDensityId} from "@/lib/reader/readerSettings";
 import type {SemanticRevision, SemanticNode, SemanticAtom, SemanticPoem, SemanticBlockPresentation, SemanticPageUnit} from "@/lib/semantic/model";
 import {getSemanticPageUnits, projectSemanticReader, verifyReaderProjection} from "@/lib/semantic/readerProjection";
 import "./semantic-reader.css";
 
-type Props={revision:SemanticRevision;original:string;legacySynthetic:string;profileReaderDefaults?:FixtureProfileReaderDefaults|null};
+type Props={revision:SemanticRevision;original:string;profileReaderDefaults?:FixtureProfileReaderDefaults|null};
+type ReadingSpacing = ReaderDensityId | "airy";
+type PaneSide = "source" | "composed";
 type BrowserMeasurements={
   key:string;pageWidth:number;viewportHeight:number;heights:Record<string,number>;
 };
@@ -87,29 +90,35 @@ function sameMeasurements(a:BrowserMeasurements|null,b:BrowserMeasurements) {
   return keys.length===Object.keys(a.heights).length&&keys.every(key=>a.heights[key]===b.heights[key]);
 }
 
-export default function SemanticReaderLab({revision,original,legacySynthetic,profileReaderDefaults=null}:Props) {
+export default function SemanticReaderLab({revision,original,profileReaderDefaults=null}:Props) {
   const accountPreferences=getProfileReaderSettings(profileReaderDefaults)??defaultReaderSettings;
   const [readerMode,setReaderMode]=useState<"scroll"|"spread">("scroll");
-  const [showLegacy,setShowLegacy]=useState(false);
   const [deviceWidth,setDeviceWidth]=useState(1366);
   const [scale,setScale]=useState(accountPreferences.fontScale);
-  const [density,setDensity]=useState<ReaderDensityId>(accountPreferences.density);
+  const [density,setDensity]=useState<ReadingSpacing>(accountPreferences.density);
   const [width,setWidth]=useState(900);
   const [focus,setFocus]=useState(false);
   const [metrics,setMetrics]=useState<BrowserMeasurements|null>(null);
   const frameRef=useRef<HTMLDivElement>(null);
-  const originalRef=useRef<HTMLPreElement>(null);
+  const sourceRef=useRef<HTMLDivElement>(null);
+  const composedRef=useRef<HTMLDivElement>(null);
+  const syncFrameRef=useRef<number|null>(null);
+  const ignoreSyncRef=useRef<Record<PaneSide,{top:number;until:number}|null>>({source:null,composed:null});
   const measureRef=useRef<HTMLDivElement>(null);
   const mode=resolveQaProjectionMode(focus?"reader":"editor",readerMode,width,deviceWidth);
-  const measureKey=[revision.revision_ref,mode,scale,density,width,focus,showLegacy].join("|");
+  const measureKey=[revision.revision_ref,mode,scale,density,width,focus].join("|");
   const measured=metrics?.key===measureKey?metrics:null;
   const allUnits=useMemo(()=>getSemanticPageUnits(revision),[revision]);
+  const sourceRegions=useMemo(()=>buildSemanticSourceRegions(original,allUnits),[original,allUnits]);
+  const regionIndices=useMemo(()=>new Map(sourceRegions.filter(x=>x.regionIndex!==null && x.unitId!==null)
+    .map(x=>[x.unitId!,x.regionIndex!])),[sourceRegions]);
+  const effectiveDensity:ReaderDensityId=density==="airy"?"comfortable":density;
   const fallbackWidth=focus?(mode==="spread"&&width>=700?Math.floor((width-42)/2):width-24):340;
   const pages=useMemo(()=>projectSemanticReader(revision,{
     mode,viewport_width:measured?.pageWidth??Math.max(220,fallbackWidth),
-    viewport_height:measured?.viewportHeight??850,font_scale:scale,density,
+    viewport_height:measured?.viewportHeight??850,font_scale:scale,density:effectiveDensity,
     measured_unit_heights:measured?.heights,
-  }),[revision,mode,scale,density,measured,fallbackWidth]);
+  }),[revision,mode,scale,effectiveDensity,measured,fallbackWidth]);
   const integrity=verifyReaderProjection(revision,pages);
 
   useEffect(()=>{
@@ -183,22 +192,23 @@ export default function SemanticReaderLab({revision,original,legacySynthetic,pro
   const viewportStyle={
     width:focus?width:"100%",maxWidth:"100%",
     ["--reader-scale" as string]:scale,
-    ["--reader-line-height" as string]:density==="compact"?1.4:1.65,
-    ["--reader-paragraph-gap" as string]:density==="compact"?"0.65em":"1em",
+    ["--reader-line-height" as string]:density==="compact"?1.4:density==="airy"?1.95:1.65,
+    ["--reader-paragraph-gap" as string]:density==="compact"?"0.65em":density==="airy"?"1.4em":"1em",
     ["--reader-page-height" as string]:(measured?.viewportHeight??758)+"px",
   } as CSSProperties;
   return <main className="semantic-reader">
     <header><h1>ARTales · Sémantický Reader v2 (QA)</h1>
-      <p>Textová zkouška, nikoli veřejná publikace. Legacy sloupec je výhradně syntetický.</p>
+      <p>Textová zkouška, nikoli veřejná publikace. Redakční srovnání originálu a nové kompozice.</p>
       <div className="semantic-reader__controls">
-        {focus?<label>Čtení <select value={readerMode} onChange={e=>setReaderMode(e.target.value as typeof readerMode)}>
+        {focus?<label>Čtení <select value={mode==="spread"?"spread":"scroll"} onChange={e=>setReaderMode(e.target.value as typeof readerMode)}>
           <option value="scroll">Plynulý text</option>{deviceWidth>=700&&width>=700&&<option value="spread">Dvoustrana</option>}
         </select></label>:<span>Redakční srovnání · stránky</span>}
         <label>Velikost <input aria-label="Velikost textu" type="range" min="0.85" max="1.3"
           step="0.05" value={scale} onChange={e=>setScale(Number(e.target.value))}/></label>
         <label>Řádkování <select aria-label="Hustota řádkování" value={density}
-          onChange={e=>setDensity(e.target.value as ReaderDensityId)}>
+          onChange={e=>setDensity(e.target.value as ReadingSpacing)}>
           <option value="comfortable">Normální</option><option value="compact">Zhuštěné</option>
+          <option value="airy">Vzdušnější (QA)</option>
         </select></label>
         <label>Test viewportu <select value={width} onChange={e=>setWidth(Number(e.target.value))}>
           <option value={360}>Mobil 360</option><option value={768}>Tablet 768</option>
