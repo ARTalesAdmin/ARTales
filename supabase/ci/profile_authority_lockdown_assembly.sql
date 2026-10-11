@@ -172,6 +172,24 @@ begin
 end;
 $function$;
 
+-- Production already has zz_artales_profile_sync_v081 on auth.users, but the
+-- historical baseline migration defines its function without installing the
+-- trigger. Create it on fresh databases and keep existing production trigger.
+do $artales_auth_trigger$
+begin
+  if not exists (
+    select 1 from pg_catalog.pg_trigger
+    where tgrelid = 'auth.users'::pg_catalog.regclass
+      and tgname = 'zz_artales_profile_sync_v081'
+      and not tgisinternal
+  ) then
+    create trigger zz_artales_profile_sync_v081
+      after insert on auth.users
+      for each row execute function public.artales_sync_profile_from_auth_user_v081();
+  end if;
+end
+$artales_auth_trigger$;
+
 -- RLS already ensures authenticated direct inserts/updates affect only auth.uid().
 -- Do not weaken that RLS or give EXECUTE on privileged role assignment functions.
 REVOKE ALL ON FUNCTION public.artales_sync_profile_from_auth_user_v081()
