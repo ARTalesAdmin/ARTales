@@ -47,6 +47,36 @@ test("wrapper and edition evidence are retained but excluded from twelve-chapter
   assert.equal(createPg11IntegrationPayload(snapshot, boundaries).release_allowed, false);
 });
 
+test("integration handoff rejects unverified, forged, stale or tampered boundaries", () => {
+  const approvedForFixture = createPg11IntegrationPayload(snapshot, boundaries);
+  assert.equal(approvedForFixture.boundary_status, "ready_for_fixture");
+  assert.equal(approvedForFixture.release_allowed, false);
+  const blocked = { status: "needs_boundary_review" as const,
+    review_reasons: ["ambiguous Gutenberg wrapper"], content_components: [] };
+  assert.throws(() => createPg11IntegrationPayload(snapshot, blocked), /blocked/);
+  assert.throws(() => createPg11IntegrationPayload(snapshot, {
+    ...boundaries, review_reasons: ["manual boundary check pending"],
+  }), /blocked/);
+  assert.throws(() => createPg11IntegrationPayload(snapshot, {
+    ...boundaries, content_components: [],
+  }), /blocked/);
+  assert.throws(() => createPg11IntegrationPayload(snapshot, {
+    ...boundaries, content_components: boundaries.content_components.map((component) =>
+      component.id === "pg11:work-text"
+        ? { ...component, original: { ...component.original!, byte_end: component.original!.byte_end - 1 } }
+        : component),
+  }), /blocked/);
+  assert.throws(() => createPg11IntegrationPayload({
+    ...snapshot, raw_utf8: snapshot.raw_utf8 + "modified",
+  }, boundaries), /blocked/);
+  assert.throws(() => createPg11IntegrationPayload({
+    ...snapshot, source_uri: "https://example.org/alternative",
+  }, boundaries), /blocked/);
+  assert.throws(() => createPg11IntegrationPayload({
+    ...snapshot, rights_dossier_ref: "",
+  }, boundaries), /blocked/);
+});
+
 test("every normalized block maps exactly to archived original UTF-8 byte/line offsets", () => {
   assert.equal(pilot.qa.ok, true);
   for (const item of pilot.blocks) {
