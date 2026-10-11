@@ -2,7 +2,7 @@
 
 ## Boundary and provenance
 
-Independent workstream from `develop` at `e514cc685ad807707df127fce0f654918b360f99`; handoff in PR #204 consulted. No `main`, production Supabase, environment change, main-thread editorial backend, catalog or publication gate. This is a **fixture and pure adapter**, not a legally authorized release.
+Independent workstream originally branched from `develop` at `e514cc685ad807707df127fce0f654918b360f99`; PR #204 has subsequently merged into `develop` at `a0aff1bbd6d00727e945d6b8b2c0f0a112ee741c` and its architecture remains authoritative. No `main`, production Supabase, environment change, main-thread editorial backend, catalog or publication gate. This is a **fixture and pure adapter**, not a legally authorized release.
 
 One exact archival source: Project Gutenberg eBook **#11**, Lewis Carroll (1832â€“1898), *Alice's Adventures in Wonderland*, original English text, **The Millennium Fulcrum Edition 3.0** (the source archive reports update October 6, 2016). Third-party GITenberg mirror pinned to commit `7f18748e114b994d5d9454d5793581bc0b9cf9d7`, Git blob SHA-1 `0f25e9af379233267a09623e0c650472f9e463ea`; path `11-0.txt`, 173595 original UTF-8 bytes, including BOM/CRLF, SHA-256 `49a0b2726606e1290ac03a63978fa1dd1bd38a8d805704d98265f393533ea094`. Archived as `tests/fixtures/gutenberg/pg11-2016-gitenberg-11-0.txt`, exact-byte snapshot, not live fetched by a web page. PG wrapper and licence evidence preserved within those immutable bytes; body excludes PG terms and downstream cover/illustrations, no images included.
 
@@ -16,6 +16,7 @@ One exact archival source: Project Gutenberg eBook **#11**, Lewis Carroll (1832â
 ```ts
 {
  schema: "artales.ingest.snapshot-handoff.v1",
+ boundary_status: "ready_for_fixture",
  candidate_id: string, candidate_source_id: string,
  source_uri: string, retrieval_method: string,
  bytes_sha256: string, snapshot_ref: `sha256:${string}`,
@@ -30,6 +31,8 @@ One exact archival source: Project Gutenberg eBook **#11**, Lewis Carroll (1832â
  release_allowed: false
 }
 ```
+**Fail-closed handoff gate:** `createPg11IntegrationPayload` throws if boundaries are `needs_boundary_review`, if review reasons remain, if a supplied ready inventory differs from independently re-extracted spans, or if the snapshot fails pinned-source/hash or rights-context checks. The downstream contract only emits `boundary_status: ready_for_fixture` for verified text-only QA, never legal approval. There is no successful/empty payload for uncertain boundaries.
+
 The snapshot's `raw_utf8` is server-side source archive material and **must be stored separately** under a write-once object reference. Main thread implements real candidate/source ID resolution, immutable snapshot persistence and privileges, independent `rights_dossiers`, `work_revisions`, task + issue event stores and publisher checks. Fixture IDs are **not** legitimate UUIDs/DB foreign keys. Block `start/end` are `[start,end)` offsets in LF-normalized `FixtureCapture`, **plus** `original.byte_start/byte_end` in exact archived UTF-8. Source hash/ref binds every original anchor. Page numbers never become identity.
 
 The source is split into wrapper head, edition frontmatter, work text, edition tail and PG licence wrapper with exact line/byte windows, and linked source cover excluded. Missing/multiple/out-of-order markers, embedded new asset/footnote/translation markers, tampered bytes or blank text fail closed to `needs_boundary_review`. No automatic hidden stripping of prefaces, notes, or legal evidence. The pilot composes chapter I to existing `AnchoredBlock` fixture for side-by-side tooling; whole-text composition also testable without persistence. Composition is bounded and no downstream direct `works.content_blocks` writes occur.
