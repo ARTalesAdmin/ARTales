@@ -74,10 +74,8 @@ test("canonical captured handoff requires exact legal snapshot, identity and tex
    rightsReviewedAt:q.included.includes(x.id)?checkedAt:undefined,
   }))
  };
- assert.equal(inspectTextRightsDraftHandoff(capture,q).eligibleForDraftHandoff,false,
-  "Existing handoff requires WORK_CONTENT: translation adapter must explicitly account for it");
- assert.equal(inspectTextRightsDraftHandoff({...capture,components:capture.components.map(x=>
-  x.componentId==="translation"?{...x,kind:"WORK_CONTENT" as const}:x)},q).eligibleForDraftHandoff,true);
+ assert.equal(inspectTextRightsDraftHandoff(capture,q).eligibleForDraftHandoff,true,
+  "Cleared selected translation is accepted without masquerading as original work content");
  assert.equal(inspectTextRightsDraftHandoff({...capture,sourceSha256:"f".repeat(64)},q).eligibleForDraftHandoff,false);
  assert.equal(inspectTextRightsDraftHandoff({...capture,components:capture.components.map(x=>
   x.componentId==="wrapper"?{...x,included:true}:x)},q).eligibleForDraftHandoff,false);
