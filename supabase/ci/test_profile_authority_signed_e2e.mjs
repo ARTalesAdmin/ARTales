@@ -27,3 +27,17 @@ if(allowed.status!==200||!Array.isArray(allowed.data)||allowed.data.length!==1)t
 const after=await request('/rest/v1/profiles?select=id,role,is_active,display_name&id=eq.'+id,service,undefined,'GET');
 if(after.status!==200||after.data[0].role!=='reader'||after.data[0].display_name!=='Safe signed profile edit')throw Error('Role changed or safe profile edit failed '+JSON.stringify(after));
 console.log('PASS actual signed GoTrue: user-controlled metadata admin becomes reader; privilege escalation denied; safe profile edit works');
+
+
+const inviteEmail='invited-'+randomUUID().slice(0,10)+'@example.invalid';
+execFileSync('psql',['-X','-v','ON_ERROR_STOP=1','-v','invite_email='+inviteEmail,
+ '-f','supabase/ci/test_profile_invite_seed.sql'],{stdio:'pipe'});
+const invited=await request('/auth/v1/admin/users',service,{
+ email:inviteEmail,password,email_confirm:true,
+ user_metadata:{role:'reader',display_name:'QA Invited Editor'}
+});
+if(![200,201].includes(invited.status)||!invited.data.id)throw Error('Invited signup failed '+JSON.stringify(invited));
+const verifiedInvite=await request('/rest/v1/profiles?select=id,role,invite_id&id=eq.'+invited.data.id,service,undefined,'GET');
+if(verifiedInvite.status!==200||verifiedInvite.data.length!==1||verifiedInvite.data[0].role!=='editor'||!verifiedInvite.data[0].invite_id)
+ throw Error('Verified server email invitation did not grant editor '+JSON.stringify(verifiedInvite));
+console.log('PASS verified pending invitation retains editor role, disregards spoofed user metadata');
