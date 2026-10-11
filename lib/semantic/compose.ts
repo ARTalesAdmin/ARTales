@@ -1,6 +1,7 @@
 import { createHash } from "node:crypto";
 import {
   SEMANTIC_SCHEMA, type InlineMark, type SemanticAtom, type SemanticGap,
+  type SemanticBlockPresentation, type SemanticTitlePage,
   type SemanticNode, type SemanticPoem, type SemanticRevision, type SemanticReviewIssue,
   type SemanticSection, type SemanticSource, type SemanticTextBlock, type SourceAnchorV2,
 } from "./model";
@@ -12,6 +13,41 @@ import {
 const sha = (value: string | Uint8Array) =>
   createHash("sha256").update(value).digest("hex");
 const digest = (value: unknown) => sha(JSON.stringify(value));
+/** Chapter spacing is a layout hint, never an artificial source newline. */
+export const DEFAULT_CHAPTER_PRESENTATION: SemanticBlockPresentation = Object.freeze({
+  align: "left", indent: "none", space_before: "generous", space_after: "generous",
+});
+const VALID_ALIGN = ["left", "center", "right", "justify"];
+const VALID_INDENT = ["none", "small", "medium", "large"];
+const VALID_SPACE = ["none", "normal", "generous"];
+export function validateBlockPresentation(p: SemanticBlockPresentation, kind: SemanticNode["kind"]) {
+  if (!p || typeof p !== "object" ||
+      Object.keys(p).sort().join(",") !== "align,indent,space_after,space_before" ||
+      !VALID_ALIGN.includes(p.align) || !VALID_INDENT.includes(p.indent) ||
+      !VALID_SPACE.includes(p.space_before) || !VALID_SPACE.includes(p.space_after) ||
+      (kind === "poem" && p.align === "justify")) {
+    throw new Error("Unsafe or unsupported editor block presentation.");
+  }
+}
+function plainText(s: unknown, max: number): s is string {
+  return typeof s === "string" && s.trim().length > 0 && s.length <= max &&
+    !/[<>\x00-\x1f]/.test(s);
+}
+function validateTitlePage(page: SemanticTitlePage, workId: string) {
+  if (!page || page.kind !== "title_page" || page.id !== "title:" + workId ||
+      page.brand !== "ARTales" || page.template !== "artales-typographic-draft-v0" ||
+      page.review_state !== "awaiting_editor_review" ||
+      !plainText(page.title, 240) || !Array.isArray(page.authors) ||
+      !page.authors.length || page.authors.length > 12 ||
+      page.authors.some(a => !plainText(a, 160)) ||
+      (page.edition_note !== undefined && !plainText(page.edition_note, 420)) ||
+      Object.keys(page).some(k =>
+        !["kind","id","brand","title","authors","edition_note","template","review_state"].includes(k)) ||
+      /\bISBN\b/i.test([page.title,...page.authors,page.edition_note??""].join(" "))) {
+    throw new Error("Unverified, unsafe or ISBN-bearing title page metadata.");
+  }
+}
+
 type Span = { start: number; end: number };
 export type SemanticStructureHint = {
   kind: "poem" | "quote" | "footnote" | "epigraph" | "section";
@@ -139,7 +175,8 @@ export function composeSemanticRevision(input: SemanticInput): SemanticRevision 
   }
   function heading(start:number,end:number,kind:"chapter"|"section") {
     const h=atom(input,rawBytes,normalized,byteAt,start,end);
-    const item:SemanticSection={kind,id:"s:"+h.id,heading:h,children:[]};
+    const item:SemanticSection={kind,id:"s:"+h.id,heading:h,children:[],
+      ...(kind==="chapter"?{presentation:{...DEFAULT_CHAPTER_PRESENTATION}}:{})};
     if(kind==="chapter"){blocks.push(item);currentChapter=item;currentSection=null;}
     else{if(currentChapter)currentChapter.children.push(item);else blocks.push(item);currentSection=item;}
   }
@@ -244,6 +281,19 @@ export function verifySemanticRevision(revision:SemanticRevision, exactOriginalR
   const {revision_ref:_ref,revision_sha256:_hash,...payload}=revision;
   void _ref;void _hash;
   if(digest(payload)!==revision.revision_sha256)throw new Error("Semantic revision digest tampered.");
+  if(revision.title_page)validateTitlePage(revision.title_page,revision.work_id);
+  const checkPresentations=(nodes:SemanticNode[])=>{
+    for(const n of nodes){
+      if(n.presentation)validateBlockPresentation(n.presentation,n.kind);
+      if(n.kind==="chapter"||n.kind==="section")checkPresentations(n.children);
+    }
+  };
+  checkPresentations(revision.blocks);
+  for(const issue of revision.review_issues){
+    if(issue.requested_layout==="block_presentation"){
+      if(!issue.requested_presentation)throw new Error("Editor block flags missing.");
+    }else if(issue.requested_presentation!==undefined)throw new Error("Unexpected editor presentation override.");
+  }
   const txt=revision.source.normalized_text;
   if(sha(txt)!==revision.source.normalized_text_sha256)throw new Error("Semantic approved-source hash mismatch.");
   const all=[...walkSemanticAtoms(revision.blocks),...revision.gaps.map(g=>g.atom)];
