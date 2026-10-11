@@ -20,6 +20,7 @@ test("legal uncertainty, blocked rights, missing source or composition never ent
 test("no capacity never creates assignment",()=>{
  const r=planLegacyReviews([ready("a")],staff.map(s=>({...s,capacity:0})),"admin",[]);
  assert.equal(r[0].assigneeUserId,null);
+ assert.equal(r[0].reason,"capacity exhausted");
 });
 test("inactive or impersonated admin is rejected",()=>{
  assert.throws(()=>planLegacyReviews([ready("a")],staff,"absent",[]),/administrator/);
