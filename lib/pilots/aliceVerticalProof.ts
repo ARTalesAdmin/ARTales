@@ -12,7 +12,10 @@ export function proveAliceFlow(){
  const snapshot=captureGutenbergBytes(bytes,getPg11FixtureRequest());
  const components=extractPg11Components(snapshot);
  if(components.status!=="ready_for_fixture")throw Error("source component boundary refused");
- const pilot=composePg11Pilot(snapshot);
+ const pilot=composePg11Pilot(snapshot,false);
+ if(!pilot.qa.ok||pilot.releaseAllowed!==false||
+    pilot.blocks.filter(b=>b.block.type==="chapter").length!==12)
+  throw Error("Full pinned literary source requires twelve verified fixture chapters and a publication lock");
  const now="2026-10-11T12:00:00.000Z",later="2026-10-11T13:00:00.000Z";
  const dossier:RightsScanDossier={
   format:"artales-rights-dossier-v1",candidateId:"fixture:alice",sourceId:snapshot.snapshot_ref,
@@ -39,7 +42,9 @@ export function proveAliceFlow(){
  const rights=evaluateRightsScan(dossier);
  if(rights.outcome==="candidate_draft_eligible"||rights.publicationAuthorized!==false)
   throw Error("Fixture-only automated legal decision must never clear release");
- const semantic=composeSemanticPg11(snapshot,{work_id:"fixture:alice",work_slug:"alices-adventures-in-wonderland"});
+ const semantic=composeSemanticPg11(snapshot,{work_id:"fixture:alice",work_slug:"alices-adventures-in-wonderland",chapter_only:false});
+ const semanticChapters=semantic.revision.blocks.filter(b=>b.kind==="chapter").length;
+ if(semanticChapters!==12)throw Error("Full Semantic Composer must retain all twelve Alice chapters");
  verifySemanticRevision(semantic.revision,semantic.original_raw);
  const old=syntheticLegacyFixture(semantic.revision);
  const comparison=compareAliceThreeWays(semantic.revision,old);
@@ -58,7 +63,7 @@ export function proveAliceFlow(){
  return {
   schema:"artales.alice.vertical-proof.v1" as const, mode:"synthetic_read_only" as const,
   source_sha256:snapshot.bytes_sha256,source_bytes:snapshot.bytes_length,
-  source_component_count:components.content_components.length,
+  source_component_count:components.content_components.length,semantic_chapters:semanticChapters,
   rights_outcome:rights.outcome,rights_issues:rights.issues.map(i=>i.code),
   source_composition_verified:true,semantic_schema:semantic.revision.schema,
   semantic_initial_revision:semantic.revision.revision_ref,semantic_corrected_revision:revised.revision_ref,
