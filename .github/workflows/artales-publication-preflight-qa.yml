@@ -1,0 +1,28 @@
+name: ARTales publication preflight contract QA
+on:
+  pull_request:
+    branches: [develop]
+    paths:
+      - 'lib/publication/**'
+      - 'tests/publicationReleasePreflight.test.ts'
+      - '.github/workflows/artales-publication-preflight-qa.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  pure-governance:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - name: Fail-closed hold, release and legacy cutover test suite
+        run: npx tsx --test tests/publicationReleasePreflight.test.ts
+      - name: TypeScript check
+        run: npx tsc --noEmit
+      - name: Lint changed pure files
+        run: npx eslint lib/publication/releasePreflight.ts tests/publicationReleasePreflight.test.ts
