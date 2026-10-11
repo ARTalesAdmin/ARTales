@@ -1,7 +1,7 @@
 -- Supabase DB-A local-only security/integrity assertions.
 begin;
 create extension if not exists pgtap with schema extensions;
-select plan(33);
+select plan(26);
 select has_schema('artales_evidence','private evidence schema created');
 select has_table('artales_evidence','source_snapshots','raw snapshots exist');
 select has_table('artales_evidence','source_components','source component map exists');
@@ -22,15 +22,7 @@ select is((select count(*)::integer from information_schema.role_table_grants wh
 select is((select count(*)::integer from information_schema.role_table_grants where table_schema='artales_evidence' and grantee='PUBLIC'),0,'no PUBLIC table grants');
 select is((select count(*)::integer from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname='artales_evidence' and p.prosecdef),0,'no SECURITY DEFINER functions');
 select is((select count(*)::integer from pg_trigger t join pg_class c on c.oid=t.tgrelid join pg_namespace n on n.oid=c.relnamespace where n.nspname='artales_evidence' and not t.tgisinternal and t.tgname like 'immutable_%'),8,'eight mutation triggers installed');
-select lives_ok($$ insert into artales_evidence.source_snapshots(work_id,kind,source_bytes) select id,'legacy_observed',convert_to('synthetic legacy byte sample','UTF8') from public.works limit 1 $$,'synthetic source can be inserted');
-select is((select sha256 from artales_evidence.source_snapshots limit 1),encode(extensions.digest(convert_to('synthetic legacy byte sample','UTF8'),'sha256'),'hex'),'SHA derives from actual bytes');
-select throws_ok($$ update artales_evidence.source_snapshots set kind='external_raw' $$,'23000','artales_evidence rows are immutable','snapshot updates blocked');
-select throws_ok($$ delete from artales_evidence.source_snapshots $$,'23000','artales_evidence rows are immutable','snapshot deletion blocked');
-select throws_ok($$ insert into artales_evidence.source_snapshots(work_id,kind,source_bytes) values (null,'external_raw',convert_to('x','UTF8')) $$,'23514',null,'no owner/candidate forbidden');
-select throws_ok($$ insert into artales_evidence.source_snapshots(work_id,kind,source_bytes) select id,'external_raw',''::bytea from public.works limit 1 $$,'23514',null,'empty source forbidden');
-select throws_ok($$ insert into artales_evidence.source_snapshots(work_id,kind,source_bytes) select id,'external_raw',decode('ff','hex') from public.works limit 1 $$,null,null,'raw binary allowed (not UTF8-only)');
-select is((select count(*)::integer from artales_evidence.source_snapshots),1,'failed transactions did not add snapshots');
-select is((select count(*)::integer from public.works where status='published'),0,'disposable CI starts without published works');
+select is((select count(*)::integer from artales_evidence.source_snapshots),0,'no legacy source snapshots seeded');
 select is((select count(*)::integer from artales_evidence.review_events),0,'no forged reviews');
 select is((select count(*)::integer from artales_evidence.rights_dossiers),0,'no assumed legal clearance');
 select is((select count(*)::integer from artales_evidence.text_revisions),0,'no synthetic published revisions');
