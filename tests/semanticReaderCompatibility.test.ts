@@ -5,7 +5,7 @@ import {captureGutenbergBytes,getPg11FixtureRequest} from "../lib/ingest/gutenbe
 import {composeSemanticPg11,proposeSemanticTitlePage,submitSemanticIssue,recomposeSemanticLayout,walkSemanticAtoms} from "../lib/semantic/compose";
 import {projectSemanticReader} from "../lib/semantic/readerProjection";
 import {bridgeLegacyReaderState,rebindReaderAnchor,findReaderAnchorPage,resolveSemanticReaderPreferences,preservedLegacyReaderState,assertNoReaderStateMutation} from "../lib/semantic/readerCompatibility";
-import {createSessionReaderNote,locateSessionReaderNote,noteAnchorForUnit} from "../lib/semantic/qaNoteSession";
+import {createSessionReaderNote,locateSessionReaderNote,noteAnchorForUnit,locateAndSortSessionNotes,selectActiveQaReadingUnit} from "../lib/semantic/qaNoteSession";
 import type {ReaderNote,ReaderBookmark,ReaderProgress} from "../lib/reader/readerStorage";
 const bytes=readFileSync("tests/fixtures/gutenberg/pg11-2016-gitenberg-11-0.txt");
 const pilot=captureGutenbergBytes(bytes,getPg11FixtureRequest());
@@ -106,4 +106,27 @@ test("ephemeral QA note reflows from paged to scroll and spread without losing s
    ...target,kind:"title_page",source_atom_ids:[]} as typeof target,{
    id:"x",title:"",body:"",color:"gold",now:"2026-10-11T14:00:00Z",pageIndex:0,
    pageCount:2,layoutMode:"spread"}),/anchor/);
+});
+
+test("QA notes follow semantic source order, markers reflow and read position anchors visible content",()=>{
+ const wide=projectSemanticReader(revision,{mode:"paged",viewport_width:900,viewport_height:780,font_scale:1});
+ const blocks=wide.flatMap(p=>p.units).filter(u=>u.kind==="paragraph");
+ assert.ok(blocks.length>=2);
+ const make=(unit:typeof blocks[number],id:string,pageIndex:number)=>createSessionReaderNote(revision,unit,{
+   id,title:id,body:"",color:"rose",now:"2026-10-11T12:00:00Z",pageIndex,
+   pageCount:Math.max(3,wide.length),layoutMode:"pagedFlow",
+ });
+ const later=make(blocks[1],"later",2),early=make(blocks[0],"early",1);
+ const sorted=locateAndSortSessionNotes(revision,wide,[later,early]);
+ assert.deepEqual(sorted.map(x=>x.saved.note.id),["early","later"]);
+ assert.ok(sorted.every(x=>x.unitId!==null));
+ const readable=selectActiveQaReadingUnit([
+  {unitId:"title",pageIndex:0,top:50,bottom:300,anchorable:false},
+  {unitId:"first",pageIndex:1,top:100,bottom:400,anchorable:true},
+  {unitId:"second",pageIndex:2,top:450,bottom:650,anchorable:true},
+ ],180,750);
+ assert.equal(readable?.unitId,"first");
+ assert.equal(selectActiveQaReadingUnit([
+  {unitId:"cover",pageIndex:0,top:0,bottom:700,anchorable:false}
+ ],150,800),null);
 });
