@@ -39,11 +39,14 @@ export function getSemanticPageUnits(revision: SemanticRevision): SemanticPageUn
     }
   };
   append(revision.blocks, null);
+  if(revision.title_page)all.unshift({id:revision.title_page.id,kind:"title_page",node:revision.title_page,
+    chapter_id:null,source_atom_ids:[],estimated_height:0});
   return all;
 }
 
 /** First server-render fallback; hydrated preview replaces it with real DOM heights. */
 function estimateUnitHeight(unit: SemanticPageUnit, layout: SemanticReaderLayout): number {
+  if(unit.kind==="title_page")return Math.max(350,Math.min(650,layout.viewport_height-220));
   const lineHeight = 16 * layout.font_scale * (layout.density === "compact" ? 1.4 : 1.65);
   const textWidth = Math.max(150, layout.viewport_width - (layout.viewport_width < 650 ? 28 : 48));
   const charsPerLine = Math.max(18, Math.floor(textWidth / (7.8 * layout.font_scale)));
@@ -101,6 +104,9 @@ export function projectSemanticReader(revision: SemanticRevision, layout: Semant
   }
   for (let i = 0; i < all.length; i++) {
     const unit = all[i];
+    if(unit.kind==="title_page"){
+      flush();pending.push(unit);weight=unit.estimated_height;flush();continue;
+    }
     const next = all[i + 1];
     // Avoid leaving a chapter heading at a page end without its first paragraph.
     const keepWithNext = (unit.kind === "chapter_heading" || unit.kind === "section_heading") && next
