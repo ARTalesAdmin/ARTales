@@ -5,6 +5,8 @@ on:
     paths:
       - 'lib/pilots/aliceTextOnlyRightsGate.ts'
       - 'tests/aliceTextOnlyRightsGate.test.ts'
+      - 'lib/rights/sourceTextEligibility.ts'
+      - 'tests/sourceTextEligibility.test.ts'
       - '.github/workflows/artales-alice-text-only-rights-qa.yml'
   workflow_dispatch:
 permissions:
@@ -19,6 +21,6 @@ jobs:
           node-version: '22'
           cache: npm
       - run: npm ci --ignore-scripts
-      - run: npx tsx --test tests/aliceTextOnlyRightsGate.test.ts
+      - run: npx tsx --test tests/aliceTextOnlyRightsGate.test.ts tests/sourceTextEligibility.test.ts
       - run: npx tsc --noEmit
-      - run: npx eslint lib/pilots/aliceTextOnlyRightsGate.ts tests/aliceTextOnlyRightsGate.test.ts
+      - run: npx eslint lib/pilots/aliceTextOnlyRightsGate.ts tests/aliceTextOnlyRightsGate.test.ts lib/rights/sourceTextEligibility.ts tests/sourceTextEligibility.test.ts
