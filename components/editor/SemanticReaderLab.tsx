@@ -42,7 +42,8 @@ export default function SemanticReaderLab({revision,original,legacySynthetic,pro
  const [density,setDensity]=useState<ReaderDensityId>(accountPreferences.density);
  const [width,setWidth]=useState(900);
  const [focus,setFocus]=useState(false);
- const pages=useMemo(()=>projectSemanticReader(revision,{mode,viewport_width:width,viewport_height:850,font_scale:scale,density}),[revision,mode,scale,width,density]);
+ const pageWidth=focus ? (mode==="spread"&&width>=700 ? Math.floor((width-42)/2) : width-24) : 340;
+ const pages=useMemo(()=>projectSemanticReader(revision,{mode,viewport_width:Math.max(220,pageWidth),viewport_height:850,font_scale:scale,density}),[revision,mode,scale,pageWidth,density]);
  const integrity=verifyReaderProjection(revision,pages);
  return <main className="semantic-reader">
    <header><h1>ARTales · Sémantický Reader v2 (QA)</h1>
