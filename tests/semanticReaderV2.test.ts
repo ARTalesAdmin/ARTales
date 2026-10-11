@@ -58,7 +58,7 @@ test("two returns preserve unchanged atoms, parent hash, and reject stale revisi
  assert.equal(next.parent_revision_ref,rev.revision_ref);
  assert.notEqual(next.revision_ref,rev.revision_ref);
  assert.equal(next.source.normalized_text,rev.source.normalized_text);
- const second=walkSemanticAtoms(next.blocks).find(x=>x.id!==first.id&&x.raw.length>15)!;
+ const second=walkSemanticAtoms(next.blocks).find(x=>x.id!==first.id&&x.raw.length>70&&!x.raw.startsWith("CHAPTER"))!;
  const issue2=submitSemanticIssue(next,{id:"review02",target_atom_id:second.id,kind:"readability",
   reason:"Need clearer second paragraph",requested_layout:"indent_medium"});
  const third=recomposeSemanticLayout(next,issue2,sample.original_raw);
