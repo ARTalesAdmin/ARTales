@@ -94,7 +94,7 @@ export function captureGutenbergBytes(bytes: Uint8Array, request: CaptureRequest
   }
   const digest = sha256(bytes);
   if (digest !== request.expected_bytes_sha256) throw new Error("Source SHA-256 mismatch.");
-  const text = new TextDecoder("utf-8", { fatal: true }).decode(bytes);
+  const text = new TextDecoder("utf-8", { fatal: true, ignoreBOM: true }).decode(bytes);
   if (Buffer.compare(Buffer.from(text, "utf8"), Buffer.from(bytes)) !== 0) {
     throw new Error("Source not exactly representable as UTF-8.");
   }
