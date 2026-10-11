@@ -1,0 +1,54 @@
+name: ARTales profile authority local security QA
+on:
+  pull_request:
+    branches: [develop]
+    paths:
+      - 'supabase/ci/profile_authority_lockdown_assembly.sql'
+      - 'supabase/migrations/20261011142305_artales_profile_authority_hardening.sql'
+      - 'supabase/ci/test_profile_authority_lockdown.sql'
+      - 'supabase/ci/test_profile_authority_signed_e2e.mjs'
+      - 'supabase/ci/test_profile_auth_trigger_parity.sql'
+      - 'supabase/ci/test_profile_invite_seed.sql'
+      - '.github/workflows/artales-profile-authority-qa.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  profile-security:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      SUPABASE_ACCESS_TOKEN: ''
+      SUPABASE_DB_PASSWORD: ''
+      PGHOST: 127.0.0.1
+      PGPORT: 54322
+      PGUSER: postgres
+      PGPASSWORD: postgres
+      PGDATABASE: postgres
+    steps:
+      - uses: actions/checkout@v4
+      - uses: supabase/setup-cli@v1
+        with:
+          version: 2.120.0
+      - name: Start isolated local database
+        run: |
+          supabase init --force
+          supabase start --exclude realtime,storage-api,imgproxy,mailpit,postgres-meta,studio,edge-runtime,logflare,vector,supavisor
+      - name: Verify canonical migration applied on startup
+        run: psql -X -v ON_ERROR_STOP=1 -c "select count(*) from pg_trigger where tgrelid='auth.users'::regclass and tgname='zz_artales_profile_sync_v081';"
+      - name: Assert role protections and profile compatibility
+        run: psql -X -v ON_ERROR_STOP=1 -f supabase/ci/test_profile_authority_lockdown.sql
+      - name: Verify canonical production-equivalent auth trigger
+        run: psql -X -v ON_ERROR_STOP=1 -f supabase/ci/test_profile_auth_trigger_parity.sql
+      - name: Signed GoTrue and PostgREST privilege regression
+        run: node supabase/ci/test_profile_authority_signed_e2e.mjs
+      - name: Verify committed canonical migration on fresh Supabase reset
+        run: |
+          supabase db reset --local --yes
+          psql -X -v ON_ERROR_STOP=1 -f supabase/ci/test_profile_authority_lockdown.sql
+          psql -X -v ON_ERROR_STOP=1 -f supabase/ci/test_profile_auth_trigger_parity.sql
+          node supabase/ci/test_profile_authority_signed_e2e.mjs
+          supabase migration list --local
+      - name: Discard isolated database
+        if: always()
+        run: supabase stop --no-backup

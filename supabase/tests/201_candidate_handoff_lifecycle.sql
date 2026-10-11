@@ -13,7 +13,14 @@ insert into auth.users(id,email,role,aud,instance_id) values
 insert into public.profiles(id,email,display_name,role,is_active) values
  ('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa','qa-admin@invalid.example','CI Admin','admin',true),
  ('bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb','qa-editor@invalid.example','CI Editor','editor',true),
- ('cccccccc-cccc-4ccc-8ccc-cccccccccccc','qa-reader@invalid.example','CI Reader','reader',true);
+ ('cccccccc-cccc-4ccc-8ccc-cccccccccccc','qa-reader@invalid.example','CI Reader','reader',true)
+-- Canonical migration now installs auth.users -> profiles trigger, so these
+-- privileged synthetic-only fixtures deliberately assign distinct test roles.
+-- Real clients cannot UPDATE role; signed GoTrue E2E covers that boundary.
+on conflict (id) do update
+  set role=excluded.role,
+      display_name=excluded.display_name,
+      is_active=excluded.is_active;
 
 insert into public.authors(id,name,slug,created_by,updated_by)
 values ('dddddddd-dddd-4ddd-8ddd-dddddddddddd','CI Source Author','ci-source-author',
