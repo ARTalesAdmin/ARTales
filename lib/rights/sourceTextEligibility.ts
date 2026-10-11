@@ -103,7 +103,7 @@ export function screenCapturedTextRights(input:TextRightsInput,checkedAt:string)
     bytes.length===0||bytes.length>5_000_000||
     !hex.test(input.source.sha256)||hash(bytes)!==input.source.sha256)
   throw Error("Untrusted or modified source snapshot");
- const decoded=new TextDecoder("utf-8",{fatal:true}).decode(bytes);
+ const decoded=new TextDecoder("utf-8",{fatal:true,ignoreBOM:true}).decode(bytes);
  if(Buffer.compare(Buffer.from(decoded,"utf8"),Buffer.from(bytes))!==0)
   throw Error("Source UTF-8 must preserve all bytes");
  const reasons:string[]=[];
