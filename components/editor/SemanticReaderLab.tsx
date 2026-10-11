@@ -1,11 +1,13 @@
 "use client";
 import {useMemo,useState, type CSSProperties} from "react";
 import {projectSemanticProseText} from "@/lib/semantic/displayText";
+import {getProfileReaderSettings, type FixtureProfileReaderDefaults} from "@/lib/fixtures/readerPreferences";
+import {defaultReaderSettings, type ReaderDensityId} from "@/lib/reader/readerSettings";
 import type {SemanticRevision,SemanticNode,SemanticAtom,SemanticPoem} from "@/lib/semantic/model";
 import {projectSemanticReader,verifyReaderProjection} from "@/lib/semantic/readerProjection";
 import "./semantic-reader.css";
 
-type Props={revision:SemanticRevision;original:string;legacySynthetic:string};
+type Props={revision:SemanticRevision;original:string;legacySynthetic:string;profileReaderDefaults?:FixtureProfileReaderDefaults|null};
 function inline(atom:SemanticAtom, prose=false){
   // Raw text is deliberately rendered through React escaped text, never as HTML.
   const italic=atom.marks.some(x=>x.kind==="italic");
@@ -32,12 +34,15 @@ function nodeView(n:SemanticNode):React.ReactNode{
  if(n.kind==="footnote")return <aside key={n.id} role="note"><sup>{n.footnote_label??"*"}</sup>{body}</aside>;
  return <p key={n.id} data-semantic-id={n.id}>{body}</p>;
 }
-export default function SemanticReaderLab({revision,original,legacySynthetic}:Props){
+export default function SemanticReaderLab({revision,original,legacySynthetic,profileReaderDefaults=null}:Props){
+ // Account preferences seed the read-only QA preview; no profile writes.
+ const accountPreferences=getProfileReaderSettings(profileReaderDefaults)??defaultReaderSettings;
  const [mode,setMode]=useState<"paged"|"spread"|"scroll">("paged");
- const [scale,setScale]=useState(1);
+ const [scale,setScale]=useState(accountPreferences.fontScale);
+ const [density,setDensity]=useState<ReaderDensityId>(accountPreferences.density);
  const [width,setWidth]=useState(900);
  const [focus,setFocus]=useState(false);
- const pages=useMemo(()=>projectSemanticReader(revision,{mode,viewport_width:width,viewport_height:850,font_scale:scale}),[revision,mode,scale,width]);
+ const pages=useMemo(()=>projectSemanticReader(revision,{mode,viewport_width:width,viewport_height:850,font_scale:scale,density}),[revision,mode,scale,width,density]);
  const integrity=verifyReaderProjection(revision,pages);
  return <main className="semantic-reader">
    <header><h1>ARTales · Sémantický Reader v2 (QA)</h1>
@@ -46,6 +51,8 @@ export default function SemanticReaderLab({revision,original,legacySynthetic}:Pr
       <label>Režim <select value={mode} onChange={e=>setMode(e.target.value as typeof mode)}>
        <option value="paged">Stránky</option><option value="spread">Dvoustrany</option><option value="scroll">Plynulý text</option></select></label>
       <label>Velikost <input aria-label="Velikost textu" type="range" min="0.85" max="1.3" step="0.05" value={scale} onChange={e=>setScale(Number(e.target.value))}/></label>
+      <label>Řádkování <select aria-label="Hustota řádkování" value={density} onChange={e=>setDensity(e.target.value as ReaderDensityId)}>
+       <option value="comfortable">Normální</option><option value="compact">Zhuštěné</option></select></label>
       <label>Test viewportu <select value={width} onChange={e=>setWidth(Number(e.target.value))}>
        <option value={360}>Mobil 360</option><option value={768}>Tablet 768</option><option value={900}>Desktop 900</option></select></label>
       <label><input type="checkbox" checked={focus} onChange={e=>setFocus(e.target.checked)}/> Samostatná čtečka</label>
@@ -59,7 +66,7 @@ export default function SemanticReaderLab({revision,original,legacySynthetic}:Pr
      <p>Skutečný produkční snapshot Alice zatím nebyl bezpečně převzat. Srovnání záměrně není prohlášeno za ověřené.</p>
      <pre className="semantic-reader__original">{legacySynthetic}</pre></section>}
     <section aria-label="Nová sémantická revize"><h2>ARTales · sémantická kompozice</h2>
-     <div className="semantic-reader__viewport" style={{width:focus?width:"100%",maxWidth:"100%",["--reader-scale" as string]:scale} as CSSProperties} data-target-width={width} data-focused={focus}>
+     <div className="semantic-reader__viewport" style={{width:focus?width:"100%",maxWidth:"100%",["--reader-scale" as string]:scale,["--reader-line-height" as string]:density==="compact"?1.4:1.65,["--reader-paragraph-gap" as string]:density==="compact"?"0.65em":"1em"} as CSSProperties} data-target-width={width} data-focused={focus} data-density={density}>
      <div className={"semantic-reader__pages semantic-reader__pages--"+mode}>
      {pages.map(page=><article className="semantic-reader__page" key={page.index} data-overflow={page.overflow}>
        {page.units.map(u=>u.kind==="chapter_heading"||u.kind==="section_heading"?
