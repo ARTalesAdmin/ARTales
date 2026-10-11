@@ -42,6 +42,8 @@ export type ComponentEvidence = {
   included: boolean;
   decision: "cleared" | "excluded" | "blocked" | "review_required";
   evidenceSha256?: Sha256;
+  // Exact archived/generated media byte hash, independent of literary source bytes.
+  artifactSha256?: Sha256;
   reviewedAt?: string;
   jurisdictions?: string[];
   sourceSnapshotSha256: Sha256;
@@ -186,6 +188,7 @@ export type ReleaseBlocker =
   | "metadata_review_unapproved"
   | "visual_review_unapproved"
   | "visual_selection_missing"
+  | "visual_rights_unverified"
   | "reviewer_not_independent"
   | "reader_qa_unapproved"
   | "rights_dossier_unapproved"
@@ -307,6 +310,26 @@ export function inspectReleasePreflight(input: ReleasePreflight): {
     }
   }
   if (!hasWorkText) b.add("rights_component_uncleared");
+  // Human sign-off of a cover is not a licence. Bind every selected asset to
+  // independently evidenced, cleared rights for exactly those rendered bytes.
+  const selectedAssetIds = new Set<string>();
+  for (const asset of input.visualAssets || []) {
+    if (selectedAssetIds.has(asset.id) ||
+        !rights.components.some((c) =>
+          c.kind === "ASSET" && c.included && c.decision === "cleared" &&
+          c.componentId === asset.id && validSha(c.artifactSha256) &&
+          c.artifactSha256 === asset.sha256)) {
+      b.add("visual_rights_unverified");
+    }
+    selectedAssetIds.add(asset.id);
+  }
+  for (const c of rights.components || []) {
+    if (c.kind === "ASSET" && c.included &&
+        !(input.visualAssets || []).some((asset) =>
+          asset.id === c.componentId && asset.sha256 === c.artifactSha256)) {
+      b.add("visual_rights_unverified");
+    }
+  }
   if (input.issues.some((issue) => issue.status === "open" && issue.severity === "blocking")) {
     b.add("unresolved_blocking_issue");
   }
