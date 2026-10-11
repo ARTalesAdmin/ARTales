@@ -44,3 +44,11 @@ Do **not** prioritize or auto-assign a live task while Ivana has not joined the 
 ## Browser-measured pagination corrective (in progress)
 
 The v2 QA preview measures the actual rendered semantic units in an offscreen, layout-real DOM container using the same typography and page width, listens for resize/font changes, and passes measured heights into the pure projection. During initial SSR/hydration it uses the conservative deterministic estimator. This does not alter source, revision, bookmark identities or publish anything. Pending: confirm actual mobile/desktop browser interaction and diagnose long unbreakable semantic units; do not claim full pagination acceptance until confirmed.
+
+## Editorial paired scroll correction — architect QA, 2026-10-11
+
+Removed the synthetic legacy comparison from the Reader v2 QA runtime entirely. Editor comparison now has two matching, independently scrollable height-bounded surfaces (original Gutenberg source / new semantic projection), with visually hidden scrollbars. This intentionally reuses the previously working `lib/fixtures/pairedScroll.ts` anchor interpolation via `lib/semantic/pairedSemanticScroll.ts`; scrolling either pane maps matching block anchors on the other side, prevents scroll feedback, and falls back to bounded interpolation during responsive remount. The original is rendered in complete exact source regions, including separators, rather than a separate scrolling `pre` ignored by document scroll. Source is not rewritten.
+
+Preview Reader-only remains a distinct UI surface over the same semantic renderer/projection, with canonical `pagedFlow`/continuous and `spread` on wide layouts. Three display-density choices in preview: compact, normal, *airy QA-only* (larger line height and paragraph gaps). Account-backed values remain compact/comfortable: no persistent account schema or production Reader change. Existing `IngestFixtureLab` and its live editorial workflow are untouched.
+
+**Outstanding QA:** browser click/touch verification of both scroll directions (source→composition and composition→source) at desktop and tablet, no feedback loops, real alignment under long source spans, and mobile behavior. This is not automatically approved by compile/tests alone.
