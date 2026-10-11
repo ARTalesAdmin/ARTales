@@ -126,29 +126,28 @@ export default function SemanticReaderLab({revision,original,profileReaderDefaul
     update();window.addEventListener("resize",update);
     return()=>window.removeEventListener("resize",update);
   },[]);
-  useEffect(()=>{
-    if(focus||!originalRef.current||!frameRef.current)return;
-    const source=originalRef.current,frame=frameRef.current;
-    let raf=0;
-    const sync=()=>{
-      cancelAnimationFrame(raf);
-      raf=requestAnimationFrame(()=>{
-        const rect=frame.getBoundingClientRect();
-        const pageNodes=[...frame.querySelectorAll<HTMLElement>("[data-page-index]")];
-        const first=pageNodes.find(el=>el.getBoundingClientRect().bottom>Math.max(rect.top,125));
-        if(!first)return;
-        const index=Number(first.dataset.pageIndex);
-        if(!Number.isInteger(index)||index<0||index>=pages.length)return;
-        const inside=Math.max(0,Math.min(1,(Math.max(rect.top,125)-first.getBoundingClientRect().top)/
-          Math.max(1,first.getBoundingClientRect().height)));
-        const offset=sourceOffsetForReaderPage(pages,index,inside);
-        const ratio=offset/Math.max(1,revision.source.normalized_text.length);
-        source.scrollTop=ratio*Math.max(0,source.scrollHeight-source.clientHeight);
-      });
-    };
-    window.addEventListener("scroll",sync,{passive:true});sync();
-    return()=>{cancelAnimationFrame(raf);window.removeEventListener("scroll",sync);};
-  },[focus,pages,revision.source.normalized_text.length]);
+  useEffect(()=>()=>{if(syncFrameRef.current!==null)cancelAnimationFrame(syncFrameRef.current);},[]);
+  const synchronize=(side:PaneSide)=>{
+    if(focus)return;
+    const active=side==="source"?sourceRef.current:composedRef.current;
+    const passive=side==="source"?composedRef.current:sourceRef.current;
+    if(!active||!passive)return;
+    const ignored=ignoreSyncRef.current[side];
+    if(ignored && performance.now()<ignored.until && Math.abs(active.scrollTop-ignored.top)<2)return;
+    if(syncFrameRef.current!==null)cancelAnimationFrame(syncFrameRef.current);
+    syncFrameRef.current=requestAnimationFrame(()=>{
+      syncFrameRef.current=null;
+      const markers=(pane:HTMLDivElement)=>[...pane.querySelectorAll<HTMLElement>("[data-region-index]")]
+        .map(n=>({regionIndex:Number(n.dataset.regionIndex),top:n.getBoundingClientRect().top-
+          pane.getBoundingClientRect().top+pane.scrollTop}))
+        .filter(m=>Number.isInteger(m.regionIndex));
+      const target=synchronizeSemanticPanes(
+        {markers:markers(active),scrollTop:active.scrollTop,clientHeight:active.clientHeight,scrollHeight:active.scrollHeight},
+        {markers:markers(passive),scrollTop:passive.scrollTop,clientHeight:passive.clientHeight,scrollHeight:passive.scrollHeight});
+      ignoreSyncRef.current[side==="source"?"composed":"source"]={top:target,until:performance.now()+180};
+      passive.scrollTop=target;
+    });
+  };
   useEffect(()=>{
     let active=true;
     let frame=0;
@@ -215,20 +214,25 @@ export default function SemanticReaderLab({revision,original,profileReaderDefaul
           <option value={900}>Desktop 900</option>
         </select></label>
         <label><input type="checkbox" checked={focus} onChange={e=>setFocus(e.target.checked)}/> Samostatná čtečka</label>
-        {!focus&&<label><input type="checkbox" checked={showLegacy} onChange={e=>setShowLegacy(e.target.checked)}/> Legacy diagnostika</label>}
+
         <span role="status">{integrity.ok?"QA: zachováno pořadí jednotek":"QA selhala"} · {pages.length} stránek
           {" · "}{measured?"měřeno prohlížečem":"předběžný odhad"}
         </span>
       </div>
     </header>
-    <div className={"semantic-reader__triptych"+(focus?" semantic-reader__triptych--focus":"")+(showLegacy&&!focus?" semantic-reader__triptych--legacy":"")}>
+    <div className={"semantic-reader__triptych"+(focus?" semantic-reader__triptych--focus":"")}>
       {!focus&&<section aria-label="Archivní Gutenberg"><h2>Gutenberg #11 · originál</h2>
-        <pre ref={originalRef} className="semantic-reader__original semantic-reader__original--synced">{original}</pre></section>}
-      {!focus&&showLegacy&&<section aria-label="Syntetické legacy srovnání"><h2>ARTales legacy · pouze simulace</h2>
-        <p>Skutečný produkční snapshot Alice zatím nebyl bezpečně převzat. Srovnání záměrně není prohlášeno za ověřené.</p>
-        <pre className="semantic-reader__original">{legacySynthetic}</pre></section>}
+        <div ref={sourceRef} className="semantic-reader__paired-scroll semantic-reader__source-sheet"
+          onScroll={()=>synchronize("source")} data-qa-pane="source">
+          {sourceRegions.map((part,i)=><div key={i}
+            {...(part.regionIndex!==null?{"data-region-index":part.regionIndex}:{})}
+            data-source-start={part.start} data-source-end={part.end}
+            className="semantic-reader__source-region">{part.text}</div>)}
+        </div>
+      </section>}
       <section aria-label="Nová sémantická revize"><h2>ARTales · sémantická kompozice</h2>
-        <div className="semantic-reader__viewport" ref={frameRef} style={viewportStyle}
+        <div className={"semantic-reader__viewport"+(!focus?" semantic-reader__paired-scroll":"")} ref={node=>{frameRef.current=node;composedRef.current=node;}}
+          onScroll={()=>synchronize("composed")} style={viewportStyle}
           data-target-width={width} data-focused={focus} data-density={density}>
           <div ref={measureRef} className="semantic-reader__measurement" aria-hidden="true">
             <div className={"semantic-reader__pages semantic-reader__pages--"+mode}>
@@ -241,7 +245,8 @@ export default function SemanticReaderLab({revision,original,profileReaderDefaul
           <div className={"semantic-reader__pages semantic-reader__pages--"+mode} data-qa-projection="visible">
             {pages.map(page=><article className="semantic-reader__page" key={page.index}
               data-page-index={page.index} data-overflow={page.overflow} data-mode={mode}>
-              {page.units.map(u=><div className="semantic-reader__unit" key={u.id} data-page-unit-id={u.id}>
+              {page.units.map(u=><div className="semantic-reader__unit" key={u.id} data-page-unit-id={u.id}
+                {...(regionIndices.has(u.fragment?.original_unit_id??u.id)?{"data-region-index":regionIndices.get(u.fragment?.original_unit_id??u.id)}:{})}>
                 {unitView(u)}</div>)}
               <footer>QA strana {page.index+1}
                 {page.overflow==="scroll_unit"?" · dlouhý celek, bez rozdělení":""}
