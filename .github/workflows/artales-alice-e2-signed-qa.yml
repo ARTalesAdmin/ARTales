@@ -7,6 +7,7 @@ on:
       - 'supabase/ci/test_alice_e2_signed.sql'
       - 'lib/semantic/dbAComponentBridge.ts'
       - 'tests/dbAComponentBridge.test.ts'
+      - 'supabase/ci/alice_e2_signed_cycle.ts'
       - '.github/workflows/artales-alice-e2-signed-qa.yml'
   workflow_dispatch:
 permissions:
@@ -30,7 +31,7 @@ jobs:
           version: 2.120.0
       - run: supabase init --force
       - name: Start disposable local database
-        run: supabase start --exclude gotrue,realtime,storage-api,imgproxy,kong,mailpit,postgrest,postgres-meta,studio,edge-runtime,logflare,vector,supavisor
+        run: supabase start --exclude realtime,storage-api,imgproxy,mailpit,postgres-meta,studio,edge-runtime,logflare,vector,supavisor
       - name: Apply provisional E2 to disposable local DB only
         run: psql -X -v ON_ERROR_STOP=1 -f supabase/ci/alice_e2_signed_draft_assembly.sql
       - name: Verify privileges and immutable structure
@@ -42,10 +43,12 @@ jobs:
       - run: npm ci --ignore-scripts
       - name: DB-A exact source bridge and negative tests
         run: npx tsx --test tests/dbAComponentBridge.test.ts
+      - name: Signed GoTrue/PostgREST E2 revision, return and child QA
+        run: npx tsx supabase/ci/alice_e2_signed_cycle.ts
       - name: TypeScript and bridge lint
         run: |
           npx tsc --noEmit
-          npx eslint lib/semantic/dbAComponentBridge.ts tests/dbAComponentBridge.test.ts
+          npx eslint lib/semantic/dbAComponentBridge.ts tests/dbAComponentBridge.test.ts supabase/ci/alice_e2_signed_cycle.ts
       - name: Destroy local project without backup
         if: always()
         run: supabase stop --no-backup
