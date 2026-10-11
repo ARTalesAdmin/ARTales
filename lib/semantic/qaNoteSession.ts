@@ -72,3 +72,54 @@ export function locateSessionReaderNote(
   return {status:"exact",pageIndex:location.pageIndex,unitId:location.unitId,
     anchor:rebased.anchor,reason:"same_content_anchor_after_reflow"};
 }
+
+export type SessionNotePosition={
+  saved:SessionReaderNote;
+  pageIndex:number|null;
+  unitId:string|null;
+};
+/** Canonical page/progress sorting adapted to the *current* semantic projection.
+ * Original note.pageIndex remains intact and is never used as a navigation key.
+ */
+export function locateAndSortSessionNotes(
+  revision:SemanticRevision,pages:readonly SemanticPage[],notes:readonly SessionReaderNote[],
+):SessionNotePosition[]{
+  return notes.map(saved=>{
+    const current=locateSessionReaderNote(revision,pages,saved);
+    return {saved,pageIndex:current.pageIndex,unitId:current.unitId};
+  }).sort((a,b)=>{
+    const page=(a.pageIndex??Number.MAX_SAFE_INTEGER)-(b.pageIndex??Number.MAX_SAFE_INTEGER);
+    if(page)return page;
+    const start=a.saved.anchor.original_byte_start-b.saved.anchor.original_byte_start;
+    if(start)return start;
+    const created=a.saved.note.createdAt.localeCompare(b.saved.note.createdAt);
+    return created||a.saved.note.id.localeCompare(b.saved.note.id);
+  });
+}
+
+export type QaReadingUnitGeometry={
+  unitId:string;
+  pageIndex:number;
+  top:number;
+  bottom:number;
+  anchorable:boolean;
+};
+/** Pick the content block at the reading line: no opaque technical dropdown.
+ * Never attach a note to the title page or an offscreen semantic block.
+ */
+export function selectActiveQaReadingUnit(
+  units:readonly QaReadingUnitGeometry[],readingLine:number,viewportHeight:number,
+):{unitId:string;pageIndex:number}|null{
+  if(!Number.isFinite(readingLine)||!Number.isFinite(viewportHeight)||viewportHeight<=0)return null;
+  const candidates=units.filter(unit=>
+    unit.anchorable&&Number.isInteger(unit.pageIndex)&&unit.pageIndex>=0&&
+    Number.isFinite(unit.top)&&Number.isFinite(unit.bottom)&&unit.bottom>unit.top&&
+    unit.bottom>0&&unit.top<viewportHeight);
+  const chosen=[...candidates].sort((a,b)=>{
+    const score=(u:QaReadingUnitGeometry)=>
+      u.top<=readingLine&&u.bottom>=readingLine?0:
+      u.top>readingLine?u.top-readingLine:readingLine-u.bottom;
+    return score(a)-score(b)||a.pageIndex-b.pageIndex||a.top-b.top;
+  })[0];
+  return chosen?{unitId:chosen.unitId,pageIndex:chosen.pageIndex}:null;
+}
