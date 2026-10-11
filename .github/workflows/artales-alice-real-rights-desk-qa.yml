@@ -1,0 +1,30 @@
+name: ARTales real Alice legal desk QA
+on:
+  pull_request:
+    branches: [develop]
+    paths:
+      - 'lib/pilots/aliceRealRightsDesk.ts'
+      - 'tests/aliceRealRightsDesk.test.ts'
+      - 'scripts/aliceRealRightsReport.ts'
+      - '.github/workflows/artales-alice-real-rights-desk-qa.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  legal-desk:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - run: npx tsx --test tests/aliceRealRightsDesk.test.ts
+      - run: npx tsx scripts/aliceRealRightsReport.ts
+      - uses: actions/upload-artifact@v4
+        with:
+          name: alice-real-rights-desk
+          path: artifacts/alice-real-rights-desk.json
+      - run: npx tsc --noEmit
+      - run: npx eslint lib/pilots/aliceRealRightsDesk.ts tests/aliceRealRightsDesk.test.ts
