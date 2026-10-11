@@ -322,8 +322,71 @@ begin
  return pg_catalog.jsonb_build_object('result','returned_for_changes','issue_id',v_issue_id,'issue',v_issue_json,
    'draft_id',p_draft_id,'revision_sha256',d.revision_sha256,'publication_allowed',false);
 end $ret$;
+
+-- Exact, active signed work read; original serialized bytes retain the Composer digest.
+-- This is NOT an approval, publication or source-capture endpoint.
+create function public.get_semantic_v2_editor_state(p_work_id uuid)
+ returns jsonb language plpgsql stable security definer set search_path='' as $read$
+declare v_actor uuid:=auth.uid(); v_role public.app_role;
+ v_slug text; v_head artales_evidence.semantic_v2_heads%rowtype;
+ v_draft artales_evidence.semantic_v2_drafts%rowtype;
+ v_sha text; v_pending jsonb; v_previous jsonb;
+begin
+ if v_actor is null then
+  return pg_catalog.jsonb_build_object('result','blocked','reason','authentication_required');
+ end if;
+ select role into v_role from public.profiles where id=v_actor and is_active=true;
+ if v_role is null or v_role not in ('admin'::public.app_role,'editor'::public.app_role) then
+  return pg_catalog.jsonb_build_object('result','blocked','reason','editor_role_required');
+ end if;
+ if v_role='editor'::public.app_role and not exists(
+   select 1 from public.editorial_tasks t
+   where t.work_id=p_work_id and t.kind='edit_text' and t.status='claimed'
+     and t.assignee_user_id=v_actor
+ ) then
+  return pg_catalog.jsonb_build_object('result','blocked','reason','claimed_work_task_required');
+ end if;
+ select slug into v_slug from public.works where id=p_work_id;
+ if v_slug is null then
+  return pg_catalog.jsonb_build_object('result','blocked','reason','work_not_found');
+ end if;
+ select * into v_head from artales_evidence.semantic_v2_heads where work_id=p_work_id;
+ if v_head.work_id is null or v_head.head_draft_id is null then
+  return pg_catalog.jsonb_build_object('result','not_started','work_id',p_work_id,
+    'work_slug',v_slug,'publication_allowed',false);
+ end if;
+ select * into v_draft from artales_evidence.semantic_v2_drafts
+  where id=v_head.head_draft_id and work_id=p_work_id;
+ if v_draft.id is null or v_draft.source_snapshot_id<>v_head.source_snapshot_id then
+  return pg_catalog.jsonb_build_object('result','blocked','reason','untrusted_head');
+ end if;
+ select sha256 into v_sha from artales_evidence.source_snapshots
+  where id=v_draft.source_snapshot_id and work_id=p_work_id;
+ if v_sha is null or v_draft.payload->>'work_id'<>p_work_id::text or
+  v_draft.payload->>'work_slug'<>v_slug or
+  v_draft.payload->'release_allowed'<>'false'::jsonb then
+  return pg_catalog.jsonb_build_object('result','blocked','reason','untrusted_revision');
+ end if;
+ select issue_json into v_pending from artales_evidence.semantic_v2_review_issues
+  where draft_id=v_draft.id;
+ if v_draft.parent_draft_id is not null then
+  select issue_json into v_previous from artales_evidence.semantic_v2_review_issues
+   where draft_id=v_draft.parent_draft_id;
+ end if;
+ return pg_catalog.jsonb_build_object(
+  'result','ready','work_id',p_work_id,'work_slug',v_slug,
+  'draft_id',v_draft.id,'revision_sha256',v_draft.revision_sha256,
+  'serialized_payload',v_draft.serialized_payload,
+  'source_snapshot_id',v_draft.source_snapshot_id,'source_sha256',v_sha,
+  'parent_draft_id',v_draft.parent_draft_id,'round',v_draft.round,
+  'pending_issue',v_pending,'previous_return',v_previous,
+  'publication_allowed',false);
+end $read$;
+
 revoke all on function public.stage_semantic_v2_draft(uuid,uuid,uuid,text,text,uuid,uuid) from public,anon,authenticated;
 revoke all on function public.return_semantic_v2_revision(uuid,uuid,text,text,text,uuid) from public,anon,authenticated;
 grant execute on function public.stage_semantic_v2_draft(uuid,uuid,uuid,text,text,uuid,uuid) to authenticated;
 grant execute on function public.return_semantic_v2_revision(uuid,uuid,text,text,text,uuid) to authenticated;
+revoke all on function public.get_semantic_v2_editor_state(uuid) from public,anon,authenticated;
+grant execute on function public.get_semantic_v2_editor_state(uuid) to authenticated;
 commit;
