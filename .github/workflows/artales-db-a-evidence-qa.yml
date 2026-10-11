@@ -1,0 +1,54 @@
+name: ARTales DB-A isolated evidence assembly QA
+on:
+  pull_request:
+    branches: [develop]
+    paths:
+      - 'supabase/ci/db_a_immutable_evidence_assembly.sql'
+      - 'supabase/migrations/20261011092051_artales_db_a_evidence_foundation.sql'
+      - 'supabase/ci/test_db_a_immutable_evidence.sql'
+      - '.github/workflows/artales-db-a-evidence-qa.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: artales-db-a-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+jobs:
+  db-a:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      SUPABASE_ACCESS_TOKEN: ''
+      SUPABASE_DB_PASSWORD: ''
+      PGHOST: 127.0.0.1
+      PGPORT: 54322
+      PGUSER: postgres
+      PGPASSWORD: postgres
+      PGDATABASE: postgres
+    steps:
+      - uses: actions/checkout@v4
+      - uses: supabase/setup-cli@v1
+        with:
+          version: 2.120.0
+      - name: Initialize disposable Supabase database only
+        run: |
+          supabase init --force
+          supabase start --exclude gotrue,realtime,storage-api,imgproxy,kong,mailpit,postgrest,postgres-meta,studio,edge-runtime,logflare,vector,supavisor
+      - name: Verify versioned DB-A migration present after local startup
+        run: |
+          psql -X -v ON_ERROR_STOP=1 -c "select count(*) from artales_evidence.source_snapshots;"
+          supabase migration list --local
+      - name: Verify SQL grants, RLS and structure
+        run: psql -X -v ON_ERROR_STOP=1 -f supabase/ci/test_db_a_immutable_evidence.sql
+      - name: Seed disposable synthetic source and independent reviewer
+        run: psql -X -v ON_ERROR_STOP=1 -f supabase/ci/201_concurrency_fixture.sql
+      - name: Verify real writes, rejection and cross-work integrity
+        run: psql -X -v ON_ERROR_STOP=1 -f supabase/ci/test_db_a_mutation_integrity.sql
+      - name: Confirm canonical migration survives clean local reset
+        run: |
+          supabase db reset --local --yes
+          psql -X -v ON_ERROR_STOP=1 -f supabase/ci/test_db_a_immutable_evidence.sql
+          supabase migration list --local
+      - name: Tear down without backup
+        if: always()
+        run: supabase stop --no-backup
