@@ -1,6 +1,7 @@
 import {inspectRealAliceRights} from "./aliceRealRightsDesk";
 import {composePg11Pilot,captureGutenbergBytes,getPg11FixtureRequest} from "../ingest/gutenbergSnapshot";
 import {createHash} from "node:crypto";
+import {screenCapturedTextRights} from "../rights/sourceTextEligibility";
 
 /** Text-only editorial eligibility is NOT a publication authorization. */
 export function assessAliceTextOnlyDraft(bytes:Uint8Array,checkedAt:string){
@@ -14,6 +15,21 @@ export function assessAliceTextOnlyDraft(bytes:Uint8Array,checkedAt:string){
  if(!work?.sha256||work.disposition!=="qa_text_only"||
    excluded.length!==5||excluded.some(c=>c.disposition!=="exclude"))
    throw Error("Unsafe inclusion boundary");
+ const generic=screenCapturedTextRights({
+  candidate_id:"pilot:alice:original-en",
+  original_authors:[{name:"Lewis Carroll",death_year:1898,living:false,
+   evidence_url:"https://www.gutenberg.org/ebooks/11"}],
+  original_language:"en",selected_language:"en",version:"original",translators:[],
+  edition_contribution:"separable",
+  source:{provider:"gutenberg",uri:report.source.uri,archive_ref:"repo:tests/fixtures/gutenberg/pg11-2016-gitenberg-11-0.txt",
+   captured_at:checkedAt,sha256:report.source.sha256,bytes},
+  components:report.componentInventory.map(c=>({
+   id:c.id,kind:c.kind,byte_start:c.byteStart,byte_end:c.byteEnd
+  })),
+ },checkedAt);
+ if(generic.decision!=="eligible_for_editorial_draft"||
+   generic.included.length!==1||generic.included[0]!==work.id)
+  throw Error("Generic author and selected text rights check blocked Alice");
  const sourceText=Buffer.from(bytes).subarray(work.byteStart!,work.byteEnd!).toString("utf8");
  if(/\[(?:Illustration|Image|Translation|Translator)\s*:/i.test(sourceText))
    throw Error("Embedded later edition content must be separately reviewed");
@@ -34,5 +50,6 @@ export function assessAliceTextOnlyDraft(bytes:Uint8Array,checkedAt:string){
   legal_specialist_required:false as const,
   release_review_required:true as const,
   scan_evidence_status:report.scan.outcome,
+  general_rights_snapshot:generic,
  };
 }
