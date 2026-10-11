@@ -32,3 +32,13 @@
 .semantic-reader__title-page p{margin:0}
 .semantic-reader__brand{letter-spacing:.18em;font:600 .85rem system-ui}
 .semantic-reader__draft-note{margin-top:2rem;color:#776b5d;font:12px system-ui}
+
+/* Offscreen but layout-real: never display:none, as font metrics must be measurable. */
+.semantic-reader__viewport{position:relative}
+.semantic-reader__measurement{position:absolute;left:-100000px;top:0;visibility:hidden;pointer-events:none;z-index:-1;width:100%}
+.semantic-reader__measurement-page{min-width:0}
+.semantic-reader__unit{display:flow-root}
+.semantic-reader__pages:not(.semantic-reader__pages--scroll)>.semantic-reader__page{min-height:var(--reader-page-height,758px);box-sizing:border-box}
+.semantic-reader__pages--spread .semantic-reader__page{align-self:stretch}
+.semantic-reader__pages--scroll .semantic-reader__page{min-height:0}
+@media(max-width:650px){.semantic-reader__pages--spread{grid-template-columns:1fr}}
