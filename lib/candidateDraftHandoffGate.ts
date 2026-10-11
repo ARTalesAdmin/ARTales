@@ -68,7 +68,11 @@ export function inspectCapturedSource(e: CaptureEnvelope): {eligibleForDraftHand
  */
 export function inspectTextRightsDraftHandoff(capture:CaptureEnvelope,rights:TextRightsSnapshot){
  const base=inspectCapturedSource(capture);
- const blockers:string[]=[...base.blockers];
+ const translated=rights.version==="translation"&&
+  rights.included.length>0&&rights.included.every(id=>
+    capture.components.some(c=>c.componentId===id&&
+      c.kind==="TRANSLATION"&&c.included&&c.decision==="usable"));
+ const blockers:string[]=base.blockers.filter(x=>x!=="original_text_missing"||!translated);
  if(rights.candidate_id!==capture.candidateId||
   rights.source_sha256!==capture.sourceSha256||
   rights.captured_at!==capture.capturedAt||
