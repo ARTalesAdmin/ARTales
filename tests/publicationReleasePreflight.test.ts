@@ -89,10 +89,11 @@ function validRelease(): ReleasePreflight {
           sourceSnapshotSha256: H.raw,
         },
         {
-          componentId: "cover",
+          componentId: "selected-cover-1",
           kind: "ASSET",
           included: true,
           decision: "cleared",
+          artifactSha256: H.cover,
           evidenceSha256: H.evidence,
           reviewedAt: "2026-10-11T08:00:00Z",
           jurisdictions: ["CZ", "EU"],
@@ -226,7 +227,7 @@ test("unresolved translation or external image never inherits original-text righ
   });
   expectBlock(x, "rights_component_uncleared");
   x.rights.components.pop();
-  x.rights.components.find((component) => component.componentId === "cover")!.decision = "blocked";
+  x.rights.components.find((component) => component.componentId === "selected-cover-1")!.decision = "blocked";
   expectBlock(x, "rights_component_uncleared");
 });
 
@@ -337,4 +338,17 @@ test("legacy Alice with exact preserved identity still requires all release gate
   x.legacyCutover.sourceComparison!.verdict = "matched";
   x.rights.status = "pending";
   expectBlock(x, "rights_dossier_unapproved");
+});
+
+test("visual rights must bind exactly to approved selected media bytes", () => {
+  const x = validRelease();
+  const asset = x.rights.components.find((c) => c.kind === "ASSET")!;
+  asset.artifactSha256 = H.meta;
+  expectBlock(x, "visual_rights_unverified");
+  asset.artifactSha256 = H.cover;
+  asset.componentId = "different-cover";
+  expectBlock(x, "visual_rights_unverified");
+  asset.componentId = x.visualAssets[0].id;
+  x.visualAssets[0].sha256 = H.text;
+  expectBlock(x, "visual_rights_unverified");
 });
