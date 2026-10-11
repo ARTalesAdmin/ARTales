@@ -1,55 +1,125 @@
 import type { SemanticRevision, SemanticNode, SemanticPageUnit, SemanticPage, ReaderAnchorV2, SemanticAtom } from "./model";
 import { walkSemanticAtoms, verifySemanticRevision } from "./compose";
 
-export type SemanticReaderLayout={mode:"paged"|"spread"|"scroll";viewport_width:number;viewport_height:number;font_scale:number;density?:"comfortable"|"compact"};
-function units(revision:SemanticRevision):SemanticPageUnit[]{
-  const all:SemanticPageUnit[]=[];
-  const append=(nodes:SemanticNode[],chapter:string|null)=>{
-    for(const node of nodes){
-      if(node.kind==="chapter"||node.kind==="section"){
-        const u:SemanticPageUnit={id:node.id+":heading",kind:node.kind==="chapter"?"chapter_heading":"section_heading",
-          node,chapter_id:chapter,source_atom_ids:[node.heading.id],estimated_height:85+node.heading.raw.length*0.6};
-        all.push(u);append(node.children,node.kind==="chapter"?node.id:chapter);
-      }else if(node.kind==="poem"){
-        const atoms=node.stanzas.flatMap(s=>s.lines.map(l=>l.atom));
-        all.push({id:node.id,kind:"poem",node,chapter_id:chapter,source_atom_ids:atoms.map(x=>x.id),
-          estimated_height:40+atoms.reduce((sum,x)=>sum+Math.max(28,x.raw.length*0.4),0)+node.stanzas.length*18});
-      }else if("atom" in node){
-        all.push({id:node.id,kind:node.kind,node,chapter_id:chapter,source_atom_ids:[node.atom.id],
-          estimated_height:35+Math.max(1,node.atom.raw.length/60)*24});
+import { projectSemanticProseText } from "./displayText";
+
+export type SemanticReaderLayout = {
+  mode: "paged" | "spread" | "scroll";
+  /** Width of ONE rendered page, not the width of a spread or browser window. */
+  viewport_width: number;
+  viewport_height: number;
+  font_scale: number;
+  density?: "comfortable" | "compact";
+  /** Optional browser measurements on exact rendered page width/typeface. */
+  measured_unit_heights?: Readonly<Record<string, number>>;
+};
+
+export function getSemanticPageUnits(revision: SemanticRevision): SemanticPageUnit[] {
+  const all: SemanticPageUnit[] = [];
+  const append = (nodes: SemanticNode[], chapter: string | null) => {
+    for (const node of nodes) {
+      if (node.kind === "chapter" || node.kind === "section") {
+        all.push({
+          id: node.id + ":heading", kind: node.kind === "chapter" ? "chapter_heading" : "section_heading",
+          node, chapter_id: chapter, source_atom_ids: [node.heading.id], estimated_height: 0,
+        });
+        append(node.children, node.kind === "chapter" ? node.id : chapter);
+      } else if (node.kind === "poem") {
+        all.push({
+          id: node.id, kind: "poem", node, chapter_id: chapter,
+          source_atom_ids: node.stanzas.flatMap(s => s.lines.map(l => l.atom.id)),
+          estimated_height: 0,
+        });
+      } else if ("atom" in node) {
+        all.push({
+          id: node.id, kind: node.kind, node, chapter_id: chapter,
+          source_atom_ids: [node.atom.id], estimated_height: 0,
+        });
       }
     }
   };
-  append(revision.blocks,null);return all;
+  append(revision.blocks, null);
+  return all;
 }
-export function projectSemanticReader(revision:SemanticRevision, layout:SemanticReaderLayout):SemanticPage[]{
+
+/** First server-render fallback; hydrated preview replaces it with real DOM heights. */
+function estimateUnitHeight(unit: SemanticPageUnit, layout: SemanticReaderLayout): number {
+  const lineHeight = 16 * layout.font_scale * (layout.density === "compact" ? 1.4 : 1.65);
+  const textWidth = Math.max(150, layout.viewport_width - (layout.viewport_width < 650 ? 28 : 48));
+  const charsPerLine = Math.max(18, Math.floor(textWidth / (7.8 * layout.font_scale)));
+  if (unit.kind === "poem" && unit.node.kind === "poem") {
+    const lineCount = unit.node.stanzas.reduce((n, stanza) =>
+      n + stanza.lines.reduce((k, line) => k + Math.max(1, Math.ceil(line.atom.raw.length / charsPerLine)), 0), 0);
+    return 20 + lineCount * lineHeight + unit.node.stanzas.length * 16;
+  }
+  const raw = unit.kind === "chapter_heading" || unit.kind === "section_heading"
+    ? "heading" in unit.node ? unit.node.heading.raw : ""
+    : "atom" in unit.node ? projectSemanticProseText(unit.node.atom.raw) : "";
+  const logicalLines = raw.split("\n").reduce((n, line) =>
+    n + Math.max(1, Math.ceil(line.length / charsPerLine)), 0);
+  const head = unit.kind === "chapter_heading" || unit.kind === "section_heading";
+  return (head ? 24 : 16) + logicalLines * lineHeight * (head ? 1.05 : 1);
+}
+
+export function projectSemanticReader(revision: SemanticRevision, layout: SemanticReaderLayout): SemanticPage[] {
   verifySemanticRevision(revision);
-  if(!Number.isFinite(layout.viewport_width)||!Number.isFinite(layout.viewport_height)||
-     layout.viewport_width<280||layout.viewport_height<320||
-     layout.viewport_width>10000||layout.viewport_height>10000||
-     !Number.isFinite(layout.font_scale)||layout.font_scale<0.7||layout.font_scale>2)
+  if (!Number.isFinite(layout.viewport_width) || !Number.isFinite(layout.viewport_height) ||
+    layout.viewport_width < 200 || layout.viewport_height < 320 ||
+    layout.viewport_width > 10000 || layout.viewport_height > 10000 ||
+    !Number.isFinite(layout.font_scale) || layout.font_scale < 0.7 || layout.font_scale > 2) {
     throw new Error("Invalid reader viewport.");
-  if(layout.density!==undefined && layout.density!=="comfortable" && layout.density!=="compact") throw new Error("Invalid Reader line density.");
-  const densityFactor=layout.density==="compact"?0.86:1;
-  const capacity=Math.max(180,layout.viewport_height-180)/(layout.font_scale*densityFactor);
-  const result:SemanticPage[]=[];
-  let pending:SemanticPageUnit[]=[];let weight=0;
-  const flush=()=>{if(pending.length){result.push({index:result.length,units:pending,
-    overflow:pending.some(x=>x.estimated_height>capacity)?"scroll_unit":"none",estimated_height:weight});
-    pending=[];weight=0;}};
-  for(const u of units(revision)){
-    if(layout.mode!=="scroll" && pending.length && weight+u.estimated_height>capacity)flush();
-    pending.push(u);weight+=u.estimated_height;
-    if(u.estimated_height>capacity)flush(); // scroll inside page, never split an atom/poem
+  }
+  if (layout.density !== undefined && layout.density !== "comfortable" && layout.density !== "compact") {
+    throw new Error("Invalid Reader line density.");
+  }
+  const all = getSemanticPageUnits(revision).map(unit => {
+    const measured = layout.measured_unit_heights?.[unit.id];
+    if (measured !== undefined && (!Number.isFinite(measured) || measured <= 0 || measured > 100000)) {
+      throw new Error("Invalid browser-measured semantic unit height.");
+    }
+    return { ...unit, estimated_height: measured ?? estimateUnitHeight(unit, layout) };
+  });
+  // Budget includes real viewport height, with margins for page padding/footer and controls.
+  const capacity = Math.max(260, layout.viewport_height - 155);
+  const result: SemanticPage[] = [];
+  let pending: SemanticPageUnit[] = [];
+  let weight = 0;
+  const flush = () => {
+    if (!pending.length) return;
+    result.push({
+      index: result.length, units: pending,
+      overflow: pending.some(unit => unit.estimated_height > capacity) ? "scroll_unit" : "none",
+      estimated_height: weight,
+    });
+    pending = []; weight = 0;
+  };
+  if (layout.mode === "scroll") {
+    return [{
+      index: 0, units: all, overflow: "scroll_unit",
+      estimated_height: all.reduce((sum, unit) => sum + unit.estimated_height, 0),
+    }];
+  }
+  for (let i = 0; i < all.length; i++) {
+    const unit = all[i];
+    const next = all[i + 1];
+    // Avoid leaving a chapter heading at a page end without its first paragraph.
+    const keepWithNext = (unit.kind === "chapter_heading" || unit.kind === "section_heading") && next
+      ? next.estimated_height : 0;
+    if (pending.length && (weight + unit.estimated_height > capacity ||
+      (keepWithNext > 0 && weight + unit.estimated_height + keepWithNext > capacity))) {
+      flush();
+    }
+    pending.push(unit);
+    weight += unit.estimated_height;
+    if (unit.estimated_height > capacity) flush(); // oversized semantic unit scrolls; never dropped/split
   }
   flush();
-  if(layout.mode==="scroll")return [{index:0,units:result.flatMap(p=>p.units),overflow:"scroll_unit",
-    estimated_height:result.reduce((n,p)=>n+p.estimated_height,0)}];
   return result;
 }
+
 export function verifyReaderProjection(revision:SemanticRevision,pages:SemanticPage[]){
   verifySemanticRevision(revision);
-  const expected=units(revision);
+  const expected=getSemanticPageUnits(revision);
   const actual=pages.flatMap(p=>p.units);
   if(actual.length!==expected.length||expected.some((u,i)=>actual[i].id!==u.id||
     JSON.stringify(actual[i].source_atom_ids)!==JSON.stringify(u.source_atom_ids)))
