@@ -112,6 +112,15 @@ assert.equal(badDigest.data?.reason,"revision_digest_mismatch");
 const first=await rpc(admin,stage,initial);
 if(first.status!==200||first.data.result!=="saved_draft"||!first.data.draft_id||
    first.data.publication_allowed!==false)throw Error("Initial signed draft failed "+JSON.stringify(first));
+const initialRead=await rpc(admin,"get_semantic_v2_editor_state",{p_work_id:workId});
+if(initialRead.status!==200||initialRead.data.result!=="ready"||
+ initialRead.data.draft_id!==first.data.draft_id||
+ initialRead.data.serialized_payload!==initial.p_serialized_payload)
+ throw Error("Signed E2 first-read mismatch "+JSON.stringify(initialRead));
+const readerRead=await rpc(reader,"get_semantic_v2_editor_state",{p_work_id:workId});
+assert.equal(readerRead.data.reason,"editor_role_required");
+const editorRead=await rpc(editor,"get_semantic_v2_editor_state",{p_work_id:workId});
+assert.equal(editorRead.data.reason,"claimed_work_task_required");
 const repeat=await rpc(admin,stage,initial);
 assert.equal(repeat.data.result,"already_saved");
 assert.equal(repeat.data.draft_id,first.data.draft_id);
@@ -140,6 +149,14 @@ assert.equal(unsolved.data.result,"blocked");
 const second=await rpc(admin,stage,child);
 if(second.status!==200||second.data.result!=="saved_draft"||!second.data.draft_id)
  throw Error("Signed child revision failed "+JSON.stringify(second));
+const latestRead=await rpc(admin,"get_semantic_v2_editor_state",{p_work_id:workId});
+if(latestRead.status!==200||latestRead.data.result!=="ready"||
+ latestRead.data.draft_id!==second.data.draft_id||
+ latestRead.data.parent_draft_id!==first.data.draft_id||
+ latestRead.data.previous_return?.id!==ret.data.issue_id||
+ latestRead.data.serialized_payload!==child.p_serialized_payload||
+ latestRead.data.publication_allowed!==false)
+ throw Error("Signed E2 child-read mismatch "+JSON.stringify(latestRead));
 const stale=await rpc(admin,stage,{...child,p_request_id:randomUUID()});
 assert.equal(stale.data.reason,"stale_parent");
 const staleReturn=await rpc(reviewer,returnFn,{...retArgs,p_request_id:randomUUID()});
