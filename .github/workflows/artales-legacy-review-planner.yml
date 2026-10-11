@@ -1,0 +1,24 @@
+name: ARTales legacy review planner QA
+on:
+  pull_request:
+    branches: [develop]
+    paths:
+      - 'lib/editorial/planLegacyReviews.ts'
+      - 'tests/planLegacyReviews.test.ts'
+      - '.github/workflows/artales-legacy-review-planner.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  pure-planning:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - run: npx tsx --test tests/planLegacyReviews.test.ts
+      - run: npx tsc --noEmit
+      - run: npx eslint lib/editorial/planLegacyReviews.ts tests/planLegacyReviews.test.ts
