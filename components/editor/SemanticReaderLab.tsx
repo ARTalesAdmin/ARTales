@@ -1,6 +1,7 @@
 "use client";
 import {useEffect, useMemo, useRef, useState, type CSSProperties} from "react";
 import {projectSemanticProseText} from "@/lib/semantic/displayText";
+import {resolveQaProjectionMode, sourceOffsetForReaderPage} from "@/lib/semantic/qaReaderModes";
 import {getProfileReaderSettings, type FixtureProfileReaderDefaults} from "@/lib/fixtures/readerPreferences";
 import {defaultReaderSettings, type ReaderDensityId} from "@/lib/reader/readerSettings";
 import type {SemanticRevision, SemanticNode, SemanticAtom, SemanticPoem, SemanticBlockPresentation, SemanticPageUnit} from "@/lib/semantic/model";
@@ -88,15 +89,19 @@ function sameMeasurements(a:BrowserMeasurements|null,b:BrowserMeasurements) {
 
 export default function SemanticReaderLab({revision,original,legacySynthetic,profileReaderDefaults=null}:Props) {
   const accountPreferences=getProfileReaderSettings(profileReaderDefaults)??defaultReaderSettings;
-  const [mode,setMode]=useState<"paged"|"spread"|"scroll">("paged");
+  const [readerMode,setReaderMode]=useState<"scroll"|"spread">("scroll");
+  const [showLegacy,setShowLegacy]=useState(false);
+  const [deviceWidth,setDeviceWidth]=useState(1366);
   const [scale,setScale]=useState(accountPreferences.fontScale);
   const [density,setDensity]=useState<ReaderDensityId>(accountPreferences.density);
   const [width,setWidth]=useState(900);
   const [focus,setFocus]=useState(false);
   const [metrics,setMetrics]=useState<BrowserMeasurements|null>(null);
   const frameRef=useRef<HTMLDivElement>(null);
+  const originalRef=useRef<HTMLPreElement>(null);
   const measureRef=useRef<HTMLDivElement>(null);
-  const measureKey=[revision.revision_ref,mode,scale,density,width,focus].join("|");
+  const mode=resolveQaProjectionMode(focus?"reader":"editor",readerMode,width,deviceWidth);
+  const measureKey=[revision.revision_ref,mode,scale,density,width,focus,showLegacy].join("|");
   const measured=metrics?.key===measureKey?metrics:null;
   const allUnits=useMemo(()=>getSemanticPageUnits(revision),[revision]);
   const fallbackWidth=focus?(mode==="spread"&&width>=700?Math.floor((width-42)/2):width-24):340;
@@ -107,6 +112,34 @@ export default function SemanticReaderLab({revision,original,legacySynthetic,pro
   }),[revision,mode,scale,density,measured,fallbackWidth]);
   const integrity=verifyReaderProjection(revision,pages);
 
+  useEffect(()=>{
+    const update=()=>setDeviceWidth(window.innerWidth);
+    update();window.addEventListener("resize",update);
+    return()=>window.removeEventListener("resize",update);
+  },[]);
+  useEffect(()=>{
+    if(focus||!originalRef.current||!frameRef.current)return;
+    const source=originalRef.current,frame=frameRef.current;
+    let raf=0;
+    const sync=()=>{
+      cancelAnimationFrame(raf);
+      raf=requestAnimationFrame(()=>{
+        const rect=frame.getBoundingClientRect();
+        const pageNodes=[...frame.querySelectorAll<HTMLElement>("[data-page-index]")];
+        const first=pageNodes.find(el=>el.getBoundingClientRect().bottom>Math.max(rect.top,125));
+        if(!first)return;
+        const index=Number(first.dataset.pageIndex);
+        if(!Number.isInteger(index)||index<0||index>=pages.length)return;
+        const inside=Math.max(0,Math.min(1,(Math.max(rect.top,125)-first.getBoundingClientRect().top)/
+          Math.max(1,first.getBoundingClientRect().height)));
+        const offset=sourceOffsetForReaderPage(pages,index,inside);
+        const ratio=offset/Math.max(1,revision.source.normalized_text.length);
+        source.scrollTop=ratio*Math.max(0,source.scrollHeight-source.clientHeight);
+      });
+    };
+    window.addEventListener("scroll",sync,{passive:true});sync();
+    return()=>{cancelAnimationFrame(raf);window.removeEventListener("scroll",sync);};
+  },[focus,pages,revision.source.normalized_text.length]);
   useEffect(()=>{
     let active=true;
     let frame=0;
@@ -158,9 +191,9 @@ export default function SemanticReaderLab({revision,original,legacySynthetic,pro
     <header><h1>ARTales · Sémantický Reader v2 (QA)</h1>
       <p>Textová zkouška, nikoli veřejná publikace. Legacy sloupec je výhradně syntetický.</p>
       <div className="semantic-reader__controls">
-        <label>Režim <select value={mode} onChange={e=>setMode(e.target.value as typeof mode)}>
-          <option value="paged">Stránky</option><option value="spread">Dvoustrany</option><option value="scroll">Plynulý text</option>
-        </select></label>
+        {focus?<label>Čtení <select value={readerMode} onChange={e=>setReaderMode(e.target.value as typeof readerMode)}>
+          <option value="scroll">Plynulý text</option>{deviceWidth>=700&&width>=700&&<option value="spread">Dvoustrana</option>}
+        </select></label>:<span>Redakční srovnání · stránky</span>}
         <label>Velikost <input aria-label="Velikost textu" type="range" min="0.85" max="1.3"
           step="0.05" value={scale} onChange={e=>setScale(Number(e.target.value))}/></label>
         <label>Řádkování <select aria-label="Hustota řádkování" value={density}
@@ -172,15 +205,16 @@ export default function SemanticReaderLab({revision,original,legacySynthetic,pro
           <option value={900}>Desktop 900</option>
         </select></label>
         <label><input type="checkbox" checked={focus} onChange={e=>setFocus(e.target.checked)}/> Samostatná čtečka</label>
+        {!focus&&<label><input type="checkbox" checked={showLegacy} onChange={e=>setShowLegacy(e.target.checked)}/> Legacy diagnostika</label>}
         <span role="status">{integrity.ok?"QA: zachováno pořadí jednotek":"QA selhala"} · {pages.length} stránek
           {" · "}{measured?"měřeno prohlížečem":"předběžný odhad"}
         </span>
       </div>
     </header>
-    <div className={"semantic-reader__triptych"+(focus?" semantic-reader__triptych--focus":"")}>
+    <div className={"semantic-reader__triptych"+(focus?" semantic-reader__triptych--focus":"")+(showLegacy&&!focus?" semantic-reader__triptych--legacy":"")}>
       {!focus&&<section aria-label="Archivní Gutenberg"><h2>Gutenberg #11 · originál</h2>
-        <pre className="semantic-reader__original">{original}</pre></section>}
-      {!focus&&<section aria-label="Syntetické legacy srovnání"><h2>ARTales legacy · pouze simulace</h2>
+        <pre ref={originalRef} className="semantic-reader__original semantic-reader__original--synced">{original}</pre></section>}
+      {!focus&&showLegacy&&<section aria-label="Syntetické legacy srovnání"><h2>ARTales legacy · pouze simulace</h2>
         <p>Skutečný produkční snapshot Alice zatím nebyl bezpečně převzat. Srovnání záměrně není prohlášeno za ověřené.</p>
         <pre className="semantic-reader__original">{legacySynthetic}</pre></section>}
       <section aria-label="Nová sémantická revize"><h2>ARTales · sémantická kompozice</h2>
