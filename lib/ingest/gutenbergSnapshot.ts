@@ -325,10 +325,37 @@ export function getPg11FixtureRequest(capturedAt = "2026-10-11T00:00:00.000Z"): 
   };
 }
 
-/** Output to main thread only; no database row or claimed legal decision. */
+/**
+ * This is a QA handoff, never a publication approval. Revalidate the pinned
+ * original bytes and independently reconstruct the boundary inventory: a
+ * caller-supplied "ready" status must not launder uncertain/unreviewed spans.
+ */
 export function createPg11IntegrationPayload(snapshot: ImmutableSourceSnapshot, boundaries: BoundaryResult) {
+  if (boundaries.status !== "ready_for_fixture" || boundaries.review_reasons.length > 0) {
+    throw new Error("Gutenberg integration blocked: source boundaries need manual review.");
+  }
+  if (snapshot.source_uri !== PG11_URI ||
+      snapshot.retrieval_method !== "gitenberg_pinned_git_revision" ||
+      snapshot.bytes_sha256 !== PG11_BYTES_SHA256 ||
+      snapshot.snapshot_ref !== "sha256:" + PG11_BYTES_SHA256 ||
+      !snapshot.rights_dossier_ref.trim() || !snapshot.jurisdiction.trim()) {
+    throw new Error("Gutenberg integration blocked: unpinned source or missing rights context.");
+  }
+  const validated = extractPg11Components(snapshot);
+  if (validated.status !== "ready_for_fixture" ||
+      validated.review_reasons.length > 0 ||
+      JSON.stringify(validated.content_components) !== JSON.stringify(boundaries.content_components)) {
+    throw new Error("Gutenberg integration blocked: source snapshot or component inventory changed.");
+  }
+  const workText = validated.content_components.filter((component) =>
+    component.kind === "WORK_CONTENT" && component.disposition === "qa_text_only" &&
+    component.original !== null);
+  if (workText.length !== 1) {
+    throw new Error("Gutenberg integration blocked: missing or ambiguous QA content span.");
+  }
   return {
     schema: "artales.ingest.snapshot-handoff.v1",
+    boundary_status: "ready_for_fixture" as const,
     candidate_id: snapshot.candidate_id,
     candidate_source_id: snapshot.candidate_source_id,
     source_uri: snapshot.source_uri,
