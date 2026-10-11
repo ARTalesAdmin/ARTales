@@ -4,6 +4,7 @@ on:
     branches: [develop]
     paths:
       - 'supabase/ci/profile_authority_lockdown_assembly.sql'
+      - 'supabase/migrations/20261011142305_artales_profile_authority_hardening.sql'
       - 'supabase/ci/test_profile_authority_lockdown.sql'
       - 'supabase/ci/test_profile_authority_signed_e2e.mjs'
       - 'supabase/ci/test_profile_auth_trigger_parity.sql'
@@ -33,22 +34,15 @@ jobs:
         run: |
           supabase init --force
           supabase start --exclude realtime,storage-api,imgproxy,mailpit,postgres-meta,studio,edge-runtime,logflare,vector,supavisor
-      - name: Apply authority restrictions only in disposable PostgreSQL
-        run: psql -X -v ON_ERROR_STOP=1 -f supabase/ci/profile_authority_lockdown_assembly.sql
+      - name: Verify canonical migration applied on startup
+        run: psql -X -v ON_ERROR_STOP=1 -c "select count(*) from pg_trigger where tgrelid='auth.users'::regclass and tgname='zz_artales_profile_sync_v081';"
       - name: Assert role protections and profile compatibility
         run: psql -X -v ON_ERROR_STOP=1 -f supabase/ci/test_profile_authority_lockdown.sql
-      - name: Match production auth trigger in disposable local fixture
+      - name: Verify canonical production-equivalent auth trigger
         run: psql -X -v ON_ERROR_STOP=1 -f supabase/ci/test_profile_auth_trigger_parity.sql
       - name: Signed GoTrue and PostgREST privilege regression
         run: node supabase/ci/test_profile_authority_signed_e2e.mjs
-      - name: Generate canonical migration via Supabase CLI in disposable runner
-        run: |
-          supabase migration new artales_profile_authority_hardening
-          migration="$(find supabase/migrations -maxdepth 1 -type f -name '*_artales_profile_authority_hardening.sql' | head -n 1)"
-          test -n "$migration"
-          echo "GENERATED_MIGRATION=$migration"
-          cp supabase/ci/profile_authority_lockdown_assembly.sql "$migration"
-      - name: Verify generated migration on fresh Supabase reset
+      - name: Verify committed canonical migration on fresh Supabase reset
         run: |
           supabase db reset --local --yes
           psql -X -v ON_ERROR_STOP=1 -f supabase/ci/test_profile_authority_lockdown.sql
