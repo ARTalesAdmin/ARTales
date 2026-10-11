@@ -41,6 +41,20 @@ jobs:
         run: psql -X -v ON_ERROR_STOP=1 -f supabase/ci/test_profile_auth_trigger_parity.sql
       - name: Signed GoTrue and PostgREST privilege regression
         run: node supabase/ci/test_profile_authority_signed_e2e.mjs
+      - name: Generate canonical migration via Supabase CLI in disposable runner
+        run: |
+          supabase migration new artales_profile_authority_hardening
+          migration="$(find supabase/migrations -maxdepth 1 -type f -name '*_artales_profile_authority_hardening.sql' | head -n 1)"
+          test -n "$migration"
+          echo "GENERATED_MIGRATION=$migration"
+          cp supabase/ci/profile_authority_lockdown_assembly.sql "$migration"
+      - name: Verify generated migration on fresh Supabase reset
+        run: |
+          supabase db reset --local --yes
+          psql -X -v ON_ERROR_STOP=1 -f supabase/ci/test_profile_authority_lockdown.sql
+          psql -X -v ON_ERROR_STOP=1 -f supabase/ci/test_profile_auth_trigger_parity.sql
+          node supabase/ci/test_profile_authority_signed_e2e.mjs
+          supabase migration list --local
       - name: Discard isolated database
         if: always()
         run: supabase stop --no-backup
