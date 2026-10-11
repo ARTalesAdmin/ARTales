@@ -41,3 +41,15 @@ const verifiedInvite=await request('/rest/v1/profiles?select=id,role,invite_id&i
 if(verifiedInvite.status!==200||verifiedInvite.data.length!==1||verifiedInvite.data[0].role!=='editor'||!verifiedInvite.data[0].invite_id)
  throw Error('Verified server email invitation did not grant editor '+JSON.stringify(verifiedInvite));
 console.log('PASS verified pending invitation retains editor role, disregards spoofed user metadata');
+
+
+const disabled=await request('/rest/v1/profiles?id=eq.'+id,service,{is_active:false},'PATCH');
+if(disabled.status!==200)throw Error('Failed local service-side disable '+JSON.stringify(disabled));
+const ensure=await request('/rest/v1/rpc/artales_ensure_profile_after_login_v082',token,{});
+if(ensure.status!==200 || ensure.data.ok!==false || ensure.data.reason!=='profile_inactive')
+ throw Error('Disabled user reactivated or login helper bypassed restriction '+JSON.stringify(ensure));
+const afterDisable=await request('/rest/v1/profiles?select=is_active&id=eq.'+id,service,undefined,'GET');
+if(afterDisable.status!==200||afterDisable.data[0]?.is_active!==false)throw Error('Inactive profile was reactivated');
+const enumerate=await request('/rest/v1/rpc/artales_find_pending_invite_for_email',token,{email_input:inviteEmail});
+if(enumerate.status<400)throw Error('Exposed private invitation lookup '+JSON.stringify(enumerate));
+console.log('PASS disabled account stays inactive; invitation lookup not callable by signed client');
