@@ -126,6 +126,17 @@ export type SemanticPageUnit = {
   chapter_id: string | null;
   source_atom_ids: string[];
   estimated_height: number;
+  /** Layout-only range within an immutable paragraph atom; never new source content. */
+  fragment?: {
+    original_unit_id: string;
+    atom_id: string;
+    start: number; // inclusive UTF-16 in SemanticAtom.raw
+    end: number;   // exclusive UTF-16 in SemanticAtom.raw
+    normalized_start: number;
+    normalized_end: number;
+    continuation_before: boolean;
+    continuation_after: boolean;
+  };
 };
 export type SemanticPage = {
   index: number;
