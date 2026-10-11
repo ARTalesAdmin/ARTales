@@ -22,7 +22,9 @@ export function assessAliceTextOnlyDraft(bytes:Uint8Array,checkedAt:string){
   original_language:"en",selected_language:"en",version:"original",translators:[],
   edition_contribution:"separable",
   source:{provider:"gutenberg",uri:report.source.uri,archive_ref:"repo:tests/fixtures/gutenberg/pg11-2016-gitenberg-11-0.txt",
-   captured_at:checkedAt,sha256:report.source.sha256,bytes},
+   captured_at:checkedAt,sha256:report.source.sha256,bytes,
+   us_rights:{status:"public_domain",basis:"gutenberg_catalog",evidence_url:"https://www.gutenberg.org/ebooks/11",selected_version_publication_year:1994,first_published_in_us:null},
+   rights_notices:[]},
   components:report.componentInventory.map(c=>({
    id:c.id,kind:c.kind,byte_start:c.byteStart,byte_end:c.byteEnd
   })),
