@@ -50,6 +50,19 @@ function nodeView(n:SemanticNode):React.ReactNode {
 }
 /** The same markup is used both on the visible page and in the offscreen measuring page. */
 function unitView(u:SemanticPageUnit):React.ReactNode {
+  if(u.fragment&&u.node.kind==="paragraph"){
+    const {start,end}=u.fragment;
+    const original=u.node.atom;
+    // Fragment layout only: the original atom ID and source anchor remain authoritative.
+    return <p data-semantic-id={u.node.id} data-source-atom={original.id}
+      data-fragment-start={start} data-fragment-end={end}
+      className={"semantic-reader__fragment"+(u.fragment.continuation_before?" semantic-reader__fragment--continued":"")}
+      style={presentationStyle(u.node.presentation)}>
+      <span className="semantic-reader__atom" data-atom-id={original.id}>
+        {projectSemanticProseText(original.raw.slice(start,end))}
+      </span>
+    </p>;
+  }
   if(u.kind==="title_page"&&u.node.kind==="title_page"){
     return <div className="semantic-reader__title-page">
       <span className="semantic-reader__brand">{u.node.brand}</span>
