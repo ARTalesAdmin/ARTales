@@ -3,6 +3,8 @@ import {useEffect, useMemo, useRef, useState, type CSSProperties} from "react";
 import {projectSemanticProseText} from "@/lib/semantic/displayText";
 import {resolveQaProjectionMode, buildSemanticSourceRegions} from "@/lib/semantic/qaReaderModes";
 import {synchronizeSemanticPanes} from "@/lib/semantic/pairedSemanticScroll";
+import {createSessionReaderNote,locateSessionReaderNote,noteAnchorForUnit,type SessionReaderNote} from "@/lib/semantic/qaNoteSession";
+import type {ReaderNoteColor} from "@/lib/reader/readerStorage";
 import {getProfileReaderSettings, type FixtureProfileReaderDefaults} from "@/lib/fixtures/readerPreferences";
 import {defaultReaderSettings, type ReaderDensityId} from "@/lib/reader/readerSettings";
 import type {SemanticRevision, SemanticNode, SemanticAtom, SemanticPoem, SemanticBlockPresentation, SemanticPageUnit} from "@/lib/semantic/model";
@@ -99,6 +101,12 @@ export default function SemanticReaderLab({revision,original,profileReaderDefaul
   const [width,setWidth]=useState(900);
   const [focus,setFocus]=useState(false);
   const [metrics,setMetrics]=useState<BrowserMeasurements|null>(null);
+  const [qaNotes,setQaNotes]=useState<SessionReaderNote[]>([]);
+  const [selectedUnit,setSelectedUnit]=useState<string|null>(null);
+  const [noteTitle,setNoteTitle]=useState("");
+  const [noteBody,setNoteBody]=useState("");
+  const [noteColor,setNoteColor]=useState<ReaderNoteColor>("gold");
+  const [noteFeedback,setNoteFeedback]=useState("");
   const frameRef=useRef<HTMLDivElement>(null);
   const sourceRef=useRef<HTMLDivElement>(null);
   const composedRef=useRef<HTMLDivElement>(null);
@@ -120,6 +128,32 @@ export default function SemanticReaderLab({revision,original,profileReaderDefaul
     measured_unit_heights:measured?.heights,
   }),[revision,mode,scale,effectiveDensity,measured,fallbackWidth]);
   const integrity=verifyReaderProjection(revision,pages);
+  const anchorable=pages.flatMap(page=>page.units.map(unit=>({unit,pageIndex:page.index})))
+    .filter(entry=>Boolean(noteAnchorForUnit(revision,entry.unit)));
+  const chosen=anchorable.find(entry=>entry.unit.id===selectedUnit)??anchorable[0];
+  const addQaNote=()=>{
+    if(!chosen)return;
+    try{
+      const saved=createSessionReaderNote(revision,chosen.unit,{
+        id:crypto.randomUUID(),title:noteTitle,body:noteBody,color:noteColor,
+        now:new Date().toISOString(),pageIndex:chosen.pageIndex,pageCount:pages.length,
+        layoutMode:mode==="spread"?"spread":"pagedFlow",
+      });
+      setQaNotes(current=>[...current,saved]);setNoteTitle("");setNoteBody("");
+      setNoteFeedback("Testovací poznámka přidána jen do této relace.");
+    }catch(e){setNoteFeedback(e instanceof Error?e.message:"Poznámku nelze vytvořit.");}
+  };
+  const jumpToQaNote=(saved:SessionReaderNote)=>{
+    const location=locateSessionReaderNote(revision,pages,saved);
+    if(location.status!=="exact"||!location.unitId){
+      setNoteFeedback("Kotva není dostupná; původní poznámka zůstává zachována.");return;
+    }
+    const units=frameRef.current?.querySelectorAll<HTMLElement>("[data-page-unit-id]");
+    const target=[...(units??[])].find(node=>node.dataset.pageUnitId===location.unitId);
+    if(!target){setNoteFeedback("Cílový blok ještě není vykreslen.");return;}
+    target.scrollIntoView({behavior:"smooth",block:"center"});
+    setNoteFeedback("Návrat podle obsahové kotvy, nikoli původního čísla stránky.");
+  };
 
   useEffect(()=>{
     const update=()=>setDeviceWidth(window.innerWidth);
@@ -220,6 +254,27 @@ export default function SemanticReaderLab({revision,original,profileReaderDefaul
         </span>
       </div>
     </header>
+    {focus&&<section className="semantic-reader__note-lab" aria-label="Testování čtenářských poznámek">
+      <h2>Poznámky · izolované QA</h2>
+      <p>Poznámky zůstávají pouze v paměti náhledu; obnovení stránky je smaže. Žádný zápis do účtu.</p>
+      <label>Místo v textu <select aria-label="Místo poznámky" value={chosen?.unit.id??""}
+        onChange={e=>setSelectedUnit(e.target.value)}>
+        {anchorable.map(({unit,pageIndex})=><option key={unit.id} value={unit.id}>
+          {"Strana "+(pageIndex+1)+" · "+unit.kind+" · "+unit.id.slice(-14)}</option>)}
+      </select></label>
+      <label>Název <input maxLength={160} value={noteTitle} onChange={e=>setNoteTitle(e.target.value)} /></label>
+      <label>Text poznámky <textarea maxLength={4000} value={noteBody} onChange={e=>setNoteBody(e.target.value)} /></label>
+      <label>Barva <select value={noteColor} onChange={e=>setNoteColor(e.target.value as ReaderNoteColor)}>
+        {(["gold","blue","green","rose","violet"] as const).map(color=><option key={color} value={color}>{color}</option>)}
+      </select></label>
+      <button type="button" disabled={!chosen} onClick={addQaNote}>Uložit testovací poznámku</button>
+      <div aria-live="polite">{noteFeedback}</div>
+      {qaNotes.map(saved=><div key={saved.note.id} className="semantic-reader__note-entry">
+        <span>{saved.note.title||"Bez názvu"} · {saved.note.color}</span>
+        <button type="button" onClick={()=>jumpToQaNote(saved)}>Přejít na poznámku</button>
+        <button type="button" onClick={()=>setQaNotes(notes=>notes.filter(n=>n.note.id!==saved.note.id))}>Smazat</button>
+      </div>)}
+    </section>}
     <div className={"semantic-reader__triptych"+(focus?" semantic-reader__triptych--focus":"")}>
       {!focus&&<section aria-label="Archivní Gutenberg"><h2>Gutenberg #11 · originál</h2>
         <div ref={sourceRef} className="semantic-reader__paired-scroll semantic-reader__source-sheet"
