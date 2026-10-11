@@ -14,14 +14,24 @@ if(!/^http:\/\/(127\.0\.0\.1|localhost):54321$/.test(api)||!anon||!service||
    process.env.PGHOST!=="127.0.0.1"||process.env.PGPORT!=="54322"||
    process.env.SUPABASE_ACCESS_TOKEN||process.env.SUPABASE_DB_PASSWORD)
   throw Error("E2 signed QA refuses cloud or non-loopback services");
-type RequestResult={status:number;data:any};
+type ResponseData={
+ id?:string;user?:{id?:string};access_token?:string;result?:string;reason?:string;
+ draft_id?:string;issue_id?:string;issue?:SemanticReviewIssue;publication_allowed?:boolean;
+ raw?:string;[key:string]:unknown;
+};
+type RequestResult={status:number;data:ResponseData};
 async function request(path:string,token:string,body?:unknown,method="POST"):Promise<RequestResult>{
  const response=await fetch(api+path,{method,headers:{
   apikey:anon,Authorization:"Bearer "+token,"Content-Type":"application/json",
   Prefer:"return=representation"
  },...(body===undefined?{}:{body:JSON.stringify(body)})});
  const txt=await response.text();
- let data:unknown;try{data=JSON.parse(txt);}catch{data={raw:txt.slice(0,250)}}
+ let data:ResponseData;
+ try{
+  const parsed:unknown=JSON.parse(txt);
+  data=parsed!==null&&typeof parsed==="object"&&!Array.isArray(parsed)
+   ? parsed as ResponseData : {raw:"non-object RPC response"};
+ }catch{data={raw:txt.slice(0,250)}}
  return {status:response.status,data};
 }
 type Actor={id:string;token:string;email:string;role:string};
@@ -81,6 +91,7 @@ const {revision,original_raw}=composeFromCapturedDbA({
 verifySemanticRevision(revision,original_raw);
 function saveArgs(r:SemanticRevision,parent:string|null,req:string){
  const {revision_sha256,revision_ref,...body}=r;
+ void revision_ref;
  const serialized=JSON.stringify(body);
  assert.equal(sha(serialized),revision_sha256);
  return {p_work_id:workId,p_source_snapshot_id:sourceId,p_component_id:componentId,
