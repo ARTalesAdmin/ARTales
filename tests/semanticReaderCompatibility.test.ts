@@ -5,6 +5,7 @@ import {captureGutenbergBytes,getPg11FixtureRequest} from "../lib/ingest/gutenbe
 import {composeSemanticPg11,proposeSemanticTitlePage,submitSemanticIssue,recomposeSemanticLayout,walkSemanticAtoms} from "../lib/semantic/compose";
 import {projectSemanticReader} from "../lib/semantic/readerProjection";
 import {bridgeLegacyReaderState,rebindReaderAnchor,findReaderAnchorPage,resolveSemanticReaderPreferences,preservedLegacyReaderState,assertNoReaderStateMutation} from "../lib/semantic/readerCompatibility";
+import {createSessionReaderNote,locateSessionReaderNote,noteAnchorForUnit} from "../lib/semantic/qaNoteSession";
 import type {ReaderNote,ReaderBookmark,ReaderProgress} from "../lib/reader/readerStorage";
 const bytes=readFileSync("tests/fixtures/gutenberg/pg11-2016-gitenberg-11-0.txt");
 const pilot=captureGutenbergBytes(bytes,getPg11FixtureRequest());
@@ -79,4 +80,30 @@ test("reader profile/device settings share canonical normalization and narrow-de
  assert.equal(desktop.authority,"device");assert.equal(desktop.effectiveLayout,"spread");
  assert.equal(phone.effectiveLayout,"scroll");assert.equal(phone.settings.layoutMode,"spread");
  assert.throws(()=>resolveSemanticReaderPreferences({physicalViewportWidth:0}),/viewport/);
+});
+
+test("ephemeral QA note reflows from paged to scroll and spread without losing source position",()=>{
+ const layouts=["paged","scroll","spread"] as const;
+ const first=projectSemanticReader(revision,{mode:"paged",viewport_width:360,viewport_height:700,font_scale:1});
+ const target=first.flatMap(p=>p.units).find(u=>u.kind==="paragraph")!;
+ assert.ok(noteAnchorForUnit(revision,target));
+ const saved=createSessionReaderNote(revision,target,{id:"fixture-note",title:"Checkpoint",
+   body:"Never persisted",color:"blue",now:"2026-10-11T14:00:00Z",pageIndex:1,
+   pageCount:Math.max(2,first.length),layoutMode:"pagedFlow"});
+ for(const mode of layouts){
+  for(const scale of [0.85,1,1.3]){
+   const pages=projectSemanticReader(revision,{mode,viewport_width:mode==="spread"?450:360,
+     viewport_height:700,font_scale:scale,density:"compact"});
+   const location=locateSessionReaderNote(revision,pages,saved);
+   assert.equal(location.status,"exact");
+   assert.notEqual(location.unitId,null);
+  }
+ }
+ assert.equal(saved.note.title,"Checkpoint");
+ assert.equal(saved.note.body,"Never persisted");
+ assert.equal(saved.anchor.atom_id,noteAnchorForUnit(revision,target)?.atom_id);
+ assert.throws(()=>createSessionReaderNote(revision,first[0].units.find(u=>u.kind==="title_page")??{
+   ...target,kind:"title_page",source_atom_ids:[]} as typeof target,{
+   id:"x",title:"",body:"",color:"gold",now:"2026-10-11T14:00:00Z",pageIndex:0,
+   pageCount:2,layoutMode:"spread"}),/anchor/);
 });
