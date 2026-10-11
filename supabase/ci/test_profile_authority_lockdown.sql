@@ -1,6 +1,6 @@
 begin;
 create extension if not exists pgtap with schema extensions;
-select plan(13);
+select plan(17);
 select is(has_table_privilege('authenticated','public.profiles','UPDATE'),false,'unscoped profile UPDATE revoked');
 select is(has_table_privilege('authenticated','public.profiles','INSERT'),false,'unscoped profile INSERT revoked');
 select is(has_column_privilege('authenticated','public.profiles','role','UPDATE'),false,'role column protected');
@@ -14,5 +14,9 @@ select is(has_column_privilege('anon','public.profiles','role','INSERT'),false,'
 select is((select pg_get_functiondef('public.artales_sync_profile_from_auth_user_v081()'::regprocedure) ilike '%meta ->> ''role''%'),false,'signup sync ignores user-controlled role metadata');
 select is((select pg_get_functiondef('public.artales_sync_profile_from_auth_user_v081()'::regprocedure) like '%invite_row.invited_role::public.app_role%'),true,'server-verified invitation still assigns staff roles');
 select is(has_function_privilege('authenticated','public.artales_sync_profile_from_auth_user_v081()','EXECUTE'),false,'trigger function not directly callable');
+select is(has_function_privilege('anon','public.artales_find_pending_invite_for_email(text)','EXECUTE'),false,'anonymous invite lookup disabled');
+select is(has_function_privilege('authenticated','public.artales_find_pending_invite_for_email(text)','EXECUTE'),false,'signed invite enumeration disabled');
+select is(has_function_privilege('anon','public.artales_ensure_profile_after_login_v082()','EXECUTE'),false,'anonymous login RPC disabled');
+select is((select pg_get_functiondef('public.artales_ensure_profile_after_login_v082()'::regprocedure) like '%profile_inactive%'),true,'login helper protects disabled profile');
 select * from finish();
 rollback;
