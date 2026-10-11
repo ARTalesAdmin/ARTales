@@ -21,7 +21,7 @@ const base:TextRightsInput={candidate_id:"qa:test",original_authors:[author],ori
  {id:"illustration",kind:"ASSET",byte_start:null,byte_end:null}]};
 test("living translator blocks selected edition despite expired original",()=>{
  const q=screenCapturedTextRights(base,"2026-10-11T19:00:00.000Z");
- assert.equal(q.original_status,"term_expired");
+ assert.equal(q.eu_original_status,"term_expired");
  assert.equal(q.decision,"find_alternative_source");
  assert.equal(q.included.length,0);
  assert.equal(q.publication_authorized,false);
