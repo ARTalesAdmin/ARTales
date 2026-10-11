@@ -1,0 +1,27 @@
+name: ARTales Alice vertical proof QA
+on:
+  pull_request:
+    branches: [develop]
+    paths:
+      - 'lib/pilots/aliceVerticalProof.ts'
+      - 'tests/aliceVerticalProof.test.ts'
+      - '.github/workflows/artales-alice-vertical-proof-qa.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  isolated-flow:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - name: Whole synthetic Alice flow
+        run: npx tsx --test tests/aliceVerticalProof.test.ts tests/semanticReaderV2.test.ts tests/gutenbergIngest.test.ts
+      - name: TypeScript
+        run: npx tsc --noEmit
+      - name: ESLint
+        run: npx eslint lib/pilots/aliceVerticalProof.ts tests/aliceVerticalProof.test.ts
