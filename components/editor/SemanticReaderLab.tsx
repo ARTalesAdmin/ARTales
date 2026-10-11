@@ -84,7 +84,7 @@ export default function SemanticReaderLab({revision,original,legacySynthetic,pro
        u.kind==="chapter_heading"||u.kind==="section_heading"?
         <div key={u.id} className="semantic-reader__heading" style={presentationStyle("presentation" in u.node?u.node.presentation:undefined)}>{u.kind==="chapter_heading"?<h3>{inline((u.node as Extract<SemanticNode,{kind:"chapter"|"section"}>).heading)}</h3>:
           <h4>{inline((u.node as Extract<SemanticNode,{kind:"chapter"|"section"}>).heading)}</h4>}</div>:
-        <div key={u.id}>{u.node.kind==="chapter"||u.node.kind==="section"?null:nodeView(u.node)}</div>)}
+        <div key={u.id}>{u.node.kind==="chapter"||u.node.kind==="section"||u.node.kind==="title_page"?null:nodeView(u.node)}</div>)}
        <footer>QA strana {page.index+1}{page.overflow==="scroll_unit"?" · dlouhý celek, bez rozdělení":""}</footer>
      </article>)}
      </div>
