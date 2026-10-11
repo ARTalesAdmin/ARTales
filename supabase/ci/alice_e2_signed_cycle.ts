@@ -110,7 +110,7 @@ const retArgs={p_work_id:workId,p_draft_id:first.data.draft_id,
  p_expected_sha256:revision.revision_sha256,p_target_atom_id:target.id,
  p_reason:"Change indentation of this specific source atom.",p_request_id:randomUUID()};
 const self=await rpc(admin,returnFn,retArgs);
-assert.equal(self.data?.reason,"self_review_forbidden");
+if(self.status!==200||self.data?.reason!=="self_review_forbidden")throw Error("Self-review denial mismatch "+JSON.stringify(self));
 const retReader=await rpc(reader,returnFn,retArgs);
 assert.equal(retReader.data?.reason,"editor_role_required");
 const ret=await rpc(reviewer,returnFn,retArgs);
