@@ -1,0 +1,17 @@
+begin;
+create extension if not exists pgtap with schema extensions;
+select plan(12);
+select has_table('public','candidate_source_captures','captures exist');
+select has_function('public','register_candidate_source_capture',array['uuid','uuid','text','jsonb','text'],'capture submit RPC exists');
+select has_function('public','review_candidate_source_capture',array['uuid','text','text','work_origin_type','work_source_label'],'independent reviewer RPC exists');
+select has_function('public','promote_candidate_to_edit_text',array['uuid'],'promote RPC exists');
+select is((select relrowsecurity from pg_class where oid='public.candidate_source_captures'::regclass),true,'capture has RLS');
+select isnt(has_table_privilege('authenticated','public.candidate_source_captures','INSERT'),true,'clients cannot insert captures');
+select isnt(has_table_privilege('authenticated','public.candidate_source_captures','UPDATE'),true,'clients cannot forge reviews');
+select is(has_function_privilege('anon','public.promote_candidate_to_edit_text(uuid)','EXECUTE'),false,'anon cannot promote');
+select is(has_function_privilege('anon','public.register_candidate_source_capture(uuid,uuid,text,jsonb,text)','EXECUTE'),false,'anon cannot capture');
+select is(has_function_privilege('anon','public.review_candidate_source_capture(uuid,text,text,public.work_origin_type,public.work_source_label)','EXECUTE'),false,'anon cannot review');
+select is((select prosecdef from pg_proc where oid='public.promote_candidate_to_edit_text(uuid)'::regprocedure),true,'privileged RPC is explicit');
+select is((select count(*)::int from public.candidate_source_captures),0,'isolated fixtures start empty');
+select * from finish();
+rollback;
