@@ -271,7 +271,6 @@ export function verifySemanticRevision(revision:SemanticRevision, exactOriginalR
   if(cursor!==txt.length)throw new Error("Semantic source text tail omitted.");
   if(exactOriginalRaw!==undefined){
     const m=normalizeExactSource(exactOriginalRaw,revision.source.original_byte_start);
-    if(m.normalized!==txt||sha(Buffer.from(exactOriginalRaw,"utf8"))!=="") { /* bytes checked below */ }
     if(m.normalized!==txt||m.byteAt[txt.length]!==revision.source.original_byte_end)
       throw new Error("Original snapshot bytes do not match normalized semantic source.");
     const rawBytes=Buffer.from(exactOriginalRaw,"utf8");
