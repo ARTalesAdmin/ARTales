@@ -139,3 +139,19 @@ export function acceptAfterReview(pilot: GutenbergPilot, old: ComposerRevision,
     release_allowed: false as const,
   };
 }
+
+/** Explicit next submission checkpoint after a reviewer accepts a returned issue. */
+export function resubmitAcceptedReview(pilot: GutenbergPilot, previous: ComposerRevision,
+  decision: ReturnType<typeof acceptAfterReview>): ComposerRevision {
+  verify(pilot, previous);
+  if (previous.state !== "submitted_for_review" || previous.issues.length !== 1 ||
+      decision.reviewed_revision_ref !== previous.work_revision_ref ||
+      decision.reviewed_revision_sha256 !== previous.bytes_sha256 ||
+      decision.source_snapshot_ref !== pilot.snapshot_ref ||
+      decision.issue_id !== previous.issues[0].issue_id ||
+      decision.decision !== "accepted_for_fixture_only") {
+    throw new Error("Cannot advance unaccepted or stale review.");
+  }
+  return revision(pilot, previous.blocks, previous.work_revision_ref, previous.round,
+    [], "submitted_for_review");
+}
