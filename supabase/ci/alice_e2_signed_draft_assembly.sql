@@ -136,7 +136,7 @@ begin
   if start_at<>byte_cursor or end_at<=start_at or end_at>c.byte_end or
     (a->'anchor'->>'normalized_start')::integer<>norm_cursor or
     (a->'anchor'->>'normalized_end')::integer<=norm_cursor then return false; end if;
-  raw_part:=pg_catalog.substring(s.source_bytes from start_at+1 for end_at-start_at);
+  raw_part:=pg_catalog.substr(s.source_bytes,start_at+1,end_at-start_at);
   if a->>'source_sha256'<>pg_catalog.encode(extensions.digest(raw_part,'sha256'),'hex') then return false; end if;
   text_part:=pg_catalog.replace(pg_catalog.convert_from(raw_part,'UTF8'),E'\r\n',E'\n');
   if a->>'raw'<>text_part then return false; end if;
@@ -147,7 +147,7 @@ begin
  end loop;
  if total=0 or byte_cursor<>c.byte_end then return false; end if;
  text_part:=pg_catalog.replace(
-   pg_catalog.convert_from(pg_catalog.substring(s.source_bytes from c.byte_start+1 for c.byte_end-c.byte_start),'UTF8'),
+   pg_catalog.convert_from(pg_catalog.substr(s.source_bytes,c.byte_start+1,c.byte_end-c.byte_start),'UTF8'),
    E'\r\n',E'\n');
  return combined=text_part and
    p_payload->'source'->>'normalized_text'=text_part and
