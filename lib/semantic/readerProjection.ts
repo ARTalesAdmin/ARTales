@@ -83,7 +83,7 @@ export function splitParagraphUnit(unit:SemanticPageUnit, maxChars:number):Seman
       if(end<until&&raw.charCodeAt(end-1)>=0xD800&&raw.charCodeAt(end-1)<=0xDBFF)end--;
     }
     if(end<=start)throw Error("Unable to establish bounded paragraph split.");
-    const fragment={original_unit_id:unit.id,atom_id:unit.node.atom.id,start,end,
+    const fragment={original_unit_id:unit.fragment?.original_unit_id??unit.id,atom_id:unit.node.atom.id,start,end,
       normalized_start:unit.node.atom.anchor.normalized_start+start,
       normalized_end:unit.node.atom.anchor.normalized_start+end,
       continuation_before:start>0,continuation_after:end<raw.length};
