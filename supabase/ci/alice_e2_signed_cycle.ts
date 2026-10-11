@@ -17,7 +17,7 @@ if(!/^http:\/\/(127\.0\.0\.1|localhost):54321$/.test(api)||!anon||!service||
 type ResponseData={
  id?:string;user?:{id?:string};access_token?:string;result?:string;reason?:string;
  draft_id?:string;issue_id?:string;issue?:SemanticReviewIssue;publication_allowed?:boolean;
- raw?:string;[key:string]:unknown;
+ raw?:string;serialized_payload?:string;parent_draft_id?:string|null;previous_return?:{id?:string};[key:string]:unknown;
 };
 type RequestResult={status:number;data:ResponseData};
 async function request(path:string,token:string,body?:unknown,method="POST"):Promise<RequestResult>{
