@@ -84,3 +84,14 @@ test("Alice triple comparison separates synthetic legacy from absent production 
  assert.equal(compareAliceThreeWays(rev,l).can_cutover,false);
  assert.throws(()=>compareAliceThreeWays(rev,{...l,blocks:[{id:"changed",text:"Different"}]}),/Untrusted/);
 });
+
+test("reader density is a display setting and never mutates semantic revision or source anchors",()=>{
+ const before=rev.revision_ref;
+ const standard=projectSemanticReader(rev,{mode:"paged",viewport_width:360,viewport_height:700,font_scale:1.15,density:"comfortable"});
+ const compact=projectSemanticReader(rev,{mode:"paged",viewport_width:360,viewport_height:700,font_scale:1.15,density:"compact"});
+ assert.equal(verifyReaderProjection(rev,standard).ok,true);
+ assert.equal(verifyReaderProjection(rev,compact).ok,true);
+ assert.ok(compact.length<=standard.length);
+ assert.equal(rev.revision_ref,before);
+ assert.throws(()=>projectSemanticReader(rev,{mode:"paged",viewport_width:360,viewport_height:700,font_scale:1,density:"invalid" as "compact"}),/density/);
+});
