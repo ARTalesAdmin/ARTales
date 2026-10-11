@@ -1,7 +1,7 @@
 import type { SemanticRevision, SemanticNode, SemanticPageUnit, SemanticPage, ReaderAnchorV2, SemanticAtom } from "./model";
 import { walkSemanticAtoms, verifySemanticRevision } from "./compose";
 
-export type SemanticReaderLayout={mode:"paged"|"spread"|"scroll";viewport_width:number;viewport_height:number;font_scale:number};
+export type SemanticReaderLayout={mode:"paged"|"spread"|"scroll";viewport_width:number;viewport_height:number;font_scale:number;density?:"comfortable"|"compact"};
 function units(revision:SemanticRevision):SemanticPageUnit[]{
   const all:SemanticPageUnit[]=[];
   const append=(nodes:SemanticNode[],chapter:string|null)=>{
@@ -29,7 +29,9 @@ export function projectSemanticReader(revision:SemanticRevision, layout:Semantic
      layout.viewport_width>10000||layout.viewport_height>10000||
      !Number.isFinite(layout.font_scale)||layout.font_scale<0.7||layout.font_scale>2)
     throw new Error("Invalid reader viewport.");
-  const capacity=Math.max(180,layout.viewport_height-180)/layout.font_scale;
+  if(layout.density!==undefined && layout.density!=="comfortable" && layout.density!=="compact") throw new Error("Invalid Reader line density.");
+  const densityFactor=layout.density==="compact"?0.86:1;
+  const capacity=Math.max(180,layout.viewport_height-180)/(layout.font_scale*densityFactor);
   const result:SemanticPage[]=[];
   let pending:SemanticPageUnit[]=[];let weight=0;
   const flush=()=>{if(pending.length){result.push({index:result.length,units:pending,
