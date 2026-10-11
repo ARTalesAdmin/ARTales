@@ -37,6 +37,10 @@ jobs:
         run: psql -X -v ON_ERROR_STOP=1 -f supabase/ci/db_a_immutable_evidence_assembly.sql
       - name: Verify SQL grants, RLS and structure
         run: psql -X -v ON_ERROR_STOP=1 -f supabase/ci/test_db_a_immutable_evidence.sql
+      - name: Seed disposable synthetic source and independent reviewer
+        run: psql -X -v ON_ERROR_STOP=1 -f supabase/ci/201_concurrency_fixture.sql
+      - name: Verify real writes, rejection and cross-work integrity
+        run: psql -X -v ON_ERROR_STOP=1 -f supabase/ci/test_db_a_mutation_integrity.sql
       - name: Tear down without backup
         if: always()
         run: supabase stop --no-backup
