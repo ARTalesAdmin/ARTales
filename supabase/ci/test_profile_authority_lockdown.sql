@@ -9,7 +9,7 @@ select is(has_column_privilege('authenticated','public.profiles','is_active','UP
 select is(has_column_privilege('authenticated','public.profiles','is_active','INSERT'),false,'activation insertion protected');
 select is(has_column_privilege('authenticated','public.profiles','display_name','UPDATE'),true,'display name editing retained');
 select is(has_column_privilege('authenticated','public.profiles','reader_font_scale','UPDATE'),true,'reader preference editing retained');
-select is(has_column_privilege('anon','public.profiles','UPDATE'),false,'anon cannot update profiles');
+select is(has_table_privilege('anon','public.profiles','UPDATE'),false,'anon cannot update profiles');
 select is(has_column_privilege('anon','public.profiles','role','INSERT'),false,'anon cannot insert privileged role');
 select is((select pg_get_functiondef('public.artales_sync_profile_from_auth_user_v081()'::regprocedure) ilike '%meta ->> ''role''%'),false,'signup sync ignores user-controlled role metadata');
 select is((select pg_get_functiondef('public.artales_sync_profile_from_auth_user_v081()'::regprocedure) like '%invite_row.invited_role::public.app_role%'),true,'server-verified invitation still assigns staff roles');
