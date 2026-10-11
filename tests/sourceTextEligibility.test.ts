@@ -11,7 +11,9 @@ const start=body.indexOf("CHAPTER I"),end=body.indexOf("*** END");
 const base:TextRightsInput={candidate_id:"qa:test",original_authors:[author],original_language:"de",
  selected_language:"en",version:"translation",translators:[translator],edition_contribution:"none",
  source:{provider:"gutenberg",uri:"https://www.gutenberg.org/ebooks/100",archive_ref:"test:sha",
-  captured_at:"2026-10-11T18:00:00.000Z",sha256:sha(bytes),bytes},
+  captured_at:"2026-10-11T18:00:00.000Z",sha256:sha(bytes),bytes,
+  us_rights:{status:"public_domain",basis:"gutenberg_catalog",evidence_url:"https://www.gutenberg.org/ebooks/100",selected_version_publication_year:1910,first_published_in_us:true},
+  rights_notices:[]},
  components:[{id:"wrapper",kind:"SOURCE_WRAPPER",byte_start:0,byte_end:start},
  {id:"translation",kind:"TRANSLATION",byte_start:start,byte_end:end},
  {id:"tail",kind:"SOURCE_WRAPPER",byte_start:end,byte_end:bytes.length},
@@ -39,6 +41,14 @@ test("tampering and incomplete or overlapped ranges are refused",()=>{
  assert.throws(()=>screenCapturedTextRights({...base,source:{...base.source,bytes:Buffer.from("wrong")}},"2026-10-11T19:00:00.000Z"),/source snapshot/);
  assert.throws(()=>screenCapturedTextRights({...base,components:base.components.slice(1)},"2026-10-11T19:00:00.000Z"),/coverage/);
  assert.throws(()=>screenCapturedTextRights({...base,components:[...base.components,{...base.components[0]}]},"2026-10-11T19:00:00.000Z"),/duplicate/);
+});
+test("USA rights uncertainty, express prohibition and modern US first publication stop eligibility",()=>{
+ const unknown=screenCapturedTextRights({...base,source:{...base.source,us_rights:{...base.source.us_rights,status:"unknown"}}},"2026-10-11T19:00:00.000Z");
+ assert.equal(unknown.decision,"needs_facts");
+ const forbidden=screenCapturedTextRights({...base,source:{...base.source,rights_notices:[{scope:"translation",kind:"no_reuse",excerpt:"No reuse allowed",evidence_url:"https://example.org/notice"}]}},"2026-10-11T19:00:00.000Z");
+ assert.equal(forbidden.decision,"find_alternative_source");
+ const recent=screenCapturedTextRights({...base,source:{...base.source,us_rights:{status:"public_domain",basis:"first_us_publication",evidence_url:"https://example.org/pub",selected_version_publication_year:2001,first_published_in_us:true}}},"2026-10-11T19:00:00.000Z");
+ assert.equal(recent.decision,"needs_facts");
 });
 test("header extractor reads machine credits but does not invent legal clearance",()=>{
  const h=parseGutenbergHeader(bytes);
