@@ -14,9 +14,9 @@
 .semantic-reader__pages--spread{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}
 .semantic-reader__pages--spread{grid-template-columns:repeat(2,minmax(0,1fr))}
 .semantic-reader__triptych:not(.semantic-reader__triptych--focus) .semantic-reader__pages--spread{grid-template-columns:1fr}
-.semantic-reader__page{padding:24px 18px;background:#fffdf8;border:1px solid #e7e0d5;border-radius:6px;min-width:0;overflow:auto;font-size:calc(1rem * var(--reader-scale, 1));line-height:1.65}
+.semantic-reader__page{padding:24px 18px;background:#fffdf8;border:1px solid #e7e0d5;border-radius:6px;min-width:0;overflow:auto;font-size:calc(1rem * var(--reader-scale, 1));line-height:var(--reader-line-height,1.65)}
 .semantic-reader__page h3,.semantic-reader__page h4{line-height:1.3}
-.semantic-reader__page p{text-align:left;white-space:normal;overflow-wrap:break-word;margin-bottom:1em}
+.semantic-reader__page p{text-align:left;white-space:normal;overflow-wrap:break-word;margin-bottom:var(--reader-paragraph-gap,1em)}
 .semantic-reader__page footer{font:11px system-ui;color:#736b60;border-top:1px solid #e9e1d4;margin-top:20px;padding-top:8px}
 .semantic-reader__poem{margin:1rem 0;padding:0}
 .semantic-reader__stanza{margin:0 0 0.8em;white-space:pre}
