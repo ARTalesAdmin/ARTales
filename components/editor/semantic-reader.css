@@ -72,3 +72,38 @@
 .semantic-reader__note-lab button{font:inherit;cursor:pointer}
 .semantic-reader__note-entry{display:flex;align-items:center;flex-wrap:wrap;gap:10px;padding:7px;border:1px solid #ded4c4;border-radius:6px}
 .semantic-reader__note-lab [aria-live]{width:100%}
+
+.semantic-reader__notes-toolbar{position:sticky;top:8px;z-index:12;display:flex;justify-content:flex-end;max-width:1280px;margin:0 auto 12px;font:13px system-ui}
+.semantic-reader__notes-menu{position:relative}
+.semantic-reader__notes-trigger{border:1px solid #cec3b3;border-radius:30px;background:#fbf8f1;padding:9px 15px;cursor:pointer}
+.semantic-reader__notes-count{margin-left:7px;border-radius:50%;padding:2px 6px;background:#e7dfd0}
+.semantic-reader__notes-panel{position:absolute;right:0;top:calc(100% + 6px);width:min(360px,calc(100vw - 28px));max-height:76dvh;overflow:auto;border:1px solid #c8beaf;border-radius:14px;box-shadow:0 12px 35px #1b160f25;background:#fffdf8;padding:14px;display:grid;gap:12px;z-index:20;color:#302c27}
+.semantic-reader__notes-panel button{cursor:pointer;padding:7px 10px;border-radius:7px;border:1px solid #d8cebe;background:#f8f4ec}
+.semantic-reader__notes-panel button:disabled{opacity:.45;cursor:default}
+.semantic-reader__notes-title,.semantic-reader__notes-panel .artales-reader-notes__heading{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.semantic-reader__notes-title small,.semantic-reader__notes-panel small{color:#70675a;font-size:11px}
+.semantic-reader__notes-panel .artales-reader-note-form{display:grid;gap:8px}
+.semantic-reader__notes-panel .artales-reader-note-form label{display:grid;gap:4px}
+.semantic-reader__notes-panel input,.semantic-reader__notes-panel textarea,.semantic-reader__notes-panel select{max-width:100%;width:100%;box-sizing:border-box;padding:7px;border:1px solid #d8cebe;border-radius:7px;font:inherit}
+.semantic-reader__notes-panel .artales-reader-notes__navigation{display:grid;grid-template-columns:42px 1fr 42px;align-items:center;text-align:center;gap:8px}
+.semantic-reader__notes-panel .artales-reader-notes__selected-summary{display:grid;grid-template-columns:8px 1fr;align-items:center;gap:8px;padding:9px;background:#f6f0e5;border-radius:8px}
+.semantic-reader__notes-panel .artales-reader-note-color{width:8px;height:8px;border-radius:50%;display:block}
+.semantic-reader__notes-panel .artales-reader-note-color--gold{background:#c59a4b}
+.semantic-reader__notes-panel .artales-reader-note-color--blue{background:#6689ad}
+.semantic-reader__notes-panel .artales-reader-note-color--green{background:#6f9677}
+.semantic-reader__notes-panel .artales-reader-note-color--rose{background:#b97883}
+.semantic-reader__notes-panel .artales-reader-note-color--violet{background:#8871a6}
+.semantic-reader__notes-panel .artales-reader-notes__list{list-style:none;padding:0;margin:0;display:grid;gap:9px}
+.semantic-reader__notes-panel .artales-reader-notes__list li{display:grid;grid-template-columns:8px 1fr;gap:8px;padding:9px;border-top:1px solid #e5dbcd}
+.semantic-reader__notes-panel .artales-reader-notes__item--selected{background:#f6f0e5;border-radius:8px}
+.semantic-reader__notes-panel .artales-reader-notes__actions{grid-column:2;display:flex;gap:6px}
+.semantic-reader__notes-panel .semantic-reader__note-detail{min-width:0;overflow-wrap:anywhere}
+.semantic-reader__notes-panel .semantic-reader__note-detail p{white-space:pre-wrap;margin:5px 0}
+.semantic-reader__notes-panel .artales-reader-notes__list-toggle{display:flex;justify-content:space-between}
+.semantic-reader__unit{position:relative}
+.semantic-reader__note-marker{position:absolute;z-index:4;left:-16px;top:8px;border:0;border-radius:2px 6px 6px 2px;width:13px;min-height:32px;background:var(--note-color,#c59a4b);cursor:pointer;font:10px system-ui}
+.semantic-reader__note-marker--selected{outline:2px solid #3d382e}
+.semantic-reader__note-marker.artales-reader-note-marker--blue{--note-color:#6689ad}
+.semantic-reader__note-marker.artales-reader-note-marker--green{--note-color:#6f9677}
+.semantic-reader__note-marker.artales-reader-note-marker--rose{--note-color:#b97883}
+.semantic-reader__note-marker.artales-reader-note-marker--violet{--note-color:#8871a6}
