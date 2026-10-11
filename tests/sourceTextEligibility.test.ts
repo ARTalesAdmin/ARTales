@@ -2,6 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import {createHash} from "node:crypto";
 import {screenCapturedTextRights,parseGutenbergHeader,type TextRightsInput} from "../lib/rights/sourceTextEligibility";
+import {inspectTextRightsDraftHandoff,type CaptureEnvelope} from "../lib/candidateDraftHandoffGate";
 const sha=(b:Uint8Array)=>createHash("sha256").update(b).digest("hex");
 const body="Title: Fiction\nAuthor: Old Writer\nTranslator: Modern Translator\nLanguage: English\n*** START OF THE PROJECT GUTENBERG EBOOK FICTION ***\nCHAPTER I\nExample text\n*** END OF THE PROJECT GUTENBERG EBOOK FICTION ***\n";
 const bytes=Buffer.from(body,"utf8");
@@ -56,4 +57,28 @@ test("header extractor reads machine credits but does not invent legal clearance
  assert.equal(h.author,"Old Writer");
  assert.equal(h.translator,"Modern Translator");
  assert.equal(h.language,"en");
+});
+
+test("canonical captured handoff requires exact legal snapshot, identity and text inclusion",()=>{
+ const checkedAt="2026-10-11T19:00:00.000Z";
+ const q=screenCapturedTextRights({...base,translators:[{...translator,living:false,death_year:1901}]},checkedAt);
+ const capture:CaptureEnvelope={
+  candidateId:base.candidate_id,candidateSourceId:"qa:source",snapshotSetRef:"sha256:"+q.source_sha256,
+  capturedAt:q.captured_at,sourceSha256:q.source_sha256,inventoryComplete:true,
+  attestationVerified:true,provenanceReviewedAt:checkedAt,sourceUpdatedAt:q.captured_at,
+  components:q.components.filter(x=>x.sha256!==null).map(x=>({
+   componentId:x.id,kind:x.kind==="TRANSLATION"?"TRANSLATION":x.kind==="SOURCE_WRAPPER"?"SOURCE_WRAPPER":"ASSET",
+   sha256:x.sha256!,archiveRef:"qa:source#"+x.id,included:q.included.includes(x.id),
+   decision:q.included.includes(x.id)?"usable" as const:"exclude" as const,
+   evidenceSha256:q.included.includes(x.id)?x.sha256!:undefined,
+   rightsReviewedAt:q.included.includes(x.id)?checkedAt:undefined,
+  }))
+ };
+ assert.equal(inspectTextRightsDraftHandoff(capture,q).eligibleForDraftHandoff,false,
+  "Existing handoff requires WORK_CONTENT: translation adapter must explicitly account for it");
+ assert.equal(inspectTextRightsDraftHandoff({...capture,components:capture.components.map(x=>
+  x.componentId==="translation"?{...x,kind:"WORK_CONTENT" as const}:x)},q).eligibleForDraftHandoff,true);
+ assert.equal(inspectTextRightsDraftHandoff({...capture,sourceSha256:"f".repeat(64)},q).eligibleForDraftHandoff,false);
+ assert.equal(inspectTextRightsDraftHandoff({...capture,components:capture.components.map(x=>
+  x.componentId==="wrapper"?{...x,included:true}:x)},q).eligibleForDraftHandoff,false);
 });
