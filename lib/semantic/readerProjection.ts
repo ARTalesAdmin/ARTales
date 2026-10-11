@@ -68,17 +68,19 @@ function estimateUnitHeight(unit: SemanticPageUnit, layout: SemanticReaderLayout
 export function splitParagraphUnit(unit:SemanticPageUnit, maxChars:number):SemanticPageUnit[] {
   if(unit.kind!=="paragraph"||unit.node.kind!=="paragraph"||!Number.isInteger(maxChars)||maxChars<12)return [unit];
   const raw=unit.node.atom.raw;
-  if(raw.length<=maxChars)return [unit];
+  const from=unit.fragment?.start??0;
+  const until=unit.fragment?.end??raw.length;
+  if(until-from<=maxChars)return [unit];
   const result:SemanticPageUnit[]=[];
-  let start=0;
-  while(start<raw.length) {
-    let end=Math.min(raw.length,start+maxChars);
-    if(end<raw.length){
+  let start=from;
+  while(start<until) {
+    let end=Math.min(until,start+maxChars);
+    if(end<until){
       const slice=raw.slice(start,end);
       const sentence=[...slice.matchAll(/[.!?][”’"')\]]*\s+/g)].map(x=>start+x.index!+x[0].length).filter(x=>x-start>=Math.min(36,maxChars*.35));
       const word=[...slice.matchAll(/\s+/g)].map(x=>start+x.index!+x[0].length).filter(x=>x-start>=Math.min(20,maxChars*.3));
       end=sentence.at(-1)??word.at(-1)??end;
-      if(end<raw.length&&raw.charCodeAt(end-1)>=0xD800&&raw.charCodeAt(end-1)<=0xDBFF)end--;
+      if(end<until&&raw.charCodeAt(end-1)>=0xD800&&raw.charCodeAt(end-1)<=0xDBFF)end--;
     }
     if(end<=start)throw Error("Unable to establish bounded paragraph split.");
     const fragment={original_unit_id:unit.id,atom_id:unit.node.atom.id,start,end,
@@ -86,7 +88,7 @@ export function splitParagraphUnit(unit:SemanticPageUnit, maxChars:number):Seman
       normalized_end:unit.node.atom.anchor.normalized_start+end,
       continuation_before:start>0,continuation_after:end<raw.length};
     result.push({...unit,id:unit.id+":range:"+start+"-"+end,fragment,
-      estimated_height:unit.estimated_height*(end-start)/raw.length});
+      estimated_height:unit.estimated_height*(end-start)/(until-from)});
     start=end;
   }
   return result;
@@ -109,13 +111,6 @@ export function projectSemanticReader(revision: SemanticRevision, layout: Semant
     }
     return { ...unit, estimated_height: measured ?? estimateUnitHeight(unit, layout) };
   });
-  const pageLimit=Math.max(260,layout.viewport_height-155);
-  const expanded=all.flatMap(unit=>{
-    if(unit.kind!=="paragraph"||unit.node.kind!=="paragraph")return [unit];
-    const charLimit=Math.max(80,Math.floor(unit.node.atom.raw.length*
-      Math.min(1,Math.max(0.32,pageLimit*.62/Math.max(unit.estimated_height,1)))));
-    return splitParagraphUnit(unit,charLimit);
-  });
   // Budget includes real viewport height, with margins for page padding/footer and controls.
   const capacity = Math.max(260, layout.viewport_height - 155);
   const result: SemanticPage[] = [];
@@ -136,12 +131,25 @@ export function projectSemanticReader(revision: SemanticRevision, layout: Semant
       estimated_height: all.reduce((sum, unit) => sum + unit.estimated_height, 0),
     }];
   }
-  for (let i = 0; i < expanded.length; i++) {
-    const unit = expanded[i];
+  const queue=[...all];
+  for (let i = 0; i < queue.length; i++) {
+    let unit = queue[i];
     if(unit.kind==="title_page"){
       flush();pending.push(unit);weight=unit.estimated_height;flush();continue;
     }
-    const next = expanded[i + 1];
+    // Fill remaining paper height with a source-anchored paragraph fragment.
+    const remaining=capacity-weight;
+    if(unit.kind==="paragraph"&&unit.node.kind==="paragraph"&&
+       unit.estimated_height>remaining&&remaining>85){
+      const currentLen=(unit.fragment?.end??unit.node.atom.raw.length)-(unit.fragment?.start??0);
+      const maxChars=Math.max(32,Math.floor(currentLen*remaining/Math.max(unit.estimated_height,1)*.94));
+      const pieces=splitParagraphUnit(unit,maxChars);
+      if(pieces.length>1){
+        queue.splice(i,1,...pieces);
+        unit=queue[i];
+      }
+    }
+    const next = queue[i + 1];
     // Avoid leaving a chapter heading at a page end without its first paragraph.
     const keepWithNext = (unit.kind === "chapter_heading" || unit.kind === "section_heading") && next
       ? next.estimated_height : 0;
