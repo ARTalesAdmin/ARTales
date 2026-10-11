@@ -26,7 +26,7 @@ create or replace function public.artales_sync_profile_from_auth_user_v081()
 returns trigger
 language plpgsql
 security definer
-set search_path to 'public', 'auth'
+set search_path to ''
 as $function$
 declare
   meta jsonb;
@@ -117,7 +117,8 @@ begin
       when invite_row.id is not null then excluded.role
       else public.profiles.role
     end,
-    is_active = true,
+    -- Never re-activate a previously disabled profile during an auth sync.
+    is_active = public.profiles.is_active,
     display_name = coalesce(nullif(public.profiles.display_name, ''), excluded.display_name),
     handle = coalesce(nullif(public.profiles.handle, ''), excluded.handle),
     invite_id = coalesce(public.profiles.invite_id, excluded.invite_id),
@@ -175,3 +176,123 @@ $function$;
 -- Do not weaken that RLS or give EXECUTE on privileged role assignment functions.
 REVOKE ALL ON FUNCTION public.artales_sync_profile_from_auth_user_v081()
   FROM PUBLIC,anon,authenticated;
+
+
+-- Harden the existing signed login helper. Privileged function calls now
+-- preserve disabled accounts and reject their attempted reactivation.
+CREATE OR REPLACE FUNCTION "public"."artales_ensure_profile_after_login_v082"() RETURNS "jsonb"
+    LANGUAGE "plpgsql" SECURITY DEFINER
+    SET "search_path" TO ''
+    AS $$
+declare
+  current_user_id uuid;
+  current_email text;
+  existing_profile public.profiles%rowtype;
+  invite_row public.invites%rowtype;
+  final_role public.app_role;
+begin
+  current_user_id := auth.uid();
+
+  if current_user_id is null then
+    return jsonb_build_object('ok', false, 'reason', 'not_authenticated');
+  end if;
+
+  select lower(u.email)
+  into current_email
+  from auth.users u
+  where u.id = current_user_id;
+
+  if current_email is null then
+    return jsonb_build_object('ok', false, 'reason', 'missing_email');
+  end if;
+
+  select *
+  into existing_profile
+  from public.profiles p
+  where p.id = current_user_id;
+
+  -- An inactive account must not self-reactivate by calling the login helper.
+  if existing_profile.id is not null and existing_profile.is_active is distinct from true then
+    return jsonb_build_object('ok', false, 'reason', 'profile_inactive');
+  end if;
+
+  invite_row := public.artales_find_pending_invite_for_email(current_email);
+
+  if invite_row.id is not null then
+    final_role := invite_row.invited_role::public.app_role;
+  elsif existing_profile.id is not null then
+    final_role := existing_profile.role;
+  else
+    final_role := 'reader'::public.app_role;
+  end if;
+
+  insert into public.profiles (
+    id,
+    email,
+    role,
+    is_active,
+    invite_id,
+    invited_by_user_id
+  ) values (
+    current_user_id,
+    current_email,
+    final_role,
+    true,
+    invite_row.id,
+    invite_row.invited_by_user_id
+  )
+  on conflict (id) do update set
+    email = excluded.email,
+    -- If there is a pending invite, it is authoritative.
+    role = case
+      when invite_row.id is not null then excluded.role
+      else public.profiles.role
+    end,
+    is_active = public.profiles.is_active,
+    invite_id = coalesce(public.profiles.invite_id, excluded.invite_id),
+    invited_by_user_id = coalesce(public.profiles.invited_by_user_id, excluded.invited_by_user_id);
+
+  if invite_row.id is not null then
+    update public.invites
+    set
+      status = 'accepted',
+      accepted_by_user_id = current_user_id,
+      accepted_at = coalesce(accepted_at, now()),
+      updated_at = now()
+    where id = invite_row.id
+      and status = 'pending';
+
+    insert into public.activity_log (
+      actor_user_id,
+      target_type,
+      target_id,
+      action,
+      metadata
+    ) values (
+      current_user_id,
+      'invite',
+      invite_row.id,
+      'invite_accepted',
+      jsonb_build_object(
+        'role', invite_row.invited_role,
+        'invitedBy', invite_row.invited_by_user_id,
+        'source', 'ensure_profile_after_login_v082'
+      )
+    );
+  end if;
+
+  return jsonb_build_object('ok', true, 'role', final_role);
+end;
+$$;
+
+-- The pending-invitation lookup returns sensitive invite information; it is an
+-- internal SECURITY DEFINER helper, not a public PostgREST RPC.
+REVOKE ALL ON FUNCTION public.artales_find_pending_invite_for_email(text)
+  FROM PUBLIC,anon,authenticated;
+
+-- Login helper is intentionally available only to signed identities. The
+-- function checks auth.uid() and has an explicit disabled-profile guard.
+REVOKE ALL ON FUNCTION public.artales_ensure_profile_after_login_v082()
+  FROM PUBLIC,anon;
+GRANT EXECUTE ON FUNCTION public.artales_ensure_profile_after_login_v082()
+  TO authenticated;
