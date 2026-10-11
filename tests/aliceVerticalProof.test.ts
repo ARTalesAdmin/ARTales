@@ -14,6 +14,8 @@ test("Alice pinned source -> rights escalation -> semantic composition -> anchor
  assert.equal(p.source_sha256,"49a0b2726606e1290ac03a63978fa1dd1bd38a8d805704d98265f393533ea094");
  assert.equal(p.source_component_count,6);
  assert.equal(p.semantic_chapters,12);
+ assert.ok(p.missing_gates.includes("actual_legacy_snapshot"));
+ assert.ok(p.missing_gates.includes("signed_persistent_revision"));
  assert.equal(p.rights_outcome,"needs_specialist_review");
  assert.ok(p.rights_issues.includes("insufficient_evidence"));
  assert.equal(p.source_composition_verified,true);
