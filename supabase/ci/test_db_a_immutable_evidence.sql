@@ -1,7 +1,7 @@
 -- Supabase DB-A local-only security/integrity assertions.
 begin;
 create extension if not exists pgtap with schema extensions;
-select plan(26);
+select plan(31);
 select has_schema('artales_evidence','private evidence schema created');
 select has_table('artales_evidence','source_snapshots','raw snapshots exist');
 select has_table('artales_evidence','source_components','source component map exists');
@@ -28,5 +28,10 @@ select is((select count(*)::integer from artales_evidence.rights_dossiers),0,'no
 select is((select count(*)::integer from artales_evidence.text_revisions),0,'no synthetic published revisions');
 select is((select count(*)::integer from artales_evidence.visual_revisions),0,'no fake cleared assets');
 select is((select count(*)::integer from artales_evidence.metadata_revisions),0,'no auto-approved metadata');
+select is((select count(*)::integer from pg_trigger t join pg_class c on c.oid=t.tgrelid join pg_namespace n on n.oid=c.relnamespace where n.nspname='artales_evidence' and t.tgname in ('text_revision_hash','metadata_revision_hash','component_source_range','evidence_source_match')),4,'four insert validators installed');
+select is(has_function_privilege('anon','artales_evidence.hash_revision_on_insert()','EXECUTE'),false,'anon cannot call hash trigger');
+select is(has_function_privilege('authenticated','artales_evidence.validate_component_span()','EXECUTE'),false,'signed clients cannot call span validator');
+select is((select count(*)::integer from pg_constraint where conname in ('rights_dossier_snapshot_same_work','text_revision_snapshot_same_work','text_revision_parent_same_work','metadata_revision_parent_same_work')),4,'same-work composite FKs exist');
+select is((select count(*)::integer from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname='artales_evidence' and p.prosecdef),0,'new validator functions remain invoker-only');
 select * from finish();
 rollback;
