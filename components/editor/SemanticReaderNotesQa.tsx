@@ -13,6 +13,7 @@ const labels=getPublicDictionary("cs").reader;
 export type QaLocatedNote={saved:SessionReaderNote;pageIndex:number|null;unitId:string|null};
 type Props={
   notes:QaLocatedNote[];
+  openRequest:number;
   selectedNoteId:string|null;
   selectedNoteIndex:number;
   listExpanded:boolean;
@@ -37,6 +38,7 @@ export default function SemanticReaderNotesQa(props:Props){
   const selected=props.notes.find(item=>item.saved.note.id===props.selectedNoteId);
   const selectedIndex=props.selectedNoteIndex;
 
+  useEffect(()=>{if(props.openRequest>0)setMenuOpen(true);},[props.openRequest]);
   useEffect(()=>{
     if(!menuOpen)return;
     const closeOutside=(event:MouseEvent)=>{
