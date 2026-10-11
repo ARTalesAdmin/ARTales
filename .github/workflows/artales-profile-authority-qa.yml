@@ -7,6 +7,7 @@ on:
       - 'supabase/ci/test_profile_authority_lockdown.sql'
       - 'supabase/ci/test_profile_authority_signed_e2e.mjs'
       - 'supabase/ci/test_profile_auth_trigger_parity.sql'
+      - 'supabase/ci/test_profile_invite_seed.sql'
       - '.github/workflows/artales-profile-authority-qa.yml'
   workflow_dispatch:
 permissions:
