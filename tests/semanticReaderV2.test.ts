@@ -4,7 +4,7 @@ import {createHash} from "node:crypto";
 import test from "node:test";
 import {captureGutenbergBytes,getPg11FixtureRequest} from "../lib/ingest/gutenbergSnapshot";
 import {composeSemanticPg11,composeSemanticRevision,submitSemanticIssue,recomposeSemanticLayout,verifySemanticRevision,walkSemanticAtoms,proposeSemanticTitlePage,DEFAULT_CHAPTER_PRESENTATION} from "../lib/semantic/compose";
-import {projectSemanticReader,verifyReaderProjection,remapLegacyPosition,locateReaderAnchor} from "../lib/semantic/readerProjection";
+import {projectSemanticReader,verifyReaderProjection,remapLegacyPosition,locateReaderAnchor,splitParagraphUnit,getSemanticPageUnits} from "../lib/semantic/readerProjection";
 import {compareAliceThreeWays,syntheticLegacyFixture} from "../lib/semantic/tripleQA";
 const bytes=readFileSync("tests/fixtures/gutenberg/pg11-2016-gitenberg-11-0.txt");
 const source=captureGutenbergBytes(bytes,getPg11FixtureRequest());
@@ -151,4 +151,19 @@ test("title-page draft has revision ancestry but no source atom or publisher app
  assert.equal(verifyReaderProjection(titled,pages).ok,true);
  assert.throws(()=>proposeSemanticTitlePage(rev,{title:"Bad ISBN 123",authors:["Lewis Carroll"]}),/ISBN/);
  assert.throws(()=>proposeSemanticTitlePage(rev,{title:"<script>",authors:["Lewis Carroll"]}),/title page/);
+});
+
+test("paragraph fragments preserve original atom and contiguous source offsets",()=>{
+ const unit=getSemanticPageUnits(rev).find(u=>u.kind==="paragraph"&&u.node.kind==="paragraph"&&u.node.atom.raw.length>200)!;
+ assert.ok(unit);
+ const parts=splitParagraphUnit(unit,100);
+ assert.ok(parts.length>1);
+ assert.equal(parts.map(p=>p.node.kind==="paragraph"?p.node.atom.raw.slice(p.fragment!.start,p.fragment!.end):"").join(""),unit.node.kind==="paragraph"?unit.node.atom.raw:"");
+ assert.equal(parts[0].fragment?.normalized_start,unit.node.kind==="paragraph"?unit.node.atom.anchor.normalized_start:0);
+ const pages=projectSemanticReader(rev,{mode:"paged",viewport_width:300,viewport_height:450,font_scale:1.3});
+ assert.ok(pages.flatMap(p=>p.units).some(x=>Boolean(x.fragment)));
+ assert.equal(verifyReaderProjection(rev,pages).ok,true);
+ const corrupt=structuredClone(pages), fragment=corrupt.flatMap(p=>p.units).find(x=>x.fragment)!;
+ fragment.fragment!.start++;
+ assert.throws(()=>verifyReaderProjection(rev,corrupt),/fragment/);
 });
