@@ -90,7 +90,7 @@ test("ambiguous boundary, textual insertion, foreign translation and image marke
 });
 
 test("bounded network retrieval only accepts a pinned, hash-verified mirrored blob", async () => {
-  const mock = async () => new Response(bytes, {
+  const mock = async () => new Response(bytes.toString("utf8"), {
     status: 200, headers: { "content-length": String(bytes.length), "content-type": "text/plain" },
   });
   const captured = await retrievePinnedPg11(request, mock as typeof fetch);
