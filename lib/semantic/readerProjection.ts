@@ -14,7 +14,7 @@ function units(revision:SemanticRevision):SemanticPageUnit[]{
         const atoms=node.stanzas.flatMap(s=>s.lines.map(l=>l.atom));
         all.push({id:node.id,kind:"poem",node,chapter_id:chapter,source_atom_ids:atoms.map(x=>x.id),
           estimated_height:40+atoms.reduce((sum,x)=>sum+Math.max(28,x.raw.length*0.4),0)+node.stanzas.length*18});
-      }else{
+      }else if("atom" in node){
         all.push({id:node.id,kind:node.kind,node,chapter_id:chapter,source_atom_ids:[node.atom.id],
           estimated_height:35+Math.max(1,node.atom.raw.length/60)*24});
       }
