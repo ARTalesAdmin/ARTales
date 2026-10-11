@@ -257,6 +257,24 @@ function seal(value:Omit<SemanticRevision,"revision_ref"|"revision_sha256">):Sem
   const revision_sha256=digest(value);
   return {...value,revision_sha256,revision_ref:"sha256:"+revision_sha256};
 }
+/** Source-independent title page, only a pending proposal until an editor approves a template. */
+export function proposeSemanticTitlePage(previous:SemanticRevision, input:{
+  title:string;authors:string[];edition_note?:string;
+}):SemanticRevision {
+  verifySemanticRevision(previous);
+  const title_page:SemanticTitlePage={
+    kind:"title_page",id:"title:"+previous.work_id,title:input.title,authors:[...input.authors],
+    brand:"ARTales",template:"artales-typographic-draft-v0",review_state:"awaiting_editor_review",
+    ...(input.edition_note!==undefined?{edition_note:input.edition_note}:{})
+  };
+  validateTitlePage(title_page,previous.work_id);
+  const {revision_ref:_ref,revision_sha256:_hash,...payload}=previous;
+  void _ref;void _hash;
+  const result=seal({...payload,title_page,parent_revision_ref:previous.revision_ref,
+    round:previous.round+1});
+  verifySemanticRevision(result);
+  return result;
+}
 export function walkSemanticAtoms(nodes:SemanticNode[]):SemanticAtom[]{
   const all:SemanticAtom[]=[];
   function visit(item:SemanticNode){
