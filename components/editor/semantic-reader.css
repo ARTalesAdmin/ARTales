@@ -51,3 +51,15 @@
 .semantic-reader__fragment{margin-bottom:0!important}
 .semantic-reader__unit:has(.semantic-reader__fragment)+.semantic-reader__unit:has(.semantic-reader__fragment--continued){margin-top:0}
 @media(max-width:650px){.semantic-reader__triptych:not(.semantic-reader__triptych--focus){grid-template-columns:1fr}}
+
+/* Canonical editorial layout: two equally sized scrollable panes, hidden scrollbar. */
+.semantic-reader__triptych:not(.semantic-reader__triptych--focus){grid-template-columns:repeat(2,minmax(0,1fr))}
+.semantic-reader__paired-scroll{height:min(76dvh,850px);overflow-y:auto;overscroll-behavior:contain;scrollbar-width:none}
+.semantic-reader__paired-scroll::-webkit-scrollbar{display:none}
+.semantic-reader__source-sheet{background:#fffdf8;padding:24px 18px;border:1px solid #e7e0d5;border-radius:6px;box-sizing:border-box;white-space:pre-wrap;font:13px/1.65 ui-monospace,monospace}
+.semantic-reader__source-region{white-space:pre-wrap;overflow-wrap:anywhere}
+.semantic-reader__source-region[data-region-index]{display:flow-root}
+.semantic-reader__source-region[data-region-index]:first-child{margin-top:0}
+.semantic-reader__paired-scroll.semantic-reader__viewport{height:min(76dvh,850px)}
+.semantic-reader__paired-scroll .semantic-reader__page{min-height:0}
+@media(max-width:650px){.semantic-reader__paired-scroll{height:min(75dvh,730px)}}
