@@ -42,3 +42,12 @@
 .semantic-reader__pages--spread .semantic-reader__page{align-self:stretch}
 .semantic-reader__pages--scroll .semantic-reader__page{min-height:0}
 @media(max-width:650px){.semantic-reader__pages--spread{grid-template-columns:1fr}}
+
+/* Editor compares two independently sourced panes; legacy is opt-in diagnostics. */
+.semantic-reader__triptych:not(.semantic-reader__triptych--focus):not(.semantic-reader__triptych--legacy){grid-template-columns:repeat(2,minmax(0,1fr))}
+.semantic-reader__triptych--legacy{grid-template-columns:repeat(3,minmax(0,1fr))}
+.semantic-reader__original--synced{scrollbar-width:thin}
+.semantic-reader__fragment--continued{margin-top:0!important}
+.semantic-reader__fragment{margin-bottom:0!important}
+.semantic-reader__unit:has(.semantic-reader__fragment)+.semantic-reader__unit:has(.semantic-reader__fragment--continued){margin-top:0}
+@media(max-width:650px){.semantic-reader__triptych:not(.semantic-reader__triptych--focus){grid-template-columns:1fr}}
