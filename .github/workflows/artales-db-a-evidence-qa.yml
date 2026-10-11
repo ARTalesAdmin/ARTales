@@ -41,6 +41,15 @@ jobs:
         run: psql -X -v ON_ERROR_STOP=1 -f supabase/ci/201_concurrency_fixture.sql
       - name: Verify real writes, rejection and cross-work integrity
         run: psql -X -v ON_ERROR_STOP=1 -f supabase/ci/test_db_a_mutation_integrity.sql
+      - name: Generate canonical migration with Supabase CLI and reset local DB
+        run: |
+          supabase migration new artales_db_a_evidence_foundation
+          candidate="$(find supabase/migrations -maxdepth 1 -type f -name '*_artales_db_a_evidence_foundation.sql' | head -n 1)"
+          test -n "$candidate"
+          echo "GENERATED_MIGRATION=$candidate"
+          cp supabase/ci/db_a_immutable_evidence_assembly.sql "$candidate"
+          supabase db reset --local --yes
+          psql -X -v ON_ERROR_STOP=1 -f supabase/ci/test_db_a_immutable_evidence.sql
       - name: Tear down without backup
         if: always()
         run: supabase stop --no-backup
