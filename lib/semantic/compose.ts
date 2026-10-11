@@ -372,7 +372,7 @@ export function recomposeSemanticLayout(
         ? item.heading.id===issue.target_atom_id
         : item.kind==="poem"
           ? item.stanzas.some(s=>s.lines.some(l=>l.atom.id===issue.target_atom_id))
-          : item.atom.id===issue.target_atom_id;
+          : "atom" in item && item.atom.id===issue.target_atom_id;
       if(matches){
         if(!issue.requested_presentation)throw new Error("Missing editor presentation flags.");
         validateBlockPresentation(issue.requested_presentation,item.kind);
