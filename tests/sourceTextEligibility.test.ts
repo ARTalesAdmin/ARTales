@@ -9,7 +9,7 @@ const author={name:"Old Writer",death_year:1850,living:false,evidence_url:"https
 const translator={name:"Modern Translator",death_year:null,living:true,evidence_url:"https://example.org/translator"};
 const start=body.indexOf("CHAPTER I"),end=body.indexOf("*** END");
 const base:TextRightsInput={candidate_id:"qa:test",original_authors:[author],original_language:"de",
- selected_language:"en",version:"translation",translators:[translator],edition_contribution:"separable",
+ selected_language:"en",version:"translation",translators:[translator],edition_contribution:"none",
  source:{provider:"gutenberg",uri:"https://www.gutenberg.org/ebooks/100",archive_ref:"test:sha",
   captured_at:"2026-10-11T18:00:00.000Z",sha256:sha(bytes),bytes},
  components:[{id:"wrapper",kind:"SOURCE_WRAPPER",byte_start:0,byte_end:start},
