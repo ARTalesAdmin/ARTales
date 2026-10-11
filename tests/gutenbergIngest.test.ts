@@ -7,7 +7,7 @@ import {
   composePg11Pilot, createPg11IntegrationPayload, getPg11FixtureRequest, retrievePinnedPg11,
 } from "../lib/ingest/gutenbergSnapshot";
 import {
-  createInitialRevision, returnIssue, applyReturnedIssue, acceptAfterReview,
+  createInitialRevision, returnIssue, applyReturnedIssue, acceptAfterReview, resubmitAcceptedReview,
 } from "../lib/ingest/revisionReview";
 
 const bytes = readFileSync("tests/fixtures/gutenberg/pg11-2016-gitenberg-11-0.txt");
@@ -115,16 +115,19 @@ test("two independent reviewer returns bind exact ancestry and change only their
   assert.equal(acceptance1.release_allowed, false);
   assert.equal(second.parent_revision_ref, first.work_revision_ref);
   assert.deepEqual(first.blocks, createInitialRevision(pilot).blocks);
-  assert.throws(() => returnIssue(pilot, second, {
+  const nextSubmission = resubmitAcceptedReview(pilot, second, acceptance1);
+  const issue2 = returnIssue(pilot, nextSubmission, {
     issue_id: "review_2", block_id: targets[1].block.id, category: "typography",
-    reason: "Second independent reviewer return.",
-  }), /clean revision/);
-  const thirdInput = { ...second, issues: [] as typeof second.issues };
-  // A new clean submission (separate verification event) cannot be forged by dropping issue packets:
-  assert.throws(() => returnIssue(pilot, thirdInput, {
-    issue_id: "review_2", block_id: targets[1].block.id, category: "typography",
-    reason: "Second independent reviewer return.",
-  }), /Tampered/);
+    reason: "Second reviewer: improve paragraph readability.",
+  });
+  const third = applyReturnedIssue(pilot, nextSubmission, issue2);
+  const acceptance2 = acceptAfterReview(pilot, nextSubmission, third, issue2);
+  assert.equal(acceptance2.reviewed_revision_ref, third.work_revision_ref);
+  assert.equal(third.parent_revision_ref, nextSubmission.work_revision_ref);
+  assert.equal(third.blocks.find(x => x.block.id === targets[0].block.id)?.layoutVariant,
+    second.blocks.find(x => x.block.id === targets[0].block.id)?.layoutVariant);
+  assert.throws(() => applyReturnedIssue(pilot, nextSubmission, issue1), /Stale/);
+  assert.throws(() => resubmitAcceptedReview(pilot, third, acceptance1), /stale/);
   assert.throws(() => applyReturnedIssue(pilot, second, issue1), /Stale/);
   assert.throws(() => applyReturnedIssue(pilot, first, { ...issue1, source_anchor: { ...issue1.source_anchor, original_byte_end: 0 } }), /Stale/);
   assert.ok(second.blocks.every((block, idx) =>
