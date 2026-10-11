@@ -283,7 +283,7 @@ begin
    select 1 from public.editorial_tasks t where t.work_id=p_work_id and t.kind='edit_text'
     and t.status='claimed' and t.assignee_user_id=actor
  ) then return pg_catalog.jsonb_build_object('result','blocked','reason','claimed_work_task_required'); end if;
- if p_request_id is null or pg_catalog.length(pg_catalog.btrim(pg_catalog.coalesce(p_reason,''))) not between 8 and 1000 or
+ if p_request_id is null or pg_catalog.length(pg_catalog.btrim(coalesce(p_reason,''))) not between 8 and 1000 or
     p_target_atom_id is null or pg_catalog.length(p_target_atom_id) not between 3 and 180 then
   return pg_catalog.jsonb_build_object('result','blocked','reason','invalid_issue'); end if;
  select * into h from artales_evidence.semantic_v2_heads where work_id=p_work_id for update;
