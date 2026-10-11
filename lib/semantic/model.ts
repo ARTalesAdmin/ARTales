@@ -33,11 +33,29 @@ export type SemanticGap = {
   atom: SemanticAtom;       // preserved separators and soft line boundaries
   role: "paragraph_gap" | "stanza_gap" | "line_break" | "unclassified";
 };
+/** Editor-only structural presentation; never raw CSS or a user reading preference. */
+export type SemanticBlockPresentation = {
+  align: "left" | "center" | "right" | "justify";
+  indent: "none" | "small" | "medium" | "large";
+  space_before: "none" | "normal" | "generous";
+  space_after: "none" | "normal" | "generous";
+};
+export type SemanticTitlePage = {
+  kind: "title_page";
+  id: string; // stable within one work; no source anchor or user progress anchor
+  title: string;
+  authors: string[];
+  brand: "ARTales";
+  edition_note?: string; // preview-only, editorially checked metadata; no ISBN
+  template: "artales-typographic-draft-v0";
+  review_state: "awaiting_editor_review";
+};
 export type SemanticTextBlock = {
   kind: "paragraph" | "quote" | "epigraph" | "footnote";
   id: string;
   atom: SemanticAtom;
   footnote_label?: string;
+  presentation?: SemanticBlockPresentation;
 };
 export type SemanticVerseLine = { kind: "verse_line"; atom: SemanticAtom };
 export type SemanticStanza = {
@@ -52,12 +70,14 @@ export type SemanticPoem = {
   /** source-anchored exact poem span; not an extra text leaf */
   anchor: SourceAnchorV2;
   layout: "stanza_natural" | "stanza_airy";
+  presentation?: SemanticBlockPresentation;
 };
 export type SemanticSection = {
   kind: "chapter" | "section";
   id: string;
   heading: SemanticAtom;
   children: SemanticNode[];
+  presentation?: SemanticBlockPresentation;
 };
 export type SemanticNode = SemanticTextBlock | SemanticPoem | SemanticSection;
 export type SemanticSource = {
@@ -75,6 +95,8 @@ export type SemanticRevision = {
   work_slug: string;
   source: SemanticSource;
   blocks: SemanticNode[];
+  /** Title page derives from edition metadata, never from source text. */
+  title_page?: SemanticTitlePage;
   gaps: SemanticGap[];
   revision_sha256: string;          // content hash includes parent & edition recipe
   revision_ref: string;
@@ -92,14 +114,15 @@ export type SemanticReviewIssue = {
   target_atom_id: string;
   kind: "typography" | "verse_spacing" | "structure" | "readability";
   reason: string;
-  requested_layout: "stanza_airy" | "stanza_natural" | "indent_small" | "indent_medium" | "indent_large";
+  requested_layout: "stanza_airy" | "stanza_natural" | "indent_small" | "indent_medium" | "indent_large" | "block_presentation";
+  requested_presentation?: SemanticBlockPresentation;
   disposition: "returned_for_changes";
   source_anchor: SourceAnchorV2;
 };
 export type SemanticPageUnit = {
   id: string;
-  kind: "chapter_heading" | "section_heading" | "paragraph" | "quote" | "epigraph" | "footnote" | "poem";
-  node: SemanticTextBlock | SemanticPoem | SemanticSection;
+  kind: "title_page" | "chapter_heading" | "section_heading" | "paragraph" | "quote" | "epigraph" | "footnote" | "poem";
+  node: SemanticTextBlock | SemanticPoem | SemanticSection | SemanticTitlePage;
   chapter_id: string | null;
   source_atom_ids: string[];
   estimated_height: number;
