@@ -1,0 +1,28 @@
+name: ARTales PG11 pure ingest fixture QA
+on:
+  pull_request:
+    branches: [develop]
+    paths:
+      - 'lib/ingest/**'
+      - 'tests/gutenbergIngest.test.ts'
+      - 'tests/fixtures/gutenberg/**'
+      - '.github/workflows/artales-pg11-ingest-qa.yml'
+  workflow_dispatch:
+jobs:
+  source-fixture:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - name: Full original-byte provenance and two-round editorial QA
+        run: npx tsx --test tests/gutenbergIngest.test.ts tests/ingestComposer.test.ts tests/ingestIssue.test.ts tests/ingestReview.test.ts
+      - name: TypeScript typecheck
+        run: npx tsc --noEmit
+      - name: Lint only affected sources
+        run: npx eslint lib/ingest/gutenbergSnapshot.ts lib/ingest/revisionReview.ts tests/gutenbergIngest.test.ts
