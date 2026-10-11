@@ -44,8 +44,12 @@ create table artales_evidence.semantic_v2_review_issues (
  target_atom_id text not null check(length(target_atom_id) between 3 and 180),
  source_anchor jsonb not null check(jsonb_typeof(source_anchor)='object'),
  reason text not null check(length(btrim(reason)) between 8 and 1000),
+ kind text not null check(kind='typography'),
+ requested_layout text not null check(requested_layout='indent_small'),
+ issue_json jsonb not null check(jsonb_typeof(issue_json)='object'),
  created_at timestamptz not null default now(),
  unique(actor_id,request_id),
+ unique(draft_id),
  constraint e2_issue_draft_work foreign key(draft_id,work_id)
    references artales_evidence.semantic_v2_drafts(id,work_id) on delete restrict
 );
@@ -166,6 +170,7 @@ declare actor uuid := auth.uid(); v_role public.app_role; w_slug text;
  s artales_evidence.source_snapshots%rowtype;
  v_payload jsonb; v_head artales_evidence.semantic_v2_heads%rowtype;
  parent_record artales_evidence.semantic_v2_drafts%rowtype;
+ returned_issue artales_evidence.semantic_v2_review_issues%rowtype;
  prior artales_evidence.semantic_v2_drafts%rowtype;
  new_text_id uuid; new_text_sha text; new_draft_id uuid; v_digest text;
  v_round integer;
@@ -222,7 +227,8 @@ begin
  if v_head.head_draft_id is distinct from p_parent_draft_id then
   return pg_catalog.jsonb_build_object('result','blocked','reason','stale_parent'); end if;
  if p_parent_draft_id is null then
-  if v_round<>0 or v_payload->'parent_revision_ref'<>'null'::jsonb then
+  if v_round<>0 or v_payload->'parent_revision_ref'<>'null'::jsonb or
+     pg_catalog.jsonb_array_length(v_payload->'review_issues')<>0 then
    return pg_catalog.jsonb_build_object('result','blocked','reason','invalid_initial_revision'); end if;
  else
   select * into parent_record from artales_evidence.semantic_v2_drafts
@@ -231,6 +237,15 @@ begin
     v_round<>parent_record.round+1 or
     v_payload->>'parent_revision_ref'<>'sha256:'||parent_record.revision_sha256 then
    return pg_catalog.jsonb_build_object('result','blocked','reason','invalid_parent_ancestry'); end if;
+  select * into returned_issue from artales_evidence.semantic_v2_review_issues
+   where draft_id=parent_record.id;
+  if returned_issue.id is null then
+   return pg_catalog.jsonb_build_object('result','blocked','reason','returned_issue_required'); end if;
+  if v_payload->'review_issues' <>
+    (parent_record.payload->'review_issues'||pg_catalog.jsonb_build_array(returned_issue.issue_json)) then
+   return pg_catalog.jsonb_build_object('result','blocked','reason','returned_issue_not_applied'); end if;
+  if v_payload->'blocks' = parent_record.payload->'blocks' then
+   return pg_catalog.jsonb_build_object('result','blocked','reason','no_semantic_layout_change'); end if;
  end if;
  insert into artales_evidence.text_revisions(
    work_id,source_snapshot_id,parent_revision_id,semantic_blocks,semantic_sha256,recipe_version)
@@ -258,7 +273,7 @@ declare actor uuid:=auth.uid(); v_role public.app_role;
  h artales_evidence.semantic_v2_heads%rowtype;
  d artales_evidence.semantic_v2_drafts%rowtype;
  prior artales_evidence.semantic_v2_review_issues%rowtype;
- a jsonb; v_issue_id uuid;
+ a jsonb; v_issue_id uuid; v_issue_json jsonb;
 begin
  if actor is null then return pg_catalog.jsonb_build_object('result','blocked','reason','authentication_required'); end if;
  select role into v_role from public.profiles where id=actor and is_active=true;
@@ -286,15 +301,25 @@ begin
   where id=p_draft_id and work_id=p_work_id;
  if d.id is null or d.revision_sha256<>p_expected_sha256 then
   return pg_catalog.jsonb_build_object('result','blocked','reason','revision_mismatch'); end if;
+ if d.actor_id=actor then
+  return pg_catalog.jsonb_build_object('result','blocked','reason','self_review_forbidden'); end if;
+ if exists(select 1 from artales_evidence.semantic_v2_review_issues where draft_id=d.id) then
+  return pg_catalog.jsonb_build_object('result','blocked','reason','already_returned'); end if;
  select atom into a from artales_internal.semantic_v2_atoms(d.payload->'blocks') atom
   where atom->>'id'=p_target_atom_id limit 1;
  if a is null then
   return pg_catalog.jsonb_build_object('result','blocked','reason','unanchored_issue'); end if;
+ v_issue_id:=pg_catalog.gen_random_uuid();
+ v_issue_json:=pg_catalog.jsonb_build_object(
+  'id',v_issue_id::text,'parent_revision_ref','sha256:'||d.revision_sha256,
+  'round',d.round+1,'target_atom_id',p_target_atom_id,'kind','typography',
+  'reason',pg_catalog.btrim(p_reason),'requested_layout','indent_small',
+  'disposition','returned_for_changes','source_anchor',a->'anchor');
  insert into artales_evidence.semantic_v2_review_issues(
-   work_id,draft_id,actor_id,request_id,target_atom_id,source_anchor,reason)
- values(p_work_id,p_draft_id,actor,p_request_id,p_target_atom_id,a->'anchor',
-   pg_catalog.btrim(p_reason)) returning id into v_issue_id;
- return pg_catalog.jsonb_build_object('result','returned_for_changes','issue_id',v_issue_id,
+   id,work_id,draft_id,actor_id,request_id,target_atom_id,source_anchor,reason,kind,requested_layout,issue_json)
+ values(v_issue_id,p_work_id,p_draft_id,actor,p_request_id,p_target_atom_id,a->'anchor',
+   pg_catalog.btrim(p_reason),'typography','indent_small',v_issue_json);
+ return pg_catalog.jsonb_build_object('result','returned_for_changes','issue_id',v_issue_id,'issue',v_issue_json,
    'draft_id',p_draft_id,'revision_sha256',d.revision_sha256,'publication_allowed',false);
 end $ret$;
 revoke all on function public.stage_semantic_v2_draft(uuid,uuid,uuid,text,text,uuid,uuid) from public,anon,authenticated;
