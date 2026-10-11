@@ -17,3 +17,8 @@ Risk: HIGH. Target: develop first. DB: yes (provisional local CI assembly only, 
 
 ## CI correction
 The original E2 CI failed during SQL function creation: `pg_catalog.substring(bytea from ... for ...)` was rejected by PL/pgSQL parser. The SQL assembly was corrected to callable `pg_catalog.substr(bytea,start,length)`; subsequent exact-head CI and functional signed E2E are separately required before merge.
+
+## Signed synthetic E2 evidence (new)
+`supabase/ci/alice_e2_signed_cycle.ts` runs actual local GoTrue passwords and signed PostgREST sessions (admin author, independent admin reviewer, editor, reader). It seeds two synthetic works and an immutable raw DB-A snapshot/component, derives revision identity from archived bytes, saves the initial draft, records an independent source-anchored return, applies it through Composer, and saves a changed child. It tests idempotent replay, stale parent, cross-work write, bad digest, reader and unclaimed-editor refusal, anonymous invocation and direct private-table denial. CI is local Docker only, no live keys or paid cloud branch. Await exact-head verified run before marking proof GREEN.
+
+**Scope warning:** this test uses an independent admin reviewer, because the current editorial-task schema does not permit provisioning synthetic claimed work-specific edit tasks through the normal client path; editor-assignee positive proof and real user E2 browser review remain separate gates. The SQL accepts only a single independent return per draft and presently fixes layout to `indent_small`; general multi-issue revisions and publication approvals are out of scope.
