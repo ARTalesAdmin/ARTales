@@ -25,3 +25,10 @@
 .semantic-reader__atom{white-space:inherit}
 @media(max-width:1150px){.semantic-reader__triptych{grid-template-columns:1fr 1fr}.semantic-reader__triptych>section:last-child{grid-column:1/-1}}
 @media(max-width:650px){.semantic-reader{padding:8px}.semantic-reader__triptych{grid-template-columns:1fr}.semantic-reader__triptych>section:last-child{grid-column:auto}.semantic-reader__pages--spread{grid-template-columns:1fr}.semantic-reader__page{padding:14px}.semantic-reader__original{max-height:35vh}}
+
+.semantic-reader__heading{margin-block:1.4em 2em}
+.semantic-reader__title-page{min-height:330px;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:3rem 1rem;gap:1.3rem}
+.semantic-reader__title-page h2{font-size:clamp(1.5rem,3vw,2.4rem);line-height:1.3;margin:0}
+.semantic-reader__title-page p{margin:0}
+.semantic-reader__brand{letter-spacing:.18em;font:600 .85rem system-ui}
+.semantic-reader__draft-note{margin-top:2rem;color:#776b5d;font:12px system-ui}
