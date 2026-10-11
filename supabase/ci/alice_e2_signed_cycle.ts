@@ -36,6 +36,7 @@ async function actor(role:string):Promise<Actor>{
   throw Error("Signed GoTrue password login failed: "+role);
  return {id:created.data.id,token:signed.data.access_token,email,role};
 }
+async function main():Promise<void>{
 const authors=await Promise.all(["admin","adminReviewer","editor","reader"].map(actor));
 const [admin,reviewer,editor,reader]=authors;
 const workId=randomUUID(),otherWork=randomUUID(),authorId=randomUUID(),sourceId=randomUUID(),componentId=randomUUID();
@@ -146,3 +147,6 @@ console.log("PASS signed local E2 admin/editor/reader GoTrue sessions, admin ind
 console.log("PASS stored initial revision, anchored return, applied child revision and immutable source");
 console.log("PASS replay, stale parent, self-review, reader/editor denial, cross-work, direct-table denial");
 console.log("PASS public work remained draft; release not modified; NO legal/publishing authorization");
+
+}
+void main().catch(error=>{console.error(error);process.exitCode=1;});
