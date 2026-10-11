@@ -227,7 +227,7 @@ export function walkSemanticAtoms(nodes:SemanticNode[]):SemanticAtom[]{
       all.push(item.heading);item.children.forEach(visit);
     }else if(item.kind==="poem"){
       item.stanzas.forEach(st=>st.lines.forEach(line=>all.push(line.atom)));
-    }else all.push(item.atom);
+    }else if("atom" in item) all.push(item.atom);
   }
   nodes.forEach(visit);
   return all;
@@ -304,11 +304,11 @@ export function recomposeSemanticLayout(
       const target=item.stanzas.flatMap(s=>s.lines).find(x=>x.atom.id===issue.target_atom_id);
       if(target && JSON.stringify(target.atom.anchor)===JSON.stringify(issue.source_anchor)){
         if(item.layout===issue.requested_layout)throw new Error("No proposed semantic layout delta.");
-        item.layout=issue.requested_layout;changed++;
+        item.layout=issue.requested_layout as SemanticPoem["layout"];changed++;
       }
       return;
     }
-    if(item.kind==="poem")return;
+    if(item.kind==="poem"||!("atom" in item))return;
     if(item.atom.id!==issue.target_atom_id)return;
     if(JSON.stringify(item.atom.anchor)!==JSON.stringify(issue.source_anchor) ||
        !issue.requested_layout.startsWith("indent_"))
