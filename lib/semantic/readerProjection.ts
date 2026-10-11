@@ -64,6 +64,33 @@ function estimateUnitHeight(unit: SemanticPageUnit, layout: SemanticReaderLayout
   return (head ? 24 : 16) + logicalLines * lineHeight * (head ? 1.05 : 1);
 }
 
+/** Prefer sentence ends, then safe whitespace. Fragment boundaries never change atoms. */
+export function splitParagraphUnit(unit:SemanticPageUnit, maxChars:number):SemanticPageUnit[] {
+  if(unit.kind!=="paragraph"||unit.node.kind!=="paragraph"||!Number.isInteger(maxChars)||maxChars<12)return [unit];
+  const raw=unit.node.atom.raw;
+  if(raw.length<=maxChars)return [unit];
+  const result:SemanticPageUnit[]=[];
+  let start=0;
+  while(start<raw.length) {
+    let end=Math.min(raw.length,start+maxChars);
+    if(end<raw.length){
+      const slice=raw.slice(start,end);
+      const sentence=[...slice.matchAll(/[.!?][”’"')\]]*\s+/g)].map(x=>start+x.index!+x[0].length).filter(x=>x-start>=Math.min(36,maxChars*.35));
+      const word=[...slice.matchAll(/\s+/g)].map(x=>start+x.index!+x[0].length).filter(x=>x-start>=Math.min(20,maxChars*.3));
+      end=sentence.at(-1)??word.at(-1)??end;
+      if(end<raw.length&&raw.charCodeAt(end-1)>=0xD800&&raw.charCodeAt(end-1)<=0xDBFF)end--;
+    }
+    if(end<=start)throw Error("Unable to establish bounded paragraph split.");
+    const fragment={original_unit_id:unit.id,atom_id:unit.node.atom.id,start,end,
+      normalized_start:unit.node.atom.anchor.normalized_start+start,
+      normalized_end:unit.node.atom.anchor.normalized_start+end,
+      continuation_before:start>0,continuation_after:end<raw.length};
+    result.push({...unit,id:unit.id+":range:"+start+"-"+end,fragment,
+      estimated_height:unit.estimated_height*(end-start)/raw.length});
+    start=end;
+  }
+  return result;
+}
 export function projectSemanticReader(revision: SemanticRevision, layout: SemanticReaderLayout): SemanticPage[] {
   verifySemanticRevision(revision);
   if (!Number.isFinite(layout.viewport_width) || !Number.isFinite(layout.viewport_height) ||
@@ -81,6 +108,13 @@ export function projectSemanticReader(revision: SemanticRevision, layout: Semant
       throw new Error("Invalid browser-measured semantic unit height.");
     }
     return { ...unit, estimated_height: measured ?? estimateUnitHeight(unit, layout) };
+  });
+  const pageLimit=Math.max(260,layout.viewport_height-155);
+  const expanded=all.flatMap(unit=>{
+    if(unit.kind!=="paragraph"||unit.node.kind!=="paragraph")return [unit];
+    const charLimit=Math.max(80,Math.floor(unit.node.atom.raw.length*
+      Math.min(1,Math.max(0.32,pageLimit*.62/Math.max(unit.estimated_height,1)))));
+    return splitParagraphUnit(unit,charLimit);
   });
   // Budget includes real viewport height, with margins for page padding/footer and controls.
   const capacity = Math.max(260, layout.viewport_height - 155);
@@ -102,12 +136,12 @@ export function projectSemanticReader(revision: SemanticRevision, layout: Semant
       estimated_height: all.reduce((sum, unit) => sum + unit.estimated_height, 0),
     }];
   }
-  for (let i = 0; i < all.length; i++) {
-    const unit = all[i];
+  for (let i = 0; i < expanded.length; i++) {
+    const unit = expanded[i];
     if(unit.kind==="title_page"){
       flush();pending.push(unit);weight=unit.estimated_height;flush();continue;
     }
-    const next = all[i + 1];
+    const next = expanded[i + 1];
     // Avoid leaving a chapter heading at a page end without its first paragraph.
     const keepWithNext = (unit.kind === "chapter_heading" || unit.kind === "section_heading") && next
       ? next.estimated_height : 0;
@@ -127,9 +161,33 @@ export function verifyReaderProjection(revision:SemanticRevision,pages:SemanticP
   verifySemanticRevision(revision);
   const expected=getSemanticPageUnits(revision);
   const actual=pages.flatMap(p=>p.units);
-  if(actual.length!==expected.length||expected.some((u,i)=>actual[i].id!==u.id||
-    JSON.stringify(actual[i].source_atom_ids)!==JSON.stringify(u.source_atom_ids)))
-    throw new Error("Reader dropped, duplicated or rearranged a semantic unit.");
+  let index=0;
+  for(const base of expected){
+    const members:SemanticPageUnit[]=[];
+    while(index<actual.length&&(actual[index].fragment?.original_unit_id===base.id||actual[index].id===base.id)){
+      members.push(actual[index++]);
+      if(!members.at(-1)!.fragment)break;
+    }
+    if(!members.length)throw Error("Reader lost a semantic unit.");
+    if(members.length===1&&!members[0].fragment){
+      if(members[0].id!==base.id||JSON.stringify(members[0].source_atom_ids)!==JSON.stringify(base.source_atom_ids))
+        throw Error("Reader changed unit identity.");
+      continue;
+    }
+    if(base.kind!=="paragraph"||base.node.kind!=="paragraph")throw Error("Non-paragraph semantic split rejected.");
+    let offset=0;
+    for(const part of members){
+      const fragment=part.fragment;
+      if(!fragment||fragment.original_unit_id!==base.id||fragment.atom_id!==base.node.atom.id||
+        fragment.start!==offset||fragment.end<=offset||fragment.end>base.node.atom.raw.length||
+        fragment.normalized_start!==base.node.atom.anchor.normalized_start+fragment.start||
+        fragment.normalized_end!==base.node.atom.anchor.normalized_start+fragment.end)
+        throw Error("Reader fragment gap, overlap or anchor drift.");
+      offset=fragment.end;
+    }
+    if(offset!==base.node.atom.raw.length)throw Error("Reader fragment tail omitted.");
+  }
+  if(index!==actual.length)throw Error("Reader duplicated semantic units.");
   return {ok:true as const,pages:pages.length,units:actual.length};
 }
 export function locateReaderAnchor(revision:SemanticRevision,atomId:string,offset=0):ReaderAnchorV2{
