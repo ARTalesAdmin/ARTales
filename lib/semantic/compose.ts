@@ -349,6 +349,21 @@ export function recomposeSemanticLayout(
   const nodes:SemanticNode[]=structuredClone(previous.blocks);
   let changed=0;
   function apply(item:SemanticNode):void{
+    if(issue.requested_layout==="block_presentation"){
+      const matches = item.kind==="chapter"||item.kind==="section"
+        ? item.heading.id===issue.target_atom_id
+        : item.kind==="poem"
+          ? item.stanzas.some(s=>s.lines.some(l=>l.atom.id===issue.target_atom_id))
+          : item.atom.id===issue.target_atom_id;
+      if(matches){
+        if(!issue.requested_presentation)throw new Error("Missing editor presentation flags.");
+        validateBlockPresentation(issue.requested_presentation,item.kind);
+        if(JSON.stringify(item.presentation)===JSON.stringify(issue.requested_presentation))
+          throw new Error("No proposed semantic layout delta.");
+        item.presentation={...issue.requested_presentation};changed++;
+        return;
+      }
+    }
     if(item.kind==="chapter"||item.kind==="section"){item.children.forEach(apply);return;}
     if(item.kind==="poem" && issue.requested_layout.startsWith("stanza_")){
       const target=item.stanzas.flatMap(s=>s.lines).find(x=>x.atom.id===issue.target_atom_id);
@@ -382,13 +397,20 @@ export function recomposeSemanticLayout(
 export function submitSemanticIssue(previous:SemanticRevision,args:{
   id:string;target_atom_id:string;kind:SemanticReviewIssue["kind"];
   reason:string;requested_layout:SemanticReviewIssue["requested_layout"];
+  requested_presentation?:SemanticBlockPresentation;
 }):SemanticReviewIssue{
   verifySemanticRevision(previous);
   const target=walkSemanticAtoms(previous.blocks).find(x=>x.id===args.target_atom_id);
   if(!target||!args.id.trim()||args.reason.trim().length<3)throw new Error("Invalid source-anchored semantic issue.");
+  if(args.requested_layout==="block_presentation"){
+    if(!args.requested_presentation)throw new Error("Missing editor presentation flags.");
+    validateBlockPresentation(args.requested_presentation,"paragraph");
+  }else if(args.requested_presentation)throw new Error("Unexpected editor presentation flags.");
   return {id:args.id,parent_revision_ref:previous.revision_ref,round:previous.round+1,
     target_atom_id:target.id,kind:args.kind,reason:args.reason.trim(),
-    requested_layout:args.requested_layout,disposition:"returned_for_changes",
+    requested_layout:args.requested_layout,
+    ...(args.requested_presentation?{requested_presentation:{...args.requested_presentation}}:{}),
+    disposition:"returned_for_changes",
     source_anchor:structuredClone(target.anchor)};
 }
 /** PR #205 raw PG #11 adapter is a source; old WorkBlock is not an output. */
