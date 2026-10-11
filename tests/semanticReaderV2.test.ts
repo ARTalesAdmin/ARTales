@@ -95,3 +95,19 @@ test("reader density is a display setting and never mutates semantic revision or
  assert.equal(rev.revision_ref,before);
  assert.throws(()=>projectSemanticReader(rev,{mode:"paged",viewport_width:360,viewport_height:700,font_scale:1,density:"invalid" as "compact"}),/density/);
 });
+
+test("wide page capacity responds to width and keeps source anchored units intact",()=>{
+ const narrow=projectSemanticReader(rev,{mode:"paged",viewport_width:300,viewport_height:850,font_scale:1,density:"comfortable"});
+ const wide=projectSemanticReader(rev,{mode:"paged",viewport_width:900,viewport_height:850,font_scale:1,density:"comfortable"});
+ assert.ok(wide.length<narrow.length,`Expected wider paper to require fewer pages, got ${wide.length} vs ${narrow.length}`);
+ assert.equal(verifyReaderProjection(rev,wide).ok,true);
+ assert.equal(verifyReaderProjection(rev,narrow).ok,true);
+});
+test("browser measured heights cause deterministic repagination without text loss",()=>{
+ const baseline=projectSemanticReader(rev,{mode:"paged",viewport_width:400,viewport_height:850,font_scale:1});
+ const first=baseline[0].units[0];
+ const measured=projectSemanticReader(rev,{mode:"paged",viewport_width:400,viewport_height:850,font_scale:1,measured_unit_heights:{[first.id]:650}});
+ assert.equal(verifyReaderProjection(rev,measured).ok,true);
+ assert.ok(measured.length>=baseline.length);
+ assert.throws(()=>projectSemanticReader(rev,{mode:"paged",viewport_width:400,viewport_height:850,font_scale:1,measured_unit_heights:{[first.id]:-1}}),/measured/);
+});
