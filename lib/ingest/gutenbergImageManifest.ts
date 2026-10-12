@@ -59,6 +59,8 @@ export function discoverGutenbergImages(args:Readonly<{
  for(const tag of args.html.match(/<img\b[^>]*>/gi)??[]){
   const src=attr(tag,"src");
   if(!src)throw Error("Unresolved Gutenberg image tag");
+  if(src.split(/[\\/]/).includes("..")||/%2e|%2f|%5c/i.test(src))
+   throw Error("Untrusted Gutenberg image reference traversal");
   const url=new URL(src.replace(/&amp;/g,"&"),source);
   if(url.protocol!=="https:"||url.host!=="www.gutenberg.org"||
      !url.pathname.startsWith("/files/"+number+"/")||
