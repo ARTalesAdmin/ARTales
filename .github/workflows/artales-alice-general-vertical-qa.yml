@@ -1,0 +1,23 @@
+name: ARTales Alice general vertical contract QA
+on:
+  pull_request:
+    branches: [develop]
+    paths:
+      - 'tests/aliceGeneralVerticalContract.test.ts'
+      - '.github/workflows/artales-alice-general-vertical-qa.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  whole-alice:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - run: npx tsx --test tests/aliceGeneralVerticalContract.test.ts
+      - run: npx tsc --noEmit
+      - run: npx eslint tests/aliceGeneralVerticalContract.test.ts
