@@ -1,0 +1,45 @@
+# ARTales Phoenix — 2026-10-12: artwork and Reader migration handoff
+
+> **Non-authoritative continuation checkpoint.** Read `AGENTS.md`, `docs/ARTALES_DURABLE_CHECKPOINT.md`, `docs/WORKFLOW.md` and `docs/RELEASE_POLICY.md` first. Live GitHub, Supabase and user authorizations always take precedence.
+
+## Product decisions (confirmed with architect)
+
+- Do **not** rush partial user-invisible features into `main`. Continue on `develop`; promote one tested, explicitly approved integrated release.
+- Gallery works migrate **per work**, retaining work UUID/slug, reader notes/progress, old content/Reader until editor approves a semantic revision and a separate authorized atomic cutover. Batch rights scan and preparation are allowed; no mass live swap.
+- Capture and evaluate the **selected Gutenberg text version**, original authors, translators, EU/CZ term, US status and explicit restrictions. New protected translations fail even if original work is free. Work/edition/artwork component decisions remain separate. No automatic public release.
+- AI decides semantic blocks **once per editorial revision**, not whenever a reader changes font size. Deterministic Reader pagination may rerun locally for changed display dimensions/font; cached revision-bound layout presets exist (PR #232). Offline book caching is **not** implemented.
+- Each work gets its **own ARTales cover**. Original interior illustrations may be used if separately cleared; Ivana (visual editor) chooses original/custom/omit per image. Omission does not block eligible text. Preserve component references even if unpublished; separate archive from publication.
+- Real source-image bytes + SHA-256 + readback must be archived; never present synthetic GIF fixtures as genuine Tenniel files. Do not expose private archive images directly to anonymous readers. Approved derivatives go to existing public `artales-images`.
+
+## Exact verified state at checkpoint
+
+- Repository: `ARTalesAdmin/ARTales`. `main` protected production at artales.net; `develop` preview at ar-tales.vercel.app. **No code merge into `main` or Reader cutover this session.**
+- Relevant merged PRs into develop: #224 real Alice rights dossier; #226 Reader cutover dry-run; #227 Reader revision-routing preflight; #228 generic EU/US text rights; #229 gallery batch planner; #230 real pinned Alice general rights/semantic reader integration test; #232 semantic layout presets (replaced #231); #233 illustration snapshot and placement; #234 private archive/write-once Storage adapter + Ivana choice; #235 Gutenberg illustration manifest; **#236 merged 2026-10-12**, authenticated-grant-oriented Gutenberg binary pipeline (still not wired to production endpoint).
+- **PR #237** `feat/artales-alice114-authenticated-storage-route-20261012` is OPEN **Draft**, target `develop`. Implements `lib/pilots/alice114CaptureGate.ts` (admin-only production-host and same-origin checks), `app/api/member/ingest/alice-illustration/route.ts` (server-only index fetch -> choose 1..42 -> binary capture -> Storage readback), `tests/alice114CaptureGate.test.ts`, and extends existing `.github/workflows/artales-gutenberg-image-capture-qa.yml`. HEAD **94d199c79a5cbdcefd9e8a10e8ebd10cba858cfe** at last check; CI run **38232091466** in progress (not yet green at documentation creation). Re-read live head and CI before any merge.
+- PR #237 endpoint now explicitly **disabled by default** unless server env `ARTALES_ENABLE_ALICE_ARTWORK_CAPTURE=1`. That variable is NOT set or authorized for production change. It refuses preview by design and accepts only authenticated active admin, same-origin JSON with exact `ordinal`; no arbitrary client URL, author/rights or service key. No real signed browser session or storage upload tested. Do not merge/deploy until exact-head CI passes and security/reliability review; merely merging `develop` does not enable endpoint.
+- Source: real pinned Gutenberg English Alice text fixture: `tests/fixtures/gutenberg/pg11-2016-gitenberg-11-0.txt`; source SHA-256 `49a0b2726606e1290ac03a63978fa1dd1bd38a8d805704d98265f393533ea094`; 12 chapters. Tenniel illustration catalog Gutenberg #114, 42 referenced originals; **no actual GIF bytes successfully downloaded or verified** as of this checkpoint. A complete *synthetic* 42-item inventory test and synthetic one-pixel GIF upload/readback tests exist — NOT proof of genuine archive.
+- Long-lived `develop` candidate/editorial DB contract is **not yet applied to production**. A read-only SQL probe showed `public.work_candidates` absent in production. E2 integrated signed DB/editor candidate PR #223 remains Draft/high risk, with SECURITY DEFINER scrutiny and actual authenticated DB cycle unproven; #220/#221/#222 are stacked predecessors. Do not silently merge protected SQL or run prod DB apply.
+- Supabase production project `nmhdwmszbwgrgfbmlguu`: explicitly authorized private bucket **`artales-source-archive` created 2026-10-12** (`public=false`, max 10485760 bytes, GIF/PNG/JPEG). Existing public `artales-images` unchanged (5 MiB, JPG/PNG/WebP). `storage.objects` RLS enabled and no new public-access policies. Last SQL readback showed **0 private archive objects**.
+- Supabase branch list inspected this session: **only `main`** (id `4232bb69-5f9c-42c6-bac4-a1b2e08fffa5`). **No ephemeral branches** running; nothing to delete or incur extra ephemeral branch charges overnight. No extra persistent Supabase preview branch was created. Baseline production DB and private bucket stay active. Exact Supabase spent cost was not queried: do not claim spending is zero, only that no extra preview branch exists. Vercel deployment/sandbox cost state not fully audited by this checkpoint.
+- Old version of gallery and current public Reader remain untouched by the work here. All user-facing releases require separate architect authorization. Nexus worker queue not used.
+
+## Before merging PR #237 — concrete issues to check
+
+1. **CI**: read exact-head run of `ARTales Gutenberg image capture QA` (run `38232091466` initially in progress), focused tests, `tsc --noEmit`, eslint; fix in same branch if red.
+2. **Production safety:** feature flag defaults off; never change production env without explicit authorization. Validate code fails closed when no origin or unauthenticated session; log handling; no public Storage reads/writes to `artales-source-archive`; no service-role exposure.
+3. **Gutenberg reality:** current manifest expects exactly 42 <img> tags in `/files/114/114-h/114-h.htm`; it might not match the actual edition HTML or use alternate asset paths. Confirm against real source and revise contract rather than invent successful tests. URL normalization and browser rendering are unproven. `boundedDownload` limits declared size and decoded bytes but does not yet enforce streaming cap against large hostile responses. The code's `createAdminClient()` uses privileged server key and should only be reachable after strict authorization and default-off flag.
+4. **User consent and infra:** a production bucket creation was explicitly approved and done. No production endpoint enablement or production service key changes have been performed or implied by that approval.
+5. **Legal:** Alice text/artist death evidence and source catalog are triage facts, not carte-blanche for derivative publication. US selected-edition status and third-party assets checked independently.
+6. **Source archival semantics:** capture is write-once; same-hash retry currently returns duplicate error. Decide idempotent verified-readback treatment before running a multi-image batch.
+7. **Real E2E:** actual admin login -> source fetch -> one GIF upload -> SHA readback -> link to text snapshot -> visual preview for Ivana -> original/custom/omit. Still open; mark each as verified only once performed.
+
+## Recommended continuation (not auto-authorized)
+
+- Finish CI and code safety review of #237. Keep Draft if unsigned/broken or unproven. If green and semantics safe, request merge authorization, or use existing broad guidance only for safe develop merge; do not enable production flag.
+- Then prioritize actual signed DB/editor Alice flow with isolated short-lived, separately cost-approved ephemeral environment, not production DB apply. Clean up branch the same session.
+- Implement real illustration source binaries into private Storage and durable snapshot receipts, then approved public derivative and Ivana's visual review.
+- Final per-work Gallery/Reader cutover only after all gates and explicit production approval.
+
+## Handoff prompt
+
+"Navazujeme na ARTales Phoenix `docs/ARTALES_PHOENIX_2026-10-12_ARTWORK_INGEST.md`. Přečti AGENTS.md, durable checkpoint, workflow a release policy; ověř skutečný `develop`, PR #237 a run 38232091466, Supabase pouze main a soukromý bucket artales-source-archive. První krok: oprav / vyhodnoť CI a bezpečnost serverového obrazového endpointu, bez aktivace prod flagu. Poté navrhni reálný admin+Storage upload/readback a následně editor workflow Alice. Zachovej main/Reader/produkční DB beze změny, žádné placené ephemeral přes noc. Nikdy nezaměňuj syntetické obrázky za reálné." 
