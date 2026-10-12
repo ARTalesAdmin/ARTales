@@ -13,7 +13,7 @@ export function planPrivateIllustrationArchive(snapshot:IllustrationSnapshot,byt
  if(snapshot.role!=="interior_illustration"||snapshot.sha256!==sha(bytes)||
     snapshot.byte_length!==bytes.length)throw Error("Image bytes do not match immutable snapshot");
  const path="source/"+snapshot.sha256.slice(0,2)+"/"+snapshot.sha256+"."+extension[snapshot.media_type];
- return {bucket:PRIVATE_ILLUSTRATION_ARCHIVE_BUCKET,path,bytes,contentType:snapshot.media_type,
+ return {bucket:PRIVATE_ILLUSTRATION_ARCHIVE_BUCKET as typeof PRIVATE_ILLUSTRATION_ARCHIVE_BUCKET,path,bytes,contentType:snapshot.media_type,
   upsert:false as const,cacheControl:"3600"};
 }
 export function verifyPrivateIllustrationArchive(snapshot:IllustrationSnapshot,
