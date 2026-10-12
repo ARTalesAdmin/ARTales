@@ -1,0 +1,27 @@
+name: ARTales Alice text-only rights QA
+on:
+  pull_request:
+    branches: [develop]
+    paths:
+      - 'lib/pilots/aliceTextOnlyRightsGate.ts'
+      - 'tests/aliceTextOnlyRightsGate.test.ts'
+      - 'lib/rights/sourceTextEligibility.ts'
+      - 'lib/candidateDraftHandoffGate.ts'
+      - 'tests/sourceTextEligibility.test.ts'
+      - '.github/workflows/artales-alice-text-only-rights-qa.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  alice-rights:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - run: npx tsx --test tests/aliceTextOnlyRightsGate.test.ts tests/sourceTextEligibility.test.ts
+      - run: npx tsc --noEmit
+      - run: npx eslint lib/pilots/aliceTextOnlyRightsGate.ts tests/aliceTextOnlyRightsGate.test.ts lib/rights/sourceTextEligibility.ts lib/candidateDraftHandoffGate.ts tests/sourceTextEligibility.test.ts
