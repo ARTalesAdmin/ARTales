@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import {createHash} from "node:crypto";
 import {captureIllustration} from "../lib/ingest/illustrationSnapshot";
 import {PRIVATE_ILLUSTRATION_ARCHIVE_BUCKET,planPrivateIllustrationArchive,
+ type ArchivedIllustration,
  verifyPrivateIllustrationArchive,decideIllustrationDisplay} from "../lib/ingest/illustrationArchiveChoice";
 const gif=Buffer.from("47494638396101000100800000000000ffffff21f90401000000002c00000000010001000002024401003b","hex");
 const digest=createHash("sha256").update(gif).digest("hex");
