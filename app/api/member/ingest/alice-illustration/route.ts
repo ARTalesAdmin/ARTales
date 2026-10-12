@@ -22,6 +22,8 @@ async function boundedDownload(uri:string, limit:number){
  return {status:response.status,bytes:b,contentType:response.headers.get("content-type")??""};
 }
 export async function POST(request:NextRequest){
+ if(process.env.ARTALES_ENABLE_ALICE_ARTWORK_CAPTURE!=="1")
+  return NextResponse.json({error:"not_found"},{status:404,headers:{"Cache-Control":"no-store"}});
  try{
   if(Number(request.headers.get("content-length")??"0")>512)
    return NextResponse.json({error:"invalid_body"},{status:400});
@@ -32,7 +34,10 @@ export async function POST(request:NextRequest){
    .select("id,role,is_active").eq("id",user.id).single();
   if(profileError||!profile||profile.id!==user.id||profile.role!=="admin"||profile.is_active!==true)
    return NextResponse.json({error:"forbidden"},{status:403});
-  const json=await request.json();
+  const raw=await request.text();
+  if(Buffer.byteLength(raw,"utf8")>512)
+   return NextResponse.json({error:"invalid_body"},{status:400,headers:{"Cache-Control":"no-store"}});
+  const json=JSON.parse(raw) as unknown;
   const {ordinal,grant}=authorizeAlice114Capture({
    deployment:process.env.VERCEL_ENV==="production"?"production":"disabled",
    request_url:request.url,
