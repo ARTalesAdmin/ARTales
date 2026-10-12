@@ -1,0 +1,24 @@
+name: ARTales gallery migration planner QA
+on:
+  pull_request:
+    branches: [develop]
+    paths:
+      - 'lib/publication/galleryMigrationPlan.ts'
+      - 'tests/galleryMigrationPlan.test.ts'
+      - '.github/workflows/artales-gallery-migration-plan-qa.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  gallery-plan:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - run: npx tsx --test tests/galleryMigrationPlan.test.ts
+      - run: npx tsc --noEmit
+      - run: npx eslint lib/publication/galleryMigrationPlan.ts tests/galleryMigrationPlan.test.ts
