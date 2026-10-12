@@ -1,0 +1,24 @@
+name: ARTales Gutenberg image manifest QA
+on:
+  pull_request:
+    branches: [develop]
+    paths:
+      - 'lib/ingest/gutenbergImageManifest.ts'
+      - 'tests/gutenbergImageManifest.test.ts'
+      - '.github/workflows/artales-gutenberg-image-manifest-qa.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  image-manifest:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - run: npx tsx --test tests/gutenbergImageManifest.test.ts
+      - run: npx tsc --noEmit
+      - run: npx eslint lib/ingest/gutenbergImageManifest.ts tests/gutenbergImageManifest.test.ts
