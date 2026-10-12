@@ -5,6 +5,9 @@ on:
     paths:
       - 'lib/ingest/gutenbergImageCapturePipeline.ts'
       - 'tests/gutenbergImageCapturePipeline.test.ts'
+      - 'lib/pilots/alice114CaptureGate.ts'
+      - 'tests/alice114CaptureGate.test.ts'
+      - 'app/api/member/ingest/alice-illustration/route.ts'
       - '.github/workflows/artales-gutenberg-image-capture-qa.yml'
   workflow_dispatch:
 permissions:
@@ -19,6 +22,6 @@ jobs:
           node-version: '22'
           cache: npm
       - run: npm ci --ignore-scripts
-      - run: npx tsx --test tests/gutenbergImageCapturePipeline.test.ts
+      - run: npx tsx --test tests/gutenbergImageCapturePipeline.test.ts tests/alice114CaptureGate.test.ts
       - run: npx tsc --noEmit
-      - run: npx eslint lib/ingest/gutenbergImageCapturePipeline.ts tests/gutenbergImageCapturePipeline.test.ts
+      - run: npx eslint lib/ingest/gutenbergImageCapturePipeline.ts lib/pilots/alice114CaptureGate.ts app/api/member/ingest/alice-illustration/route.ts tests/gutenbergImageCapturePipeline.test.ts tests/alice114CaptureGate.test.ts
