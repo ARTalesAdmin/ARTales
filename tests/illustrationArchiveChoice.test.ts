@@ -18,7 +18,7 @@ const x=captureIllustration({
  provenance:"original_artist",us_catalog_status:"public_domain",express_no_reuse:false
 },timestamp);
 const path=planPrivateIllustrationArchive(x,gif).path;
-const archived={component_id:x.component_id,source_sha256:digest,source_archive_path:path,
+const archived:ArchivedIllustration={component_id:x.component_id,source_sha256:digest,source_archive_path:path,
  source_bucket:PRIVATE_ILLUSTRATION_ARCHIVE_BUCKET,source_byte_length:gif.length,
  captured_at:timestamp,storage_verified:true};
 const base={component_id:x.component_id,mode:"original" as const,custom_storage_path:null,
