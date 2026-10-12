@@ -1,4 +1,11 @@
-# ARTales durable checkpoint — 2026-09-28
+# ARTales durable checkpoint — 2026-10-12 (historical sections retained)
+
+## Latest handoff — 2026-10-12 artwork ingest and Reader migration
+
+**Current Phoenix:** [ARTALES_PHOENIX_2026-10-12_ARTWORK_INGEST.md](./ARTALES_PHOENIX_2026-10-12_ARTWORK_INGEST.md). This is a non-authoritative checkpoint; read live GitHub / Supabase and current user authorizations before actions. PR #237 (admin image capture endpoint) is Draft with default-off feature flag, CI run 38232091466 initially pending. Private Storage bucket exists and is empty. Supabase only main, no ephemeral branch. No production Reader cutover or prod DB candidate schema apply. Read dated Phoenix for exact carryover and Handoff prompt.
+
+---
+
 
 ## Current continuation — Phoenix 2026-10-10 PR #200 / isolated CI handoff
 
