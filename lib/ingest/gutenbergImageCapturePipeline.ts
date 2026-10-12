@@ -23,7 +23,7 @@ export function validateGutenbergImageReference(ref:GutenbergImageReference){
    source.hostname!=="www.gutenberg.org"||source.protocol!=="https:"||
    !source.pathname.startsWith("/files/"+match[1]+"/")||
    !/\.(?:gif|png|jpe?g)$/i.test(source.pathname)||source.search||source.hash||
-   catalog.search||catalog.hash||!/^gutenberg:\d+:image:\d{3}$/.test(ref.component_id)||
+   catalog.search||catalog.hash||!new RegExp("^gutenberg:"+match[1]+":image:[0-9]{3}$").test(ref.component_id)||
    !/^[a-f0-9]{64}$/.test(ref.index_sha256))
   throw Error("Untrusted Gutenberg image provenance");
 }
