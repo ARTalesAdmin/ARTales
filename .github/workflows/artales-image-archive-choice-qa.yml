@@ -4,7 +4,9 @@ on:
     branches: [develop]
     paths:
       - 'lib/ingest/illustrationArchiveChoice.ts'
+      - 'lib/ingest/illustrationStorageAdapter.ts'
       - 'tests/illustrationArchiveChoice.test.ts'
+      - 'tests/illustrationStorageAdapter.test.ts'
       - '.github/workflows/artales-image-archive-choice-qa.yml'
   workflow_dispatch:
 permissions:
@@ -19,6 +21,6 @@ jobs:
           node-version: '22'
           cache: npm
       - run: npm ci --ignore-scripts
-      - run: npx tsx --test tests/illustrationArchiveChoice.test.ts
+      - run: npx tsx --test tests/illustrationArchiveChoice.test.ts tests/illustrationStorageAdapter.test.ts
       - run: npx tsc --noEmit
-      - run: npx eslint lib/ingest/illustrationArchiveChoice.ts tests/illustrationArchiveChoice.test.ts
+      - run: npx eslint lib/ingest/illustrationArchiveChoice.ts lib/ingest/illustrationStorageAdapter.ts tests/illustrationArchiveChoice.test.ts tests/illustrationStorageAdapter.test.ts
