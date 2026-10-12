@@ -16,12 +16,33 @@ const base={candidate_id:"alice",text_snapshot_ref:"sha256:"+"1".repeat(64),
 };
 function storage(){
  const saved=new Map<string,Uint8Array>();
- const client:ServerStorageClient={storage:{from(bucket){
-  assert.equal(bucket,"artales-source-archive");
-  return {async upload(path,bytes){if(saved.has(path))return {error:"duplicate"};saved.set(path,Uint8Array.from(bytes));return {error:null}},
-   async download(path){const bytes=saved.get(path);return {error:bytes?null:"missing",
-    data:bytes?{async arrayBuffer(){return bytes.buffer.slice(bytes.byteOffset,bytes.byteOffset+bytes.byteLength)}}:null}};
- }}}};
+ const client:ServerStorageClient={
+  storage:{
+   from(bucket){
+    assert.equal(bucket,"artales-source-archive");
+    return {
+     async upload(path,bytes){
+      if(saved.has(path))return {error:"duplicate"};
+      saved.set(path,Uint8Array.from(bytes));
+      return {error:null};
+     },
+     async download(path){
+      const bytes=saved.get(path);
+      if(!bytes)return {error:"missing",data:null};
+      const copy=Uint8Array.from(bytes);
+      return {
+       error:null,
+       data:{
+        async arrayBuffer(){
+         return copy.buffer.slice(copy.byteOffset,copy.byteOffset+copy.byteLength);
+        }
+       }
+      };
+     }
+    };
+   }
+  }
+ };
  return {saved,client};
 }
 test("authorized original source is downloaded, SHA-pinned and read back from private Storage",async()=>{
