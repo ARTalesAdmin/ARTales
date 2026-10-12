@@ -1,0 +1,26 @@
+name: ARTales image archive choice QA
+on:
+  pull_request:
+    branches: [develop]
+    paths:
+      - 'lib/ingest/illustrationArchiveChoice.ts'
+      - 'lib/ingest/illustrationStorageAdapter.ts'
+      - 'tests/illustrationArchiveChoice.test.ts'
+      - 'tests/illustrationStorageAdapter.test.ts'
+      - '.github/workflows/artales-image-archive-choice-qa.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  archive-choice:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - run: npx tsx --test tests/illustrationArchiveChoice.test.ts tests/illustrationStorageAdapter.test.ts
+      - run: npx tsc --noEmit
+      - run: npx eslint lib/ingest/illustrationArchiveChoice.ts lib/ingest/illustrationStorageAdapter.ts tests/illustrationArchiveChoice.test.ts tests/illustrationStorageAdapter.test.ts
