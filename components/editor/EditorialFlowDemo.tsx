@@ -65,7 +65,7 @@ export default function EditorialFlowDemo({ view }: { view: View }) {
   const [selected, setSelected] = useState<DemoDefectKey>("chapter");
   const [note, setNote] = useState("");
   const [feedback, setFeedback] = useState("");
-  const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const timer = useRef<number | null>(null);
 
   useEffect(() => {
     try {
