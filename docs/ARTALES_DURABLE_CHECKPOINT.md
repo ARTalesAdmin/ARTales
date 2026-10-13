@@ -1,5 +1,11 @@
 # ARTales durable checkpoint — 2026-10-12 (historical sections retained)
 
+## Latest handoff — 2026-10-13 editorial QA, optional visuals and style inheritance
+
+**Current Phoenix:** [ARTALES_PHOENIX_2026-10-13_EDITORIAL_VISUAL.md](./ARTALES_PHOENIX_2026-10-13_EDITORIAL_VISUAL.md). **New durable policy proposal:** [ARTALES_EDITORIAL_VISUAL_QA_STYLE_POLICY_2026-10-13.md](./ARTALES_EDITORIAL_VISUAL_QA_STYLE_POLICY_2026-10-13.md). Key decisions: optional illustrations *per title* (text-only is full release), one combined QA when artworks ready, targeted QA for later artwork, preserve legacy public note / private editor_note / footnote, frozen versioned global block formatting with local overrides and no retroactive edits, global changes escalate architect. Third Reader panel undecided. Actual signed Alice editor E2E and source artwork Storage readback remain open; PR #237 CI green but Draft. **No additional Supabase ephemeral branches**. Read full dated Phoenix before working; live repo, DB and user authorizations override this checkpoint.
+
+---
+
 ## Latest handoff — 2026-10-12 artwork ingest and Reader migration
 
 **Current Phoenix:** [ARTALES_PHOENIX_2026-10-12_ARTWORK_INGEST.md](./ARTALES_PHOENIX_2026-10-12_ARTWORK_INGEST.md). This is a non-authoritative checkpoint; read live GitHub / Supabase and current user authorizations before actions. PR #237 (admin image capture endpoint) is Draft with default-off feature flag, CI run 38232091466 initially pending. Private Storage bucket exists and is empty. Supabase only main, no ephemeral branch. No production Reader cutover or prod DB candidate schema apply. Read dated Phoenix for exact carryover and Handoff prompt.
