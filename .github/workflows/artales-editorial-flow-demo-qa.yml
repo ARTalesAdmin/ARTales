@@ -1,0 +1,28 @@
+name: ARTales editorial flow demo QA
+on:
+  pull_request:
+    paths:
+      - "lib/fixtures/editorialFlowDemo.ts"
+      - "components/editor/EditorialFlowDemo.tsx"
+      - "components/editor/EditorialFlowDemo.css"
+      - "app/preview/editorial-flow/**"
+      - "tests/editorialFlowDemo.test.ts"
+      - ".github/workflows/artales-editorial-flow-demo-qa.yml"
+  workflow_dispatch:
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+      - run: npm ci
+      - name: Fixture lifecycle regression
+        run: node --import tsx --test tests/editorialFlowDemo.test.ts
+      - name: TypeScript
+        run: npx tsc --noEmit
+      - name: ESLint scoped
+        run: npx eslint lib/fixtures/editorialFlowDemo.ts components/editor/EditorialFlowDemo.tsx app/preview/editorial-flow tests/editorialFlowDemo.test.ts
