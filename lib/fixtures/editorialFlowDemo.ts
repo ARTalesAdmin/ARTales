@@ -96,7 +96,8 @@ export function readFlowDemo(raw: string | null): FlowDemoSession {
     if (!value || typeof value !== "object") return freshFlowDemo();
     const item = value as Partial<FlowDemoSession>;
     if (item.schema !== "artales.editorial-flow-demo.v1" ||
-      !["new", "queued", "in_review", "done"].includes(item.status ?? "") ||
+      typeof item.status !== "string" ||
+      !["new", "queued", "in_review", "done"].includes(item.status) ||
       !item.repairs || typeof item.repairs !== "object" || Array.isArray(item.repairs)) {
       return freshFlowDemo();
     }
