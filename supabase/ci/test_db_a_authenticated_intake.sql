@@ -1,0 +1,15 @@
+begin;
+create extension if not exists pgtap with schema extensions;
+select plan(10);
+select has_function('public','capture_work_source_pending',array['uuid','text','bytea','jsonb'],'pending capture RPC exists');
+select is(has_function_privilege('anon','public.capture_work_source_pending(uuid,text,bytea,jsonb)','EXECUTE'),false,'anon denied');
+select is(has_function_privilege('authenticated','public.capture_work_source_pending(uuid,text,bytea,jsonb)','EXECUTE'),true,'authenticated invocation permitted');
+select is(has_schema_privilege('authenticated','artales_evidence','USAGE'),false,'private evidence schema hidden');
+select is(has_table_privilege('authenticated','artales_evidence.source_snapshots','INSERT'),false,'signed clients cannot write evidence directly');
+select is(has_table_privilege('authenticated','artales_evidence.source_intake_events','INSERT'),false,'signed clients cannot forge audit');
+select is((select prosecdef from pg_proc where oid='public.capture_work_source_pending(uuid,text,bytea,jsonb)'::regprocedure),true,'RPC is privilege-isolated');
+select is((select proconfig @> array['search_path=']::text[] from pg_proc where oid='public.capture_work_source_pending(uuid,text,bytea,jsonb)'::regprocedure),true,'RPC empty search path');
+select is((select count(*)::integer from pg_policies where schemaname='artales_evidence' and tablename='source_intake_events'),0,'no direct client RLS policy');
+select is((select count(*)::integer from pg_trigger where tgrelid='artales_evidence.source_intake_events'::regclass and tgname='immutable_source_intake_events'),1,'append-only audit trigger');
+select * from finish();
+rollback;
