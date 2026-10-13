@@ -81,11 +81,22 @@ export default function EditorialFlowDemo({view,book}:{view:View;book:EditorialF
      ignored.current[otherSide]=performance.now()+100;dest.scrollTop=next;
    });
  }
- function selectBlock(blockId:string){
+ function selectBlock(blockId:string,side:Side){
    setSelected(blockId);setNote("");setFeedback("");
-   const item=composedRef.current?.querySelector<HTMLElement>('[data-block-id="'+blockId+'"]');
-   const peer=sourceRef.current?.querySelector<HTMLElement>('[data-block-id="'+blockId+'"]');
-   if(item&&peer)peer.scrollTop=0;
+   // Align the corresponding source-anchored block to the same reading height.
+   // Do not move the pane the editor just clicked.
+   const from=side==="source"?sourceRef.current:composedRef.current;
+   const otherSide:Side=side==="source"?"composed":"source";
+   const to=otherSide==="source"?sourceRef.current:composedRef.current;
+   const selector='[data-block-id="'+blockId+'"]';
+   const chosen=from?.querySelector<HTMLElement>(selector);
+   const counterpart=to?.querySelector<HTMLElement>(selector);
+   if(!chosen||!counterpart||!to)return;
+   if(frame.current!==null){window.cancelAnimationFrame(frame.current);frame.current=null;}
+   const delta=counterpart.getBoundingClientRect().top-chosen.getBoundingClientRect().top;
+   const max=Math.max(0,to.scrollHeight-to.clientHeight);
+   ignored.current[otherSide]=performance.now()+180;
+   to.scrollTop=Math.max(0,Math.min(max,to.scrollTop+delta));
  }
  const focused=book.blocks.find(block=>block.id===selected);
  const selectedKey=selected?defectMap.get(selected):undefined;
@@ -100,11 +111,11 @@ export default function EditorialFlowDemo({view,book}:{view:View;book:EditorialF
    const label=side==="source"?block.original:block.display;
    return <div key={block.id} data-region-index={index} data-block-id={block.id}
        className={cls} style={{marginTop:Math.min(24,block.gapBefore.length*1.5)}}>
-     {side==="composed"?<button type="button" className="flow-demo__block-button"
-        onClick={()=>selectBlock(block.id)} aria-pressed={selected===block.id}
-        aria-label={"Otevřít připomínku k bloku: "+label.slice(0,70)}>
-        <BlockContent block={block} damaged={damaged} text={label}/>
-       </button>:<BlockContent block={block} text={label}/>}
+     <button type="button" className="flow-demo__block-button"
+       onClick={()=>selectBlock(block.id,side)} aria-pressed={selected===block.id}
+       aria-label={(side==="source"?"Vybrat odpovídající blok originálu: ":"Otevřít připomínku k bloku: ")+label.slice(0,70)}>
+       <BlockContent block={block} damaged={damaged} text={label}/>
+     </button>
    </div>;
  }
  return <div className="flow-demo">
