@@ -68,17 +68,23 @@ export default function EditorialFlowDemo({ view }: { view: View }) {
   const timer = useRef<number | null>(null);
 
   useEffect(() => {
-    try {
-      const storage = window.localStorage;
-      const restored = readFlowDemo(storage.getItem(FLOW_DEMO_KEY));
-      // LocalStorage is the sole demo state store. No candidate/work data is fetched.
-      setSession(restored);
-      setStorageEnabled(true);
-    } catch {
-      setStorageEnabled(false);
-    }
-    setReady(true);
+    let mounted = true;
+    // Read browser-only storage after hydration; avoid synchronous state updates
+    // inside an effect (which could produce cascading renders).
+    queueMicrotask(() => {
+      if (!mounted) return;
+      try {
+        const stored = window.localStorage.getItem(FLOW_DEMO_KEY);
+        // LocalStorage is the sole demo state store. No candidate/work data is fetched.
+        setSession(readFlowDemo(stored));
+        setStorageEnabled(true);
+      } catch {
+        setStorageEnabled(false);
+      }
+      setReady(true);
+    });
     return () => {
+      mounted = false;
       if (timer.current !== null) window.clearTimeout(timer.current);
     };
   }, []);
