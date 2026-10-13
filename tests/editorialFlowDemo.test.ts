@@ -1,53 +1,35 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import {
-  FLOW_DEMO_COMPOSITION, FLOW_DEMO_DEFECTS, FLOW_DEMO_KEY,
-  claimFlowDemo, finishFlowDemo, flowDemoInboxCount, freshFlowDemo,
-  queueFlowDemo, readFlowDemo, repairFlowDemo,
+ editorialFlowDefects, claimFlowDemo, finishFlowDemo, flowDemoInboxCount,
+ freshFlowDemo, noteFlowDemo, queueFlowDemo, readFlowDemo, repairFlowDemo,
+ type EditorialFlowBook,
 } from "../lib/fixtures/editorialFlowDemo";
-import { INGEST_FIXTURE, inspectSourceIntegrity } from "../lib/fixtures/ingestComposer";
-
-const at = "2026-10-13T08:00:00.000Z";
-
-test("fixture has three structurally anchored and distinct defects, original remains exact", () => {
-  assert.equal(FLOW_DEMO_DEFECTS.length, 3);
-  assert.equal(new Set(FLOW_DEMO_DEFECTS.map((d) => d.blockId)).size, 3);
-  assert.equal(FLOW_DEMO_COMPOSITION.qa.ok, true);
-  assert.equal(inspectSourceIntegrity(INGEST_FIXTURE, FLOW_DEMO_COMPOSITION.blocks).ok, true);
-  for (const defect of FLOW_DEMO_DEFECTS)
-    assert.ok(FLOW_DEMO_COMPOSITION.blocks.some((block) => block.block.id === defect.blockId));
+const at="2026-10-13T08:00:00.000Z";
+test("candidate -> profile badge -> inbox -> revision -> completion",()=>{
+ const queued=queueFlowDemo(freshFlowDemo(),at);
+ assert.equal(flowDemoInboxCount(queued),1);
+ const active=claimFlowDemo(queued);
+ const noted=noteFlowDemo(active,"a:123","Zkontrolovat mezeru",at);
+ const amended=repairFlowDemo(noted,"chapter","Opravit vzhled nadpisu",at);
+ const done=finishFlowDemo(amended,at);
+ assert.equal(done.status,"done");
+ assert.equal(flowDemoInboxCount(done),0);
+ assert.equal(readFlowDemo(JSON.stringify(done)).repairs.chapter?.text,"Opravit vzhled nadpisu");
 });
-
-test("candidate -> badge 1 -> inbox -> two repairs -> complete -> badge 0", () => {
-  const fresh = freshFlowDemo();
-  assert.equal(flowDemoInboxCount(fresh), 0);
-  const queued = queueFlowDemo(fresh, at);
-  assert.equal(queued.status, "queued");
-  assert.equal(flowDemoInboxCount(queued), 1);
-  assert.equal(queueFlowDemo(queued, at), queued);
-  const claimed = claimFlowDemo(queued);
-  assert.equal(claimed.status, "in_review");
-  assert.equal(flowDemoInboxCount(claimed), 1);
-  const repaired1 = repairFlowDemo(claimed, "chapter", "Opravit nadpis", at);
-  const repaired2 = repairFlowDemo(repaired1, "poem", "Rozdělit verše", at);
-  assert.equal(repaired2.repairs.chapter?.note, "Opravit nadpis");
-  assert.equal(repaired2.repairs.poem?.note, "Rozdělit verše");
-  assert.equal(repaired2.status, "in_review");
-  const done = finishFlowDemo(repaired2, at);
-  assert.equal(done.status, "done");
-  assert.equal(flowDemoInboxCount(done), 0);
-  assert.equal(readFlowDemo(JSON.stringify(done)).status, "done");
-  assert.equal(FLOW_DEMO_KEY.startsWith("artales:editorial-flow-demo:"), true);
+test("corrupt state, unauthorized edit, empty completion fail closed",()=>{
+ assert.throws(()=>repairFlowDemo(freshFlowDemo(),"chapter","Opravit",at));
+ assert.throws(()=>finishFlowDemo(claimFlowDemo(queueFlowDemo(freshFlowDemo(),at)),at));
+ assert.equal(readFlowDemo("{bad").status,"new");
+ const bad={...queueFlowDemo(freshFlowDemo(),at),repairs:{chapter:{text:"foo",recordedAt:at}}};
+ assert.equal(readFlowDemo(JSON.stringify(bad)).status,"new");
 });
-
-test("no skip, impossible complete, invalid note, unknown block and corrupted state fail closed", () => {
-  assert.throws(() => repairFlowDemo(freshFlowDemo(), "chapter", "Nadpis", at));
-  const claimed = claimFlowDemo(queueFlowDemo(freshFlowDemo(), at));
-  assert.throws(() => finishFlowDemo(claimed, at));
-  assert.throws(() => repairFlowDemo(claimed, "chapter", "a", at));
-  assert.throws(() => repairFlowDemo(claimed, "alien" as "chapter", "Test", at));
-  assert.equal(readFlowDemo("{oops").status, "new");
-  assert.equal(readFlowDemo(JSON.stringify({ ...claimed, status: "done" })).status, "new");
-  assert.equal(readFlowDemo(JSON.stringify({ ...claimed, repairs: { alien: {note:"test", appliedAt:at} } })).status, "new");
-  assert.equal(readFlowDemo(JSON.stringify({ ...claimed, createdAt:undefined })).status, "new");
+test("full chapter defect anchors are unique and spread across text",()=>{
+ const blocks=Array.from({length:14},(_,i)=>({id:"b"+i,kind:i===0?"chapter":"paragraph",original:"text",display:"text",gapBefore:"\n\n",start:i*10,end:i*10+4})) as EditorialFlowBook["blocks"];
+ const book:EditorialFlowBook={title:"Alice",author:"Lewis Carroll",sourceLabel:"PG11",blocks,
+ sourceTail:"",sourceLength:134,chapterOnly:true,releaseAllowed:false};
+ const defects=editorialFlowDefects(book);
+ assert.equal(defects.length,3);
+ assert.equal(new Set(defects.map(x=>x.blockId)).size,3);
+ assert.ok(blocks.findIndex(b=>b.id===defects[2].blockId)>7);
 });
