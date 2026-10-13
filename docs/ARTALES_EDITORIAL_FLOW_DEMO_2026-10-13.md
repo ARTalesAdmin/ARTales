@@ -31,3 +31,22 @@ PR target: `develop`. No production activation.
 5. Confirm no production/data write, no false publish readiness, route disabled in production, and no changes to main or actual Reader.
 
 **Rollback:** revert the isolated PR; browser fixtures can be cleared with reset. No database rollback needed.
+
+
+## Final closure — 2026-10-13 (architect observed successful demonstration)
+
+**Outcome: ACCEPTED AS A DEMONSTRATION / RETAIN AS FIXTURE.** The architect reported that editors liked the demonstration; this is **product-validation evidence**, not evidence of live AI/editorial persistence, rights clearance, or production-readiness.
+
+- Isolated delivery: PR [#239](https://github.com/ARTalesAdmin/ARTales/pull/239), branch `feat/artales-editorial-flow-demo-20261013`.
+- Final implementation tested: commit `c7e6a8d29416c5b602c78cb760e714b26481bf89`; GitHub Actions run [38356825605](https://github.com/ARTalesAdmin/ARTales/actions/runs/38356825605) passed and Vercel deployment `dpl_9TDbkKwz8HCEg6SqqjZMi2mRF7ZF` was READY as checked 2026-10-13.
+- Visual/user story: ARTales native header; Alice pinned PG11 chapter 1; local-only candidate→task→editorial inbox; two-pane source/composition with anchor scroll sync; paired block selection; subtle damaged-block hints; typed note→fixed predetermined style for prepared defects; locally completed work.
+- This branch/PR is closed **without merge** and preserved as a GitHub reference. If further work is requested, deliberately reopen or cherry-pick into a new branch based on up-to-date `develop`. Do not infer a production release from acceptance of a fixture.
+- The feature-branch preview address may be subject to Vercel's deployment retention/protection; **the repository commit is durable**, not the preview URL.
+- Actual per-editor task persistence, AI interpreting arbitrary descriptions, production write flow, release semantics, versioned semantic revision authorization and edition rights approval were **not demonstrated**.
+
+### Distilled follow-on work (not authorized for implementation)
+
+1. [#240](https://github.com/ARTalesAdmin/ARTales/issues/240) — Connect editor-entered prose requests to a validated semantic/layout transformation. Support **local change to a selected source-anchored block** (font sizes, spacing, line-height, indentation) and **scoped defaults** for a selected class of blocks within a chapter/work/edition. Provide deterministic validation, pre/post visual diff, conflict/precedence behavior, cost/impact visibility, human accept/return, source-hash integrity and undo/version/audit gates. Never let global mean entire platform without separate authorization; do not conflate editor style with Reader profile preferences.
+2. [#241](https://github.com/ARTalesAdmin/ARTales/issues/241) — Optional **third read-only panel for original legacy ARTales blocks** during migration: raw pinned source | existing pre-migration ARTales | new semantic ARTales. Use only where real legacy material and trustworthy anchors exist. Time-box and remove as migration completes; otherwise stick to two panes.
+
+**Next authority boundary:** This checkpoint is a design/backlog decision, not authorization to deploy, merge, run AI calls, create a paid ephemeral Supabase branch or change production.
