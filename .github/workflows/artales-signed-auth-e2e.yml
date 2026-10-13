@@ -1,0 +1,36 @@
+name: ARTales signed local Auth E2E
+on:
+  pull_request:
+    branches: [develop]
+    paths:
+      - "supabase/ci/**"
+      - ".github/workflows/artales-signed-auth-e2e.yml"
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: artales-auth-e2e-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+jobs:
+  signed-auth:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      SUPABASE_ACCESS_TOKEN: ""
+      SUPABASE_DB_PASSWORD: ""
+    steps:
+      - name: Checkout exact commit
+        uses: actions/checkout@v4
+      - name: Supabase CLI
+        uses: supabase/setup-cli@v1
+        with:
+          version: 2.120.0
+      - name: Start disposable local Supabase with Auth and API
+        run: |
+          supabase init --force
+          supabase start --exclude realtime,storage-api,imgproxy,mailpit,postgres-meta,studio,edge-runtime,logflare,vector,supavisor
+      - name: Test actual signed Auth sessions against local PostgREST
+        run: node supabase/ci/test_signed_auth_e2e.mjs
+      - name: Destroy local containers and data
+        if: always()
+        run: supabase stop --no-backup
