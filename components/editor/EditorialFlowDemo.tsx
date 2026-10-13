@@ -95,8 +95,9 @@ export default function EditorialFlowDemo({view,book}:{view:View;book:EditorialF
    if(frame.current!==null){window.cancelAnimationFrame(frame.current);frame.current=null;}
    const delta=counterpart.getBoundingClientRect().top-chosen.getBoundingClientRect().top;
    const max=Math.max(0,to.scrollHeight-to.clientHeight);
-   ignored.current[otherSide]=performance.now()+180;
    to.scrollTop=Math.max(0,Math.min(max,to.scrollTop+delta));
+   // Scroll events triggered by matching an anchor must not bounce back.
+   window.requestAnimationFrame(()=>{ignored.current[otherSide]=performance.now()+180;});
  }
  const focused=book.blocks.find(block=>block.id===selected);
  const selectedKey=selected?defectMap.get(selected):undefined;
