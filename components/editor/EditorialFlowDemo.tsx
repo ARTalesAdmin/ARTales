@@ -64,10 +64,10 @@ export default function EditorialFlowDemo({view,book}:{view:View;book:EditorialF
    if(commit(finishFlowDemo(session,stamp())))router.push(FLOW_DEMO_BASE+"/inbox");
  }catch(e){setFeedback(e instanceof Error?e.message:"Kontrolu nelze dokončit.");}}
  function onScroll(side:Side){
-   if(performance.now()<ignored.current[side])return;
    if(frame.current!==null)window.cancelAnimationFrame(frame.current);
    frame.current=window.requestAnimationFrame(()=>{
      frame.current=null;
+     if(performance.now()<ignored.current[side])return;
      const src=side==="source"?sourceRef.current:composedRef.current;
      const otherSide=side==="source"?"composed":"source";
      const dest=otherSide==="source"?sourceRef.current:composedRef.current;
