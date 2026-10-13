@@ -1,375 +1,195 @@
 "use client";
-
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
-import type { AnchoredBlock } from "@/lib/fixtures/ingestComposer";
+import { synchronizeSemanticPanes } from "@/lib/semantic/pairedSemanticScroll";
 import {
-  FLOW_DEMO_AUTHOR,
-  FLOW_DEMO_BASE,
-  FLOW_DEMO_COMPOSITION,
-  FLOW_DEMO_DEFECTS,
-  FLOW_DEMO_KEY,
-  FLOW_DEMO_RIGHTS,
-  FLOW_DEMO_TITLE,
-  claimFlowDemo,
-  finishFlowDemo,
-  flowDemoInboxCount,
-  freshFlowDemo,
-  queueFlowDemo,
-  readFlowDemo,
-  repairFlowDemo,
-  type DemoDefectKey,
-  type FlowDemoSession,
+ FLOW_DEMO_BASE, FLOW_DEMO_KEY, FLOW_DEMO_RIGHTS,
+ claimFlowDemo, editorialFlowDefects, finishFlowDemo, flowDemoInboxCount,
+ freshFlowDemo, noteFlowDemo, queueFlowDemo, readFlowDemo, repairFlowDemo,
+ type DemoBookBlock, type DemoDefectKey, type EditorialFlowBook, type FlowDemoSession,
 } from "@/lib/fixtures/editorialFlowDemo";
 import "./EditorialFlowDemo.css";
-
 type View = "candidates" | "inbox" | "review";
-const now = () => new Date().toISOString();
-const previewBlocks = FLOW_DEMO_COMPOSITION.blocks.slice(0, 8);
-const defectByBlockId = new Map(FLOW_DEMO_DEFECTS.map((item) => [item.blockId, item]));
-const totalDefects = FLOW_DEMO_DEFECTS.length;
-
-function BookBlock({
-  item,
-  damaged,
-}: {
-  item: AnchoredBlock;
-  damaged?: DemoDefectKey;
-}) {
-  if (damaged === "chapter") {
-    return <p className="flow-demo__damaged-chapter">{item.block.content}</p>;
-  }
-  if (damaged === "prose") {
-    return <p className="flow-demo__damaged-prose">{item.block.content}</p>;
-  }
-  if (damaged === "poem") {
-    return <p className="flow-demo__damaged-poem">{item.block.content}</p>;
-  }
-  if (item.block.type === "chapter") {
-    return <h3 className="flow-demo__book-chapter">{item.block.content}</h3>;
-  }
-  if (item.block.type === "poem") {
-    return <pre className="flow-demo__book-poem">{item.block.content}</pre>;
-  }
-  return <p className="flow-demo__book-paragraph">{item.block.content}</p>;
+type Side = "source" | "composed";
+const stamp = () => new Date().toISOString();
+export default function EditorialFlowDemo({view,book}:{view:View;book:EditorialFlowBook}) {
+ const router=useRouter();
+ const [session,setSession]=useState<FlowDemoSession>(freshFlowDemo);
+ const [ready,setReady]=useState(false);
+ const [storageEnabled,setStorageEnabled]=useState(true);
+ const [checking,setChecking]=useState(false);
+ const [selected,setSelected]=useState<string|null>(null);
+ const [note,setNote]=useState("");
+ const [feedback,setFeedback]=useState("");
+ const timer=useRef<number|null>(null);
+ const sourceRef=useRef<HTMLDivElement>(null);
+ const composedRef=useRef<HTMLDivElement>(null);
+ const frame=useRef<number|null>(null);
+ const ignored=useRef<Record<Side,number>>({source:0,composed:0});
+ const defects=editorialFlowDefects(book);
+ const defectMap=new Map(defects.map(item=>[item.blockId,item.key]));
+ const pending=flowDemoInboxCount(session);
+ useEffect(()=>{
+   let mounted=true;
+   queueMicrotask(()=>{
+     if(!mounted)return;
+     try{setSession(readFlowDemo(window.localStorage.getItem(FLOW_DEMO_KEY)));setStorageEnabled(true);}
+     catch{setStorageEnabled(false);}
+     setReady(true);
+   });
+   return ()=>{mounted=false;if(timer.current!==null)window.clearTimeout(timer.current);
+     if(frame.current!==null)window.cancelAnimationFrame(frame.current);};
+ },[]);
+ function commit(value:FlowDemoSession){
+   try{window.localStorage.setItem(FLOW_DEMO_KEY,JSON.stringify(value));setSession(value);return true;}
+   catch{setStorageEnabled(false);setFeedback("Prohlížeč nepovolil uložit rozpracovanou práci.");return false;}
+ }
+ function reset(){if(timer.current!==null)window.clearTimeout(timer.current);setChecking(false);
+   setSelected(null);setNote("");setFeedback("");if(commit(freshFlowDemo()))router.push(FLOW_DEMO_BASE);}
+ function begin(){if(checking||session.status!=="new")return;
+   setChecking(true);timer.current=window.setTimeout(()=>{
+     timer.current=null;commit(queueFlowDemo(session,stamp()));setChecking(false);},1000);}
+ function enter(){if(session.status==="queued"||session.status==="in_review"){
+   if(commit(claimFlowDemo(session)))router.push(FLOW_DEMO_BASE+"/review");}}
+ function submit(){
+   if(!selected)return;
+   const key=defectMap.get(selected);
+   try{
+     const next=key?repairFlowDemo(session,key,note,stamp()):noteFlowDemo(session,selected,note,stamp());
+     if(commit(next)){setFeedback(key?"Úprava byla zapracována.":"Připomínka byla uložena.");setNote("");}
+   }catch(e){setFeedback(e instanceof Error?e.message:"Připomínku nelze uložit.");}
+ }
+ function finish(){try{
+   if(commit(finishFlowDemo(session,stamp())))router.push(FLOW_DEMO_BASE+"/inbox");
+ }catch(e){setFeedback(e instanceof Error?e.message:"Kontrolu nelze dokončit.");}}
+ function onScroll(side:Side){
+   if(performance.now()<ignored.current[side])return;
+   if(frame.current!==null)window.cancelAnimationFrame(frame.current);
+   frame.current=window.requestAnimationFrame(()=>{
+     frame.current=null;
+     const src=side==="source"?sourceRef.current:composedRef.current;
+     const otherSide=side==="source"?"composed":"source";
+     const dest=otherSide==="source"?sourceRef.current:composedRef.current;
+     if(!src||!dest)return;
+     const geometry=(element:HTMLElement)=>({
+       markers:Array.from(element.querySelectorAll<HTMLElement>("[data-region-index]")).map(item=>({
+         regionIndex:Number(item.dataset.regionIndex),top:item.getBoundingClientRect().top-element.getBoundingClientRect().top+element.scrollTop,
+       })),scrollTop:element.scrollTop,clientHeight:element.clientHeight,scrollHeight:element.scrollHeight,
+     });
+     const next=synchronizeSemanticPanes(geometry(src),geometry(dest));
+     ignored.current[otherSide]=performance.now()+100;dest.scrollTop=next;
+   });
+ }
+ function selectBlock(blockId:string){
+   setSelected(blockId);setNote("");setFeedback("");
+   const item=composedRef.current?.querySelector<HTMLElement>('[data-block-id="'+blockId+'"]');
+   const peer=sourceRef.current?.querySelector<HTMLElement>('[data-block-id="'+blockId+'"]');
+   if(item&&peer)peer.scrollTop=0;
+ }
+ const focused=book.blocks.find(block=>block.id===selected);
+ const selectedKey=selected?defectMap.get(selected):undefined;
+ const alreadyChanged=selectedKey?session.repairs[selectedKey]:selected?session.observations[selected]:undefined;
+ const savedAny=Object.keys(session.repairs).length>0;
+ function renderBlock(block:DemoBookBlock,side:Side,index:number){
+   const key=defectMap.get(block.id);
+   const damaged=side==="composed"&&key&&!session.repairs[key]?key:undefined;
+   const cls=["flow-demo__text-block","flow-demo__text-block--"+block.kind,
+      damaged?"flow-demo__text-block--misprint-"+damaged:"",
+      selected===block.id?"flow-demo__text-block--selected":""].filter(Boolean).join(" ");
+   const label=side==="source"?block.original:block.display;
+   return <div key={block.id} data-region-index={index} data-block-id={block.id}
+       className={cls} style={{marginTop:Math.min(24,block.gapBefore.length*1.5)}}>
+     {side==="composed"?<button type="button" className="flow-demo__block-button"
+        onClick={()=>selectBlock(block.id)} aria-pressed={selected===block.id}
+        aria-label={"Otevřít připomínku k bloku: "+label.slice(0,70)}>
+        <BlockContent block={block} damaged={damaged} text={label}/>
+       </button>:<BlockContent block={block} text={label}/>}
+   </div>;
+ }
+ return <div className="flow-demo">
+   <div className="flow-demo__subnav">
+    <nav aria-label="Redakční navigace">
+      <Link href={FLOW_DEMO_BASE} aria-current={view==="candidates"?"page":undefined}>Kandidáti</Link>
+      <Link href={FLOW_DEMO_BASE+"/inbox"} aria-current={view==="inbox"?"page":undefined}>Redakční úkoly</Link>
+    </nav>
+    <Link className="flow-demo__account" href={FLOW_DEMO_BASE+"/inbox"}>
+      Můj profil {ready&&pending>0?<span className="flow-demo__badge">1</span>:null}
+    </Link>
+   </div>
+   <main className="flow-demo__main">
+    <div className="flow-demo__context"><span>Redakční prostředí</span><span title="Náhledová data bez publikace">Náhled · nezveřejněno</span></div>
+    {!ready?<p role="status">Načítání…</p>:!storageEnabled?
+      <p role="alert">Nelze uchovat rozpracovanou práci v tomto prohlížeči.</p>:
+    view==="candidates"?<section className="flow-demo__section">
+      <h1>Kandidáti</h1>
+      <article className="artales-member-panel flow-demo__candidate">
+       <div className="flow-demo__book-icon" aria-hidden="true">A</div>
+       <div><p className="flow-demo__muted">Literární dílo · původní jazyk</p>
+        <h2>{book.title}</h2><p>{book.author}</p>
+        <p className="flow-demo__muted">{book.sourceLabel}</p></div>
+       <div>{session.status==="new"?
+          <button className="artales-button-primary" type="button" disabled={checking} onClick={begin}>
+            {checking?"Zpracovávám…":"Připravit k redakční kontrole"}</button>:
+          <Link className="artales-button-primary" href={FLOW_DEMO_BASE+"/inbox"}>Redakční úkol</Link>}</div>
+      </article>
+      {checking?<p className="flow-demo__notice" role="status">Načítání zdroje a kontrola komponent…</p>:null}
+      {session.status!=="new"?<section className="artales-member-panel flow-demo__rights">
+       <h2>Stav zpracování</h2><dl>{FLOW_DEMO_RIGHTS.map(x=><div key={x.label}><dt>{x.label}</dt><dd>{x.value}</dd></div>)}</dl>
+       <p className="flow-demo__muted">Výsledek vychází z předem připraveného náhledu. Není právním rozhodnutím.</p>
+      </section>:null}
+    </section>:view==="inbox"?<section className="flow-demo__section">
+       <h1>Redakční úkoly</h1>
+       {session.status==="new"?<div className="artales-member-panel flow-demo__panel">
+        <p>Momentálně nemáte žádné otevřené úkoly.</p><Link href={FLOW_DEMO_BASE}>Kandidáti</Link></div>:
+        <article className="artales-member-panel flow-demo__task">
+         <div><span className="artales-status-chip">{session.status==="done"?"Dokončeno":session.status==="in_review"?"Rozpracováno":"K převzetí"}</span>
+           <h2>{book.title}</h2><p>{book.author} · Kontrola redakčního zpracování</p></div>
+         {session.status==="done"?<button className="artales-button-secondary" onClick={reset}>Nové zpracování</button>:
+          <button className="artales-button-primary" onClick={enter}>{session.status==="queued"?"Otevřít úkol":"Pokračovat"}</button>}
+        </article>}
+    </section>:session.status!=="in_review"?<section className="artales-member-panel flow-demo__panel">
+      <h1>Redakční kontrola</h1><p>Otevřete nejprve příslušný úkol.</p>
+      <Link href={FLOW_DEMO_BASE+"/inbox"}>Zpět do úkolů</Link></section>:
+    <section className="flow-demo__section">
+      <div className="flow-demo__heading-row"><div><Link href={FLOW_DEMO_BASE+"/inbox"}>← Redakční úkoly</Link>
+        <h1>{book.title}</h1><p>{book.author} · Kontrola sazby a struktury</p></div>
+        <button className="artales-button-primary" type="button" disabled={!savedAny} onClick={finish}>
+          Uložit a dokončit</button></div>
+      <div className="flow-demo__review-grid">
+        <section className="flow-demo__book" aria-label="Původní text">
+          <header className="flow-demo__book-head"><strong>Původní text</strong><span>Gutenberg #11</span></header>
+          <div className="flow-demo__book-scroll flow-demo__source" ref={sourceRef} onScroll={()=>onScroll("source")}>
+           {book.blocks.map((block,index)=>renderBlock(block,"source",index))}
+           <span>{book.sourceTail}</span>
+          </div></section>
+        <section className="flow-demo__book" aria-label="Redakční návrh">
+          <header className="flow-demo__book-head"><strong>ARTales Reader</strong><span>Redakční verze</span></header>
+          <div className="flow-demo__book-scroll" ref={composedRef} onScroll={()=>onScroll("composed")}>
+           {book.blocks.map((block,index)=>renderBlock(block,"composed",index))}
+          </div></section>
+      </div>
+      {selected&&focused?<section className="artales-member-panel flow-demo__notes">
+         <div className="flow-demo__notes-head"><div><h2>Redakční připomínka</h2>
+          <p className="flow-demo__selected-excerpt">„{focused.display.slice(0,120)}{focused.display.length>120?"…":""}“</p></div>
+          <button className="flow-demo__close" onClick={()=>{setSelected(null);setNote("");setFeedback("");}} aria-label="Zavřít připomínku">×</button></div>
+         {alreadyChanged?<p className="flow-demo__notice">{selectedKey?"Úprava zanesena.":"Připomínka uložena."} {alreadyChanged.text}</p>:
+          <div className="flow-demo__note-form"><label htmlFor="flow-demo-note">Připomínka k vybranému bloku</label>
+           <textarea id="flow-demo-note" value={note} onChange={e=>setNote(e.target.value)}
+            rows={3} maxLength={500} placeholder="Popište požadovanou úpravu…" />
+           <button className="artales-button-primary" type="button" disabled={note.trim().length<3} onClick={submit}>
+            Uložit připomínku</button></div>}
+         {feedback?<p role="status" className="flow-demo__notice">{feedback}</p>:null}
+       </section>:null}
+       {!selected&&feedback?<p role="status">{feedback}</p>:null}
+      <p className="flow-demo__fineprint">Náhledová redakční revize. Původní text zůstává nezměněn; právní kontrola edice není uzavřena.</p>
+    </section>}
+   </main>
+ </div>;
 }
-
-/** No server actions, API calls, real editorial tasks, or account state. */
-export default function EditorialFlowDemo({ view }: { view: View }) {
-  const router = useRouter();
-  const [session, setSession] = useState<FlowDemoSession>(freshFlowDemo);
-  const [ready, setReady] = useState(false);
-  const [storageEnabled, setStorageEnabled] = useState(true);
-  const [checking, setChecking] = useState(false);
-  const [selected, setSelected] = useState<DemoDefectKey>("chapter");
-  const [note, setNote] = useState("");
-  const [feedback, setFeedback] = useState("");
-  const timer = useRef<number | null>(null);
-
-  useEffect(() => {
-    let mounted = true;
-    // Read browser-only storage after hydration; avoid synchronous state updates
-    // inside an effect (which could produce cascading renders).
-    queueMicrotask(() => {
-      if (!mounted) return;
-      try {
-        const stored = window.localStorage.getItem(FLOW_DEMO_KEY);
-        // LocalStorage is the sole demo state store. No candidate/work data is fetched.
-        setSession(readFlowDemo(stored));
-        setStorageEnabled(true);
-      } catch {
-        setStorageEnabled(false);
-      }
-      setReady(true);
-    });
-    return () => {
-      mounted = false;
-      if (timer.current !== null) window.clearTimeout(timer.current);
-    };
-  }, []);
-
-  function commit(next: FlowDemoSession): boolean {
-    try {
-      window.localStorage.setItem(FLOW_DEMO_KEY, JSON.stringify(next));
-      setSession(next);
-      return true;
-    } catch {
-      setStorageEnabled(false);
-      setFeedback("Úložiště prohlížeče není dostupné. Ukázkové změny nelze uchovat.");
-      return false;
-    }
-  }
-
-  function restart() {
-    if (timer.current !== null) window.clearTimeout(timer.current);
-    setChecking(false);
-    setSelected("chapter");
-    setNote("");
-    setFeedback("");
-    if (commit(freshFlowDemo())) router.push(FLOW_DEMO_BASE);
-  }
-
-  function begin() {
-    if (checking || !storageEnabled || session.status !== "new") return;
-    setChecking(true);
-    setFeedback("");
-    timer.current = window.setTimeout(() => {
-      timer.current = null;
-      commit(queueFlowDemo(session, now()));
-      setChecking(false);
-    }, 950);
-  }
-
-  function openReview() {
-    if (!storageEnabled) return;
-    if (session.status !== "queued" && session.status !== "in_review") return;
-    const next = claimFlowDemo(session);
-    if (commit(next)) router.push(FLOW_DEMO_BASE + "/review");
-  }
-
-  const selectedDefect = FLOW_DEMO_DEFECTS.find((item) => item.key === selected)!;
-  const selectedRepair = session.repairs[selected];
-  const repairedCount = Object.keys(session.repairs).length;
-  const pending = flowDemoInboxCount(session);
-
-  function chooseBlock(key: DemoDefectKey) {
-    setSelected(key);
-    setNote("");
-    setFeedback("");
-  }
-
-  function applyRepair() {
-    try {
-      const next = repairFlowDemo(session, selected, note, now());
-      if (commit(next)) {
-        setNote("");
-        setFeedback("Ukázková oprava proběhla: změnil se pouze vzhled vybraného bloku. Zdrojový text zůstal beze změny.");
-      }
-    } catch (error) {
-      setFeedback(error instanceof Error ? error.message : "Ukázkovou opravu nelze provést.");
-    }
-  }
-
-  function complete() {
-    try {
-      const next = finishFlowDemo(session, now());
-      if (commit(next)) router.push(FLOW_DEMO_BASE + "/inbox");
-    } catch (error) {
-      setFeedback(error instanceof Error ? error.message : "Dokončení není možné.");
-    }
-  }
-
-  return (
-    <div className="flow-demo">
-      <header className="flow-demo__header">
-        <div className="flow-demo__header-inner">
-          <Link href={FLOW_DEMO_BASE} className="flow-demo__brand">ARTales <span>· Redakční laboratoř</span></Link>
-          <nav className="flow-demo__nav" aria-label="Navigace demonstrační redakcí">
-            <Link href={FLOW_DEMO_BASE} aria-current={view === "candidates" ? "page" : undefined}>Kandidáti</Link>
-            <Link href={FLOW_DEMO_BASE + "/inbox"} aria-current={view === "inbox" ? "page" : undefined}>Redakční práce</Link>
-            <Link href={FLOW_DEMO_BASE + "/inbox"} className="flow-demo__profile" aria-label={pending ? "Profil fiktivního editora, jeden čekající úkol" : "Profil fiktivního editora, bez čekajících úkolů"}>
-              <span aria-hidden="true">◉</span> Profil · editor
-              {ready && pending > 0 ? <strong className="flow-demo__badge" aria-label="1 nový úkol">1</strong> : null}
-            </Link>
-          </nav>
-        </div>
-      </header>
-
-      <main className="flow-demo__main">
-        <p className="flow-demo__eyebrow">ARTales · interaktivní redakční fixture</p>
-        <div className="flow-demo__disclaimer" role="note">
-          <strong>DEMO / fiktivní text.</strong> Bez skutečné AI, právní clearance, publikace a zápisu do Supabase. Veškeré výsledky a úkoly jsou jen v tomto prohlížeči.
-        </div>
-
-        {!ready ? (
-          <p role="status">Načítám ukázkovou relaci…</p>
-        ) : !storageEnabled ? (
-          <div className="flow-demo__panel" role="alert">
-            <h2>Prohlížeč blokuje lokální uložení</h2>
-            <p>Celý ukázkový průchod používá pouze místní úložiště, bez backendu. Povolte lokální úložiště, aby přechod z kandidátů do inboxu fungoval.</p>
-          </div>
-        ) : view === "candidates" ? (
-          <section className="flow-demo__section">
-            <div className="flow-demo__heading-row">
-              <div>
-                <h1>Kandidáti</h1>
-                <p>Vyberte ukázkový literární titul k redakčnímu zpracování.</p>
-              </div>
-              <span className="flow-demo__counter">1 ukázkový kandidát</span>
-            </div>
-            <article className="flow-demo__panel flow-demo__candidate">
-              <div className="flow-demo__book-icon" aria-hidden="true">A</div>
-              <div className="flow-demo__candidate-copy">
-                <small>Syntetický kandidát · připraven k demonstraci</small>
-                <h2>{FLOW_DEMO_TITLE}</h2>
-                <p>{FLOW_DEMO_AUTHOR}</p>
-                <p className="flow-demo__muted">Předem připravená ukázka importu a strojového rozdělení rukopisu na bloky.</p>
-              </div>
-              <div className="flow-demo__candidate-action">
-                {session.status === "new" ? (
-                  <button type="button" className="flow-demo__primary" disabled={checking} onClick={begin}>
-                    {checking ? <><span className="flow-demo__spinner" aria-hidden="true" /> Zpracovávám…</> : "Zahájit zpracování"}
-                  </button>
-                ) : (
-                  <Link href={FLOW_DEMO_BASE + "/inbox"} className="flow-demo__primary">
-                    {session.status === "done" ? "Zobrazit dokončenou práci" : "Přejít do redakčního inboxu"}
-                  </Link>
-                )}
-              </div>
-            </article>
-            {checking ? (
-              <div className="flow-demo__panel flow-demo__check" role="status">
-                <span className="flow-demo__spinner flow-demo__spinner--ink" aria-hidden="true" />
-                Zachycuji modelový zdroj, rozpoznávám kapitoly a vytvářím ukázkový úkol…
-              </div>
-            ) : null}
-            {session.status !== "new" ? (
-              <section className="flow-demo__panel flow-demo__check" aria-label="Výsledek modelového právního checku">
-                <h2>Ukázkový check dokončen</h2>
-                <p><strong>Pouze syntetické výsledky.</strong> Nejde o ověření práv ke skutečné edici ani povolení k vydání.</p>
-                <ul className="flow-demo__checklist">
-                  {FLOW_DEMO_RIGHTS.map((item) => (
-                    <li key={item.label}><span>{item.label}</span><strong>{item.result}</strong></li>
-                  ))}
-                </ul>
-                <p className="flow-demo__notice">
-                  {session.status === "done" ? "Redakční kontrola byla lokálně dokončena." : "U profilu nyní svítí 1 nový úkol. Klikněte na profil a vyberte jej z inboxu."}
-                </p>
-              </section>
-            ) : !checking ? (
-              <p className="flow-demo__hint">Po spuštění se krátce zobrazí zpracování a demonstrace komponentového checku. Potom se u profilu rozsvítí nový úkol.</p>
-            ) : null}
-          </section>
-        ) : view === "inbox" ? (
-          <section className="flow-demo__section">
-            <div className="flow-demo__heading-row">
-              <div>
-                <h1>Moje redakční práce</h1>
-                <p>Inbox fiktivního editora · úkoly k převzetí, rozpracované a dokončené.</p>
-              </div>
-              <span className="flow-demo__counter">{pending} k vyřízení</span>
-            </div>
-            {session.status === "new" ? (
-              <div className="flow-demo__panel">
-                <h2>Zatím žádné redakční úkoly</h2>
-                <p>Nejprve vyberte kandidáta a zahajte demonstrační zpracování.</p>
-                <Link href={FLOW_DEMO_BASE} className="flow-demo__primary">Otevřít kandidáty</Link>
-              </div>
-            ) : (
-              <article className="flow-demo__panel flow-demo__task">
-                <div>
-                  <span className={"flow-demo__task-status" + (session.status === "done" ? " flow-demo__task-status--done" : "")}>
-                    {session.status === "queued" ? "Nový úkol" : session.status === "in_review" ? "Rozpracováno" : "Dokončeno lokálně"}
-                  </span>
-                  <h2>{FLOW_DEMO_TITLE}</h2>
-                  <p>Textová a bloková kontrola · {FLOW_DEMO_AUTHOR}</p>
-                  <p className="flow-demo__muted">Opraveno bloků: {repairedCount} ze {totalDefects}. Bez právního schválení a bez publikace.</p>
-                </div>
-                {session.status === "done" ? (
-                  <button type="button" className="flow-demo__secondary" onClick={restart}>Spustit ukázku znovu</button>
-                ) : (
-                  <button type="button" className="flow-demo__primary" onClick={openReview}>
-                    {session.status === "queued" ? "Převzít a otevřít kontrolu" : "Pokračovat v kontrole"}
-                  </button>
-                )}
-              </article>
-            )}
-            <p className="flow-demo__hint">Tento inbox je pouze ukázková navigace; nemění skutečné přidělení redakčních úkolů.</p>
-          </section>
-        ) : session.status !== "in_review" ? (
-          <section className="flow-demo__section flow-demo__panel">
-            <h1>Duální redakční kontrola</h1>
-            <p>Úkol není aktuálně rozpracovaný. Převzetí i návrat do kontroly se provádí přes demonstrační inbox.</p>
-            <Link className="flow-demo__primary" href={FLOW_DEMO_BASE + "/inbox"}>Přejít do inboxu</Link>
-          </section>
-        ) : (
-          <section className="flow-demo__section">
-            <div className="flow-demo__heading-row">
-              <div>
-                <Link className="flow-demo__back" href={FLOW_DEMO_BASE + "/inbox"}>← Zpět do inboxu</Link>
-                <h1>Duální kontrola · {FLOW_DEMO_TITLE}</h1>
-                <p>Vlevo nedotčený rukopis, vpravo sázený návrh. Tři chyby jsou záměrné.</p>
-              </div>
-              <span className="flow-demo__counter">{repairedCount} / {totalDefects} opraveno</span>
-            </div>
-            <div className="flow-demo__review-grid">
-              <section className="flow-demo__book">
-                <div className="flow-demo__book-head">
-                  <strong>Originál</strong><span>Neměnný zdroj</span>
-                </div>
-                <div className="flow-demo__book-scroll">
-                  {previewBlocks.map((item) => {
-                    const defect = defectByBlockId.get(item.block.id);
-                    return <div key={item.block.id} className={"flow-demo__source-block" + (defect?.key === selected ? " flow-demo__source-block--selected" : "")}>
-                      <BookBlock item={item} />
-                    </div>;
-                  })}
-                </div>
-              </section>
-              <section className="flow-demo__book">
-                <div className="flow-demo__book-head">
-                  <strong>ARTales Reader · návrh</strong><span>{FLOW_DEMO_COMPOSITION.qa.ok ? "Integrita textu: OK" : "Integrita zdroje: CHYBA"}</span>
-                </div>
-                <div className="flow-demo__book-scroll">
-                  {previewBlocks.map((item) => {
-                    const defect = defectByBlockId.get(item.block.id);
-                    const fixed = defect ? Boolean(session.repairs[defect.key]) : false;
-                    return defect ? (
-                      <button key={item.block.id} type="button"
-                        className={"flow-demo__selectable" +
-                          (defect.key === selected ? " flow-demo__selectable--active" : "") +
-                          (fixed ? " flow-demo__selectable--fixed" : " flow-demo__selectable--broken")}
-                        onClick={() => chooseBlock(defect.key)}
-                        aria-pressed={defect.key === selected}>
-                        <span className="flow-demo__block-tag">{fixed ? "✓ Opraveno" : "⚠ " + defect.title}</span>
-                        <BookBlock item={item} damaged={fixed ? undefined : defect.key} />
-                      </button>
-                    ) : (
-                      <div key={item.block.id} className="flow-demo__normal-block"><BookBlock item={item} /></div>
-                    );
-                  })}
-                </div>
-              </section>
-            </div>
-            <section className="flow-demo__panel flow-demo__notes" aria-label="Připomínka k vybranému bloku">
-              <div className="flow-demo__notes-head">
-                <div>
-                  <small>Redakční připomínka · vybraný blok</small>
-                  <h2>{selectedDefect.title}</h2>
-                  <p>{selectedDefect.problem}</p>
-                </div>
-                <span className="flow-demo__task-status">{selectedRepair ? "Opraveno" : "K opravě"}</span>
-              </div>
-              {selectedRepair ? (
-                <p className="flow-demo__repair-result">✓ Oprava je vidět v pravé stránce. Poznámka editora: „{selectedRepair.note}“</p>
-              ) : (
-                <div className="flow-demo__note-form">
-                  <label htmlFor="flow-demo-note">Co je potřeba opravit?</label>
-                  <textarea id="flow-demo-note" value={note} maxLength={500}
-                    onChange={(event) => setNote(event.target.value)}
-                    placeholder={selectedDefect.example} rows={2} />
-                  <button type="button" className="flow-demo__primary" onClick={applyRepair} disabled={note.trim().length < 3}>
-                    Odeslat připomínku a opravit blok
-                  </button>
-                  <small>Ukázková oprava je předem definovaná podle vybraného bloku; text poznámky se neodesílá žádnému AI modelu.</small>
-                </div>
-              )}
-              {feedback ? <p role="status" className="flow-demo__notice">{feedback}</p> : null}
-              <div className="flow-demo__finish">
-                <p>Po opravě alespoň dvou bloků můžete kontrolu dokončit. Bez změny původního obsahu.</p>
-                <button type="button" className="flow-demo__primary" onClick={complete}
-                  disabled={repairedCount < 2 || !FLOW_DEMO_COMPOSITION.qa.ok}>
-                  Uložit a dokončit kontrolu
-                </button>
-              </div>
-            </section>
-          </section>
-        )}
-        {ready && session.status !== "new" && view !== "review" ? (
-          <p className="flow-demo__reset"><button type="button" onClick={restart}>Obnovit demonstrační scénář od začátku</button></p>
-        ) : null}
-      </main>
-    </div>
-  );
+function BlockContent({block,text,damaged}:{block:DemoBookBlock;text:string;damaged?:DemoDefectKey}){
+ if(block.kind==="chapter"&&!damaged)return <h3 className="flow-demo__chapter">{text}</h3>;
+ if(block.kind==="section")return <h4>{text}</h4>;
+ if(block.kind==="poem")return <pre className="flow-demo__poem">{text}</pre>;
+ return <p className={damaged==="chapter"?"flow-demo__flat-heading":""}>{text}</p>;
 }
