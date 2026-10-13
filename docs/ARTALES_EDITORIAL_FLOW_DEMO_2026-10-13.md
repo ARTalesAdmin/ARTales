@@ -1,37 +1,33 @@
-# ARTales editorial flow demonstration — 2026-10-13
+# Editorial workflow preview — October 13, 2026
 
-Preview: `/preview/editorial-flow`. This is a **non-production synthetic walkthrough**, not editorial-system activation.
+Route: `/preview/editorial-flow` (Vercel preview / local development only).
+PR target: `develop`. No production activation.
 
-## Editor walkthrough
+## Editorial journey
 
-1. Open the preview (Vercel deployment authentication may apply).
-2. On Candidates, select **Cesta za řekou**, click **Zahájit zpracování**.
-3. See the bounded loading state and the **synthetic-only** component rights summary; no actual scan runs, no permission is granted.
-4. Observe badge **1** beside the fake editor profile. Click the profile or Redakční práce to reach the demo inbox.
-5. Open the one queued task and click visibly broken blocks in the right-hand Reader.
-6. Write a note, click **Odeslat připomínku a opravit blok**. The deterministic fixture presentation corrects the selected block immediately. Original left-hand source never changes. The note isn't interpreted by AI.
-7. Correct at least two blocks, click **Uložit a dokončit kontrolu**, return to the inbox and see **Dokončeno lokálně** and badge **0**.
-8. Reset the walkthrough to allow the next editor to try.
+- Uses the canonical `PublicHeader` and ARTales workspace color/system styles rather than an invented faux application header.
+- Candidate: **Alice's Adventures in Wonderland** (Lewis Carroll), **entire chapter I** from the pinned local PG #11 Gutenberg text.
+- Candidate processing shows a short working state and an inconclusive component/legal status, never publication clearance.
+- A profile-like workspace navigation entry shows notification 1 for the queued or claimed task. The real global user profile and auth are NOT altered.
+- One task appears in the local-only editorial inbox.
+- Facing panes: untouched pinned Gutenberg source at left, source-anchored ARTales composition at right. Continuous scroll sync **both directions** uses existing `synchronizeSemanticPanes` and DOM region markers.
+- Three deliberately poor layout choices exist in the composed pane, distributed across the chapter. **No early visual markers, highlighted warnings, defect names, counts, or canned example hints.** Editors can select any composed text block naturally, write a note, and save. For a prepared defect, the predetermined layout recipe instantly corrects presentation; for a normal block, an anchored note is stored without a fake repair. On completion, return to inbox.
+- The original atom/source stays exact and publication remains `release_allowed: false`. All notes, task and corrections live only in versioned browser localStorage `artales:editorial-flow-demo:v2`.
 
-## Safety and deliberately excluded
+## Governance and honesty
 
-- Publicly reachable only in Vercel preview/dev, not production. No route under `/member`, no modifications to actual app header, profile, account, editor inbox, candidate records, or existing Reader.
-- State exists only under versioned localStorage `artales:editorial-flow-demo:v1`, with strict parsing and fail-closed recovery. It is per browser, not per user; do not treat as a real notification, review history, audit log, signed revision or persistent record. Private-mode/storage-denied browser fails with an informative message.
-- The single illustrative title `Cesta za řekou` reuses the existing project-authored synthetic exact-source fixture, avoiding Alice rights ambiguity. Three defects alter **presentation only** and cannot change source content. This is **not** free-text correction, OCR, live recomposition, a learned repair, or signed WorkBlock persistence.
-- The rights summary is fabricated for demonstration and explicitly labeled as such. No Gutenberg source collection, AI inference, uploads, publication or rights clearance.
-- No Supabase read/write/migration, no GitHub worker, no env variable, no extra paid sandbox/DB. No `main` merge or production deployment.
+- All data remains non-production / QA only; PG11 concrete edition rights dossier is still HOLD. Do not represent the simulated status check as a definitive legal review.
+- No DB migrations, Supabase writes, real AI calls, external source fetches, real editorial inbox tasks, signed revisions, or publications.
+- Browser-local notification is inside the editorial preview subnavigation, **not** wired to actual logged-in profile header.
+- No genuine AI interpretation: defects resolve via deterministic display-only recipes; saving other block notes does not claim a repair.
+- Preview noindex and 404 for production.
 
-## Reviewer checklist
+## Review
 
-- Exact-head focused test and TypeScript/ESLint successful.
-- Preview build READY; browser desktop/mobile check through the whole flow, including badge and automatic return.
-- Refresh candidate/inbox/review and confirm local state persists; reset and verify the badge and repaired blocks clear.
-- Directly open review with no task and confirm a route back to inbox, not an unauthorized workbench.
-- Confirm production env returns 404 and no server access or real action is invoked.
-- Check that unrelated current `/member/editorial-tasks`, existing candidate UI and `/preview/ingest-fixture` remain untouched.
+1. Verify preview route and native global header.
+2. Complete candidate → notification → inbox → dual comparison → select blocks → notes → instant corrected layout → completion → inbox.
+3. Scroll either pane across the whole chapter and verify corresponding source regions track each other.
+4. Check no upfront defect indicators or progress counts; check changes persist on refresh and reset via completed inbox.
+5. Confirm no production/data write, no false publish readiness, route disabled in production, and no changes to main or actual Reader.
 
-**Risk:** medium (new isolated preview React UI), no backend or production code path modified.
-**Target:** develop first, later release only by explicit architect authorization.
-**DB:** no. **Env:** no.
-**Rollback:** revert this branch/PR; local browser demo records can be cleared by resetting the UI. No DB rollback required.
-**Limitations:** browser E2E and build are not claimed until checked. No actual editorial persistence.
+**Rollback:** revert the isolated PR; browser fixtures can be cleared with reset. No database rollback needed.
