@@ -4,6 +4,7 @@ on:
     branches: [develop]
     paths:
       - 'supabase/ci/alice_e2_signed_draft_assembly.sql'
+      - 'supabase/ci/alice_e2_approval_proof.sql'
       - 'supabase/ci/test_alice_e2_signed.sql'
       - 'lib/semantic/dbAComponentBridge.ts'
       - 'lib/semantic/verifySignedReadback.ts'
@@ -39,6 +40,8 @@ jobs:
         run: supabase start --exclude realtime,storage-api,imgproxy,mailpit,postgres-meta,studio,edge-runtime,logflare,vector,supavisor
       - name: Apply provisional E2 to disposable local DB only
         run: psql -X -v ON_ERROR_STOP=1 -f supabase/ci/alice_e2_signed_draft_assembly.sql
+      - name: Apply isolated approval proof to disposable DB
+        run: psql -X -v ON_ERROR_STOP=1 -f supabase/ci/alice_e2_approval_proof.sql
       - name: Verify privileges and immutable structure
         run: psql -X -v ON_ERROR_STOP=1 -f supabase/ci/test_alice_e2_signed.sql
       - uses: actions/setup-node@v4
