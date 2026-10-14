@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import {createHash,randomUUID} from "node:crypto";
 import {execFileSync,spawnSync} from "node:child_process";
 import {composeFromCapturedDbA} from "../../lib/semantic/dbAComponentBridge";
+import {decodeSignedPilotSource,serializeSignedDraft} from "../../lib/semantic/selfPilotDraft";
 import {recomposeSemanticLayout,walkSemanticAtoms,verifySemanticRevision} from "../../lib/semantic/compose";
 import type {SemanticRevision,SemanticReviewIssue} from "../../lib/semantic/model";
 
@@ -122,6 +123,17 @@ assert.equal(ownReplay.data?.reason,"work_already_queued");
 const privateTask=await request("/rest/v1/editorial_tasks?select=id&id=eq."+selfTaskId,admin.token,undefined,"GET");
 if(privateTask.status!==200||!Array.isArray(privateTask.data)||privateTask.data.length!==1)
  throw Error("Owner cannot read private self pilot");
+
+const privateSource=await rpc(admin,"get_semantic_v2_self_source",{p_work_id:workId});
+if(privateSource.status!==200||privateSource.data.result!=="ready")throw Error("Signed source unavailable");
+const sourceInput=decodeSignedPilotSource(privateSource.data,{work_id:workId,slug:vars.work_slug});
+assert.equal(sourceInput.snapshot_sha256,sourceDigest);
+assert.equal(Buffer.from(sourceInput.source_bytes).toString("utf8"),sourceText);
+assert.equal(serializeSignedDraft(revision).sha256,revision.revision_sha256);
+const foreignSource=await rpc(editor,"get_semantic_v2_self_source",{p_work_id:workId});
+assert.equal(foreignSource.data.reason,"admin_required");
+const readerSource=await rpc(reader,"get_semantic_v2_self_source",{p_work_id:workId});
+assert.equal(readerSource.data.reason,"admin_required");
 
 const requestId=randomUUID(),initial=saveArgs(revision,null,requestId);
 const deniedReader=await rpc(reader,stage,initial);
