@@ -353,6 +353,16 @@ export function verifySemanticRevision(revision:SemanticRevision, exactOriginalR
     }
   }
 }
+/** Compare typed source anchors even if PostgreSQL JSONB reorders object keys. */
+function sameSourceAnchor(left:SourceAnchorV2,right:SourceAnchorV2):boolean{
+  if(!left||!right||typeof left!=="object"||typeof right!=="object")return false;
+  const keys:(keyof SourceAnchorV2)[]=[
+    "snapshot_ref","component_id","normalized_start","normalized_end",
+    "original_byte_start","original_byte_end",
+  ];
+  return Object.keys(left).length===keys.length&&Object.keys(right).length===keys.length&&
+    keys.every(k=>left[k]===right[k]);
+}
 export function recomposeSemanticLayout(
   previous:SemanticRevision,
   issue:SemanticReviewIssue,
@@ -385,7 +395,7 @@ export function recomposeSemanticLayout(
     if(item.kind==="chapter"||item.kind==="section"){item.children.forEach(apply);return;}
     if(item.kind==="poem" && issue.requested_layout.startsWith("stanza_")){
       const target=item.stanzas.flatMap(s=>s.lines).find(x=>x.atom.id===issue.target_atom_id);
-      if(target && JSON.stringify(target.atom.anchor)===JSON.stringify(issue.source_anchor)){
+      if(target && sameSourceAnchor(target.atom.anchor,issue.source_anchor)){
         if(item.layout===issue.requested_layout)throw new Error("No proposed semantic layout delta.");
         item.layout=issue.requested_layout as SemanticPoem["layout"];changed++;
       }
@@ -393,7 +403,7 @@ export function recomposeSemanticLayout(
     }
     if(item.kind==="poem"||!("atom" in item))return;
     if(item.atom.id!==issue.target_atom_id)return;
-    if(JSON.stringify(item.atom.anchor)!==JSON.stringify(issue.source_anchor) ||
+    if(!sameSourceAnchor(item.atom.anchor,issue.source_anchor) ||
        !issue.requested_layout.startsWith("indent_"))
       throw new Error("Semantic return target or recipe mismatch.");
     const amount=issue.requested_layout.slice("indent_".length) as "small"|"medium"|"large";
