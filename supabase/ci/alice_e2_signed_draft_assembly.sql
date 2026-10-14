@@ -567,7 +567,7 @@ begin
  return pg_catalog.jsonb_build_object(
   'result','ready','work_id',p_work_id,'work_slug',v_slug,'snapshot_id',s.id,
   'component_id',c.id,'source_sha256',s.sha256,
-  'source_base64',pg_catalog.encode(s.source_bytes,'base64'),
+  'source_base64',pg_catalog.replace(pg_catalog.encode(s.source_bytes,'base64'),E'\n',''),
   'component_kind',c.kind,'disposition',c.disposition,
   'byte_start',c.byte_start,'byte_end',c.byte_end,'publication_allowed',false);
 end $source$;
