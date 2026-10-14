@@ -198,6 +198,7 @@ async function main(){
  console.log("PASS real headless Chromium signed login -> private own task -> source -> claim -> draft -> one-block indent -> saved child -> reload -> owner text QA -> immutable audit");
  console.log("PASS public work status and content unchanged; release not authorized");
 }
+async function run():Promise<void>{
 try{await main();}
 catch(error){console.error("Browser E2 failed:",error);process.exitCode=1;}
 finally{
@@ -205,3 +206,7 @@ finally{
  if(next){next.kill("SIGTERM");await sleep(350);if(next.exitCode===null)next.kill("SIGKILL");}
  if(driver){driver.kill("SIGTERM");await sleep(150);if(driver.exitCode===null)driver.kill("SIGKILL");}
 }
+}
+
+
+void run();
