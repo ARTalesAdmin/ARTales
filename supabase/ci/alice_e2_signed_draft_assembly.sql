@@ -203,7 +203,7 @@ begin
          and new.source_system='artales'
          and new.source_external_id='semantic-v2-selfpilot:'||new.work_id::text
          and exists(select 1 from artales_evidence.semantic_v2_self_assignments a
-           where a.task_id=new.id and a.work_id=new.work_id and a.actor_id=v_actor)))
+           where a.task_id=new.id and a.work_id=new.work_id and a.actor_id=v_actor))))
    then raise exception 'editorial_invalid_create' using errcode='23514';end if;
    return new;
  else
