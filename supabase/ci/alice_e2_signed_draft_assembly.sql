@@ -198,12 +198,12 @@ begin
        or (new.kind='edit_text' and new.work_id is not null and new.candidate_id is null
          and new.source_system='artales' and
          exists(select 1 from public.work_candidates c where c.matched_work_id=new.work_id and c.promoted_by=v_actor
-           and exists(select 1 from public.candidate_source_captures sc where sc.candidate_id=c.id and sc.source_id=c.preferred_source_id))))
+           and exists(select 1 from public.candidate_source_captures sc where sc.candidate_id=c.id and sc.source_id=c.preferred_source_id)))
        or (new.kind='edit_text' and new.work_id is not null and new.candidate_id is null
          and new.source_system='artales'
          and new.source_external_id='semantic-v2-selfpilot:'||new.work_id::text
          and exists(select 1 from artales_evidence.semantic_v2_self_assignments a
-           where a.task_id=new.id and a.work_id=new.work_id and a.actor_id=v_actor))))
+           where a.task_id=new.id and a.work_id=new.work_id and a.actor_id=v_actor)))
    then raise exception 'editorial_invalid_create' using errcode='23514';end if;
    return new;
  else
