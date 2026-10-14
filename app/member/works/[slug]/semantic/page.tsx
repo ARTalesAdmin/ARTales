@@ -6,7 +6,7 @@ import {getServerSupabaseConnection} from "@/lib/supabase/connectionIsolation";
 import {getWorkForEditBySlug} from "@/lib/dbWorks";
 import {selfPilotAllowed} from "@/lib/semantic/selfPilotDraft";
 import {verifySignedReadback} from "@/lib/semantic/verifySignedReadback";
-import {walkSemanticAtoms} from "@/lib/semantic/compose";
+import {listIndentableSemanticAtoms} from "@/lib/semantic/indentTarget";
 import {enqueueSelfPilot,saveOwnSemanticDraft,approveOwnAliceTextQa,requestOwnAliceIndent} from "./actions";
 import {claimEditorialTask} from "@/app/member/editorial-tasks/actions";
 
@@ -93,7 +93,7 @@ export default async function SelfSemanticPilot({params,searchParams}:Props){
      <label htmlFor="atom-target">Oprava odsazení jednoho bloku</label>
      <select id="atom-target" name="atom" required defaultValue="" style={{display:"block",width:"100%",margin:"8px 0",padding:10}}>
       <option value="" disabled>Vyber konkrétní odstavec</option>
-      {walkSemanticAtoms(verified.revision.blocks).filter(a=>a.raw.trim().length>0).slice(0,300).map(a=>
+      {listIndentableSemanticAtoms(verified.revision).slice(0,300).map(a=>
        <option key={a.id} value={a.id}>{a.raw.slice(0,110)}</option>)}
      </select>
      <button type="submit">Navrhnout odsazení vybraného bloku</button>
