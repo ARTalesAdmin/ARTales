@@ -533,4 +533,45 @@ grant execute on function public.stage_semantic_v2_draft(uuid,uuid,uuid,text,tex
 grant execute on function public.return_semantic_v2_revision(uuid,uuid,text,text,text,uuid) to authenticated;
 revoke all on function public.get_semantic_v2_editor_state(uuid) from public,anon,authenticated;
 grant execute on function public.get_semantic_v2_editor_state(uuid) to authenticated;
+
+-- Privileged source accessor: only the configured private admin self-pilot task
+-- and its owner can access exact archive bytes. Never exposed to readers.
+create function public.get_semantic_v2_self_source(p_work_id uuid)
+returns jsonb language plpgsql stable security definer set search_path='' as $source$
+declare v_actor uuid:=auth.uid();
+ a artales_evidence.semantic_v2_self_assignments%rowtype;
+ s artales_evidence.source_snapshots%rowtype;
+ c artales_evidence.source_components%rowtype;
+ v_slug text;
+begin
+ if v_actor is null or not exists(select 1 from public.profiles p
+  where p.id=v_actor and p.is_active and p.role='admin') then
+  return pg_catalog.jsonb_build_object('result','blocked','reason','admin_required');end if;
+ select * into a from artales_evidence.semantic_v2_self_assignments
+ where work_id=p_work_id and actor_id=v_actor;
+ if a.task_id is null or not exists(select 1 from public.editorial_tasks t
+   where t.id=a.task_id and t.assignee_user_id=v_actor and t.status='claimed'
+     and t.kind='edit_text') then
+   return pg_catalog.jsonb_build_object('result','blocked','reason','claimed_own_task_required');end if;
+ select * into s from artales_evidence.source_snapshots
+  where id=a.source_snapshot_id and work_id=p_work_id and kind='external_raw';
+ select * into c from artales_evidence.source_components
+  where snapshot_id=s.id and kind='WORK_CONTENT' and disposition='qa_text_only'
+  order by byte_start limit 1;
+ select slug into v_slug from public.works where id=p_work_id;
+ if s.id is null or c.id is null or v_slug is null or pg_catalog.octet_length(s.source_bytes)>1048576 then
+  return pg_catalog.jsonb_build_object('result','blocked','reason','bounded_source_unavailable');end if;
+ if (select count(*) from artales_evidence.source_components x
+  where x.snapshot_id=s.id and x.kind='WORK_CONTENT' and x.disposition='qa_text_only')<>1 then
+  return pg_catalog.jsonb_build_object('result','blocked','reason','ambiguous_work_component');end if;
+ return pg_catalog.jsonb_build_object(
+  'result','ready','work_id',p_work_id,'work_slug',v_slug,'snapshot_id',s.id,
+  'component_id',c.id,'source_sha256',s.sha256,
+  'source_base64',pg_catalog.encode(s.source_bytes,'base64'),
+  'component_kind',c.kind,'disposition',c.disposition,
+  'byte_start',c.byte_start,'byte_end',c.byte_end,'publication_allowed',false);
+end $source$;
+revoke all on function public.get_semantic_v2_self_source(uuid) from public,anon,authenticated;
+grant execute on function public.get_semantic_v2_self_source(uuid) to authenticated;
+
 commit;
