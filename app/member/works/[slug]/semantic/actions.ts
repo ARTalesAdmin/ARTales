@@ -12,7 +12,6 @@ import {verifySignedReadback} from "@/lib/semantic/verifySignedReadback";
 import type {SemanticReviewIssue} from "@/lib/semantic/model";
 
 const uuid=/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-const sha=/^[a-f0-9]{64}$/;
 const path=(slug:string)=>"/member/works/"+slug+"/semantic";
 function safePilot(actorId:string){
  const conn=getServerSupabaseConnection();
