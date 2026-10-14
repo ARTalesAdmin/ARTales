@@ -6,7 +6,8 @@ import {getServerSupabaseConnection} from "@/lib/supabase/connectionIsolation";
 import {getWorkForEditBySlug} from "@/lib/dbWorks";
 import {selfPilotAllowed} from "@/lib/semantic/selfPilotDraft";
 import {verifySignedReadback} from "@/lib/semantic/verifySignedReadback";
-import {enqueueSelfPilot,saveOwnSemanticDraft,approveOwnAliceTextQa} from "./actions";
+import {walkSemanticAtoms} from "@/lib/semantic/compose";
+import {enqueueSelfPilot,saveOwnSemanticDraft,approveOwnAliceTextQa,requestOwnAliceIndent} from "./actions";
 import {claimEditorialTask} from "@/app/member/editorial-tasks/actions";
 
 export const dynamic="force-dynamic";
@@ -84,6 +85,20 @@ export default async function SelfSemanticPilot({params,searchParams}:Props){
     <details><summary>Zkontrolovat uložený zdrojový text</summary>
      <pre style={{whiteSpace:"pre-wrap",maxHeight:420,overflow:"auto"}}>{verified.revision.source.normalized_text}</pre>
     </details></>:<p>Žádná ověřená uložená revize. Následující uložení vytvoří první koncept.</p>}
+   {slug==="alices-adventures-in-wonderland"&&verified&&!verified.pending_issue&&!approved&&
+    task?.status==="claimed"&&task.assignee_user_id===actor.id&&!unavailable?
+    <form action={requestOwnAliceIndent}>
+     <input type="hidden" name="slug" value={slug}/>
+     <input type="hidden" name="work" value={work.id}/>
+     <label htmlFor="atom-target">Oprava odsazení jednoho bloku</label>
+     <select id="atom-target" name="atom" required defaultValue="" style={{display:"block",width:"100%",margin:"8px 0",padding:10}}>
+      <option value="" disabled>Vyber konkrétní odstavec</option>
+      {walkSemanticAtoms(verified.revision.blocks).filter(a=>a.raw.trim().length>0).slice(0,300).map(a=>
+       <option key={a.id} value={a.id}>{a.raw.slice(0,110)}</option>)}
+     </select>
+     <button type="submit">Navrhnout odsazení vybraného bloku</button>
+     <p>Vznikne jedna přesně ukotvená připomínka. Poté lze uložit opravenou revizi; původní text zůstane beze změny.</p>
+    </form>:null}
    {canSave?<form action={saveOwnSemanticDraft}>
     <input type="hidden" name="slug" value={slug}/><input type="hidden" name="work" value={work.id}/>
     <input type="hidden" name="parent" value={verified?.draft_id??""}/>
