@@ -41,3 +41,11 @@ No merge of #223 or this Draft, no SQL apply to live `nmhdwmszbwgrgfbmlguu`, no 
 ## Rollback / clean-up
 
 The changes live exclusively in this feature branch; discard or revert this PR if the local SQL security audit/CI fails. No live data was written. All provisional E2 SQL remains under `supabase/ci`, not a canonical production migration. Any future migration is a separate reviewed PR and separate production authorization.
+
+## Architect-only pilot amendment — 2026-10-14
+
+Architect explicitly clarified that the early migration pilot is **self-tested by the architect in their existing admin/editor identity**; no Ivana/Pavla invitation, task assignment, notification, or 50/50 recuration of previously edited titles. They are non-technical domain editors and must receive an already hardened user-facing experience after repeated architect iterations. For existing works the goal is mostly deterministic source reconstruction plus targeted exceptions, not redoing completed editorial work. Time-to-review target: approximately 10 minutes per work after maturation, **not a proven SLA**.
+
+The local-only E2 assembly now adds an admin-only `enqueue_semantic_v2_self_pilot` RPC, an immutable private task provenance row, and a canonical `editorial_tasks` work task claimable only by the initiating admin identity. Pilot rows and their events are hidden from other editorial staff via RLS. `stage_semantic_v2_draft` requires that exact claimed owner on pilot-enrolled works. This is a same-identity *editing* convenience, not a shortcut around **independent editorial approval**, which remains a separate unresolved release gate. No second fake editor identity is introduced for the architect, and no historical approved/public edition is changed.
+
+**Important:** the signed QA tests for this amendment are running; no positive real browser save/readback or exact-head CI result may be claimed before the new head succeeds. No preview user delivery or production DB changes. Extra strictness: legacy public Reader/notes/progress remain unchanged; the raw source fixture alone does not establish legal clearance or actual archival provenance.
