@@ -160,4 +160,35 @@ begin
 end $$;
 revoke all on function public.approve_semantic_v2_revision(uuid,uuid,text,text,uuid) from public,anon,authenticated;
 grant execute on function public.approve_semantic_v2_revision(uuid,uuid,text,text,uuid) to authenticated;
+-- Signed readback of exact immutable editorial approval. This is not a release.
+-- The author or the approving reviewer may inspect it; other identities may not.
+create function public.get_semantic_v2_editor_approval(p_work_id uuid)
+ returns jsonb language plpgsql stable security definer set search_path='' as $approval_read$
+declare v_actor uuid:=auth.uid();
+ v_approval artales_evidence.semantic_v2_approvals%rowtype;
+begin
+ if v_actor is null or not exists(
+   select 1 from public.profiles p where p.id=v_actor and p.is_active and p.role='admin'
+ ) then return pg_catalog.jsonb_build_object('result','blocked','reason','admin_required');end if;
+ select * into v_approval from artales_evidence.semantic_v2_approvals a
+  where a.work_id=p_work_id;
+ if v_approval.id is null then
+  if not exists(select 1 from artales_evidence.semantic_v2_self_assignments a
+    where a.work_id=p_work_id and a.actor_id=v_actor) then
+   return pg_catalog.jsonb_build_object('result','blocked','reason','approval_scope_required');end if;
+  return pg_catalog.jsonb_build_object('result','not_approved','publication_allowed',false);
+ end if;
+ if v_approval.actor_id<>v_actor and v_approval.author_id<>v_actor then
+  return pg_catalog.jsonb_build_object('result','blocked','reason','approval_scope_required');end if;
+ return pg_catalog.jsonb_build_object(
+   'result','approved_editorial_only','approval_id',v_approval.id,
+   'work_id',v_approval.work_id,'draft_id',v_approval.draft_id,
+   'revision_sha256',v_approval.revision_sha256,
+   'reviewer_id',v_approval.actor_id,'author_id',v_approval.author_id,
+   'task_id',v_approval.task_id,'review_event_id',v_approval.review_event_id,
+   'approved_at',v_approval.created_at,'publication_allowed',false
+ );
+end $approval_read$;
+revoke all on function public.get_semantic_v2_editor_approval(uuid) from public,anon,authenticated;
+grant execute on function public.get_semantic_v2_editor_approval(uuid) to authenticated;
 commit;
