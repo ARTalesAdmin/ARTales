@@ -131,7 +131,19 @@ begin
  select * into d from artales_evidence.semantic_v2_drafts where id=p_draft_id and work_id=p_work_id;
  if d.id is null or d.revision_sha256<>p_revision_sha256 or d.source_snapshot_id<>h.source_snapshot_id then
   return jsonb_build_object('result','blocked','reason','untrusted_revision');end if;
- if d.actor_id=v_actor then
+ -- One-work Alice migration exception: editorial text QA by assigned editor.
+ -- This NEVER clears rights or enables public release. Original editor-authored
+ -- works and any non-Gutenberg / unpinned source remain independent-review only.
+ if d.actor_id=v_actor and not exists (
+  select 1 from public.works w
+  join artales_evidence.source_snapshots ss on ss.work_id=w.id and ss.id=d.source_snapshot_id
+  where w.id=p_work_id and w.slug='alices-adventures-in-wonderland'
+    and w.origin_type='public_domain'::public.work_origin_type
+    and w.source_label='gutenberg'::public.work_source_label
+    and w.canonical_language='en'
+    and ss.kind='external_raw'
+    and ss.source_uri='https://www.gutenberg.org/ebooks/11'
+ ) then
   return jsonb_build_object('result','blocked','reason','self_review_forbidden');end if;
  if exists(select 1 from artales_evidence.semantic_v2_review_issues where draft_id=d.id) then
   return jsonb_build_object('result','blocked','reason','pending_return');end if;
