@@ -199,6 +199,12 @@ if(latestRead.status!==200||latestRead.data.result!=="ready"||
  latestRead.data.serialized_payload!==child.p_serialized_payload||
  latestRead.data.publication_allowed!==false)
  throw Error("Signed E2 child-read mismatch "+JSON.stringify(latestRead));
+// Verify stale version rejection while the task is STILL claimed.
+// After terminal approval the stronger claimed-task gate supersedes this reason.
+const stale=await rpc(admin,stage,{...child,p_request_id:randomUUID()});
+assert.equal(stale.data.reason,"stale_parent");
+const staleReturn=await rpc(reviewer,returnFn,{...retArgs,p_request_id:randomUUID()});
+assert.equal(staleReturn.data.reason,"stale_revision");
 const approveArgs={p_work_id:workId,p_draft_id:second.data.draft_id,
  p_revision_sha256:next.revision_sha256,p_reason:"Independent editorial pilot review completed.",
  p_request_id:randomUUID()};
@@ -210,6 +216,28 @@ const reviewerApproval=await rpc(reviewer,"approve_semantic_v2_revision",approve
 if(reviewerApproval.status!==200||reviewerApproval.data.result!=="approved_editorial_only"||
  reviewerApproval.data.publication_allowed!==false)
  throw Error("Independent approval denied "+JSON.stringify(reviewerApproval));
+// The approval and canonical task transition must be one transaction.
+const closedTask=await request("/rest/v1/editorial_tasks?select=status,completed_at,assignee_user_id&id=eq."+selfTaskId,admin.token,undefined,"GET");
+if(closedTask.status!==200||!Array.isArray(closedTask.data)||closedTask.data.length!==1||
+ closedTask.data[0].status!=="completed"||!closedTask.data[0].completed_at||
+ closedTask.data[0].assignee_user_id!==admin.id)
+ throw Error("Approved task was not durably completed "+JSON.stringify(closedTask));
+const events=await request("/rest/v1/editorial_task_events?select=event_type,actor_id&task_id=eq."+selfTaskId,admin.token,undefined,"GET");
+if(events.status!==200||!Array.isArray(events.data)||
+ events.data.filter(e=>e.event_type==="approved"&&e.actor_id===reviewer.id).length!==1)
+ throw Error("Independent approval event missing from task audit "+JSON.stringify(events));
+// The just-closed task may no longer save. An in-flight save that passed
+// ownership before the head lock is covered by the DB approval freeze trigger.
+const afterApprovalSave=await rpc(admin,stage,{...child,p_request_id:randomUUID()});
+assert.equal(afterApprovalSave.data.reason,"claimed_work_task_required");
+const returnedAtom=walkSemanticAtoms(next.blocks).find(a=>a.id===target.id);
+assert.ok(returnedAtom,"No anchored atom in approved child");
+const afterApprovalReturn=await rpc(reviewer,returnFn,{
+ p_work_id:workId,p_draft_id:second.data.draft_id,
+ p_expected_sha256:next.revision_sha256,p_target_atom_id:returnedAtom.id,
+ p_reason:"Attempt to return an approved immutable revision.",p_request_id:randomUUID()
+});
+assert.ok(afterApprovalReturn.status>=400,"Approved revision unexpectedly accepted a new return");
 const repeatApproval=await rpc(reviewer,"approve_semantic_v2_revision",approveArgs);
 assert.equal(repeatApproval.data.result,"already_approved");
 const reusedApproval=await rpc(reviewer,"approve_semantic_v2_revision",
@@ -222,10 +250,6 @@ const staleApproval=await rpc(reviewer,"approve_semantic_v2_revision",
  {...approveArgs,p_draft_id:first.data.draft_id,p_revision_sha256:revision.revision_sha256,
  p_request_id:randomUUID()});
 assert.equal(staleApproval.data.reason,"already_approved");
-const stale=await rpc(admin,stage,{...child,p_request_id:randomUUID()});
-assert.equal(stale.data.reason,"stale_parent");
-const staleReturn=await rpc(reviewer,returnFn,{...retArgs,p_request_id:randomUUID()});
-assert.equal(staleReturn.data.reason,"stale_revision");
 const direct=await request("/rest/v1/semantic_v2_drafts",admin.token,
  {work_id:workId,revision_sha256:sha("forged")});
 assert.ok(direct.status>=400,"Direct private draft table write unexpectedly open");
@@ -240,6 +264,7 @@ console.log("PASS actual signed admin self-assigned editor task, private to same
 console.log("PASS signed local E2 admin/editor/reader GoTrue sessions, admin independent review");
 console.log("PASS stored initial revision, anchored return, applied child revision and immutable source");
 console.log("PASS replay, stale parent, self-review, reader/editor denial, cross-work, direct-table denial");
+console.log("PASS independent approval and exact canonical task completion; subsequent Save/Return rejected");
 console.log("PASS public work remained draft; release not modified; NO legal/publishing authorization");
 
 }
