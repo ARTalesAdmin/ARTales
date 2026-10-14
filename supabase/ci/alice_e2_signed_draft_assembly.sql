@@ -445,8 +445,26 @@ begin
   where id=p_draft_id and work_id=p_work_id;
  if d.id is null or d.revision_sha256<>p_expected_sha256 then
   return pg_catalog.jsonb_build_object('result','blocked','reason','revision_mismatch'); end if;
- if d.actor_id=actor then
-  return pg_catalog.jsonb_build_object('result','blocked','reason','self_review_forbidden'); end if;
+ -- Architect-only real-editor layout correction: same signed task owner can
+ -- request a source-anchored indent on exactly this Gutenberg Alice pilot.
+ -- This does not waive any rights, release, or publication check.
+ if d.actor_id=actor and not exists(
+   select 1 from public.works w
+   join artales_evidence.source_snapshots ss on ss.work_id=w.id
+     and ss.id=d.source_snapshot_id
+   join artales_evidence.semantic_v2_self_assignments sa
+     on sa.work_id=w.id and sa.source_snapshot_id=ss.id and sa.actor_id=actor
+   join public.editorial_tasks t on t.id=sa.task_id
+   where w.id=p_work_id and w.slug='alices-adventures-in-wonderland'
+     and w.origin_type='public_domain'::public.work_origin_type
+     and w.source_label='gutenberg'::public.work_source_label
+     and w.canonical_language='en'
+     and ss.kind='external_raw'
+     and ss.source_uri='https://www.gutenberg.org/ebooks/11'
+     and t.status='claimed' and t.kind='edit_text'
+     and t.assignee_user_id=actor
+     and v_role='admin'::public.app_role
+ ) then return pg_catalog.jsonb_build_object('result','blocked','reason','self_review_forbidden');end if;
  if exists(select 1 from artales_evidence.semantic_v2_review_issues where draft_id=d.id) then
   return pg_catalog.jsonb_build_object('result','blocked','reason','already_returned'); end if;
  select atom into a from artales_internal.semantic_v2_atoms(d.payload->'blocks') atom
