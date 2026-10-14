@@ -6,7 +6,7 @@ import {getServerSupabaseConnection} from "@/lib/supabase/connectionIsolation";
 import {getWorkForEditBySlug} from "@/lib/dbWorks";
 import {selfPilotAllowed} from "@/lib/semantic/selfPilotDraft";
 import {verifySignedReadback} from "@/lib/semantic/verifySignedReadback";
-import {enqueueSelfPilot,saveOwnSemanticDraft} from "./actions";
+import {enqueueSelfPilot,saveOwnSemanticDraft,approveOwnAliceTextQa} from "./actions";
 import {claimEditorialTask} from "@/app/member/editorial-tasks/actions";
 
 export const dynamic="force-dynamic";
@@ -91,6 +91,20 @@ export default async function SelfSemanticPilot({params,searchParams}:Props){
     <p>Po uložení se stav znovu načte z databáze a ověří podle hashe. Pro další kolo je nutný nezávislý reviewer.</p>
    </form>:<p>Ukládání je dostupné jen po převzetí vlastního úkolu; případně musí existovat přesně ukotvená vrácená oprava.</p>}
   </section>
-  <p><strong>Schvalování:</strong> Provádí je samostatná autorizovaná identita v kontrolním průchodu. Tento autorský pohled nesmí schválit vlastní revizi. Ani redakční schválení není povolením publikace.</p>
+  {slug==="alices-adventures-in-wonderland"&&verified&&task?.status==="claimed"&&
+   task.assignee_user_id===actor.id&&!verified.pending_issue&&!approved&&!unavailable&&
+   approval?.result==="not_approved"?<section style={{border:"1px solid #888",borderRadius:12,padding:20,margin:"20px 0"}}>
+    <h2>3. Uzavření textového QA</h2>
+    <p>Jen pro importovanou Alenku. Stvrzuješ neměnnou textovou revizi po vlastní kontrole;
+     neověřuje to samo o sobě práva, obrázky ani Reader. <strong>Nic se nezveřejní.</strong></p>
+    <form action={approveOwnAliceTextQa}>
+     <input type="hidden" name="slug" value={slug}/>
+     <input type="hidden" name="work" value={work.id}/>
+     <input type="hidden" name="draft" value={verified.draft_id}/>
+     <input type="hidden" name="digest" value={verified.revision.revision_sha256}/>
+     <button type="submit">Schválit textové QA — bez publikace</button>
+    </form>
+   </section>:null}
+  <p><strong>Schvalování:</strong> Pro tento jediný archivní pilot lze potvrdit vlastní textové QA. Všechna ostatní díla zatím zachovávají původní nezávislou kontrolu. Publikace a Reader cutover nejsou povoleny.</p>
  </main>;
 }
