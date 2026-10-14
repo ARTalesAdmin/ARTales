@@ -100,6 +100,29 @@ function saveArgs(r:SemanticRevision,parent:string|null,req:string){
 }
 const rpc=(person:Actor,fn:string,args:unknown)=>request("/rest/v1/rpc/"+fn,person.token,args);
 const stage="stage_semantic_v2_draft",returnFn="return_semantic_v2_revision";
+// Architect-only pilot: one real admin JWT, same identity claiming an editor task.
+const selfQueued=await rpc(admin,"enqueue_semantic_v2_self_pilot",{
+ p_work_id:workId,p_source_snapshot_id:sourceId,p_request_id:randomUUID()
+});
+if(selfQueued.status!==200||selfQueued.data.result!=="queued_for_review"||!selfQueued.data.task_id)
+ throw Error("Self-pilot enqueue failed "+JSON.stringify(selfQueued));
+const selfTaskId=String(selfQueued.data.task_id);
+const taskHidden=await request("/rest/v1/editorial_tasks?select=id&id=eq."+selfTaskId,editor.token,undefined,"GET");
+assert.equal(taskHidden.status,200);
+assert.ok(Array.isArray(taskHidden.data)&&taskHidden.data.length===0,
+ "Other editors must not see architect self-pilot");
+const wrongClaim=await rpc(editor,"claim_editorial_task",{p_task_id:selfTaskId});
+assert.ok(wrongClaim.status>=400||wrongClaim.data.result!=="claimed","Foreign editor claimed private pilot");
+const ownClaim=await rpc(admin,"claim_editorial_task",{p_task_id:selfTaskId});
+if(ownClaim.status!==200||ownClaim.data.result!=="claimed")throw Error("Own task claim failed "+JSON.stringify(ownClaim));
+const ownReplay=await rpc(admin,"enqueue_semantic_v2_self_pilot",{
+ p_work_id:workId,p_source_snapshot_id:sourceId,p_request_id:selfQueued.data.task_id
+});
+assert.equal(ownReplay.data?.reason,"work_already_queued");
+const privateTask=await request("/rest/v1/editorial_tasks?select=id&id=eq."+selfTaskId,admin.token,undefined,"GET");
+if(privateTask.status!==200||!Array.isArray(privateTask.data)||privateTask.data.length!==1)
+ throw Error("Owner cannot read private self pilot");
+
 const requestId=randomUUID(),initial=saveArgs(revision,null,requestId);
 const deniedReader=await rpc(reader,stage,initial);
 assert.equal(deniedReader.data?.reason,"editor_role_required");
@@ -171,6 +194,7 @@ const query=spawnSync("psql",["-h","127.0.0.1","-p","54322","-U","postgres","-d"
  env:{...process.env,PGPASSWORD:"postgres"}});
 assert.equal(query.status,0);
 assert.equal(query.stdout.trim(),"draft");
+console.log("PASS actual signed admin self-assigned editor task, private to same identity");
 console.log("PASS signed local E2 admin/editor/reader GoTrue sessions, admin independent review");
 console.log("PASS stored initial revision, anchored return, applied child revision and immutable source");
 console.log("PASS replay, stale parent, self-review, reader/editor denial, cross-work, direct-table denial");
