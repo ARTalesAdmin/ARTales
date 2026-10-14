@@ -9,6 +9,8 @@ on:
       - 'lib/semantic/verifySignedReadback.ts'
       - 'tests/verifySignedReadback.test.ts'
       - 'lib/semantic/compose.ts'
+      - 'lib/semantic/selfPilotDraft.ts'
+      - 'app/member/works/**/semantic/**'
       - 'tests/dbAComponentBridge.test.ts'
       - 'supabase/ci/alice_e2_signed_cycle.ts'
       - '.github/workflows/artales-alice-e2-signed-qa.yml'
@@ -51,7 +53,7 @@ jobs:
       - name: TypeScript and bridge lint
         run: |
           npx tsc --noEmit
-          npx eslint lib/semantic/dbAComponentBridge.ts lib/semantic/verifySignedReadback.ts lib/semantic/compose.ts tests/dbAComponentBridge.test.ts tests/verifySignedReadback.test.ts supabase/ci/alice_e2_signed_cycle.ts
+          npx eslint lib/semantic/dbAComponentBridge.ts lib/semantic/verifySignedReadback.ts lib/semantic/selfPilotDraft.ts lib/semantic/compose.ts tests/dbAComponentBridge.test.ts tests/verifySignedReadback.test.ts supabase/ci/alice_e2_signed_cycle.ts 'app/member/works/[slug]/semantic/page.tsx' 'app/member/works/[slug]/semantic/actions.ts'
       - name: Destroy local project without backup
         if: always()
         run: supabase stop --no-backup
