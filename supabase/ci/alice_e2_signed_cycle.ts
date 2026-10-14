@@ -294,9 +294,30 @@ const aliceSaved=await rpc(admin,stage,{
  p_parent_draft_id:null,p_request_id:randomUUID()
 });
 if(aliceSaved.data.result!=="saved_draft")throw Error("Alice owner save denied");
-const aliceApproved=await rpc(admin,"approve_semantic_v2_revision",{
+const aliceTarget=walkSemanticAtoms(aliceRevision.blocks).find(a=>a.raw.includes("A short paragraph"));
+assert.ok(aliceTarget,"Synthetic Alice paragraph target missing");
+const aliceReturn=await rpc(admin,returnFn,{
  p_work_id:aliceWork,p_draft_id:aliceSaved.data.draft_id,
- p_revision_sha256:aliceDigest,p_reason:"Synthetic self text QA for imported Alice, never publish.",
+ p_expected_sha256:aliceDigest,p_target_atom_id:aliceTarget.id,
+ p_reason:"Change indentation on this exact Alice paragraph.",p_request_id:randomUUID()
+});
+if(aliceReturn.data.result!=="returned_for_changes"||!aliceReturn.data.issue)
+ throw Error("Same-owner anchored correction denied "+JSON.stringify(aliceReturn));
+const correctedAlice=recomposeSemanticLayout(aliceRevision,aliceReturn.data.issue as SemanticReviewIssue,sourceText);
+const aliceChild=await rpc(admin,stage,{
+ p_work_id:aliceWork,p_source_snapshot_id:aliceSource,p_component_id:aliceComponent,
+ p_serialized_payload:serializeSignedDraft(correctedAlice).serialized,
+ p_expected_sha256:correctedAlice.revision_sha256,
+ p_parent_draft_id:aliceSaved.data.draft_id,p_request_id:randomUUID()
+});
+if(aliceChild.data.result!=="saved_draft")throw Error("Same-owner corrected child save denied "+JSON.stringify(aliceChild));
+const checkedAlice=await rpc(admin,"get_semantic_v2_editor_state",{p_work_id:aliceWork});
+if(checkedAlice.data.draft_id!==aliceChild.data.draft_id||
+ checkedAlice.data.revision_sha256!==correctedAlice.revision_sha256)
+ throw Error("Corrected Alice revision failed fresh readback");
+const aliceApproved=await rpc(admin,"approve_semantic_v2_revision",{
+ p_work_id:aliceWork,p_draft_id:aliceChild.data.draft_id,
+ p_revision_sha256:correctedAlice.revision_sha256,p_reason:"Synthetic self text QA for imported Alice, never publish.",
  p_request_id:randomUUID()
 });
 if(aliceApproved.data.result!=="approved_editorial_only"||aliceApproved.data.publication_allowed!==false)
