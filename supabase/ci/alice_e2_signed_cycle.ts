@@ -260,6 +260,63 @@ const query=spawnSync("psql",["-h","127.0.0.1","-p","54322","-U","postgres","-d"
  env:{...process.env,PGPASSWORD:"postgres"}});
 assert.equal(query.status,0);
 assert.equal(query.stdout.trim(),"draft");
+// Distinct synthetic Alice-shaped fixture: proves only the gated owner-QA
+// privilege branch, NOT actual Gutenberg source capture or public rights.
+const aliceWork=randomUUID(),aliceSource=randomUUID(),aliceComponent=randomUUID();
+const aliceSeed=[
+ "begin;",
+ "insert into public.works(id,title,slug,summary,content,canonical_language,origin_type,source_label,status,primary_author_id,created_by,updated_by)",
+ "values(:'aw','Alice fixture','alices-adventures-in-wonderland',repeat('Synthetic QA only. ',16),'Synthetic only','en','public_domain','gutenberg','draft',:'author_id',:'admin_id',:'admin_id');",
+ "insert into artales_evidence.source_snapshots(id,work_id,kind,source_uri,source_bytes)",
+ "values(:'as',:'aw','external_raw','https://www.gutenberg.org/ebooks/11',decode(:'bytes_hex','hex'));",
+ "insert into artales_evidence.source_components(id,snapshot_id,kind,byte_start,byte_end,disposition,explanation)",
+ "values(:'ac',:'as','WORK_CONTENT',0,octet_length(decode(:'bytes_hex','hex')),'qa_text_only','Synthetic QA classification proof');",
+ "commit;"
+].join("\n");
+const seededAlice=spawnSync("psql",[...args,"-v","aw="+aliceWork,"-v","as="+aliceSource,"-v","ac="+aliceComponent],
+ {input:aliceSeed,encoding:"utf8",env:{...process.env,PGPASSWORD:"postgres"}});
+if(seededAlice.status!==0)throw Error("Alice-shaped fixture setup failed: "+seededAlice.stderr.slice(0,1000));
+const queuedAlice=await rpc(admin,"enqueue_semantic_v2_self_pilot",
+ {p_work_id:aliceWork,p_source_snapshot_id:aliceSource,p_request_id:randomUUID()});
+if(queuedAlice.data.result!=="queued_for_review")throw Error("Alice owner pilot task missing");
+const aliceClaim=await rpc(admin,"claim_editorial_task",{p_task_id:queuedAlice.data.task_id});
+if(aliceClaim.data.result!=="claimed")throw Error("Alice owner pilot not claimed");
+const {revision:aliceRevision}=composeFromCapturedDbA({
+ work_id:aliceWork,work_slug:"alices-adventures-in-wonderland",
+ snapshot_id:aliceSource,snapshot_sha256:sourceDigest,source_bytes:bytes,
+ component_id:aliceComponent,component_kind:"WORK_CONTENT",
+ disposition:"qa_text_only",byte_start:0,byte_end:bytes.length
+});
+const {serialized:aliceSerialized,sha256:aliceDigest}=serializeSignedDraft(aliceRevision);
+const aliceSaved=await rpc(admin,stage,{
+ p_work_id:aliceWork,p_source_snapshot_id:aliceSource,p_component_id:aliceComponent,
+ p_serialized_payload:aliceSerialized,p_expected_sha256:aliceDigest,
+ p_parent_draft_id:null,p_request_id:randomUUID()
+});
+if(aliceSaved.data.result!=="saved_draft")throw Error("Alice owner save denied");
+const aliceApproved=await rpc(admin,"approve_semantic_v2_revision",{
+ p_work_id:aliceWork,p_draft_id:aliceSaved.data.draft_id,
+ p_revision_sha256:aliceDigest,p_reason:"Synthetic self text QA for imported Alice, never publish.",
+ p_request_id:randomUUID()
+});
+if(aliceApproved.data.result!=="approved_editorial_only"||aliceApproved.data.publication_allowed!==false)
+ throw Error("Gated same-identity Alice text QA denied "+JSON.stringify(aliceApproved));
+const aliceTaskFinal=await request("/rest/v1/editorial_tasks?select=status,completed_at&id=eq."+
+ queuedAlice.data.task_id,admin.token,undefined,"GET");
+if(!Array.isArray(aliceTaskFinal.data)||aliceTaskFinal.data[0]?.status!=="completed")
+ throw Error("Self-QA task did not close");
+const alicePostSave=await rpc(admin,stage,{
+ p_work_id:aliceWork,p_source_snapshot_id:aliceSource,p_component_id:aliceComponent,
+ p_serialized_payload:aliceSerialized,p_expected_sha256:aliceDigest,
+ p_parent_draft_id:null,p_request_id:randomUUID()
+});
+assert.equal(alicePostSave.data.reason,"claimed_work_task_required");
+const aliceWorkStatus=spawnSync("psql",[
+ "-h","127.0.0.1","-p","54322","-U","postgres","-d","postgres","-X","-At",
+ "-c","select status::text from public.works where id='"+aliceWork+"'"
+],{encoding:"utf8",env:{...process.env,PGPASSWORD:"postgres"}});
+assert.equal(aliceWorkStatus.stdout.trim(),"draft");
+console.log("PASS synthetic Alice own-text-QA approval, canonical task closed, no publication");
 console.log("PASS actual signed admin self-assigned editor task, private to same identity");
 console.log("PASS signed local E2 admin/editor/reader GoTrue sessions, admin independent review");
 console.log("PASS stored initial revision, anchored return, applied child revision and immutable source");
