@@ -58,7 +58,7 @@ function seed(actorId:string){
   "insert into public.authors(id,name,slug,created_by,updated_by)",
   "values(:'author','Browser QA Synthetic Author',:'author_slug',:'actor',:'actor');",
   "insert into public.works(id,title,slug,summary,content,canonical_language,origin_type,source_label,status,primary_author_id,created_by,updated_by)",
-  "values(:'work','Alice Browser QA Fixture',:'slug',repeat('Synthetic source for browser-only proof. ',5),'Do not publish: browser synthetic source','en','public_domain','gutenberg','published',:'author',:'actor',:'actor');",
+  "values(:'work','Alice Browser QA Fixture',:'slug',repeat('Synthetic source for browser-only proof. ',5),'Do not publish: browser synthetic source','en','public_domain','gutenberg','draft',:'author',:'actor',:'actor');",
   "insert into artales_evidence.source_snapshots(id,work_id,kind,source_uri,source_bytes)",
   "values(:'snapshot',:'work','external_raw','https://www.gutenberg.org/ebooks/11',decode(:'bytes','hex'));",
   "insert into artales_evidence.source_components(id,snapshot_id,kind,byte_start,byte_end,disposition,explanation)",
@@ -184,7 +184,7 @@ async function main(){
  await nav(local+destination);
  await ready("Redakčně schváleno");
  const status=runSqlValue("select status::text from public.works where id='"+workId+"'");
- assert.equal(status,"published","Preexisting public state must remain unchanged");
+ assert.equal(status,"draft","QA cannot alter the original work status");
  const publicText=runSqlValue("select content from public.works where id='"+workId+"'");
  assert.equal(publicText,"Do not publish: browser synthetic source");
  const finalized=runSqlValue(
