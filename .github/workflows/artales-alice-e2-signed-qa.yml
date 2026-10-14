@@ -6,6 +6,9 @@ on:
       - 'supabase/ci/alice_e2_signed_draft_assembly.sql'
       - 'supabase/ci/test_alice_e2_signed.sql'
       - 'lib/semantic/dbAComponentBridge.ts'
+      - 'lib/semantic/verifySignedReadback.ts'
+      - 'tests/verifySignedReadback.test.ts'
+      - 'lib/semantic/compose.ts'
       - 'tests/dbAComponentBridge.test.ts'
       - 'supabase/ci/alice_e2_signed_cycle.ts'
       - '.github/workflows/artales-alice-e2-signed-qa.yml'
@@ -42,13 +45,13 @@ jobs:
           cache: npm
       - run: npm ci --ignore-scripts
       - name: DB-A exact source bridge and negative tests
-        run: npx tsx --test tests/dbAComponentBridge.test.ts
+        run: npx tsx --test tests/dbAComponentBridge.test.ts tests/verifySignedReadback.test.ts
       - name: Signed GoTrue/PostgREST E2 revision, return and child QA
         run: npx tsx supabase/ci/alice_e2_signed_cycle.ts
       - name: TypeScript and bridge lint
         run: |
           npx tsc --noEmit
-          npx eslint lib/semantic/dbAComponentBridge.ts tests/dbAComponentBridge.test.ts supabase/ci/alice_e2_signed_cycle.ts
+          npx eslint lib/semantic/dbAComponentBridge.ts lib/semantic/verifySignedReadback.ts lib/semantic/compose.ts tests/dbAComponentBridge.test.ts tests/verifySignedReadback.test.ts supabase/ci/alice_e2_signed_cycle.ts
       - name: Destroy local project without backup
         if: always()
         run: supabase stop --no-backup
