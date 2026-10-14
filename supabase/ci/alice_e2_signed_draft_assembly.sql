@@ -160,6 +160,144 @@ begin
 end $check$;
 revoke all on function artales_internal.check_semantic_v2_source(jsonb,uuid,uuid) from public,anon,authenticated;
 
+
+-- LOCAL QA ONLY: an administrator edits under their existing SAME identity.
+-- No second "editor account"; assignment is a canonical editorial_tasks item,
+-- private to that administrator in the inbox until the pilot is released.
+create table artales_evidence.semantic_v2_self_assignments (
+ task_id uuid primary key,
+ work_id uuid not null unique references public.works(id) on delete restrict,
+ source_snapshot_id uuid not null,
+ actor_id uuid not null references public.profiles(id) on delete restrict,
+ request_id uuid not null,
+ created_at timestamptz not null default now(),
+ unique(actor_id,request_id),
+ constraint e2_self_assignment_source_work foreign key(source_snapshot_id,work_id)
+   references artales_evidence.source_snapshots(id,work_id) on delete restrict,
+ constraint e2_self_assignment_task foreign key(task_id)
+   references public.editorial_tasks(id) on delete restrict deferrable initially deferred
+);
+alter table artales_evidence.semantic_v2_self_assignments enable row level security;
+revoke all on table artales_evidence.semantic_v2_self_assignments from public,anon,authenticated;
+create trigger immutable_e2_self_assignments before update or delete
+ on artales_evidence.semantic_v2_self_assignments
+ for each row execute function artales_evidence.reject_mutation();
+
+-- Preserve the original candidate/legal permissions; only introduce one new
+-- private audit-bound insertion and a strict same-account pilot claim.
+create or replace function artales_internal.editorial_task_history()
+returns trigger language plpgsql security definer set search_path=''
+as $trigger$
+declare v_actor uuid:=auth.uid();v_event text;
+begin
+ if v_actor is null or not exists(select 1 from public.profiles p where p.id=v_actor and p.is_active and p.role in ('admin','editor'))
+ then raise exception 'editorial_actor_required' using errcode='42501';end if;
+ if tg_op='INSERT' then
+   if new.created_by<>v_actor or new.status<>'open'
+     or not ((new.kind='legal_review' and new.candidate_id is not null and new.work_id is null)
+       or (new.kind='edit_text' and new.work_id is not null and new.candidate_id is null
+         and new.source_system='artales' and
+         exists(select 1 from public.work_candidates c where c.matched_work_id=new.work_id and c.promoted_by=v_actor
+           and exists(select 1 from public.candidate_source_captures sc where sc.candidate_id=c.id and sc.source_id=c.preferred_source_id))))
+       or (new.kind='edit_text' and new.work_id is not null and new.candidate_id is null
+         and new.source_system='artales'
+         and new.source_external_id='semantic-v2-selfpilot:'||new.work_id::text
+         and exists(select 1 from artales_evidence.semantic_v2_self_assignments a
+           where a.task_id=new.id and a.work_id=new.work_id and a.actor_id=v_actor)))
+   then raise exception 'editorial_invalid_create' using errcode='23514';end if;
+   return new;
+ else
+   if row(new.id,new.candidate_id,new.work_id,new.kind,new.title,new.source_system,
+     new.source_external_id,new.created_by,new.created_at,new.completed_at)
+     is distinct from row(old.id,old.candidate_id,old.work_id,old.kind,old.title,old.source_system,
+       old.source_external_id,old.created_by,old.created_at,old.completed_at)
+   then raise exception 'editorial_immutable_field_changed' using errcode='23514';end if;
+   if old.status='open' and new.status='claimed' and new.assignee_user_id=v_actor
+       and (not exists(select 1 from artales_evidence.semantic_v2_self_assignments a where a.task_id=new.id)
+         or exists(select 1 from artales_evidence.semantic_v2_self_assignments a
+           where a.task_id=new.id and a.actor_id=v_actor))
+   then new.claimed_at:=now();v_event:='claimed';
+   elsif old.status='claimed' and new.status='open' and new.assignee_user_id is null and
+     new.claimed_at is null and (old.assignee_user_id=v_actor or exists(select 1 from public.profiles p where p.id=v_actor and p.is_active and p.role='admin'))
+     and (not exists(select 1 from artales_evidence.semantic_v2_self_assignments a where a.task_id=new.id)
+       or exists(select 1 from artales_evidence.semantic_v2_self_assignments a
+         where a.task_id=new.id and a.actor_id=v_actor))
+   then v_event:='returned';
+   else raise exception 'editorial_invalid_transition' using errcode='23514';end if;
+   new.updated_at:=now();
+   insert into public.editorial_task_events(task_id,event_type,actor_id)values(new.id,v_event,v_actor);
+   return new;
+ end if;
+end $trigger$;
+
+-- Pilot tasks must not appear in colleagues' general work inbox.
+drop policy "Active editorial staff read tasks" on public.editorial_tasks;
+create policy "Active editorial staff read tasks" on public.editorial_tasks
+ for select to authenticated using (
+  exists(select 1 from public.profiles p
+    where p.id=(select auth.uid()) and p.is_active and p.role in ('editor','admin'))
+  and (coalesce(source_external_id,'') not like 'semantic-v2-selfpilot:%'
+    or created_by=(select auth.uid()))
+ );
+drop policy "Active editorial staff read task events" on public.editorial_task_events;
+create policy "Active editorial staff read task events" on public.editorial_task_events
+ for select to authenticated using (
+  exists(select 1 from public.profiles p
+    where p.id=(select auth.uid()) and p.is_active and p.role in ('editor','admin'))
+  and exists(select 1 from public.editorial_tasks t where t.id=task_id)
+ );
+
+-- Pilot sidecar is never permitted to publish or change existing public content.
+-- A published legacy work can be safely QA-composed against a separately
+-- archived source without mutating its current Reader, URL or annotations.
+create function public.enqueue_semantic_v2_self_pilot(
+ p_work_id uuid,p_source_snapshot_id uuid,p_request_id uuid
+) returns jsonb language plpgsql security definer set search_path='' as $enqueue$
+declare v_actor uuid:=auth.uid();
+ v_work public.works%rowtype; v_source artales_evidence.source_snapshots%rowtype;
+ v_existing artales_evidence.semantic_v2_self_assignments%rowtype; v_task uuid;
+begin
+ if v_actor is null or not exists(select 1 from public.profiles p
+   where p.id=v_actor and p.role='admin' and p.is_active)
+ then return pg_catalog.jsonb_build_object('result','blocked','reason','admin_required');end if;
+ if p_request_id is null or p_source_snapshot_id is null
+ then return pg_catalog.jsonb_build_object('result','blocked','reason','invalid_request');end if;
+ select * into v_work from public.works where id=p_work_id for update;
+ if v_work.id is null or v_work.status not in ('draft'::public.work_status,'published'::public.work_status)
+ then return pg_catalog.jsonb_build_object('result','blocked','reason','work_not_eligible_for_pilot');end if;
+ select * into v_source from artales_evidence.source_snapshots
+   where id=p_source_snapshot_id and work_id=p_work_id;
+ if v_source.id is null or v_source.kind<>'external_raw'
+   or not exists(select 1 from artales_evidence.source_components c
+     where c.snapshot_id=v_source.id and c.kind='WORK_CONTENT' and c.disposition='qa_text_only')
+ then return pg_catalog.jsonb_build_object('result','blocked','reason','archived_qa_source_required');end if;
+ select * into v_existing from artales_evidence.semantic_v2_self_assignments
+  where actor_id=v_actor and request_id=p_request_id;
+ if v_existing.task_id is not null then
+  if v_existing.work_id=p_work_id and v_existing.source_snapshot_id=p_source_snapshot_id
+  then return pg_catalog.jsonb_build_object('result','already_queued','task_id',v_existing.task_id,
+    'publication_allowed',false);end if;
+  return pg_catalog.jsonb_build_object('result','blocked','reason','idempotency_key_reuse');
+ end if;
+ select * into v_existing from artales_evidence.semantic_v2_self_assignments where work_id=p_work_id;
+ if v_existing.task_id is not null then
+  return pg_catalog.jsonb_build_object('result','blocked','reason','work_already_queued');end if;
+ v_task:=pg_catalog.gen_random_uuid();
+ insert into artales_evidence.semantic_v2_self_assignments(
+   task_id,work_id,source_snapshot_id,actor_id,request_id)
+ values(v_task,p_work_id,p_source_snapshot_id,v_actor,p_request_id);
+ insert into public.editorial_tasks(
+   id,work_id,kind,title,created_by,source_system,source_external_id)
+ values(v_task,p_work_id,'edit_text',
+   pg_catalog.left('Vlastní kontrola převodu: '||v_work.title,240),
+   v_actor,'artales','semantic-v2-selfpilot:'||p_work_id::text);
+ return pg_catalog.jsonb_build_object('result','queued_for_review','task_id',v_task,
+   'assignee_user_id',v_actor,'publication_allowed',false);
+end $enqueue$;
+revoke all on function public.enqueue_semantic_v2_self_pilot(uuid,uuid,uuid)
+ from public,anon,authenticated;
+grant execute on function public.enqueue_semantic_v2_self_pilot(uuid,uuid,uuid) to authenticated;
+
 -- All changes are atomic under a private draft-head row lock, scoped to one work.
 create function public.stage_semantic_v2_draft(
  p_work_id uuid, p_source_snapshot_id uuid, p_component_id uuid,
@@ -179,10 +317,16 @@ begin
  select role into v_role from public.profiles where id=actor and is_active=true;
  if v_role not in ('admin'::public.app_role,'editor'::public.app_role) or v_role is null then
   return pg_catalog.jsonb_build_object('result','blocked','reason','editor_role_required'); end if;
- if v_role='editor'::public.app_role and not exists(
+ if exists(select 1 from artales_evidence.semantic_v2_self_assignments a where a.work_id=p_work_id) then
+  if not exists(select 1 from artales_evidence.semantic_v2_self_assignments a
+    join public.editorial_tasks t on t.id=a.task_id
+    where a.work_id=p_work_id and a.actor_id=actor
+      and t.status='claimed' and t.kind='edit_text' and t.assignee_user_id=actor)
+  then return pg_catalog.jsonb_build_object('result','blocked','reason','claimed_work_task_required');end if;
+ elsif v_role='editor'::public.app_role and not exists(
   select 1 from public.editorial_tasks t where t.work_id=p_work_id and t.kind='edit_text'
-   and t.status='claimed' and t.assignee_user_id=actor
- ) then return pg_catalog.jsonb_build_object('result','blocked','reason','claimed_work_task_required'); end if;
+    and t.status='claimed' and t.assignee_user_id=actor)
+ then return pg_catalog.jsonb_build_object('result','blocked','reason','claimed_work_task_required');end if;
  select slug into w_slug from public.works where id=p_work_id;
  if w_slug is null then return pg_catalog.jsonb_build_object('result','blocked','reason','work_not_found'); end if;
  select * into s from artales_evidence.source_snapshots where id=p_source_snapshot_id and work_id=p_work_id;
