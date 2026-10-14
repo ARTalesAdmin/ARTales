@@ -24,11 +24,12 @@ export default async function SelfSemanticPilot({params,searchParams}:Props){
  const work=await getWorkForEditBySlug(slug);
  if(!work)notFound();
  const db=await createClient();
- const [{data:tasks,error:taskError},{data:current,error:readError},{data:captures,error:captureError}]=await Promise.all([
+ const [{data:tasks,error:taskError},{data:current,error:readError},{data:captures,error:captureError},{data:approval,error:approvalError}]=await Promise.all([
   db.from("editorial_tasks").select("id,status,assignee_user_id,source_external_id")
     .eq("work_id",work.id).eq("source_external_id","semantic-v2-selfpilot:"+work.id).limit(1),
   db.rpc("get_semantic_v2_editor_state",{p_work_id:work.id}),
-  db.rpc("list_semantic_v2_self_sources",{p_work_id:work.id})
+  db.rpc("list_semantic_v2_self_sources",{p_work_id:work.id}),
+  db.rpc("get_semantic_v2_editor_approval",{p_work_id:work.id})
  ]);
  const task=!taskError?(tasks as Task[]|null)?.[0]:undefined;
  const eligibleSources=(!captureError&&captures?.result==="ready"&&Array.isArray(captures.sources))
@@ -38,9 +39,10 @@ export default async function SelfSemanticPilot({params,searchParams}:Props){
  let validationError=false;
  try{if(!readError&&current?.result==="ready")verified=verifySignedReadback(current,{work_id:work.id,slug});}
  catch{validationError=true;}
- const unavailable=Boolean(taskError||readError||validationError||(task&&current?.result==="blocked"&&current?.reason!=="claimed_work_task_required"));
- const canSave=Boolean(task?.status==="claimed"&&task.assignee_user_id===actor.id&&!unavailable&&
-    (!verified||Boolean(verified.pending_issue)));
+ const approved=Boolean(!approvalError&&approval?.result==="approved_editorial_only"&&verified&&approval.draft_id===verified.draft_id&&approval.revision_sha256===verified.revision.revision_sha256&&approval.publication_allowed===false);
+ const unavailable=Boolean(taskError||readError||validationError||(task&&Boolean(approvalError))||(task&&current?.result==="blocked"&&current?.reason!=="claimed_work_task_required"));
+ const canSave=Boolean(task?.status==="claimed"&&task.assignee_user_id===actor.id&&!approved&&!unavailable&&
+    (!verified||Boolean(verified.pending_issue))) && approval?.result!=="approved_editorial_only";
  return <main style={{maxWidth:980,margin:"auto",padding:"36px 20px"}}>
   <p><Link href="/member/editorial-tasks">← Redakční úkoly</Link></p>
   <p style={{letterSpacing:".08em",fontSize:12}}>ARTales · Soukromý pilot sémantického editoru</p>
@@ -73,6 +75,8 @@ export default async function SelfSemanticPilot({params,searchParams}:Props){
   </section>
   <section style={{border:"1px solid #888",borderRadius:12,padding:20,margin:"20px 0"}}>
    <h2>2. Uložená sémantická revize</h2>
+   {approved?<p role="status"><strong>Redakčně schváleno</strong> — úkol uzavřen. Revize je neměnná; publikace zůstává zakázána.</p>:null}
+   {approval?.result==="approved_editorial_only"&&!approved?<p role="alert">Nesoulad schválení a uložené revize. Všechny úpravy jsou zablokované.</p>:null}
    {verified?<><p role="status">Nezávisle ověřený záznam: revize {verified.revision.round+1},
     SHA-256 <code>{verified.revision.revision_sha256}</code></p>
     <p>Zdroj <code>{verified.source_sha256}</code>. Publikace: <strong>zakázána</strong>.</p>
@@ -87,6 +91,6 @@ export default async function SelfSemanticPilot({params,searchParams}:Props){
     <p>Po uložení se stav znovu načte z databáze a ověří podle hashe. Pro další kolo je nutný nezávislý reviewer.</p>
    </form>:<p>Ukládání je dostupné jen po převzetí vlastního úkolu; případně musí existovat přesně ukotvená vrácená oprava.</p>}
   </section>
-  <p><strong>Další brána:</strong> Nezávislé redakční schválení a publikování zatím neexistují. Tato stránka je nemůže provést.</p>
+  <p><strong>Schvalování:</strong> Provádí je samostatná autorizovaná identita v kontrolním průchodu. Tento autorský pohled nesmí schválit vlastní revizi. Ani redakční schválení není povolením publikace.</p>
  </main>;
 }
