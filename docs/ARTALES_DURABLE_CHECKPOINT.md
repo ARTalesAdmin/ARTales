@@ -1,5 +1,11 @@
 # ARTales durable checkpoint — 2026-10-12 (historical sections retained)
 
+## Latest handoff — 2026-10-14 signed Alice browser E2 and Gallery conversion
+
+**Current Phoenix:** [ARTALES_PHOENIX_2026-10-14_E2_BROWSER_MIGRATION.md](./ARTALES_PHOENIX_2026-10-14_E2_BROWSER_MIGRATION.md). Draft PR #243 exact head `001f2bdae51ac316b428c19d28d86ca487f14e45`: full **synthetic signed GoTrue + actual headless Chromium/Next.js one-block correction and owner text QA** passed two independent local jobs in [CI 38611909299](https://github.com/ARTalesAdmin/ARTales/actions/runs/38611909299). Not merged, not a human/cloud test, not general authoring/Reader publication. No cloud ephemeral created. Architect will personally pilot Alice on short-lived isolated preview next session, after separate cost agreement and DB/auth/source prerequisites. Prod main and DB unchanged; 49 published + 15 draft works, no mass conversion. Read the new Phoenix and latest editorial-approval policy first; older checkpoint sections are historical.
+
+---
+
 ## Latest handoff — 2026-10-13 editorial QA, optional visuals and style inheritance
 
 **Current Phoenix:** [ARTALES_PHOENIX_2026-10-13_EDITORIAL_VISUAL.md](./ARTALES_PHOENIX_2026-10-13_EDITORIAL_VISUAL.md). **New durable policy proposal:** [ARTALES_EDITORIAL_VISUAL_QA_STYLE_POLICY_2026-10-13.md](./ARTALES_EDITORIAL_VISUAL_QA_STYLE_POLICY_2026-10-13.md). Key decisions: optional illustrations *per title* (text-only is full release), one combined QA when artworks ready, targeted QA for later artwork, preserve legacy public note / private editor_note / footnote, frozen versioned global block formatting with local overrides and no retroactive edits, global changes escalate architect. Third Reader panel undecided. Actual signed Alice editor E2E and source artwork Storage readback remain open; PR #237 CI green but Draft. **No additional Supabase ephemeral branches**. Read full dated Phoenix before working; live repo, DB and user authorizations override this checkpoint.
