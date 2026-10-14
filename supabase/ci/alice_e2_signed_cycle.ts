@@ -29,7 +29,7 @@ async function request(path:string,token:string,body?:unknown,method="POST"):Pro
  let data:ResponseData;
  try{
   const parsed:unknown=JSON.parse(txt);
-  data=parsed!==null&&typeof parsed==="object"&&!Array.isArray(parsed)
+  data=parsed!==null&&typeof parsed==="object"
    ? parsed as ResponseData : {raw:"non-object RPC response"};
  }catch{data={raw:txt.slice(0,250)}}
  return {status:response.status,data};
