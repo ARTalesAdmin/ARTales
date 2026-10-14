@@ -6,7 +6,8 @@ import {requireAdmin} from "@/lib/guards";
 import {createClient} from "@/lib/supabase/server";
 import {getServerSupabaseConnection} from "@/lib/supabase/connectionIsolation";
 import {composeFromCapturedDbA} from "@/lib/semantic/dbAComponentBridge";
-import {recomposeSemanticLayout,walkSemanticAtoms} from "@/lib/semantic/compose";
+import {recomposeSemanticLayout} from "@/lib/semantic/compose";
+import {listIndentableSemanticAtoms} from "@/lib/semantic/indentTarget";
 import {decodeSignedPilotSource,selfPilotAllowed,serializeSignedDraft} from "@/lib/semantic/selfPilotDraft";
 import {verifySignedReadback} from "@/lib/semantic/verifySignedReadback";
 import type {SemanticReviewIssue} from "@/lib/semantic/model";
@@ -128,7 +129,7 @@ export async function requestOwnAliceIndent(form:FormData):Promise<void>{
  let verified;
  try{verified=verifySignedReadback(current,{work_id:work,slug});}
  catch{redirect(path(slug)+"?error=issue");}
- if(verified.pending_issue||!walkSemanticAtoms(verified.revision.blocks).some(a=>a.id===atomId))
+ if(verified.pending_issue||!listIndentableSemanticAtoms(verified.revision).some(a=>a.id===atomId))
   redirect(path(slug)+"?error=issue");
  const {data:returned,error}=await db.rpc("return_semantic_v2_revision",{
   p_work_id:work,p_draft_id:verified.draft_id,
