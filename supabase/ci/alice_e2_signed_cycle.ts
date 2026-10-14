@@ -102,6 +102,13 @@ function saveArgs(r:SemanticRevision,parent:string|null,req:string){
 const rpc=(person:Actor,fn:string,args:unknown)=>request("/rest/v1/rpc/"+fn,person.token,args);
 const stage="stage_semantic_v2_draft",returnFn="return_semantic_v2_revision";
 // Architect-only pilot: one real admin JWT, same identity claiming an editor task.
+const choices=await rpc(admin,"list_semantic_v2_self_sources",{p_work_id:workId});
+if(choices.status!==200||choices.data.result!=="ready"||
+  !Array.isArray(choices.data.sources)||choices.data.sources.length!==1||
+  choices.data.sources[0].snapshot_id!==sourceId)
+ throw Error("Signed archived source selector did not return exact fixture source");
+const otherChoices=await rpc(editor,"list_semantic_v2_self_sources",{p_work_id:workId});
+assert.equal(otherChoices.data.reason,"admin_required");
 const selfQueued=await rpc(admin,"enqueue_semantic_v2_self_pilot",{
  p_work_id:workId,p_source_snapshot_id:sourceId,p_request_id:randomUUID()
 });
