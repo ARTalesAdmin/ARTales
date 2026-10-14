@@ -6,7 +6,7 @@ import {requireAdmin} from "@/lib/guards";
 import {createClient} from "@/lib/supabase/server";
 import {getServerSupabaseConnection} from "@/lib/supabase/connectionIsolation";
 import {composeFromCapturedDbA} from "@/lib/semantic/dbAComponentBridge";
-import {recomposeSemanticLayout} from "@/lib/semantic/compose";
+import {recomposeSemanticLayout,walkSemanticAtoms} from "@/lib/semantic/compose";
 import {decodeSignedPilotSource,selfPilotAllowed,serializeSignedDraft} from "@/lib/semantic/selfPilotDraft";
 import {verifySignedReadback} from "@/lib/semantic/verifySignedReadback";
 import type {SemanticReviewIssue} from "@/lib/semantic/model";
@@ -111,4 +111,34 @@ export async function approveOwnAliceTextQa(form:FormData):Promise<void>{
   receipt.publication_allowed!==false)redirect(path(slug)+"?error=qa");
  revalidatePath(path(slug));
  redirect(path(slug)+"?notice=text-qa-approved");
+}
+
+/** A strictly bounded in-work editor action: one anchored paragraph indent. */
+export async function requestOwnAliceIndent(form:FormData):Promise<void>{
+ const actor=await requireAdmin();
+ const slug=String(form.get("slug")??"");
+ const work=String(form.get("work")??"");
+ const atomId=String(form.get("atom")??"");
+ if(!safePilot(actor.id)||slug!=="alices-adventures-in-wonderland"||
+    !uuid.test(work)||!/^a:[0-9a-f]{24}$/.test(atomId))
+  redirect("/member/editorial-tasks?error=blocked");
+ const db=await createClient();
+ const {data:current,error:readError}=await db.rpc("get_semantic_v2_editor_state",{p_work_id:work});
+ if(readError||current?.result!=="ready")redirect(path(slug)+"?error=issue");
+ let verified;
+ try{verified=verifySignedReadback(current,{work_id:work,slug});}
+ catch{redirect(path(slug)+"?error=issue");}
+ if(verified.pending_issue||!walkSemanticAtoms(verified.revision.blocks).some(a=>a.id===atomId))
+  redirect(path(slug)+"?error=issue");
+ const {data:returned,error}=await db.rpc("return_semantic_v2_revision",{
+  p_work_id:work,p_draft_id:verified.draft_id,
+  p_expected_sha256:verified.revision.revision_sha256,
+  p_target_atom_id:atomId,
+  p_reason:"Prosím upravit odsazení tohoto jediného odstavce.",
+  p_request_id:randomUUID()
+ });
+ if(error||returned?.result!=="returned_for_changes"||returned.publication_allowed!==false)
+  redirect(path(slug)+"?error=issue");
+ revalidatePath(path(slug));
+ redirect(path(slug)+"?notice=issue");
 }
