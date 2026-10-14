@@ -139,11 +139,25 @@ begin
    and sa.source_snapshot_id=d.source_snapshot_id and sa.actor_id=d.actor_id
    and t.status='claimed' and t.assignee_user_id=sa.actor_id) then
   return jsonb_build_object('result','blocked','reason','claimed_owner_required');end if;
+ insert into artales_evidence.review_events(
+  work_id,artifact_kind,artifact_id,artifact_sha256,reviewer_id,result,reason)
+ select p_work_id,'text',d.text_revision_id,d.semantic_blocks_sha256,v_actor,
+   'approved',btrim(p_reason);
  insert into artales_evidence.semantic_v2_approvals(
-  work_id,draft_id,actor_id,request_id,revision_sha256,reason)
- values(p_work_id,p_draft_id,v_actor,p_request_id,p_revision_sha256,btrim(p_reason))
+  work_id,draft_id,actor_id,request_id,revision_sha256,reason,
+  task_id,author_id,review_event_id)
+ select p_work_id,p_draft_id,v_actor,p_request_id,p_revision_sha256,btrim(p_reason),
+  sa.task_id,sa.actor_id,
+  (select re.id from artales_evidence.review_events re
+    where re.work_id=p_work_id and re.reviewer_id=v_actor and re.result='approved'
+      and re.artifact_id=d.text_revision_id order by re.created_at desc,re.id desc limit 1)
+ from artales_evidence.semantic_v2_self_assignments sa where sa.work_id=p_work_id
  returning * into a;
- return jsonb_build_object('result','approved_editorial_only','approval_id',a.id,'publication_allowed',false);
+ update public.editorial_tasks set status='completed',completed_at=now(),updated_at=now()
+  where id=a.task_id and status='claimed' and assignee_user_id=a.author_id;
+ if not found then raise exception 'approval_task_transition_failed' using errcode='23514';end if;
+ return jsonb_build_object('result','approved_editorial_only','approval_id',a.id,
+   'task_id',a.task_id,'publication_allowed',false);
 end $$;
 revoke all on function public.approve_semantic_v2_revision(uuid,uuid,text,text,uuid) from public,anon,authenticated;
 grant execute on function public.approve_semantic_v2_revision(uuid,uuid,text,text,uuid) to authenticated;
