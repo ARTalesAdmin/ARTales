@@ -55,15 +55,47 @@ jobs:
         run: npx tsx --test tests/dbAComponentBridge.test.ts tests/verifySignedReadback.test.ts
       - name: Signed GoTrue/PostgREST E2 revision, return and child QA
         run: npx tsx supabase/ci/alice_e2_signed_cycle.ts
-      - name: Headless Chromium real UI smoke (isolated local GoTrue and PostgREST)
-        run: |
-          command -v google-chrome || command -v chromium
-          command -v chromedriver
-          npx tsx supabase/ci/alice_e2_browser_smoke.ts
       - name: TypeScript and bridge lint
         run: |
           npx tsc --noEmit
           npx eslint lib/semantic/dbAComponentBridge.ts lib/semantic/verifySignedReadback.ts lib/semantic/selfPilotDraft.ts lib/semantic/compose.ts tests/dbAComponentBridge.test.ts tests/verifySignedReadback.test.ts supabase/ci/alice_e2_signed_cycle.ts supabase/ci/alice_e2_browser_smoke.ts lib/semantic/indentTarget.ts 'app/member/works/[slug]/semantic/page.tsx' 'app/member/works/[slug]/semantic/actions.ts'
       - name: Destroy local project without backup
+        if: always()
+        run: supabase stop --no-backup
+
+  browser-e2e:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      SUPABASE_ACCESS_TOKEN: ''
+      SUPABASE_DB_PASSWORD: ''
+      PGHOST: 127.0.0.1
+      PGPORT: 54322
+      PGUSER: postgres
+      PGPASSWORD: postgres
+      PGDATABASE: postgres
+    steps:
+      - uses: actions/checkout@v4
+      - uses: supabase/setup-cli@v1
+        with:
+          version: 2.120.0
+      - run: supabase init --force
+      - name: Start isolated browser QA database
+        run: supabase start --exclude realtime,storage-api,imgproxy,mailpit,postgres-meta,studio,edge-runtime,logflare,vector,supavisor
+      - name: Prepare signed semantic and editorial approval RPCs locally
+        run: |
+          psql -X -v ON_ERROR_STOP=1 -f supabase/ci/alice_e2_signed_draft_assembly.sql
+          psql -X -v ON_ERROR_STOP=1 -f supabase/ci/alice_e2_approval_proof.sql
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - name: Run real Chrome browser against a separate synthetic Alice
+        run: |
+          command -v google-chrome || command -v chromium
+          command -v chromedriver
+          npx tsx supabase/ci/alice_e2_browser_smoke.ts
+      - name: Destroy isolated browser QA without backup
         if: always()
         run: supabase stop --no-backup
