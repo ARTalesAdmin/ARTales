@@ -574,4 +574,33 @@ end $source$;
 revoke all on function public.get_semantic_v2_self_source(uuid) from public,anon,authenticated;
 grant execute on function public.get_semantic_v2_self_source(uuid) to authenticated;
 
+
+-- Read-only, admin-only list of captured QA components for this exact work.
+-- IDs originate from immutable DB-A records, never user-entered hidden trust.
+create function public.list_semantic_v2_self_sources(p_work_id uuid)
+ returns jsonb language plpgsql stable security definer set search_path='' as $sources$
+declare v_actor uuid:=auth.uid(); v_list jsonb;
+begin
+ if v_actor is null or not exists(select 1 from public.profiles p
+   where p.id=v_actor and p.is_active and p.role='admin') then
+  return pg_catalog.jsonb_build_object('result','blocked','reason','admin_required');end if;
+ if not exists(select 1 from public.works w where w.id=p_work_id) then
+  return pg_catalog.jsonb_build_object('result','blocked','reason','work_not_found');end if;
+ select coalesce(pg_catalog.jsonb_agg(pg_catalog.jsonb_build_object(
+   'snapshot_id',s.id,'source_sha256',s.sha256,'captured_at',s.captured_at,
+   'component_id',c.id,'source_uri',s.source_uri,
+   'byte_length',pg_catalog.octet_length(s.source_bytes)
+ ) order by s.captured_at desc),'[]'::jsonb) into v_list
+ from artales_evidence.source_snapshots s
+ join artales_evidence.source_components c on c.snapshot_id=s.id
+ where s.work_id=p_work_id and s.kind='external_raw'
+   and c.kind='WORK_CONTENT' and c.disposition='qa_text_only'
+   and pg_catalog.octet_length(s.source_bytes)<=1048576
+   and (select count(*) from artales_evidence.source_components x
+     where x.snapshot_id=s.id and x.kind='WORK_CONTENT' and x.disposition='qa_text_only')=1;
+ return pg_catalog.jsonb_build_object('result','ready','sources',v_list,'publication_allowed',false);
+end $sources$;
+revoke all on function public.list_semantic_v2_self_sources(uuid) from public,anon,authenticated;
+grant execute on function public.list_semantic_v2_self_sources(uuid) to authenticated;
+
 commit;
