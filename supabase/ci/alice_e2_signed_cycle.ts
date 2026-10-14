@@ -199,6 +199,29 @@ if(latestRead.status!==200||latestRead.data.result!=="ready"||
  latestRead.data.serialized_payload!==child.p_serialized_payload||
  latestRead.data.publication_allowed!==false)
  throw Error("Signed E2 child-read mismatch "+JSON.stringify(latestRead));
+const approveArgs={p_work_id:workId,p_draft_id:second.data.draft_id,
+ p_revision_sha256:next.revision_sha256,p_reason:"Independent editorial pilot review completed.",
+ p_request_id:randomUUID()};
+const authorApproval=await rpc(admin,"approve_semantic_v2_revision",approveArgs);
+assert.equal(authorApproval.data.reason,"self_review_forbidden");
+const readerApproval=await rpc(reader,"approve_semantic_v2_revision",approveArgs);
+assert.equal(readerApproval.data.reason,"admin_required");
+const reviewerApproval=await rpc(reviewer,"approve_semantic_v2_revision",approveArgs);
+if(reviewerApproval.status!==200||reviewerApproval.data.result!=="approved_editorial_only"||
+ reviewerApproval.data.publication_allowed!==false)
+ throw Error("Independent approval denied "+JSON.stringify(reviewerApproval));
+const repeatApproval=await rpc(reviewer,"approve_semantic_v2_revision",approveArgs);
+assert.equal(repeatApproval.data.result,"already_approved");
+const reusedApproval=await rpc(reviewer,"approve_semantic_v2_revision",
+ {...approveArgs,p_reason:"A different approval review note."});
+assert.equal(reusedApproval.data.reason,"idempotency_key_reuse");
+const competingApproval=await rpc(reviewer,"approve_semantic_v2_revision",
+ {...approveArgs,p_request_id:randomUUID()});
+assert.equal(competingApproval.data.reason,"already_approved");
+const staleApproval=await rpc(reviewer,"approve_semantic_v2_revision",
+ {...approveArgs,p_draft_id:first.data.draft_id,p_revision_sha256:revision.revision_sha256,
+ p_request_id:randomUUID()});
+assert.equal(staleApproval.data.reason,"already_approved");
 const stale=await rpc(admin,stage,{...child,p_request_id:randomUUID()});
 assert.equal(stale.data.reason,"stale_parent");
 const staleReturn=await rpc(reviewer,returnFn,{...retArgs,p_request_id:randomUUID()});
