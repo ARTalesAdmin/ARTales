@@ -110,6 +110,7 @@ create function public.approve_semantic_v2_revision(
 declare v_actor uuid:=auth.uid(); h artales_evidence.semantic_v2_heads%rowtype;
  d artales_evidence.semantic_v2_drafts%rowtype;
  a artales_evidence.semantic_v2_approvals%rowtype;
+ v_review_event_id uuid;
 begin
  if v_actor is null or not exists(select 1 from public.profiles p
   where p.id=v_actor and p.role='admin' and p.is_active) then
@@ -141,16 +142,14 @@ begin
   return jsonb_build_object('result','blocked','reason','claimed_owner_required');end if;
  insert into artales_evidence.review_events(
   work_id,artifact_kind,artifact_id,artifact_sha256,reviewer_id,result,reason)
- select p_work_id,'text',d.text_revision_id,d.semantic_blocks_sha256,v_actor,
-   'approved',btrim(p_reason);
+ values(p_work_id,'text',d.text_revision_id,d.semantic_blocks_sha256,v_actor,
+   'approved',btrim(p_reason))
+ returning id into v_review_event_id;
  insert into artales_evidence.semantic_v2_approvals(
   work_id,draft_id,actor_id,request_id,revision_sha256,reason,
   task_id,author_id,review_event_id)
  select p_work_id,p_draft_id,v_actor,p_request_id,p_revision_sha256,btrim(p_reason),
-  sa.task_id,sa.actor_id,
-  (select re.id from artales_evidence.review_events re
-    where re.work_id=p_work_id and re.reviewer_id=v_actor and re.result='approved'
-      and re.artifact_id=d.text_revision_id order by re.created_at desc,re.id desc limit 1)
+  sa.task_id,sa.actor_id,v_review_event_id
  from artales_evidence.semantic_v2_self_assignments sa where sa.work_id=p_work_id
  returning * into a;
  update public.editorial_tasks set status='completed',completed_at=now(),updated_at=now()
