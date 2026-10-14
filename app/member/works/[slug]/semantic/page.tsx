@@ -24,12 +24,16 @@ export default async function SelfSemanticPilot({params,searchParams}:Props){
  const work=await getWorkForEditBySlug(slug);
  if(!work)notFound();
  const db=await createClient();
- const [{data:tasks,error:taskError},{data:current,error:readError}]=await Promise.all([
+ const [{data:tasks,error:taskError},{data:current,error:readError},{data:captures,error:captureError}]=await Promise.all([
   db.from("editorial_tasks").select("id,status,assignee_user_id,source_external_id")
     .eq("work_id",work.id).eq("source_external_id","semantic-v2-selfpilot:"+work.id).limit(1),
-  db.rpc("get_semantic_v2_editor_state",{p_work_id:work.id})
+  db.rpc("get_semantic_v2_editor_state",{p_work_id:work.id}),
+  db.rpc("list_semantic_v2_self_sources",{p_work_id:work.id})
  ]);
  const task=!taskError?(tasks as Task[]|null)?.[0]:undefined;
+ const eligibleSources=(!captureError&&captures?.result==="ready"&&Array.isArray(captures.sources))
+  ? (captures.sources as {snapshot_id:string;source_sha256:string;captured_at:string;source_uri:string|null;byte_length:number}[])
+  : [];
  let verified:ReturnType<typeof verifySignedReadback>|null=null;
  let validationError=false;
  try{if(!readError&&current?.result==="ready")verified=verifySignedReadback(current,{work_id:work.id,slug});}
@@ -48,13 +52,18 @@ export default async function SelfSemanticPilot({params,searchParams}:Props){
   {unavailable?<p role="alert">Databázový pilot nebo ověření revize nejsou dostupné. Zápis je zablokován.</p>:null}
   <section style={{border:"1px solid #888",borderRadius:12,padding:20,margin:"20px 0"}}>
    <h2>1. Můj redakční úkol</h2>
-   {!task?<><p>Úkol ještě neexistuje. Vlož UUID důvěryhodně archivovaného zdroje tohoto díla.
-    Nevytvářej jej z pouhého odkazu či živého textu stávající čtečky.</p>
+   {!task?<><p>Vyber archivovaný zdroj podle data a kontrolního otisku. Pokud žádný není dostupný,
+     chybí zatím důvěryhodný archivní záznam a nelze vytvořit úkol.</p>
     <form action={enqueueSelfPilot}>
      <input type="hidden" name="slug" value={slug}/><input type="hidden" name="work" value={work.id}/>
-     <label htmlFor="source">Archivovaný source snapshot UUID</label>
-     <input id="source" name="snapshot" required pattern="[0-9a-fA-F-]{36}" style={{display:"block",width:"100%",padding:10,margin:"8px 0"}}/>
-     <button type="submit" disabled={unavailable}>Založit soukromý úkol</button>
+     <label htmlFor="source">Archivovaný zdroj</label>
+     <select id="source" name="snapshot" required defaultValue="" style={{display:"block",width:"100%",padding:10,margin:"8px 0"}}>
+      <option value="" disabled>Vyber zdroj díla</option>
+      {eligibleSources.map(src=><option key={src.snapshot_id} value={src.snapshot_id}>
+       {src.captured_at.slice(0,10)} · {src.source_sha256.slice(0,12)} · {src.byte_length} bajtů
+      </option>)}
+     </select>
+     <button type="submit" disabled={unavailable||eligibleSources.length===0}>Založit soukromý úkol</button>
     </form></>:
     <><p>Stav: <strong>{task.status==="claimed"?"Převzatý mnou":task.status==="open"?"Čeká na převzetí":task.status}</strong></p>
      {task.status==="open"?<form action={claimEditorialTask}>
