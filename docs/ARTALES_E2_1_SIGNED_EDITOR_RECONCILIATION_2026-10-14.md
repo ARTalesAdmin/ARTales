@@ -61,3 +61,11 @@ The feature branch now contains `app/member/works/[slug]/semantic/page.tsx` and 
 **Test target:** signed GoTrue admin can create own task and claim, another editor cannot claim/see it, only owner can fetch exact archived bytes and save, initial save persists across fresh read, and a second save is possible only after independent anchored return. Current PR has not proved actual end-user browser persistence. A green local signed DB CI is not a deployed browser E2E.
 
 **Remaining blockers:** browser preview signed Auth and usability; upload/source capture route for existing works; private editor_note persistence vs public note/footnote; independent final approval/revision+task closure; rigorous negative tests for concurrent editing; legal evidence; release gate. PR stays Draft until those are complete. Neither editor UI nor the provisional SQL belongs to production without separate user authorization.
+
+## 2026-10-14 source-picker increment and approval gate hold
+
+The private pilot now provides `list_semantic_v2_self_sources`: a signed, admin-only, read-only, bounded selection from archived DB-A external_raw / WORK_CONTENT components. The user sees date, hash prefix and byte length instead of manually entering an opaque UUID. Source selection is disabled when archival evidence is absent. The source is validated again server-side during enqueue and composition. No production source capture or rights clearance is inferred.
+
+The independent final approval/atomic task closure was evaluated but a first SQL assembly failed structural checks before any CI validation. That malformed change was **fully reverted** to the last-known-good E2 assembly on commit 4974f6d4e37b90951ba7332bd75642586cd3d8cd. Do not claim approval has been implemented or previously tested. A narrow independent approval follow-up with separate negative tests is required. No human test invitation, production application, automatic assignment to Ivana/Pavla, release or merge is authorized by this work. This PR remains Draft.
+
+Browser proof still requires a real separate QA Supabase environment, a nonproduction user identity authorized for that ephemeral branch, and a session with verified cleanup. No ephemeral cloud branch was created. The current source selection verifies DB-A archive identity, not a new legal determination.
