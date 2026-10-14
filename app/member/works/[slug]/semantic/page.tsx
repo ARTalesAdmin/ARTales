@@ -34,7 +34,7 @@ export default async function SelfSemanticPilot({params,searchParams}:Props){
  let validationError=false;
  try{if(!readError&&current?.result==="ready")verified=verifySignedReadback(current,{work_id:work.id,slug});}
  catch{validationError=true;}
- const unavailable=Boolean(taskError||readError||validationError||current?.result==="blocked");
+ const unavailable=Boolean(taskError||readError||validationError||(task&&current?.result==="blocked"&&current?.reason!=="claimed_work_task_required"));
  const canSave=Boolean(task?.status==="claimed"&&task.assignee_user_id===actor.id&&!unavailable&&
     (!verified||Boolean(verified.pending_issue)));
  return <main style={{maxWidth:980,margin:"auto",padding:"36px 20px"}}>
