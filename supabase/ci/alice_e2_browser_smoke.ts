@@ -87,7 +87,7 @@ async function wd(method:string,path:string,body?:unknown):Promise<unknown>{
  return data;
 }
 function sid(){if(!session)throw Error("Missing browser session");return "/session/"+session;}
-async function script(js:string,args:unknown[]=[]):Promise<any>{
+async function script(js:string,args:unknown[]=[]):Promise<unknown>{
  return wd("POST",sid()+"/execute/sync",{script:js,args});
 }
 async function nav(url:string){
