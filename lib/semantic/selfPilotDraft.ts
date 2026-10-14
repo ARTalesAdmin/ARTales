@@ -26,6 +26,7 @@ export function decodeSignedPilotSource(value:unknown,expected:{work_id:string;s
    typeof v.component_id!=="string"||!uuid.test(v.component_id)||
    typeof v.source_sha256!=="string"||!hex.test(v.source_sha256)||
    v.component_kind!=="WORK_CONTENT"||v.disposition!=="qa_text_only"||
+   typeof v.byte_start!=="number"||typeof v.byte_end!=="number"||
    !Number.isSafeInteger(v.byte_start)||!Number.isSafeInteger(v.byte_end)||
    typeof v.source_base64!=="string"||v.source_base64.length>1_500_000||
    !/^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$/.test(v.source_base64))
