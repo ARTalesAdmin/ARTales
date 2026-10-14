@@ -79,3 +79,36 @@ export async function saveOwnSemanticDraft(form:FormData):Promise<void>{
  revalidatePath(path(slug));
  redirect(path(slug)+"?notice=saved");
 }
+
+/** Editorial text QA only; this NEVER authorizes publication or reader cutover. */
+export async function approveOwnAliceTextQa(form:FormData):Promise<void>{
+ const actor=await requireAdmin();
+ const slug=String(form.get("slug")??"");
+ const work=String(form.get("work")??"");
+ const draft=String(form.get("draft")??"");
+ const digest=String(form.get("digest")??"");
+ if(!safePilot(actor.id)||slug!=="alices-adventures-in-wonderland"||
+   !uuid.test(work)||!uuid.test(draft)||!/^[a-f0-9]{64}$/.test(digest))
+  redirect("/member/editorial-tasks?error=blocked");
+ const db=await createClient();
+ const {data:current,error:readError}=await db.rpc("get_semantic_v2_editor_state",{p_work_id:work});
+ if(readError||current?.result!=="ready")redirect(path(slug)+"?error=qa");
+ let signed;
+ try{signed=verifySignedReadback(current,{work_id:work,slug});}
+ catch{redirect(path(slug)+"?error=qa");}
+ if(signed.draft_id!==draft||signed.revision.revision_sha256!==digest||signed.pending_issue)
+  redirect(path(slug)+"?error=qa");
+ const {data:decision,error}=await db.rpc("approve_semantic_v2_revision",{
+  p_work_id:work,p_draft_id:draft,p_revision_sha256:digest,
+  p_reason:"Vlastní textová QA importovaného díla Alenka, bez publikace.",
+  p_request_id:randomUUID()
+ });
+ if(error||decision?.result!=="approved_editorial_only"||
+  decision.publication_allowed!==false)redirect(path(slug)+"?error=qa");
+ const {data:receipt,error:receiptError}=await db.rpc("get_semantic_v2_editor_approval",{p_work_id:work});
+ if(receiptError||receipt?.result!=="approved_editorial_only"||
+  receipt.draft_id!==draft||receipt.revision_sha256!==digest||
+  receipt.publication_allowed!==false)redirect(path(slug)+"?error=qa");
+ revalidatePath(path(slug));
+ redirect(path(slug)+"?notice=text-qa-approved");
+}
