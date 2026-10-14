@@ -16,6 +16,94 @@ alter table artales_evidence.semantic_v2_approvals enable row level security;
 revoke all on artales_evidence.semantic_v2_approvals from public,anon,authenticated;
 create trigger immutable_e2_approvals before update or delete on artales_evidence.semantic_v2_approvals
  for each row execute function artales_evidence.reject_mutation();
+-- Exact task completion is a signed-only transition; immutable columns unchanged.
+alter table artales_evidence.semantic_v2_approvals
+ add column task_id uuid references public.editorial_tasks(id) on delete restrict,
+ add column author_id uuid references public.profiles(id) on delete restrict,
+ add column review_event_id uuid references artales_evidence.review_events(id) on delete restrict;
+alter table artales_evidence.semantic_v2_approvals
+ alter column task_id set not null,
+ alter column author_id set not null,
+ alter column review_event_id set not null;
+alter table public.editorial_task_events drop constraint editorial_task_events_event_type_check;
+alter table public.editorial_task_events add constraint editorial_task_events_event_type_check
+ check(event_type in ('created','claimed','returned','approved'));
+create or replace function artales_internal.editorial_task_history()
+returns trigger language plpgsql security definer set search_path=''
+as $trigger$
+declare v_actor uuid:=auth.uid();v_event text;
+begin
+ if v_actor is null or not exists(select 1 from public.profiles p where p.id=v_actor and p.is_active and p.role in ('admin','editor'))
+ then raise exception 'editorial_actor_required' using errcode='42501';end if;
+ if tg_op='INSERT' then
+   if new.created_by<>v_actor or new.status<>'open'
+     or not ((new.kind='legal_review' and new.candidate_id is not null and new.work_id is null)
+       or (new.kind='edit_text' and new.work_id is not null and new.candidate_id is null
+         and new.source_system='artales' and
+         exists(select 1 from public.work_candidates c where c.matched_work_id=new.work_id and c.promoted_by=v_actor
+           and exists(select 1 from public.candidate_source_captures sc where sc.candidate_id=c.id and sc.source_id=c.preferred_source_id)))
+       or (new.kind='edit_text' and new.work_id is not null and new.candidate_id is null
+         and new.source_system='artales'
+         and new.source_external_id='semantic-v2-selfpilot:'||new.work_id::text
+         and exists(select 1 from artales_evidence.semantic_v2_self_assignments a
+           where a.task_id=new.id and a.work_id=new.work_id and a.actor_id=v_actor)))
+   then raise exception 'editorial_invalid_create' using errcode='23514';end if;
+   return new;
+ else
+   if row(new.id,new.candidate_id,new.work_id,new.kind,new.title,new.source_system,
+     new.source_external_id,new.created_by,new.created_at)
+     is distinct from row(old.id,old.candidate_id,old.work_id,old.kind,old.title,old.source_system,
+       old.source_external_id,old.created_by,old.created_at)
+     or (new.completed_at is distinct from old.completed_at and not
+       (old.status='claimed' and new.status='completed'
+         and old.completed_at is null and new.completed_at is not null))
+   then raise exception 'editorial_immutable_field_changed' using errcode='23514';end if;
+   if old.status='open' and new.status='claimed' and new.assignee_user_id=v_actor
+       and (not exists(select 1 from artales_evidence.semantic_v2_self_assignments a where a.task_id=new.id)
+         or exists(select 1 from artales_evidence.semantic_v2_self_assignments a
+           where a.task_id=new.id and a.actor_id=v_actor))
+   then new.claimed_at:=now();v_event:='claimed';
+   elsif old.status='claimed' and new.status='open' and new.assignee_user_id is null and
+     new.claimed_at is null and (old.assignee_user_id=v_actor or exists(select 1 from public.profiles p where p.id=v_actor and p.is_active and p.role='admin'))
+     and (not exists(select 1 from artales_evidence.semantic_v2_self_assignments a where a.task_id=new.id)
+       or exists(select 1 from artales_evidence.semantic_v2_self_assignments a
+         where a.task_id=new.id and a.actor_id=v_actor))
+   then v_event:='returned';
+   elsif old.status='claimed' and new.status='completed'
+     and new.assignee_user_id=old.assignee_user_id
+     and new.claimed_at=old.claimed_at
+     and old.completed_at is null and new.completed_at is not null
+     and exists(select 1 from artales_evidence.semantic_v2_approvals a
+       where a.task_id=new.id and a.work_id=new.work_id and a.actor_id=v_actor
+         and a.author_id=old.assignee_user_id)
+   then v_event:='approved';
+   else raise exception 'editorial_invalid_transition' using errcode='23514';end if;
+   new.updated_at:=now();
+   insert into public.editorial_task_events(task_id,event_type,actor_id)values(new.id,v_event,v_actor);
+   return new;
+ end if;
+end $trigger$;
+
+-- The same head lock is used by all editor operations. A final approval
+-- therefore serializes against any in-flight Save or Return.
+create function artales_internal.prevent_semantic_v2_postapproval()
+returns trigger language plpgsql set search_path='' as $freeze$
+begin
+ if exists(select 1 from artales_evidence.semantic_v2_approvals a
+   where a.work_id=new.work_id) then
+  raise exception 'semantic_v2_approved_revision_immutable' using errcode='23514';
+ end if;
+ return new;
+end $freeze$;
+revoke all on function artales_internal.prevent_semantic_v2_postapproval()
+ from public,anon,authenticated;
+create trigger e2_draft_after_approval before insert
+ on artales_evidence.semantic_v2_drafts for each row
+ execute function artales_internal.prevent_semantic_v2_postapproval();
+create trigger e2_issue_after_approval before insert
+ on artales_evidence.semantic_v2_review_issues for each row
+ execute function artales_internal.prevent_semantic_v2_postapproval();
+
 create function public.approve_semantic_v2_revision(
  p_work_id uuid,p_draft_id uuid,p_revision_sha256 text,p_reason text,p_request_id uuid)
  returns jsonb language plpgsql security definer set search_path='' as $$
