@@ -1,0 +1,29 @@
+name: ARTales real prescreen preview QA
+on:
+  pull_request:
+    branches: [develop]
+    paths:
+      - 'lib/prescreen/**'
+      - 'app/api/member/prescreen/**'
+      - 'app/member/admin/prescreen/**'
+      - 'components/admin/RealPrescreenConsole.tsx'
+      - 'app/member/admin/dashboard/page.tsx'
+      - 'tests/realPrescreen.test.ts'
+      - '.github/workflows/artales-real-prescreen-qa.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  prescreen:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - run: npx tsx --test tests/realPrescreen.test.ts tests/catalogProductionPlanner.test.ts
+      - run: npx tsc --noEmit
+      - run: npm run build
