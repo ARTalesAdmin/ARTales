@@ -40,6 +40,7 @@ alter table public.prescreen_decisions enable row level security;
 revoke all on public.prescreen_runs, public.prescreen_decisions from public, anon;
 grant select,insert,update on public.prescreen_runs to authenticated;
 grant select,insert on public.prescreen_decisions to authenticated;
+-- Decision updates are reserved to the explicitly authorized RPC.
 grant select on public.prescreen_decisions to service_role;
 grant select,insert,update on public.prescreen_runs to service_role;
 create policy prescreen_runs_admin_select on public.prescreen_runs for select to authenticated
@@ -60,7 +61,7 @@ create unique index if not exists work_candidates_title_author_identity_unique
 on public.work_candidates(lower(btrim(proposed_title)),lower(btrim(proposed_author_name)));
 
 create or replace function public.accept_prescreen_decision(p_decision_id uuid)
-returns jsonb language plpgsql security invoker set search_path='' as $$
+returns jsonb language plpgsql security definer set search_path='' as $
 declare
  v_dec public.prescreen_decisions%rowtype;
  v_actor uuid := auth.uid();
