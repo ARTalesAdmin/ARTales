@@ -52,8 +52,8 @@ function parseDocument(doc:SearchDoc,genre:PrescreenGenre,origin:BibliographicTi
     sourceUrl:apiOrigin+workKey};
 }
 
-export async function searchGenre(genre:PrescreenGenre, offset:number):Promise<BibliographicTitle[]> {
-  const docs=await search(OPEN_LIBRARY_QUERIES[genre],offset,40);
+export async function searchGenre(genre:PrescreenGenre, offset:number, limit=40):Promise<BibliographicTitle[]> {
+  const docs=await search(OPEN_LIBRARY_QUERIES[genre],offset,limit);
   return docs.map(d=>parseDocument(d,genre,"catalog")).filter((x):x is BibliographicTitle=>x!==null);
 }
 
