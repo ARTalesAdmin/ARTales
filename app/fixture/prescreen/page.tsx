@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import RealPrescreenConsole from "@/components/admin/RealPrescreenConsole";
+import OneLiveTitle from "@/components/admin/OneLiveTitle";
 import { isPrescreenFixture } from "@/lib/prescreen/access";
 
 export const dynamic = "force-dynamic";
@@ -21,5 +22,5 @@ export default function StandalonePrescreenFixturePage() {
   if (!isPrescreenFixture()) {
     notFound();
   }
-  return <RealPrescreenConsole fixture />;
+  return <><RealPrescreenConsole fixture /><OneLiveTitle /></>;
 }
