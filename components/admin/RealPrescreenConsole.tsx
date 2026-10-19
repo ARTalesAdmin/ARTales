@@ -1,7 +1,8 @@
 "use client";
 import {useState} from "react";
+const themeNames:Record<string,string>={horror:"Horor",romance:"Romantika",detective:"Detektivka",science_fiction:"Sci-fi",fantasy:"Fantasy",adventure:"Dobrodružství",humor:"Humor",historical:"Historické",mystery:"Záhady",social:"Společenské"};
 const genreNames:Record<string,string>={prose:"Próza",poetry:"Poezie",drama:"Drama",fairy_tale:"Pohádky",essay:"Eseje",other:"Ostatní"};
-type PortfolioResponse={weights:Record<string,number>;snapshot:{genreCounts:Record<string,number>;unknownGenre:number;publishedTotal:number;draftTotal:number;activeCandidateTotal:number};works:Array<{id:string;title:string;author:string;genre:string|null;status:string}>;revision:number};
+type PortfolioResponse={themes?:{weights:Record<string,number>;revision:number};weights:Record<string,number>;snapshot:{genreCounts:Record<string,number>;unknownGenre:number;publishedTotal:number;draftTotal:number;activeCandidateTotal:number};works:Array<{id:string;title:string;author:string;genre:string|null;status:string;themes?:string[]}>;revision:number};
 
 type Result = {mode:string;runId?:string; savedDecisions?:Array<{id:string;source_work_key:string}>; target:number; missing:number; stopReason:string;
   portfolio:{published:number;unclassified:number;classificationComplete:boolean};
@@ -14,6 +15,7 @@ export default function RealPrescreenConsole({fixture=false}:{fixture?:boolean})
   const [target,setTarget]=useState(5);
   const [portfolio,setPortfolio]=useState<PortfolioResponse|null>(null);
   const [weights,setWeights]=useState<Record<string,number>>({});
+  const [themeWeights,setThemeWeights]=useState<Record<string,number>>({});
   const [busy,setBusy]=useState(false);
   const [result,setResult]=useState<Result|null>(null);
   const [error,setError]=useState("");
@@ -24,12 +26,21 @@ export default function RealPrescreenConsole({fixture=false}:{fixture?:boolean})
     const r=await fetch("/api/member/prescreen/portfolio");
     const data=await r.json();
     if(!r.ok){setError(data.error??"portfolio_unavailable");return;}
-    setPortfolio(data);setWeights(data.weights);
+    setPortfolio(data);setWeights(data.weights);setThemeWeights(data.themes?.weights??{});
   }
   async function saveWeights(){
     const r=await fetch("/api/member/prescreen/portfolio",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({kind:"weights",weights})});
     const data=await r.json();
     if(!r.ok){setError(data.error??"weights_failed");return;}await loadPortfolio();
+  }
+  async function saveThemeWeights(){
+    const r=await fetch("/api/member/prescreen/portfolio",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({kind:"theme_weights",weights:themeWeights})});
+    const data=await r.json();if(!r.ok){setError(data.error??"theme_weights_failed");return;}await loadPortfolio();
+  }
+  async function toggleTheme(workId:string,tags:string[],tag:string){
+    const next=tags.includes(tag)?tags.filter(t=>t!==tag):[...tags,tag];
+    const r=await fetch("/api/member/prescreen/portfolio",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({kind:"theme_tag",workId,tags:next})});
+    const data=await r.json();if(!r.ok){setError(data.error??"theme_tag_failed");return;}await loadPortfolio();
   }
   async function setGenre(workId:string,genre:string){
     const r=await fetch("/api/member/prescreen/portfolio",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({kind:"classify",workId,genre})});
@@ -86,9 +97,18 @@ export default function RealPrescreenConsole({fixture=false}:{fixture?:boolean})
         </div>
         <p>Součet vah: {Object.values(weights).reduce((a,b)=>a+b,0)} %</p>
         {!fixture&&<button type="button" className="artales-button-secondary" disabled={Object.values(weights).reduce((a,b)=>a+b,0)!==100} onClick={saveWeights}>Uložit váhy</button>}
+        <h3>Tematické žánry (více štítků na dílo)</h3>
+        <div style={{display:"flex",gap:12,flexWrap:"wrap"}}>
+         {Object.entries(themeNames).map(([tag,name])=><label key={tag} style={{width:135}}>{name}<input type="number" min={0} max={100} value={themeWeights[tag]??0} onChange={e=>setThemeWeights(old=>({...old,[tag]:Number(e.target.value)}))} style={{display:"block",width:75,padding:6}}/></label>)}
+        </div>
+        <p>Součet tematických priorit: {Object.values(themeWeights).reduce((a,b)=>a+b,0)} %</p>
+        {!fixture&&<button type="button" className="artales-button-secondary" disabled={Object.values(themeWeights).reduce((a,b)=>a+b,0)!==100} onClick={saveThemeWeights}>Uložit tematické váhy</button>}
         <details><summary>Klasifikace jednotlivých děl ({portfolio.works.length})</summary>
           {portfolio.works.map(w=><div key={w.id} style={{padding:6,borderBottom:"1px solid #ddd"}}><strong>{w.title}</strong> — {w.author} ({w.status}) · {w.genre??"Nezařazeno"}
-            {!fixture&&<select aria-label={"Žánr "+w.title} value={w.genre??""} onChange={e=>setGenre(w.id,e.target.value)}><option value="">Vyber žánr</option>{Object.entries(genreNames).map(([k,n])=><option key={k} value={k}>{n}</option>)}</select>}</div>)}
+            {!fixture&&<select aria-label={"Žánr "+w.title} value={w.genre??""} onChange={e=>setGenre(w.id,e.target.value)}><option value="">Vyber žánr</option>{Object.entries(genreNames).map(([k,n])=><option key={k} value={k}>{n}</option>)}</select>}
+          {!fixture&&<div style={{display:"flex",flexWrap:"wrap",gap:7}}>
+           {Object.entries(themeNames).map(([tag,label])=><label key={tag}><input type="checkbox" checked={w.themes?.includes(tag)??false} onChange={()=>toggleTheme(w.id,w.themes??[],tag)}/>{label}</label>)}
+          </div>}</div>)}
         </details>
       </>}
     </section>
