@@ -137,6 +137,10 @@ const sourceInput=decodeSignedPilotSource(privateSource.data,{work_id:workId,slu
 assert.equal(sourceInput.snapshot_sha256,sourceDigest);
 assert.equal(Buffer.from(sourceInput.source_bytes).toString("utf8"),sourceText);
 assert.equal(serializeSignedDraft(revision).sha256,revision.revision_sha256);
+// Other active administrators may review through their designated RPCs,
+// but cannot inspect another admin's private self-pilot draft readback.
+const foreignPilotRead=await rpc(reviewer,"get_semantic_v2_editor_state",{p_work_id:workId});
+assert.equal(foreignPilotRead.data.reason,"pilot_owner_required");
 const foreignSource=await rpc(editor,"get_semantic_v2_self_source",{p_work_id:workId});
 assert.equal(foreignSource.data.reason,"admin_required");
 const readerSource=await rpc(reader,"get_semantic_v2_self_source",{p_work_id:workId});
@@ -151,6 +155,9 @@ const foreign=await rpc(admin,stage,{...initial,p_work_id:otherWork,p_request_id
 assert.equal(foreign.data?.result,"blocked");
 const badDigest=await rpc(admin,stage,{...initial,p_request_id:randomUUID(),p_expected_sha256:"f".repeat(64)});
 assert.equal(badDigest.data?.reason,"revision_digest_mismatch");
+// An admin role by itself is never enough to stage an unrelated work.
+const unclaimedAdmin=await rpc(reviewer,stage,{...initial,p_work_id:otherWork,p_request_id:randomUUID()});
+assert.equal(unclaimedAdmin.data.reason,"claimed_work_task_required");
 const first=await rpc(admin,stage,initial);
 if(first.status!==200||first.data.result!=="saved_draft"||!first.data.draft_id||
    first.data.publication_allowed!==false)throw Error("Initial signed draft failed "+JSON.stringify(first));
