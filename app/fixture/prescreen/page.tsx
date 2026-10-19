@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import RealPrescreenConsole from "@/components/admin/RealPrescreenConsole";
-import OneLiveTitle from "@/components/admin/OneLiveTitle";
+import LiveBatchPreview from "@/components/admin/LiveBatchPreview";
 import { isPrescreenFixture } from "@/lib/prescreen/access";
 
 export const dynamic = "force-dynamic";
@@ -22,5 +22,5 @@ export default function StandalonePrescreenFixturePage() {
   if (!isPrescreenFixture()) {
     notFound();
   }
-  return <><RealPrescreenConsole fixture /><OneLiveTitle /></>;
+  return <><LiveBatchPreview /><p style={{maxWidth:980,margin:"auto"}}><a href="/fixture/prescreen/strategy">Nastavení váhové politiky (fixture)</a></p></>;
 }
