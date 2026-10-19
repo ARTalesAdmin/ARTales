@@ -8,7 +8,7 @@ type Result = {mode:string; target:number; missing:number; stopReason:string;
   decisions:Array<{item:{title:string;author:string};outcome:string;reason:string}>;
   errors:string[];exploredGenres:string[]};
 
-export default function RealPrescreenConsole() {
+export default function RealPrescreenConsole({fixture=false}:{fixture?:boolean}) {
   const [target,setTarget]=useState(5);
   const [busy,setBusy]=useState(false);
   const [result,setResult]=useState<Result|null>(null);
@@ -30,8 +30,8 @@ export default function RealPrescreenConsole() {
     URL.revokeObjectURL(uri);
   }
   return <main style={{maxWidth:1050,margin:"auto",padding:"35px 22px 75px",lineHeight:1.6}}>
-    <h1>Sestavit kandidáty — skutečná bibliografická rešerše</h1>
-    <p>Řízený výběr podle žánrových vah a skutečných katalogových záznamů. Zatím pouze náhled:
+    <h1>Sestavit kandidáty — {fixture?"izolovaná fixture":"skutečná bibliografická rešerše"}</h1>
+    <p>{fixture?"Fixture nad fiktivními knihami bez přihlášení.":"Řízený výběr podle žánrových vah a skutečných katalogových záznamů."} Zatím pouze náhled:
       nic se neukládá, nevydává ani nepředává právnímu checkeru.</p>
     <aside style={{padding:16,border:"1px solid #a98342",marginBottom:18}}>
       Žánrová klasifikace současné knihovny dosud není ověřená. Váhy jsou prozatím
@@ -45,7 +45,7 @@ export default function RealPrescreenConsole() {
       {busy?"Dohledávám zdroje…":"Sestavit kandidáty"}
     </button>
     {error&&<p role="alert">Chyba: {error}</p>}
-    {result&&<section style={{marginTop:22}}>
+    {result&&<section style={{marginTop:22}}>{result.mode==="isolated_fixture"&&<p role="status">Fixture: žádné skutečné účty, drafty ani produkční data.</p>}
       <h2>Výsledek: {result.selected.length} / {result.target}</h2>
       <p>Ověření katalogového zdroje ≠ právní oprávnění. K právnímu checkeru lze
         kandidáty předat až po potvrzení a zajištění jejich persistence.</p>
