@@ -6,7 +6,7 @@ const base=():PortfolioInventory=>({genreCounts:{prose:20,poetry:0,drama:0,fairy
 const make=(key:string,genre:BibliographicTitle["genre"]="poetry"):BibliographicTitle=>({workKey:"/works/OL"+key+"W",title:"Work "+key,author:"Author "+key,authorKey:"OL"+key+"A",genre,firstPublished:1900,authorBorn:1850,authorDied:1920,sourceUrl:"https://openlibrary.org/works/OL"+key+"W",origin:"catalog"});
 test("deduplicates title/author and source keys against existing library and batch",()=>{
  const one=make("1"), duplicate={...one,workKey:"/works/OL99W",authorKey:"OL99A"};
- const result=planPrescreen([one,duplicate,make("2")],base(),2,DEFAULT_PRESCREEN_WEIGHTS);
+ const result=planPrescreen([one,duplicate,make("2")],base(),3,DEFAULT_PRESCREEN_WEIGHTS);
  assert.equal(result.candidates.length,2);assert.equal(result.decisions.filter(x=>x.outcome==="duplicate").length,1);
  const withExisting=base();withExisting.existingIdentityKeys.push(identityKey(one.title,one.author));
  assert.equal(planPrescreen([one],withExisting,1,DEFAULT_PRESCREEN_WEIGHTS).candidates.length,0);
