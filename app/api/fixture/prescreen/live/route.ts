@@ -29,3 +29,6 @@ export async function POST(){
     note:"Živý katalogový test, pouze metadata; fixture nečte reálnou knihovnu ARTales a nic neukládá."});
  }catch(e){return NextResponse.json({ok:false,error:"catalog_lookup_failed",detail:e instanceof Error?e.message:"unknown"},{status:502});}
 }
+
+/** Read-only smoke endpoint is intentionally accessible by GET for preview QA. */
+export const GET=POST;
