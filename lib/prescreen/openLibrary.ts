@@ -32,7 +32,6 @@ async function getJson(url: URL): Promise<unknown> {
 async function search(query:string, offset=0, limit=40):Promise<SearchDoc[]>{
   const url = new URL("/search.json",apiOrigin);
   url.searchParams.set("q",query);
-  url.searchParams.set("sort","key");
   url.searchParams.set("fields","key,title,author_name,author_key,first_publish_year");
   url.searchParams.set("limit",String(Math.min(50,Math.max(1,limit))));
   url.searchParams.set("offset",String(Math.max(0,offset)));
