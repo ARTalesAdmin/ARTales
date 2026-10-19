@@ -15,6 +15,7 @@ export default function RealPrescreenConsole({fixture=false}:{fixture?:boolean})
   const [error,setError]=useState("");
   const [history,setHistory]=useState<Array<{id:string;requested:number;status:string;created_at:string}>>([]);
   const [accepted,setAccepted]=useState<Record<string,string>>({});
+  const [pastDecisions,setPastDecisions]=useState<Array<{id:string;title:string;author:string;outcome:string;reason:string;accepted_candidate_id:string|null}>>([]);
   async function start() {
     setBusy(true);setError("");
     try {
@@ -28,6 +29,10 @@ export default function RealPrescreenConsole({fixture=false}:{fixture?:boolean})
   async function showHistory(){
     const r=await fetch("/api/member/prescreen/history");
     if(r.ok){const data=await r.json();setHistory(data.runs??[]);}
+  }
+  async function openRun(runId:string){
+    const r=await fetch("/api/member/prescreen/history?runId="+encodeURIComponent(runId));
+    if(r.ok){const data=await r.json();setPastDecisions(data.decisions??[]);}
   }
   async function accept(workKey:string){
     if(!result?.runId||!result.savedDecisions)return;
@@ -60,7 +65,15 @@ export default function RealPrescreenConsole({fixture=false}:{fixture?:boolean})
       {busy?"Dohledávám zdroje…":"Sestavit kandidáty"}
     </button>
     {!fixture&&<button className="artales-button-secondary" type="button" onClick={showHistory} style={{marginLeft:12}}>Historie prescreenů</button>}
-    {history.length>0&&<ul>{history.map(h=><li key={h.id}>{new Date(h.created_at).toLocaleString("cs-CZ")} — {h.status}, cíl {h.requested}</li>)}</ul>}
+    {history.length>0&&<ul>{history.map(h=><li key={h.id}>
+      <button type="button" className="artales-button-secondary" onClick={()=>openRun(h.id)}>
+        {new Date(h.created_at).toLocaleString("cs-CZ")} — {h.status}, cíl {h.requested}
+      </button></li>)}</ul>}
+    {pastDecisions.length>0&&<details open><summary>Uložená rozhodnutí a důvody</summary>
+      <ul>{pastDecisions.map(d=><li key={d.id}><strong>{d.title}</strong> — {d.author}: {d.outcome}, {d.reason}
+       {d.accepted_candidate_id&&<a href={"/member/candidates/"+d.accepted_candidate_id}> Otevřít kandidáta</a>}
+      </li>)}</ul>
+    </details>}
     {error&&<p role="alert">Chyba: {error}</p>}
     {result&&<section style={{marginTop:22}}>{result.mode==="isolated_fixture"&&<p role="status">Fixture: žádné skutečné účty, drafty ani produkční data.</p>}
       <h2>Výsledek: {result.selected.length} / {result.target}</h2>
