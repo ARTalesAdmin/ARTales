@@ -1,5 +1,7 @@
 "use client";
 import {useState} from "react";
+const genreNames:Record<string,string>={prose:"Próza",poetry:"Poezie",drama:"Drama",fairy_tale:"Pohádky",essay:"Eseje",other:"Ostatní"};
+type PortfolioResponse={weights:Record<string,number>;snapshot:{genreCounts:Record<string,number>;unknownGenre:number;publishedTotal:number;draftTotal:number;activeCandidateTotal:number};works:Array<{id:string;title:string;author:string;genre:string|null;status:string}>;revision:number};
 
 type Result = {mode:string;runId?:string; savedDecisions?:Array<{id:string;source_work_key:string}>; target:number; missing:number; stopReason:string;
   portfolio:{published:number;unclassified:number;classificationComplete:boolean};
@@ -10,12 +12,29 @@ type Result = {mode:string;runId?:string; savedDecisions?:Array<{id:string;sourc
 
 export default function RealPrescreenConsole({fixture=false}:{fixture?:boolean}) {
   const [target,setTarget]=useState(5);
+  const [portfolio,setPortfolio]=useState<PortfolioResponse|null>(null);
+  const [weights,setWeights]=useState<Record<string,number>>({});
   const [busy,setBusy]=useState(false);
   const [result,setResult]=useState<Result|null>(null);
   const [error,setError]=useState("");
   const [history,setHistory]=useState<Array<{id:string;requested:number;status:string;created_at:string}>>([]);
   const [accepted,setAccepted]=useState<Record<string,string>>({});
   const [pastDecisions,setPastDecisions]=useState<Array<{id:string;title:string;author:string;outcome:string;reason:string;accepted_candidate_id:string|null}>>([]);
+  async function loadPortfolio(){
+    const r=await fetch("/api/member/prescreen/portfolio");
+    const data=await r.json();
+    if(!r.ok){setError(data.error??"portfolio_unavailable");return;}
+    setPortfolio(data);setWeights(data.weights);
+  }
+  async function saveWeights(){
+    const r=await fetch("/api/member/prescreen/portfolio",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({kind:"weights",weights})});
+    const data=await r.json();
+    if(!r.ok){setError(data.error??"weights_failed");return;}await loadPortfolio();
+  }
+  async function setGenre(workId:string,genre:string){
+    const r=await fetch("/api/member/prescreen/portfolio",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({kind:"classify",workId,genre})});
+    const data=await r.json();if(!r.ok){setError(data.error??"classification_failed");return;}await loadPortfolio();
+  }
   async function start() {
     setBusy(true);setError("");
     try {
@@ -57,6 +76,22 @@ export default function RealPrescreenConsole({fixture=false}:{fixture?:boolean})
       Žánrová klasifikace současné knihovny dosud není ověřená. Váhy jsou prozatím
       pracovní; prescreen je označuje jako nejisté a nevydává je za skutečnou vyváženost.
     </aside>
+    <section style={{padding:15,border:"1px solid #cbbda8",marginBottom:18}}>
+      <h2>Portfolio a cílové váhy</h2>
+      <button type="button" className="artales-button-secondary" onClick={loadPortfolio}>Načíst portfolio a váhy</button>
+      {portfolio&&<>
+        <p>Publikováno: {portfolio.snapshot.publishedTotal} · Drafty: {portfolio.snapshot.draftTotal} · Aktivní kandidáti: {portfolio.snapshot.activeCandidateTotal} · Nezařazeno: {portfolio.snapshot.unknownGenre}</p>
+        <div style={{display:"flex",gap:12,flexWrap:"wrap"}}>
+          {Object.entries(genreNames).map(([genre,name])=><label key={genre} style={{width:125}}>{name}<input type="number" min={0} max={100} value={weights[genre]??0} onChange={e=>setWeights(old=>({...old,[genre]:Number(e.target.value)}))} style={{display:"block",width:75,padding:6}}/>Aktuálně: {portfolio.snapshot.genreCounts[genre]??0}</label>)}
+        </div>
+        <p>Součet vah: {Object.values(weights).reduce((a,b)=>a+b,0)} %</p>
+        {!fixture&&<button type="button" className="artales-button-secondary" disabled={Object.values(weights).reduce((a,b)=>a+b,0)!==100} onClick={saveWeights}>Uložit váhy</button>}
+        <details><summary>Klasifikace jednotlivých děl ({portfolio.works.length})</summary>
+          {portfolio.works.map(w=><div key={w.id} style={{padding:6,borderBottom:"1px solid #ddd"}}><strong>{w.title}</strong> — {w.author} ({w.status}) · {w.genre??"Nezařazeno"}
+            {!fixture&&<select aria-label={"Žánr "+w.title} value={w.genre??""} onChange={e=>setGenre(w.id,e.target.value)}><option value="">Vyber žánr</option>{Object.entries(genreNames).map(([k,n])=><option key={k} value={k}>{n}</option>)}</select>}</div>)}
+        </details>
+      </>}
+    </section>
     <label style={{display:"block",marginBottom:12}}>Požadovaný počet kandidátů (1–12)
       <input type="number" min={1} max={12} value={target} onChange={e=>setTarget(Number(e.target.value))}
         style={{display:"block",padding:9}}/>
