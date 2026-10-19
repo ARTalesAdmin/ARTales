@@ -24,7 +24,7 @@ jobs:
           node-version: '22'
           cache: npm
       - run: npm ci
-      - run: npx tsx --test tests/realPrescreen.test.ts tests/catalogProductionPlanner.test.ts
+      - run: npx tsx --test tests/realPrescreen.test.ts tests/prescreenPortfolio.test.ts tests/catalogProductionPlanner.test.ts
       - run: npx tsc --noEmit
       - run: npm run build
   schema:
