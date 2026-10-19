@@ -23,7 +23,7 @@ const pause = (ms:number) => new Promise(resolve => setTimeout(resolve,ms));
 
 async function getJson(url: URL): Promise<unknown> {
   if(url.origin !== apiOrigin) throw new Error("catalog_endpoint_invalid");
-  const response = await fetch(url, {headers,signal:AbortSignal.timeout(3500),
+  const response = await fetch(url, {headers,signal:AbortSignal.timeout(10000),
     next:{revalidate:86400}});
   if(!response.ok) throw new Error("catalog_request_" + response.status);
   return response.json();
