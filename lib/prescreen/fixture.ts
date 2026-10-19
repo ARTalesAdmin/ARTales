@@ -1,4 +1,4 @@
-import type { PortfolioInventory, PrescreenWeights } from "./engine";
+import type { BibliographicTitle, PortfolioInventory, PrescreenWeights } from "./engine";
 import { identityKey, DEFAULT_PRESCREEN_WEIGHTS } from "./engine";
 
 /** Deliberately fictional, non-private titles. The fixture cannot disclose drafts. */
@@ -17,3 +17,12 @@ export const fixtureInventory:PortfolioInventory={
 };
 export const fixtureNotice="Ukázková knihovna: 2 publikovaná a 2 rozpracovaná fiktivní díla. " +
 "Zde se testuje algoritmus a průchod bez přihlášení. Skutečných 64 děl a databázový audit ověřujeme až v provozním režimu.";
+
+export const fixtureSuggestions:BibliographicTitle[]=[
+ {workKey:"/works/OL10001W",title:"Fixture: Unseen Fairy Tale",author:"Demo Storyteller",authorKey:"OL10001A",genre:"fairy_tale",firstPublished:1880,authorBorn:1820,authorDied:1899,sourceUrl:"https://openlibrary.org/works/OL10001W",origin:"catalog"},
+ {workKey:"/works/OL10002W",title:"Fixture: Unseen Essay",author:"Demo Essayist",authorKey:"OL10002A",genre:"essay",firstPublished:1890,authorBorn:1840,authorDied:1910,sourceUrl:"https://openlibrary.org/works/OL10002W",origin:"catalog"},
+ {workKey:"/works/OL10003W",title:"Fixture: Unseen Verse",author:"Demo Verse Writer",authorKey:"OL10003A",genre:"poetry",firstPublished:1855,authorBorn:1810,authorDied:1870,sourceUrl:"https://openlibrary.org/works/OL10003W",origin:"catalog"},
+ {workKey:"/works/OL10004W",title:"Fixture: Missing Date",author:"Demo Unknown",authorKey:"OL10004A",genre:"drama",firstPublished:null,authorBorn:1850,authorDied:1890,sourceUrl:"https://openlibrary.org/works/OL10004W",origin:"catalog"},
+ {workKey:"/works/OL10005W",title:"Fixture Draft Novel",author:"Demo Novelist",authorKey:"OL10005A",genre:"prose",firstPublished:1890,authorBorn:1850,authorDied:1920,sourceUrl:"https://openlibrary.org/works/OL10005W",origin:"catalog"},
+ {workKey:"/works/OL10006W",title:"Fixture: Another Essay",author:"Demo Other Essayist",authorKey:"OL10006A",genre:"essay",firstPublished:1870,authorBorn:1830,authorDied:1905,sourceUrl:"https://openlibrary.org/works/OL10006W",origin:"catalog"}
+];
