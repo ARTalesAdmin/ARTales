@@ -8,12 +8,12 @@ type SearchDoc = {
 type AuthorRecord = { birth_date?: string; death_date?: string };
 
 export const OPEN_LIBRARY_QUERIES: Record<PrescreenGenre,string> = {
-  prose: "subject:fiction AND first_publish_year:[1500 TO 1925]",
-  poetry: "subject:poetry AND first_publish_year:[1500 TO 1925]",
-  drama: "subject:drama AND first_publish_year:[1500 TO 1925]",
-  fairy_tale: "subject:fairy_tales AND first_publish_year:[1500 TO 1925]",
-  essay: "subject:essays AND first_publish_year:[1500 TO 1925]",
-  other: "subject:nonfiction AND first_publish_year:[1500 TO 1925]"
+  prose: "subject:fiction",
+  poetry: "subject:poetry",
+  drama: "subject:drama",
+  fairy_tale: "subject:fairy_tales",
+  essay: "subject:essays",
+  other: "subject:nonfiction"
 };
 
 /** Limited manual catalog lookup, not a bulk data API or a rights oracle. */
@@ -23,7 +23,7 @@ const pause = (ms:number) => new Promise(resolve => setTimeout(resolve,ms));
 
 async function getJson(url: URL): Promise<unknown> {
   if(url.origin !== apiOrigin) throw new Error("catalog_endpoint_invalid");
-  const response = await fetch(url, {headers,signal:AbortSignal.timeout(7500),
+  const response = await fetch(url, {headers,signal:AbortSignal.timeout(3500),
     next:{revalidate:86400}});
   if(!response.ok) throw new Error("catalog_request_" + response.status);
   return response.json();
