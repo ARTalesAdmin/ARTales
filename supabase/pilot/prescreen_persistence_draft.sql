@@ -29,8 +29,7 @@ create table public.prescreen_decisions(
  portfolio_score numeric not null default 0,
  evidence jsonb not null default '{}'::jsonb,
  accepted_candidate_id uuid references public.work_candidates(id),
- created_at timestamptz not null default now(),
- unique(run_id, source_work_key)
+ created_at timestamptz not null default now()
 );
 create index prescreen_decisions_identity_idx on public.prescreen_decisions(identity_key);
 create index prescreen_decisions_run_idx on public.prescreen_decisions(run_id,created_at);
