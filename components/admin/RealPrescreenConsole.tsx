@@ -11,7 +11,7 @@ type Result = {mode:string;runId?:string; savedDecisions?:Array<{id:string;sourc
   decisions:Array<{item:{title:string;author:string};outcome:string;reason:string}>;
   errors:string[];exploredGenres:string[]};
 
-export default function RealPrescreenConsole({fixture=false}:{fixture?:boolean}) {
+export default function RealPrescreenConsole({fixture=false,settings=false}:{fixture?:boolean;settings?:boolean}) {
   const [target,setTarget]=useState(5);
   const [portfolio,setPortfolio]=useState<PortfolioResponse|null>(null);
   const [weights,setWeights]=useState<Record<string,number>>({});
@@ -81,13 +81,13 @@ export default function RealPrescreenConsole({fixture=false}:{fixture?:boolean})
     URL.revokeObjectURL(uri);
   }
   return <main style={{maxWidth:1050,margin:"auto",padding:"35px 22px 75px",lineHeight:1.6}}>
-    <h1>Sestavit kandidáty — {fixture?"izolovaná fixture":"skutečná bibliografická rešerše"}</h1>
+    <h1>{settings?"Strategie výběru knihovny":`Sestavit kandidáty — ${fixture?"izolovaná fixture":"skutečná bibliografická rešerše"}`}</h1>
     <p>{fixture?"Fixture nad fiktivními knihami bez přihlášení. Bez trvalých zápisů.":"Řízený výběr reálných knih. Běhy a rozhodnutí se ukládají; přijetí do kandidátů vyžaduje tvé kliknutí."} Žádný prescreen neuděluje právní oprávnění ani nepublikuje knihu.</p>
     <aside style={{padding:16,border:"1px solid #a98342",marginBottom:18}}>
       Žánrová klasifikace současné knihovny dosud není ověřená. Váhy jsou prozatím
       pracovní; prescreen je označuje jako nejisté a nevydává je za skutečnou vyváženost.
     </aside>
-    <section style={{padding:15,border:"1px solid #cbbda8",marginBottom:18}}>
+    {settings&&<section style={{padding:15,border:"1px solid #cbbda8",marginBottom:18}}>
       <h2>Portfolio a cílové váhy</h2>
       <button type="button" className="artales-button-secondary" onClick={loadPortfolio}>Načíst portfolio a váhy</button>
       {portfolio&&<>
@@ -111,7 +111,8 @@ export default function RealPrescreenConsole({fixture=false}:{fixture?:boolean})
           </div>}</div>)}
         </details>
       </>}
-    </section>
+    </section>}
+{!settings&&<><p><a href={fixture?"/fixture/prescreen/strategy":"/member/admin/prescreen/strategy"}>Strategie knihovny: váhy a klasifikace</a></p>
     <label style={{display:"block",marginBottom:12}}>Požadovaný počet kandidátů (1–12)
       <input type="number" min={1} max={12} value={target} onChange={e=>setTarget(Number(e.target.value))}
         style={{display:"block",padding:9}}/>
@@ -153,6 +154,6 @@ export default function RealPrescreenConsole({fixture=false}:{fixture?:boolean})
       <details><summary>Audit rozhodnutí ({result.decisions.length})</summary>
         <ul>{result.decisions.map((d,i)=><li key={i}>{d.item.title} — {d.outcome}: {d.reason}</li>)}</ul>
       </details>
-    </section>}
+    </section>}</>}
   </main>;
 }
