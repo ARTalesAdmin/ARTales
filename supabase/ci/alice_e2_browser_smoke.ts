@@ -1,6 +1,6 @@
 /**
  * True headless-browser E2E against disposable localhost Supabase + Next.js.
- * Synthetic Alice-like source and test-only GoTrue user: NEVER live credentials,
+ * Pinned complete Gutenberg Alice and test-only GoTrue user: NEVER live credentials,
  * cloud Supabase, production work, production reader, or any release.
  * Chromium/ChromeDriver are preinstalled on the GitHub ubuntu-latest runner.
  */
@@ -30,8 +30,10 @@ const pinnedBytes=readFileSync("tests/fixtures/gutenberg/pg11-2016-gitenberg-11-
 const pinned=captureGutenbergBytes(pinnedBytes,getPg11FixtureRequest());
 const boundary=extractPg11Components(pinned);
 assert.equal(boundary.status,"ready_for_fixture");
-const span=boundary.content_components.find(x=>x.kind==="WORK_CONTENT")?.original;
-assert.ok(span);
+const literary=boundary.content_components.find(x=>x.kind==="WORK_CONTENT"&&x.disposition==="qa_text_only");
+if(!literary?.original)throw Error("Pinned Alice WORK_CONTENT boundary missing");
+const span=literary.original;
+const sourceHex=pinnedBytes.toString("hex");
 let next:ChildProcess|undefined,driver:ChildProcess|undefined,session:string|undefined;
 const logOutput:{next:string;driver:string}={next:"",driver:""};
 
@@ -67,20 +69,19 @@ function seed(actorId:string){
   "insert into public.works(id,title,slug,summary,content,canonical_language,origin_type,source_label,status,primary_author_id,created_by,updated_by)",
   "values(:'work','Alice Browser QA Fixture',:'slug',repeat('Synthetic source for browser-only proof. ',5),'Do not publish: browser synthetic source','en','public_domain','gutenberg','draft',:'author',:'actor',:'actor');",
   "insert into artales_evidence.source_snapshots(id,work_id,kind,source_uri,source_bytes)",
-  "values(:'snapshot',:'work','external_raw','https://raw.githubusercontent.com/GITenberg/Alice-s-Adventures-in-Wonderland_11/7f18748e114b994d5d9454d5793581bc0b9cf9d7/11-0.txt',decode(:'bytes','hex'));",
+  "values(:'snapshot',:'work','external_raw','https://raw.githubusercontent.com/GITenberg/Alice-s-Adventures-in-Wonderland_11/7f18748e114b994d5d9454d5793581bc0b9cf9d7/11-0.txt',decode('"+sourceHex+"','hex'));",
   "insert into artales_evidence.source_components(id,snapshot_id,kind,byte_start,byte_end,disposition,explanation)",
-  "values(:'component',:'snapshot','WORK_CONTENT',"+span.byte_start+","+span.byte_end+",'qa_text_only','Synthetic local browser fixture, not a rights determination');",
+  "values(:'component',:'snapshot','WORK_CONTENT',"+span.byte_start+","+span.byte_end+",'qa_text_only','Pinned literary component for nonpublishing QA');",
   "commit;"
  ].join("\n");
  const args=["-h","127.0.0.1","-p","54322","-U","postgres","-d","postgres","-X",
   "-v","ON_ERROR_STOP=1",...sqlVars({
    actor:actorId,email,author:authorId,author_slug:"browser-author-"+tag,
-   work:workId,slug,snapshot:sourceId,component:componentId,
-   bytes:pinnedBytes.toString("hex")
+   work:workId,slug,snapshot:sourceId,component:componentId
   })];
  const p=spawnSync("psql",args,{input:script,encoding:"utf8",
   env:{...process.env,PGPASSWORD:"postgres"},timeout:30000,maxBuffer:5000000});
- if(p.status!==0)throw Error("Local synthetic browser seed failed "+p.stderr.slice(0,1300));
+ if(p.status!==0)throw Error("Pinned Alice browser seed failed: "+(p.error?.message??p.stderr??"unknown psql failure").slice(0,1300));
 }
 async function wd(method:string,path:string,body?:unknown):Promise<unknown>{
  const res=await fetch(wdBase+path,{
