@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { requirePrescreenAccess } from "@/lib/prescreen/access";
 import { fixtureInventory, fixtureWeights, fixtureNotice, fixtureSuggestions } from "@/lib/prescreen/fixture";
+import { savePrescreenRun } from "@/lib/prescreen/persist";
 import { createClient } from "@/lib/supabase/server";
 import {
   DEFAULT_PRESCREEN_WEIGHTS,PRESCREEN_GENRES, planPrescreen, identityKey,
@@ -81,7 +82,17 @@ export async function POST(request:Request) {
     } catch {errors.push("catalog_lookup_failed:"+genre);}
     result=planPrescreen(source,inventory,target,weights);
   }
-  return NextResponse.json({mode:"real_bibliographic_preview",createdCandidates:0,
+  let saved;
+  try {
+    saved=await savePrescreenRun(db,access.userId,target,weights,
+      {published:inventory.publishedTotal,unknownGenre:inventory.unknownGenre},
+      result.decisions,{exploredGenres:attempted,missing:result.missing,errors});
+  } catch(error) {
+    return NextResponse.json({error:error instanceof Error?error.message:"prescreen_persistence_failed"},
+      {status:503});
+  }
+  return NextResponse.json({mode:"persistent_prescreen",runId:saved.runId,
+    savedDecisions:saved.decisions,createdCandidates:0,
     legalClearance:false,approvedForPublication:false,target,
     portfolio:{published:inventory.publishedTotal,
       unclassified:inventory.unknownGenre,genreCounts:inventory.genreCounts,
