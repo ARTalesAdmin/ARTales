@@ -323,7 +323,7 @@ begin
     where a.work_id=p_work_id and a.actor_id=actor
       and t.status='claimed' and t.kind='edit_text' and t.assignee_user_id=actor)
   then return pg_catalog.jsonb_build_object('result','blocked','reason','claimed_work_task_required');end if;
- elsif v_role='editor'::public.app_role and not exists(
+ elsif not exists(
   select 1 from public.editorial_tasks t where t.work_id=p_work_id and t.kind='edit_text'
     and t.status='claimed' and t.assignee_user_id=actor)
  then return pg_catalog.jsonb_build_object('result','blocked','reason','claimed_work_task_required');end if;
@@ -507,6 +507,15 @@ begin
      and t.assignee_user_id=v_actor
  ) then
   return pg_catalog.jsonb_build_object('result','blocked','reason','claimed_work_task_required');
+ end if;
+ -- Private self-pilot reads stay scoped to the owning admin, even
+ -- though unrelated admins retain their ordinary work-level review paths.
+ -- Owner may still inspect the immutable result after task completion.
+ if exists(select 1 from artales_evidence.semantic_v2_self_assignments a
+           where a.work_id=p_work_id)
+    and not exists(select 1 from artales_evidence.semantic_v2_self_assignments a
+                   where a.work_id=p_work_id and a.actor_id=v_actor) then
+   return pg_catalog.jsonb_build_object('result','blocked','reason','pilot_owner_required');
  end if;
  select slug into v_slug from public.works where id=p_work_id;
  if v_slug is null then
