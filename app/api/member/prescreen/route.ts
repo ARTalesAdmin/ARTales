@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { requirePrescreenAccess } from "@/lib/prescreen/access";
-import { fixtureInventory, fixtureWeights, fixtureNotice } from "@/lib/prescreen/fixture";
+import { fixtureInventory, fixtureWeights, fixtureNotice, fixtureSuggestions } from "@/lib/prescreen/fixture";
 import { createClient } from "@/lib/supabase/server";
 import {
   DEFAULT_PRESCREEN_WEIGHTS,PRESCREEN_GENRES, planPrescreen, identityKey,
@@ -25,7 +25,7 @@ export async function POST(request:Request) {
   if(!Number.isInteger(target)||target<1||target>12)
     return NextResponse.json({error:"target_1_to_12"},{status:400});
   if(access.fixture){
-    const demo=planPrescreen([],fixtureInventory,target,fixtureWeights);
+    const demo=planPrescreen(fixtureSuggestions,fixtureInventory,target,fixtureWeights);
     return NextResponse.json({mode:"isolated_fixture",createdCandidates:0,legalClearance:false,
       approvedForPublication:false,target,portfolio:{published:fixtureInventory.publishedTotal,
       unclassified:fixtureInventory.unknownGenre,genreCounts:fixtureInventory.genreCounts,
