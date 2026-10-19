@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
-import { requireAdmin } from "@/lib/guards";
+import { requirePrescreenAccess } from "@/lib/prescreen/access";
+import { fixtureInventory, fixtureWeights, fixtureNotice } from "@/lib/prescreen/fixture";
 import { createClient } from "@/lib/supabase/server";
 import {
   DEFAULT_PRESCREEN_WEIGHTS,PRESCREEN_GENRES, planPrescreen, identityKey,
@@ -18,11 +19,20 @@ function baseInventory():PortfolioInventory {
 export async function POST(request:Request) {
   if(process.env.VERCEL_ENV!=="preview"&&process.env.NODE_ENV!=="development")
     return NextResponse.json({error:"preview_only"},{status:404});
-  await requireAdmin();
+  const access=await requirePrescreenAccess();
   const body=await request.json().catch(()=>null);
   const target=Number(body?.target);
   if(!Number.isInteger(target)||target<1||target>12)
     return NextResponse.json({error:"target_1_to_12"},{status:400});
+  if(access.fixture){
+    const demo=planPrescreen([],fixtureInventory,target,fixtureWeights);
+    return NextResponse.json({mode:"isolated_fixture",createdCandidates:0,legalClearance:false,
+      approvedForPublication:false,target,portfolio:{published:fixtureInventory.publishedTotal,
+      unclassified:fixtureInventory.unknownGenre,genreCounts:fixtureInventory.genreCounts,
+      weights:fixtureWeights,classificationComplete:true},selected:demo.candidates,
+      decisions:demo.decisions,missing:demo.missing,stopReason:demo.stopReason,
+      exploredGenres:[],errors:[],note:fixtureNotice});
+  }
   const db=await createClient();
   // DB read is required for duplicate safety: fail closed if unavailable.
   const [{data:works,error:workError},{data:authors,error:authorError}]=await Promise.all([
