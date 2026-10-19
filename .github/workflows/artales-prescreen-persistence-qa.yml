@@ -48,10 +48,12 @@ jobs:
           file="$(find supabase/migrations -maxdepth 1 -name '*_prescreen_persistence.sql' -print -quit)"
           test -n "$file"
           cp supabase/pilot/prescreen_persistence_draft.sql "$file"
+          sleep 1
           supabase migration new prescreen_genre_policy
           genre_file="$(find supabase/migrations -maxdepth 1 -name '*_prescreen_genre_policy.sql' -print -quit)"
           test -n "$genre_file"
           cp supabase/pilot/prescreen_genres_and_weights.sql "$genre_file"
+          sleep 1
           supabase migration new prescreen_theme_tags
           theme_file="$(find supabase/migrations -maxdepth 1 -name '*_prescreen_theme_tags.sql' -print -quit)"
           test -n "$theme_file"
