@@ -56,6 +56,15 @@ export async function POST(request:Request) {
   inventory.existingIdentityKeys.push(...(prior??[]).map(c=>identityKey(
     c.normalized_title??c.proposed_title,c.normalized_author_name??c.proposed_author_name)));
 
+  // Previously shortlisted titles stay in their durable run history, rather
+  // than repeatedly consuming author lookups on every press of the button.
+  const {data:shortlisted,error:shortlistError}=await db.from("prescreen_decisions")
+    .select("source_work_key,identity_key,outcome").eq("outcome","candidate").limit(2500);
+  if(shortlistError)return NextResponse.json({error:"prescreen_history_unavailable"},{status:503});
+  inventory.existingWorkKeys=(shortlisted??[]).map(d=>d.source_work_key);
+  inventory.existingIdentityKeys.push(...(shortlisted??[]).map(d=>d.identity_key));
+  const alreadyConsidered=new Set(inventory.existingIdentityKeys);
+
   // No inferred weights from unclassified titles: weights remain visibly provisional.
   const weights=DEFAULT_PRESCREEN_WEIGHTS;
   const source:BibliographicTitle[]=[];
@@ -75,7 +84,8 @@ export async function POST(request:Request) {
     try {
       const found=await searchGenre(genre,0);
       // Resolve author dates only for a small promising subset; bounded requests.
-      for(const row of found.slice(0,12)) {
+      for(const row of found.filter(x=>!alreadyConsidered.has(identityKey(x.title,x.author))).slice(0,12)) {
+        alreadyConsidered.add(identityKey(row.title,row.author));
         try {source.push(await enrichAuthor(row));}catch {source.push(row);}
         await pause(375);
       }
