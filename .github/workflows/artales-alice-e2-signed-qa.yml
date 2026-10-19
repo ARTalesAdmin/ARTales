@@ -12,6 +12,7 @@ on:
       - 'lib/semantic/compose.ts'
       - 'lib/semantic/selfPilotDraft.ts'
       - 'app/member/works/**/semantic/**'
+      - 'app/login/actions.ts'
       - 'tests/dbAComponentBridge.test.ts'
       - 'supabase/ci/alice_e2_signed_cycle.ts'
       - 'supabase/ci/alice_e2_browser_smoke.ts'
