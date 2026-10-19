@@ -4,8 +4,7 @@ import { getServerSupabaseConnection } from "@/lib/supabase/connectionIsolation"
 
 export function isPrescreenFixture(): boolean {
   const target=getServerSupabaseConnection();
-  return isCandidatesFixturePreview() && !target.enabled &&
-    target.reason==="preview_unconfigured";
+  return isCandidatesFixturePreview() && !target.enabled;
 }
 export async function requirePrescreenAccess(){
   if(isPrescreenFixture())return {fixture:true as const,userId:null};
