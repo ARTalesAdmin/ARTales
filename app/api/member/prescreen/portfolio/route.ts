@@ -12,7 +12,7 @@ export async function GET(){
  if(access.fixture)return NextResponse.json({fixture:true,weights:fixtureWeights,
    snapshot:{genreCounts:fixtureInventory.genreCounts,unknownGenre:0,
      publishedTotal:2,draftTotal:2,activeCandidateTotal:0,classificationComplete:true},
-   works:PRESCREEN_FIXTURE_WORKS.map((w,i)=>({id:String(i),...w})),revision:1});
+   works:PRESCREEN_FIXTURE_WORKS.map((w,i)=>({id:String(i),...w,themes:[]})),themes:{weights:DEFAULT_THEME_WEIGHTS,revision:1},revision:1});
  try{
    const data=await loadPrescreenPortfolio(await createClient());
    const db=await createClient();
