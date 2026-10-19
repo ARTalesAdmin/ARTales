@@ -17,3 +17,6 @@ export async function POST(request:Request){
   searched:result.searched,errors:result.errors,
   warning:"Kontrola duplicit pouze proti fiktivní fixture, nikoli vůči produkční knihovně. Přijetí do kandidátů je pouze lokální náhled."});
 }
+
+/** One-title GET probe for deployment smoke only; same read-only fixture boundary. */
+export async function GET(){return POST(new Request("https://artales.invalid",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({target:1})}));}
