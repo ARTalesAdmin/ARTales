@@ -132,7 +132,9 @@ async function main(){
  next=spawn(process.execPath,["node_modules/next/dist/bin/next","dev","--hostname","127.0.0.1","--port","3107"],{
   env:{...process.env,NEXT_TELEMETRY_DISABLED:"1",
    NEXT_PUBLIC_SUPABASE_URL:api,NEXT_PUBLIC_SUPABASE_ANON_KEY:anon,
-   SUPABASE_SERVICE_ROLE_KEY:service,
+   // The runner seeds Auth through its own isolated local admin call above,
+   // but the Next.js app itself never receives privileged credentials.
+   SUPABASE_SERVICE_ROLE_KEY:"",ARTALES_TEST_READONLY_LOGIN:"1",
    ARTALES_SEMANTIC_SELF_PILOT_ADMIN_ID:created.id,
    VERCEL_ENV:"",NEXT_PUBLIC_VERCEL_ENV:"",NEXT_PUBLIC_ARTALES_EPHEMERAL_SUPABASE_REF:""},
   stdio:["ignore","pipe","pipe"]
