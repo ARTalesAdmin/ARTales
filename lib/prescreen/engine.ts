@@ -9,7 +9,7 @@ export type PrescreenGenre = CatalogGenre;
 export type PrescreenWeights = Record<PrescreenGenre, number>;
 
 export const DEFAULT_PRESCREEN_WEIGHTS: PrescreenWeights = {
-  prose: 25, poetry: 20, drama: 15, fairy_tale: 15, essay: 15, other: 10
+  prose: 25, poetry: 20, drama: 15, fairy_tale: 20, essay: 15, other: 5
 };
 
 export type BibliographicTitle = {

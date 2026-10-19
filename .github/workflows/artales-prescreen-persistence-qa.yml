@@ -1,0 +1,72 @@
+name: ARTales persistent prescreen QA
+on:
+  pull_request:
+    branches: [develop]
+    paths:
+      - 'lib/prescreen/**'
+      - 'app/api/member/prescreen/**'
+      - 'app/member/admin/prescreen/**'
+      - 'components/admin/RealPrescreenConsole.tsx'
+      - 'supabase/pilot/**'
+      - 'tests/realPrescreen.test.ts'
+      - '.github/workflows/artales-prescreen-persistence-qa.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  application:
+    runs-on: ubuntu-latest
+    timeout-minutes: 18
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - run: npx tsx --test tests/realPrescreen.test.ts tests/prescreenPortfolio.test.ts tests/prescreenThemes.test.ts tests/catalogProductionPlanner.test.ts
+      - run: npx tsc --noEmit
+      - run: npm run build
+  schema:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    env:
+      SUPABASE_ACCESS_TOKEN: ''
+      SUPABASE_DB_PASSWORD: ''
+    steps:
+      - uses: actions/checkout@v4
+      - uses: supabase/setup-cli@v1
+        with:
+          version: 2.120.0
+      - name: Start disposable local Supabase
+        run: |
+          supabase init --force
+          supabase start --exclude realtime,storage-api,imgproxy,mailpit,postgres-meta,studio,edge-runtime,logflare,vector,supavisor
+      - name: CLI-generated replay migration
+        run: |
+          supabase migration new prescreen_persistence
+          file="$(find supabase/migrations -maxdepth 1 -name '*_prescreen_persistence.sql' -print -quit)"
+          test -n "$file"
+          cp supabase/pilot/prescreen_persistence_draft.sql "$file"
+          sleep 1
+          supabase migration new prescreen_genre_policy
+          genre_file="$(find supabase/migrations -maxdepth 1 -name '*_prescreen_genre_policy.sql' -print -quit)"
+          test -n "$genre_file"
+          cp supabase/pilot/prescreen_genres_and_weights.sql "$genre_file"
+          sleep 1
+          supabase migration new prescreen_theme_tags
+          theme_file="$(find supabase/migrations -maxdepth 1 -name '*_prescreen_theme_tags.sql' -print -quit)"
+          test -n "$theme_file"
+          cp supabase/pilot/prescreen_theme_tags.sql "$theme_file"
+          echo "CANONICAL_CLI_MIGRATION=$file"
+      - name: Reset and replay all migrations
+        run: |
+          supabase db reset --local --yes
+          supabase migration list --local
+      - name: Assert security and no writes
+        run: |
+          docker exec supabase_db_$(basename "$PWD" | tr '[:upper:]' '[:lower:]') true || true
+          supabase db reset --local --yes
+      - name: Destroy disposable database
+        if: always()
+        run: supabase stop --no-backup
