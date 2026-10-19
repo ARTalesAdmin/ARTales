@@ -9,6 +9,7 @@ import {
 } from "@/lib/profileValidation";
 import { normalizeRole } from "@/lib/permissions";
 import { completeOnboardingForUser } from "@/lib/profileSync";
+import { getServerSupabaseConnection } from "@/lib/supabase/connectionIsolation";
 
 function safeNext(value: string) {
   return value && value.startsWith("/") && !value.startsWith("//") ? value : "";
@@ -42,10 +43,33 @@ export async function completeOnboarding(formData: FormData): Promise<void> {
     redirect(`/login?next=${encodeURIComponent("/onboarding")}`);
   }
 
-  const result = await completeOnboardingForUser(
-    { id: user.id, email: user.email },
-    { displayName, handle },
+  // No privileged Supabase service credential is available in an ephemeral
+  // preview. Complete ONLY the authenticated user's non-authority profile
+  // fields via the hardened column grants and existing RLS; never write role,
+  // is_active, invite_id or other authority fields here.
+  const connection = getServerSupabaseConnection();
+  const readonlyPreview = connection.enabled && (
+    connection.reason === "ephemeral" ||
+    (connection.reason === "local" && process.env.ARTALES_TEST_READONLY_LOGIN === "1")
   );
+  const result = readonlyPreview
+    ? await (async () => {
+        const { data: profile, error: saveError } = await supabase
+          .from("profiles")
+          .update({ display_name: displayName, handle, profile_completed_at: new Date().toISOString() })
+          .eq("id", user.id)
+          .select("id, role, display_name, handle, profile_completed_at")
+          .maybeSingle();
+        return {
+          ok: !saveError && profile?.id === user.id,
+          profile: profile ?? null,
+          reason: saveError?.code === "23505" ? "handle_taken" : "profile_update_failed",
+        };
+      })()
+    : await completeOnboardingForUser(
+        { id: user.id, email: user.email },
+        { displayName, handle },
+      );
 
   if (!result.ok || !result.profile) {
     const allowedReasons = new Set([
