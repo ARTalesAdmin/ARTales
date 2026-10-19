@@ -2,6 +2,8 @@
 import assert from "node:assert/strict";
 import {createHash,randomUUID} from "node:crypto";
 import {execFileSync,spawnSync} from "node:child_process";
+import {readFileSync} from "node:fs";
+import {captureGutenbergBytes,extractPg11Components,getPg11FixtureRequest,PG11_URI,PG11_BYTES_SHA256} from "../../lib/ingest/gutenbergSnapshot";
 import {composeFromCapturedDbA} from "../../lib/semantic/dbAComponentBridge";
 import {decodeSignedPilotSource,serializeSignedDraft} from "../../lib/semantic/selfPilotDraft";
 import {recomposeSemanticLayout,walkSemanticAtoms,verifySemanticRevision} from "../../lib/semantic/compose";
@@ -267,32 +269,42 @@ const query=spawnSync("psql",["-h","127.0.0.1","-p","54322","-U","postgres","-d"
  env:{...process.env,PGPASSWORD:"postgres"}});
 assert.equal(query.status,0);
 assert.equal(query.stdout.trim(),"draft");
-// Distinct synthetic Alice-shaped fixture: proves only the gated owner-QA
-// privilege branch, NOT actual Gutenberg source capture or public rights.
+// Positive privilege proof now uses the WHOLE pinned GITenberg 2016 archive,
+// not synthetic text claiming to be Project Gutenberg. Still strictly LOCAL QA.
+const aliceBytes=readFileSync("tests/fixtures/gutenberg/pg11-2016-gitenberg-11-0.txt");
+const pinned=captureGutenbergBytes(aliceBytes,getPg11FixtureRequest());
+assert.equal(pinned.bytes_sha256,PG11_BYTES_SHA256);
+const boundary=extractPg11Components(pinned);
+assert.equal(boundary.status,"ready_for_fixture",boundary.review_reasons.join("; "));
+const workSegments=boundary.content_components.filter(x=>x.kind==="WORK_CONTENT"&&x.disposition==="qa_text_only");
+assert.equal(workSegments.length,1);
+const workSpan=workSegments[0].original;
+assert.ok(workSpan&&workSpan.byte_end<=aliceBytes.length);
 const aliceWork=randomUUID(),aliceSource=randomUUID(),aliceComponent=randomUUID();
 const aliceSeed=[
  "begin;",
  "insert into public.works(id,title,slug,summary,content,canonical_language,origin_type,source_label,status,primary_author_id,created_by,updated_by)",
- "values(:'aw','Alice fixture','alices-adventures-in-wonderland',repeat('Synthetic QA only. ',16),'Synthetic only','en','public_domain','gutenberg','draft',:'author_id',:'admin_id',:'admin_id');",
+ "values(:'aw','Pinned Alice local QA','alices-adventures-in-wonderland',repeat('Private source attestation only. ',16),'Never publish this CI work','en','public_domain','gutenberg','draft',:'author_id',:'admin_id',:'admin_id');",
  "insert into artales_evidence.source_snapshots(id,work_id,kind,source_uri,source_bytes)",
- "values(:'as',:'aw','external_raw','https://www.gutenberg.org/ebooks/11',decode(:'bytes_hex','hex'));",
+ "values(:'as',:'aw','external_raw',:'pinned_uri',decode('"+aliceBytes.toString("hex")+"','hex'));",
  "insert into artales_evidence.source_components(id,snapshot_id,kind,byte_start,byte_end,disposition,explanation)",
- "values(:'ac',:'as','WORK_CONTENT',0,octet_length(decode(:'bytes_hex','hex')),'qa_text_only','Synthetic QA classification proof');",
+ "values(:'ac',:'as','WORK_CONTENT',"+workSpan.byte_start+","+workSpan.byte_end+",'qa_text_only','Pinned original English literary source, local text QA only');",
  "commit;"
 ].join("\n");
-const seededAlice=spawnSync("psql",[...args,"-v","aw="+aliceWork,"-v","as="+aliceSource,"-v","ac="+aliceComponent],
- {input:aliceSeed,encoding:"utf8",env:{...process.env,PGPASSWORD:"postgres"}});
-if(seededAlice.status!==0)throw Error("Alice-shaped fixture setup failed: "+seededAlice.stderr.slice(0,1000));
+const seededAlice=spawnSync("psql",[...args,"-v","aw="+aliceWork,"-v","as="+aliceSource,"-v","ac="+aliceComponent,
+ "-v","pinned_uri="+PG11_URI],{input:aliceSeed,encoding:"utf8",
+ env:{...process.env,PGPASSWORD:"postgres"},maxBuffer:5_000_000,timeout:30000});
+if(seededAlice.status!==0)throw Error("Pinned Alice fixture setup failed: "+seededAlice.stderr.slice(0,1500));
 const queuedAlice=await rpc(admin,"enqueue_semantic_v2_self_pilot",
  {p_work_id:aliceWork,p_source_snapshot_id:aliceSource,p_request_id:randomUUID()});
 if(queuedAlice.data.result!=="queued_for_review")throw Error("Alice owner pilot task missing");
 const aliceClaim=await rpc(admin,"claim_editorial_task",{p_task_id:queuedAlice.data.task_id});
 if(aliceClaim.data.result!=="claimed")throw Error("Alice owner pilot not claimed");
-const {revision:aliceRevision}=composeFromCapturedDbA({
+const {revision:aliceRevision,original_raw:aliceOriginal}=composeFromCapturedDbA({
  work_id:aliceWork,work_slug:"alices-adventures-in-wonderland",
- snapshot_id:aliceSource,snapshot_sha256:sourceDigest,source_bytes:bytes,
+ snapshot_id:aliceSource,snapshot_sha256:PG11_BYTES_SHA256,source_bytes:aliceBytes,
  component_id:aliceComponent,component_kind:"WORK_CONTENT",
- disposition:"qa_text_only",byte_start:0,byte_end:bytes.length
+ disposition:"qa_text_only",byte_start:workSpan.byte_start,byte_end:workSpan.byte_end
 });
 const {serialized:aliceSerialized,sha256:aliceDigest}=serializeSignedDraft(aliceRevision);
 const aliceSaved=await rpc(admin,stage,{
@@ -301,8 +313,8 @@ const aliceSaved=await rpc(admin,stage,{
  p_parent_draft_id:null,p_request_id:randomUUID()
 });
 if(aliceSaved.data.result!=="saved_draft")throw Error("Alice owner save denied");
-const aliceTarget=walkSemanticAtoms(aliceRevision.blocks).find(a=>a.raw.includes("A short paragraph"));
-assert.ok(aliceTarget,"Synthetic Alice paragraph target missing");
+const aliceTarget=walkSemanticAtoms(aliceRevision.blocks).find(a=>a.raw.includes("Alice was beginning"));
+assert.ok(aliceTarget,"Pinned Alice paragraph target missing");
 const aliceReturn=await rpc(admin,returnFn,{
  p_work_id:aliceWork,p_draft_id:aliceSaved.data.draft_id,
  p_expected_sha256:aliceDigest,p_target_atom_id:aliceTarget.id,
@@ -310,7 +322,7 @@ const aliceReturn=await rpc(admin,returnFn,{
 });
 if(aliceReturn.data.result!=="returned_for_changes"||!aliceReturn.data.issue)
  throw Error("Same-owner anchored correction denied "+JSON.stringify(aliceReturn));
-const correctedAlice=recomposeSemanticLayout(aliceRevision,aliceReturn.data.issue as SemanticReviewIssue,sourceText);
+const correctedAlice=recomposeSemanticLayout(aliceRevision,aliceReturn.data.issue as SemanticReviewIssue,aliceOriginal);
 const aliceChild=await rpc(admin,stage,{
  p_work_id:aliceWork,p_source_snapshot_id:aliceSource,p_component_id:aliceComponent,
  p_serialized_payload:serializeSignedDraft(correctedAlice).serialized,
@@ -344,7 +356,7 @@ const aliceWorkStatus=spawnSync("psql",[
  "-c","select status::text from public.works where id='"+aliceWork+"'"
 ],{encoding:"utf8",env:{...process.env,PGPASSWORD:"postgres"}});
 assert.equal(aliceWorkStatus.stdout.trim(),"draft");
-console.log("PASS synthetic Alice own-text-QA approval, canonical task closed, no publication");
+console.log("PASS pinned full 12-chapter Alice own-text-QA approval, canonical task closed, no publication");
 console.log("PASS actual signed admin self-assigned editor task, private to same identity");
 console.log("PASS signed local E2 admin/editor/reader GoTrue sessions, admin independent review");
 console.log("PASS stored initial revision, anchored return, applied child revision and immutable source");
