@@ -460,8 +460,7 @@ begin
      and w.source_label='gutenberg'::public.work_source_label
      and w.canonical_language='en'
      and ss.kind='external_raw'
-     and ss.source_uri='https://raw.githubusercontent.com/GITenberg/Alice-s-Adventures-in-Wonderland_11/7f18748e114b994d5d9454d5793581bc0b9cf9d7/11-0.txt'
-     and ss.sha256='49a0b2726606e1290ac03a63978fa1dd1bd38a8d805704d98265f393533ea094'
+     and ss.source_uri='https://www.gutenberg.org/ebooks/11'
      and t.status='claimed' and t.kind='edit_text'
      and t.assignee_user_id=actor
      and v_role='admin'::public.app_role
