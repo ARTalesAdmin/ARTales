@@ -6,6 +6,8 @@
  */
 import assert from "node:assert/strict";
 import {randomUUID} from "node:crypto";
+import {readFileSync} from "node:fs";
+import {captureGutenbergBytes,extractPg11Components,getPg11FixtureRequest,PG11_URI} from "../../lib/ingest/gutenbergSnapshot";
 import {execFileSync,spawn,spawnSync,type ChildProcess} from "node:child_process";
 
 const status=JSON.parse(execFileSync("supabase",["status","-o","json"],{encoding:"utf8"}));
@@ -24,7 +26,12 @@ const wdBase="http://127.0.0.1:9517";
 const workId=randomUUID(),authorId=randomUUID(),sourceId=randomUUID(),componentId=randomUUID();
 const tag=randomUUID().slice(0,8),email="browser-"+tag+"@example.invalid";
 const password="Local-E2-"+randomUUID()+"!Az";
-const testText="CHAPTER I. Down the Rabbit-Hole\n\nA short paragraph for one block editing.\n\nCHAPTER II. The Pool of Tears\n\nAnother example paragraph.";
+const pinnedBytes=readFileSync("tests/fixtures/gutenberg/pg11-2016-gitenberg-11-0.txt");
+const pinned=captureGutenbergBytes(pinnedBytes,getPg11FixtureRequest());
+const boundary=extractPg11Components(pinned);
+assert.equal(boundary.status,"ready_for_fixture");
+const span=boundary.content_components.find(x=>x.kind==="WORK_CONTENT")?.original;
+assert.ok(span);
 let next:ChildProcess|undefined,driver:ChildProcess|undefined,session:string|undefined;
 const logOutput:{next:string;driver:string}={next:"",driver:""};
 
@@ -60,19 +67,19 @@ function seed(actorId:string){
   "insert into public.works(id,title,slug,summary,content,canonical_language,origin_type,source_label,status,primary_author_id,created_by,updated_by)",
   "values(:'work','Alice Browser QA Fixture',:'slug',repeat('Synthetic source for browser-only proof. ',5),'Do not publish: browser synthetic source','en','public_domain','gutenberg','draft',:'author',:'actor',:'actor');",
   "insert into artales_evidence.source_snapshots(id,work_id,kind,source_uri,source_bytes)",
-  "values(:'snapshot',:'work','external_raw','https://www.gutenberg.org/ebooks/11',decode(:'bytes','hex'));",
+  "values(:'snapshot',:'work','external_raw','https://raw.githubusercontent.com/GITenberg/Alice-s-Adventures-in-Wonderland_11/7f18748e114b994d5d9454d5793581bc0b9cf9d7/11-0.txt',decode(:'bytes','hex'));",
   "insert into artales_evidence.source_components(id,snapshot_id,kind,byte_start,byte_end,disposition,explanation)",
-  "values(:'component',:'snapshot','WORK_CONTENT',0,octet_length(decode(:'bytes','hex')),'qa_text_only','Synthetic local browser fixture, not a rights determination');",
+  "values(:'component',:'snapshot','WORK_CONTENT',"+span.byte_start+","+span.byte_end+",'qa_text_only','Synthetic local browser fixture, not a rights determination');",
   "commit;"
  ].join("\n");
  const args=["-h","127.0.0.1","-p","54322","-U","postgres","-d","postgres","-X",
   "-v","ON_ERROR_STOP=1",...sqlVars({
    actor:actorId,email,author:authorId,author_slug:"browser-author-"+tag,
    work:workId,slug,snapshot:sourceId,component:componentId,
-   bytes:Buffer.from(testText,"utf8").toString("hex")
+   bytes:pinnedBytes.toString("hex")
   })];
  const p=spawnSync("psql",args,{input:script,encoding:"utf8",
-  env:{...process.env,PGPASSWORD:"postgres"},timeout:20000});
+  env:{...process.env,PGPASSWORD:"postgres"},timeout:30000,maxBuffer:5000000});
  if(p.status!==0)throw Error("Local synthetic browser seed failed "+p.stderr.slice(0,1300));
 }
 async function wd(method:string,path:string,body?:unknown):Promise<unknown>{
