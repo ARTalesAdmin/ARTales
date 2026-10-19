@@ -60,7 +60,7 @@ create unique index if not exists work_candidates_title_author_identity_unique
 on public.work_candidates(lower(btrim(proposed_title)),lower(btrim(proposed_author_name)));
 
 create or replace function public.accept_prescreen_decision(p_decision_id uuid)
-returns jsonb language plpgsql security definer set search_path='' as $
+returns jsonb language plpgsql security definer set search_path='' as $$
 declare
  v_dec public.prescreen_decisions%rowtype;
  v_actor uuid := auth.uid();
