@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { requirePrescreenAccess } from "@/lib/prescreen/access";
 import { fixtureInventory, fixtureWeights, fixtureNotice, fixtureSuggestions } from "@/lib/prescreen/fixture";
 import { savePrescreenRun } from "@/lib/prescreen/persist";
+import {loadPrescreenPortfolio} from "@/lib/prescreen/data";
 import { createClient } from "@/lib/supabase/server";
 import {
   DEFAULT_PRESCREEN_WEIGHTS,PRESCREEN_GENRES, planPrescreen, identityKey,
@@ -36,25 +37,10 @@ export async function POST(request:Request) {
   }
   const db=await createClient();
   // DB read is required for duplicate safety: fail closed if unavailable.
-  const [{data:works,error:workError},{data:authors,error:authorError}]=await Promise.all([
-    db.from("works").select("id,title,primary_author_id,status"),
-    db.from("authors").select("id,name")
-  ]);
-  if(workError||authorError) return NextResponse.json({error:"portfolio_unavailable"},{status:503});
-  const inventory=baseInventory();
-  inventory.publishedTotal=(works??[]).filter(w=>w.status==="published").length;
-  inventory.unknownGenre=(works??[]).length;
-  const authorNames=new Map((authors??[]).map(a=>[a.id,a.name]));
-  inventory.existingIdentityKeys=(works??[]).map(w=>identityKey(w.title,authorNames.get(w.primary_author_id)??""));
-  // The current develop preview uses a fixture DB with no candidate schema.
-  // Only read candidates when the schema is available, never silently assume it.
-  const {data:prior,error:priorError}=await db.from("work_candidates")
-    .select("normalized_title,normalized_author_name,proposed_title,proposed_author_name")
-    .limit(1000);
-  if(priorError && !["42P01","PGRST205","PGRST204"].includes(priorError.code??""))
-    return NextResponse.json({error:"candidate_inventory_unavailable"},{status:503});
-  inventory.existingIdentityKeys.push(...(prior??[]).map(c=>identityKey(
-    c.normalized_title??c.proposed_title,c.normalized_author_name??c.proposed_author_name)));
+  let portfolio;
+  try {portfolio=await loadPrescreenPortfolio(db);}
+  catch {return NextResponse.json({error:"prescreen_portfolio_database_unavailable"},{status:503});}
+  const {inventory,weights,snapshot,revision}=portfolio;
 
   // Previously shortlisted titles stay in their durable run history, rather
   // than repeatedly consuming author lookups on every press of the button.
@@ -66,7 +52,7 @@ export async function POST(request:Request) {
   const alreadyConsidered=new Set(inventory.existingIdentityKeys);
 
   // No inferred weights from unclassified titles: weights remain visibly provisional.
-  const weights=DEFAULT_PRESCREEN_WEIGHTS;
+
   const source:BibliographicTitle[]=[];
   let result=planPrescreen(source,inventory,target,weights);
   const maxPages=6; let pages=0;
@@ -95,7 +81,7 @@ export async function POST(request:Request) {
   let saved;
   try {
     saved=await savePrescreenRun(db,access.userId,target,weights,
-      {published:inventory.publishedTotal,unknownGenre:inventory.unknownGenre},
+      {...snapshot,genrePolicyRevision:revision},
       result.decisions,{exploredGenres:attempted,missing:result.missing,errors});
   } catch(error) {
     return NextResponse.json({error:error instanceof Error?error.message:"prescreen_persistence_failed"},
@@ -104,9 +90,10 @@ export async function POST(request:Request) {
   return NextResponse.json({mode:"persistent_prescreen",runId:saved.runId,
     savedDecisions:saved.decisions,createdCandidates:0,
     legalClearance:false,approvedForPublication:false,target,
-    portfolio:{published:inventory.publishedTotal,
-      unclassified:inventory.unknownGenre,genreCounts:inventory.genreCounts,
-      weights,classificationComplete:false},
+    portfolio:{published:snapshot.publishedTotal,drafts:snapshot.draftTotal,
+      activeCandidates:snapshot.activeCandidateTotal,unclassified:snapshot.unknownGenre,
+      genreCounts:inventory.genreCounts,weights,revision,
+      classificationComplete:snapshot.classificationComplete},
     selected:result.candidates,decisions:result.decisions,
     missing:result.missing,stopReason:result.stopReason,
     exploredGenres:attempted,errors,
