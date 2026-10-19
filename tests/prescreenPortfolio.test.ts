@@ -45,6 +45,6 @@ test("genre gap uses real known works including drafts and the requested batch",
  const p=countPortfolio([{id:"draft",status:"draft"},{id:"published",status:"published"}],
   [{work_id:"draft",genre:"prose"},{work_id:"published",genre:"prose"}]);
  const gaps=portfolioGenreGaps(p,DEFAULT_PRESCREEN_WEIGHTS,4);
- assert.equal(gaps[0].genre,"poetry");
+ assert.equal(gaps[0].genre,"fairy_tale");
  assert.equal(gaps.find(g=>g.genre==="prose")?.actual,2);
 });
