@@ -19,7 +19,20 @@ export type BibliographicTitle = {
   sourceUrl: string; origin: "catalog" | "editor" | "reader";
 };
 
+/** Conservative author-only EU/CZ life+70 *preflight*, never a rights clearance.
+ * Coauthors, individual texts, translations, illustrations and editions
+ * require independent downstream verification.
+ */
+export type PrescreenEuCzTerm = {
+  jurisdiction: "EU_CZ";
+  authorDied: number;
+  standardTermEndYear: number;
+  reviewNotBeforeYear: number;
+  standardTermElapsed: boolean;
+};
+
 export type PrescreenDecision = {
+  euCzTerm?: PrescreenEuCzTerm | null;
   item: BibliographicTitle;
   outcome: "candidate" | "duplicate" | "review" | "deferred";
   reason: string;
@@ -66,7 +79,7 @@ export function scoreGenre(
 }
 
 /** No apparent-public-domain check is legal clearance; ambiguous years stay in review. */
-export function assessChronology(row: BibliographicTitle): string | null {
+export function assessChronology(row: BibliographicTitle, asOfYear = new Date().getUTCFullYear()): string | null {
   if (!/^\/works\/OL[0-9]+W$/.test(row.workKey) || !/^OL[0-9]+A$/.test(row.authorKey))
     return "bibliographic_identity_missing";
   if (!row.firstPublished || !row.authorBorn || !row.authorDied)
@@ -75,15 +88,31 @@ export function assessChronology(row: BibliographicTitle): string | null {
     return "historical_dates_conflict";
   if (row.firstPublished > row.authorDied)
     return "posthumous_publication_review";
-  if (row.firstPublished > new Date().getUTCFullYear())
+  if (row.firstPublished > asOfYear)
     return "publication_in_future";
   return null;
+}
+
+/** Simple calendar-year rule: death 1973 -> end 2043 -> reconsider from 2044.
+ * A term that appears to have elapsed NEVER establishes publication rights.
+ */
+export function screenEuCzAuthorTerm(
+  row: BibliographicTitle, asOfYear = new Date().getUTCFullYear()
+): PrescreenEuCzTerm | null {
+  if (row.authorDied === null) return null;
+  const standardTermEndYear = row.authorDied + 70;
+  const reviewNotBeforeYear = standardTermEndYear + 1;
+  return {
+    jurisdiction: "EU_CZ", authorDied: row.authorDied,
+    standardTermEndYear, reviewNotBeforeYear,
+    standardTermElapsed: asOfYear >= reviewNotBeforeYear
+  };
 }
 
 export function planPrescreen(
   source: BibliographicTitle[], inventory: PortfolioInventory,
   target: number, weights: PrescreenWeights,
-  maxPerAuthor = 1
+  maxPerAuthor = 1, asOfYear = new Date().getUTCFullYear()
 ): { decisions: PrescreenDecision[]; candidates: BibliographicTitle[]; missing: number; stopReason: string } {
   if(!Number.isInteger(target) || target < 1 || target > 12 || !validatePrescreenWeights(weights))
     throw new Error("invalid_prescreen_policy");
@@ -104,19 +133,25 @@ export function planPrescreen(
     const key = identityKey(row.title,row.author);
     const score = scoreGenre(row.genre,weights,inventory,selected,target);
     let outcome: PrescreenDecision["outcome"] = "candidate";
-    let reason = "bibliographic_prescreen_passed_rights_unknown";
+    let reason = "bibliographic_prescreen_passed_basic_term_only_rights_unknown";
+    let euCzTerm: PrescreenEuCzTerm | null = null;
     if(knownSources.has(row.workKey) || known.has(key)) {
       outcome="duplicate";reason="already_in_library_or_pipeline";
     } else if(seen.has(row.workKey) || seen.has(key)) {
       outcome="duplicate";reason="duplicate_in_run";
     } else {
-      const chronology = assessChronology(row);
+      const chronology = assessChronology(row,asOfYear);
       if(chronology) { outcome="review";reason=chronology; }
-      else if((authorCounts.get(row.authorKey)??0)>=maxPerAuthor) {
-        outcome="deferred";reason="author_diversity_limit";
+      else {
+        euCzTerm=screenEuCzAuthorTerm(row,asOfYear);
+        if(euCzTerm && !euCzTerm.standardTermElapsed) {
+          outcome="deferred";reason="eu_cz_standard_author_term_not_elapsed";
+        } else if((authorCounts.get(row.authorKey)??0)>=maxPerAuthor) {
+          outcome="deferred";reason="author_diversity_limit";
+        }
       }
     }
-    decisions.push({item:row,outcome,reason,identityKey:key,portfolioScore:score});
+    decisions.push({item:row,outcome,reason,identityKey:key,portfolioScore:score,euCzTerm});
     seen.add(row.workKey);seen.add(key);
     if(outcome === "candidate") {
       candidates.push(row);

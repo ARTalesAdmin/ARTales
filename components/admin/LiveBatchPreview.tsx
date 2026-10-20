@@ -1,7 +1,7 @@
 "use client";
 import {useState} from "react";
 type Title={workKey:string;title:string;author:string;genre:string;authorBorn:number|null;authorDied:number|null;firstPublished:number|null;sourceUrl:string};
-type Run={selected:Title[];target:number;missing:number;errors:string[];boundedBy:string|null;searched:number;warning:string;decisions:Array<{item:Title;outcome:string;reason:string}>};
+type Run={selected:Title[];target:number;missing:number;errors:string[];boundedBy:string|null;searched:number;warning:string;decisions:Array<{item:Title;outcome:string;reason:string;euCzTerm?:{standardTermEndYear:number;reviewNotBeforeYear:number;standardTermElapsed:boolean}|null}>};
 export default function LiveBatchPreview(){
  const [target,setTarget]=useState(1),[busy,setBusy]=useState(false),[error,setError]=useState("");
  const [run,setRun]=useState<Run|null>(null),[chosen,setChosen]=useState<string[]>([]);
@@ -39,7 +39,7 @@ export default function LiveBatchPreview(){
    </article>)}
    {run.selected.length>0&&<button type="button" disabled={chosen.length===0} onClick={approve}>Potvrdit do testovací kandidátní fronty ({chosen.length})</button>}
    <p style={{fontSize:13}}>{run.warning}</p>
-   <details><summary>Audit ({run.decisions.length})</summary>{run.decisions.map((d,i)=><div key={i}>{d.item.title}: {d.outcome} ({d.reason})</div>)}</details>
+   <details><summary>Audit ({run.decisions.length})</summary>{run.decisions.map((d,i)=><div key={i}>{d.item.title}: {d.outcome} ({d.reason}) {d.euCzTerm&&!d.euCzTerm.standardTermElapsed?`— standardní lhůta do ${d.euCzTerm.standardTermEndYear}, znovu posoudit od ${d.euCzTerm.reviewNotBeforeYear}`:""}</div>)}</details>
   </div>}
   <h3>Testovací kandidátní fronta ({accepted.length})</h3>
   <p>Uchována pouze v otevřené stránce; při obnovení zmizí. Není skutečnou databázovou frontou.</p>
