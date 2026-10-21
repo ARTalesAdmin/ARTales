@@ -202,3 +202,18 @@ test("source/composed QA spans reconstruct original and paired scroll works both
  assert.ok(target>0);
  assert.ok(back>=0 && back<=left.scrollHeight-left.clientHeight);
 });
+
+test("JSONB reordered source-anchor keys retain identity but altered offsets fail closed",()=>{
+ const initial=walkSemanticAtoms(rev.blocks).find(a=>a.raw.includes("Alice was beginning"))!;
+ const returned=submitSemanticIssue(rev,{id:"jsonb-order-qa",target_atom_id:initial.id,
+  kind:"typography",reason:"Adjust this exact anchored paragraph",requested_layout:"indent_small"});
+ const a=returned.source_anchor;
+ const reordered={original_byte_end:a.original_byte_end,normalized_end:a.normalized_end,
+  snapshot_ref:a.snapshot_ref,original_byte_start:a.original_byte_start,
+  component_id:a.component_id,normalized_start:a.normalized_start};
+ const updated=recomposeSemanticLayout(rev,{...returned,source_anchor:reordered},sample.original_raw);
+ assert.equal(updated.parent_revision_ref,rev.revision_ref);
+ assert.throws(()=>recomposeSemanticLayout(rev,{...returned,source_anchor:{
+  ...reordered,original_byte_start:reordered.original_byte_start+1,
+ }},sample.original_raw),/anchor|mismatch/i);
+});
