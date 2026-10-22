@@ -1,25 +1,42 @@
 import type {SupabaseClient} from "@supabase/supabase-js";
 import {identityKey,type BibliographicTitle,type PrescreenGenre,type PrescreenWeights} from "./engine";
-import {type ThemeWeights,type PrescreenTheme,PRESCREEN_THEMES} from "./themes";
-import {planShadowQueries,preliminaryShadowDecision,type KnownShadowTitle} from "./shadowPolicy";
-import {searchGenre,searchTheme,enrichAuthor,pause} from "./openLibrary";
+import {type ThemeWeights,type PrescreenTheme} from "./themes";
+import {planShadowQueries,preliminaryShadowDecision} from "./shadowPolicy";
+import {searchGenrePage,searchThemePage,enrichAuthor,pause,type OpenLibraryCatalogPage} from "./openLibrary";
+import {SHADOW_PAGE_SIZE,SHADOW_RUN_BUDGET_MS,maximumShadowEnrichments,nextShadowOffset} from "./shadowCursor";
 
 type ShadowPolicy={form_weights:PrescreenWeights;theme_weights:ThemeWeights;revision:number};
-type Query={kind:"form"|"theme";key:string};
+export type ShadowCatalog={
+  form:(genre:PrescreenGenre,offset:number,limit:number)=>Promise<OpenLibraryCatalogPage>;
+  theme:(theme:PrescreenTheme,offset:number,limit:number)=>Promise<OpenLibraryCatalogPage>;
+  enrich:(row:BibliographicTitle)=>Promise<BibliographicTitle>;
+  delay:(ms:number)=>Promise<unknown>;
+  now:()=>number;
+};
+const liveCatalog:ShadowCatalog={
+  form:searchGenrePage,theme:searchThemePage,enrich:enrichAuthor,delay:pause,now:Date.now
+};
 const thisYear=()=>new Date().getUTCFullYear();
+
 export async function loadShadowPolicy(db:SupabaseClient):Promise<ShadowPolicy>{
-  const {data,error}=await db.from("prescreen_shadow_policy").select("form_weights,theme_weights,revision").eq("id",1).single();
+  const {data,error}=await db.from("prescreen_shadow_policy")
+    .select("form_weights,theme_weights,revision").eq("id",1).single();
   if(error||!data)throw Error("prescreen_shadow_policy_unavailable");
   return data as ShadowPolicy;
 }
-export async function runShadowPrescreen(db:SupabaseClient,actor:string,requested:number){
+
+/** Safe under partial runs: never advance a cursor beyond an unprocessed raw record.
+ * A new click starts the next bounded batch; partial runs are recorded honestly. */
+export async function runShadowPrescreen(
+  db:SupabaseClient,actor:string,requested:number,catalog:ShadowCatalog=liveCatalog
+){
+  const maxEnrichments=maximumShadowEnrichments(requested);
+  const started=catalog.now();
   const policy=await loadShadowPolicy(db);
   const {data:known,error:knownError}=await db.from("prescreen_shadow_titles")
     .select("id,source_work_key,identity_key,form,primary_theme,state").limit(10000);
   if(knownError)throw Error("prescreen_shadow_titles_unavailable");
   const knownRows=known??[];
-  // Existing published/draft works are not a separate candidate pipeline;
-  // reading them prevents duplicate recommendations in the current library.
   const [{data:works,error:worksError},{data:authors,error:authorsError}]=await Promise.all([
     db.from("works").select("title,primary_author_id").limit(10000),
     db.from("authors").select("id,name").limit(10000)
@@ -28,47 +45,79 @@ export async function runShadowPrescreen(db:SupabaseClient,actor:string,requeste
   const authorNames=new Map((authors??[]).map(a=>[a.id,a.name]));
   const libraryIdentity=new Set((works??[]).filter(w=>authorNames.has(w.primary_author_id))
     .map(w=>identityKey(w.title,authorNames.get(w.primary_author_id)!)));
-  const portfolio=knownRows.map(r=>({form:r.form as PrescreenGenre,primary_theme:r.primary_theme as PrescreenTheme|null}));
+  const portfolio=knownRows.map(r=>({
+    form:r.form as PrescreenGenre,primary_theme:r.primary_theme as PrescreenTheme|null
+  }));
   const queries=planShadowQueries(portfolio,policy.form_weights,policy.theme_weights,6);
   const {data:run,error:runErr}=await db.from("prescreen_shadow_runs").insert({
     requested,started_by:actor,policy_revision:policy.revision,planned_queries:queries
   }).select("id").single();
   if(runErr||!run)throw Error("prescreen_shadow_run_unavailable");
-  let discovered=0,alreadyKnown=0,suggested=0,review=0,deferred=0,lookupCalls=0;
+
+  let discovered=0,alreadyKnown=0,suggested=0,review=0,deferred=0;
+  let lookupCalls=0,enrichmentAttempts=0;
   const problems:string[]=[];
   const seen=new Set<string>();
   const knownKeys=new Set(knownRows.map(r=>r.source_work_key));
   const knownIdentity=new Set([...knownRows.map(r=>r.identity_key),...libraryIdentity]);
-  try{
+  try {
     for(const query of queries){
-      if(suggested>=requested)break;
+      if(suggested>=requested||enrichmentAttempts>=maxEnrichments||
+         catalog.now()-started>=SHADOW_RUN_BUDGET_MS)break;
       const qKey=query.kind+":"+query.key;
       const {data:cursor,error:cursorError}=await db.from("prescreen_shadow_cursors")
         .select("next_offset").eq("query_key",qKey).maybeSingle();
       if(cursorError)throw Error("cursor_read_failed");
       const offset=cursor?.next_offset??0;
-      // Rate limiting below API terms; no background crawler. One page per query per click.
-      if(lookupCalls)await pause(1100);
-      const rows=query.kind==="form"?
-        await searchGenre(query.key as PrescreenGenre,offset,12):
-        await searchTheme(query.key as PrescreenTheme,offset,12);
-      lookupCalls++;
-      let consumed=0;
-      for(const raw of rows){
-        consumed++;
-        if(seen.has(raw.workKey))continue;
+      if(lookupCalls)await catalog.delay(1100);
+      if(catalog.now()-started>=SHADOW_RUN_BUDGET_MS)break;
+
+      let page:OpenLibraryCatalogPage;
+      try{
+        page=query.kind==="form"?
+          await catalog.form(query.key as PrescreenGenre,offset,SHADOW_PAGE_SIZE):
+          await catalog.theme(query.key as PrescreenTheme,offset,SHADOW_PAGE_SIZE);
+        lookupCalls++;
+      }catch(e){
+        problems.push("catalog_lookup_failed:"+qKey+":"+
+          (e instanceof Error?e.message:"unknown"));
+        continue;
+      }
+
+      let lastProcessedOffset:number|null=null;
+      let interrupted=false;
+      for(const {sourceOffset,item:raw} of page.entries){
+        if(suggested>=requested||enrichmentAttempts>=maxEnrichments||
+           catalog.now()-started>=SHADOW_RUN_BUDGET_MS){
+          interrupted=true;
+          break;
+        }
+        if(seen.has(raw.workKey)){
+          lastProcessedOffset=sourceOffset;
+          continue;
+        }
         seen.add(raw.workKey);
-        if(knownKeys.has(raw.workKey)||knownIdentity.has(identityKey(raw.title,raw.author))){alreadyKnown++;continue;}
-        // Metadata enrichment is bounded to five lookups per run, not per query.
-        if(discovered>=Math.min(requested*3,5))break;
-        if(discovered||lookupCalls>1)await pause(1100);
+        const key=identityKey(raw.title,raw.author);
+        if(knownKeys.has(raw.workKey)||knownIdentity.has(key)){
+          alreadyKnown++;
+          lastProcessedOffset=sourceOffset;
+          continue;
+        }
+
+        if(lookupCalls)await catalog.delay(1100);
+        if(catalog.now()-started>=SHADOW_RUN_BUDGET_MS){
+          interrupted=true;
+          break;
+        }
+        enrichmentAttempts++;
+        lookupCalls++;
         let row:BibliographicTitle=raw;
-        try{row=await enrichAuthor(raw);lookupCalls++;}
+        try{row=await catalog.enrich(raw);}
         catch{problems.push("author_metadata_missing:"+raw.workKey);}
         const decision=preliminaryShadowDecision(row,thisYear());
         const payload={
           provider:"openlibrary",source_work_key:row.workKey,
-          identity_key:identityKey(row.title,row.author),title:row.title,author:row.author,
+          identity_key:key,title:row.title,author:row.author,
           author_key:row.authorKey,source_url:row.sourceUrl,form:row.genre,
           themes:row.themes??[],primary_theme:row.primaryTheme??null,
           first_published:row.firstPublished,author_born:row.authorBorn,author_died:row.authorDied,
@@ -85,28 +134,40 @@ export async function runShadowPrescreen(db:SupabaseClient,actor:string,requeste
               source:row.sourceUrl,authorKey:row.authorKey,firstPublished:row.firstPublished
             }});
         if(assessmentErr)throw Error("shadow_assessment_insert_failed");
-        knownKeys.add(raw.workKey);knownIdentity.add(identityKey(raw.title,raw.author));
+        knownKeys.add(raw.workKey);
+        knownIdentity.add(key);
+        lastProcessedOffset=sourceOffset;
         discovered++;
         if(decision.state==="suggested")suggested++;
         if(decision.state==="review")review++;
         if(decision.state==="deferred")deferred++;
       }
-      // Save progress only for rows actually examined, including known duplicates.
-      const {error:cursorWriteErr}=await db.from("prescreen_shadow_cursors").upsert({
-        query_key:qKey,next_offset:offset+consumed,
-        updated_at:new Date().toISOString()
-      },{onConflict:"query_key"});
-      if(cursorWriteErr)throw Error("cursor_save_failed");
+      const nextOffset=nextShadowOffset(offset,page.fetchedCount,lastProcessedOffset,interrupted);
+      if(nextOffset>offset){
+        const {error:cursorWriteErr}=await db.from("prescreen_shadow_cursors").upsert({
+          query_key:qKey,next_offset:nextOffset,updated_at:new Date().toISOString()
+        },{onConflict:"query_key"});
+        if(cursorWriteErr)throw Error("cursor_save_failed");
+      }
     }
-  }catch(e){problems.push(e instanceof Error?e.message:"unknown_error");}
+  }catch(e){
+    problems.push(e instanceof Error?e.message:"unknown_error");
+  }
+  const fulfilled=suggested>=requested;
+  const stopReason=fulfilled?"target_reached":
+    catalog.now()-started>=SHADOW_RUN_BUDGET_MS?"time_budget":
+    enrichmentAttempts>=maxEnrichments?"enrichment_limit":"bounded_queries_exhausted";
   const summary={discovered,alreadyKnown,suggested,review,deferred,lookupCalls,
-    problems,missing:Math.max(0,requested-suggested)};
+    enrichmentAttempts,maxEnrichments,stopReason,problems,
+    missing:Math.max(0,requested-suggested)};
   const {error:finishErr}=await db.from("prescreen_shadow_runs").update({
-    status:problems.length?"incomplete":"complete",summary,finished_at:new Date().toISOString()
+    status:fulfilled&&problems.length===0?"complete":"incomplete",
+    summary,finished_at:new Date().toISOString()
   }).eq("id",run.id);
   if(finishErr)throw Error("prescreen_shadow_run_finalize_failed");
   return {runId:run.id,queries,summary};
 }
+
 export async function reassessDueTitles(db:SupabaseClient){
   const {data,error}=await db.from("prescreen_shadow_titles")
     .select("id,author_died,reconsider_year,state").eq("state","deferred")

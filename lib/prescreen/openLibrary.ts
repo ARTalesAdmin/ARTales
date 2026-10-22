@@ -57,9 +57,28 @@ function parseDocument(doc:SearchDoc,genre:PrescreenGenre,origin:BibliographicTi
     sourceUrl:apiOrigin+workKey};
 }
 
+/** A cursor indexes the raw search results, including metadata-invalid records. */
+export type OpenLibraryCatalogPage={
+  fetchedCount:number;
+  entries:Array<{sourceOffset:number;item:BibliographicTitle}>;
+};
+export function mapOpenLibraryPage(
+  docs:readonly SearchDoc[],offset:number,genre:PrescreenGenre
+):OpenLibraryCatalogPage{
+  const entries:OpenLibraryCatalogPage["entries"]=[];
+  docs.forEach((doc,index)=>{
+    const item=parseDocument(doc,genre,"catalog");
+    if(item)entries.push({sourceOffset:offset+index,item});
+  });
+  return {fetchedCount:docs.length,entries};
+}
+export async function searchGenrePage(
+  genre:PrescreenGenre,offset:number,limit=12
+):Promise<OpenLibraryCatalogPage>{
+  return mapOpenLibraryPage(await search(OPEN_LIBRARY_QUERIES[genre],offset,limit),offset,genre);
+}
 export async function searchGenre(genre:PrescreenGenre, offset:number, limit=40):Promise<BibliographicTitle[]> {
-  const docs=await search(OPEN_LIBRARY_QUERIES[genre],offset,limit);
-  return docs.map(d=>parseDocument(d,genre,"catalog")).filter((x):x is BibliographicTitle=>x!==null);
+  return (await searchGenrePage(genre,offset,limit)).entries.map(entry=>entry.item);
 }
 
 export const OPEN_LIBRARY_THEME_QUERIES:Record<PrescreenTheme,string>={
@@ -69,9 +88,13 @@ export const OPEN_LIBRARY_THEME_QUERIES:Record<PrescreenTheme,string>={
   historical:"subject:historical_fiction",mystery:"subject:mystery",
   social:"subject:social_fiction"
 };
+export async function searchThemePage(
+  theme:PrescreenTheme,offset:number,limit=12
+):Promise<OpenLibraryCatalogPage>{
+  return mapOpenLibraryPage(await search(OPEN_LIBRARY_THEME_QUERIES[theme],offset,limit),offset,"other");
+}
 export async function searchTheme(theme:PrescreenTheme,offset:number,limit=16):Promise<BibliographicTitle[]>{
-  const docs=await search(OPEN_LIBRARY_THEME_QUERIES[theme],offset,limit);
-  return docs.map(d=>parseDocument(d,"other","catalog")).filter((x):x is BibliographicTitle=>x!==null);
+  return (await searchThemePage(theme,offset,limit)).entries.map(entry=>entry.item);
 }
 
 export async function findSuggestion(title:string,author:string,origin:"editor"|"reader"):Promise<BibliographicTitle|null> {

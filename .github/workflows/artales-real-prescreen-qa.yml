@@ -9,6 +9,9 @@ on:
       - 'components/admin/RealPrescreenConsole.tsx'
       - 'app/member/admin/dashboard/page.tsx'
       - 'tests/realPrescreen.test.ts'
+      - 'tests/shadowPolicy.test.ts'
+      - 'tests/shadowRunner.test.ts'
+      - 'components/admin/ShadowLibraryAdmin.tsx'
       - '.github/workflows/artales-real-prescreen-qa.yml'
   workflow_dispatch:
 permissions:
@@ -24,6 +27,6 @@ jobs:
           node-version: '22'
           cache: npm
       - run: npm ci
-      - run: npx tsx --test tests/realPrescreen.test.ts tests/catalogProductionPlanner.test.ts
+      - run: npx tsx --test tests/realPrescreen.test.ts tests/shadowPolicy.test.ts tests/shadowRunner.test.ts tests/catalogProductionPlanner.test.ts
       - run: npx tsc --noEmit
       - run: npm run build
