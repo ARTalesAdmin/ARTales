@@ -58,7 +58,7 @@ export default function ShadowLibraryAdmin(){
     <input aria-label={names[k]+" procenta"} type="number" min={0} max={100}
      value={weights[k]} onChange={e=>change(rebalancePercentages(weights,k,Number(e.target.value)))}/>
    </label>)}
-   <strong>Celkem: {Object.values(weights).reduce((a,b)=>a+b,0)} %</strong>
+   <strong>Celkem: {order.reduce((a,k)=>a+weights[k],0)} %</strong>
   </div>;
  }
  return <main style={{maxWidth:1100,margin:"auto",padding:"25px 22px 80px",lineHeight:1.55}}>
