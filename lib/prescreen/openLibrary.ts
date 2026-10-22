@@ -1,9 +1,12 @@
 import type { BibliographicTitle, PrescreenGenre } from "./engine";
 import { identityKey, yearFromDate } from "./engine";
+import {formFromSubjects,themesFromSubjects} from "./shadowPolicy";
+import {primaryTheme,SHADOW_THEME_WEIGHTS} from "./shadowPolicy";
+import type {PrescreenTheme} from "./themes";
 
 type SearchDoc = {
   key?: string; title?: string; author_name?: string[];
-  author_key?: string[]; first_publish_year?: number;
+  author_key?: string[]; first_publish_year?: number; subject?:string[];
 };
 type AuthorRecord = { birth_date?: string; death_date?: string };
 
@@ -32,7 +35,7 @@ async function getJson(url: URL): Promise<unknown> {
 async function search(query:string, offset=0, limit=40):Promise<SearchDoc[]>{
   const url = new URL("/search.json",apiOrigin);
   url.searchParams.set("q",query);
-  url.searchParams.set("fields","key,title,author_name,author_key,first_publish_year");
+  url.searchParams.set("fields","key,title,author_name,author_key,first_publish_year,subject");
   url.searchParams.set("limit",String(Math.min(50,Math.max(1,limit))));
   url.searchParams.set("offset",String(Math.max(0,offset)));
   const data=await getJson(url) as {docs?:SearchDoc[]};
@@ -46,15 +49,52 @@ function parseDocument(doc:SearchDoc,genre:PrescreenGenre,origin:BibliographicTi
   const title=doc.title?.trim()??"";
   const author=doc.author_name?.[0]?.trim()??"";
   if(!/^\/works\/OL\d+W$/.test(workKey) || !title || !author || !/^OL\d+A$/.test(authorKey))return null;
-  return {workKey,title,author,authorKey,genre,origin,
+  const tags=themesFromSubjects(doc.subject);
+  return {workKey,title,author,authorKey,genre:formFromSubjects(doc.subject)??genre,origin,
+    themes:tags,primaryTheme:primaryTheme(tags,SHADOW_THEME_WEIGHTS),authorCount:doc.author_name?.length??1,
     firstPublished:yearFromDate(doc.first_publish_year),
     authorBorn:null,authorDied:null,
     sourceUrl:apiOrigin+workKey};
 }
 
+/** A cursor indexes the raw search results, including metadata-invalid records. */
+export type OpenLibraryCatalogPage={
+  fetchedCount:number;
+  entries:Array<{sourceOffset:number;item:BibliographicTitle}>;
+};
+export function mapOpenLibraryPage(
+  docs:readonly SearchDoc[],offset:number,genre:PrescreenGenre
+):OpenLibraryCatalogPage{
+  const entries:OpenLibraryCatalogPage["entries"]=[];
+  docs.forEach((doc,index)=>{
+    const item=parseDocument(doc,genre,"catalog");
+    if(item)entries.push({sourceOffset:offset+index,item});
+  });
+  return {fetchedCount:docs.length,entries};
+}
+export async function searchGenrePage(
+  genre:PrescreenGenre,offset:number,limit=12
+):Promise<OpenLibraryCatalogPage>{
+  return mapOpenLibraryPage(await search(OPEN_LIBRARY_QUERIES[genre],offset,limit),offset,genre);
+}
 export async function searchGenre(genre:PrescreenGenre, offset:number, limit=40):Promise<BibliographicTitle[]> {
-  const docs=await search(OPEN_LIBRARY_QUERIES[genre],offset,limit);
-  return docs.map(d=>parseDocument(d,genre,"catalog")).filter((x):x is BibliographicTitle=>x!==null);
+  return (await searchGenrePage(genre,offset,limit)).entries.map(entry=>entry.item);
+}
+
+export const OPEN_LIBRARY_THEME_QUERIES:Record<PrescreenTheme,string>={
+  horror:"subject:horror",romance:"subject:romance",detective:"subject:detective",
+  science_fiction:"subject:science_fiction",fantasy:"subject:fantasy",
+  adventure:"subject:adventure",humor:"subject:humor",
+  historical:"subject:historical_fiction",mystery:"subject:mystery",
+  social:"subject:social_fiction"
+};
+export async function searchThemePage(
+  theme:PrescreenTheme,offset:number,limit=12
+):Promise<OpenLibraryCatalogPage>{
+  return mapOpenLibraryPage(await search(OPEN_LIBRARY_THEME_QUERIES[theme],offset,limit),offset,"other");
+}
+export async function searchTheme(theme:PrescreenTheme,offset:number,limit=16):Promise<BibliographicTitle[]>{
+  return (await searchThemePage(theme,offset,limit)).entries.map(entry=>entry.item);
 }
 
 export async function findSuggestion(title:string,author:string,origin:"editor"|"reader"):Promise<BibliographicTitle|null> {
