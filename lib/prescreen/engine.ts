@@ -17,6 +17,9 @@ export type BibliographicTitle = {
   genre: PrescreenGenre; firstPublished: number | null;
   authorBorn: number | null; authorDied: number | null;
   sourceUrl: string; origin: "catalog" | "editor" | "reader";
+  themes?: import("./themes").PrescreenTheme[];
+  primaryTheme?: import("./themes").PrescreenTheme | null;
+  authorCount?: number;
 };
 
 /** Conservative author-only EU/CZ life+70 *preflight*, never a rights clearance.
