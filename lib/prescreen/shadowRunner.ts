@@ -18,6 +18,16 @@ export async function runShadowPrescreen(db:SupabaseClient,actor:string,requeste
     .select("id,source_work_key,identity_key,form,primary_theme,state").limit(10000);
   if(knownError)throw Error("prescreen_shadow_titles_unavailable");
   const knownRows=known??[];
+  // Existing published/draft works are not a separate candidate pipeline;
+  // reading them prevents duplicate recommendations in the current library.
+  const [{data:works,error:worksError},{data:authors,error:authorsError}]=await Promise.all([
+    db.from("works").select("title,primary_author_id").limit(10000),
+    db.from("authors").select("id,name").limit(10000)
+  ]);
+  if(worksError||authorsError)throw Error("library_duplicate_reference_unavailable");
+  const authorNames=new Map((authors??[]).map(a=>[a.id,a.name]));
+  const libraryIdentity=new Set((works??[]).filter(w=>authorNames.has(w.primary_author_id))
+    .map(w=>identityKey(w.title,authorNames.get(w.primary_author_id)!)));
   const portfolio=knownRows.map(r=>({form:r.form as PrescreenGenre,primary_theme:r.primary_theme as PrescreenTheme|null}));
   const queries=planShadowQueries(portfolio,policy.form_weights,policy.theme_weights,6);
   const {data:run,error:runErr}=await db.from("prescreen_shadow_runs").insert({
@@ -28,7 +38,7 @@ export async function runShadowPrescreen(db:SupabaseClient,actor:string,requeste
   const problems:string[]=[];
   const seen=new Set<string>();
   const knownKeys=new Set(knownRows.map(r=>r.source_work_key));
-  const knownIdentity=new Set(knownRows.map(r=>r.identity_key));
+  const knownIdentity=new Set([...knownRows.map(r=>r.identity_key),...libraryIdentity]);
   try{
     for(const query of queries){
       if(suggested>=requested)break;
@@ -43,12 +53,9 @@ export async function runShadowPrescreen(db:SupabaseClient,actor:string,requeste
         await searchGenre(query.key as PrescreenGenre,offset,12):
         await searchTheme(query.key as PrescreenTheme,offset,12);
       lookupCalls++;
-      const {error:cursorWriteErr}=await db.from("prescreen_shadow_cursors").upsert({
-        query_key:qKey,next_offset:offset+rows.length,
-        updated_at:new Date().toISOString()
-      },{onConflict:"query_key"});
-      if(cursorWriteErr)throw Error("cursor_save_failed");
+      let consumed=0;
       for(const raw of rows){
+        consumed++;
         if(seen.has(raw.workKey))continue;
         seen.add(raw.workKey);
         if(knownKeys.has(raw.workKey)||knownIdentity.has(identityKey(raw.title,raw.author))){alreadyKnown++;continue;}
@@ -84,6 +91,12 @@ export async function runShadowPrescreen(db:SupabaseClient,actor:string,requeste
         if(decision.state==="review")review++;
         if(decision.state==="deferred")deferred++;
       }
+      // Save progress only for rows actually examined, including known duplicates.
+      const {error:cursorWriteErr}=await db.from("prescreen_shadow_cursors").upsert({
+        query_key:qKey,next_offset:offset+consumed,
+        updated_at:new Date().toISOString()
+      },{onConflict:"query_key"});
+      if(cursorWriteErr)throw Error("cursor_save_failed");
     }
   }catch(e){problems.push(e instanceof Error?e.message:"unknown_error");}
   const summary={discovered,alreadyKnown,suggested,review,deferred,lookupCalls,
