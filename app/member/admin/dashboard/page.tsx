@@ -49,8 +49,9 @@ export default async function AdminDashboardPage({ searchParams }: PageProps) {
             {range === "month" ? "Zobrazit celkem" : "Zobrazit tento měsíc"}
           </Link>
           <Link className="artales-button-secondary" href="/member/admin/queue-candidates">Kandidáti k předání</Link>
+          <Link className="artales-button-secondary" href="/member/admin/prescreen/shadow">Prescreen · Stínová knihovna</Link>
           {(process.env.VERCEL_ENV === "preview" || process.env.NODE_ENV === "development") && (
-            <Link className="artales-button-secondary" href="/member/admin/prescreen">Prescreen reálných titulů (BETA)</Link>
+            <Link className="artales-button-secondary" href="/member/admin/prescreen">Starší Prescreen (BETA)</Link>
           )}
           <Link className="artales-button-secondary" href="/member/admin/payments">
             QR platby
