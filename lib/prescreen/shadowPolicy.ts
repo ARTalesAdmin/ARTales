@@ -34,7 +34,8 @@ export function rebalancePercentages<K extends string>(
     if(left--<=0)break;
     share.count++;
   }
-  const out={...weights,[changed]:value};
+  const out:Record<K,number>={...weights};
+  out[changed]=value;
   for(const share of shares)out[share.key]=share.count;
   return out;
 }
