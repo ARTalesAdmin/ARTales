@@ -101,6 +101,7 @@ export default async function MemberPage() {
           ) : null}
           {canEditContent ? (
             <>
+              <Link className="artales-button-secondary" href="/member/candidates">Kandidáti</Link>
               <Link className="artales-button-secondary" href="/member/works">
                 Díla
               </Link>
