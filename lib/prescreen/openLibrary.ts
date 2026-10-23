@@ -32,6 +32,14 @@ async function getJson(url: URL): Promise<unknown> {
   return response.json();
 }
 
+/** Filter Work first-publication year only when the admin chose historical discovery.
+ * An edition's modern publication year must never be confused with this field. */
+export function withFirstPublicationLimit(query:string,latestYear?:number):string{
+  if(latestYear===undefined)return query;
+  if(!Number.isInteger(latestYear)||latestYear<1000||latestYear>2100)
+    throw Error("invalid_first_publication_limit");
+  return query+" AND first_publish_year:[* TO "+latestYear+"]";
+}
 async function search(query:string, offset=0, limit=40):Promise<SearchDoc[]>{
   const url = new URL("/search.json",apiOrigin);
   url.searchParams.set("q",query);
@@ -73,9 +81,9 @@ export function mapOpenLibraryPage(
   return {fetchedCount:docs.length,entries};
 }
 export async function searchGenrePage(
-  genre:PrescreenGenre,offset:number,limit=12
+  genre:PrescreenGenre,offset:number,limit=12,latestYear?:number
 ):Promise<OpenLibraryCatalogPage>{
-  return mapOpenLibraryPage(await search(OPEN_LIBRARY_QUERIES[genre],offset,limit),offset,genre);
+  return mapOpenLibraryPage(await search(withFirstPublicationLimit(OPEN_LIBRARY_QUERIES[genre],latestYear),offset,limit),offset,genre);
 }
 export async function searchGenre(genre:PrescreenGenre, offset:number, limit=40):Promise<BibliographicTitle[]> {
   return (await searchGenrePage(genre,offset,limit)).entries.map(entry=>entry.item);
@@ -89,9 +97,9 @@ export const OPEN_LIBRARY_THEME_QUERIES:Record<PrescreenTheme,string>={
   social:"subject:social_fiction"
 };
 export async function searchThemePage(
-  theme:PrescreenTheme,offset:number,limit=12
+  theme:PrescreenTheme,offset:number,limit=12,latestYear?:number
 ):Promise<OpenLibraryCatalogPage>{
-  return mapOpenLibraryPage(await search(OPEN_LIBRARY_THEME_QUERIES[theme],offset,limit),offset,"other");
+  return mapOpenLibraryPage(await search(withFirstPublicationLimit(OPEN_LIBRARY_THEME_QUERIES[theme],latestYear),offset,limit),offset,"other");
 }
 export async function searchTheme(theme:PrescreenTheme,offset:number,limit=16):Promise<BibliographicTitle[]>{
   return (await searchThemePage(theme,offset,limit)).entries.map(entry=>entry.item);
