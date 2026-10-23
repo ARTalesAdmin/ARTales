@@ -61,7 +61,8 @@ CREATE INDEX work_candidates_triage_idx
 
 ALTER TABLE public.work_candidates ENABLE ROW LEVEL SECURITY;
 REVOKE ALL ON public.work_candidates FROM PUBLIC, anon, authenticated;
-GRANT SELECT,INSERT,UPDATE ON public.work_candidates TO authenticated;
+GRANT SELECT,INSERT ON public.work_candidates TO authenticated;
+GRANT UPDATE(status,priority,notes,updated_at,updated_by) ON public.work_candidates TO authenticated;
 -- Editors can work in Candidates; only admins may transfer from admin Prescreen.
 CREATE POLICY work_candidates_editor_select ON public.work_candidates FOR SELECT TO authenticated
   USING (EXISTS (SELECT 1 FROM public.profiles p WHERE p.id=(SELECT auth.uid())
@@ -71,6 +72,8 @@ CREATE POLICY work_candidates_editor_insert ON public.work_candidates FOR INSERT
     created_by=(SELECT auth.uid()) AND updated_by=(SELECT auth.uid())
     AND EXISTS(SELECT 1 FROM public.profiles p WHERE p.id=(SELECT auth.uid())
       AND p.is_active AND p.role IN ('admin','editor'))
+    AND (origin='manual' OR EXISTS(SELECT 1 FROM public.profiles p
+      WHERE p.id=(SELECT auth.uid()) AND p.is_active AND p.role='admin'))
   );
 CREATE POLICY work_candidates_editor_update ON public.work_candidates FOR UPDATE TO authenticated
   USING (EXISTS(SELECT 1 FROM public.profiles p WHERE p.id=(SELECT auth.uid())
@@ -82,6 +85,12 @@ CREATE POLICY work_candidates_editor_update ON public.work_candidates FOR UPDATE
   );
 
 -- Linked transfer state cannot be silently reverted by the legacy upsert route.
+-- Direct APIs cannot rewrite bibliographic identity/provenance or rights outcomes.
+ALTER TABLE public.work_candidates ADD CONSTRAINT candidate_rights_not_screened
+  CHECK (rights_status='unknown');
+ALTER TABLE public.work_candidates ADD CONSTRAINT candidate_discovery_not_screened
+  CHECK (discovery_status='pending');
+
 ALTER TABLE public.prescreen_shadow_handoffs
   ADD CONSTRAINT prescreen_handoff_transfer_complete CHECK (
     (state='transferred') =
@@ -124,7 +133,8 @@ BEGIN
     OR length(btrim(coalesce(p_author,''))) NOT BETWEEN 1 AND 200
     OR p_priority NOT BETWEEN 0 AND 100
     OR length(coalesce(p_notes,''))>5000
-    OR length(coalesce(p_origin_reference,''))>500 THEN
+    OR length(coalesce(p_origin_reference,''))>500
+    OR p_priority IS NULL THEN
     RAISE EXCEPTION 'candidate_invalid_input' USING ERRCODE='22023';
   END IF;
   v_identity:=public.artales_candidate_identity(p_title,p_author);
