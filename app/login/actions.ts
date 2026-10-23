@@ -4,6 +4,8 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { normalizeRole } from "@/lib/permissions";
 import { ensureProfileForUser } from "@/lib/profileSync";
+import { getCurrentProfile } from "@/lib/auth";
+import { getServerSupabaseConnection } from "@/lib/supabase/connectionIsolation";
 import { isProfileComplete } from "@/lib/profileValidation";
 
 function safeNext(value: string) {
@@ -42,9 +44,19 @@ export async function login(formData: FormData): Promise<void> {
     redirect("/login?error=invalid");
   }
 
-  const ensured = await ensureProfileForUser({ id: user.id, email: user.email });
+  // A cloud ephemeral preview never receives a service-role key. Its one
+  // pilot account must be provisioned on that isolated branch ahead of time.
+  // The localhost-only switch runs this same no-admin-key login path in E2 CI.
+  const target = getServerSupabaseConnection();
+  const preprovisionedPilot = target.enabled && (
+    target.reason === "ephemeral" ||
+    (target.reason === "local" && process.env.ARTALES_TEST_READONLY_LOGIN === "1")
+  );
+  const ensured = preprovisionedPilot
+    ? { ok: true, profile: await getCurrentProfile(), reason: "branch_profile_not_provisioned" }
+    : await ensureProfileForUser({ id: user.id, email: user.email });
 
-  if (!ensured.ok || !ensured.profile) {
+  if (!ensured.ok || !ensured.profile || ensured.profile.id !== user.id) {
     console.error("Profile/invite ensure after login failed:", ensured.reason);
     redirect("/login?error=profile_save");
   }
