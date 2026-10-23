@@ -17,10 +17,10 @@ export async function createManualCandidate(form:FormData){
  redirect(`/member/candidates/${candidate.candidate_id}`);
 }
 export async function updateCandidate(id:string,form:FormData){
- await requireEditorOrAdmin();
+ const profile=await requireEditorOrAdmin();
  const status=String(form.get("status")??""),notes=String(form.get("notes")??""),priority=Number(form.get("priority"));
  if(!allowed.has(status)||notes.length>5000||!Number.isInteger(priority)||priority<0||priority>100)redirect(`/member/candidates/${id}?error=invalid`);
- const db=await createClient();const {error}=await db.from("work_candidates").update({status,notes,priority,updated_at:new Date().toISOString()}).eq("id",id);
+ const db=await createClient();const {error}=await db.from("work_candidates").update({status,notes,priority,updated_by:profile.id,updated_at:new Date().toISOString()}).eq("id",id);
  if(error)redirect(`/member/candidates/${id}?error=save`);
  redirect(`/member/candidates/${id}?saved=1`);
 }
