@@ -24,7 +24,7 @@ export async function GET(request:Request){
    .order("first_seen_at",{ascending:false}).limit(150);
   if(error)return NextResponse.json({error:"shadow_titles_unavailable"},{status:503});
   const {data:handoffs,error:handoffError}=await db.from("prescreen_shadow_handoffs")
-   .select("id,title_id,state").limit(500);
+   .select("id,title_id,state,selected_at").limit(500);
   if(handoffError)return NextResponse.json({error:"handoffs_unavailable"},{status:503});
   return NextResponse.json({policy,titles:data??[],handoffs:handoffs??[]});
  }
@@ -42,7 +42,9 @@ export async function POST(request:Request){
  if(body?.action==="run"){
   const n=body.requested;
   if(!Number.isInteger(n)||n<1||n>12)return NextResponse.json({error:"requested_1_to_12"},{status:400});
-  try{return NextResponse.json(await runShadowPrescreen(db,actor,n));}
+  const maxYear=body.maxYear;
+  if(maxYear!==null&&maxYear!==undefined&&(!Number.isInteger(maxYear)||maxYear<1000||maxYear>2100))return NextResponse.json({error:"invalid_publication_year"},{status:400});
+  try{return NextResponse.json(await runShadowPrescreen(db,actor,n,undefined,maxYear??undefined));}
   catch(e){return NextResponse.json({error:e instanceof Error?e.message:"run_failed"},{status:503});}
  }
  if(body?.action==="policy"){
@@ -69,6 +71,15 @@ export async function POST(request:Request){
   },{onConflict:"title_id"});
   if(error)return NextResponse.json({error:"handoff_failed"},{status:503});
   return NextResponse.json({queued:true});
+ }
+ if(body?.action==="withdraw"){
+  const id=body.titleId;
+  if(typeof id!=="string"||!/^[0-9a-f-]{36}$/i.test(id))return NextResponse.json({error:"invalid_title"},{status:400});
+  const {data,error}=await db.from("prescreen_shadow_handoffs").update({state:"withdrawn"})
+    .eq("title_id",id).eq("state","queued").select("id").maybeSingle();
+  if(error)return NextResponse.json({error:"handoff_failed"},{status:503});
+  if(!data)return NextResponse.json({error:"handoff_not_queued"},{status:409});
+  return NextResponse.json({withdrawn:true});
  }
  return NextResponse.json({error:"invalid_action"},{status:400});
 }
