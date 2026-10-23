@@ -22,7 +22,7 @@ export async function GET(request:Request){
    .order("first_seen_at",{ascending:false}).limit(150);
   if(error)return NextResponse.json({error:"shadow_titles_unavailable"},{status:503});
   const {data:handoffs,error:handoffError}=await db.from("prescreen_shadow_handoffs")
-   .select("id,title_id,state,selected_at").limit(500);
+   .select("id,title_id,state,selected_at,transferred_candidate_id").limit(500);
   if(handoffError)return NextResponse.json({error:"handoffs_unavailable"},{status:503});
   return NextResponse.json({policy,titles:data??[],handoffs:handoffs??[]});
  }
@@ -64,11 +64,28 @@ export async function POST(request:Request){
   if(titleError||!title)return NextResponse.json({error:"title_not_found"},{status:404});
   if(title.state!=="suggested"&&title.state!=="review")
    return NextResponse.json({error:"title_not_eligible"},{status:409});
-  const {error}=await db.from("prescreen_shadow_handoffs").upsert({
-   title_id:id,state:"queued",selected_by:actor
-  },{onConflict:"title_id"});
-  if(error)return NextResponse.json({error:"handoff_failed"},{status:503});
+  const {data:existing,error:readError}=await db.from("prescreen_shadow_handoffs").select("state").eq("title_id",id).maybeSingle();
+  if(readError)return NextResponse.json({error:"handoff_failed"},{status:503});
+  if(existing?.state==="transferred")return NextResponse.json({error:"already_transferred"},{status:409});
+  if(existing?.state==="queued")return NextResponse.json({queued:true});
+  const result=existing
+    ? await db.from("prescreen_shadow_handoffs").update({state:"queued",selected_by:actor,selected_at:new Date().toISOString()}).eq("title_id",id).eq("state","withdrawn").select("id").maybeSingle()
+    : await db.from("prescreen_shadow_handoffs").insert({title_id:id,state:"queued",selected_by:actor}).select("id").maybeSingle();
+  if(result.error)return NextResponse.json({error:"handoff_failed"},{status:503});
+  if(!result.data)return NextResponse.json({error:"handoff_conflict"},{status:409});
   return NextResponse.json({queued:true});
+ }
+ if(body?.action==="transfer"){
+  const id=body.titleId;
+  if(typeof id!=="string"||!/^[0-9a-f-]{36}$/i.test(id))return NextResponse.json({error:"invalid_title"},{status:400});
+  const {data,error}=await db.rpc("artales_transfer_prescreen_handoff",{p_title_id:id});
+  if(error)return NextResponse.json({error:"transfer_failed"},{status:503});
+  const result=Array.isArray(data)?data[0]:null;
+  if(result?.outcome==="transferred"||result?.outcome==="already_transferred")
+    return NextResponse.json({candidateId:result.candidate_id,outcome:result.outcome});
+  if(result?.outcome==="existing_candidate"||result?.outcome==="existing_work")
+    return NextResponse.json({error:result.outcome,candidateId:result.candidate_id},{status:409});
+  return NextResponse.json({error:result?.outcome??"transfer_failed"},{status:409});
  }
  if(body?.action==="withdraw"){
   const id=body.titleId;
