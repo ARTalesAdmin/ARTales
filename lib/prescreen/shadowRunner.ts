@@ -7,8 +7,8 @@ import {SHADOW_PAGE_SIZE,SHADOW_RUN_BUDGET_MS,maximumShadowEnrichments,nextShado
 
 type ShadowPolicy={form_weights:PrescreenWeights;theme_weights:ThemeWeights;revision:number};
 export type ShadowCatalog={
-  form:(genre:PrescreenGenre,offset:number,limit:number)=>Promise<OpenLibraryCatalogPage>;
-  theme:(theme:PrescreenTheme,offset:number,limit:number)=>Promise<OpenLibraryCatalogPage>;
+  form:(genre:PrescreenGenre,offset:number,limit:number,latestYear?:number)=>Promise<OpenLibraryCatalogPage>;
+  theme:(theme:PrescreenTheme,offset:number,limit:number,latestYear?:number)=>Promise<OpenLibraryCatalogPage>;
   enrich:(row:BibliographicTitle)=>Promise<BibliographicTitle>;
   delay:(ms:number)=>Promise<unknown>;
   now:()=>number;
@@ -28,7 +28,7 @@ export async function loadShadowPolicy(db:SupabaseClient):Promise<ShadowPolicy>{
 /** Safe under partial runs: never advance a cursor beyond an unprocessed raw record.
  * A new click starts the next bounded batch; partial runs are recorded honestly. */
 export async function runShadowPrescreen(
-  db:SupabaseClient,actor:string,requested:number,catalog:ShadowCatalog=liveCatalog
+  db:SupabaseClient,actor:string,requested:number,catalog:ShadowCatalog=liveCatalog,latestYear?:number
 ){
   const maxEnrichments=maximumShadowEnrichments(requested);
   const started=catalog.now();
@@ -64,7 +64,7 @@ export async function runShadowPrescreen(
     for(const query of queries){
       if(suggested>=requested||enrichmentAttempts>=maxEnrichments||
          catalog.now()-started>=SHADOW_RUN_BUDGET_MS)break;
-      const qKey=query.kind+":"+query.key;
+      const qKey=query.kind+":"+query.key+(latestYear===undefined?"":":before-"+latestYear);
       const {data:cursor,error:cursorError}=await db.from("prescreen_shadow_cursors")
         .select("next_offset").eq("query_key",qKey).maybeSingle();
       if(cursorError)throw Error("cursor_read_failed");
@@ -75,8 +75,8 @@ export async function runShadowPrescreen(
       let page:OpenLibraryCatalogPage;
       try{
         page=query.kind==="form"?
-          await catalog.form(query.key as PrescreenGenre,offset,SHADOW_PAGE_SIZE):
-          await catalog.theme(query.key as PrescreenTheme,offset,SHADOW_PAGE_SIZE);
+          await catalog.form(query.key as PrescreenGenre,offset,SHADOW_PAGE_SIZE,latestYear):
+          await catalog.theme(query.key as PrescreenTheme,offset,SHADOW_PAGE_SIZE,latestYear);
         lookupCalls++;
       }catch(e){
         problems.push("catalog_lookup_failed:"+qKey+":"+
@@ -158,7 +158,7 @@ export async function runShadowPrescreen(
     catalog.now()-started>=SHADOW_RUN_BUDGET_MS?"time_budget":
     enrichmentAttempts>=maxEnrichments?"enrichment_limit":"bounded_queries_exhausted";
   const summary={discovered,alreadyKnown,suggested,review,deferred,lookupCalls,
-    enrichmentAttempts,maxEnrichments,stopReason,problems,
+    enrichmentAttempts,maxEnrichments,stopReason,latestYear:latestYear??null,problems,
     missing:Math.max(0,requested-suggested)};
   const {error:finishErr}=await db.from("prescreen_shadow_runs").update({
     status:fulfilled&&problems.length===0?"complete":"incomplete",
