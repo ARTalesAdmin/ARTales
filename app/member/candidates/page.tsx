@@ -1,8 +1,11 @@
 import Link from "next/link";
+import {notFound} from "next/navigation";
+import {CANDIDATES_AB_ENABLED} from "@/lib/candidates/featureFlag";
 import { requireEditorOrAdmin } from "@/lib/guards";
 import { createClient } from "@/lib/supabase/server";
 import "./candidates.css";
 export default async function CandidatesPage({searchParams}:{searchParams:Promise<{status?:string;q?:string}>}) {
+ if(!CANDIDATES_AB_ENABLED)notFound();
  await requireEditorOrAdmin();
  const db=await createClient();
  const {status="",q=""}=await searchParams;
