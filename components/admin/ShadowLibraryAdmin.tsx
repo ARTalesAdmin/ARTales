@@ -1,5 +1,6 @@
 "use client";
 import {useCallback,useEffect,useMemo,useState} from "react";
+import Link from "next/link";
 import {rebalancePercentages} from "@/lib/prescreen/shadowPolicy";
 import {PRESCREEN_GENRES,type PrescreenGenre,type PrescreenWeights} from "@/lib/prescreen/engine";
 import {PRESCREEN_THEMES,type PrescreenTheme,type ThemeWeights} from "@/lib/prescreen/themes";
@@ -92,7 +93,7 @@ export default function ShadowLibraryAdmin(){
    </p>
    <p className="ps-book-description">{status.description}</p>
    <div className="ps-actions">
-    {candidateId?<a className="ps-button ps-button-primary" href={"/member/candidates/"+candidateId}>Otevřít kandidáta →</a>:queued?<button type="button" className="ps-button ps-button-quiet" disabled={busy} onClick={()=>void act({action:"withdraw",titleId:t.id})}>Vrátit do knihovny</button>:
+    {candidateId?<Link className="ps-button ps-button-primary" href={"/member/candidates/"+candidateId}>Otevřít kandidáta →</Link>:queued?<button type="button" className="ps-button ps-button-quiet" disabled={busy} onClick={()=>void act({action:"withdraw",titleId:t.id})}>Vrátit do knihovny</button>:
      t.state!=="deferred"?<button type="button" className="ps-button ps-button-primary" disabled={busy} onClick={()=>void act({action:"handoff",titleId:t.id})}>Vybrat k předání</button>:null}
     <a href={t.source_url} target="_blank" rel="noopener noreferrer" className="ps-button ps-button-secondary">Zobrazit zdroj ↗</a>
    </div>
@@ -136,7 +137,7 @@ export default function ShadowLibraryAdmin(){
   {tab==="handoff"&&data&&<section className="ps-panel">
    <h2>Výběr k předání</h2>
    <p>Vybrané náměty můžeš převést do trvalé evidence Kandidátů. Open Library je pouze bibliografický tip; žádnou edici ani práva tím neschvaluješ.</p>
-   <p><a className="ps-button ps-button-secondary" href="/member/candidates">Otevřít seznam Kandidátů →</a></p>
+   <p><Link className="ps-button ps-button-secondary" href="/member/candidates">Otevřít seznam Kandidátů →</Link></p>
    {chosen.length?<div className="ps-books">{chosen.map(t=><div key={t.id}>{book(t)}<button className="ps-button ps-button-primary" type="button" disabled={busy} onClick={()=>void act({action:"transfer",titleId:t.id})}>Převést na Kandidáta</button></div>)}</div>:<p className="ps-empty">Zatím nemáš vybranou žádnou knihu. V Knihovně zvol „Vybrat k předání“.</p>}
   </section>}
   {tab==="weights"&&forms&&themes&&data&&<section className="ps-panel">
