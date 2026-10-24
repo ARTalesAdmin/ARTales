@@ -1,9 +1,11 @@
 "use server";
 import {redirect} from "next/navigation";
+import {CANDIDATES_AB_ENABLED} from "@/lib/candidates/featureFlag";
 import {requireEditorOrAdmin} from "@/lib/guards";
 import {createClient} from "@/lib/supabase/server";
 const allowed=new Set(["new","checking","ready","deferred","rejected"]);
 export async function createManualCandidate(form:FormData){
+ if(!CANDIDATES_AB_ENABLED)throw new Error("candidates_not_enabled");
  await requireEditorOrAdmin();
  const title=String(form.get("title")??"").trim(),author=String(form.get("author")??"").trim();
  const reference=String(form.get("reference")??"").trim(),notes=String(form.get("notes")??"");
@@ -17,6 +19,7 @@ export async function createManualCandidate(form:FormData){
  redirect(`/member/candidates/${candidate.candidate_id}`);
 }
 export async function updateCandidate(id:string,form:FormData){
+ if(!CANDIDATES_AB_ENABLED)throw new Error("candidates_not_enabled");
  const profile=await requireEditorOrAdmin();
  const status=String(form.get("status")??""),notes=String(form.get("notes")??""),priority=Number(form.get("priority"));
  if(!allowed.has(status)||notes.length>5000||!Number.isInteger(priority)||priority<0||priority>100)redirect(`/member/candidates/${id}?error=invalid`);
