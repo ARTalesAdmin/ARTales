@@ -5,4 +5,4 @@
  * Never infer availability from deploy/branch/environment.
  * This intentionally has NO runtime environment override.
  */
-export const CANDIDATES_AB_ENABLED = false;
+export const CANDIDATES_AB_ENABLED = true;
