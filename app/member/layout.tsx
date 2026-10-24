@@ -10,14 +10,14 @@ export default async function MemberLayout({
 }: {
   children: ReactNode;
 }) {
-  await requireMemberZoneAccess();
+  const profile = await requireMemberZoneAccess();
 
   return (
     <div className="artales-workspace-shell">
       <PublicHeader />
       <div className="artales-member-shell artales-member-shell--embedded">
         <div className="artales-member-layout">
-          <MemberZoneNav />
+          <MemberZoneNav role={profile.role} />
           <div className="artales-member-content">{children}</div>
         </div>
       </div>
