@@ -1,8 +1,11 @@
 import Link from "next/link";
+import {notFound} from "next/navigation";
+import {CANDIDATES_AB_ENABLED} from "@/lib/candidates/featureFlag";
 import {requireEditorOrAdmin} from "@/lib/guards";
 import {createManualCandidate} from "@/lib/actions/candidateIntake";
 import "../candidates.css";
 export default async function NewCandidate({searchParams}:{searchParams:Promise<{error?:string}>}){
+ if(!CANDIDATES_AB_ENABLED)notFound();
  await requireEditorOrAdmin();const {error}=await searchParams;
  return <main className="ca-root"><p><Link href="/member/candidates">← Kandidáti</Link></p><header className="ca-head"><div><p className="ca-eyebrow">Redakční evidence</p><h1>Nový kandidát</h1><p>Založení námětu není právním schválením ani založením publikovaného díla.</p></div></header>
  {error?<p className="ca-error" role="alert">{error==="duplicate"?"Tento kandidát nebo dílo již existuje.":"Založení se nezdařilo; ověř vstup a oprávnění."}</p>:null}
