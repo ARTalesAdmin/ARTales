@@ -1,4 +1,5 @@
 import {NextResponse} from "next/server";
+import {CANDIDATES_AB_ENABLED} from "@/lib/candidates/featureFlag";
 import {createClient} from "@/lib/supabase/server";
 import {requireAdmin} from "@/lib/guards";
 import {runShadowPrescreen,loadShadowPolicy,reassessDueTitles} from "@/lib/prescreen/shadowRunner";
@@ -76,6 +77,7 @@ export async function POST(request:Request){
   return NextResponse.json({queued:true});
  }
  if(body?.action==="transfer"){
+  if(!CANDIDATES_AB_ENABLED)return NextResponse.json({error:"candidates_not_enabled"},{status:404});
   const id=body.titleId;
   if(typeof id!=="string"||!/^[0-9a-f-]{36}$/i.test(id))return NextResponse.json({error:"invalid_title"},{status:400});
   const {data,error}=await db.rpc("artales_transfer_prescreen_handoff",{p_title_id:id});
