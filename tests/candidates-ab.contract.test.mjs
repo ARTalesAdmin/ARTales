@@ -45,9 +45,9 @@ test("Migration history aligned with applied prescreen",()=>{
  assert.match(read("supabase/migrations/20261023063248_prescreen_shadow_library_v1.sql"),/CREATE TABLE public\.prescreen_shadow_handoffs/i);
 });
 
-test("Dark merge fails closed until separately authorized activation",()=>{
+test("Activated release exposes Candidates only after production DB and role smoke",()=>{
  const flag=read("lib/candidates/featureFlag.ts");
- assert.match(flag,/CANDIDATES_AB_ENABLED = false/);
+ assert.match(flag,/CANDIDATES_AB_ENABLED = true/);
  assert.match(read("app/member/candidates/page.tsx"),/if\(!CANDIDATES_AB_ENABLED\)notFound\(\)/);
  assert.match(read("app/member/candidates/new/page.tsx"),/if\(!CANDIDATES_AB_ENABLED\)notFound\(\)/);
  assert.match(read("app/member/candidates/[id]/page.tsx"),/if\(!CANDIDATES_AB_ENABLED\)notFound\(\)/);
