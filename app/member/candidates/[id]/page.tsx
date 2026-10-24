@@ -1,10 +1,12 @@
 import Link from "next/link";
+import {CANDIDATES_AB_ENABLED} from "@/lib/candidates/featureFlag";
 import {notFound} from "next/navigation";
 import {requireEditorOrAdmin} from "@/lib/guards";
 import {createClient} from "@/lib/supabase/server";
 import {updateCandidate} from "@/lib/actions/candidateIntake";
 import "../candidates.css";
 export default async function CandidateDetail({params,searchParams}:{params:Promise<{id:string}>;searchParams:Promise<{saved?:string;error?:string}>}) {
+ if(!CANDIDATES_AB_ENABLED)notFound();
  await requireEditorOrAdmin();
  const {id}=await params; if(!/^[0-9a-f-]{36}$/i.test(id))notFound();
  const db=await createClient();
