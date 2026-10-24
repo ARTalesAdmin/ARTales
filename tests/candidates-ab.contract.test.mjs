@@ -44,3 +44,14 @@ test("Manual candidate creation checks existing works",()=>{
 test("Migration history aligned with applied prescreen",()=>{
  assert.match(read("supabase/migrations/20261023063248_prescreen_shadow_library_v1.sql"),/CREATE TABLE public\.prescreen_shadow_handoffs/i);
 });
+
+test("Dark merge fails closed until separately authorized activation",()=>{
+ const flag=read("lib/candidates/featureFlag.ts");
+ assert.match(flag,/CANDIDATES_AB_ENABLED = false/);
+ assert.match(read("app/member/candidates/page.tsx"),/if\(!CANDIDATES_AB_ENABLED\)notFound\(\)/);
+ assert.match(read("app/member/candidates/new/page.tsx"),/if\(!CANDIDATES_AB_ENABLED\)notFound\(\)/);
+ assert.match(read("app/member/candidates/[id]/page.tsx"),/if\(!CANDIDATES_AB_ENABLED\)notFound\(\)/);
+ assert.match(actions,/if\(!CANDIDATES_AB_ENABLED\)throw/);
+ assert.match(route,/candidates_not_enabled/);
+ assert.match(view,/CANDIDATES_AB_ENABLED\?chosen.map/);
+});
