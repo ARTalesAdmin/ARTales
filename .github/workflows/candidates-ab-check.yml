@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - feat/candidates-a-b-prescreen-mainline-20261023
+      - release/artales-candidates-ab-enable-20261024
   workflow_dispatch:
 
 permissions:
