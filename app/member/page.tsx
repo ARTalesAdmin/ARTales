@@ -1,4 +1,5 @@
 import Link from "next/link";
+import {CANDIDATES_AB_ENABLED} from "@/lib/candidates/featureFlag";
 import { getCurrentProfile } from "@/lib/auth";
 import { getShortDisplayName } from "@/lib/displayName";
 import { logout } from "./actions";
@@ -101,7 +102,7 @@ export default async function MemberPage() {
           ) : null}
           {canEditContent ? (
             <>
-              <Link className="artales-button-secondary" href="/member/candidates">Kandidáti</Link>
+              {CANDIDATES_AB_ENABLED ? <Link className="artales-button-secondary" href="/member/candidates">Kandidáti</Link> : null}
               <Link className="artales-button-secondary" href="/member/works">
                 Díla
               </Link>
