@@ -1,0 +1,35 @@
+name: ARTales Candidates A+B checks (isolated)
+
+on:
+  push:
+    branches:
+      - feat/candidates-a-b-prescreen-mainline-20261023
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  candidate-build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      # Non-production placeholders. CI never connects to the live Supabase project.
+      NEXT_PUBLIC_SUPABASE_URL: https://example.supabase.co
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: ci-not-a-real-secret
+      NEXT_TELEMETRY_DISABLED: '1'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - name: Candidate intake contract tests
+        run: node --test tests/candidates-ab.contract.test.mjs
+      - name: TypeScript type check
+        run: npx tsc --noEmit
+      - name: Lint changed candidate files
+        run: npx eslint app/member/candidates lib/actions/candidateIntake.ts app/api/member/prescreen/shadow/route.ts components/admin/ShadowLibraryAdmin.tsx
+      - name: Build application
+        run: npm run build

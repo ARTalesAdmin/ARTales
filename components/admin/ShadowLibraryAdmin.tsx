@@ -1,5 +1,7 @@
 "use client";
 import {useCallback,useEffect,useMemo,useState} from "react";
+import Link from "next/link";
+import {CANDIDATES_AB_ENABLED} from "@/lib/candidates/featureFlag";
 import {rebalancePercentages} from "@/lib/prescreen/shadowPolicy";
 import {PRESCREEN_GENRES,type PrescreenGenre,type PrescreenWeights} from "@/lib/prescreen/engine";
 import {PRESCREEN_THEMES,type PrescreenTheme,type ThemeWeights} from "@/lib/prescreen/themes";
@@ -8,7 +10,7 @@ import "./ShadowLibraryAdmin.css";
 const formNames:Record<PrescreenGenre,string>={prose:"Próza",poetry:"Poezie",drama:"Drama",fairy_tale:"Pohádka",essay:"Esej",other:"Ostatní"};
 const themeNames:Record<PrescreenTheme,string>={horror:"Horor",romance:"Romantika",detective:"Detektivka",science_fiction:"Sci-fi",fantasy:"Fantasy",adventure:"Dobrodružství",humor:"Humor",historical:"Historický",mystery:"Záhady",social:"Společenský"};
 type Title={id:string;title:string;author:string;form:string;themes:string[];primary_theme:string|null;state:string;reason:string;reconsider_year:number|null;first_published:number|null;author_died:number|null;source_url:string};
-type Handoff={id:string;title_id:string;state:string;selected_at:string};
+type Handoff={id:string;title_id:string;state:string;selected_at:string;transferred_candidate_id:string|null};
 type State={policy:{form_weights:PrescreenWeights;theme_weights:ThemeWeights;revision:number};titles:Title[];handoffs:Handoff[]};
 type Run={id:string;requested:number;status:string;summary:{discovered?:number;suggested?:number;review?:number;deferred?:number;missing?:number;stopReason?:string;problems?:string[]};started_at:string};
 type Tab="catalog"|"handoff"|"weights"|"history";
@@ -50,6 +52,7 @@ export default function ShadowLibraryAdmin(){
  },[]);
  useEffect(()=>{void refresh().catch(e=>setError(String(e.message)));},[refresh]);
  const selected=new Set(data?.handoffs.filter(h=>h.state==="queued").map(h=>h.title_id)??[]);
+ const transferred=new Map(data?.handoffs.filter(h=>h.state==="transferred").map(h=>[h.title_id,h.transferred_candidate_id])??[]);
  const entries=useMemo(()=>data?.titles??[],[data]);
  const chosen=entries.filter(t=>selected.has(t.id));
  const visible=entries.filter(t=>filter==="all"||t.state===filter);
@@ -60,6 +63,7 @@ export default function ShadowLibraryAdmin(){
    await refresh();
    if(action.action==="run")setMessage(summaryMessage(result.summary));
    else if(action.action==="handoff"){setMessage("Kniha byla přidána do výběru k předání.");setTab("handoff");}
+   else if(action.action==="transfer"){setMessage("Kandidát byl založen. Najdeš jej v evidenci Kandidátů.");setTab("handoff");}
    else if(action.action==="withdraw")setMessage("Kniha byla z výběru vrácena do knihovny.");
    else setMessage("Nové váhy jsou uloženy.");
   }catch(e){setError(e instanceof Error?e.message:"Požadavek se nezdařil");}
@@ -78,7 +82,7 @@ export default function ShadowLibraryAdmin(){
   </div>;
  }
  function book(t:Title){
-  const status=statusFor(t),queued=selected.has(t.id);
+  const status=statusFor(t),queued=selected.has(t.id),candidateId=transferred.get(t.id);
   return <article key={t.id} className="ps-book">
    <div className="ps-book-head"><div><h3>{t.title}</h3><p className="ps-book-author">{t.author}</p></div>
     <span className={"ps-status ps-status-"+status.kind}>{status.label}</span>
@@ -90,7 +94,7 @@ export default function ShadowLibraryAdmin(){
    </p>
    <p className="ps-book-description">{status.description}</p>
    <div className="ps-actions">
-    {queued?<button type="button" className="ps-button ps-button-quiet" disabled={busy} onClick={()=>void act({action:"withdraw",titleId:t.id})}>Vrátit do knihovny</button>:
+    {CANDIDATES_AB_ENABLED&&candidateId?<Link className="ps-button ps-button-primary" href={"/member/candidates/"+candidateId}>Otevřít kandidáta →</Link>:queued?<button type="button" className="ps-button ps-button-quiet" disabled={busy} onClick={()=>void act({action:"withdraw",titleId:t.id})}>Vrátit do knihovny</button>:
      t.state!=="deferred"?<button type="button" className="ps-button ps-button-primary" disabled={busy} onClick={()=>void act({action:"handoff",titleId:t.id})}>Vybrat k předání</button>:null}
     <a href={t.source_url} target="_blank" rel="noopener noreferrer" className="ps-button ps-button-secondary">Zobrazit zdroj ↗</a>
    </div>
@@ -133,8 +137,9 @@ export default function ShadowLibraryAdmin(){
   </>}
   {tab==="handoff"&&data&&<section className="ps-panel">
    <h2>Výběr k předání</h2>
-   <p>Zde jsou knihy, které jsi vybral k dalšímu posouzení. Výběr se ukládá, ale zatím není napojený na systém kandidátů ani na právní kontrolu. Další automatický krok proto ještě neprobíhá.</p>
-   {chosen.length?<div className="ps-books">{chosen.map(book)}</div>:<p className="ps-empty">Zatím nemáš vybranou žádnou knihu. V Knihovně zvol „Vybrat k předání“.</p>}
+   <p>{CANDIDATES_AB_ENABLED?"Vybrané náměty můžeš převést do trvalé evidence Kandidátů. Open Library je pouze bibliografický tip; žádnou edici ani práva tím neschvaluješ.":"Zde jsou knihy, které jsi vybral k dalšímu posouzení. Výběr se ukládá, ale zatím není napojený na systém kandidátů ani na právní kontrolu. Další automatický krok proto ještě neprobíhá."}</p>
+   {CANDIDATES_AB_ENABLED?<p><Link className="ps-button ps-button-secondary" href="/member/candidates">Otevřít seznam Kandidátů →</Link></p>:null}
+   {chosen.length?<div className="ps-books">{CANDIDATES_AB_ENABLED?chosen.map(t=><div key={t.id}>{book(t)}<button className="ps-button ps-button-primary" type="button" disabled={busy} onClick={()=>void act({action:"transfer",titleId:t.id})}>Převést na Kandidáta</button></div>):chosen.map(book)}</div>:<p className="ps-empty">Zatím nemáš vybranou žádnou knihu. V Knihovně zvol „Vybrat k předání“.</p>}
   </section>}
   {tab==="weights"&&forms&&themes&&data&&<section className="ps-panel">
    <h2>Váhy a strategie</h2><p>Nastav poměr literárních forem a žánrů. Ostatní hodnoty se vždy přepočítají tak, aby každá skupina měla 100 %.</p>
