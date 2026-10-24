@@ -20,7 +20,7 @@ Základ: produkční main (Prescreen Shadow Library), **nikoli develop**. Větev
 
 ## Povinné testy (dosud **NEPROVEDENY**, pouze source-only příprava)
 
-- [ ] SQL migrace PASS v čistém ephemeral projektu se schématem produkce (bez produkčních dat).
+- [x] SQL migrace PASS v čisté krátkodobé Supabase větvi se schématem produkce, 2026-10-24; RLS zapnuté, tři politiky a dvě RPC funkce přítomny; testovací větev smazána.
 - [ ] Dvě souběžná předání jednoho handoffu → právě jeden Kandidát, obě odpovědi odkazují na stejné ID.
 - [ ] Znovu provedené předání → `already_transferred`, žádná další řádka.
 - [ ] Stejný titul jako `works` → `existing_work`, bez převodu.
@@ -38,4 +38,8 @@ Základ: produkční main (Prescreen Shadow Library), **nikoli develop**. Větev
 Riziko: **medium** (nová DB tabulka + RPC + admin UI). Target: **production safe po testech**. DB: **yes, source-only**. Env: **no**. Reader/Auth/Payments: **no**.
 První release neobsahuje právní screening ani automatické vytváření konceptu.
 
-Testovaný stav: source-level statické kontraktní kontroly (12/12 kontrolovaných podmínek) — **neznamená build, SQL smoke ani E2E PASS**.
+Testovaný stav (2026-10-24): krátkodobá Supabase branch APPLY PASS a základní readback PASS; GitHub CI run 40073464527 PASS: 7/7 node contract tests, TypeScript, scoped lint, Next.js production build. **Neznamená signed Auth E2E nebo concurrent RPC PASS.**
+
+CI: https://github.com/ARTalesAdmin/ARTales/actions/runs/40073464527
+
+Dokud nejsou hotové skutečné write/readback a souběžné testy pod přihlášenými rolemi, nedoporučujeme produkční APPLY ani deploy.
