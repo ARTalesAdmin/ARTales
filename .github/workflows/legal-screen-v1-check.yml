@@ -9,6 +9,7 @@ on:
       - fix/artales-legal-search-zero-results-20261025
       - fix/artales-legal-screen-workflow-20261025
       - feat/artales-legal-screen-automatic-v2-20261025
+      - fix/artales-legal-simple-rights-20261025
 permissions:
   contents: read
 jobs:
@@ -31,7 +32,7 @@ jobs:
       - name: Edition decision tests
         run: npx tsx --test tests/legal-edition-recommendation.test.ts tests/legal-gutenberg-catalog.test.ts tests/legal-gutenberg-opds.test.ts
       - name: Live Gutenberg #389 integration smoke
-        run: npx tsx --test tests/legal-gutenberg-live.test.ts tests/legal-automatic-assessment.test.ts
+        run: npx tsx --test tests/legal-gutenberg-live.test.ts tests/legal-automatic-assessment.test.ts tests/legal-simple-rights.test.ts
       - name: TypeScript
         run: npx tsc --noEmit
       - name: Scoped eslint
