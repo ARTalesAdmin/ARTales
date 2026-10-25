@@ -18,7 +18,7 @@ test("edition recommendation cannot bypass legal approval",()=>{
  assert.match(src,/legalApprovalRequired: true/);
  assert.match(src,/identityMatch === "confirmed"/);
  assert.match(src,/languageMatch === "matches"/);
- assert.match(src,/legallyDocumented\(e\)/);
+ assert.match(src,/documented\(e\)/);
  assert.match(src,/newer_equal_usability/);
  assert.match(src,/ambiguous_tie/);
  assert.match(src,/insufficient_evidence/);
@@ -38,4 +38,16 @@ test("editor+ legal verification and admin-only snapshot requests",()=>{
  assert.match(m,/author_died integer/);
  assert.match(m,/translator_died integer/);
  assert.match(m,/illustrator_died integer/);
+});
+
+test("specific download and image inventory are distinct from text rights",()=>{
+ const src=r("lib/legal/editionRecommendation.ts");
+ assert.match(src,/validHttps\(e\.downloadUrl\)/);
+ assert.match(src,/e\.translationRights === "restricted"/);
+ assert.match(src,/excludedEditionIds/);
+ assert.match(m,/download_url text/);
+ assert.match(m,/candidate_legal_illustrations/);
+ assert.match(m,/archive_rights/);
+ assert.match(m,/publication_rights/);
+ assert.match(m,/planned_use='publish'/);
 });
