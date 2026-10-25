@@ -332,4 +332,65 @@ CREATE TRIGGER artales_guard_snapshot_request_update
 
 REVOKE ALL ON FUNCTION public.artales_guard_snapshot_request() FROM PUBLIC,anon;
 
+
+-- Immutable, editor-authorized handoff: exact source file + rights evidence and image manifest.
+CREATE TABLE public.candidate_legal_locks (
+ candidate_id uuid PRIMARY KEY REFERENCES public.work_candidates(id) ON DELETE RESTRICT,
+ source_id uuid NOT NULL REFERENCES public.candidate_legal_sources(id) ON DELETE RESTRICT,
+ decision_no bigint NOT NULL UNIQUE REFERENCES public.candidate_legal_decisions(decision_no) ON DELETE RESTRICT,
+ source_url text NOT NULL,
+ download_url text NOT NULL,
+ source_facts jsonb NOT NULL CHECK(jsonb_typeof(source_facts)='object'),
+ illustrations jsonb NOT NULL CHECK(jsonb_typeof(illustrations)='array'),
+ locked_by uuid NOT NULL REFERENCES public.profiles(id),
+ locked_at timestamptz NOT NULL DEFAULT now()
+);
+ALTER TABLE public.candidate_legal_locks ENABLE ROW LEVEL SECURITY;
+REVOKE ALL ON public.candidate_legal_locks FROM PUBLIC,anon,authenticated;
+GRANT SELECT ON public.candidate_legal_locks TO authenticated;
+GRANT INSERT(candidate_id,source_id,decision_no,source_url,download_url,source_facts,illustrations,locked_by)
+ ON public.candidate_legal_locks TO authenticated;
+CREATE POLICY legal_locks_read ON public.candidate_legal_locks FOR SELECT TO authenticated USING (
+ EXISTS(SELECT 1 FROM public.profiles p WHERE p.id=(SELECT auth.uid()) AND p.is_active AND p.role IN ('editor','admin')));
+CREATE POLICY legal_locks_insert ON public.candidate_legal_locks FOR INSERT TO authenticated WITH CHECK(
+ locked_by=(SELECT auth.uid()) AND EXISTS(SELECT 1 FROM public.profiles p WHERE p.id=(SELECT auth.uid())
+ AND p.is_active AND p.role IN ('editor','admin')));
+
+CREATE FUNCTION public.artales_validate_legal_lock()
+RETURNS trigger LANGUAGE plpgsql SECURITY INVOKER SET search_path=''
+AS $fn$
+DECLARE d record; src record; images jsonb;
+BEGIN
+ IF NEW.locked_by IS DISTINCT FROM (SELECT auth.uid()) THEN
+  RAISE EXCEPTION 'legal_lock_identity' USING ERRCODE='42501';
+ END IF;
+ PERFORM pg_catalog.pg_advisory_xact_lock(410726,pg_catalog.hashtext(NEW.candidate_id::text));
+ PERFORM pg_catalog.pg_advisory_xact_lock(410725,pg_catalog.hashtext(NEW.source_id::text));
+ SELECT * INTO d FROM public.candidate_legal_decisions
+ WHERE candidate_id=NEW.candidate_id ORDER BY decision_no DESC LIMIT 1;
+ IF NOT FOUND OR d.verdict <> 'approved' OR d.source_id IS DISTINCT FROM NEW.source_id
+   OR d.decision_no IS DISTINCT FROM NEW.decision_no THEN
+  RAISE EXCEPTION 'legal_lock_requires_latest_approval' USING ERRCODE='23514';
+ END IF;
+ SELECT * INTO src FROM public.candidate_legal_sources
+ WHERE id=NEW.source_id AND candidate_id=NEW.candidate_id;
+ IF NOT FOUND OR src.download_url IS NULL THEN
+  RAISE EXCEPTION 'legal_lock_requires_file' USING ERRCODE='23514';
+ END IF;
+ SELECT coalesce(jsonb_agg(jsonb_build_object(
+  'url',i.asset_url,'creator',i.creator,'evidence',i.evidence_url,
+  'archiveRights',i.archive_rights,'publicationRights',i.publication_rights,
+  'use',i.planned_use,'notes',i.notes) ORDER BY i.asset_url),'[]'::jsonb)
+ INTO images FROM public.candidate_legal_illustrations i WHERE i.source_id=NEW.source_id;
+ NEW.source_url:=src.source_url;
+ NEW.download_url:=src.download_url;
+ NEW.source_facts:=d.source_facts;
+ NEW.illustrations:=images;
+ RETURN NEW;
+END
+$fn$;
+CREATE TRIGGER artales_validate_legal_lock BEFORE INSERT ON public.candidate_legal_locks
+ FOR EACH ROW EXECUTE FUNCTION public.artales_validate_legal_lock();
+REVOKE ALL ON FUNCTION public.artales_validate_legal_lock() FROM PUBLIC,anon;
+
 COMMIT;
