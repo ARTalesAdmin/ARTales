@@ -103,6 +103,10 @@ CREATE FUNCTION public.artales_guard_approved_legal_source()
 RETURNS trigger LANGUAGE plpgsql SECURITY INVOKER SET search_path=''
 AS $fn$
 BEGIN
+  -- Lock the edition's audit state before checking approvals. Both source edits
+  -- and legal decisions use the same transaction-scoped advisory lock.
+  -- Hash collisions only serialize unrelated editions; they cannot weaken checks.
+  PERFORM pg_catalog.pg_advisory_xact_lock(410725, pg_catalog.hashtext(OLD.id::text));
   IF EXISTS(SELECT 1 FROM public.candidate_legal_decisions d
      WHERE d.source_id=OLD.id AND d.verdict='approved') THEN
     RAISE EXCEPTION 'approved_legal_source_immutable' USING ERRCODE='23514';
@@ -124,10 +128,13 @@ BEGIN
   IF NEW.reviewed_by IS DISTINCT FROM (SELECT auth.uid()) THEN
     RAISE EXCEPTION 'legal_reviewer_mismatch' USING ERRCODE='42501';
   END IF;
-  -- Reader/editor has SELECT but not UPDATE on candidates; lock sources instead.
+  -- Candidate is a read-only reference here; per-edition serialization is below.
   PERFORM 1 FROM public.work_candidates c WHERE c.id=NEW.candidate_id;
   IF NOT FOUND THEN RAISE EXCEPTION 'legal_candidate_missing' USING ERRCODE='23503'; END IF;
   IF NEW.source_id IS NOT NULL THEN
+    -- Serialize approval/evidence snapshot against concurrent edition edits.
+    -- This does not require row UPDATE privileges on work_candidates.
+    PERFORM pg_catalog.pg_advisory_xact_lock(410725, pg_catalog.hashtext(NEW.source_id::text));
     SELECT * INTO s FROM public.candidate_legal_sources
       WHERE id=NEW.source_id AND candidate_id=NEW.candidate_id;
     IF NOT FOUND THEN
