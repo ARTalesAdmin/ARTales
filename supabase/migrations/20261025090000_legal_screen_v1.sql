@@ -13,6 +13,19 @@ CREATE TABLE public.candidate_legal_sources (
   language_code text NOT NULL DEFAULT '' CHECK (length(language_code) <= 30),
   translator text NOT NULL DEFAULT '' CHECK (length(translator) <= 300),
   illustrator text NOT NULL DEFAULT '' CHECK (length(illustrator) <= 300),
+  author_died integer CHECK (author_died IS NULL OR author_died BETWEEN 1000 AND 2100),
+  translator_died integer CHECK (translator_died IS NULL OR translator_died BETWEEN 1000 AND 2100),
+  illustrator_died integer CHECK (illustrator_died IS NULL OR illustrator_died BETWEEN 1000 AND 2100),
+  identity_match text NOT NULL DEFAULT 'uncertain'
+    CHECK (identity_match IN ('confirmed','uncertain','mismatch')),
+  language_match text NOT NULL DEFAULT 'uncertain'
+    CHECK (language_match IN ('matches','uncertain','mismatch')),
+  text_format text NOT NULL DEFAULT 'unknown'
+    CHECK (text_format IN ('plain_text','html','epub','ocr_pdf','scan','catalog_only','unknown')),
+  completeness text NOT NULL DEFAULT 'unknown'
+    CHECK (completeness IN ('complete','partial','unknown')),
+  text_quality text NOT NULL DEFAULT 'unknown'
+    CHECK (text_quality IN ('verified','needs_cleanup','unknown')),
   original_rights text NOT NULL DEFAULT 'unknown'
     CHECK (original_rights IN ('unknown','public_domain','licensed','restricted')),
   translation_rights text NOT NULL DEFAULT 'unknown'
@@ -53,10 +66,14 @@ REVOKE ALL ON public.candidate_legal_decisions FROM PUBLIC, anon, authenticated;
 
 GRANT SELECT ON public.candidate_legal_sources, public.candidate_legal_decisions TO authenticated;
 GRANT INSERT(candidate_id,source_kind,edition_title,source_url,read_url,edition_year,language_code,
-  translator,illustrator,original_rights,translation_rights,illustration_use,source_terms,
+  translator,illustrator,author_died,translator_died,illustrator_died,
+  identity_match,language_match,text_format,completeness,text_quality,
+  original_rights,translation_rights,illustration_use,source_terms,
   evidence_url,notes,created_by,updated_by) ON public.candidate_legal_sources TO authenticated;
 GRANT UPDATE(source_kind,edition_title,source_url,read_url,edition_year,language_code,
-  translator,illustrator,original_rights,translation_rights,illustration_use,source_terms,
+  translator,illustrator,author_died,translator_died,illustrator_died,
+  identity_match,language_match,text_format,completeness,text_quality,
+  original_rights,translation_rights,illustration_use,source_terms,
   evidence_url,notes,updated_by,updated_at) ON public.candidate_legal_sources TO authenticated;
 GRANT INSERT(candidate_id,source_id,verdict,territory,rationale,reviewed_by)
   ON public.candidate_legal_decisions TO authenticated;
@@ -92,8 +109,7 @@ CREATE POLICY legal_decisions_editor_insert ON public.candidate_legal_decisions
     reviewed_by=(SELECT auth.uid())
     AND EXISTS(SELECT 1 FROM public.profiles p WHERE p.id=(SELECT auth.uid())
       AND p.is_active AND (
-        (p.role='admin')
-        OR (p.role='editor' AND verdict IN ('deferred','needs_evidence'))
+        p.role IN ('admin','editor')
       ))
     AND EXISTS(SELECT 1 FROM public.work_candidates c WHERE c.id=candidate_id)
   );
@@ -128,6 +144,8 @@ BEGIN
   IF NEW.reviewed_by IS DISTINCT FROM (SELECT auth.uid()) THEN
     RAISE EXCEPTION 'legal_reviewer_mismatch' USING ERRCODE='42501';
   END IF;
+  -- Serialize screen decisions and snapshot requests by candidate, without UPDATE privileges.
+  PERFORM pg_catalog.pg_advisory_xact_lock(410726, pg_catalog.hashtext(NEW.candidate_id::text));
   -- Candidate is a read-only reference here; per-edition serialization is below.
   PERFORM 1 FROM public.work_candidates c WHERE c.id=NEW.candidate_id;
   IF NOT FOUND THEN RAISE EXCEPTION 'legal_candidate_missing' USING ERRCODE='23503'; END IF;
@@ -144,6 +162,9 @@ BEGIN
       'sourceId',s.id,'kind',s.source_kind,'edition',s.edition_title,
       'url',s.source_url,'readUrl',s.read_url,'year',s.edition_year,
       'language',s.language_code,'translator',s.translator,'illustrator',s.illustrator,
+      'authorDied',s.author_died,'translatorDied',s.translator_died,'illustratorDied',s.illustrator_died,
+      'identityMatch',s.identity_match,'languageMatch',s.language_match,
+      'textFormat',s.text_format,'completeness',s.completeness,'textQuality',s.text_quality,
       'originalRights',s.original_rights,'translationRights',s.translation_rights,
       'illustrationUse',s.illustration_use,'sourceTerms',s.source_terms,
       'evidenceUrl',s.evidence_url,'notes',s.notes
@@ -151,14 +172,11 @@ BEGIN
   ELSE
     NEW.source_facts:='{}'::jsonb;
   END IF;
-  IF NEW.verdict IN ('approved','rejected') AND NOT EXISTS (
-    SELECT 1 FROM public.profiles p WHERE p.id=(SELECT auth.uid())
-      AND p.is_active AND p.role='admin'
-  ) THEN
-    RAISE EXCEPTION 'legal_final_verdict_admin_only' USING ERRCODE='42501';
-  END IF;
+  -- Editor+ can verify a source; this is not approval to perform a snapshot.
   IF NEW.verdict='approved' AND (
     NEW.source_id IS NULL
+    OR s.identity_match <> 'confirmed'
+    OR s.language_match <> 'matches'
     OR s.original_rights NOT IN ('public_domain','licensed')
     OR s.translation_rights NOT IN ('not_applicable','public_domain','licensed')
     OR s.illustration_use <> 'excluded'
@@ -178,5 +196,105 @@ CREATE TRIGGER artales_validate_legal_decision
 
 REVOKE ALL ON FUNCTION public.artales_guard_approved_legal_source() FROM PUBLIC, anon;
 REVOKE ALL ON FUNCTION public.artales_validate_legal_decision() FROM PUBLIC, anon;
+
+-- Snapshot is a different authority boundary: editors propose, admins approve.
+-- This stage creates only an authorization handoff, never the snapshot artifact.
+CREATE TABLE public.candidate_snapshot_requests (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  candidate_id uuid NOT NULL REFERENCES public.work_candidates(id) ON DELETE RESTRICT,
+  source_id uuid NOT NULL REFERENCES public.candidate_legal_sources(id) ON DELETE RESTRICT,
+  status text NOT NULL DEFAULT 'pending'
+    CHECK (status IN ('pending','approved','rejected')),
+  proposed_by uuid NOT NULL REFERENCES public.profiles(id),
+  created_at timestamptz NOT NULL DEFAULT now(),
+  reviewed_by uuid REFERENCES public.profiles(id),
+  reviewed_at timestamptz,
+  CONSTRAINT snapshot_request_review_pair CHECK (
+    (status='pending' AND reviewed_by IS NULL AND reviewed_at IS NULL)
+    OR (status<>'pending' AND reviewed_by IS NOT NULL AND reviewed_at IS NOT NULL)
+  )
+);
+-- A candidate cannot have two open/approved handoffs at once.
+CREATE UNIQUE INDEX candidate_snapshot_request_active_idx
+  ON public.candidate_snapshot_requests(candidate_id)
+  WHERE status IN ('pending','approved');
+CREATE INDEX candidate_snapshot_request_candidate_idx
+  ON public.candidate_snapshot_requests(candidate_id, created_at DESC);
+ALTER TABLE public.candidate_snapshot_requests ENABLE ROW LEVEL SECURITY;
+REVOKE ALL ON public.candidate_snapshot_requests FROM PUBLIC, anon, authenticated;
+GRANT SELECT ON public.candidate_snapshot_requests TO authenticated;
+GRANT INSERT(candidate_id,source_id,proposed_by)
+  ON public.candidate_snapshot_requests TO authenticated;
+GRANT UPDATE(status,reviewed_by,reviewed_at)
+  ON public.candidate_snapshot_requests TO authenticated;
+CREATE POLICY snapshot_requests_editor_select ON public.candidate_snapshot_requests
+  FOR SELECT TO authenticated USING(EXISTS(
+    SELECT 1 FROM public.profiles p WHERE p.id=(SELECT auth.uid())
+      AND p.is_active AND p.role IN ('admin','editor')
+  ));
+CREATE POLICY snapshot_requests_editor_propose ON public.candidate_snapshot_requests
+  FOR INSERT TO authenticated WITH CHECK(
+    status='pending' AND proposed_by=(SELECT auth.uid())
+    AND reviewed_by IS NULL AND reviewed_at IS NULL
+    AND EXISTS(SELECT 1 FROM public.profiles p WHERE p.id=(SELECT auth.uid())
+      AND p.is_active AND p.role IN ('admin','editor'))
+  );
+CREATE POLICY snapshot_requests_admin_review ON public.candidate_snapshot_requests
+  FOR UPDATE TO authenticated
+  USING(EXISTS(SELECT 1 FROM public.profiles p WHERE p.id=(SELECT auth.uid())
+    AND p.is_active AND p.role='admin'))
+  WITH CHECK(EXISTS(SELECT 1 FROM public.profiles p WHERE p.id=(SELECT auth.uid())
+    AND p.is_active AND p.role='admin'));
+
+CREATE FUNCTION public.artales_guard_snapshot_request()
+RETURNS trigger LANGUAGE plpgsql SECURITY INVOKER SET search_path=''
+AS $fn$
+DECLARE latest_verdict text; latest_source uuid;
+BEGIN
+  IF TG_OP='UPDATE' THEN
+    IF OLD.status <> 'pending'
+      OR NEW.status NOT IN ('approved','rejected')
+      OR NEW.id IS DISTINCT FROM OLD.id
+      OR NEW.candidate_id IS DISTINCT FROM OLD.candidate_id
+      OR NEW.source_id IS DISTINCT FROM OLD.source_id
+      OR NEW.proposed_by IS DISTINCT FROM OLD.proposed_by
+      OR NEW.created_at IS DISTINCT FROM OLD.created_at
+      OR NEW.reviewed_by IS DISTINCT FROM (SELECT auth.uid())
+      OR NEW.reviewed_at IS NULL
+      OR NOT EXISTS(SELECT 1 FROM public.profiles p WHERE p.id=(SELECT auth.uid())
+        AND p.is_active AND p.role='admin') THEN
+      RAISE EXCEPTION 'snapshot_review_admin_only_or_invalid' USING ERRCODE='42501';
+    END IF;
+  ELSIF NEW.proposed_by IS DISTINCT FROM (SELECT auth.uid()) OR NEW.status<>'pending' THEN
+    RAISE EXCEPTION 'snapshot_proposal_editor_required' USING ERRCODE='42501';
+  END IF;
+  PERFORM pg_catalog.pg_advisory_xact_lock(410726, pg_catalog.hashtext(NEW.candidate_id::text));
+  IF NOT EXISTS(SELECT 1 FROM public.candidate_legal_sources s
+     WHERE s.id=NEW.source_id AND s.candidate_id=NEW.candidate_id) THEN
+    RAISE EXCEPTION 'snapshot_source_candidate_mismatch' USING ERRCODE='23503';
+  END IF;
+  -- A pending proposal may be rejected even after evidence is withdrawn.
+  IF TG_OP='INSERT' OR NEW.status='approved' THEN
+    SELECT d.verdict,d.source_id INTO latest_verdict,latest_source
+      FROM public.candidate_legal_decisions d
+      WHERE d.candidate_id=NEW.candidate_id
+      ORDER BY d.decision_no DESC LIMIT 1;
+    IF latest_verdict IS DISTINCT FROM 'approved'
+      OR latest_source IS DISTINCT FROM NEW.source_id THEN
+      RAISE EXCEPTION 'snapshot_requires_current_approved_screen'
+        USING ERRCODE='23514';
+    END IF;
+  END IF;
+  RETURN NEW;
+END
+$fn$;
+CREATE TRIGGER artales_guard_snapshot_request_insert
+  BEFORE INSERT ON public.candidate_snapshot_requests
+  FOR EACH ROW EXECUTE FUNCTION public.artales_guard_snapshot_request();
+CREATE TRIGGER artales_guard_snapshot_request_update
+  BEFORE UPDATE ON public.candidate_snapshot_requests
+  FOR EACH ROW EXECUTE FUNCTION public.artales_guard_snapshot_request();
+
+REVOKE ALL ON FUNCTION public.artales_guard_snapshot_request() FROM PUBLIC,anon;
 
 COMMIT;
