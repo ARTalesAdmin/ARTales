@@ -12,3 +12,14 @@ test("approved editions use the same transaction advisory lock for decisions and
   assert.match(m,/artales_guard_approved_legal_source[\s\S]*pg_advisory_xact_lock\(410725, pg_catalog\.hashtext\(OLD\.id::text\)\)/);
   assert.match(m,/artales_validate_legal_decision[\s\S]*pg_advisory_xact_lock\(410725, pg_catalog\.hashtext\(NEW\.source_id::text\)\)/);
 });
+
+test("edition recommendation cannot bypass legal approval",()=>{
+ const src=r("lib/legal/editionRecommendation.ts");
+ assert.match(src,/legalApprovalRequired: true/);
+ assert.match(src,/identityMatch === "confirmed"/);
+ assert.match(src,/languageMatch === "matches"/);
+ assert.match(src,/legallyDocumented\(e\)/);
+ assert.match(src,/newer_equal_usability/);
+ assert.match(src,/ambiguous_tie/);
+ assert.match(src,/insufficient_evidence/);
+});
