@@ -27,11 +27,11 @@ test("edition recommendation cannot bypass legal approval",()=>{
 test("editor+ legal verification and admin-only snapshot requests",()=>{
  const page=r("app/member/candidates/[id]/legal/page.tsx");
  const action=r("lib/actions/legalScreen.ts");
- assert.match(page,/Čeká na schválení administrátorem/);
+ assert.match(page,/Právní screen uzamčen/);
  assert.match(r("components/legal/LegalSourceDiscovery.tsx"),/Gutenberg \(výchozí\)/);
- assert.match(page,/Navrhnout snapshot/);
+ assert.match(page,/Uzamknout právně prověřený zdroj/);
  assert.match(action,/profile\.role!=="admin"/);
- assert.match(m,/candidate_snapshot_requests/);
+ assert.match(m,/candidate_legal_locks/);
  assert.match(m,/snapshot_requests_admin_review/);
  assert.match(m,/snapshot_requires_current_approved_screen/);
  assert.match(m,/s\.id=NEW\.source_id AND s\.candidate_id=NEW\.candidate_id/);
@@ -51,3 +51,5 @@ test("specific download and image inventory are distinct from text rights",()=>{
  assert.match(m,/publication_rights/);
  assert.match(m,/planned_use='publish'/);
 });
+
+test("download report uses immutable lock and no full-text ingest",()=>{const route=r("app/member/candidates/[id]/legal/report/route.ts");assert.match(route,/source_facts/);assert.match(route,/downloadUrl/);assert.match(route,/Content-Disposition/);assert.match(m,/artales_validate_legal_lock/);});
