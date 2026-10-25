@@ -15,12 +15,14 @@ function estimate(book:GutenbergBook,file:CatalogFile):Item{
 export function AutomaticLegalScreen({candidateId}:{candidateId:string}){
  const [state,setState]=useState<"idle"|"loading"|"done"|"error">("idle");
  const [items,setItems]=useState<Item[]>([]);
+ const [catalogBooks,setCatalogBooks]=useState<GutenbergBook[]>([]);
  async function run(){
   setState("loading");
   try{
    const r=await fetch(`/member/candidates/${candidateId}/legal/catalog`,{cache:"no-store"});
    if(!r.ok)throw Error("catalog");
    const data=await r.json() as {items:GutenbergBook[]};
+   setCatalogBooks(data.items);
    const scored=data.items.flatMap(book=>book.files.map(file=>estimate(book,file)));
    scored.sort((a,b)=>Number(b.verdict==="candidate")-Number(a.verdict==="candidate")||
     ({plain_text:0,html:1,epub:2}[a.file.format]-{plain_text:0,html:1,epub:2}[b.file.format])||b.book.id-a.book.id);
@@ -57,7 +59,7 @@ export function AutomaticLegalScreen({candidateId}:{candidateId:string}){
   <button type="button" className="ca-btn ca-primary" onClick={run} disabled={state==="loading"}>{state==="loading"?"Prověřuji katalog…":"Provést právní screen"}</button>
   {state==="error"?<p role="alert">Gutenberg je nyní nedostupný. Zkus opakovat nebo použij ruční výběr.</p>:null}
   {state==="done"?<div role="status"><h3>Výsledek předběžného screeningu</h3>
-   {items.length===0?<p>Nenalezena žádná dostupná verze. Eskalovat editorovi.</p>:items.slice(0,20).map((item,i)=><article className="ca-card" key={item.file.url}>
+   {items.length===0?<div><p>{catalogBooks.length?"Katalog našel "+catalogBooks.length+" bibliografických záznamů, ale nezískal ověřené přímé odkazy na jejich soubory. Není to právní zamítnutí.":"Žádná shoda v dostupných katalogových výsledcích. Neznamená to, že dílo neexistuje."}</p>{catalogBooks.map(book=><p key={book.id}><a href={book.catalogUrl} target="_blank" rel="noopener noreferrer">{book.title} — Gutenberg #{book.id}</a></p>)}</div>:items.slice(0,20).map((item,i)=><article className="ca-card" key={item.file.url}>
     <strong>{i===0?"Doporučení: ":"Alternativa: "}{item.book.title}</strong>
     <p>{item.file.label} · Gutenberg #{item.book.id} · {item.verdict==="candidate"?"Předběžně vhodný kandidát":"Vyžaduje právní ověření"}</p>
     <p>{item.reason}</p>

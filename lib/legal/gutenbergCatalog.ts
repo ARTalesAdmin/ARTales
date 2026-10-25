@@ -70,19 +70,37 @@ async function searchOfficialOpds(title:string,author:string):Promise<GutenbergB
 export async function searchGutenberg(title:string,author:string):Promise<GutenbergBook[]>{
  const cleanTitle=title.trim().slice(0,100),cleanAuthor=author.trim().slice(0,70);
  if(cleanTitle.length<3)return [];
- let primaryError="none";
- try{
-  const items=await searchOfficialOpds(cleanTitle,cleanAuthor);
-  if(items.length)return items;
- }catch(e){primaryError=e instanceof Error?e.message:"opds_error";}
- try{
-  const payload=await query("/books/?search="+encodeURIComponent(cleanTitle+" "+cleanAuthor));
-  if(!payload||typeof payload!=="object"||!Array.isArray((payload as {results?:unknown}).results))return [];
-  const results=(payload as {results:unknown[]}).results;
-  return results.slice(0,32).map(parseGutenbergBook).filter((v):v is GutenbergBook=>v!==null).slice(0,16);
- }catch{
-  throw new Error(primaryError==="none"?"catalog_unavailable":"catalog_unavailable_"+primaryError.slice(0,70));
+ const phrases=[cleanTitle+" "+cleanAuthor,cleanTitle].filter((v,i,a)=>v.trim()&&a.indexOf(v)===i);
+ let discovered:GutenbergBook[]=[];
+ let responded=false;
+ let failureCount=0;
+ for(const phrase of phrases){
+  try{
+   const books=await searchOfficialOpds(phrase,"");
+   responded=true;
+   discovered.push(...books.filter(b=>!discovered.some(x=>x.id===b.id)));
+  }catch{failureCount++;}
+  if(discovered.some(b=>b.files.length>0))break;
  }
+ if(discovered.some(b=>b.files.length>0))return discovered.slice(0,16);
+ for(const phrase of phrases){
+  try{
+   const payload=await query("/books/?search="+encodeURIComponent(phrase));
+   responded=true;
+   if(payload&&typeof payload==="object"&&Array.isArray((payload as {results?:unknown}).results)){
+    const results=(payload as {results:unknown[]}).results;
+    const books=results.slice(0,32).map(parseGutenbergBook).filter((v):v is GutenbergBook=>v!==null);
+    for(const b of books){
+     const old=discovered.findIndex(x=>x.id===b.id);
+     if(old<0)discovered.push(b);
+     else if(discovered[old].files.length===0&&b.files.length>0)discovered[old]=b;
+    }
+   }
+  }catch{failureCount++;}
+  if(discovered.some(b=>b.files.length>0))break;
+ }
+ if(!responded&&failureCount>0)throw new Error("catalog_unavailable");
+ return discovered.slice(0,16);
 }
 export async function getGutenbergBook(id:number):Promise<GutenbergBook|null>{
  if(!Number.isInteger(id)||id<1||id>99999999)return null;
