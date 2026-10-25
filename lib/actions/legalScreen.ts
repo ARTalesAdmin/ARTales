@@ -36,31 +36,6 @@ export async function recordLegalVerdict(id:string,form:FormData){
  back(id,false);
 }
 
-export async function requestSnapshot(id:string,form:FormData){
- if(!LEGAL_SCREEN_V1_ENABLED)throw Error("legal_screen_not_enabled");
- const profile=await requireEditorOrAdmin();
- if(!validId(id))throw Error("invalid_id");
- const source=values(form,"source_id");
- if(!validId(source))back(id,true);
- const db=await createClient();
- const {error}=await db.from("candidate_snapshot_requests").insert({candidate_id:id,source_id:source,proposed_by:profile.id});
- if(error)back(id,true);
- redirect(`/member/candidates/${id}/legal?requested=1`);
-}
-export async function reviewSnapshot(id:string,form:FormData){
- if(!LEGAL_SCREEN_V1_ENABLED)throw Error("legal_screen_not_enabled");
- const profile=await requireEditorOrAdmin();
- if(profile.role!=="admin"||!validId(id))throw Error("admin_only");
- const requestId=values(form,"request_id"),decision=values(form,"decision");
- if(!validId(requestId)||!["approved","rejected"].includes(decision))back(id,true);
- const db=await createClient();
- const {error}=await db.from("candidate_snapshot_requests")
- .update({status:decision,reviewed_by:profile.id,reviewed_at:new Date().toISOString()})
- .eq("id",requestId).eq("candidate_id",id).eq("status","pending");
- if(error)back(id,true);
- redirect(`/member/candidates/${id}/legal?reviewed=1`);
-}
-
 export async function lockScreening(id:string,form:FormData){
  if(!LEGAL_SCREEN_V1_ENABLED)throw Error("legal_screen_not_enabled");
  const profile=await requireEditorOrAdmin();
