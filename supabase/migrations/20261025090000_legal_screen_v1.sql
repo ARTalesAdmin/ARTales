@@ -124,12 +124,12 @@ BEGIN
   IF NEW.reviewed_by IS DISTINCT FROM (SELECT auth.uid()) THEN
     RAISE EXCEPTION 'legal_reviewer_mismatch' USING ERRCODE='42501';
   END IF;
-  -- Serialize decisions per candidate to avoid simultaneous contradictory approvals.
-  PERFORM 1 FROM public.work_candidates c WHERE c.id=NEW.candidate_id FOR UPDATE;
+  -- Reader/editor has SELECT but not UPDATE on candidates; lock sources instead.
+  PERFORM 1 FROM public.work_candidates c WHERE c.id=NEW.candidate_id;
   IF NOT FOUND THEN RAISE EXCEPTION 'legal_candidate_missing' USING ERRCODE='23503'; END IF;
   IF NEW.source_id IS NOT NULL THEN
     SELECT * INTO s FROM public.candidate_legal_sources
-      WHERE id=NEW.source_id AND candidate_id=NEW.candidate_id FOR UPDATE;
+      WHERE id=NEW.source_id AND candidate_id=NEW.candidate_id;
     IF NOT FOUND THEN
       RAISE EXCEPTION 'legal_source_not_candidate' USING ERRCODE='23503';
     END IF;
