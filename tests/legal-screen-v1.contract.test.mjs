@@ -30,10 +30,10 @@ test("editor+ legal verification and admin-only snapshot requests",()=>{
  assert.match(page,/Právní screen uzamčen/);
  assert.match(r("components/legal/LegalSourceDiscovery.tsx"),/Gutenberg \(výchozí\)/);
  assert.match(page,/Uzamknout právně prověřený zdroj/);
- assert.match(action,/profile\.role!=="admin"/);
+ assert.match(action,/lockScreening/);
  assert.match(m,/candidate_legal_locks/);
- assert.match(m,/snapshot_requests_admin_review/);
- assert.match(m,/snapshot_requires_current_approved_screen/);
+ assert.match(m,/legal_locks_insert/);
+ assert.match(m,/legal_lock_requires_latest_approval/);
  assert.match(m,/s\.id=NEW\.source_id AND s\.candidate_id=NEW\.candidate_id/);
  assert.match(m,/author_died integer/);
  assert.match(m,/translator_died integer/);
