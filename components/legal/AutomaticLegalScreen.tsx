@@ -1,7 +1,7 @@
 "use client";
 import {useState} from "react";
 type Fact={status:string;people?:{name:string;died:number|null}[];archive?:string;publish?:string;reason?:string;url?:string;textMayProceed?:boolean};
-type Result={sourceId:string;decisionNo:number;bookId:number;title:string;file:{url:string;label:string};recordedAt:string;componentFacts:{author:Fact;translation:Fact;illustrations:Fact;source:Fact;verdict:string;reason:string;checkedAt:string}};
+type Result={sourceId:string;decisionNo:number;bookId:number;title:string;file:{url:string;label:string};recordedAt:string;textCheck:{status:string;scope:string;sourceUrl:string|null;notice:string|null;explanation:string};componentFacts:{author:Fact;translation:Fact;illustrations:Fact;source:Fact;verdict:string;reason:string;checkedAt:string}};
 const label=(s:string)=>({likely_public_domain:"Předběžně volné",protected:"Chráněné",needs_evidence:"Nutné ověřit",not_identified:"Nepotvrzeno",unverified:"Neověřeno",review_required:"K ověření editorem",escalate:"Eskalace"} as Record<string,string>)[s]??s;
 export function AutomaticLegalScreen({candidateId}:{candidateId:string}){
  const [state,setState]=useState<"idle"|"running"|"success"|"error">("idle");
@@ -39,6 +39,7 @@ export function AutomaticLegalScreen({candidateId}:{candidateId:string}){
     <tr><th scope="row">Překlad</th><td>{label(facts.translation.status)}</td><td>{facts.translation.people?.map(p=>p.name).join("; ")||"Originální jazyk a překlad prověřit"}</td></tr>
     <tr><th scope="row">Ilustrace</th><td>{label(facts.illustrations.status)}</td><td>Archivace: {label(facts.illustrations.archive??"unverified")}; publikace: {label(facts.illustrations.publish??"unverified")}. Neblokuje použitelný text.</td></tr>
     <tr><th scope="row">Zdroj a podmínky</th><td>{label(facts.source.status)}</td><td><a href={facts.source.url} target="_blank" rel="noopener noreferrer">Gutenberg · bibliografický záznam</a></td></tr>
+    <tr><th scope="row">Kontrola textu</th><td>{result.textCheck.status==="no_explicit_notice"?"Bez nalezeného omezení":result.textCheck.status==="possible_restriction"?"Nutné ověřit upozornění":"Neověřeno"}</td><td>{result.textCheck.explanation}{result.textCheck.notice?" · "+result.textCheck.notice:""}</td></tr>
     <tr><th scope="row">Předběžný verdikt</th><td>{label(facts.verdict)}</td><td>{facts.reason}</td></tr>
    </tbody></table>
    <p className="ca-hint">Zapsáno {new Date(result.recordedAt).toLocaleString("cs-CZ")} · Audit #{result.decisionNo}. Právní schválení a uzamčení jsou následná oddělená rozhodnutí.</p>

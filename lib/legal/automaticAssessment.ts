@@ -24,8 +24,8 @@ export async function getMatchingGutenberg(title:string,author:string){
  });
  return {matches:detailed,selected:usable[0]??null};
 }
-export function legalFacts(book:GutenbergBook,year=2026){
- const creators=book.authors;
+export function legalFacts(book:GutenbergBook,year=2026,prescreenAuthorDied:number|null=null){
+ const creators=book.authors.length?book.authors:[{name:"Autor z Prescreenu",died:prescreenAuthorDied}];
  const cleared=creators.length>0&&creators.every(p=>p.died!==null&&p.died+70<year);
  const impossible=creators.some(p=>p.died!==null&&p.died+70>=year);
  const authorStatus=cleared?"likely_public_domain":impossible?"protected":"needs_evidence";
