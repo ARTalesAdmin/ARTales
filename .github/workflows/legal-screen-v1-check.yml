@@ -1,0 +1,30 @@
+name: ARTales Legal Screen v1 source checks
+on:
+  push:
+    branches:
+      - feat/legal-screen-v1-source-20261025
+permissions:
+  contents: read
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      NEXT_PUBLIC_SUPABASE_URL: https://example.supabase.co
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: ci-not-a-real-secret
+      NEXT_TELEMETRY_DISABLED: '1'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - name: Legal screen source contracts
+        run: node --test tests/legal-screen-v1.contract.test.mjs
+      - name: TypeScript
+        run: npx tsc --noEmit
+      - name: Scoped eslint
+        run: npx eslint lib/actions/legalScreen.ts app/member/candidates/'[id]'/legal/page.tsx
+      - name: Build
+        run: npm run build
