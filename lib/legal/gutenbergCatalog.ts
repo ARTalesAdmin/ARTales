@@ -104,5 +104,18 @@ export async function searchGutenberg(title:string,author:string):Promise<Gutenb
 }
 export async function getGutenbergBook(id:number):Promise<GutenbergBook|null>{
  if(!Number.isInteger(id)||id<1||id>99999999)return null;
- return parseGutenbergBook(await query("/books/"+id+"/"));
+ try{
+  const u="https://www.gutenberg.org/ebooks/"+id+".opds";
+  const response=await fetch(u,{headers:{"Accept":"application/atom+xml, application/xml;q=0.9"},signal:AbortSignal.timeout(7500),next:{revalidate:1800}});
+  if(response.ok){
+   const payload=(await response.text()).slice(0,600001);
+   const found=parseGutenbergOpds(payload).find(x=>x.id===id);
+   if(found?.files.length)return found;
+  }
+ }catch{}
+ try{
+  const data=parseGutenbergBook(await query("/books/"+id+"/"));
+  if(data)return data;
+ }catch{}
+ return null;
 }
