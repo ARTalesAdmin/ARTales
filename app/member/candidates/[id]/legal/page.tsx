@@ -26,6 +26,10 @@ export default async function LegalScreen({params,searchParams}:{params:Promise<
  if(!c)notFound();
 
  const latest=decisions?.[0];
+ const latestAutoSource=sources?.find(source=>source.id===latest?.source_id);
+ let previousFacts:Record<string,unknown>|null=null;
+ try{if(latestAutoSource?.notes?.startsWith('{'))previousFacts=JSON.parse(latestAutoSource.notes) as Record<string,unknown>;}catch{}
+
  const locked=locks?.[0];
  const q=await searchParams;
  return <main className="ca-root">
@@ -38,6 +42,7 @@ export default async function LegalScreen({params,searchParams}:{params:Promise<
   <LegalPipelineNav step="legal" candidateId={id} admin={profile.role==="admin"}/>
   <p className="ca-links"><Link href="/member/legal">← Přehled právních screenů</Link> · <Link href={`/member/candidates/${id}`}>Bibliografický kandidát</Link></p>
   {!locked?<AutomaticLegalScreen candidateId={id}/>:null}
+  {previousFacts?<section className="ca-card"><h2>Poslední uložené automatické posouzení</h2><p><strong>{latestAutoSource?.edition_title}</strong> · rozhodnutí #{latest?.decision_no} · {latest?.recorded_at?new Date(latest.recorded_at).toLocaleString("cs-CZ"):""}</p><p>Autor: {String((previousFacts.author as {status?:string}|undefined)?.status??"neověřeno")} · Překlad: {String((previousFacts.translation as {status?:string}|undefined)?.status??"neověřeno")} · Ilustrace: {String((previousFacts.illustrations as {status?:string}|undefined)?.status??"neověřeno")}</p><p><a href={latestAutoSource?.download_url??latestAutoSource?.source_url} target="_blank" rel="noopener noreferrer">Přesný vybraný zdroj a podklady</a></p><details><summary>Podrobnosti a auditní důvody</summary><pre style={{whiteSpace:"pre-wrap",overflowWrap:"anywhere"}}>{JSON.stringify(previousFacts,null,2)}</pre></details></section>:null}
 
   {!locked?<details className="ca-card"><summary>Pokročilé · ruční zdroje, edice a právní evidence</summary><LegalSourceDiscovery title={c.proposed_title} author={c.proposed_author_name}/><GutenbergSourcePicker candidateId={id}/><form id="legal-source-form" className="ca-card ca-form" action={addLegalSource.bind(null,id)}><h2>Přidat zdroj / edici</h2>
    <label>Zdroj<select name="source_kind"><option value="gutenberg">Project Gutenberg</option><option value="open_library">Open Library</option><option value="library">Knihovna / archiv</option><option value="other">Jiný zdroj</option></select></label>
