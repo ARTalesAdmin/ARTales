@@ -1,6 +1,7 @@
 import Link from "next/link";
 import {LegalSourceDiscovery} from "@/components/legal/LegalSourceDiscovery";
 import {GutenbergSourcePicker} from "@/components/legal/GutenbergSourcePicker";
+import {LegalPipelineNav} from "@/components/legal/LegalPipelineNav";
 import {notFound} from "next/navigation";
 import {LEGAL_SCREEN_V1_ENABLED} from "@/lib/legal/featureFlag";
 import {requireEditorOrAdmin} from "@/lib/guards";
@@ -10,7 +11,7 @@ import "../../candidates.css";
 
 export default async function LegalScreen({params,searchParams}:{params:Promise<{id:string}>;searchParams:Promise<{error?:string;ok?:string;requested?:string;reviewed?:string;locked?:string}>}){
  if(!LEGAL_SCREEN_V1_ENABLED)notFound();
- await requireEditorOrAdmin();
+ const profile=await requireEditorOrAdmin();
  const {id}=await params;
  if(!/^[0-9a-f-]{36}$/i.test(id))notFound();
  const db=await createClient();
@@ -33,6 +34,8 @@ export default async function LegalScreen({params,searchParams}:{params:Promise<
   {q.reviewed?<p role="status" className="ca-success">Rozhodnutí o požadavku bylo zapsáno. Samotný snapshot se v této etapě nevytváří.</p>:null}
   {q.ok?<p className="ca-success" role="status">Zapsáno.</p>:null}
   {q.error?<p className="ca-error" role="alert">Zápis se nezdařil. Zkontroluj podklady nebo oprávnění.</p>:null}
+  <LegalPipelineNav step="legal" candidateId={id} admin={profile.role==="admin"}/>
+  <p className="ca-links"><Link href="/member/legal">← Všechny právní screeny</Link> · <Link href="/member/candidates">Kandidáti</Link></p>
   <LegalSourceDiscovery title={c.proposed_title} author={c.proposed_author_name}/>
   {!locked?<GutenbergSourcePicker candidateId={id}/>:null}
   <form id="legal-source-form" className="ca-card ca-form" action={addLegalSource.bind(null,id)}><h2>Přidat zdroj / edici</h2>
