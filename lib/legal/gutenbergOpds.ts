@@ -42,7 +42,7 @@ function personName(name:string):CatalogPerson{
 }
 function idFromEntry(src:string):number|null{
  const direct=tag(src,"id");
- const matched=direct.match(/gutenberg\.org\/ebooks\/(\d{1,8})(?:\D|$)/i);
+ const matched=direct.match(/(?:gutenberg\.org\/ebooks\/|urn:gutenberg:)(\d{1,8})(?:\D|$)/i);
  if(matched)return Number(matched[1]);
  const alternate=[...src.matchAll(/<(?:(?:[a-zA-Z0-9_-]+):)?link\b([^>]*?)\/?>/gi)]
   .map(m=>attributes(m[1]).href??"").find(h=>/\/ebooks\/\d{1,8}(?:[/?#.]|$)/.test(h));
@@ -62,7 +62,7 @@ function filesForEntry(src:string,bookId:number):CatalogFile[]{
   else if(type.startsWith("text/html") || /\.html?(?:[?#]|$)/i.test(href))file="html";
   else if(type.startsWith("application/epub+zip") || /\.epub(?:3)?(?:[.?#]|$)/i.test(href))file="epub";
   if(!file)continue;
-  const label=file==="plain_text"?"TXT":file==="html"?"HTML":"EPUB";
+  const label=(file==="plain_text"?"TXT":file==="html"?"HTML":"EPUB")+(a.title?/images/i.test(a.title)? " · s obrázky":/no.images/i.test(a.title)? " · bez obrázků":"":"");
   if(!files.some(v=>v.url===href))files.push({url:href,label,format:file});
  }
  files.sort((a,b)=>({plain_text:0,html:1,epub:2}[a.format]-{plain_text:0,html:1,epub:2}[b.format]));
@@ -75,15 +75,21 @@ export function parseGutenbergOpds(xml:string):GutenbergBook[]{
  for(const entry of entries){
   const id=idFromEntry(entry);
   const title=tag(entry,"title").slice(0,300);
-  if(!id || !title || output.some(b=>b.id===id))continue;
-  const authors=rawTags(entry,"author").slice(0,8).map(s=>tag(s,"name")).filter(Boolean).map(personName);
+  if(!id || !title)continue;
+  const authors=rawTags(entry,"author").slice(0,8).map(t=>tag(t,"name")).filter(Boolean).map(personName);
   const languages=rawTags(entry,"language").slice(0,6).map(unescapeXml).filter(Boolean);
   const files=filesForEntry(entry,id);
-  const html=files.find(f=>f.format==="html")?.url??null;
+  const prior=output.find(b=>b.id===id);
+  if(prior){
+    for(const file of files)if(!prior.files.some(x=>x.url===file.url))prior.files.push(file);
+    if(!prior.authors.length&&authors.length)prior.authors=authors;
+    if(!prior.languages.length&&languages.length)prior.languages=languages;
+    prior.readUrl=prior.files.find(x=>x.format==="html")?.url??null;
+    continue;
+  }
   output.push({
-   id,title,authors,translators:[],languages,files,readUrl:html,
-   catalogUrl:"https://www.gutenberg.org/ebooks/"+id,
-   usCopyrightFlag:null,
+   id,title,authors,translators:[],languages,files,readUrl:files.find(f=>f.format==="html")?.url??null,
+   catalogUrl:"https://www.gutenberg.org/ebooks/"+id,usCopyrightFlag:null
   });
  }
  return output;

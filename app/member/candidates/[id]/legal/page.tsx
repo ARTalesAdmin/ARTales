@@ -38,7 +38,7 @@ export default async function LegalScreen({params,searchParams}:{params:Promise<
   <LegalPipelineNav step="legal" candidateId={id} admin={profile.role==="admin"}/>
   <p className="ca-links"><Link href="/member/legal">← Všechny právní screeny</Link> · <Link href="/member/candidates">Kandidáti</Link></p>
   <LegalSourceDiscovery title={c.proposed_title} author={c.proposed_author_name}/>
-  {!locked?<AutomaticLegalScreen candidateId={id}/>:null}
+  {!locked?<AutomaticLegalScreen candidateId={id} title={c.proposed_title} author={c.proposed_author_name}/>:null}
   {!locked?<details className="ca-card"><summary>Pokročilé možnosti · ruční výběr a úprava zdroje</summary><GutenbergSourcePicker candidateId={id}/></details>:null}
   {!locked?<details className="ca-card"><summary>Právní podklady a ruční doplnění vybrané edice</summary><form id="legal-source-form" className="ca-card ca-form" action={addLegalSource.bind(null,id)}><h2>Přidat zdroj / edici</h2>
    <label>Zdroj<select name="source_kind"><option value="gutenberg">Project Gutenberg</option><option value="open_library">Open Library</option><option value="library">Knihovna / archiv</option><option value="other">Jiný zdroj</option></select></label>
