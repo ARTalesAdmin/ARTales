@@ -27,7 +27,7 @@ export function parseGutenbergBook(raw:unknown):GutenbergBook|null{
  const b=raw as RawBook;
  if(!Number.isSafeInteger(b.id)||Number(b.id)<1||Number(b.id)>99999999||typeof b.title!=="string"||!b.title.trim())return null;
  const formats=b.formats&&typeof b.formats==="object"&&!Array.isArray(b.formats)?b.formats as Record<string,unknown>:{};
- const files=Object.entries(formats).flatMap(([mime,value])=>{
+ const files=Object.entries(formats).flatMap<CatalogFile>(([mime,value])=>{
   if(typeof value!=="string"||!hostAllowed(value)||value.length>1000)return [];
   const key=mime.toLowerCase();
   if(key.startsWith("text/plain")&&!/\.zip(?:[?#]|$)/i.test(value))return [{url:value,label:"TXT",format:"plain_text" as const}];
