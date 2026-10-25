@@ -22,6 +22,8 @@ jobs:
       - run: npm ci --no-audit --no-fund
       - name: Legal screen source contracts
         run: node --test tests/legal-screen-v1.contract.test.mjs
+      - name: Edition decision tests
+        run: npx tsx --test tests/legal-edition-recommendation.test.ts
       - name: TypeScript
         run: npx tsc --noEmit
       - name: Scoped eslint
