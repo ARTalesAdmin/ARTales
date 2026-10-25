@@ -50,3 +50,27 @@ export async function lockScreening(id:string,form:FormData){
  if(error)back(id,true);
  redirect(`/member/candidates/${id}/legal?locked=1`);
 }
+
+export async function addLegalIllustration(id:string,form:FormData){
+ if(!LEGAL_SCREEN_V1_ENABLED)throw Error("legal_screen_not_enabled");
+ const profile=await requireEditorOrAdmin();
+ if(!validId(id))throw Error("invalid_id");
+ const sourceId=values(form,"source_id"),assetUrl=values(form,"asset_url");
+ const evidenceUrl=values(form,"evidence_url"),plannedUse=values(form,"planned_use");
+ if(!validId(sourceId)||!assetUrl||!safeUrl(assetUrl)||!safeUrl(evidenceUrl)||
+   !["exclude","archive_only","publish"].includes(plannedUse))back(id,true);
+ const archiveRights=values(form,"archive_rights"),publicationRights=values(form,"publication_rights");
+ if(!["unknown","cleared","restricted"].includes(archiveRights)||
+    !["unknown","cleared","restricted"].includes(publicationRights))back(id,true);
+ const db=await createClient();
+ const {data:source}=await db.from("candidate_legal_sources").select("id").eq("id",sourceId).eq("candidate_id",id).maybeSingle();
+ if(!source)back(id,true);
+ const {error}=await db.from("candidate_legal_illustrations").insert({
+   source_id:sourceId,asset_url:assetUrl,creator:values(form,"creator").slice(0,300),
+   evidence_url:evidenceUrl||null,archive_rights:archiveRights,
+   publication_rights:publicationRights,planned_use:plannedUse,
+   notes:values(form,"notes").slice(0,2000),created_by:profile.id
+ });
+ if(error)back(id,true);
+ back(id,false);
+}
