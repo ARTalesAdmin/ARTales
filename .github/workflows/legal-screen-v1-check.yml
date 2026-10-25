@@ -29,6 +29,8 @@ jobs:
         run: node --test tests/legal-screen-v1.contract.test.mjs
       - name: Edition decision tests
         run: npx tsx --test tests/legal-edition-recommendation.test.ts tests/legal-gutenberg-catalog.test.ts tests/legal-gutenberg-opds.test.ts
+      - name: Live Gutenberg #389 integration smoke
+        run: npx tsx --test tests/legal-gutenberg-live.test.ts
       - name: TypeScript
         run: npx tsc --noEmit
       - name: Scoped eslint
