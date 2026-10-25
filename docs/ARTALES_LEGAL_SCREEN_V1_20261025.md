@@ -37,3 +37,17 @@ Rollback: nejprve deaktivovat UI; schéma a auditní data ponechat, nesmazat. Ž
 - Současný návrh obsahuje ruční evidenci edice a externí odkazy pro prohlížení; **integrovaný výběr katalogových edic ani interní textový náhled zatím neexistuje**. Tyto schopnosti musí být doplněny, než bude možné tvrdit, že flow „crawl → výběr edice → čtení“ je celé hotové.
 - Audit identifikoval souběžnou změnu podkladu během schvalování. Zdrojová oprava používá společný transakční advisory lock před editací zdroje a před získáním rozhodovacího snapshotu. Opravu je ještě nutné revalidovat na izolované DB včetně paralelního scénáře; starší úspěšný DB test nebyl testem této revize.
 - Aktivace zůstává zakázaná: bez produkční DB migrace, skutečných rolových E2E kontrol a explicitního schválení.
+
+## Doporučení edice — integrační pravidlo
+
+Zdrojový modul `lib/legal/editionRecommendation.ts` připravuje **doporučení, nikoli právní rozhodnutí**. Není dosud zapojen do produkčního vyhledávacího UI, neprovádí webový crawl ani nepíše do DB.
+
+Rozhodovací pořadí:
+1. Projít identitu díla a jazyk. Neshody nebo pochybnosti vyřadí zdroj z automatického výběru.
+2. Před automatickým doporučením vyžadovat doložený originální text, případný překlad, výslovné vyloučení ilustrací, zdrojové podmínky a odkazy/důvody právních závěrů.
+3. Upřednostnit kompletní, textově ověřené a technicky jednoduše použitelné vydání; prostý text/HTML před EPUB. OCR/scany a katalogové údaje bez ověřeného textu eskalují.
+4. Při stejné technické použitelnosti upřednostnit novější **vydání**, nikoli novější původní copyright nebo jiné dílo.
+5. Neznámý rok, nerozhodný souběh nebo nedostatek důkazů => `manual_review`; editor může vybrat ručně, admin provádí finální právní schválení.
+6. Výstup vždy obsahuje `legalApprovalRequired: true`; žádné automatické udělení práva ani vytvoření snapshotu.
+
+Důležité: právní metadata nesmějí být odvozena z pouhého API Open Library; vyžadují samostatné důkazní posouzení. Další integrace musí přidat omezený katalogový adapter (Open Library Work → Editions), bezpečné náhledy dostupných textů a validaci vazby metadata ↔ zvolená edice. Zatím nesdělovat, že celý výběrový flow je nasazen.
