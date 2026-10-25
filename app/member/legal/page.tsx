@@ -21,7 +21,7 @@ export default async function LegalOverview({searchParams}:{searchParams:Promise
  const requested=(params.status??"all") as Status;
  const active=Object.hasOwn(statuses,requested)?requested:"all";
  const query=(params.q??"").trim().toLocaleLowerCase("cs");
- const lastByCandidate=new Map((decisions??[]).map(d=>[d.candidate_id,d])); 
+ const lastByCandidate=new Map<string,(typeof decisions extends (infer T)[] | null ? T : never)>(); 
  // Decisions are newest-first: keep the first occurrence.
  for(const d of decisions??[])if(!lastByCandidate.has(d.candidate_id))lastByCandidate.set(d.candidate_id,d);
  const lockedIds=new Set((locks??[]).map(x=>x.candidate_id));
