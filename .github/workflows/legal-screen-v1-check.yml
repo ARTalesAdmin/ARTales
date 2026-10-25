@@ -5,6 +5,7 @@ on:
       - feat/legal-screen-v1-source-20261025
       - release/artales-legal-screen-v1-enable-20261025
       - feat/artales-legal-one-click-screen-20261025
+      - fix/artales-gutenberg-opds-catalog-20261025
 permissions:
   contents: read
 jobs:
@@ -25,7 +26,7 @@ jobs:
       - name: Legal screen source contracts
         run: node --test tests/legal-screen-v1.contract.test.mjs
       - name: Edition decision tests
-        run: npx tsx --test tests/legal-edition-recommendation.test.ts tests/legal-gutenberg-catalog.test.ts
+        run: npx tsx --test tests/legal-edition-recommendation.test.ts tests/legal-gutenberg-catalog.test.ts tests/legal-gutenberg-opds.test.ts
       - name: TypeScript
         run: npx tsc --noEmit
       - name: Scoped eslint
