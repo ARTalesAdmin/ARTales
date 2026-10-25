@@ -59,3 +59,15 @@ Důležité: právní metadata nesmějí být odvozena z pouhého API Open Libra
 - Gutenberg první volba (externí vyhledání), Open Library alternativa. Rok úmrtí autora, překladatele a ilustrátora jsou důkazy/nápověda, nikoliv automaticky `rights=clear`. Chybějící metadata, spoluautoři nebo nejasná licence vyžadují eskalaci.
 - Oddělená DB tabulka `candidate_snapshot_requests` a RLS pro admin review; schválení snapshotu je jiná autorita než právní posouzení.
 - Zdroj-only změny vyžadují opětovný izolovaný DB test skutečné aktualizované migrace včetně tabulky žádostí a kontrol, než bude možný produkční APPLY.
+
+## Konkrétní stažitelná verze, překlad a ilustrace — rozhodnutí 25. 10.
+Právní souhlas se vždy týká **konkrétního souboru** (`source_url` + přesná `download_url`), nikoli pouze názvu knihy nebo katalogového záznamu. Gutenberg preferovaný, ale i jeho soubory vyžadují zhodnocení CZ/EU práv.
+
+- Je-li originální text použitelný a překlad chráněný, vyřadí se tato verze a hledá se jiná. Žádná prokazatelně použitelná verze => `no_usable_source`; chybějící informace => `manual_review`.
+- Překlad se výslovně označí `original/translated/unknown`; bez ověření nelze potvrdit edici. Plný text se zatím nestahuje.
+- Text bez ilustrací je plnohodnotně použitelný. Ilustrace nejsou automatickou překážkou pro právní posouzení textu.
+- Ke konkrétní verzi je oddělená evidence obrázků `candidate_legal_illustrations` s URL, autorem, právem na **archivaci**, právem na **publikaci**, podkladem a zamýšleným použitím.
+- Má-li ARTales právo obrázek kopírovat a archivovat, budoucí snapshot jej má zachytit i při `archive_only`, bez zveřejnění. Pokud právo kopírovat není doložené, zachová se pouze bibliografická evidence a URL, nikoliv kopie souboru.
+- Právo k publikaci je nezávislé na právu archivovat; ani správně archivovaný soubor není automaticky zveřejněný.
+- Ingest, snapshot obrázků/textu ani uložení hashů zatím není realizováno; až adminem schválený navazující krok vytvoří artefakty a evidence skutečně stažených souborů.
+- V aktuální source-only fázi je `editionRecommendation` čistá logika, není to crawler ani živé doporučení v UI. Obrazová práva jsou vedena jako zdrojová metadata; plnohodnotný formulář evidence jednotlivých obrázků je samostatný integrační úkol.
