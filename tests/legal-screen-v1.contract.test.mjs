@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import {readFileSync} from "node:fs";
 const r=p=>readFileSync(p,"utf8");
 const m=r("supabase/migrations/20261025090000_legal_screen_v1.sql");
-test("legal stage is fail-closed",()=>{assert.match(r("lib/legal/featureFlag.ts"),/LEGAL_SCREEN_V1_ENABLED = false/);assert.match(r("app/member/candidates/[id]/legal/page.tsx"),/if\(!LEGAL_SCREEN_V1_ENABLED\)notFound\(\)/);assert.match(r("lib/actions/legalScreen.ts"),/if\(!LEGAL_SCREEN_V1_ENABLED\)throw/)});
+test("legal stage activated after migration",()=>{assert.match(r("lib/legal/featureFlag.ts"),/LEGAL_SCREEN_V1_ENABLED = true/);assert.match(r("app/member/candidates/[id]/legal/page.tsx"),/if\(!LEGAL_SCREEN_V1_ENABLED\)notFound\(\)/);assert.match(r("lib/actions/legalScreen.ts"),/if\(!LEGAL_SCREEN_V1_ENABLED\)throw/)});
 test("no Works/Reader mutations",()=>{assert.doesNotMatch(m,/\b(?:INSERT|UPDATE|ALTER|DELETE|DROP)\s+(?:INTO\s+|TABLE\s+|FROM\s+)?public\.works\b/i);assert.doesNotMatch(m,/\b(?:INSERT|UPDATE|ALTER|DELETE|DROP)\s+(?:INTO\s+|TABLE\s+|FROM\s+)?public\.work_candidates\b/i)});
 test("audit and permissions",()=>{assert.match(m,/CREATE TABLE public.candidate_legal_sources/);assert.match(m,/CREATE TABLE public.candidate_legal_decisions/);assert.match(m,/ENABLE ROW LEVEL SECURITY/);assert.match(m,/approved_legal_source_immutable/);assert.match(m,/legal_decisions_editor_insert/);assert.match(m,/legal_approval_missing_evidence_or_rights/)});
 test("external preview, not content import",()=>{assert.match(r("app/member/candidates/[id]/legal/page.tsx"),/Číst externě/);assert.doesNotMatch(r("lib/actions/legalScreen.ts"),/\bfetch\(/)});
@@ -53,3 +53,5 @@ test("specific download and image inventory are distinct from text rights",()=>{
 });
 
 test("download report uses immutable lock and no full-text ingest",()=>{const route=r("app/member/candidates/[id]/legal/report/route.ts");assert.match(route,/source_facts/);assert.match(route,/downloadUrl/);assert.match(route,/Content-Disposition/);assert.match(m,/artales_validate_legal_lock/);});
+
+test("locked legal page hides editable form",()=>{const page=r("app/member/candidates/[id]/legal/page.tsx");assert.match(page,/!locked\?<form id="legal-source-form"/);assert.match(page,/!locked\?<form className="ca-card ca-form" action=\{recordLegalVerdict/);});
