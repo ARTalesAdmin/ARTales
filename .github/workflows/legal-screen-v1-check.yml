@@ -3,6 +3,7 @@ on:
   push:
     branches:
       - feat/legal-screen-v1-source-20261025
+      - release/artales-legal-screen-v1-enable-20261025
 permissions:
   contents: read
 jobs:
