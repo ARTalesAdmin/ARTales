@@ -232,10 +232,7 @@ GRANT INSERT(source_id,asset_url,creator,evidence_url,archive_rights,publication
 CREATE POLICY illustration_editor_read ON public.candidate_legal_illustrations FOR SELECT TO authenticated USING (
  EXISTS(SELECT 1 FROM public.profiles p WHERE p.id=(SELECT auth.uid()) AND p.is_active AND p.role IN ('editor','admin')));
 CREATE POLICY illustration_editor_insert ON public.candidate_legal_illustrations FOR INSERT TO authenticated WITH CHECK (
- created_by=(SELECT auth.uid()) AND NOT EXISTS (
-  SELECT 1 FROM public.candidate_legal_locks l JOIN public.candidate_legal_sources s ON s.candidate_id=l.candidate_id
-  WHERE s.id=source_id
- ) AND EXISTS(SELECT 1 FROM public.profiles p WHERE p.id=(SELECT auth.uid())
+ created_by=(SELECT auth.uid()) AND EXISTS(SELECT 1 FROM public.profiles p WHERE p.id=(SELECT auth.uid())
  AND p.is_active AND p.role IN ('editor','admin')));
 
 -- Immutable, editor-authorized handoff: exact source file + rights evidence and image manifest.
@@ -297,5 +294,24 @@ $fn$;
 CREATE TRIGGER artales_validate_legal_lock BEFORE INSERT ON public.candidate_legal_locks
  FOR EACH ROW EXECUTE FUNCTION public.artales_validate_legal_lock();
 REVOKE ALL ON FUNCTION public.artales_validate_legal_lock() FROM PUBLIC,anon;
+
+-- Prevent illustration inventory changes after an edition is locked.
+CREATE FUNCTION public.artales_guard_legal_illustration()
+RETURNS trigger LANGUAGE plpgsql SECURITY INVOKER SET search_path=''
+AS $fn$
+DECLARE cid uuid;
+BEGIN
+ SELECT s.candidate_id INTO cid FROM public.candidate_legal_sources s WHERE s.id=NEW.source_id;
+ IF cid IS NULL THEN RAISE EXCEPTION 'legal_illustration_source_missing' USING ERRCODE='23503'; END IF;
+ PERFORM pg_catalog.pg_advisory_xact_lock(410726,pg_catalog.hashtext(cid::text));
+ IF EXISTS(SELECT 1 FROM public.candidate_legal_locks l WHERE l.candidate_id=cid) THEN
+  RAISE EXCEPTION 'legal_illustration_locked' USING ERRCODE='23514';
+ END IF;
+ RETURN NEW;
+END
+$fn$;
+CREATE TRIGGER artales_guard_legal_illustration BEFORE INSERT ON public.candidate_legal_illustrations
+ FOR EACH ROW EXECUTE FUNCTION public.artales_guard_legal_illustration();
+REVOKE ALL ON FUNCTION public.artales_guard_legal_illustration() FROM PUBLIC,anon;
 
 COMMIT;
