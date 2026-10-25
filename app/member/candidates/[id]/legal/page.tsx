@@ -1,6 +1,7 @@
 import Link from "next/link";
 import {LegalSourceDiscovery} from "@/components/legal/LegalSourceDiscovery";
 import {GutenbergSourcePicker} from "@/components/legal/GutenbergSourcePicker";
+import {AutomaticLegalScreen} from "@/components/legal/AutomaticLegalScreen";
 import {LegalPipelineNav} from "@/components/legal/LegalPipelineNav";
 import {notFound} from "next/navigation";
 import {LEGAL_SCREEN_V1_ENABLED} from "@/lib/legal/featureFlag";
@@ -37,8 +38,9 @@ export default async function LegalScreen({params,searchParams}:{params:Promise<
   <LegalPipelineNav step="legal" candidateId={id} admin={profile.role==="admin"}/>
   <p className="ca-links"><Link href="/member/legal">← Všechny právní screeny</Link> · <Link href="/member/candidates">Kandidáti</Link></p>
   <LegalSourceDiscovery title={c.proposed_title} author={c.proposed_author_name}/>
-  {!locked?<GutenbergSourcePicker candidateId={id}/>:null}
-  {!locked?<form id="legal-source-form" className="ca-card ca-form" action={addLegalSource.bind(null,id)}><h2>Přidat zdroj / edici</h2>
+  {!locked?<AutomaticLegalScreen candidateId={id}/>:null}
+  {!locked?<details className="ca-card"><summary>Pokročilé možnosti · ruční výběr a úprava zdroje</summary><GutenbergSourcePicker candidateId={id}/></details>:null}
+  {!locked?<details className="ca-card"><summary>Právní podklady a ruční doplnění vybrané edice</summary><form id="legal-source-form" className="ca-card ca-form" action={addLegalSource.bind(null,id)}><h2>Přidat zdroj / edici</h2>
    <label>Zdroj<select name="source_kind"><option value="gutenberg">Project Gutenberg</option><option value="open_library">Open Library</option><option value="library">Knihovna / archiv</option><option value="other">Jiný zdroj</option></select></label>
    <label>Název edice<input name="edition_title" required maxLength={300}/></label>
    <label>Stránka konkrétní edice<input name="source_url" type="url" required maxLength={1000}/></label>
@@ -65,7 +67,7 @@ export default async function LegalScreen({params,searchParams}:{params:Promise<
    <label>Odkaz na právní podklad<input name="evidence_url" type="url" maxLength={1000}/></label>
    <label>Zdůvodnění / poznámky<textarea name="notes" rows={4} maxLength={5000}/></label>
    <button className="ca-btn ca-primary" type="submit">Uložit edici</button>
-  </form>:null}
+  </form></details>:null}
   <section className="ca-card"><h2>Posuzované edice</h2>
    {sources?.length?sources.map(s=><article key={s.id} style={{borderTop:"1px solid var(--artales-border)",paddingBlock:14}}>
     <strong>{s.edition_title}</strong><p>{s.source_kind} · {s.edition_year??"Rok neuveden"} · {s.language_code||"jazyk neuveden"}</p>
