@@ -1,109 +1,127 @@
 /**
- * Deterministic, advisory-only edition choice policy.
- *
- * Input 'confirmed' and the rights fields MUST come from a separate evidence
- * review, never be inferred merely from the existence of a catalog record.
- * This code never writes a decision, imports content, or grants usage rights.
+ * Choose a specific, evidenced source FILE for a later, separately approved
+ * snapshot. This pure policy never fetches text or grants legal permission.
+ * If the translator of this particular version is protected, try another file.
+ * Illustration status is independent: a lawful text-only source remains usable.
  */
-export type IdentityMatch = "confirmed" | "uncertain" | "mismatch";
-export type LanguageMatch = "matches" | "uncertain" | "mismatch";
-export type TextFormat = "plain_text" | "html" | "epub" | "ocr_pdf" | "scan" | "catalog_only" | "unknown";
-export type TextQuality = "verified" | "needs_cleanup" | "unknown";
-export type Completeness = "complete" | "partial" | "unknown";
-export type OriginalRights = "public_domain" | "licensed" | "unknown" | "restricted";
-export type TranslationRights = "not_applicable" | "public_domain" | "licensed" | "unknown" | "restricted";
-
+export type Rights = "public_domain" | "licensed" | "unknown" | "restricted";
 export type EditionEvidence = {
   editionId: string;
+  sourceKind: "gutenberg" | "open_library" | "library" | "other";
+  sourceUrl: string;
+  downloadUrl: string | null;
   editionYear: number | null;
-  identityMatch: IdentityMatch;
-  languageMatch: LanguageMatch;
-  textFormat: TextFormat;
-  completeness: Completeness;
-  textQuality: TextQuality;
-  originalRights: OriginalRights;
-  translationRights: TranslationRights;
-  illustrationUse: "excluded" | "unknown" | "public_domain" | "licensed" | "restricted";
+  identityMatch: "confirmed" | "uncertain" | "mismatch";
+  languageMatch: "matches" | "uncertain" | "mismatch";
+  translationStatus: "original" | "translated" | "unknown";
+  translator: string;
+  originalRights: Rights;
+  translationRights: Rights | "not_applicable";
   sourceTerms: "cleared" | "unknown" | "restricted";
   evidenceUrl: string | null;
   notes: string;
+  textFormat: "plain_text" | "html" | "epub" | "ocr_pdf" | "scan" | "catalog_only" | "unknown";
+  completeness: "complete" | "partial" | "unknown";
+  textQuality: "verified" | "needs_cleanup" | "unknown";
+  /** Derived from separately inventoried illustrations and their proven rights. */
+  images: "publishable" | "archive_only" | "reference_only" | "none" | "unknown";
 };
-
 export type EditionRecommendation = {
-  outcome: "suggested" | "manual_review" | "no_editions";
+  outcome: "suggested" | "manual_review" | "no_usable_source" | "no_editions";
   editionId: string | null;
-  /** The approval remains a separate admin action even if an edition is suggested. */
   legalApprovalRequired: true;
-  reason:
-    | "one_eligible"
-    | "better_usability"
-    | "newer_equal_usability"
-    | "insufficient_evidence"
-    | "ambiguous_tie"
-    | "edition_year_unknown"
-    | "no_editions";
+  snapshotAdminApprovalRequired: true;
+  reason: "one_eligible" | "better_usability" | "gutenberg_preferred" |
+    "usable_illustrations" | "newer_equal_usability" | "insufficient_evidence" |
+    "ambiguous_tie" | "edition_year_unknown" | "all_sources_blocked" | "no_editions";
   eligibleEditionIds: string[];
+  excludedEditionIds: string[];
 };
-
-function legallyDocumented(e: EditionEvidence): boolean {
-  return (
-    (e.originalRights === "public_domain" || e.originalRights === "licensed") &&
-    (e.translationRights === "not_applicable" || e.translationRights === "public_domain" || e.translationRights === "licensed") &&
-    e.illustrationUse === "excluded" &&
-    e.sourceTerms === "cleared" &&
-    Boolean(e.evidenceUrl?.startsWith("https://")) &&
-    e.notes.trim().length >= 20
-  );
+function validHttps(url: string | null): boolean {
+  if (!url) return false;
+  try {
+    const parsed = new URL(url);
+    return parsed.protocol === "https:" && Boolean(parsed.hostname);
+  } catch { return false; }
 }
-
-/** Higher means genuinely easier to use, *not* a better copyright status. */
+function translatorCleared(e: EditionEvidence): boolean {
+  if (e.translationStatus === "original") {
+    return !e.translator.trim() && e.translationRights === "not_applicable";
+  }
+  if (e.translationStatus === "translated") {
+    return Boolean(e.translator.trim()) &&
+      (e.translationRights === "public_domain" || e.translationRights === "licensed");
+  }
+  return false;
+}
+function documented(e: EditionEvidence): boolean {
+  return e.identityMatch === "confirmed" &&
+    e.languageMatch === "matches" &&
+    validHttps(e.sourceUrl) &&
+    validHttps(e.downloadUrl) &&
+    validHttps(e.evidenceUrl) &&
+    (e.originalRights === "public_domain" || e.originalRights === "licensed") &&
+    translatorCleared(e) &&
+    e.sourceTerms === "cleared" &&
+    e.notes.trim().length >= 20;
+}
 function usability(e: EditionEvidence): number {
   if (e.completeness !== "complete" || e.textQuality !== "verified") return 0;
   if (e.textFormat === "plain_text" || e.textFormat === "html") return 3;
   if (e.textFormat === "epub") return 2;
-  // Scans, OCR of unknown quality, catalog-only records need a human review.
   return 0;
 }
-
-function eligible(e: EditionEvidence): boolean {
-  return e.identityMatch === "confirmed" &&
-    e.languageMatch === "matches" &&
-    legallyDocumented(e) &&
-    usability(e) > 0;
+function imageBenefit(e: EditionEvidence): number {
+  if (e.images === "publishable") return 2;
+  if (e.images === "archive_only") return 1;
+  return 0;
 }
-
+/** A known block eliminates this file, not the entire candidate/work. */
+function blocked(e: EditionEvidence): boolean {
+  return e.identityMatch === "mismatch" ||
+    e.languageMatch === "mismatch" ||
+    e.originalRights === "restricted" ||
+    e.translationRights === "restricted" ||
+    e.sourceTerms === "restricted";
+}
 export function recommendEdition(input: readonly EditionEvidence[]): EditionRecommendation {
-  const base = { editionId: null, legalApprovalRequired: true as const, eligibleEditionIds: [] as string[] };
-  if (input.length === 0) {
-    return { ...base, outcome: "no_editions", reason: "no_editions" };
-  }
-  // A duplicated identifier means the underlying provenance is ambiguous.
-  if (new Set(input.map(i => i.editionId)).size !== input.length || input.some(i => !i.editionId)) {
+  const base = {
+    editionId: null, legalApprovalRequired: true as const,
+    snapshotAdminApprovalRequired: true as const,
+    eligibleEditionIds: [] as string[], excludedEditionIds: [] as string[],
+  };
+  if (!input.length) return { ...base, outcome: "no_editions", reason: "no_editions" };
+  if (new Set(input.map(e => e.editionId)).size !== input.length ||
+    input.some(e => !e.editionId)) {
     return { ...base, outcome: "manual_review", reason: "insufficient_evidence" };
   }
-  const candidates = input.filter(eligible).sort((a, b) =>
-    usability(b) - usability(a) || (b.editionYear ?? -1) - (a.editionYear ?? -1) || a.editionId.localeCompare(b.editionId)
+  const excludedEditionIds = input.filter(blocked).map(e => e.editionId);
+  const eligible = input.filter(e => !blocked(e) && documented(e) && usability(e) > 0);
+  if (eligible.length === 0) {
+    return { ...base, excludedEditionIds,
+      outcome: excludedEditionIds.length === input.length ? "no_usable_source" : "manual_review",
+      reason: excludedEditionIds.length === input.length ? "all_sources_blocked" : "insufficient_evidence" };
+  }
+  // Format and completeness dominate. If equally usable, prefer Gutenberg
+  // and capture-ready illustrations, then a newer year when it is known.
+  const ranked = [...eligible].sort((a,b) =>
+    usability(b) - usability(a) ||
+    Number(b.sourceKind === "gutenberg") - Number(a.sourceKind === "gutenberg") ||
+    imageBenefit(b) - imageBenefit(a) ||
+    (b.editionYear ?? -1) - (a.editionYear ?? -1) ||
+    a.editionId.localeCompare(b.editionId)
   );
-  if (candidates.length === 0) {
-    return { ...base, outcome: "manual_review", reason: "insufficient_evidence" };
+  const top = ranked[0], second = ranked[1];
+  const common = { ...base, eligibleEditionIds: ranked.map(e => e.editionId), excludedEditionIds };
+  if (!second) return { ...common, outcome: "suggested", editionId: top.editionId, reason: "one_eligible" };
+  if (usability(top) > usability(second)) return { ...common, outcome: "suggested", editionId: top.editionId, reason: "better_usability" };
+  if (top.sourceKind === "gutenberg" && second.sourceKind !== "gutenberg") {
+    return { ...common, outcome: "suggested", editionId: top.editionId, reason: "gutenberg_preferred" };
   }
-  const ranked = candidates.map(c => c.editionId);
-  if (candidates.length === 1) {
-    return { ...base, outcome: "suggested", editionId: candidates[0].editionId,
-      eligibleEditionIds: ranked, reason: "one_eligible" };
+  if (imageBenefit(top) > imageBenefit(second)) return { ...common, outcome: "suggested", editionId: top.editionId, reason: "usable_illustrations" };
+  if (top.editionYear === null || second.editionYear === null) {
+    return { ...common, outcome: "manual_review", reason: "edition_year_unknown" };
   }
-  const first = candidates[0], second = candidates[1];
-  if (usability(first) > usability(second)) {
-    return { ...base, outcome: "suggested", editionId: first.editionId,
-      eligibleEditionIds: ranked, reason: "better_usability" };
-  }
-  // Newer edition is a tie-breaker, not an automatic copyright clearance.
-  if (first.editionYear === null || second.editionYear === null) {
-    return { ...base, outcome: "manual_review", eligibleEditionIds: ranked, reason: "edition_year_unknown" };
-  }
-  if (first.editionYear === second.editionYear) {
-    return { ...base, outcome: "manual_review", eligibleEditionIds: ranked, reason: "ambiguous_tie" };
-  }
-  return { ...base, outcome: "suggested", editionId: first.editionId,
-    eligibleEditionIds: ranked, reason: "newer_equal_usability" };
+  if (top.editionYear === second.editionYear) return { ...common, outcome: "manual_review", reason: "ambiguous_tie" };
+  return { ...common, outcome: "suggested", editionId: top.editionId, reason: "newer_equal_usability" };
 }
