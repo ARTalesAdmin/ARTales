@@ -71,3 +71,6 @@ Právní souhlas se vždy týká **konkrétního souboru** (`source_url` + přes
 - Právo k publikaci je nezávislé na právu archivovat; ani správně archivovaný soubor není automaticky zveřejněný.
 - Ingest, snapshot obrázků/textu ani uložení hashů zatím není realizováno; až adminem schválený navazující krok vytvoří artefakty a evidence skutečně stažených souborů.
 - V aktuální source-only fázi je `editionRecommendation` čistá logika, není to crawler ani živé doporučení v UI. Obrazová práva jsou vedena jako zdrojová metadata; plnohodnotný formulář evidence jednotlivých obrázků je samostatný integrační úkol.
+
+## Kanonicke oddeleni etap: screening -> lock -> snapshot
+Screening skonci vyberem konkretniho zdrojoveho souboru (source_url, download_url) a nemennym auditovanym zamkem vcetne dukazu a inventare ilustraci. Zamykani smi provest editor nebo admin po potvrzeni pravni pouzitelnosti. Neprovadi se pri nem stazeni, archivace ani publikace. Snapshot patri az do nasledujici etapy a zustava pod pravomoci administratora. Drive pripraveny navrh snapshot-request UI v teto vetvi neni kanonickym zaverecnym krokem screeningu a pred aktivaci se musi oddelit. Soucasna DB migrace jeste nema finalni implementaci zamku a nesmi byt aplikovana v produkci. Je nutne potvrdit atomicitu, RLS, nemennost a izolovane databazove testy.
