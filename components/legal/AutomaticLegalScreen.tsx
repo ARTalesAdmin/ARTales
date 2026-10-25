@@ -48,6 +48,7 @@ export function AutomaticLegalScreen({candidateId}:{candidateId:string}){
   put("source_terms","unknown");put("identity_match","uncertain");
   put("language_match","uncertain");put("completeness","unknown");
   put("text_quality","unknown");
+  const details=form.closest("details");if(details)details.open=true;
   form.scrollIntoView({behavior:"smooth",block:"start"});
  }
  return <section className="ca-card" aria-label="Automatický právní screen">
