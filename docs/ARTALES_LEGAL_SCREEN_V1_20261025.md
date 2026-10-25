@@ -31,3 +31,9 @@ Rollback: nejprve deaktivovat UI; schéma a auditní data ponechat, nesmazat. Ž
 - idempotence kandidátů beze změn
 - funkční obrazovka, vypnutý ingest, externí odkazy, bez získávání plných textů
 - build/TS/lint, signed E2E až po autorizovaném deploy
+
+## Integrační audit 25. 10. 2026
+- Izolovaná Supabase migrace a 6 negativních / 2 pozitivní rolové testy PASS; testovací DB odstraněna.
+- Současný návrh obsahuje ruční evidenci edice a externí odkazy pro prohlížení; **integrovaný výběr katalogových edic ani interní textový náhled zatím neexistuje**. Tyto schopnosti musí být doplněny, než bude možné tvrdit, že flow „crawl → výběr edice → čtení“ je celé hotové.
+- Audit identifikoval souběžnou změnu podkladu během schvalování. Zdrojová oprava používá společný transakční advisory lock před editací zdroje a před získáním rozhodovacího snapshotu. Opravu je ještě nutné revalidovat na izolované DB včetně paralelního scénáře; starší úspěšný DB test nebyl testem této revize.
+- Aktivace zůstává zakázaná: bez produkční DB migrace, skutečných rolových E2E kontrol a explicitního schválení.
