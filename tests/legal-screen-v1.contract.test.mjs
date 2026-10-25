@@ -54,4 +54,4 @@ test("specific download and image inventory are distinct from text rights",()=>{
 
 test("download report uses immutable lock and no full-text ingest",()=>{const route=r("app/member/candidates/[id]/legal/report/route.ts");assert.match(route,/source_facts/);assert.match(route,/downloadUrl/);assert.match(route,/Content-Disposition/);assert.match(m,/artales_validate_legal_lock/);});
 
-test("locked legal page hides editable form",()=>{const page=r("app/member/candidates/[id]/legal/page.tsx");assert.match(page,/!locked\?<form id="legal-source-form"/);assert.match(page,/!locked\?<form className="ca-card ca-form" action=\{recordLegalVerdict/);});
+test("locked legal page hides editable form",()=>{const page=r("app/member/candidates/[id]/legal/page.tsx");assert.match(page,/!locked\?<details className="ca-card"/);assert.match(page,/id="legal-source-form"/);assert.match(page,/!locked\?<form className="ca-card ca-form" action=\{recordLegalVerdict/);});
