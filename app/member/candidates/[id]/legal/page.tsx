@@ -5,7 +5,7 @@ import {notFound} from "next/navigation";
 import {LEGAL_SCREEN_V1_ENABLED} from "@/lib/legal/featureFlag";
 import {requireEditorOrAdmin} from "@/lib/guards";
 import {createClient} from "@/lib/supabase/server";
-import {addLegalSource,recordLegalVerdict,lockScreening} from "@/lib/actions/legalScreen";
+import {addLegalSource,addLegalIllustration,recordLegalVerdict,lockScreening} from "@/lib/actions/legalScreen";
 import "../../candidates.css";
 
 export default async function LegalScreen({params,searchParams}:{params:Promise<{id:string}>;searchParams:Promise<{error?:string;ok?:string;requested?:string;reviewed?:string;locked?:string}>}){
@@ -14,11 +14,12 @@ export default async function LegalScreen({params,searchParams}:{params:Promise<
  const {id}=await params;
  if(!/^[0-9a-f-]{36}$/i.test(id))notFound();
  const db=await createClient();
- const [{data:c},{data:sources},{data:decisions},{data:locks}]=await Promise.all([
+ const [{data:c},{data:sources},{data:decisions},{data:locks},{data:illustrations}]=await Promise.all([
   db.from("work_candidates").select("id,proposed_title,proposed_author_name,status").eq("id",id).maybeSingle(),
   db.from("candidate_legal_sources").select("*").eq("candidate_id",id).order("created_at",{ascending:false}),
   db.from("candidate_legal_decisions").select("decision_no,verdict,rationale,source_id,source_facts,recorded_at").eq("candidate_id",id).order("decision_no",{ascending:false}),
-  db.from("candidate_legal_locks").select("*").eq("candidate_id",id).limit(1)
+  db.from("candidate_legal_locks").select("*").eq("candidate_id",id).limit(1),
+  db.from("candidate_legal_illustrations").select("id,source_id,asset_url,creator,archive_rights,publication_rights,planned_use,evidence_url").in("source_id",(await db.from("candidate_legal_sources").select("id").eq("candidate_id",id)).data?.map(s=>s.id)??[])
  ]);
  if(!c)notFound();
 
@@ -69,6 +70,21 @@ export default async function LegalScreen({params,searchParams}:{params:Promise<
      {s.read_url?<> · <a href={s.read_url} target="_blank" rel="noopener noreferrer">Číst externě ↗</a></>:null}</p>
     <small>Soubor: {s.download_url??"není určen"} · Originál: {s.original_rights} · Překlad: {s.translation_rights} · Podmínky: {s.source_terms}</small>
    </article>):<p>Zatím žádné zapsané edice.</p>}
+  </section>
+  <section className="ca-card"><h2>Ilustrace · samostatné právní posouzení</h2>
+  <p>Obrázky se evidují bez jejich stahování. Použitelný text není blokován nejasnými právy ilustrací.</p>
+  {illustrations?.map(i=><p key={i.id}><a href={i.asset_url} target="_blank" rel="noopener noreferrer">{i.creator||"Ilustrace"}</a> · Archivace: {i.archive_rights} · Publikace: {i.publication_rights} · Záměr: {i.planned_use}</p>)}
+  {!locked?<form className="ca-form" action={addLegalIllustration.bind(null,id)}>
+   <label>Edice<select name="source_id" required>{sources?.map(src=><option key={src.id} value={src.id}>{src.edition_title}</option>)}</select></label>
+   <label>Odkaz obrázku<input type="url" name="asset_url" required maxLength={1000}/></label>
+   <label>Ilustrátor<input name="creator" maxLength={300}/></label>
+   <label>Právo archivovat<select name="archive_rights"><option value="unknown">Neověřeno</option><option value="cleared">Doloženo</option><option value="restricted">Omezeno</option></select></label>
+   <label>Právo publikovat<select name="publication_rights"><option value="unknown">Neověřeno</option><option value="cleared">Doloženo</option><option value="restricted">Omezeno</option></select></label>
+   <label>Záměr<select name="planned_use"><option value="exclude">Pouze evidence, bez kopie</option><option value="archive_only">Archivovat, nepublikovat</option><option value="publish">Archivovat a publikovat</option></select></label>
+   <label>Právní podklad<input name="evidence_url" type="url" maxLength={1000}/></label>
+   <label>Poznámky<textarea name="notes" maxLength={2000}/></label>
+   <button className="ca-btn ca-secondary" type="submit">Přidat ilustraci do evidence</button>
+   </form>:null}
   </section>
   <form className="ca-card ca-form" action={recordLegalVerdict.bind(null,id)}><h2>Rozhodnutí</h2>
    <p>Právní kontrolu a schválení zdroje může provádět editor i administrátor a vyžaduje doložený právní základ. Žádný obsah se nepřebírá ani nepublikuje.</p>
