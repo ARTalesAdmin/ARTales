@@ -148,6 +148,9 @@ BEGIN
   END IF;
   -- Serialize screen decisions and snapshot requests by candidate, without UPDATE privileges.
   PERFORM pg_catalog.pg_advisory_xact_lock(410726, pg_catalog.hashtext(NEW.candidate_id::text));
+  IF EXISTS(SELECT 1 FROM public.candidate_legal_locks l WHERE l.candidate_id=NEW.candidate_id) THEN
+    RAISE EXCEPTION 'legal_screen_locked' USING ERRCODE='23514';
+  END IF;
   -- Candidate is a read-only reference here; per-edition serialization is below.
   PERFORM 1 FROM public.work_candidates c WHERE c.id=NEW.candidate_id;
   IF NOT FOUND THEN RAISE EXCEPTION 'legal_candidate_missing' USING ERRCODE='23503'; END IF;
@@ -229,7 +232,10 @@ GRANT INSERT(source_id,asset_url,creator,evidence_url,archive_rights,publication
 CREATE POLICY illustration_editor_read ON public.candidate_legal_illustrations FOR SELECT TO authenticated USING (
  EXISTS(SELECT 1 FROM public.profiles p WHERE p.id=(SELECT auth.uid()) AND p.is_active AND p.role IN ('editor','admin')));
 CREATE POLICY illustration_editor_insert ON public.candidate_legal_illustrations FOR INSERT TO authenticated WITH CHECK (
- created_by=(SELECT auth.uid()) AND EXISTS(SELECT 1 FROM public.profiles p WHERE p.id=(SELECT auth.uid())
+ created_by=(SELECT auth.uid()) AND NOT EXISTS (
+  SELECT 1 FROM public.candidate_legal_locks l JOIN public.candidate_legal_sources s ON s.candidate_id=l.candidate_id
+  WHERE s.id=source_id
+ ) AND EXISTS(SELECT 1 FROM public.profiles p WHERE p.id=(SELECT auth.uid())
  AND p.is_active AND p.role IN ('editor','admin')));
 
 -- Snapshot is a different authority boundary: editors propose, admins approve.
