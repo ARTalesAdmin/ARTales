@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { LEGAL_SCREEN_V1_ENABLED } from "@/lib/legal/featureFlag";
 import { CANDIDATES_AB_ENABLED } from "@/lib/candidates/featureFlag";
 import { getInternalDictionary } from "@/lib/i18n/internal";
 import styles from "./MemberZoneNav.module.css";
@@ -31,6 +32,9 @@ export default function MemberZoneNav({ role }: { role: string | null }) {
         ...(admin ? [{ href: "/member/admin/prescreen/shadow", label: "Prescreen" }] : []),
         ...(editor && CANDIDATES_AB_ENABLED
           ? [{ href: "/member/candidates", label: "Kandidáti" }]
+          : []),
+        ...(editor && LEGAL_SCREEN_V1_ENABLED
+          ? [{ href: "/member/legal", label: "Právní screen" }]
           : []),
       ],
     },
