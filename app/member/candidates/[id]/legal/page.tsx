@@ -35,7 +35,9 @@ export default async function LegalScreen({params,searchParams}:{params:Promise<
   <form className="ca-card ca-form" action={addLegalSource.bind(null,id)}><h2>Přidat zdroj / edici</h2>
    <label>Zdroj<select name="source_kind"><option value="gutenberg">Project Gutenberg</option><option value="open_library">Open Library</option><option value="library">Knihovna / archiv</option><option value="other">Jiný zdroj</option></select></label>
    <label>Název edice<input name="edition_title" required maxLength={300}/></label>
-   <label>Odkaz na zdroj<input name="source_url" type="url" required maxLength={1000}/></label>
+   <label>Stránka konkrétní edice<input name="source_url" type="url" required maxLength={1000}/></label>
+   <label>Přesná URL souboru, který má být později stažen<input name="download_url" type="url" required maxLength={1000}/></label>
+   <label>Jde o originál, nebo překlad?<select name="translation_status"><option value="unknown">Nezjištěno</option><option value="original">Originál</option><option value="translated">Překlad</option></select></label>
    <label>Odkaz pro čtení / náhled (volitelné)<input name="read_url" type="url" maxLength={1000}/></label>
    <label>Rok edice<input name="edition_year" type="number" min="1400" max="2100"/></label>
    <label>Jazyk<input name="language_code" maxLength={30} placeholder="cs / en"/></label>
@@ -52,7 +54,7 @@ export default async function LegalScreen({params,searchParams}:{params:Promise<
    <label>Kvalita textu<select name="text_quality"><option value="unknown">Neověřeno</option><option value="verified">Ověřený text</option><option value="needs_cleanup">Vyžaduje čištění</option></select></label>
    <label>Práva původního textu<select name="original_rights"><option value="unknown">Neověřeno</option><option value="public_domain">Volné dílo</option><option value="licensed">Licence</option><option value="restricted">Omezeno</option></select></label>
    <label>Práva překladu<select name="translation_rights"><option value="unknown">Neověřeno</option><option value="not_applicable">Bez překladu</option><option value="public_domain">Volné dílo</option><option value="licensed">Licence</option><option value="restricted">Omezeno</option></select></label>
-   <label>Ilustrace<select name="illustration_use"><option value="excluded">Nepřebírat</option><option value="unknown">Neověřeno</option><option value="public_domain">Volné dílo</option><option value="licensed">Licence</option><option value="restricted">Omezeno</option></select></label>
+   <label>Ilustrace — v této fázi orientačně<select name="illustration_use"><option value="unknown">Neověřeno / evidovat samostatně</option><option value="excluded">Text bez ilustrací</option><option value="unknown">Neověřeno</option><option value="public_domain">Volné dílo</option><option value="licensed">Licence</option><option value="restricted">Omezeno</option></select></label>
    <label>Podmínky zdroje<select name="source_terms"><option value="unknown">Neověřeno</option><option value="cleared">Ověřeny</option><option value="restricted">Omezeno</option></select></label>
    <label>Odkaz na právní podklad<input name="evidence_url" type="url" maxLength={1000}/></label>
    <label>Zdůvodnění / poznámky<textarea name="notes" rows={4} maxLength={5000}/></label>
@@ -63,7 +65,7 @@ export default async function LegalScreen({params,searchParams}:{params:Promise<
     <strong>{s.edition_title}</strong><p>{s.source_kind} · {s.edition_year??"Rok neuveden"} · {s.language_code||"jazyk neuveden"}</p>
     <p><a target="_blank" rel="noopener noreferrer" href={s.source_url}>Katalogový záznam ↗</a>
      {s.read_url?<> · <a href={s.read_url} target="_blank" rel="noopener noreferrer">Číst externě ↗</a></>:null}</p>
-    <small>Originál: {s.original_rights} · Překlad: {s.translation_rights} · Podmínky: {s.source_terms}</small>
+    <small>Soubor: {s.download_url??"není určen"} · Originál: {s.original_rights} · Překlad: {s.translation_rights} · Podmínky: {s.source_terms}</small>
    </article>):<p>Zatím žádné zapsané edice.</p>}
   </section>
   <form className="ca-card ca-form" action={recordLegalVerdict.bind(null,id)}><h2>Rozhodnutí</h2>
