@@ -6,7 +6,7 @@ import {createClient} from "@/lib/supabase/server";
 const values=(form:FormData,k:string)=>String(form.get(k)??"").trim();
 const safeUrl=(v:string)=>!v||(/^https:\/\/[^\s]+$/.test(v)&&v.length<=1000);
 const validId=(s:string)=>/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(s);
-const back=(id:string,error:boolean)=>redirect(`/member/candidates/${id}/legal?${error?"error=1":"ok=1"}`);
+const back=(id:string,error:boolean)=>redirect(`/member/legal/${id}?${error?"error=1":"ok=1"}`);
 export async function addLegalSource(id:string,form:FormData){
  if(!LEGAL_SCREEN_V1_ENABLED)throw Error("legal_screen_not_enabled");
  const profile=await requireEditorOrAdmin();
@@ -48,7 +48,7 @@ export async function lockScreening(id:string,form:FormData){
   source_facts:{},illustrations:[]
  });
  if(error)back(id,true);
- redirect(`/member/candidates/${id}/legal?locked=1`);
+ redirect(`/member/legal/${id}?locked=1`);
 }
 
 export async function addLegalIllustration(id:string,form:FormData){
