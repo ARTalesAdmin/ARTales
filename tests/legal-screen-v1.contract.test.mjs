@@ -28,7 +28,7 @@ test("editor+ legal verification and admin-only snapshot requests",()=>{
  const page=r("app/member/candidates/[id]/legal/page.tsx");
  const action=r("lib/actions/legalScreen.ts");
  assert.match(page,/Čeká na schválení administrátorem/);
- assert.match(page,/Gutenberg \(výchozí\)/);
+ assert.match(r("components/legal/LegalSourceDiscovery.tsx"),/Gutenberg \(výchozí\)/);
  assert.match(page,/Navrhnout snapshot/);
  assert.match(action,/profile\.role!=="admin"/);
  assert.match(m,/candidate_snapshot_requests/);
