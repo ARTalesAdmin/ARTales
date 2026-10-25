@@ -1,5 +1,6 @@
 import Link from "next/link";
 import {CANDIDATES_AB_ENABLED} from "@/lib/candidates/featureFlag";
+import {LEGAL_SCREEN_V1_ENABLED} from "@/lib/legal/featureFlag";
 import {notFound} from "next/navigation";
 import {requireEditorOrAdmin} from "@/lib/guards";
 import {createClient} from "@/lib/supabase/server";
@@ -22,5 +23,6 @@ export default async function CandidateDetail({params,searchParams}:{params:Prom
  {metadata.sourceUrl?<p><a href={metadata.sourceUrl} target="_blank" rel="noopener noreferrer">Bibliografický záznam ↗</a> — není schválenou edicí.</p>:null}
  {metadata.prescreenReason?<p>V Prescreenu: {metadata.prescreenReason}</p>:null}
  {c.origin_reference&&c.origin!=="prescreen"?<p>Původní odkaz: {c.origin_reference}</p>:null}</section>
+ {LEGAL_SCREEN_V1_ENABLED?<section className="ca-card"><h2>Právní screen</h2><p>Prověřit konkrétní edice, práva a zdroje bez převzetí textu.</p><Link className="ca-btn ca-primary" href={`/member/candidates/${id}/legal`}>Otevřít právní screen →</Link></section>:null}
  <form className="ca-card ca-form" action={action}><h2>Redakční zpracování</h2><label>Stav<select name="status" defaultValue={c.status}>{Object.entries(statuses).map(([k,v])=><option value={k} key={k}>{v}</option>)}</select></label><label>Priorita (0–100)<input type="number" name="priority" min={0} max={100} defaultValue={c.priority}/></label><label>Interní poznámky<textarea name="notes" rows={6} maxLength={5000} defaultValue={c.notes??""}/></label><p className="ca-hint">„Připraveno“ znamená pouze připravenost k pozdějšímu právnímu screenu. Nejde o souhlas s publikací.</p><button className="ca-btn ca-primary" type="submit">Uložit změny</button></form></main>;
 }
