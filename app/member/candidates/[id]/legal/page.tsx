@@ -4,30 +4,30 @@ import {notFound} from "next/navigation";
 import {LEGAL_SCREEN_V1_ENABLED} from "@/lib/legal/featureFlag";
 import {requireEditorOrAdmin} from "@/lib/guards";
 import {createClient} from "@/lib/supabase/server";
-import {addLegalSource,recordLegalVerdict,requestSnapshot,reviewSnapshot} from "@/lib/actions/legalScreen";
+import {addLegalSource,recordLegalVerdict,lockScreening} from "@/lib/actions/legalScreen";
 import "../../candidates.css";
 
-export default async function LegalScreen({params,searchParams}:{params:Promise<{id:string}>;searchParams:Promise<{error?:string;ok?:string;requested?:string;reviewed?:string}>}){
+export default async function LegalScreen({params,searchParams}:{params:Promise<{id:string}>;searchParams:Promise<{error?:string;ok?:string;requested?:string;reviewed?:string;locked?:string}>}){
  if(!LEGAL_SCREEN_V1_ENABLED)notFound();
- const profile=await requireEditorOrAdmin();
+ await requireEditorOrAdmin();
  const {id}=await params;
  if(!/^[0-9a-f-]{36}$/i.test(id))notFound();
  const db=await createClient();
- const [{data:c},{data:sources},{data:decisions},{data:requests}]=await Promise.all([
+ const [{data:c},{data:sources},{data:decisions},{data:locks}]=await Promise.all([
   db.from("work_candidates").select("id,proposed_title,proposed_author_name,status").eq("id",id).maybeSingle(),
   db.from("candidate_legal_sources").select("*").eq("candidate_id",id).order("created_at",{ascending:false}),
   db.from("candidate_legal_decisions").select("decision_no,verdict,rationale,source_id,source_facts,recorded_at").eq("candidate_id",id).order("decision_no",{ascending:false}),
-  db.from("candidate_snapshot_requests").select("id,source_id,status,created_at").eq("candidate_id",id).order("created_at",{ascending:false})
+  db.from("candidate_legal_locks").select("*").eq("candidate_id",id).limit(1)
  ]);
  if(!c)notFound();
- const isAdmin=profile.role==="admin";
+
  const latest=decisions?.[0];
- const pending=requests?.find(r=>r.status==="pending");
+ const locked=locks?.[0];
  const q=await searchParams;
  return <main className="ca-root">
   <p><Link href={`/member/candidates/${id}`}>← Kandidát</Link></p>
   <header className="ca-head"><div><p className="ca-eyebrow">Právní screen · CZ/EU</p><h1>{c.proposed_title}</h1><p>{c.proposed_author_name} · Prověření zdroje, nikoli snapshot</p></div></header>
-  {(q.requested||pending)?<p role="status" className="ca-success">Čeká na schválení administrátorem. Snapshot zatím nevznikl.</p>:null}
+  {locked?<p role="status" className="ca-success">Právní screen uzamčen. Snapshot je samostatná další etapa.</p>:null}
   {q.reviewed?<p role="status" className="ca-success">Rozhodnutí o požadavku bylo zapsáno. Samotný snapshot se v této etapě nevytváří.</p>:null}
   {q.ok?<p className="ca-success" role="status">Zapsáno.</p>:null}
   {q.error?<p className="ca-error" role="alert">Zápis se nezdařil. Zkontroluj podklady nebo oprávnění.</p>:null}
@@ -75,20 +75,17 @@ export default async function LegalScreen({params,searchParams}:{params:Promise<
    <label>Zdůvodnění<textarea name="rationale" minLength={15} maxLength={5000} rows={4} required/></label>
    <button className="ca-btn ca-primary" type="submit">Zapsat rozhodnutí</button>
   </form>
-  <section className="ca-card"><h2>Návrh snapshotu</h2>
-  <p>Editor může odeslat požadavek; pouze administrátor jej může schválit. Schválení zde ještě nestahuje ani nezakládá text.</p>
-  {pending?<p role="status"><strong>Čeká na schválení.</strong></p>:null}
-  {requests?.map(r=><p key={r.id}>{r.status==="pending"?"Čeká na schválení":r.status==="approved"?"Schválený požadavek — bez ingestu":"Zamítnutý požadavek"} · {new Date(r.created_at).toLocaleDateString("cs-CZ")}</p>)}
-  {latest?.verdict==="approved"&&!pending&&!requests?.some(r=>r.status==="approved")?
-  <form action={requestSnapshot.bind(null,id)} className="ca-form"><label>Vybraná právně ověřená edice
-  <input type="hidden" name="source_id" value={latest.source_id??""}/>
-  <strong>{sources?.find(s=>s.id===latest.source_id)?.edition_title??"Vybraný zdroj"}</strong></label>
-  <button className="ca-btn ca-secondary" type="submit">Navrhnout snapshot — požádat o schválení</button></form>:null}
-  {isAdmin&&pending?<form action={reviewSnapshot.bind(null,id)} className="ca-form">
-  <input type="hidden" name="request_id" value={pending.id}/>
-  <button className="ca-btn ca-primary" type="submit" name="decision" value="approved">Schválit požadavek na snapshot</button>
-  <button className="ca-btn ca-secondary" type="submit" name="decision" value="rejected">Zamítnout požadavek</button>
-  </form>:null}
+  <section className="ca-card"><h2>Uzamčení prověřené verze</h2>
+  <p>Výsledek obsahuje přesný zdrojový soubor, stav práv původního textu, překladu i každé evidované ilustrace a odkazy na důkazy. Uzamčení neprovádí snapshot.</p>
+  {locked?<><p><strong>Zamčeno dne {new Date(locked.locked_at).toLocaleDateString("cs-CZ")}.</strong></p>
+  <p><a href={`/member/candidates/${id}/legal/report`}>Stáhnout předávací protokol (JSON)</a></p></>:null}
+  {!locked&&latest?.verdict==="approved"&&latest.source_id?
+    <form action={lockScreening.bind(null,id)} className="ca-form">
+      <input type="hidden" name="source_id" value={latest.source_id}/>
+      <input type="hidden" name="decision_no" value={latest.decision_no}/>
+      <p>Vybraný soubor: {sources?.find(s=>s.id===latest.source_id)?.download_url??"neurčeno"}</p>
+      <button type="submit" className="ca-btn ca-primary">Uzamknout právně prověřený zdroj</button>
+    </form>:null}
   </section>
   <section className="ca-card"><h2>Historie rozhodnutí</h2>{decisions?.length?decisions.map(d=><article key={d.decision_no}><p><strong>#{d.decision_no} · {d.verdict}</strong> · {new Date(d.recorded_at).toLocaleDateString("cs-CZ")}</p><p>{d.rationale}</p></article>):<p>Zatím bez rozhodnutí.</p>}</section>
  </main>;
