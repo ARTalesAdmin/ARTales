@@ -34,7 +34,7 @@ test("editor+ legal verification and admin-only snapshot requests",()=>{
  assert.match(m,/candidate_legal_locks/);
  assert.match(m,/legal_locks_insert/);
  assert.match(m,/legal_lock_requires_latest_approval/);
- assert.match(m,/s\.id=NEW\.source_id AND s\.candidate_id=NEW\.candidate_id/);
+ assert.match(m,/id=NEW\.source_id AND candidate_id=NEW\.candidate_id/);
  assert.match(m,/author_died integer/);
  assert.match(m,/translator_died integer/);
  assert.match(m,/illustrator_died integer/);
