@@ -1,5 +1,6 @@
 import Link from "next/link";
 import {LegalSourceDiscovery} from "@/components/legal/LegalSourceDiscovery";
+import {GutenbergSourcePicker} from "@/components/legal/GutenbergSourcePicker";
 import {notFound} from "next/navigation";
 import {LEGAL_SCREEN_V1_ENABLED} from "@/lib/legal/featureFlag";
 import {requireEditorOrAdmin} from "@/lib/guards";
@@ -32,7 +33,8 @@ export default async function LegalScreen({params,searchParams}:{params:Promise<
   {q.ok?<p className="ca-success" role="status">Zapsáno.</p>:null}
   {q.error?<p className="ca-error" role="alert">Zápis se nezdařil. Zkontroluj podklady nebo oprávnění.</p>:null}
   <LegalSourceDiscovery title={c.proposed_title} author={c.proposed_author_name}/>
-  <form className="ca-card ca-form" action={addLegalSource.bind(null,id)}><h2>Přidat zdroj / edici</h2>
+  {!locked?<GutenbergSourcePicker candidateId={id}/>:null}
+  <form id="legal-source-form" className="ca-card ca-form" action={addLegalSource.bind(null,id)}><h2>Přidat zdroj / edici</h2>
    <label>Zdroj<select name="source_kind"><option value="gutenberg">Project Gutenberg</option><option value="open_library">Open Library</option><option value="library">Knihovna / archiv</option><option value="other">Jiný zdroj</option></select></label>
    <label>Název edice<input name="edition_title" required maxLength={300}/></label>
    <label>Stránka konkrétní edice<input name="source_url" type="url" required maxLength={1000}/></label>
