@@ -46,7 +46,7 @@ export async function POST(_req:Request,{params}:{params:Promise<{id:string}>}){
    if(inserted.error)return NextResponse.json({error:"cannot_save_source"},{status:500});
    sourceId=inserted.data.id;
   }
-  const rationale="Automaticky připravený komponentní právní screen: "+facts.reason+"; "+facts.author.status+"; "+facts.translation.status+".";
+  const rationale="Automaticky připravený komponentní právní screen: "+facts.reason+"; "+facts.author.status+"; "+facts.translation.status+"; kontrola textu: "+textCheck.status+"; "+(textCheck.notice??textCheck.explanation).slice(0,230)+ ".";
   const decision=await db.from("candidate_legal_decisions").insert({candidate_id:id,source_id:sourceId,verdict:"needs_evidence",territory:"CZ/EU",rationale,reviewed_by:profile.id}).select("decision_no,recorded_at").single();
   if(decision.error)return NextResponse.json({error:"cannot_save_audit"},{status:500});
   return NextResponse.json({sourceId,decisionNo:decision.data.decision_no,bookId:book.id,title:book.title,file,componentFacts:facts,textCheck,alternativeCount:found.matches.length-1,recordedAt:decision.data.recorded_at},{headers:{"Cache-Control":"private, no-store"}});
