@@ -18,3 +18,9 @@ test("catalog may contain no files without inventing URLs",()=>{
  assert.equal(parseGutenbergOpds('<feed><entry><id>https://www.gutenberg.org/ebooks/55</id><title>Unknown</title></entry></feed>')[0].files.length,0);
 });
 test("reject malformed OPDS",()=>assert.throws(()=>parseGutenbergOpds("<html/>")));
+
+test("multiple OPDS entries with same ebook id merge available formats",()=>{
+ const xml='<feed><entry><id>urn:gutenberg:389</id><title>The Great God Pan</title><link rel="http://opds-spec.org/acquisition" type="text/plain" href="https://www.gutenberg.org/ebooks/389.txt.utf-8"/></entry><entry><id>urn:gutenberg:389</id><title>The Great God Pan</title><link rel="http://opds-spec.org/acquisition" type="application/epub+zip" href="https://www.gutenberg.org/ebooks/389.epub"/></entry></feed>';
+ const parsed=parseGutenbergOpds(xml);
+ assert.equal(parsed.length,1);assert.equal(parsed[0].id,389);assert.equal(parsed[0].files.length,2);
+});
