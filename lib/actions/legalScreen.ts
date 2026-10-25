@@ -1,5 +1,6 @@
 "use server";
 import {redirect} from "next/navigation";
+import {LEGAL_SCREEN_V1_ENABLED} from "@/lib/legal/featureFlag";
 import {requireEditorOrAdmin} from "@/lib/guards";
 import {createClient} from "@/lib/supabase/server";
 const values=(form:FormData,k:string)=>String(form.get(k)??"").trim();
@@ -7,6 +8,7 @@ const safeUrl=(v:string)=>!v||(/^https:\/\/[^\s]+$/.test(v)&&v.length<=1000);
 const validId=(s:string)=>/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(s);
 const back=(id:string,error:boolean)=>redirect(`/member/candidates/${id}/legal?${error?"error=1":"ok=1"}`);
 export async function addLegalSource(id:string,form:FormData){
+ if(!LEGAL_SCREEN_V1_ENABLED)throw Error("legal_screen_not_enabled");
  const profile=await requireEditorOrAdmin();
  if(!validId(id))throw Error("invalid_id");
  const keys=["source_kind","edition_title","source_url","read_url","edition_year","language_code","translator","illustrator","original_rights","translation_rights","illustration_use","source_terms","evidence_url","notes"] as const;
@@ -20,6 +22,7 @@ export async function addLegalSource(id:string,form:FormData){
  back(id,false);
 }
 export async function recordLegalVerdict(id:string,form:FormData){
+ if(!LEGAL_SCREEN_V1_ENABLED)throw Error("legal_screen_not_enabled");
  const profile=await requireEditorOrAdmin();
  if(!validId(id))throw Error("invalid_id");
  const source=values(form,"source_id"),verdict=values(form,"verdict"),rationale=values(form,"rationale");
