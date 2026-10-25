@@ -60,3 +60,18 @@ export async function reviewSnapshot(id:string,form:FormData){
  if(error)back(id,true);
  redirect(`/member/candidates/${id}/legal?reviewed=1`);
 }
+
+export async function lockScreening(id:string,form:FormData){
+ if(!LEGAL_SCREEN_V1_ENABLED)throw Error("legal_screen_not_enabled");
+ const profile=await requireEditorOrAdmin();
+ const source=values(form,"source_id"),decision=Number(values(form,"decision_no"));
+ if(!validId(id)||!validId(source)||!Number.isSafeInteger(decision)||decision<=0)throw Error("invalid_legal_lock");
+ const db=await createClient();
+ const {error}=await db.from("candidate_legal_locks").insert({
+  candidate_id:id,source_id:source,decision_no:decision,locked_by:profile.id,
+  source_url:"https://placeholder.invalid",download_url:"https://placeholder.invalid",
+  source_facts:{},illustrations:[]
+ });
+ if(error)back(id,true);
+ redirect(`/member/candidates/${id}/legal?locked=1`);
+}
