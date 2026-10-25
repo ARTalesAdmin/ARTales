@@ -1,3 +1,4 @@
+import {parseGutenbergOpds} from "./gutenbergOpds";
 /**
  * Read-only Gutenberg catalog adapter. Gutendex serves PG metadata, not rights
  * clearance for CZ/EU. No book content is fetched or stored in Legal Screen.
@@ -56,18 +57,32 @@ async function query(path:string):Promise<unknown>{
  if(declaredSize>1_000_000)throw Error("catalog_response_oversize");
  return res.json() as Promise<unknown>;
 }
+async function searchOfficialOpds(title:string,author:string):Promise<GutenbergBook[]>{
+ const queryText=[title.trim().slice(0,100),author.trim().slice(0,70)].filter(Boolean).join(" ");
+ const u=new URL("https://www.gutenberg.org/ebooks/search.opds/");
+ u.searchParams.set("query",queryText);
+ const response=await fetch(u.toString(),{headers:{"Accept":"application/atom+xml, application/xml;q=0.9"},signal:AbortSignal.timeout(7500),next:{revalidate:1800}});
+ if(!response.ok)throw Error("opds_status_"+response.status);
+ const declared=Number(response.headers.get("content-length")??0);
+ if(declared>600000)throw Error("opds_too_large");
+ return parseGutenbergOpds((await response.text()).slice(0,600001));
+}
 export async function searchGutenberg(title:string,author:string):Promise<GutenbergBook[]>{
- const cleanTitle=title.trim().slice(0,100);
- const cleanAuthor=author.trim().slice(0,70);
+ const cleanTitle=title.trim().slice(0,100),cleanAuthor=author.trim().slice(0,70);
  if(cleanTitle.length<3)return [];
- const search=async(q:string)=>{
-  const payload=await query("/books/?search="+encodeURIComponent(q));
+ let primaryError="none";
+ try{
+  const items=await searchOfficialOpds(cleanTitle,cleanAuthor);
+  if(items.length)return items;
+ }catch(e){primaryError=e instanceof Error?e.message:"opds_error";}
+ try{
+  const payload=await query("/books/?search="+encodeURIComponent(cleanTitle+" "+cleanAuthor));
   if(!payload||typeof payload!=="object"||!Array.isArray((payload as {results?:unknown}).results))return [];
   const results=(payload as {results:unknown[]}).results;
   return results.slice(0,32).map(parseGutenbergBook).filter((v):v is GutenbergBook=>v!==null).slice(0,16);
- };
- const first=await search(cleanTitle+" "+cleanAuthor);
- return first.length?first:search(cleanTitle);
+ }catch{
+  throw new Error(primaryError==="none"?"catalog_unavailable":"catalog_unavailable_"+primaryError.slice(0,70));
+ }
 }
 export async function getGutenbergBook(id:number):Promise<GutenbergBook|null>{
  if(!Number.isInteger(id)||id<1||id>99999999)return null;
