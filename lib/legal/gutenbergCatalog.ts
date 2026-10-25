@@ -109,7 +109,8 @@ export async function getGutenbergBook(id:number):Promise<GutenbergBook|null>{
   const response=await fetch(u,{headers:{"Accept":"application/atom+xml, application/xml;q=0.9"},signal:AbortSignal.timeout(7500),next:{revalidate:1800}});
   if(response.ok){
    const payload=(await response.text()).slice(0,600001);
-   const found=parseGutenbergOpds(payload).find(x=>x.id===id);
+   const xml=/<(?:\\w+:)?entry\\b/i.test(payload)&&!/<(?:\\w+:)?feed\\b/i.test(payload)?"<feed>"+payload+"</feed>":payload;
+   const found=parseGutenbergOpds(xml).find(x=>x.id===id);
    if(found?.files.length)return found;
   }
  }catch{}
