@@ -7,6 +7,7 @@ on:
       - feat/artales-legal-one-click-screen-20261025
       - fix/artales-gutenberg-opds-catalog-20261025
       - fix/artales-legal-search-zero-results-20261025
+      - fix/artales-legal-screen-workflow-20261025
 permissions:
   contents: read
 jobs:
