@@ -200,11 +200,37 @@ CREATE TRIGGER artales_validate_legal_decision
 REVOKE ALL ON FUNCTION public.artales_guard_approved_legal_source() FROM PUBLIC, anon;
 REVOKE ALL ON FUNCTION public.artales_validate_legal_decision() FROM PUBLIC, anon;
 
--- Image assets are registered separately; recording an image is not permission to copy it.
+-- Illustration entries are metadata; future authorized snapshot may copy only cleared assets.
 CREATE TABLE public.candidate_legal_illustrations (
  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
  source_id uuid NOT NULL REFERENCES public.candidate_legal_sources(id) ON DELETE RESTRICT,
- asset_url text NOT NULL CHECK(length(asset_url)<=1000 AND asset_url ~ '^https://[^[:space:]]+: editors propose, admins approve.
+ asset_url text NOT NULL CHECK(length(asset_url)<=1000 AND asset_url ~ '^https://[^[:space:]]+$'),
+ creator text NOT NULL DEFAULT '',
+ evidence_url text CHECK(evidence_url IS NULL OR (length(evidence_url)<=1000 AND evidence_url ~ '^https://[^[:space:]]+$')),
+ archive_rights text NOT NULL DEFAULT 'unknown' CHECK(archive_rights IN ('unknown','cleared','restricted')),
+ publication_rights text NOT NULL DEFAULT 'unknown' CHECK(publication_rights IN ('unknown','cleared','restricted')),
+ planned_use text NOT NULL DEFAULT 'exclude' CHECK(planned_use IN ('exclude','archive_only','publish')),
+ notes text NOT NULL DEFAULT '',
+ created_by uuid NOT NULL REFERENCES public.profiles(id),
+ created_at timestamptz NOT NULL DEFAULT now(),
+ UNIQUE(source_id,asset_url),
+ CONSTRAINT illustration_use_rights CHECK(
+ planned_use='exclude'
+ OR (planned_use='archive_only' AND archive_rights='cleared' AND evidence_url IS NOT NULL)
+ OR (planned_use='publish' AND archive_rights='cleared' AND publication_rights='cleared' AND evidence_url IS NOT NULL))
+);
+ALTER TABLE public.candidate_legal_illustrations ENABLE ROW LEVEL SECURITY;
+REVOKE ALL ON public.candidate_legal_illustrations FROM PUBLIC,anon,authenticated;
+GRANT SELECT ON public.candidate_legal_illustrations TO authenticated;
+GRANT INSERT(source_id,asset_url,creator,evidence_url,archive_rights,publication_rights,planned_use,notes,created_by)
+ ON public.candidate_legal_illustrations TO authenticated;
+CREATE POLICY illustration_editor_read ON public.candidate_legal_illustrations FOR SELECT TO authenticated USING (
+ EXISTS(SELECT 1 FROM public.profiles p WHERE p.id=(SELECT auth.uid()) AND p.is_active AND p.role IN ('editor','admin')));
+CREATE POLICY illustration_editor_insert ON public.candidate_legal_illustrations FOR INSERT TO authenticated WITH CHECK (
+ created_by=(SELECT auth.uid()) AND EXISTS(SELECT 1 FROM public.profiles p WHERE p.id=(SELECT auth.uid())
+ AND p.is_active AND p.role IN ('editor','admin')));
+
+-- Snapshot is a different authority boundary: editors propose, admins approve.
 -- This stage creates only an authorization handoff, never the snapshot artifact.
 CREATE TABLE public.candidate_snapshot_requests (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
