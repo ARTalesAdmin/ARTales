@@ -1,11 +1,13 @@
 import Link from "next/link";
 import {notFound} from "next/navigation";
+import {LEGAL_SCREEN_V1_ENABLED} from "@/lib/legal/featureFlag";
 import {requireEditorOrAdmin} from "@/lib/guards";
 import {createClient} from "@/lib/supabase/server";
 import {addLegalSource,recordLegalVerdict} from "@/lib/actions/legalScreen";
 import "../../candidates.css";
 
 export default async function LegalScreen({params,searchParams}:{params:Promise<{id:string}>;searchParams:Promise<{error?:string;ok?:string}>}){
+ if(!LEGAL_SCREEN_V1_ENABLED)notFound();
  const profile=await requireEditorOrAdmin();
  const {id}=await params;
  if(!/^[0-9a-f-]{36}$/i.test(id))notFound();
