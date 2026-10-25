@@ -2,6 +2,7 @@ import {NextResponse} from "next/server";
 import {requireEditorOrAdmin} from "@/lib/guards";
 import {createClient} from "@/lib/supabase/server";
 import {getMatchingGutenberg,legalFacts} from "@/lib/legal/automaticAssessment";
+import {checkGutenbergText} from "@/lib/legal/textRightsCheck";
 import {LEGAL_SCREEN_V1_ENABLED} from "@/lib/legal/featureFlag";
 export const runtime="nodejs";
 export async function POST(_req:Request,{params}:{params:Promise<{id:string}>}){
@@ -10,7 +11,7 @@ export async function POST(_req:Request,{params}:{params:Promise<{id:string}>}){
  const {id}=await params;
  if(!/^[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i.test(id))return NextResponse.json({error:"invalid"},{status:400});
  const db=await createClient();
- const {data:c}=await db.from("work_candidates").select("proposed_title,proposed_author_name").eq("id",id).maybeSingle();
+ const {data:c}=await db.from("work_candidates").select("proposed_title,proposed_author_name,prescreen_metadata").eq("id",id).maybeSingle();
  if(!c)return NextResponse.json({error:"candidate_missing"},{status:404});
  const {data:locked}=await db.from("candidate_legal_locks").select("candidate_id").eq("candidate_id",id).maybeSingle();
  if(locked)return NextResponse.json({error:"already_locked"},{status:409});
@@ -19,7 +20,11 @@ export async function POST(_req:Request,{params}:{params:Promise<{id:string}>}){
   if(!found.selected)return NextResponse.json({error:"no_verified_file",matches:found.matches.map(b=>({id:b.id,title:b.title,url:b.catalogUrl}))},{status:422});
   const book=found.selected;
   const file=book.files.find(f=>f.format==="html")??book.files.find(f=>f.format==="plain_text")??book.files[0];
-  const facts=legalFacts(book);
+  const year=Number((c.prescreen_metadata as {authorDied?:number}|null)?.authorDied);
+  const prescreenDeath=Number.isInteger(year)&&year>=1000&&year<=2026?year:null;
+  const facts=legalFacts(book,2026,prescreenDeath);
+  const textCheck=await checkGutenbergText(book);
+  const details={...facts,textCheck};
   // Save the evidence and the preliminary verdict, not a final copyright approval.
   const payload={
    candidate_id:id,source_kind:"gutenberg",edition_title:book.title,
@@ -31,7 +36,7 @@ export async function POST(_req:Request,{params}:{params:Promise<{id:string}>}){
    text_format:file.format,identity_match:"confirmed",language_match:"uncertain",
    completeness:"unknown",text_quality:"unknown",original_rights:"unknown",
    translation_rights:"unknown",illustration_use:"unknown",source_terms:"unknown",
-   evidence_url:book.catalogUrl,notes:JSON.stringify(facts).slice(0,4900),
+   evidence_url:book.catalogUrl,notes:JSON.stringify(details).slice(0,4900),
    created_by:profile.id,updated_by:profile.id
   };
   const {data:previous}=await db.from("candidate_legal_sources").select("id").eq("candidate_id",id).eq("source_url",book.catalogUrl).eq("download_url",file.url).maybeSingle();
@@ -44,6 +49,6 @@ export async function POST(_req:Request,{params}:{params:Promise<{id:string}>}){
   const rationale="Automaticky připravený komponentní právní screen: "+facts.reason+"; "+facts.author.status+"; "+facts.translation.status+".";
   const decision=await db.from("candidate_legal_decisions").insert({candidate_id:id,source_id:sourceId,verdict:"needs_evidence",territory:"CZ/EU",rationale,reviewed_by:profile.id}).select("decision_no,recorded_at").single();
   if(decision.error)return NextResponse.json({error:"cannot_save_audit"},{status:500});
-  return NextResponse.json({sourceId,decisionNo:decision.data.decision_no,bookId:book.id,title:book.title,file,componentFacts:facts,alternativeCount:found.matches.length-1,recordedAt:decision.data.recorded_at},{headers:{"Cache-Control":"private, no-store"}});
+  return NextResponse.json({sourceId,decisionNo:decision.data.decision_no,bookId:book.id,title:book.title,file,componentFacts:facts,textCheck,alternativeCount:found.matches.length-1,recordedAt:decision.data.recorded_at},{headers:{"Cache-Control":"private, no-store"}});
  }catch{return NextResponse.json({error:"catalog_unavailable"},{status:503})}
 }
