@@ -26,21 +26,25 @@ export default async function LegalScreen({params,searchParams}:{params:Promise<
  if(!c)notFound();
 
  const latest=decisions?.[0];
+ const latestAutoSource=sources?.find(source=>source.id===latest?.source_id);
+ let previousFacts:Record<string,unknown>|null=null;
+ try{if(latestAutoSource?.notes?.startsWith('{'))previousFacts=JSON.parse(latestAutoSource.notes) as Record<string,unknown>;}catch{}
+
  const locked=locks?.[0];
  const q=await searchParams;
  return <main className="ca-root">
-  <p><Link href={`/member/candidates/${id}`}>← Kandidát</Link></p>
+
   <header className="ca-head"><div><p className="ca-eyebrow">Právní screen · CZ/EU</p><h1>{c.proposed_title}</h1><p>{c.proposed_author_name} · Prověření zdroje, nikoli snapshot</p></div></header>
   {locked?<p role="status" className="ca-success">Právní screen uzamčen. Snapshot je samostatná další etapa.</p>:null}
   {q.reviewed?<p role="status" className="ca-success">Rozhodnutí o požadavku bylo zapsáno. Samotný snapshot se v této etapě nevytváří.</p>:null}
   {q.ok?<p className="ca-success" role="status">Zapsáno.</p>:null}
   {q.error?<p className="ca-error" role="alert">Zápis se nezdařil. Zkontroluj podklady nebo oprávnění.</p>:null}
   <LegalPipelineNav step="legal" candidateId={id} admin={profile.role==="admin"}/>
-  <p className="ca-links"><Link href="/member/legal">← Všechny právní screeny</Link> · <Link href="/member/candidates">Kandidáti</Link></p>
-  <LegalSourceDiscovery title={c.proposed_title} author={c.proposed_author_name}/>
-  {!locked?<AutomaticLegalScreen candidateId={id} title={c.proposed_title} author={c.proposed_author_name}/>:null}
-  {!locked?<details className="ca-card"><summary>Pokročilé možnosti · ruční výběr a úprava zdroje</summary><GutenbergSourcePicker candidateId={id}/></details>:null}
-  {!locked?<details className="ca-card"><summary>Právní podklady a ruční doplnění vybrané edice</summary><form id="legal-source-form" className="ca-card ca-form" action={addLegalSource.bind(null,id)}><h2>Přidat zdroj / edici</h2>
+  <p className="ca-links"><Link href="/member/legal">← Přehled právních screenů</Link> · <Link href={`/member/candidates/${id}`}>Bibliografický kandidát</Link></p>
+  {!locked?<AutomaticLegalScreen candidateId={id}/>:null}
+  {previousFacts?<section className="ca-card"><h2>Poslední uložené automatické posouzení</h2><p><strong>{latestAutoSource?.edition_title}</strong> · rozhodnutí #{latest?.decision_no} · {latest?.recorded_at?new Date(latest.recorded_at).toLocaleString("cs-CZ"):""}</p><p>Autor: {String((previousFacts.author as {status?:string}|undefined)?.status??"neověřeno")} · Překlad: {String((previousFacts.translation as {status?:string}|undefined)?.status??"neověřeno")} · Ilustrace: {String((previousFacts.illustrations as {status?:string}|undefined)?.status??"neověřeno")}</p><p><a href={latestAutoSource?.download_url??latestAutoSource?.source_url} target="_blank" rel="noopener noreferrer">Přesný vybraný zdroj a podklady</a></p><details><summary>Podrobnosti a auditní důvody</summary><pre style={{whiteSpace:"pre-wrap",overflowWrap:"anywhere"}}>{JSON.stringify(previousFacts,null,2)}</pre></details></section>:null}
+
+  {!locked?<details className="ca-card"><summary>Pokročilé · ruční zdroje, edice a právní evidence</summary><LegalSourceDiscovery title={c.proposed_title} author={c.proposed_author_name}/><GutenbergSourcePicker candidateId={id}/><form id="legal-source-form" className="ca-card ca-form" action={addLegalSource.bind(null,id)}><h2>Přidat zdroj / edici</h2>
    <label>Zdroj<select name="source_kind"><option value="gutenberg">Project Gutenberg</option><option value="open_library">Open Library</option><option value="library">Knihovna / archiv</option><option value="other">Jiný zdroj</option></select></label>
    <label>Název edice<input name="edition_title" required maxLength={300}/></label>
    <label>Stránka konkrétní edice<input name="source_url" type="url" required maxLength={1000}/></label>
@@ -68,15 +72,15 @@ export default async function LegalScreen({params,searchParams}:{params:Promise<
    <label>Zdůvodnění / poznámky<textarea name="notes" rows={4} maxLength={5000}/></label>
    <button className="ca-btn ca-primary" type="submit">Uložit edici</button>
   </form></details>:null}
-  <section className="ca-card"><h2>Posuzované edice</h2>
+  <details className="ca-card"><summary>Evidence zdrojových edic</summary><h2>Posuzované edice</h2>
    {sources?.length?sources.map(s=><article key={s.id} style={{borderTop:"1px solid var(--artales-border)",paddingBlock:14}}>
     <strong>{s.edition_title}</strong><p>{s.source_kind} · {s.edition_year??"Rok neuveden"} · {s.language_code||"jazyk neuveden"}</p>
     <p><a target="_blank" rel="noopener noreferrer" href={s.source_url}>Katalogový záznam ↗</a>
      {s.read_url?<> · <a href={s.read_url} target="_blank" rel="noopener noreferrer">Číst externě ↗</a></>:null}</p>
     <small>Soubor: {s.download_url??"není určen"} · Originál: {s.original_rights} · Překlad: {s.translation_rights} · Podmínky: {s.source_terms}</small>
    </article>):<p>Zatím žádné zapsané edice.</p>}
-  </section>
-  <section className="ca-card"><h2>Ilustrace · samostatné právní posouzení</h2>
+  </details>
+  <details className="ca-card"><summary>Pokročilé · podklady a inventář ilustrací</summary><h2>Ilustrace · samostatné právní posouzení</h2>
   <p>Obrázky se evidují bez jejich stahování. Použitelný text není blokován nejasnými právy ilustrací.</p>
   {illustrations?.map(i=><p key={i.id}><a href={i.asset_url} target="_blank" rel="noopener noreferrer">{i.creator||"Ilustrace"}</a> · Archivace: {i.archive_rights} · Publikace: {i.publication_rights} · Záměr: {i.planned_use}</p>)}
   {!locked?<form className="ca-form" action={addLegalIllustration.bind(null,id)}>
@@ -90,7 +94,7 @@ export default async function LegalScreen({params,searchParams}:{params:Promise<
    <label>Poznámky<textarea name="notes" maxLength={2000}/></label>
    <button className="ca-btn ca-secondary" type="submit">Přidat ilustraci do evidence</button>
    </form>:null}
-  </section>
+  </details>
   {!locked?<form className="ca-card ca-form" action={recordLegalVerdict.bind(null,id)}><h2>Rozhodnutí</h2>
    <p>Právní kontrolu a schválení zdroje může provádět editor i administrátor a vyžaduje doložený právní základ. Žádný obsah se nepřebírá ani nepublikuje.</p>
    <label>Edice<select name="source_id"><option value="">Bez konkrétní edice</option>{sources?.map(s=><option key={s.id} value={s.id}>{s.edition_title}</option>)}</select></label>
@@ -110,6 +114,6 @@ export default async function LegalScreen({params,searchParams}:{params:Promise<
       <button type="submit" className="ca-btn ca-primary">Uzamknout právně prověřený zdroj</button>
     </form>:null}
   </section>
-  <section className="ca-card"><h2>Historie rozhodnutí</h2>{decisions?.length?decisions.map(d=><article key={d.decision_no}><p><strong>#{d.decision_no} · {d.verdict}</strong> · {new Date(d.recorded_at).toLocaleDateString("cs-CZ")}</p><p>{d.rationale}</p></article>):<p>Zatím bez rozhodnutí.</p>}</section>
+  <details className="ca-card"><summary>Historie právních rozhodnutí</summary><h2>Historie rozhodnutí</h2>{decisions?.length?decisions.map(d=><article key={d.decision_no}><p><strong>#{d.decision_no} · {d.verdict}</strong> · {new Date(d.recorded_at).toLocaleDateString("cs-CZ")}</p><p>{d.rationale}</p></article>):<p>Zatím bez rozhodnutí.</p>}</details>
  </main>;
 }

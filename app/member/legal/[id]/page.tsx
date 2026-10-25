@@ -1,0 +1,1 @@
+export {default} from "@/app/member/candidates/[id]/legal/page";
