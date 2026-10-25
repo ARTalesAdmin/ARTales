@@ -12,7 +12,7 @@ Source-only, izolovaná větev. Migrace nebyla aplikována v produkci. Nová UI 
 - Neschvaluje se ani nemění work_candidates.rights_status; přednost má samostatná evidence screeningu.
 
 ## Role
-Editor/admin: čtení, přidání zdrojů, mezikroky. Admin: finální výrok approved/rejected.
+Editor/admin: čtení, přidání zdrojů, právní ověření i mezikroky. Admin: schválení žádosti o snapshot; žádný skutečný snapshot v tomto rozsahu.
 RLS v DB je povinné; samotný formulář nestačí jako autorizace.
 Schválení vyžaduje doložené právo původního textu, překladu (nebo výslovně bez překladu), vyloučení ilustrací, ověřené podmínky zdroje, důkaz a podrobné odůvodnění. Náhled ani záznam v Open Library nejsou právní schválení.
 
@@ -51,3 +51,11 @@ Rozhodovací pořadí:
 6. Výstup vždy obsahuje `legalApprovalRequired: true`; žádné automatické udělení práva ani vytvoření snapshotu.
 
 Důležité: právní metadata nesmějí být odvozena z pouhého API Open Library; vyžadují samostatné důkazní posouzení. Další integrace musí přidat omezený katalogový adapter (Open Library Work → Editions), bezpečné náhledy dostupných textů a validaci vazby metadata ↔ zvolená edice. Zatím nesdělovat, že celý výběrový flow je nasazen.
+
+## Rozdělení kompetencí — aktualizace
+- Editor + admin: vyvolání screeningu, kontrola chronologických údajů, právní ověření zdroje a zápis rozhodnutí.
+- Editor + admin: návrh snapshotu po posledním schváleném screeningu; stav `pending`.
+- Admin: přijetí či zamítnutí požadavku na snapshot. **Ani adminská aprobace požadavku ve v1 neprovádí samotný snapshot/ingest.**
+- Gutenberg první volba (externí vyhledání), Open Library alternativa. Rok úmrtí autora, překladatele a ilustrátora jsou důkazy/nápověda, nikoliv automaticky `rights=clear`. Chybějící metadata, spoluautoři nebo nejasná licence vyžadují eskalaci.
+- Oddělená DB tabulka `candidate_snapshot_requests` a RLS pro admin review; schválení snapshotu je jiná autorita než právní posouzení.
+- Zdroj-only změny vyžadují opětovný izolovaný DB test skutečné aktualizované migrace včetně tabulky žádostí a kontrol, než bude možný produkční APPLY.
