@@ -38,7 +38,7 @@ export default async function LegalScreen({params,searchParams}:{params:Promise<
   <p className="ca-links"><Link href="/member/legal">← Všechny právní screeny</Link> · <Link href="/member/candidates">Kandidáti</Link></p>
   <LegalSourceDiscovery title={c.proposed_title} author={c.proposed_author_name}/>
   {!locked?<GutenbergSourcePicker candidateId={id}/>:null}
-  <form id="legal-source-form" className="ca-card ca-form" action={addLegalSource.bind(null,id)}><h2>Přidat zdroj / edici</h2>
+  {!locked?<form id="legal-source-form" className="ca-card ca-form" action={addLegalSource.bind(null,id)}><h2>Přidat zdroj / edici</h2>
    <label>Zdroj<select name="source_kind"><option value="gutenberg">Project Gutenberg</option><option value="open_library">Open Library</option><option value="library">Knihovna / archiv</option><option value="other">Jiný zdroj</option></select></label>
    <label>Název edice<input name="edition_title" required maxLength={300}/></label>
    <label>Stránka konkrétní edice<input name="source_url" type="url" required maxLength={1000}/></label>
@@ -65,7 +65,7 @@ export default async function LegalScreen({params,searchParams}:{params:Promise<
    <label>Odkaz na právní podklad<input name="evidence_url" type="url" maxLength={1000}/></label>
    <label>Zdůvodnění / poznámky<textarea name="notes" rows={4} maxLength={5000}/></label>
    <button className="ca-btn ca-primary" type="submit">Uložit edici</button>
-  </form>
+  </form>:null}
   <section className="ca-card"><h2>Posuzované edice</h2>
    {sources?.length?sources.map(s=><article key={s.id} style={{borderTop:"1px solid var(--artales-border)",paddingBlock:14}}>
     <strong>{s.edition_title}</strong><p>{s.source_kind} · {s.edition_year??"Rok neuveden"} · {s.language_code||"jazyk neuveden"}</p>
@@ -89,13 +89,13 @@ export default async function LegalScreen({params,searchParams}:{params:Promise<
    <button className="ca-btn ca-secondary" type="submit">Přidat ilustraci do evidence</button>
    </form>:null}
   </section>
-  <form className="ca-card ca-form" action={recordLegalVerdict.bind(null,id)}><h2>Rozhodnutí</h2>
+  {!locked?<form className="ca-card ca-form" action={recordLegalVerdict.bind(null,id)}><h2>Rozhodnutí</h2>
    <p>Právní kontrolu a schválení zdroje může provádět editor i administrátor a vyžaduje doložený právní základ. Žádný obsah se nepřebírá ani nepublikuje.</p>
    <label>Edice<select name="source_id"><option value="">Bez konkrétní edice</option>{sources?.map(s=><option key={s.id} value={s.id}>{s.edition_title}</option>)}</select></label>
    <label>Výsledek<select name="verdict"><option value="needs_evidence">Doplnit podklady</option><option value="deferred">Odložit</option><option value="approved">Právně ověřeno</option><option value="rejected">Vyřadit</option></select></label>
    <label>Zdůvodnění<textarea name="rationale" minLength={15} maxLength={5000} rows={4} required/></label>
    <button className="ca-btn ca-primary" type="submit">Zapsat rozhodnutí</button>
-  </form>
+  </form>:null}
   <section className="ca-card"><h2>Uzamčení prověřené verze</h2>
   <p>Výsledek obsahuje přesný zdrojový soubor, stav práv původního textu, překladu i každé evidované ilustrace a odkazy na důkazy. Uzamčení neprovádí snapshot.</p>
   {locked?<><p><strong>Zamčeno dne {new Date(locked.locked_at).toLocaleDateString("cs-CZ")}.</strong></p>
