@@ -1,4 +1,5 @@
 import Link from "next/link";
+import {LegalSourceDiscovery} from "@/components/legal/LegalSourceDiscovery";
 import {notFound} from "next/navigation";
 import {LEGAL_SCREEN_V1_ENABLED} from "@/lib/legal/featureFlag";
 import {requireEditorOrAdmin} from "@/lib/guards";
@@ -30,10 +31,7 @@ export default async function LegalScreen({params,searchParams}:{params:Promise<
   {q.reviewed?<p role="status" className="ca-success">Rozhodnutí o požadavku bylo zapsáno. Samotný snapshot se v této etapě nevytváří.</p>:null}
   {q.ok?<p className="ca-success" role="status">Zapsáno.</p>:null}
   {q.error?<p className="ca-error" role="alert">Zápis se nezdařil. Zkontroluj podklady nebo oprávnění.</p>:null}
-  <section className="ca-card"><h2>Vyhledání edic</h2><p>Výchozí katalog je Project Gutenberg. Doplňkově lze hledat v Open Library. Konkrétní verzi textu je nutné ověřit samostatně.</p>
-   <a target="_blank" rel="noopener noreferrer" href={`https://www.gutenberg.org/ebooks/search/?query=${encodeURIComponent(c.proposed_title+" "+c.proposed_author_name)}`}>Hledat v Gutenberg (výchozí) ↗</a>
-   <p><a target="_blank" rel="noopener noreferrer" href={`https://openlibrary.org/search?q=${encodeURIComponent(c.proposed_title+" "+c.proposed_author_name)}`}>Open Library (alternativní) ↗</a></p>
-  </section>
+  <LegalSourceDiscovery title={c.proposed_title} author={c.proposed_author_name}/>
   <form className="ca-card ca-form" action={addLegalSource.bind(null,id)}><h2>Přidat zdroj / edici</h2>
    <label>Zdroj<select name="source_kind"><option value="gutenberg">Project Gutenberg</option><option value="open_library">Open Library</option><option value="library">Knihovna / archiv</option><option value="other">Jiný zdroj</option></select></label>
    <label>Název edice<input name="edition_title" required maxLength={300}/></label>
