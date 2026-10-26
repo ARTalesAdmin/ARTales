@@ -23,5 +23,6 @@ jobs:
           cache: npm
       - run: npm ci --no-audit --no-fund
       - run: npx tsx --test tests/lockedSnapshotSelection.test.ts
+      - run: node --experimental-strip-types --test tests/rawSourceSnapshot.test.mjs
       - run: npx tsc --noEmit
-      - run: npx eslint lib/ingest/lockedSnapshotSelection.ts tests/lockedSnapshotSelection.test.ts
+      - run: npx eslint lib/ingest/lockedSnapshotSelection.ts lib/ingest/rawSourceSnapshot.ts lib/ingest/rawSourceArchive.ts tests/lockedSnapshotSelection.test.ts tests/rawSourceSnapshot.test.mjs
