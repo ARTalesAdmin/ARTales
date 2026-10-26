@@ -7,6 +7,7 @@ import {getOpenLibraryHint} from "@/lib/legal/openLibraryHint";
 import {checkGutenbergText} from "@/lib/legal/textRightsCheck";
 import {inspectGutenbergEpub} from "@/lib/legal/epubInspection";
 import {LEGAL_SCREEN_V1_ENABLED} from "@/lib/legal/featureFlag";
+import {assessPublicDomain,compactCheckEvidence} from "@/lib/legal/publicDomainCheck";
 export const runtime="nodejs";
 export async function POST(_req:Request,{params}:{params:Promise<{id:string}>}){
  if(!LEGAL_SCREEN_V1_ENABLED)return NextResponse.json({error:"disabled"},{status:404});
@@ -55,14 +56,14 @@ export async function POST(_req:Request,{params}:{params:Promise<{id:string}>}){
   const payload={
    candidate_id:id,source_kind:"gutenberg",edition_title:book.title,
    source_url:book.catalogUrl,download_url:file.url,
-   read_url:book.readUrl,translation_status:enriched.translators.length?"translated":originalLanguageConfirmed?"original":"unknown",
+   read_url:book.readUrl,translation_status:check.translation.people.length?"translated":check.translation.status==="not_applicable"?"original":"unknown",
    language_code:book.languages[0]??"",translator:enriched.translators.map(p=>p.name).join("; ").slice(0,300),
    author_died:mergedPeople.length===1?mergedPeople[0].died??prescreenDeath:null,
    translator_died:enriched.translators.length===1?enriched.translators[0].died:null,
-   text_format:file.format,identity_match:"confirmed",language_match:"uncertain",
-   completeness:"unknown",text_quality:"unknown",original_rights:"unknown",
-   translation_rights:"unknown",illustration_use:"unknown",source_terms:"unknown",
-   evidence_url:book.catalogUrl,notes:JSON.stringify(details).slice(0,4900),
+   text_format:file.format,identity_match:"confirmed",language_match:check.text.status==="public_domain"?"matches":"uncertain",
+   completeness:"unknown",text_quality:"unknown",original_rights:check.text.status==="public_domain"?"public_domain":"unknown",
+   translation_rights:check.translation.status==="not_applicable"?"not_applicable":check.translation.status==="public_domain"?"public_domain":"unknown",illustration_use:check.outcome==="yes_with_illustrations"?"public_domain":"excluded",source_terms:check.gutenbergUsStatus==="public_domain"&&check.sourceTextStatus!=="possible_restriction"?"cleared":"unknown",
+   evidence_url:book.catalogUrl,notes:compactCheckEvidence(check),
    created_by:profile.id,updated_by:profile.id
   };
   const {data:previous}=await db.from("candidate_legal_sources").select("id").eq("candidate_id",id).eq("source_url",book.catalogUrl).eq("download_url",file.url).maybeSingle();
@@ -72,9 +73,9 @@ export async function POST(_req:Request,{params}:{params:Promise<{id:string}>}){
    if(inserted.error)return NextResponse.json({error:"cannot_save_source"},{status:500});
    sourceId=inserted.data.id;
   }
-  const rationale="Automaticky připravený komponentní právní screen: "+facts.reason+"; "+facts.author.status+"; "+facts.translation.status+"; kontrola textu: "+textCheck.status+"; "+(textCheck.notice??textCheck.explanation).slice(0,230)+ ".";
+  const rationale="Automaticky připravený komponentní právní screen: "+facts.reason+"; "+facts.author.status+"; "+facts.translation.status+"; kontrola textu: "+textCheck.status+"; "+(textCheck.notice??textCheck.explanation).slice(0,230)+ ". Výsledek datací: "+check.outcome+".";
   const decision=await db.from("candidate_legal_decisions").insert({candidate_id:id,source_id:sourceId,verdict:"needs_evidence",territory:"CZ/EU",rationale,reviewed_by:profile.id}).select("decision_no,recorded_at").single();
   if(decision.error)return NextResponse.json({error:"cannot_save_audit"},{status:500});
-  return NextResponse.json({sourceId,decisionNo:decision.data.decision_no,bookId:book.id,title:book.title,file,componentFacts:facts,recommendation,recommendationReason,textCheck,epub,rights,openLibrary,alternativeCount:found.matches.length-1,recordedAt:decision.data.recorded_at},{headers:{"Cache-Control":"private, no-store"}});
+  return NextResponse.json({sourceId,decisionNo:decision.data.decision_no,bookId:book.id,title:book.title,file,componentFacts:facts,check,recommendation,recommendationReason,textCheck,epub,rights,openLibrary,alternativeCount:found.matches.length-1,recordedAt:decision.data.recorded_at},{headers:{"Cache-Control":"private, no-store"}});
  }catch{return NextResponse.json({error:"catalog_unavailable"},{status:503})}
 }
