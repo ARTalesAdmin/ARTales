@@ -2,7 +2,7 @@
 import {useState} from "react";
 type Fact={status:string;people?:{name:string;died:number|null}[];archive?:string;publish?:string;reason?:string;url?:string;textMayProceed?:boolean};
 type Result={sourceId:string;decisionNo:number;bookId:number;title:string;file:{url:string;label:string};recordedAt:string;textCheck:{status:string;scope:string;sourceUrl:string|null;notice:string|null;explanation:string};componentFacts:{author:Fact;translation:Fact;illustrations:Fact;source:Fact;verdict:string;reason:string;checkedAt:string}};
-const label=(s:string)=>({likely_public_domain:"Předběžně volné",protected:"Chráněné",needs_evidence:"Nutné ověřit",not_identified:"Nepotvrzeno",unverified:"Neověřeno",review_required:"K dořešení",text_candidate:"Původní text předběžně vhodný",not_applicable:"Bez zjištěného překladu",not_identified:"Nezjištěno",us_public_domain:"Public domain – USA",us_restricted:"Omezení – USA",escalate:"Ochranná doba / práva k dořešení"} as Record<string,string>)[s]??s;
+const label=(s:string)=>({likely_public_domain:"Předběžně volné",protected:"Chráněné",needs_evidence:"Nutné ověřit",unverified:"Neověřeno",review_required:"K dořešení",text_candidate:"Původní text předběžně vhodný",not_applicable:"Bez zjištěného překladu",not_identified:"Nezjištěno",us_public_domain:"Public domain – USA",us_restricted:"Omezení – USA",escalate:"Ochranná doba / práva k dořešení"} as Record<string,string>)[s]??s;
 export function AutomaticLegalScreen({candidateId}:{candidateId:string}){
  const [state,setState]=useState<"idle"|"running"|"success"|"error">("idle");
  const [result,setResult]=useState<Result|null>(null);
