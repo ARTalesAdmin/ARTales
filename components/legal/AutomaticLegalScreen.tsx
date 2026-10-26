@@ -1,9 +1,11 @@
 "use client";
 import {useState} from "react";
+import {useRouter} from "next/navigation";
 type Fact={status:string;people?:{name:string;died:number|null}[];archive?:string;publish?:string;reason?:string;url?:string;textMayProceed?:boolean};
 type Result={recommendation?:"text_only"|"review"|"exclude";recommendationReason?:string;sourceId:string;decisionNo:number;bookId:number;title:string;file:{url:string;label:string};recordedAt:string;textCheck:{status:string;scope:string;sourceUrl:string|null;notice:string|null;explanation:string};epub?:{checked:boolean;imageCount:number|null;textChecked:boolean;notice:string|null;translationCredit:boolean;reason:string};openLibrary?:{matched:boolean;firstPublishYear:number|null;sourceUrl:string|null};componentFacts:{author:Fact;translation:Fact;illustrations:Fact;source:Fact;verdict:string;reason:string;checkedAt:string}};
 const label=(s:string)=>({likely_public_domain:"Předběžně volné",protected:"Chráněné",needs_evidence:"Nutné ověřit",unverified:"Neověřeno",review_required:"K dořešení",text_candidate:"Původní text předběžně vhodný",not_applicable:"Bez zjištěného překladu",not_identified:"Nezjištěno",us_public_domain:"Public domain – USA",us_restricted:"Omezení – USA",escalate:"Ochranná doba / práva k dořešení"} as Record<string,string>)[s]??s;
 export function AutomaticLegalScreen({candidateId}:{candidateId:string}){
+ const router=useRouter();
  const [state,setState]=useState<"idle"|"running"|"success"|"error">("idle");
  const [result,setResult]=useState<Result|null>(null);
  const [error,setError]=useState("");
@@ -17,7 +19,7 @@ export function AutomaticLegalScreen({candidateId}:{candidateId:string}){
     setError(data.error==="no_verified_file"?"Nebyla ověřena žádná přesná verze stejného díla. Nejde o právní zamítnutí; otevři pokročilé zdroje.":data.error==="already_locked"?"Výsledek je již uzamčen.":"Katalog nebo audit momentálně nelze dokončit. Neproběhlo právní schválení.");
     return;
    }
-   setResult(data as Result);setState("success");
+   setResult(data as Result);setState("success");router.refresh();
   }catch{setState("error");setError("Požadavek se nepodařilo dokončit.");}
  }
  function download(){
