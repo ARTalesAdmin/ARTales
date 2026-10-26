@@ -29,7 +29,7 @@ test("editor+ legal verification and admin-only snapshot requests",()=>{
  const action=r("lib/actions/legalScreen.ts");
  assert.match(page,/Právní posouzení je uzamčeno/);
  assert.match(r("components/legal/LegalSourceDiscovery.tsx"),/Gutenberg \(výchozí\)/);
- assert.match(page,/Uzamknout prověřený zdroj/);
+ assert.match(page,/Uzamknout a připravit pro Snapshot/);
  assert.match(action,/lockScreening/);
  assert.match(m,/candidate_legal_locks/);
  assert.match(m,/legal_locks_insert/);
