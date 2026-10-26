@@ -1,7 +1,7 @@
 export const AUTO_SCREEN_PREFIX="Automaticky připravený komponentní právní screen:";
 export type LegalDecisionRow={decision_no:number;source_id:string|null;verdict:string;rationale:string;recorded_at:string;source_facts:unknown};
 export type LegalSourceRow={id:string;edition_title:string;source_url:string;download_url:string|null;identity_match:string;language_match:string;translation_status:string;translation_rights:string;original_rights:string;source_terms:string;evidence_url:string|null;notes:string;translator:string};
-export type LegalReviewRun={decisionNo:number;sourceId:string;recordedAt:string;edition:string;summary:string;downloadUrl:string|null;sourceUrl:string;approvalBlockers:string[]};
+export type LegalReviewRun={outcome:"no"|"yes_without_illustrations"|"yes_with_illustrations";decisionNo:number;sourceId:string;recordedAt:string;edition:string;summary:string;downloadUrl:string|null;sourceUrl:string;approvalBlockers:string[]};
 export type LegalHistoryEntry={decisionNo:number;recordedAt:string;label:string;automatic:boolean};
 export const isAutomaticScreen=(d:Pick<LegalDecisionRow,"rationale"|"verdict">)=>d.verdict==="needs_evidence"&&d.rationale.startsWith(AUTO_SCREEN_PREFIX);
 const statusLabel:Record<string,string>={
@@ -33,7 +33,9 @@ export function makeReviewHistory(decisions:LegalDecisionRow[],sources:LegalSour
   // These markers belong to this audit row; do not reuse source.notes from an earlier check.
   const parts=d.rationale.match(/;\s*(likely_public_domain|protected|needs_evidence)\s*;\s*(not_identified|not_applicable|likely_public_domain|protected|needs_evidence)\s*;\s*kontrola textu:\s*(no_explicit_notice|possible_restriction|not_checked)/);
   const summary=parts?`Autor: ${human(parts[1])} · Překlad: ${human(parts[2])} · Text: ${human(parts[3])}`:"Výsledek je uložený v auditním protokolu";
-  return {decisionNo:d.decision_no,recordedAt:d.recorded_at,sourceId:d.source_id??"",edition:src?.edition_title??"Neznámá edice",summary,downloadUrl:src?.download_url??null,sourceUrl:src?.source_url??"",approvalBlockers:approvalBlockers(src)};
+  let outcome:LegalReviewRun["outcome"]="no";
+  try{const data=JSON.parse(src?.notes??"{}") as {schema?:string;outcome?:string};if(data.schema==="artales.public-domain-check.v1"&&["no","yes_without_illustrations","yes_with_illustrations"].includes(data.outcome??""))outcome=data.outcome as LegalReviewRun["outcome"];}catch{}
+  return {outcome,decisionNo:d.decision_no,recordedAt:d.recorded_at,sourceId:d.source_id??"",edition:src?.edition_title??"Neznámá edice",summary,downloadUrl:src?.download_url??null,sourceUrl:src?.source_url??"",approvalBlockers:approvalBlockers(src)};
  });
  const labels:Record<string,string>={approved:"Schváleno",deferred:"Odloženo",rejected:"Vyřazeno",needs_evidence:"K dořešení"};
  const history:LegalHistoryEntry[]=decisions.map(d=>({decisionNo:d.decision_no,recordedAt:d.recorded_at,automatic:isAutomaticScreen(d),label:isAutomaticScreen(d)?"Automatický check":labels[d.verdict]??"Rozhodnutí"}));
