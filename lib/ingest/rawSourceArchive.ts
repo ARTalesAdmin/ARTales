@@ -1,6 +1,8 @@
 import { createHash } from "node:crypto";
 import type { RawSourceCapture } from "./rawSourceSnapshot";
-/** Adapter only: Storage bucket does NOT exist until separately authorized. */
+/** Private Storage bucket exists as infrastructure (2026-10-26), but no writer/route
+ * is deployed or authorized by its creation. Server-only permission and a real
+ * byte-for-byte archive/readback integration require independent approval. */
 export const RAW_SNAPSHOT_BUCKET = "artales-raw-snapshots";
 export type RawSnapshotStorageClient = Readonly<{ storage: { from(bucket: string): {
   upload(path: string, bytes: Uint8Array, options: { contentType: string; upsert: false; cacheControl: string }): Promise<{error: unknown}>;
