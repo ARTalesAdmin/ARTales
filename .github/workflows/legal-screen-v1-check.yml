@@ -11,6 +11,16 @@ on:
       - feat/artales-legal-screen-automatic-v2-20261025
       - fix/artales-legal-simple-rights-20261025
       - fix/artales-legal-rdf-person-years-20261026
+      - fix/artales-legal-component-check-20261026
+  pull_request:
+    branches:
+      - main
+    paths:
+      - '.github/workflows/legal-screen-v1-check.yml'
+      - 'app/member/candidates/**/legal/**'
+      - 'components/legal/**'
+      - 'lib/legal/**'
+      - 'tests/legal-*.test.ts'
 permissions:
   contents: read
 jobs:
@@ -33,7 +43,7 @@ jobs:
       - name: Edition decision tests
         run: npx tsx --test tests/legal-edition-recommendation.test.ts tests/legal-gutenberg-catalog.test.ts tests/legal-gutenberg-opds.test.ts
       - name: Live Gutenberg #389 integration smoke
-        run: npx tsx --test tests/legal-gutenberg-live.test.ts tests/legal-automatic-assessment.test.ts tests/legal-simple-rights.test.ts tests/legal-gutenberg-rdf.test.ts
+        run: npx tsx --test tests/legal-gutenberg-live.test.ts tests/legal-automatic-assessment.test.ts tests/legal-simple-rights.test.ts tests/legal-gutenberg-rdf.test.ts tests/legal-component-terms.test.ts tests/legal-openlibrary-hint.test.ts tests/legal-epub-inspection.test.ts
       - name: TypeScript
         run: npx tsc --noEmit
       - name: Scoped eslint
