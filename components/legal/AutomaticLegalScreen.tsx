@@ -34,9 +34,10 @@ export function AutomaticLegalScreen({candidateId}:{candidateId:string}){
   <button type="button" className="ca-btn ca-primary" onClick={run} disabled={state==="running"}>{state==="running"?"Vyhledávám, prověřuji a zapisuji…":"Provést právní screen"}</button>
   {state==="error"?<p role="alert" className="ca-error">{error}</p>:null}
   {result&&facts?<div className="ca-legal-result" aria-live="polite">
-   <h3>{result.title} · {result.recommendation==="text_only"?"Doporučení: pouze původní text":result.recommendation==="exclude"?"Nedoporučeno":"Cíleně dořešit"}</h3>
+   <h3>{result.title} · {result.check?.outcome==="yes_with_illustrations"?"ANO s ilustracemi":result.check?.outcome==="yes_without_illustrations"?"ANO bez ilustrací":"NE – ověřit překážku"}</h3>
    <p><strong>Zdroj:</strong> <a href={result.file.url} target="_blank" rel="noopener noreferrer">Gutenberg #{result.bookId} · {result.file.label}</a></p>
-   <p><strong>Další krok:</strong> {result.recommendationReason??"Zkontrolovat nevyřešené složky."}</p>
+   <p><strong>Další krok:</strong> {result.check?.reason??result.recommendationReason??"Zkontrolovat nevyřešené složky."}</p>
+   {result.check?<p><strong>Úmrtí + 70 let:</strong> text {result.check.text.status}, překlad {result.check.translation.status}, ilustrace {result.check.illustrations.status}. První vydání {result.check.originalPublicationYear??"neznámé"}.</p>:null}
    <details><summary>Podklady a posouzení jednotlivých složek</summary><table className="ca-legal-table"><thead><tr><th>Složka</th><th>Výsledek</th><th>Důkaz / poznámka</th></tr></thead><tbody>
     <tr><th scope="row">Autor / původní dílo</th><td>{label(facts.author.status)}</td><td>{facts.author.people?.map(p=>p.name+(p.died?" († "+p.died+")":"")).join("; ")||"Chybí údaje"}</td></tr>
     <tr><th scope="row">Překlad</th><td>{label(facts.translation.status)}</td><td>{facts.translation.people?.map(p=>p.name).join("; ")||"Originální jazyk a překlad prověřit"}</td></tr>
