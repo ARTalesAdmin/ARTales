@@ -12,6 +12,7 @@ on:
       - fix/artales-legal-simple-rights-20261025
       - fix/artales-legal-rdf-person-years-20261026
       - fix/artales-legal-component-check-20261026
+      - fix/artales-legal-decision-first-20261026
   pull_request:
     branches:
       - main
