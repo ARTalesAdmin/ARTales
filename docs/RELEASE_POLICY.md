@@ -2,7 +2,7 @@
 
 ## Základní pravidlo
 
-Produkce je živá a její bezpečnost má přednost před rychlostí. Runtime změny směřují nejdříve do `develop`, projdou Vercel preview a uživatelským testem. Do `main` se dostanou až po výslovném schválení uživatele. Codex nesmí přímo pushovat ani slučovat do `main`.
+Produkce je živá a její bezpečnost má přednost před rychlostí. **Dočasné rozhodnutí Architekta z 26. 10. 2026:** dokud se nevyčistí `develop`, nové změny vznikají v oddělených větvích z čerstvě ověřeného `main`; PR se předkládá proti `main` a prochází kontrolami a samostatným preview tam, kde je dostupné. `develop` je pouze historická/čtecí inspirace, nikoli automaticky přebíraný integrační podklad. PR do `main` není oprávnění jej mergovat nebo nasazovat. Codex nesmí přímo pushovat ani sám slučovat do `main`; finální merge, produkční deployment a DB/Storage/Env kroky vyžadují samostatné výslovné rozhodnutí.
 
 ## Úrovně rizika
 
@@ -36,9 +36,9 @@ Při pochybnostech použijte vyšší úroveň rizika.
 
 ## Standardní změna vs. hotfix
 
-**Standardní změna** vždy postupuje přes pracovní větev, PR do `develop`, preview, test a výslovné produkční schválení.
+**Standardní změna v dočasném režimu** postupuje z aktuálního `main` do izolované větve, PR proti `main`, přesné testy a pokud možno izolované preview, poté výslovné samostatné rozhodnutí o merge/release. Hromadný merge/backport `develop` je vyloučen. Po úklidu `develop` musí Architekt rozhodnout, zda se vrátit ke standardní integrační cestě.
 
-**Hotfix** je pouze naléhavá oprava aktivního produkčního incidentu, ne zkratka pro běžnou práci. Musí mít co nejmenší rozsah, vlastní větev, popis incidentu, cílený test a okamžitě použitelný rollback. Produkční krok stále vyžaduje výslovné schválení uživatele. Po opravě je nutné zajistit, aby stejná změna zůstala také v `develop` a větve se nerozešly.
+**Hotfix** je pouze naléhavá oprava aktivního produkčního incidentu, ne zkratka pro běžnou práci. Musí mít co nejmenší rozsah, vlastní větev, popis incidentu, cílený test a okamžitě použitelný rollback. Produkční krok stále vyžaduje výslovné schválení uživatele. Za dočasného režimu se hotfix automaticky nepřenáší do `develop`; případná budoucí synchronizace se rozhodne až po cílené kontrole rozdílů, bez přibrání nedokončeného nebo nahrazeného kódu.
 
 ## Povinný obsah PR nebo patche
 
