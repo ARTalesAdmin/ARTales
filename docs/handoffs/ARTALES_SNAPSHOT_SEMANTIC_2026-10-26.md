@@ -32,3 +32,12 @@ Independently archive current published/draft original, diff and extract editor 
 
 ## Next thread start
 Read Nexus STARTUP-01/Continuity/Phoenix, ARTales `AGENTS.md`, `docs/WORKFLOW.md`, `docs/RELEASE_POLICY.md`, legal closure and **this handoff**. Verify live repo/PR/DB and user scope first. Do not inherit a production authorization from this checkpoint.
+
+## S1 source-only progress (2026-10-26, PR #276)
+- Source modules `lib/ingest/rawSourceSnapshot.ts` and `lib/ingest/rawSourceArchive.ts` implemented separately from runtime, with negative tests `tests/rawSourceSnapshot.test.mjs`.
+- `captureRawSource` copies exact original bytes, computes SHA-256 and content-addressed private target path; bounded ZIP central-directory metadata inventory (including illustration presence) or strict UTF-8 TXT/HTML screening; emits no semantic approval or publication permission. It does **not** fully parse/recompose EPUB or confirm actual internal image rights.
+- Embedded images are catalogued but **archive_ready=false** pending separate internal-retention approval. Individual public image use remains excluded pending legal/editorial approval. This source-only gate is deliberately stricter than desired long-term archiving, and should be revisited with rights policy explicitly.
+- `fetchRawSource` is a server-only bounded acquisition primitive with strict URL, exact HTTP 200, no redirect, byte count, and no automatic retry. Gutenberg robots/automated-use requirements and real endpoint availability need a separately conducted integration review; no genuine Gutenberg #389 bytes downloaded in this work.
+- `archiveRawSource` is an inert adapter targeting a **proposed new** private bucket `artales-raw-snapshots`. It writes with upsert=false, readbacks and verifies SHA-256. Existing production `artales-source-archive` is illustrations-only and must NOT be reused for EPUB. No actual bucket, policy, route, schema, credentials, server service call, production data or publication changed.
+- Local isolated run on Node 22: `node --experimental-strip-types --test tests/rawSourceSnapshot.test.mjs` => **10/10 PASS**; focused `tsc --noEmit` also passed using local Node type defs. Exact PR CI after source files and workflow update is the next verification checkpoint.
+- Do NOT claim a true archivally persisted Snapshot; local tests use synthetic bytes and mocked Storage readback. Next gate is real authorized Storage + end-to-end capture, then independently reusable Semantic Composer v2 validation.
