@@ -46,7 +46,7 @@ jobs:
       - name: Edition decision tests
         run: npx tsx --test tests/legal-edition-recommendation.test.ts tests/legal-gutenberg-catalog.test.ts tests/legal-gutenberg-opds.test.ts
       - name: Live Gutenberg #389 integration smoke
-        run: npx tsx --test tests/legal-gutenberg-live.test.ts tests/legal-automatic-assessment.test.ts tests/legal-simple-rights.test.ts tests/legal-gutenberg-rdf.test.ts tests/legal-component-terms.test.ts tests/legal-openlibrary-hint.test.ts tests/legal-epub-inspection.test.ts
+        run: npx tsx --test tests/legal-gutenberg-live.test.ts tests/legal-automatic-assessment.test.ts tests/legal-simple-rights.test.ts tests/legal-gutenberg-rdf.test.ts tests/legal-component-terms.test.ts tests/legal-openlibrary-hint.test.ts tests/legal-epub-inspection.test.ts tests/legal-public-domain-check.test.ts
       - name: TypeScript
         run: npx tsc --noEmit
       - name: Scoped eslint
