@@ -40,6 +40,9 @@ export async function POST(_req:Request,{params}:{params:Promise<{id:string}>}){
   const facts=legalFacts(enriched,2026,prescreenDeath,{originalLanguageConfirmed,illustrators,usStatus:rights.usStatus});
   // US status is evidence only; retain CZ/EU source clearance as a distinct unresolved decision.
   const [textCheck,epub]=await Promise.all([checkGutenbergText(book),inspectGutenbergEpub(book)]);
+  const rawFirstPublished=Number((c.prescreen_metadata as {firstPublished?:number}|null)?.firstPublished);
+  const firstPublication=openLibrary?.firstPublishYear??(Number.isInteger(rawFirstPublished)&&rawFirstPublished>=1400&&rawFirstPublished<=2026?rawFirstPublished:null);
+  const check=assessPublicDomain({book:enriched,rights,prescreenDeath,candidateAuthor:c.proposed_author_name,originalPublicationYear:firstPublication,textCheck,epub,year:2026});
   const textRestriction=textCheck.status==="possible_restriction"||!!epub.notice;
   const translationUnresolved=enriched.translators.length>0?facts.translation.status!=="likely_public_domain":epub.translationCredit||textCheck.translationCredit;
   const recommendation=facts.author.status==="protected"?"exclude":
