@@ -25,8 +25,16 @@ export async function POST(_req:Request,{params}:{params:Promise<{id:string}>}){
   const prescreenDeath=Number.isInteger(year)&&year>=1000&&year<=2026?year:null;
   const rights=await getGutenbergRights(book);
   const people=rights.people.length?rights.people:book.authors;
-  const enriched={...book,authors:people};
-  const facts=legalFacts(enriched,2026,prescreenDeath);
+  const named=book.authors.length===1?book.authors[0]:null;
+  const mergedPeople=people.map(p=>({...p,died:p.died??(people.length===1&&named?.died!==null?named?.died??null:null)}));
+  const rolePeople=(roles:string[])=>rights.contributors.filter(p=>roles.some(role=>p.role.toLowerCase().endsWith(":"+role))).map(p=>({name:p.name,died:p.died}));
+  const translators=rolePeople(["trl"]);
+  const illustrators=rolePeople(["ill","art"]);
+  const enriched={...book,authors:mergedPeople,translators:translators.length?translators:book.translators};
+  // Language equality is indicative only; translator credits take precedence.
+  const language=(book.languages[0]??"").toLowerCase();
+  const originalLanguageConfirmed=language==="en"&&translators.length===0&&book.translators.length===0;
+  const facts=legalFacts(enriched,2026,prescreenDeath,{originalLanguageConfirmed,illustrators,usStatus:rights.usStatus});
   // US status is evidence only; retain CZ/EU source clearance as a distinct unresolved decision.
   const textCheck=await checkGutenbergText(book);
   const details={...facts,textCheck,sourceMetadata:{rdfUrl:rights.url,usStatus:rights.usStatus,contributors:rights.contributors}};
@@ -34,10 +42,10 @@ export async function POST(_req:Request,{params}:{params:Promise<{id:string}>}){
   const payload={
    candidate_id:id,source_kind:"gutenberg",edition_title:book.title,
    source_url:book.catalogUrl,download_url:file.url,
-   read_url:book.readUrl,translation_status:book.translators.length?"translated":"unknown",
-   language_code:book.languages[0]??"",translator:book.translators.map(p=>p.name).join("; ").slice(0,300),
-   author_died:people.length===1?people[0].died:null,
-   translator_died:book.translators.length===1?book.translators[0].died:null,
+   read_url:book.readUrl,translation_status:enriched.translators.length?"translated":originalLanguageConfirmed?"original":"unknown",
+   language_code:book.languages[0]??"",translator:enriched.translators.map(p=>p.name).join("; ").slice(0,300),
+   author_died:mergedPeople.length===1?mergedPeople[0].died??prescreenDeath:null,
+   translator_died:enriched.translators.length===1?enriched.translators[0].died:null,
    text_format:file.format,identity_match:"confirmed",language_match:"uncertain",
    completeness:"unknown",text_quality:"unknown",original_rights:"unknown",
    translation_rights:"unknown",illustration_use:"unknown",source_terms:"unknown",
