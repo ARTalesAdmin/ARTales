@@ -32,8 +32,7 @@ export async function POST(_req:Request,{params}:{params:Promise<{id:string}>}){
   const illustrators=rolePeople(["ill","art"]);
   const enriched={...book,authors:mergedPeople,translators:translators.length?translators:book.translators};
   // Language equality is indicative only; translator credits take precedence.
-  const language=(book.languages[0]??"").toLowerCase();
-  const originalLanguageConfirmed=language==="en"&&translators.length===0&&book.translators.length===0;
+  const originalLanguageConfirmed=false; // Language alone cannot establish that a particular edition is not translated.
   const facts=legalFacts(enriched,2026,prescreenDeath,{originalLanguageConfirmed,illustrators,usStatus:rights.usStatus});
   // US status is evidence only; retain CZ/EU source clearance as a distinct unresolved decision.
   const textCheck=await checkGutenbergText(book);
