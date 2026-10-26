@@ -47,3 +47,4 @@ export default async function LegalScreen({params,searchParams}:{params:Promise<
    </div>)}
   </details>:null}
  </main>;
+}
