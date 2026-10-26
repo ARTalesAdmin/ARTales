@@ -13,12 +13,14 @@ on:
       - fix/artales-legal-rdf-person-years-20261026
       - fix/artales-legal-component-check-20261026
       - fix/artales-legal-decision-first-20261026
+      - fix/artales-legal-review-handoff-20261026
   pull_request:
     branches:
       - main
     paths:
       - '.github/workflows/legal-screen-v1-check.yml'
       - 'app/member/candidates/**/legal/**'
+      - 'app/member/legal/**'
       - 'components/legal/**'
       - 'lib/legal/**'
       - 'tests/legal-*.test.ts'
