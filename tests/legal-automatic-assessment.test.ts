@@ -12,7 +12,8 @@ test("metadata can suggest but never legally clear unidentified translation or i
  const f=legalFacts(b);
  assert.equal(f.author.status,"likely_public_domain");
  assert.equal(f.translation.status,"not_identified");
- assert.equal(f.illustrations.status,"needs_evidence");
+ assert.equal(f.illustrations.status,"not_identified");
+ assert.equal(f.illustrations.publish,"unverified");
  assert.equal(f.verdict,"review_required");
 });
 test("living copyright is blocked, unknown biography is escalated",()=>{
