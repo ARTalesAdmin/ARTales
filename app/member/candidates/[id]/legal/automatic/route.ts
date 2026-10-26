@@ -3,6 +3,7 @@ import {requireEditorOrAdmin} from "@/lib/guards";
 import {createClient} from "@/lib/supabase/server";
 import {getMatchingGutenberg,legalFacts} from "@/lib/legal/automaticAssessment";
 import {getGutenbergRights} from "@/lib/legal/gutenbergRights";
+import {getOpenLibraryHint} from "@/lib/legal/openLibraryHint";
 import {checkGutenbergText} from "@/lib/legal/textRightsCheck";
 import {LEGAL_SCREEN_V1_ENABLED} from "@/lib/legal/featureFlag";
 export const runtime="nodejs";
@@ -24,6 +25,7 @@ export async function POST(_req:Request,{params}:{params:Promise<{id:string}>}){
   const year=Number((c.prescreen_metadata as {authorDied?:number}|null)?.authorDied);
   const prescreenDeath=Number.isInteger(year)&&year>=1000&&year<=2026?year:null;
   const rights=await getGutenbergRights(book);
+  const openLibrary=rights.people.some(p=>p.died===null)||!rights.people.length?await getOpenLibraryHint(book.title,c.proposed_author_name):null;
   const people=rights.people.length?rights.people:book.authors;
   const named=book.authors.length===1?book.authors[0]:null;
   const mergedPeople=people.map(p=>({...p,died:p.died??(people.length===1&&named?.died!==null?named?.died??null:null)}));
@@ -36,7 +38,7 @@ export async function POST(_req:Request,{params}:{params:Promise<{id:string}>}){
   const facts=legalFacts(enriched,2026,prescreenDeath,{originalLanguageConfirmed,illustrators,usStatus:rights.usStatus});
   // US status is evidence only; retain CZ/EU source clearance as a distinct unresolved decision.
   const textCheck=await checkGutenbergText(book);
-  const details={...facts,textCheck,sourceMetadata:{rdfUrl:rights.url,usStatus:rights.usStatus,contributors:rights.contributors}};
+  const details={...facts,textCheck,sourceMetadata:{rdfUrl:rights.url,usStatus:rights.usStatus,contributors:rights.contributors,openLibrary}};
   // Save the evidence and the preliminary verdict, not a final copyright approval.
   const payload={
    candidate_id:id,source_kind:"gutenberg",edition_title:book.title,
@@ -61,6 +63,6 @@ export async function POST(_req:Request,{params}:{params:Promise<{id:string}>}){
   const rationale="Automaticky připravený komponentní právní screen: "+facts.reason+"; "+facts.author.status+"; "+facts.translation.status+"; kontrola textu: "+textCheck.status+"; "+(textCheck.notice??textCheck.explanation).slice(0,230)+ ".";
   const decision=await db.from("candidate_legal_decisions").insert({candidate_id:id,source_id:sourceId,verdict:"needs_evidence",territory:"CZ/EU",rationale,reviewed_by:profile.id}).select("decision_no,recorded_at").single();
   if(decision.error)return NextResponse.json({error:"cannot_save_audit"},{status:500});
-  return NextResponse.json({sourceId,decisionNo:decision.data.decision_no,bookId:book.id,title:book.title,file,componentFacts:facts,textCheck,rights,alternativeCount:found.matches.length-1,recordedAt:decision.data.recorded_at},{headers:{"Cache-Control":"private, no-store"}});
+  return NextResponse.json({sourceId,decisionNo:decision.data.decision_no,bookId:book.id,title:book.title,file,componentFacts:facts,textCheck,rights,openLibrary,alternativeCount:found.matches.length-1,recordedAt:decision.data.recorded_at},{headers:{"Cache-Control":"private, no-store"}});
  }catch{return NextResponse.json({error:"catalog_unavailable"},{status:503})}
 }
