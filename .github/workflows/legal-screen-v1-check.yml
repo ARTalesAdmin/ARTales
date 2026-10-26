@@ -12,6 +12,15 @@ on:
       - fix/artales-legal-simple-rights-20261025
       - fix/artales-legal-rdf-person-years-20261026
       - fix/artales-legal-component-check-20261026
+  pull_request:
+    branches:
+      - main
+    paths:
+      - '.github/workflows/legal-screen-v1-check.yml'
+      - 'app/member/candidates/**/legal/**'
+      - 'components/legal/**'
+      - 'lib/legal/**'
+      - 'tests/legal-*.test.ts'
 permissions:
   contents: read
 jobs:
