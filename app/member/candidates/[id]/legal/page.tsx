@@ -13,7 +13,7 @@ export default async function LegalScreen({params,searchParams}:{params:Promise<
  if(!LEGAL_SCREEN_V1_ENABLED)notFound();
  const profile=await requireEditorOrAdmin();
  const {id}=await params;
- if(!/^[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id))notFound();
+ if(!/^[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i.test(id))notFound();
  const db=await createClient();
  const [{data:c},{data:sources},{data:decisions},{data:lock}]=await Promise.all([
   db.from("work_candidates").select("id,proposed_title,proposed_author_name").eq("id",id).maybeSingle(),
