@@ -1,7 +1,7 @@
 "use client";
 import {useState} from "react";
 type Fact={status:string;people?:{name:string;died:number|null}[];archive?:string;publish?:string;reason?:string;url?:string;textMayProceed?:boolean};
-type Result={sourceId:string;decisionNo:number;bookId:number;title:string;file:{url:string;label:string};recordedAt:string;textCheck:{status:string;scope:string;sourceUrl:string|null;notice:string|null;explanation:string};componentFacts:{author:Fact;translation:Fact;illustrations:Fact;source:Fact;verdict:string;reason:string;checkedAt:string}};
+type Result={sourceId:string;decisionNo:number;bookId:number;title:string;file:{url:string;label:string};recordedAt:string;textCheck:{status:string;scope:string;sourceUrl:string|null;notice:string|null;explanation:string};epub?:{checked:boolean;imageCount:number|null;textChecked:boolean;notice:string|null;translationCredit:boolean;reason:string};openLibrary?:{matched:boolean;firstPublishYear:number|null;sourceUrl:string|null};componentFacts:{author:Fact;translation:Fact;illustrations:Fact;source:Fact;verdict:string;reason:string;checkedAt:string}};
 const label=(s:string)=>({likely_public_domain:"Předběžně volné",protected:"Chráněné",needs_evidence:"Nutné ověřit",unverified:"Neověřeno",review_required:"K dořešení",text_candidate:"Původní text předběžně vhodný",not_applicable:"Bez zjištěného překladu",not_identified:"Nezjištěno",us_public_domain:"Public domain – USA",us_restricted:"Omezení – USA",escalate:"Ochranná doba / práva k dořešení"} as Record<string,string>)[s]??s;
 export function AutomaticLegalScreen({candidateId}:{candidateId:string}){
  const [state,setState]=useState<"idle"|"running"|"success"|"error">("idle");
@@ -40,8 +40,10 @@ export function AutomaticLegalScreen({candidateId}:{candidateId:string}){
     <tr><th scope="row">Ilustrace</th><td>{label(facts.illustrations.status)}</td><td>Archivace: {label(facts.illustrations.archive??"unverified")}; publikace: {label(facts.illustrations.publish??"unverified")}. Neblokuje použitelný text.</td></tr>
     <tr><th scope="row">Zdroj a podmínky</th><td>{label(facts.source.status)}</td><td><a href={facts.source.url} target="_blank" rel="noopener noreferrer">Gutenberg · bibliografický záznam</a></td></tr>
     <tr><th scope="row">Kontrola textu</th><td>{result.textCheck.status==="no_explicit_notice"?"Bez nalezeného omezení":result.textCheck.status==="possible_restriction"?"Nutné ověřit upozornění":"Neověřeno"}</td><td>{result.textCheck.explanation}{result.textCheck.notice?" · "+result.textCheck.notice:""}</td></tr>
+    <tr><th scope="row">EPUB · ilustrace</th><td>{result.epub?.checked?result.epub.imageCount===0?"Bez dalších obrazových souborů":result.epub.imageCount+" obrazových položek":"Neověřeno"}</td><td>{result.epub?.reason??"EPUB nebyl prověřen."}{result.epub?.notice?" · "+result.epub.notice:""}</td></tr>
     <tr><th scope="row">Doporučení</th><td>{label(facts.verdict)}</td><td>{facts.author.status==="likely_public_domain"?"Ochranná lhůta původních autorů uplynula; překlad, ilustrace a konkrétní soubor posuzovat zvlášť.":"K dořešení zůstává konkrétní autorská složka; podrobnosti jsou v auditu."}</td></tr>
    </tbody></table>
+   {result.openLibrary?.matched?<p className="ca-hint">Open Library: první vydání {result.openLibrary.firstPublishYear??"nezjištěno"} · {result.openLibrary.sourceUrl?<a href={result.openLibrary.sourceUrl} target="_blank" rel="noopener noreferrer">Bibliografický zdroj</a>:"bez přímého odkazu"}</p>:null}
    <p className="ca-hint">Zapsáno {new Date(result.recordedAt).toLocaleString("cs-CZ")} · Audit #{result.decisionNo}. Právní schválení a uzamčení jsou následná oddělená rozhodnutí.</p>
    <button type="button" onClick={download} className="ca-btn ca-secondary">Stáhnout audit (JSON)</button>
    <details><summary>Co musí editor ověřit před schválením</summary><p>Shoda konkrétního textu, úplnost, překlad a podmínky distribuce v CZ/EU. Pro každé ověření je nutný zdroj důkazu.</p></details>
