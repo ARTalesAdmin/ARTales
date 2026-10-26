@@ -1,6 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {planLockedSnapshot,inspectOperatorProvidedSource} from '../lib/ingest/verifiedLegalSnapshotHandoff.ts';
+import * as handoffModule from '../lib/ingest/verifiedLegalSnapshotHandoff.ts';
+// The .mjs test runs in native ESM while tsx may expose a TypeScript CJS module as default.
+const {planLockedSnapshot,inspectOperatorProvidedSource}=handoffModule.default ?? handoffModule;
 const catalog='https://www.gutenberg.org/ebooks/389';
 const url=catalog+'.epub.noimages';
 const other=catalog+'.txt.utf-8';
