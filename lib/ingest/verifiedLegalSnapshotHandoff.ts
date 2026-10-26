@@ -1,5 +1,6 @@
 import {createHash} from "node:crypto";
-import {chooseSnapshotFile, type LegalSnapshotLock, type GutenbergBook, type SnapshotFileChoice} from "./lockedSnapshotSelection";
+import {chooseSnapshotFile, type LegalSnapshotLock, type SnapshotFileChoice} from "./lockedSnapshotSelection";
+import type {GutenbergBook} from "../legal/gutenbergCatalog";
 import {captureRawSource, type RawSourceCapture} from "./rawSourceSnapshot";
 
 /** Pure, server-side-only planning inputs. Caller must read these from current
