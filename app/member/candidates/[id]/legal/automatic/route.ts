@@ -39,7 +39,18 @@ export async function POST(_req:Request,{params}:{params:Promise<{id:string}>}){
   const facts=legalFacts(enriched,2026,prescreenDeath,{originalLanguageConfirmed,illustrators,usStatus:rights.usStatus});
   // US status is evidence only; retain CZ/EU source clearance as a distinct unresolved decision.
   const [textCheck,epub]=await Promise.all([checkGutenbergText(book),inspectGutenbergEpub(book)]);
-  const details={...facts,textCheck,epub,sourceMetadata:{rdfUrl:rights.url,usStatus:rights.usStatus,contributors:rights.contributors,openLibrary}};
+  const textRestriction=textCheck.status==="possible_restriction"||!!epub.notice;
+  const translationUnresolved=enriched.translators.length>0?facts.translation.status!=="likely_public_domain":epub.translationCredit||textCheck.translationCredit;
+  const recommendation=facts.author.status==="protected"?"exclude":
+   facts.author.status!=="likely_public_domain"||textRestriction||translationUnresolved?"review":
+   "text_only";
+  const recommendationReason=recommendation==="text_only"
+   ?"Ochranná doba původního autora uplynula. Doporučen pouze původní text bez ilustrací; před uzamčením potvrdit shodu konkrétního souboru a nepřítomnost překladu."
+   :recommendation==="exclude"?"Ochranná doba původního autora dosud trvá."
+   :textRestriction?"Ve zdroji bylo nalezeno upozornění vyžadující kontrolu."
+   :translationUnresolved?"Překlad nebo práva překladatele vyžadují ověření."
+   :"Chybí rozhodující údaje pro doporučení.";
+  const details={...facts,recommendation,recommendationReason,textCheck,epub,sourceMetadata:{rdfUrl:rights.url,usStatus:rights.usStatus,contributors:rights.contributors,openLibrary}};
   // Save the evidence and the preliminary verdict, not a final copyright approval.
   const payload={
    candidate_id:id,source_kind:"gutenberg",edition_title:book.title,
@@ -64,6 +75,6 @@ export async function POST(_req:Request,{params}:{params:Promise<{id:string}>}){
   const rationale="Automaticky připravený komponentní právní screen: "+facts.reason+"; "+facts.author.status+"; "+facts.translation.status+"; kontrola textu: "+textCheck.status+"; "+(textCheck.notice??textCheck.explanation).slice(0,230)+ ".";
   const decision=await db.from("candidate_legal_decisions").insert({candidate_id:id,source_id:sourceId,verdict:"needs_evidence",territory:"CZ/EU",rationale,reviewed_by:profile.id}).select("decision_no,recorded_at").single();
   if(decision.error)return NextResponse.json({error:"cannot_save_audit"},{status:500});
-  return NextResponse.json({sourceId,decisionNo:decision.data.decision_no,bookId:book.id,title:book.title,file,componentFacts:facts,textCheck,epub,rights,openLibrary,alternativeCount:found.matches.length-1,recordedAt:decision.data.recorded_at},{headers:{"Cache-Control":"private, no-store"}});
+  return NextResponse.json({sourceId,decisionNo:decision.data.decision_no,bookId:book.id,title:book.title,file,componentFacts:facts,recommendation,recommendationReason,textCheck,epub,rights,openLibrary,alternativeCount:found.matches.length-1,recordedAt:decision.data.recorded_at},{headers:{"Cache-Control":"private, no-store"}});
  }catch{return NextResponse.json({error:"catalog_unavailable"},{status:503})}
 }
