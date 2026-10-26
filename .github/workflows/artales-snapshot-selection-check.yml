@@ -1,0 +1,32 @@
+name: ARTales snapshot selection S0 checks
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - 'lib/ingest/**'
+      - 'lib/legal/gutenbergCatalog.ts'
+      - 'tests/lockedSnapshotSelection.test.ts'
+      - 'tests/rawSourceSnapshot.test.mjs'
+      - 'tests/verifiedLegalSnapshotHandoff.test.mjs'
+      - '.github/workflows/artales-snapshot-selection-check.yml'
+permissions:
+  contents: read
+jobs:
+  snapshot-selection:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      NEXT_TELEMETRY_DISABLED: '1'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - run: npx tsx --test tests/lockedSnapshotSelection.test.ts
+      - run: node --experimental-strip-types --test tests/rawSourceSnapshot.test.mjs
+      - run: npx tsx --test tests/verifiedLegalSnapshotHandoff.test.mjs
+      - run: npx tsc --noEmit
+      - run: npx eslint lib/ingest/lockedSnapshotSelection.ts lib/ingest/rawSourceSnapshot.ts lib/ingest/rawSourceArchive.ts lib/ingest/verifiedLegalSnapshotHandoff.ts lib/ingest/server/readLockedSnapshotPacket.ts tests/lockedSnapshotSelection.test.ts tests/rawSourceSnapshot.test.mjs tests/verifiedLegalSnapshotHandoff.test.mjs
