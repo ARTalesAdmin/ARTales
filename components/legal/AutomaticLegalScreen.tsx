@@ -1,9 +1,11 @@
 "use client";
 import {useState} from "react";
+import {useRouter} from "next/navigation";
 type Fact={status:string;people?:{name:string;died:number|null}[];archive?:string;publish?:string;reason?:string;url?:string;textMayProceed?:boolean};
-type Result={recommendation?:"text_only"|"review"|"exclude";recommendationReason?:string;sourceId:string;decisionNo:number;bookId:number;title:string;file:{url:string;label:string};recordedAt:string;textCheck:{status:string;scope:string;sourceUrl:string|null;notice:string|null;explanation:string};epub?:{checked:boolean;imageCount:number|null;textChecked:boolean;notice:string|null;translationCredit:boolean;reason:string};openLibrary?:{matched:boolean;firstPublishYear:number|null;sourceUrl:string|null};componentFacts:{author:Fact;translation:Fact;illustrations:Fact;source:Fact;verdict:string;reason:string;checkedAt:string}};
+type Result={check?:{outcome:"no"|"yes_without_illustrations"|"yes_with_illustrations";reason:string;text:{status:string};translation:{status:string};illustrations:{status:string};originalPublicationYear:number|null};recommendation?:"text_only"|"review"|"exclude";recommendationReason?:string;sourceId:string;decisionNo:number;bookId:number;title:string;file:{url:string;label:string};recordedAt:string;textCheck:{status:string;scope:string;sourceUrl:string|null;notice:string|null;explanation:string};epub?:{checked:boolean;imageCount:number|null;textChecked:boolean;notice:string|null;translationCredit:boolean;reason:string};openLibrary?:{matched:boolean;firstPublishYear:number|null;sourceUrl:string|null};componentFacts:{author:Fact;translation:Fact;illustrations:Fact;source:Fact;verdict:string;reason:string;checkedAt:string}};
 const label=(s:string)=>({likely_public_domain:"Předběžně volné",protected:"Chráněné",needs_evidence:"Nutné ověřit",unverified:"Neověřeno",review_required:"K dořešení",text_candidate:"Původní text předběžně vhodný",not_applicable:"Bez zjištěného překladu",not_identified:"Nezjištěno",us_public_domain:"Public domain – USA",us_restricted:"Omezení – USA",escalate:"Ochranná doba / práva k dořešení"} as Record<string,string>)[s]??s;
 export function AutomaticLegalScreen({candidateId}:{candidateId:string}){
+ const router=useRouter();
  const [state,setState]=useState<"idle"|"running"|"success"|"error">("idle");
  const [result,setResult]=useState<Result|null>(null);
  const [error,setError]=useState("");
@@ -17,7 +19,7 @@ export function AutomaticLegalScreen({candidateId}:{candidateId:string}){
     setError(data.error==="no_verified_file"?"Nebyla ověřena žádná přesná verze stejného díla. Nejde o právní zamítnutí; otevři pokročilé zdroje.":data.error==="already_locked"?"Výsledek je již uzamčen.":"Katalog nebo audit momentálně nelze dokončit. Neproběhlo právní schválení.");
     return;
    }
-   setResult(data as Result);setState("success");
+   setResult(data as Result);setState("success");router.refresh();
   }catch{setState("error");setError("Požadavek se nepodařilo dokončit.");}
  }
  function download(){
@@ -32,9 +34,10 @@ export function AutomaticLegalScreen({candidateId}:{candidateId:string}){
   <button type="button" className="ca-btn ca-primary" onClick={run} disabled={state==="running"}>{state==="running"?"Vyhledávám, prověřuji a zapisuji…":"Provést právní screen"}</button>
   {state==="error"?<p role="alert" className="ca-error">{error}</p>:null}
   {result&&facts?<div className="ca-legal-result" aria-live="polite">
-   <h3>{result.title} · {result.recommendation==="text_only"?"Doporučení: pouze původní text":result.recommendation==="exclude"?"Nedoporučeno":"Cíleně dořešit"}</h3>
+   <h3>{result.title} · {result.check?.outcome==="yes_with_illustrations"?"ANO s ilustracemi":result.check?.outcome==="yes_without_illustrations"?"ANO bez ilustrací":"NE – ověřit překážku"}</h3>
    <p><strong>Zdroj:</strong> <a href={result.file.url} target="_blank" rel="noopener noreferrer">Gutenberg #{result.bookId} · {result.file.label}</a></p>
-   <p><strong>Další krok:</strong> {result.recommendationReason??"Zkontrolovat nevyřešené složky."}</p>
+   <p><strong>Další krok:</strong> {result.check?.reason??result.recommendationReason??"Zkontrolovat nevyřešené složky."}</p>
+   {result.check?<p><strong>Úmrtí + 70 let:</strong> text {result.check.text.status}, překlad {result.check.translation.status}, ilustrace {result.check.illustrations.status}. První vydání {result.check.originalPublicationYear??"neznámé"}.</p>:null}
    <details><summary>Podklady a posouzení jednotlivých složek</summary><table className="ca-legal-table"><thead><tr><th>Složka</th><th>Výsledek</th><th>Důkaz / poznámka</th></tr></thead><tbody>
     <tr><th scope="row">Autor / původní dílo</th><td>{label(facts.author.status)}</td><td>{facts.author.people?.map(p=>p.name+(p.died?" († "+p.died+")":"")).join("; ")||"Chybí údaje"}</td></tr>
     <tr><th scope="row">Překlad</th><td>{label(facts.translation.status)}</td><td>{facts.translation.people?.map(p=>p.name).join("; ")||"Originální jazyk a překlad prověřit"}</td></tr>

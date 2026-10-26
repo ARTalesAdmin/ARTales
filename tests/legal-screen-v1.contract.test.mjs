@@ -27,9 +27,9 @@ test("edition recommendation cannot bypass legal approval",()=>{
 test("editor+ legal verification and admin-only snapshot requests",()=>{
  const page=r("app/member/candidates/[id]/legal/page.tsx");
  const action=r("lib/actions/legalScreen.ts");
- assert.match(page,/Právní screen uzamčen/);
+ assert.match(page,/Právní posouzení je uzamčeno/);
  assert.match(r("components/legal/LegalSourceDiscovery.tsx"),/Gutenberg \(výchozí\)/);
- assert.match(page,/Uzamknout prověřený zdroj/);
+ assert.match(page,/Uzamknout a připravit pro Snapshot/);
  assert.match(action,/lockScreening/);
  assert.match(m,/candidate_legal_locks/);
  assert.match(m,/legal_locks_insert/);
@@ -54,4 +54,4 @@ test("specific download and image inventory are distinct from text rights",()=>{
 
 test("download report uses immutable lock and no full-text ingest",()=>{const route=r("app/member/candidates/[id]/legal/report/route.ts");assert.match(route,/source_facts/);assert.match(route,/downloadUrl/);assert.match(route,/Content-Disposition/);assert.match(m,/artales_validate_legal_lock/);});
 
-test("legal page is decision-first, without manual source and illustration forms",()=>{const page=r("app/member/candidates/[id]/legal/page.tsx");assert.match(page,/AutomaticLegalScreen candidateId/);assert.match(page,/Rozhodnutí editora/);assert.match(page,/recordLegalVerdict\.bind/);assert.match(page,/lockScreening\.bind/);assert.doesNotMatch(page,/id="legal-source-form"/);assert.doesNotMatch(page,/addLegalIllustration\.bind/);});
+test("legal page is decision-first, without manual source and illustration forms",()=>{const page=r("app/member/candidates/[id]/legal/page.tsx");assert.match(page,/AutomaticLegalScreen candidateId/);assert.match(page,/Předání ke Snapshotu/);assert.match(page,/LegalReviewActions/);assert.match(page,/lockScreening\.bind/);assert.doesNotMatch(page,/id="legal-source-form"/);assert.doesNotMatch(page,/addLegalIllustration\.bind/);});
