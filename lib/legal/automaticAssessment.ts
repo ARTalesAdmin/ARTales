@@ -24,19 +24,21 @@ export async function getMatchingGutenberg(title:string,author:string){
  });
  return {matches:detailed,selected:usable[0]??null};
 }
-export function legalFacts(book:GutenbergBook,year=2026,prescreenAuthorDied:number|null=null){
- const creators=book.authors.length?book.authors:[{name:"Autor z Prescreenu",died:prescreenAuthorDied}];
- const cleared=creators.length>0&&creators.every(p=>p.died!==null&&p.died+70<year);
- const impossible=creators.some(p=>p.died!==null&&p.died+70>=year);
- const authorStatus=cleared?"likely_public_domain":impossible?"protected":"needs_evidence";
- const translationStatus=book.translators.length?"needs_evidence":"not_identified";
+export function legalFacts(book:GutenbergBook,year=2026,prescreenAuthorDied:number|null=null,opts?:{originalLanguageConfirmed?:boolean;illustrators?:{name:string;died:number|null}[];usStatus?:"public_domain"|"restricted"|"unknown"}){
+ const creators=book.authors.length?book.authors.map(p=>({...p,died:p.died??(book.authors.length===1?prescreenAuthorDied:null)})):[{name:"Autor z Prescreenu",died:prescreenAuthorDied}];
+ const term=(people:{died:number|null}[])=>people.length>0&&people.every(p=>p.died!==null&&p.died+70<year)?"likely_public_domain":people.some(p=>p.died!==null&&p.died+70>=year)?"protected":"needs_evidence";
+ const authorStatus=term(creators);
+ const translators=book.translators;
+ const translationStatus=translators.length?term(translators):opts?.originalLanguageConfirmed?"not_applicable":"not_identified";
+ const illustrators=opts?.illustrators??[];
+ const illustrationStatus=illustrators.length?term(illustrators):"not_identified";
  return {
-  author:{status:authorStatus,people:creators,rule:"CZ/EU: death + 70 years; separate contributions and exceptions require review"},
-  translation:{status:translationStatus,people:book.translators,reason:"Catalog omission does not prove absence of translation"},
-  illustrations:{status:"needs_evidence",archive:"unverified",publish:"unverified",textMayProceed:true},
-  source:{status:"needs_evidence",url:book.catalogUrl,usCopyrightFlag:book.usCopyrightFlag},
-  verdict:cleared?"review_required":"escalate",
+  author:{status:authorStatus,people:creators,rule:"CZ/EU: death + 70 years; each creator independently"},
+  translation:{status:translationStatus,people:translators,reason:translators.length?"Translation credit from this edition":opts?.originalLanguageConfirmed?"Original-language edition; no translation credit identified":"Missing translator metadata does not prove absence of translation"},
+  illustrations:{status:illustrationStatus,people:illustrators,archive:"unverified",publish:"unverified",textMayProceed:true,reason:"Illustration inventory and the exact edition must be checked before image publication"},
+  source:{status:opts?.usStatus==="public_domain"?"us_public_domain":opts?.usStatus==="restricted"?"us_restricted":"needs_evidence",url:book.catalogUrl,usCopyrightFlag:book.usCopyrightFlag,reason:"USA statement is evidence, not CZ/EU clearance"},
+  verdict:authorStatus==="protected"||translationStatus==="protected"?"escalate":authorStatus==="likely_public_domain"&&(translationStatus==="not_applicable"||translationStatus==="likely_public_domain")?"text_candidate":"review_required",
   checkedAt:new Date().toISOString(),territory:"CZ/EU",
-  reason:"Preliminary metadata assessment; no rights clearance or snapshot without human verification."
+  reason:"Component term assessment; final approval and exact-file QA remain separate."
  };
 }
