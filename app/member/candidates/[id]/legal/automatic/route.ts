@@ -76,6 +76,13 @@ export async function POST(_req:Request,{params}:{params:Promise<{id:string}>}){
    if(inserted.error)return NextResponse.json({error:"cannot_save_source"},{status:500});
    sourceId=inserted.data.id;
   }
+  if(previous?.id){
+    const {data:approved}=await db.from("candidate_legal_decisions").select("decision_no").eq("source_id",previous.id).eq("verdict","approved").limit(1);
+    if(approved?.length)return NextResponse.json({error:"approved_source_immutable"},{status:409});
+    const updateFields={translation_status:payload.translation_status,translator:payload.translator,author_died:payload.author_died,translator_died:payload.translator_died,language_match:payload.language_match,original_rights:payload.original_rights,translation_rights:payload.translation_rights,illustration_use:payload.illustration_use,source_terms:payload.source_terms,evidence_url:payload.evidence_url,notes:payload.notes,updated_by:profile.id};
+    const updated=await db.from("candidate_legal_sources").update(updateFields).eq("candidate_id",id).eq("id",previous.id);
+    if(updated.error)return NextResponse.json({error:"cannot_update_source"},{status:500});
+  }
   const rationale="Automaticky připravený komponentní právní screen: "+facts.reason+"; "+facts.author.status+"; "+facts.translation.status+"; kontrola textu: "+textCheck.status+"; "+(textCheck.notice??textCheck.explanation).slice(0,230)+ ". Výsledek datací: "+check.outcome+".";
   const decision=await db.from("candidate_legal_decisions").insert({candidate_id:id,source_id:sourceId,verdict:"needs_evidence",territory:"CZ/EU",rationale,reviewed_by:profile.id}).select("decision_no,recorded_at").single();
   if(decision.error)return NextResponse.json({error:"cannot_save_audit"},{status:500});
