@@ -27,7 +27,7 @@ export async function POST(_req:Request,{params}:{params:Promise<{id:string}>}){
   const people=rights.people.length?rights.people:book.authors;
   const enriched={...book,authors:people};
   const facts=legalFacts(enriched,2026,prescreenDeath);
-  facts.source.status=rights.usStatus==="public_domain"?"likely_public_domain":"needs_evidence";
+  // US status is evidence only; retain CZ/EU source clearance as a distinct unresolved decision.
   const textCheck=await checkGutenbergText(book);
   const details={...facts,textCheck,sourceMetadata:{rdfUrl:rights.url,usStatus:rights.usStatus,contributors:rights.contributors}};
   // Save the evidence and the preliminary verdict, not a final copyright approval.
