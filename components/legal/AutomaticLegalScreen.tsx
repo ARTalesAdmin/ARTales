@@ -2,7 +2,7 @@
 import {useState} from "react";
 type Fact={status:string;people?:{name:string;died:number|null}[];archive?:string;publish?:string;reason?:string;url?:string;textMayProceed?:boolean};
 type Result={sourceId:string;decisionNo:number;bookId:number;title:string;file:{url:string;label:string};recordedAt:string;textCheck:{status:string;scope:string;sourceUrl:string|null;notice:string|null;explanation:string};componentFacts:{author:Fact;translation:Fact;illustrations:Fact;source:Fact;verdict:string;reason:string;checkedAt:string}};
-const label=(s:string)=>({likely_public_domain:"Předběžně volné",protected:"Chráněné",needs_evidence:"Nutné ověřit",not_identified:"Nepotvrzeno",unverified:"Neověřeno",review_required:"K ověření editorem",escalate:"Eskalace"} as Record<string,string>)[s]??s;
+const label=(s:string)=>({likely_public_domain:"Předběžně volné",protected:"Chráněné",needs_evidence:"Nutné ověřit",not_identified:"Nepotvrzeno",unverified:"Neověřeno",review_required:"K dořešení",text_candidate:"Původní text předběžně vhodný",not_applicable:"Bez zjištěného překladu",not_identified:"Nezjištěno",us_public_domain:"Public domain – USA",us_restricted:"Omezení – USA",escalate:"Ochranná doba / práva k dořešení"} as Record<string,string>)[s]??s;
 export function AutomaticLegalScreen({candidateId}:{candidateId:string}){
  const [state,setState]=useState<"idle"|"running"|"success"|"error">("idle");
  const [result,setResult]=useState<Result|null>(null);
@@ -28,22 +28,22 @@ export function AutomaticLegalScreen({candidateId}:{candidateId:string}){
  const facts=result?.componentFacts;
  return <section className="ca-card ca-legal-auto">
   <h2>Automatický právní screen</h2>
-  <p>Jeden krok: odpovídající dílo → konkrétní soubor → kontrola autorství, překladu a ilustrací → auditní záznam. Neznámá práva systém nepovažuje za schválená.</p>
+  <p>Metadata Gutenbergu, autorské lhůty a upozornění v textu. Nejasné složky zůstávají oddělené od použitelného původního textu.</p>
   <button type="button" className="ca-btn ca-primary" onClick={run} disabled={state==="running"}>{state==="running"?"Vyhledávám, prověřuji a zapisuji…":"Provést právní screen"}</button>
   {state==="error"?<p role="alert" className="ca-error">{error}</p>:null}
   {result&&facts?<div className="ca-legal-result" aria-live="polite">
-   <h3>Právní protokol · {result.title}</h3>
-   <p><strong>Vybraná verze:</strong> <a href={result.file.url} target="_blank" rel="noopener noreferrer">Gutenberg #{result.bookId} · {result.file.label}</a></p>
+   <h3>{result.title} · {label(facts.verdict)}</h3>
+   <p><strong>Zdroj:</strong> <a href={result.file.url} target="_blank" rel="noopener noreferrer">Gutenberg #{result.bookId} · {result.file.label}</a></p>
    <table className="ca-legal-table"><thead><tr><th>Složka</th><th>Výsledek</th><th>Důkaz / poznámka</th></tr></thead><tbody>
     <tr><th scope="row">Autor / původní dílo</th><td>{label(facts.author.status)}</td><td>{facts.author.people?.map(p=>p.name+(p.died?" († "+p.died+")":"")).join("; ")||"Chybí údaje"}</td></tr>
     <tr><th scope="row">Překlad</th><td>{label(facts.translation.status)}</td><td>{facts.translation.people?.map(p=>p.name).join("; ")||"Originální jazyk a překlad prověřit"}</td></tr>
     <tr><th scope="row">Ilustrace</th><td>{label(facts.illustrations.status)}</td><td>Archivace: {label(facts.illustrations.archive??"unverified")}; publikace: {label(facts.illustrations.publish??"unverified")}. Neblokuje použitelný text.</td></tr>
     <tr><th scope="row">Zdroj a podmínky</th><td>{label(facts.source.status)}</td><td><a href={facts.source.url} target="_blank" rel="noopener noreferrer">Gutenberg · bibliografický záznam</a></td></tr>
     <tr><th scope="row">Kontrola textu</th><td>{result.textCheck.status==="no_explicit_notice"?"Bez nalezeného omezení":result.textCheck.status==="possible_restriction"?"Nutné ověřit upozornění":"Neověřeno"}</td><td>{result.textCheck.explanation}{result.textCheck.notice?" · "+result.textCheck.notice:""}</td></tr>
-    <tr><th scope="row">Předběžný verdikt</th><td>{label(facts.verdict)}</td><td>{facts.reason}</td></tr>
+    <tr><th scope="row">Doporučení</th><td>{label(facts.verdict)}</td><td>{facts.author.status==="likely_public_domain"?"Ochranná lhůta původních autorů uplynula; překlad, ilustrace a konkrétní soubor posuzovat zvlášť.":"K dořešení zůstává konkrétní autorská složka; podrobnosti jsou v auditu."}</td></tr>
    </tbody></table>
    <p className="ca-hint">Zapsáno {new Date(result.recordedAt).toLocaleString("cs-CZ")} · Audit #{result.decisionNo}. Právní schválení a uzamčení jsou následná oddělená rozhodnutí.</p>
-   <button type="button" onClick={download} className="ca-btn ca-secondary">Stáhnout protokol a odůvodnění (JSON)</button>
+   <button type="button" onClick={download} className="ca-btn ca-secondary">Stáhnout audit (JSON)</button>
    <details><summary>Co musí editor ověřit před schválením</summary><p>Shoda konkrétního textu, úplnost, překlad a podmínky distribuce v CZ/EU. Pro každé ověření je nutný zdroj důkazu.</p></details>
   </div>:null}
  </section>;
