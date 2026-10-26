@@ -5,9 +5,9 @@ import {createClient} from "@/lib/supabase/server";
 import {LEGAL_SCREEN_V1_ENABLED} from "@/lib/legal/featureFlag";
 import {LegalPipelineNav} from "@/components/legal/LegalPipelineNav";
 import "../candidates/candidates.css";
+import {legalOverviewFilters,legalOverviewMatches,legalOverviewPresentation,legalOverviewStage,type LegalOverviewFilter} from "@/lib/legal/overviewStatus";
 
-const statuses={all:"Všechny",todo:"K prověření",checking:"Rozpracované",ready:"Ověřené – k uzamčení",locked:"Uzamčené"} as const;
-type Status=keyof typeof statuses;
+
 export default async function LegalOverview({searchParams}:{searchParams:Promise<{q?:string;status?:string}>}){
  if(!LEGAL_SCREEN_V1_ENABLED)notFound();
  const profile=await requireEditorOrAdmin();
@@ -18,26 +18,20 @@ export default async function LegalOverview({searchParams}:{searchParams:Promise
   db.from("candidate_legal_locks").select("candidate_id,locked_at").order("locked_at",{ascending:false}).limit(250)
  ]);
  const params=await searchParams;
- const requested=(params.status??"all") as Status;
- const active=Object.hasOwn(statuses,requested)?requested:"all";
+ const aliases:Record<string,LegalOverviewFilter>={todo:"pending",checking:"pending",ready:"verified",locked:"processed"};
+ const requested=params.status??"all";
+ const active:LegalOverviewFilter=Object.hasOwn(legalOverviewFilters,requested)?requested as LegalOverviewFilter:aliases[requested]??"all";
  const query=(params.q??"").trim().toLocaleLowerCase("cs");
  const lastByCandidate=new Map<string,(typeof decisions extends (infer T)[] | null ? T : never)>(); 
  // Decisions are newest-first: keep the first occurrence.
  for(const d of decisions??[])if(!lastByCandidate.has(d.candidate_id))lastByCandidate.set(d.candidate_id,d);
  const lockedIds=new Set((locks??[]).map(x=>x.candidate_id));
- const stage=(id:string):Status=>{
-  if(lockedIds.has(id))return "locked";
-  const d=lastByCandidate.get(id);
-  if(d?.verdict==="approved")return "ready";
-  if(d)return "checking";
-  return "todo";
- };
- const rows=(candidates??[]).filter(c=>(active==="all"||stage(c.id)===active)&&(!query||[c.proposed_title,c.proposed_author_name].join(" ").toLocaleLowerCase("cs").includes(query)));
+ const stage=(id:string)=>legalOverviewStage(lockedIds.has(id),lastByCandidate.get(id));
+ const rows=(candidates??[]).filter(c=>legalOverviewMatches(stage(c.id),active)&&(!query||[c.proposed_title,c.proposed_author_name].join(" ").toLocaleLowerCase("cs").includes(query)));
  return <main className="ca-root">
-  <header className="ca-head"><div><p className="ca-eyebrow">ARTales / Výběr titulů</p><h1>Právní screen</h1><p>Konkrétní edice, kontrola práv jednotlivých složek, uzamčení zdrojového souboru a předání k pozdějšímu snapshotu.</p></div><Link className="ca-btn ca-secondary" href="/member/candidates">Zpět ke kandidátům</Link></header>
+  <header className="ca-head"><div><p className="ca-eyebrow">ARTales / Výběr titulů</p><h1>Právní screen</h1><p>Rychlý právní check, rozhodnutí editora a předání ověřeného zdroje pro Snapshot.</p></div><Link className="ca-btn ca-secondary" href="/member/candidates">Zpět ke kandidátům</Link></header>
   <LegalPipelineNav step="legal" admin={profile.role==="admin"}/>
-  <section className="ca-card"><h2>Redakční agenda</h2><p>Každé dílo začíná jako Kandidát. Tady se posoudí konkrétní dostupné vydání; zdroj se při uzamčení nemění ani nestahuje. Ilustrace mají oddělený právní záznam.</p></section>
-  <form className="ca-filters"><label>Hledat dílo nebo autora<input name="q" defaultValue={params.q??""} placeholder="Název, autor"/></label><label>Stav<select name="status" defaultValue={active}>{Object.entries(statuses).map(([value,label])=><option key={value} value={value}>{label}</option>)}</select></label><button type="submit" className="ca-btn ca-secondary">Filtrovat</button></form>
-  {error?<p className="ca-error">Kandidáty se nepodařilo načíst.</p>:rows.length===0?<section className="ca-card">V tomto filtru nejsou žádné tituly.</section>:<div className="ca-list">{rows.map(c=><article key={c.id} className="ca-card"><div><h2>{c.proposed_title}</h2><p>{c.proposed_author_name}</p><small>{statuses[stage(c.id)]} · Priorita {c.priority}</small></div><div className="ca-actions"><Link className="ca-btn ca-secondary" href={`/member/candidates/${c.id}`}>Kandidát</Link><Link className="ca-btn ca-primary" href={`/member/legal/${c.id}`}>Právní screen</Link></div></article>)}</div>}
+  <form className="ca-filters"><label>Hledat dílo nebo autora<input name="q" defaultValue={params.q??""} placeholder="Název, autor"/></label><label>Stav<select name="status" defaultValue={active}>{Object.entries(legalOverviewFilters).map(([value,label])=><option key={value} value={value}>{label}</option>)}</select></label><button type="submit" className="ca-btn ca-secondary">Filtrovat</button></form>
+  {error?<p className="ca-error">Kandidáty se nepodařilo načíst.</p>:rows.length===0?<section className="ca-card">V tomto filtru nejsou žádné tituly.</section>:<div className="ca-list">{rows.map(c=><article key={c.id} className="ca-card"><div><h2>{c.proposed_title}</h2><p>{c.proposed_author_name}</p><small><strong>{legalOverviewPresentation[stage(c.id)].label}</strong> · {legalOverviewPresentation[stage(c.id)].hint}</small></div><div className="ca-actions"><Link className="ca-btn ca-primary" href={`/member/legal/${c.id}`}>{legalOverviewPresentation[stage(c.id)].action}</Link></div></article>)}</div>}
  </main>;
 }
