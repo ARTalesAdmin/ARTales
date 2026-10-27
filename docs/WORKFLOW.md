@@ -5,8 +5,8 @@ Tento dokument popisuje bezpečný způsob práce pro product ownera, který nem
 ## Co která část znamená
 
 - **`main` = produkce.** Obsah této větve běží na `artales.net` a musí zůstat stabilní.
-- **`develop` = sandbox.** Zde se skládají změny určené k preview a testování. Vercel preview je dostupné na `ar-tales.vercel.app`.
-- **Pracovní větev = jedna konkrétní změna.** Codex ji vytvoří z aktuálního `develop`, připraví v ní změny a otevře pull request do `develop`.
+- **`develop` = historická sandboxová/integrační větev.** Dokud nebude vyčištěná od nedokončených a nahrazených návrhů, není zdrojem nových integračních větví ani automatickým cílem PR. Její kód se smí cíleně studovat a jednotlivé komponenty převzít pouze po aktuální kontrole.
+- **Pracovní větev = jedna konkrétní změna.** Podle dočasného rozhodnutí Architekta z 26. 10. 2026 ji vytvoříme z čerstvě ověřeného `main`, výsledek dáme do izolovaného PR proti `main`. Samotný PR nic nenasazuje do produkce.
 - **Pull request (PR) = kontrolní místo.** Ukazuje, co se mění, jaké je riziko a jak byla změna ověřena. Není to automatické povolení k produkčnímu nasazení.
 
 ## Role
@@ -20,18 +20,22 @@ Tento dokument popisuje bezpečný způsob práce pro product ownera, který nem
 
 ## Běžný postup krok za krokem
 
-1. Uživatel popíše malý, jasně ohraničený úkol a jeho očekávaný výsledek.
-2. Codex vyjde z větve `develop` a vytvoří samostatnou pracovní větev.
-3. Codex provede pouze zadané změny, spustí vhodné kontroly a sepíše rizika.
-4. Codex otevře PR **do `develop`**. PR musí obsahovat položky předepsané v `RELEASE_POLICY.md`.
-5. Po začlenění do `develop` vytvoří Vercel sandbox/preview. Uživatel zde změnu prakticky otestuje.
-6. Nalezené chyby se opraví opět přes pracovní větev a PR do `develop`.
-7. Teprve stabilní a otestovanou změnu může uživatel výslovně schválit pro produkci.
-8. Přesun do `main` a produkční deployment proběhne odděleně. Codex změnu do `main` sám neslučuje.
+1. Uživatel vymezí konkrétní úkol, rozsah a požadovaný výsledek; bez toho se autorita k zápisu neodvozuje.
+2. Z čerstvě ověřeného `main` se založí samostatná pracovní větev pro jedinou změnu.
+3. Ve větvi vzniknou jen schválené změny; případný kód z `develop` se jednotlivě analyzuje, testuje a přizpůsobí aktuální produkci, bez plošného merge.
+4. Otevře se PR **proti `main`** s rizikem, přehledem změn, DB/Env, testy a rollbackem dle `RELEASE_POLICY.md`. PR je návrh, ne schválení merge.
+5. Kontroly a případné izolované preview se provádějí nad přesným HEAD pracovní větve, nezávisle na `develop`. Pokud autentizované preview není možné, nepředstírá se jeho ověření.
+6. Chyby se opraví v téže izolované větvi a znovu se ověří. Bez výslovného rozhodnutí se nic nepřelévá do `develop`.
+7. Architekt zvlášť rozhodne o přijetí, **merge přesného PR/head** a případném produkčním release; databáze, storage, env a provozní aktivace mají vlastní brány.
+8. Po samostatně autorizovaném sloučení/nasazení proběhne ověření skutečné produkce a zápis významného handoffu. Do `main` se nikdy přímo nepushuje.
 
 ## Co znamená „schváleno“
 
-Schválení preview neznamená automaticky schválení produkce. Před produkcí má uživatel znát rozsah změny, výsledek testů, případný dopad na data nebo prostředí a způsob návratu. Bez výslovného produkčního souhlasu zůstává změna v `develop`.
+Schválení preview neznamená automaticky schválení produkce. Před produkcí má uživatel znát rozsah změny, výsledek testů, případný dopad na data nebo prostředí a způsob návratu. Bez výslovného souhlasu pro přesný merge a produkční krok zůstává změna v izolované pracovní větvi. Samotná existence PR proti `main` ani automaticky vzniklé preview není produkční autorizace.
+
+## Dočasnost směrování
+
+Tento režim je dočasné výslovné rozhodnutí Architekta pro práci během úklidu `develop`, nikoli obecný trvalý ústup od kontroly produkce. Návrat ke standardní integrační větvi vyžaduje nové rozhodnutí po jejím vyčištění. Neznamená automatickou změnu Nexus enrollmentu či předání starých autorizací.
 
 ## Praktická kontrola uživatele v preview
 
