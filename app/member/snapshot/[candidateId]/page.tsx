@@ -1,4 +1,5 @@
 import Link from "next/link";
+import {SNAPSHOT_GENERAL_V1_ENABLED} from "@/lib/ingest/snapshotGeneralFlag";
 import {requireEditorOrAdmin} from "@/lib/guards";
 import {createClient} from "@/lib/supabase/server";
 import {getCandidateSnapshotState} from "@/lib/ingest/server/getCandidateSnapshotState";
@@ -7,6 +8,7 @@ import "../../candidates/candidates.css";
 export const dynamic="force-dynamic";
 export default async function SnapshotCandidate({params}:{params:Promise<{candidateId:string}>}){
  const {candidateId}=await params;const profile=await requireEditorOrAdmin();
+ if(!SNAPSHOT_GENERAL_V1_ENABLED)notFound();
  if(!/^[0-9a-f-]{36}$/i.test(candidateId))notFound();
  const db=await createClient();
  const {data:candidate}=await db.from("work_candidates").select("proposed_title,proposed_author_name")
