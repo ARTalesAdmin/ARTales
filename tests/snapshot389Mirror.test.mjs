@@ -2,6 +2,8 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import * as mirror from "../lib/ingest/snapshot389Mirror.ts";
 import * as capture from "../lib/ingest/rawSourceSnapshot.ts";
+import * as catalogModule from "../lib/legal/gutenbergCatalog.ts";
+const {getGutenbergBook}=catalogModule.default??catalogModule;
 import * as mirrorPilotModule from "../lib/ingest/snapshot389Pilot.ts";
 const {runSnapshot389MirrorPilot}=mirrorPilotModule.default??mirrorPilotModule;
 const {fetchSnapshot389FromMirror,SNAPSHOT_389_MIRROR_URL}=mirror.default??mirror;
@@ -25,6 +27,10 @@ test("rejects oversized binary before any capture",async()=>{
  await assert.rejects(()=>fetchSnapshot389FromMirror(async()=>new Response(new Uint8Array(64),{status:200,headers:{"content-length":String(9*1024*1024)}})),/declared_size_invalid/);
 });
 test("real mirror #389 source can be captured byte-for-byte (not Storage)",{skip:process.env.ARTALES_SNAPSHOT_389_LIVE_MIRROR!=="1"},async()=>{
+ const catalog=await getGutenbergBook(389);
+ assert.equal(catalog?.id,389,"Live Gutenberg catalog must resolve");
+ assert.match(catalog?.title??"",/Great God Pan/i);
+ assert(catalog?.authors.some(p=>/Machen/i.test(p.name)));
  const input=await fetchSnapshot389FromMirror();
  let result;
  try {
