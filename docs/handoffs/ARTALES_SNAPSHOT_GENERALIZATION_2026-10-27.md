@@ -30,3 +30,9 @@
 - Test existing #389 as ALREADY ARCHIVED (no second write) and test second distinct locked title only after its own Legal approval. Current production has only one legal lock.
 - No new Supabase migration, Storage access, merge, production action or publication authorized by this handoff. Accept != Merge != Apply != Publish.
 - Nexus ARTales bootstrap is project-only selectedWork:null; no cross-arc or retained action authority.
+
+## 2026-10-27 — bounded general acquisition planning
+- Added `lib/ingest/gutenbergSnapshotAcquisition.ts`, a pure read-only adapter deriving one allowlisted mirror URL from the numeric Gutenberg ID in an already verified Legal Snapshot plan. Refuses a changed legal decision, mismatched catalog, unlisted alternative and unsupported format. No network, Storage, public rights or editor changes.
+- Added `tests/gutenbergSnapshotAcquisition.test.mjs` to verify both Gutenberg #389 and a separate synthetic legal-locked #11, plus fail-closed cases. A synthetic second title does **not** count as a real second legally approved production E2E.
+- CI workflow updated to gate the new module. The generic receipt ledger and Legal UI remain unimplemented; their schema/writes were not committed after tool-level safety blocking. No workaround, no production apply.
+- Next acceptance: per-candidate receipt registry with unambiguous existing #389 backfill, duplicate/single-flight claim semantics, and separate migration/RLS review before activating the Legal action.
