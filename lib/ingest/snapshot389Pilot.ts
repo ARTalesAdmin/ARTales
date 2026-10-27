@@ -9,7 +9,7 @@ export type PilotArchiveResult = Readonly<{
   legal_decision_ref:string;
   catalog_url:typeof SNAPSHOT_389_CATALOG;
   selected_source_url:string;
-  channel:"operator_provided_file";
+  channel:"operator_provided_file"|"fixed_pglaf_mirror";
   provenance:"pending_independent_verification";
   content_correspondence:"pending";
   archive:VerifiedRawArchiveReceipt;
