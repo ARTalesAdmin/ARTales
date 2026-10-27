@@ -10,6 +10,7 @@ on:
       - 'tests/rawSourceSnapshot.test.mjs'
       - 'tests/verifiedLegalSnapshotHandoff.test.mjs'
       - 'tests/snapshot389Pilot.test.mjs'
+      - 'tests/snapshot389Mirror.test.mjs'
       - '.github/workflows/artales-snapshot-selection-check.yml'
 permissions:
   contents: read
@@ -30,5 +31,22 @@ jobs:
       - run: node --experimental-strip-types --test tests/rawSourceSnapshot.test.mjs
       - run: npx tsx --test tests/verifiedLegalSnapshotHandoff.test.mjs
       - run: npx tsx --test tests/snapshot389Pilot.test.mjs
+      - run: npx tsx --test tests/snapshot389Mirror.test.mjs
       - run: npx tsc --noEmit
-      - run: npx eslint lib/ingest/lockedSnapshotSelection.ts lib/ingest/rawSourceSnapshot.ts lib/ingest/rawSourceArchive.ts lib/ingest/verifiedLegalSnapshotHandoff.ts lib/ingest/server/readLockedSnapshotPacket.ts tests/lockedSnapshotSelection.test.ts tests/rawSourceSnapshot.test.mjs tests/verifiedLegalSnapshotHandoff.test.mjs tests/snapshot389Pilot.test.mjs
+      - run: npx eslint lib/ingest/lockedSnapshotSelection.ts lib/ingest/rawSourceSnapshot.ts lib/ingest/rawSourceArchive.ts lib/ingest/verifiedLegalSnapshotHandoff.ts lib/ingest/snapshot389Pilot.ts lib/ingest/snapshot389Mirror.ts lib/ingest/server/readLockedSnapshotPacket.ts tests/lockedSnapshotSelection.test.ts tests/rawSourceSnapshot.test.mjs tests/verifiedLegalSnapshotHandoff.test.mjs tests/snapshot389Pilot.test.mjs tests/snapshot389Mirror.test.mjs
+
+  snapshot-389-live-acquisition:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+    env:
+      ARTALES_SNAPSHOT_389_LIVE_MIRROR: '1'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - run: npx tsx --test tests/snapshot389Mirror.test.mjs
