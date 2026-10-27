@@ -5,6 +5,10 @@ on:
       - main
     paths:
       - 'lib/ingest/**'
+      - 'app/member/snapshot/**'
+      - 'app/member/candidates/[id]/legal/page.tsx'
+      - 'supabase/migrations/20261027130000_artales_snapshot_general_v1.sql'
+      - 'supabase/migrations/20261027131000_artales_snapshot389_register.sql'
       - 'docs/handoffs/ARTALES_SNAPSHOT_GENERALIZATION_2026-10-27.md'
       - 'app/api/member/snapshot/**'
       - 'app/member/admin/snapshot-389/**'
@@ -46,6 +50,7 @@ jobs:
       - run: npx tsx --test tests/generalSnapshotAction.test.mjs
       - run: npx tsx --test tests/gutenbergSnapshotAcquisition.test.mjs
       - run: npx tsc --noEmit
+      - run: node --test tests/generalSnapshotSchema.test.mjs
       - run: npx eslint lib/ingest/lockedSnapshotSelection.ts lib/ingest/rawSourceSnapshot.ts lib/ingest/rawSourceArchive.ts lib/ingest/verifiedLegalSnapshotHandoff.ts lib/ingest/snapshot389Pilot.ts lib/ingest/snapshot389Mirror.ts lib/ingest/server/readLockedSnapshotPacket.ts lib/ingest/server/snapshot389RequestGate.ts app/api/member/snapshot/389/route.ts app/member/admin/snapshot-389/page.tsx tests/lockedSnapshotSelection.test.ts tests/rawSourceSnapshot.test.mjs tests/verifiedLegalSnapshotHandoff.test.mjs tests/snapshot389Pilot.test.mjs tests/snapshot389Mirror.test.mjs tests/snapshot389RequestGate.test.mjs tests/snapshot389Security.test.mjs lib/ingest/generalSnapshotAction.ts lib/ingest/gutenbergSnapshotAcquisition.ts tests/generalSnapshotAction.test.mjs tests/gutenbergSnapshotAcquisition.test.mjs
 
   snapshot-389-live-acquisition:
