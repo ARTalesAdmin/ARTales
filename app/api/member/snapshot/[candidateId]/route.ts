@@ -70,7 +70,8 @@ export async function POST(req:Request,{params}:{params:Promise<{candidateId:str
  const {data:existing,error:existingError}=await db.from("candidate_snapshots")
   .select("sha256,storage_path,readback_status").eq("candidate_id",candidateId).maybeSingle();
  if(existingError)return NextResponse.json({ok:false,error:"snapshot_registry_not_ready"},{status:503});
- if(existing)return NextResponse.json({ok:true,already_archived:true,receipt:existing},{headers:{"Cache-Control":"no-store"}});
+ if(existing)return NextResponse.redirect(new URL(
+  `/member/snapshot/${candidateId}?result=already_archived`,req.url),303);
  let claimed=false;
  try{
   const packet=await readLockedSnapshotPacket(candidateId);
@@ -101,9 +102,12 @@ export async function POST(req:Request,{params}:{params:Promise<{candidateId:str
     original_manifest:captured.manifest,readback_status:receipt.storage_readback
   });
   if(recordError)throw Error("snapshot_receipt_registration_failed_needs_reconciliation");
-  return NextResponse.json({ok:true,already_archived:false,receipt,
-    content_correspondence:"pending",semantic_ready:false,publication_authorized:false},
-    {headers:{"Cache-Control":"no-store"}});
+  console.info("ARTales generalized Snapshot archived",{
+    candidateId,sha256:receipt.sha256,bytes:receipt.bytes,
+    storage_readback:receipt.storage_readback,publication_authorized:false
+  });
+  return NextResponse.redirect(new URL(
+    `/member/snapshot/${candidateId}?result=archived`,req.url),303);
  }catch(e){const error=e instanceof Error?e.message:"snapshot_unknown_failure";
   console.warn("ARTales Snapshot general v1",{candidateId,error,claimed});
   return NextResponse.json({ok:false,error,claimed,reconciliation_required:claimed},
