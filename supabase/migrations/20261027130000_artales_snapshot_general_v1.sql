@@ -60,11 +60,12 @@ CREATE POLICY artales_snapshot_claim_insert_v1 ON public.candidate_snapshot_clai
       AND p.is_active AND p.role::text='admin')
     AND EXISTS (SELECT 1 FROM public.candidate_legal_locks l
       JOIN public.candidate_legal_decisions d ON d.decision_no=l.decision_no
-      WHERE l.candidate_id=candidate_id AND l.source_id=source_id
-        AND l.decision_no=decision_no AND d.candidate_id=l.candidate_id
+      WHERE l.candidate_id=candidate_snapshot_claims.candidate_id
+        AND l.source_id=candidate_snapshot_claims.source_id
+        AND l.decision_no=candidate_snapshot_claims.decision_no AND d.candidate_id=l.candidate_id
         AND d.source_id=l.source_id AND d.verdict='approved'
         AND d.territory='CZ/EU'
-        AND l.source_url='https://www.gutenberg.org/ebooks/'||gutenberg_id::text));
+        AND l.source_url='https://www.gutenberg.org/ebooks/'||candidate_snapshot_claims.gutenberg_id::text));
 CREATE POLICY artales_snapshot_receipt_read_v1 ON public.candidate_snapshots
   FOR SELECT TO authenticated
   USING (EXISTS (SELECT 1 FROM public.profiles p WHERE p.id=(SELECT auth.uid())
