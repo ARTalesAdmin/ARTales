@@ -7,7 +7,8 @@ const route=readFileSync("app/api/member/snapshot/[candidateId]/route.ts","utf8"
 test("candidate claim and receipt use separate one-record primary keys",()=>{
  assert.match(schema,/CREATE TABLE public.candidate_snapshot_claims/);
  assert.match(schema,/CREATE TABLE public.candidate_snapshots/);
- assert.match(schema,/CREATE TABLE public\.candidate_snapshot_claims \(\s*candidate_id uuid PRIMARY KEY/);\n assert.match(schema,/CREATE TABLE public\.candidate_snapshots \(\s*candidate_id uuid PRIMARY KEY/);
+ assert.match(schema,/CREATE TABLE public\.candidate_snapshot_claims \(\s*candidate_id uuid PRIMARY KEY/);
+ assert.match(schema,/CREATE TABLE public\.candidate_snapshots \(\s*candidate_id uuid PRIMARY KEY/);
  assert.match(schema,/c\.sha256=split_part\(name,'\/',4\)/);
  assert.match(schema,/c\.sha256=candidate_snapshots\.sha256/);
  assert.doesNotMatch(schema,/FOR UPDATE|FOR DELETE|GRANT UPDATE|GRANT DELETE/i);
