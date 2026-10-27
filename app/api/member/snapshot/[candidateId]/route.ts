@@ -68,13 +68,13 @@ export async function POST(req:Request,{params}:{params:Promise<{candidateId:str
   if(!book)throw Error("snapshot_catalog_unavailable");
   const plan=planLockedSnapshot(packet,book);
   const proposal=proposeGutenbergSnapshotAcquisition(plan,book);
+  const captured=captureRawSource(plan.selection,await loadMirror(proposal.acquisitionUrl),new Date().toISOString());
   const {error:claimError}=await db.from("candidate_snapshot_claims").insert({
     candidate_id:candidateId,source_id:packet.lock.source_id,decision_no:packet.lock.decision_no,
-    gutenberg_id:id,claimed_by:actor.id
+    gutenberg_id:id,sha256:captured.manifest.sha256,claimed_by:actor.id
   });
   if(claimError)throw Error("snapshot_already_claimed_or_denied");
   claimed=true;
-  const captured=captureRawSource(plan.selection,await loadMirror(proposal.acquisitionUrl),new Date().toISOString());
   const receipt=await archiveRawSource(captured,db,RAW_SNAPSHOT_BUCKET,
     captured.manifest.embedded_images?{privateImageRetentionApproved:true}:undefined);
   const {error:recordError}=await db.from("candidate_snapshots").insert({
