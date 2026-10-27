@@ -40,7 +40,7 @@ export default async function LegalScreen({params,searchParams}:{params:Promise<
     <button className="ca-btn ca-primary" type="submit">Uzamknout a připravit pro Snapshot</button>
    </form>
   </section>:null}
-  {lock?<section className="ca-card"><h2>Připraveno ke Snapshotu</h2><p>Zdroj je uzamčený. Snapshot se zatím nevytváří automaticky.</p><a className="ca-btn ca-primary" href={`/member/candidates/${id}/legal/report`}>Stáhnout předávací protokol (JSON)</a></section>:null}
+  {lock?<section className="ca-card"><h2>Připraveno ke Snapshotu</h2><p>Zdroj je uzamčený. Snapshot se zatím nevytváří automaticky.</p><Link className="ca-btn ca-primary" href={`/member/snapshot/${id}`}>Snapshot — stav a vytvoření</Link> <a className="ca-btn ca-secondary" href={`/member/candidates/${id}/legal/report`}>Stáhnout předávací protokol (JSON)</a></section>:null}
   {history.length?<details className="ca-card"><summary>Historie posouzení a rozhodnutí ({history.length})</summary>
    {history.map(h=><div key={h.decisionNo} style={{paddingBlock:8,borderBottom:"1px solid var(--artales-border)"}}>
     <strong>#{h.decisionNo} · {h.label}</strong> · {new Date(h.recordedAt).toLocaleString("cs-CZ")} · <a href={`/member/legal/${id}/audit/${h.decisionNo}`}>Stáhnout JSON</a>
