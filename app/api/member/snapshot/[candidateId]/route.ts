@@ -21,8 +21,22 @@ async function readForm(req:Request,id:string){
    throw Error("snapshot_invalid_content_type");
  const len=req.headers.get("content-length");
  if(!len || !/^\d{1,4}$/.test(len) || Number(len)>2048)throw Error("snapshot_form_oversize");
- const body=await req.text();
- if(Buffer.byteLength(body)>2048 || Buffer.byteLength(body)!==Number(len))throw Error("snapshot_form_invalid");
+ const reader=req.body?.getReader();
+ if(!reader)throw Error("snapshot_form_invalid");
+ const parts:Uint8Array[]=[];let actual=0;
+ try{
+  for(;;){
+   const {done,value}=await reader.read();
+   if(done)break;
+   actual+=value.byteLength;
+   if(actual>2048)throw Error("snapshot_form_oversize");
+   parts.push(value);
+  }
+ }finally{await reader.cancel().catch(()=>{});reader.releaseLock();}
+ if(actual!==Number(len))throw Error("snapshot_form_invalid");
+ let body:string;
+ try{body=new TextDecoder("utf-8",{fatal:true}).decode(Buffer.concat(parts.map(x=>Buffer.from(x)),actual));}
+ catch{throw Error("snapshot_form_invalid");}
  const form=new URLSearchParams(body);
  if([...form.keys()].length!==2 || form.getAll("candidate_id").length!==1 ||
     form.getAll("private_original_retention").length!==1 ||
