@@ -99,7 +99,7 @@ function zipParts(bytes: Uint8Array): RawSourcePart[] {
         offset === 0xffffffff || packed > LIMIT || plain > MAX_EXPANDED ||
         expanded + plain > MAX_EXPANDED || offset + 30 > start ||
         b.readUInt32LE(offset) !== 0x04034b50 ||
-        b.readUInt16LE(offset + 8) !== flags || b.readUInt16LE(offset + 10) !== method ||
+        b.readUInt16LE(offset + 6) !== flags || b.readUInt16LE(offset + 8) !== method ||
         (method === 0 && packed !== plain)) throw new Error("unsafe_epub_entry");
     let name: string, localName: string;
     try {

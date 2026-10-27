@@ -1,0 +1,106 @@
+import test from "node:test";
+import assert from "node:assert/strict";
+import * as mirror from "../lib/ingest/snapshot389Mirror.ts";
+import * as capture from "../lib/ingest/rawSourceSnapshot.ts";
+import * as catalogModule from "../lib/legal/gutenbergCatalog.ts";
+const {getGutenbergBook}=catalogModule.default??catalogModule;
+import * as mirrorPilotModule from "../lib/ingest/snapshot389Pilot.ts";
+const {runSnapshot389MirrorPilot}=mirrorPilotModule.default??mirrorPilotModule;
+const {fetchSnapshot389FromMirror,SNAPSHOT_389_MIRROR_URL}=mirror.default??mirror;
+const {captureRawSource}=capture.default??capture;
+const selection={schema:"artales.snapshot-selection.v1",candidate_id:"98508359-bce1-4e73-b842-b69a9d1112d0",
+source_id:"2fbd2f26-89e6-464e-b048-001a8e533cc0",decision_no:9,
+catalog_url:"https://www.gutenberg.org/ebooks/389",
+original_locked_url:"https://www.gutenberg.org/ebooks/389.epub.noimages",
+chosen_url:"https://www.gutenberg.org/ebooks/389.epub.noimages",
+format:"epub",selection:"locked",correspondence:"locked_file",
+source_archive_status:"not_captured",semantic_ready:false,publication_authorized:false};
+test("mirror URL fixed to officially listed host and one Gutenberg ID",()=>{
+ const u=new URL(SNAPSHOT_389_MIRROR_URL);assert.equal(u.hostname,"gutenberg.pglaf.org");
+ assert.equal(u.pathname,"/cache/epub/389/pg389.epub");
+});
+test("rejects non-200 mirror response, does not redirect",async()=>{
+ await assert.rejects(()=>fetchSnapshot389FromMirror(async (_u,opt)=>{
+ assert.equal(opt.redirect,"error");return new Response(null,{status:404})}),/mirror_unavailable/);
+});
+test("rejects oversized binary before any capture",async()=>{
+ await assert.rejects(()=>fetchSnapshot389FromMirror(async()=>new Response(new Uint8Array(64),{status:200,headers:{"content-length":String(9*1024*1024)}})),/declared_size_invalid/);
+});
+test("real mirror #389 source can be captured byte-for-byte (not Storage)",{skip:process.env.ARTALES_SNAPSHOT_389_LIVE_MIRROR!=="1"},async()=>{
+ const catalog=await getGutenbergBook(389);
+ assert.equal(catalog?.id,389,"Live Gutenberg catalog must resolve");
+ assert.match(catalog?.title??"",/Great God Pan/i);
+ assert(catalog?.authors.some(p=>/Machen/i.test(p.name)));
+ const input=await fetchSnapshot389FromMirror();
+ let result;
+ try {
+   result=captureRawSource(selection,input,new Date().toISOString());
+ } catch (e) {
+   const b=Buffer.from(input);
+   const end=(()=>{for(let i=b.length-22;i>=Math.max(0,b.length-65557);i--)if(b.readUInt32LE(i)===0x06054b50&&i+22+b.readUInt16LE(i+20)===b.length)return i;return -1})();
+   const entries=[];
+   if(end>=0){
+     const start=b.readUInt32LE(end+16);
+     let p=start;
+     const count=b.readUInt16LE(end+10),size=b.readUInt32LE(end+12);
+     for(let i=0;i<Math.min(count,400);i++){
+       if(p+46>end||b.readUInt32LE(p)!==0x02014b50)break;
+       const flags=b.readUInt16LE(p+8),method=b.readUInt16LE(p+10),packed=b.readUInt32LE(p+20),plain=b.readUInt32LE(p+24),
+         nameLen=b.readUInt16LE(p+28),extra=b.readUInt16LE(p+30),comment=b.readUInt16LE(p+32),
+         offset=b.readUInt32LE(p+42),next=p+46+nameLen+extra+comment;
+       const issues=[];
+       if(next>end)issues.push("next_gt_end");
+       if(!nameLen)issues.push("missing_name");
+       if(![0,8].includes(method))issues.push("method_unsupported");
+       if(flags&0x0041)issues.push("encryption_flag");
+       if(packed===0xffffffff||plain===0xffffffff||offset===0xffffffff)issues.push("zip64");
+       if(packed>8*1024*1024||plain>48*1024*1024)issues.push("item_size");
+       if(offset+30>start)issues.push("offset_overlap");
+       if(offset+30<=start){
+         if(b.readUInt32LE(offset)!==0x04034b50)issues.push("local_signature");
+         if(b.readUInt16LE(offset+8)!==flags)issues.push("flags_mismatch");
+         if(b.readUInt16LE(offset+10)!==method)issues.push("method_mismatch");
+       }
+       if(method===0&&packed!==plain)issues.push("stored_mismatch");
+       if(issues.length) entries.push({i,name:b.subarray(p+46,p+46+nameLen).toString("utf8").slice(0,110),method,flags,packed,plain,offset,issues});
+       p=next;
+     }
+     console.log("EPUB_FORENSIC",JSON.stringify({bytes:b.length,entries:count,cdStart:start,cdSize:size,bad:entries.slice(0,8)}));
+   }
+   throw e;
+ }
+ assert.equal(result.manifest.sha256.length,64);
+ assert.equal(result.manifest.bytes,input.length);
+ assert(result.manifest.parts.some(x=>x.kind==="literary_text_candidate"));
+ assert.equal(result.manifest.selection.decision_no,9);
+ console.log(JSON.stringify({mirror:SNAPSHOT_389_MIRROR_URL,bytes:input.length,sha256:result.manifest.sha256,embedded_images:result.manifest.embedded_images,archive_ready:result.manifest.archive_ready,parts:result.manifest.parts.length}));
+ // Real Gutenberg bytes + in-memory Storage adapter: verify the exact hash
+ // after simulated upload/readback without modifying production Storage.
+ const actor="96c2425e-2b4e-4177-a2da-de7fa1d27256";
+ const plan={
+   schema:"artales.legal-snapshot-handoff.v1",selection,
+   actor_id:actor,legal_territory:"CZ/EU",
+   legal_decision_ref:"legal:98508359-bce1-4e73-b842-b69a9d1112d0:9",
+   locked_at:"2026-10-26T14:51:59.422Z",
+   approval_recorded_at:"2026-10-26T14:51:36.162Z",
+   review_status:"legal_lock_verified",binary_status:"awaiting_verified_acquisition",
+   archive_status:"not_persisted",semantic_ready:false,publication_authorized:false
+ };
+ let stored=null,uploads=0;
+ const adapter={storage:{from(bucket){assert.equal(bucket,"artales-raw-snapshots");return {
+   async upload(path,bytes,opts){assert.equal(opts.upsert,false);stored=Uint8Array.from(bytes);uploads++;return {error:null}},
+   async download(){return {data:{async arrayBuffer(){return Uint8Array.from(stored).buffer}},error:null}}
+ }}}};
+ await assert.rejects(()=>runSnapshot389MirrorPilot(plan,input,actor,new Date().toISOString(),adapter,false),/private_image_retention_not_approved/);
+ assert.equal(uploads,0);
+ const archived=await runSnapshot389MirrorPilot(plan,input,actor,new Date().toISOString(),adapter,true);
+ assert.equal(uploads,1);
+ assert.equal(archived.archive.sha256,result.manifest.sha256);
+ assert.equal(archived.archive.storage_readback,"sha256_verified");
+ assert.equal(archived.archive.private_image_retention,"admin_confirmed_archive_only");
+ assert.equal(archived.archive.embedded_images,1);
+ assert.equal(archived.archive.image_publication_clearance,"excluded");
+ assert.equal(archived.publication_authorized,false);
+ console.log("REAL_SOURCE_MOCK_ARCHIVE",JSON.stringify({bytes:archived.archive.bytes,sha256:archived.archive.sha256,readback:archived.archive.storage_readback,embedded_images:1,production_storage_modified:false}));
+
+});
