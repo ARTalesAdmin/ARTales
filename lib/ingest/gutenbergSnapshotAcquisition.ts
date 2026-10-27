@@ -61,8 +61,7 @@ export function proposeGutenbergSnapshotAcquisition(
   }
   // EPUB is the only production-proven archive format for this provider.
   // A same-book HTML/TXT alternative remains an explicit future adapter.
-  if (plan.selection.format !== "epub" ||
-      plan.selection.format === "html") {
+  if (plan.selection.format !== "epub") {
     throw new Error("snapshot_provider_format_unsupported");
   }
   if (plan.selection.selection === "same_record_alternative" &&
