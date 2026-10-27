@@ -1,4 +1,6 @@
 import {NextResponse} from "next/server";
+import {requireAdmin} from "@/lib/guards";
+import {validateSnapshot389Form} from "@/lib/ingest/server/snapshot389RequestGate";
 import {createClient} from "@/lib/supabase/server";
 import {readLockedSnapshotPacket} from "@/lib/ingest/server/readLockedSnapshotPacket";
 import {SNAPSHOT_389_CANDIDATE,runSnapshot389MirrorPilot} from "@/lib/ingest/snapshot389Pilot";
@@ -9,29 +11,21 @@ import {planLockedSnapshot} from "@/lib/ingest/verifiedLegalSnapshotHandoff";
 export const runtime="nodejs";
 export const dynamic="force-dynamic";
 export const maxDuration=60;
-const allowedOrigins=new Set(["https://artales.net","https://www.artales.net"]);
+
 
 /** One-shot, single-title, authenticated admin-only archive.
  * A successful response is byte preservation evidence, not publication or
  * completion of the independent text/edition/provenance review.
  */
 export async function POST(request:Request){
-  const origin=request.headers.get("origin")??"";
-  const fetchSite=request.headers.get("sec-fetch-site");
-  if(!allowedOrigins.has(origin)||(fetchSite&&fetchSite!=="same-origin"))
-    return NextResponse.json({ok:false,error:"invalid_request_origin"},{status:403});
-  const contentType=request.headers.get("content-type")??"";
-  const declared=Number(request.headers.get("content-length"));
-  if(!/^application\/x-www-form-urlencoded(?:\s*;|$)/i.test(contentType) ||
-      !Number.isSafeInteger(declared)||declared<1||declared>2048)
-    return NextResponse.json({ok:false,error:"invalid_request_body"},{status:413});
-  let body:URLSearchParams;
-  try {body=new URLSearchParams(await request.text());}
-  catch{return NextResponse.json({ok:false,error:"invalid_form"},{status:400});}
-  if(body.get("candidate_id")!==SNAPSHOT_389_CANDIDATE ||
-      body.get("confirm_private_original_with_cover")!=="archive_only_not_publication" ||
-      [...body.keys()].some(k=>!["candidate_id","confirm_private_original_with_cover"].includes(k)))
-    return NextResponse.json({ok:false,error:"explicit_confirmation_required"},{status:400});
+  try {await validateSnapshot389Form(request);}
+  catch(error){
+    const code=error instanceof Error?error.message:"invalid_request";
+    return NextResponse.json({ok:false,error:code},
+      {status:code==="invalid_request_body"?413:403,headers:{"Cache-Control":"no-store"}});
+  }
+  // Preserve Next.js redirect semantics for anonymous / non-admin clients.
+  await requireAdmin();
   try{
     const legal=await readLockedSnapshotPacket(SNAPSHOT_389_CANDIDATE);
     // This is user-scoped Supabase, NOT a service-role bypass.
