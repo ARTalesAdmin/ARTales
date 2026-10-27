@@ -2,6 +2,8 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import * as mirror from "../lib/ingest/snapshot389Mirror.ts";
 import * as capture from "../lib/ingest/rawSourceSnapshot.ts";
+import * as mirrorPilotModule from "../lib/ingest/snapshot389Pilot.ts";
+const {runSnapshot389MirrorPilot}=mirrorPilotModule.default??mirrorPilotModule;
 const {fetchSnapshot389FromMirror,SNAPSHOT_389_MIRROR_URL}=mirror.default??mirror;
 const {captureRawSource}=capture.default??capture;
 const selection={schema:"artales.snapshot-selection.v1",candidate_id:"98508359-bce1-4e73-b842-b69a9d1112d0",
@@ -66,4 +68,33 @@ test("real mirror #389 source can be captured byte-for-byte (not Storage)",{skip
  assert(result.manifest.parts.some(x=>x.kind==="literary_text_candidate"));
  assert.equal(result.manifest.selection.decision_no,9);
  console.log(JSON.stringify({mirror:SNAPSHOT_389_MIRROR_URL,bytes:input.length,sha256:result.manifest.sha256,embedded_images:result.manifest.embedded_images,archive_ready:result.manifest.archive_ready,parts:result.manifest.parts.length}));
+ // Real Gutenberg bytes + in-memory Storage adapter: verify the exact hash
+ // after simulated upload/readback without modifying production Storage.
+ const actor="96c2425e-2b4e-4177-a2da-de7fa1d27256";
+ const plan={
+   schema:"artales.legal-snapshot-handoff.v1",selection,
+   actor_id:actor,legal_territory:"CZ/EU",
+   legal_decision_ref:"legal:98508359-bce1-4e73-b842-b69a9d1112d0:9",
+   locked_at:"2026-10-26T14:51:59.422Z",
+   approval_recorded_at:"2026-10-26T14:51:36.162Z",
+   review_status:"legal_lock_verified",binary_status:"awaiting_verified_acquisition",
+   archive_status:"not_persisted",semantic_ready:false,publication_authorized:false
+ };
+ let stored=null,uploads=0;
+ const adapter={storage:{from(bucket){assert.equal(bucket,"artales-raw-snapshots");return {
+   async upload(path,bytes,opts){assert.equal(opts.upsert,false);stored=Uint8Array.from(bytes);uploads++;return {error:null}},
+   async download(){return {data:{async arrayBuffer(){return Uint8Array.from(stored).buffer}},error:null}}
+ }}}};
+ await assert.rejects(()=>runSnapshot389MirrorPilot(plan,input,actor,new Date().toISOString(),adapter,false),/private_image_retention_not_approved/);
+ assert.equal(uploads,0);
+ const archived=await runSnapshot389MirrorPilot(plan,input,actor,new Date().toISOString(),adapter,true);
+ assert.equal(uploads,1);
+ assert.equal(archived.archive.sha256,result.manifest.sha256);
+ assert.equal(archived.archive.storage_readback,"sha256_verified");
+ assert.equal(archived.archive.private_image_retention,"admin_confirmed_archive_only");
+ assert.equal(archived.archive.embedded_images,1);
+ assert.equal(archived.archive.image_publication_clearance,"excluded");
+ assert.equal(archived.publication_authorized,false);
+ console.log("REAL_SOURCE_MOCK_ARCHIVE",JSON.stringify({bytes:archived.archive.bytes,sha256:archived.archive.sha256,readback:archived.archive.storage_readback,embedded_images:1,production_storage_modified:false}));
+
 });
