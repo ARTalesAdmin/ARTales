@@ -5,12 +5,17 @@ on:
       - main
     paths:
       - 'lib/ingest/**'
+      - 'app/api/member/snapshot/**'
+      - 'app/member/admin/snapshot-389/**'
+      - 'supabase/migrations/20261027083000_snapshot389_storage_admin_rls.sql'
       - 'lib/legal/gutenbergCatalog.ts'
       - 'tests/lockedSnapshotSelection.test.ts'
       - 'tests/rawSourceSnapshot.test.mjs'
       - 'tests/verifiedLegalSnapshotHandoff.test.mjs'
       - 'tests/snapshot389Pilot.test.mjs'
       - 'tests/snapshot389Mirror.test.mjs'
+      - 'tests/snapshot389RequestGate.test.mjs'
+      - 'tests/snapshot389Security.test.mjs'
       - '.github/workflows/artales-snapshot-selection-check.yml'
 permissions:
   contents: read
@@ -32,8 +37,10 @@ jobs:
       - run: npx tsx --test tests/verifiedLegalSnapshotHandoff.test.mjs
       - run: npx tsx --test tests/snapshot389Pilot.test.mjs
       - run: npx tsx --test tests/snapshot389Mirror.test.mjs
+      - run: npx tsx --test tests/snapshot389RequestGate.test.mjs
+      - run: node --test tests/snapshot389Security.test.mjs
       - run: npx tsc --noEmit
-      - run: npx eslint lib/ingest/lockedSnapshotSelection.ts lib/ingest/rawSourceSnapshot.ts lib/ingest/rawSourceArchive.ts lib/ingest/verifiedLegalSnapshotHandoff.ts lib/ingest/snapshot389Pilot.ts lib/ingest/snapshot389Mirror.ts lib/ingest/server/readLockedSnapshotPacket.ts tests/lockedSnapshotSelection.test.ts tests/rawSourceSnapshot.test.mjs tests/verifiedLegalSnapshotHandoff.test.mjs tests/snapshot389Pilot.test.mjs tests/snapshot389Mirror.test.mjs
+      - run: npx eslint lib/ingest/lockedSnapshotSelection.ts lib/ingest/rawSourceSnapshot.ts lib/ingest/rawSourceArchive.ts lib/ingest/verifiedLegalSnapshotHandoff.ts lib/ingest/snapshot389Pilot.ts lib/ingest/snapshot389Mirror.ts lib/ingest/server/readLockedSnapshotPacket.ts lib/ingest/server/snapshot389RequestGate.ts app/api/member/snapshot/389/route.ts app/member/admin/snapshot-389/page.tsx tests/lockedSnapshotSelection.test.ts tests/rawSourceSnapshot.test.mjs tests/verifiedLegalSnapshotHandoff.test.mjs tests/snapshot389Pilot.test.mjs tests/snapshot389Mirror.test.mjs tests/snapshot389RequestGate.test.mjs tests/snapshot389Security.test.mjs
 
   snapshot-389-live-acquisition:
     runs-on: ubuntu-latest
