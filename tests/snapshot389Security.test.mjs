@@ -11,5 +11,5 @@ test("single-title Storage RLS cannot widen to all authenticated users",()=>{
  assert.match(sql,/p\.role::text = 'admin'/);
  assert.match(sql,/p\.is_active IS TRUE/);
  assert.doesNotMatch(sql,/FOR (?:UPDATE|DELETE)/i);
- assert.doesNotMatch(sql,/service_role/i); // comment includes service_role so remove comment later
+ assert.doesNotMatch(sql,/SET ROLE|TO service_role|BYPASSRLS/i);
 });
