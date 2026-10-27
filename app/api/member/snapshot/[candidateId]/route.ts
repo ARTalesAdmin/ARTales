@@ -1,4 +1,5 @@
 import {NextResponse} from "next/server";
+import {SNAPSHOT_GENERAL_V1_ENABLED} from "@/lib/ingest/snapshotGeneralFlag";
 import {requireAdmin} from "@/lib/guards";
 import {createClient} from "@/lib/supabase/server";
 import {getGutenbergBook} from "@/lib/legal/gutenbergCatalog";
@@ -45,6 +46,7 @@ async function loadMirror(url:string):Promise<Uint8Array>{
 }
 export async function POST(req:Request,{params}:{params:Promise<{candidateId:string}>}){
  const {candidateId}=await params;
+ if(!SNAPSHOT_GENERAL_V1_ENABLED)return NextResponse.json({ok:false,error:"snapshot_general_not_activated"},{status:503});
  if(!uuid.test(candidateId))return NextResponse.json({ok:false,error:"invalid_candidate"},{status:400});
  try{await readForm(req,candidateId);}catch(e){
   return NextResponse.json({ok:false,error:e instanceof Error?e.message:"snapshot_bad_request"},{status:403});
