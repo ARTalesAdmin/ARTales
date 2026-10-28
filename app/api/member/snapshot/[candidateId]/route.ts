@@ -8,6 +8,7 @@ import {planLockedSnapshot} from "@/lib/ingest/verifiedLegalSnapshotHandoff";
 import {proposeGutenbergSnapshotAcquisition} from "@/lib/ingest/gutenbergSnapshotAcquisition";
 import {captureRawSource} from "@/lib/ingest/rawSourceSnapshot";
 import {archiveRawSource,RAW_SNAPSHOT_BUCKET} from "@/lib/ingest/rawSourceArchive";
+import {deriveSnapshotPreflight} from "@/lib/ingest/generalSnapshotPreflight";
 export const runtime="nodejs";
 export const dynamic="force-dynamic";
 export const maxDuration=60;
@@ -67,11 +68,20 @@ export async function POST(req:Request,{params}:{params:Promise<{candidateId:str
  }
  const actor=await requireAdmin();
  const db=await createClient();
- const {data:existing,error:existingError}=await db.from("candidate_snapshots")
-  .select("sha256,storage_path,readback_status").eq("candidate_id",candidateId).maybeSingle();
- if(existingError)return NextResponse.json({ok:false,error:"snapshot_registry_not_ready"},{status:503});
- if(existing)return NextResponse.redirect(new URL(
+ // Both registry reads precede any network acquisition or Storage write.
+ // A persisted claim without a verified receipt must never initiate a retry.
+ const [{data:existing,error:existingError},{data:priorClaim,error:priorClaimError}]=await Promise.all([
+  db.from("candidate_snapshots").select("sha256,storage_path,readback_status").eq("candidate_id",candidateId).maybeSingle(),
+  db.from("candidate_snapshot_claims").select("candidate_id").eq("candidate_id",candidateId).maybeSingle()
+ ]);
+ if(existingError||priorClaimError)return NextResponse.json({ok:false,error:"snapshot_registry_not_ready"},{status:503});
+ const preflight=deriveSnapshotPreflight(Boolean(existing),Boolean(priorClaim));
+ if(preflight==="already_archived")return NextResponse.redirect(new URL(
   `/member/snapshot/${candidateId}?result=already_archived`,req.url),303);
+ if(preflight==="claim_without_receipt")return NextResponse.json({
+  ok:false,error:"snapshot_claim_exists_inspection_required",claimed:false,
+  reconciliation_required:true
+ },{status:409,headers:{"Cache-Control":"no-store"}});
  let claimed=false;
  try{
   const packet=await readLockedSnapshotPacket(candidateId);
@@ -88,7 +98,18 @@ export async function POST(req:Request,{params}:{params:Promise<{candidateId:str
     candidate_id:candidateId,source_id:packet.lock.source_id,decision_no:packet.lock.decision_no,
     gutenberg_id:id,sha256:captured.manifest.sha256,claimed_by:actor.id
   });
-  if(claimError)throw Error("snapshot_already_claimed_or_denied");
+  if(claimError){
+    // Concurrent requests may both pass preflight. The immutable DB primary key
+    // arbitrates; inspect the actual outcome before giving recovery guidance.
+    const {data:observedClaim,error:readbackError}=await db.from("candidate_snapshot_claims")
+      .select("candidate_id").eq("candidate_id",candidateId).maybeSingle();
+    if(readbackError)throw Error("snapshot_claim_readback_failed");
+    if(observedClaim)return NextResponse.json({
+      ok:false,error:"snapshot_claim_exists_inspection_required",claimed:false,
+      reconciliation_required:true
+    },{status:409,headers:{"Cache-Control":"no-store"}});
+    throw Error("snapshot_already_claimed_or_denied");
+  }
   claimed=true;
   const receipt=await archiveRawSource(captured,db,RAW_SNAPSHOT_BUCKET,
     captured.manifest.embedded_images?{privateImageRetentionApproved:true}:undefined);
