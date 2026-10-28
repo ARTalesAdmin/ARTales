@@ -25,7 +25,8 @@ export default async function SnapshotCandidate({params,searchParams}:{params:Pr
   <section className="ca-card"><h2>Archiv původního vydání</h2>
    <p><strong>{state.actionLabel}</strong></p>
    {state.status==="archived_verification_pending"?<p>Originál je uložen; čeká kontrola shody edice a převzetí do nového semantického Editoru.</p>:null}
-   {state.status==="archiving"?<p>Předchozí pokus již převzal archivaci. Neopakujte ji; při problému proveďte kontrolu.</p>:null}
+   {state.status==="archiving"?<p>Archivace probíhá. Nový pokus nezahajujte.</p>:null}
+   {state.status==="reconciliation_required"?<p role="alert">Existuje dřívější požadavek bez potvrzeného archivního zápisu. Administrátor musí ověřit soukromý originál, SHA-256 a registr. Neopakujte automaticky.</p>:null}
    {state.status==="ready"&&profile.role==="admin"?<>
     <p>Akce jednorázově získá EPUB schválené Gutenberg edice, uloží původní bajty do soukromého archivu a ověří SHA-256. Ilustrace mohou být uchovány pouze soukromě, nikdy automaticky publikovány.</p>
     <form action={`/api/member/snapshot/${candidateId}`} method="post" className="ca-form">

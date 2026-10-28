@@ -34,7 +34,13 @@ assert_eq "$(root -c "select count(*) from pg_class where relname in ('candidate
 assert_eq "$(root -c "select count(*) from pg_roles where rolname in ('snapshot_ci_admin','snapshot_ci_editor','snapshot_ci_outsider','snapshot_ci_anon') and rolbypassrls")" "0" "all test logins NOBYPASSRLS"
 root -f supabase/migrations/20261027131000_artales_snapshot389_register.sql >/dev/null
 assert_eq "$(root -c "select count(*) from public.candidate_snapshots where gutenberg_id=389")" "1" "existing #389 registered once"
-assert_eq "$(root -c "select count(*) from storage.objects where bucket_id='artales-raw-snapshots'")" "1" "#389 was not re-uploaded"
+# Prior pilot RLS was wildcarded; ensure new exact-digest rule is not bypassed by OR.
+WRONG389="gutenberg/389/sha256/$(printf 'e%.0s' {1..64})/original.epub"
+deny "legacy #389 wrong digest upload" snapshot_ci_admin "$A" "insert into storage.objects(bucket_id,name,owner_id,metadata) values ('artales-raw-snapshots','$WRONG389','$A','{\"mimetype\":\"application/epub+zip\",\"size\":120}'::jsonb)"
+root -c "insert into storage.objects(bucket_id,name,owner_id,metadata) values ('artales-raw-snapshots','$WRONG389','$A','{\"mimetype\":\"application/epub+zip\",\"size\":120}'::jsonb)" >/dev/null
+assert_eq "$(actor snapshot_ci_admin "$A" "select count(*) from storage.objects where name='$WRONG389'")" "0" "legacy #389 wrong digest read denied"
+assert_eq "$(root -c "select count(*) from storage.objects where bucket_id='artales-raw-snapshots' and name='gutenberg/389/sha256/2e12d981f9c916e5c6264e284f97b03c8dda52f6de720451d32967d0be8736df/original.epub'")" "1" "#389 original untouched"
+assert_eq "$(root -c "select count(*) from storage.objects where bucket_id='artales-raw-snapshots'")" "2" "two fixture records: existing archive + synthetic denied path"
 assert_eq "$(actor snapshot_ci_editor "$E" "select count(*) from public.candidate_snapshots where gutenberg_id=389")" "1" "editor sees archived #389"
 assert_eq "$(actor snapshot_ci_outsider "$O" "select count(*) from public.candidate_snapshots")" "0" "ordinary member sees no receipts"
 deny "anonymous receipt access" snapshot_ci_anon "$O" "select * from public.candidate_snapshots"
@@ -46,6 +52,13 @@ deny "editor claim" snapshot_ci_editor "$E" "insert into public.candidate_snapsh
 deny "member claim" snapshot_ci_outsider "$O" "insert into public.candidate_snapshot_claims values ('bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb','cccccccc-cccc-4ccc-8ccc-cccccccccccc',11,11,'$SHA11','$O',now())"
 actor snapshot_ci_admin "$A" "insert into public.candidate_snapshot_claims(candidate_id,source_id,decision_no,gutenberg_id,sha256,claimed_by) values ('bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb','cccccccc-cccc-4ccc-8ccc-cccccccccccc',11,11,'$SHA11','$A')" >/dev/null
 deny "duplicate claim" snapshot_ci_admin "$A" "insert into public.candidate_snapshot_claims(candidate_id,source_id,decision_no,gutenberg_id,sha256,claimed_by) values ('bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb','cccccccc-cccc-4ccc-8ccc-cccccccccccc',11,11,'$SHA11','$A')"
+# A second legal candidate with the SAME verified Gutenberg catalog must not
+# generate a second physical import under a different candidate ID.
+root -c "insert into public.work_candidates values ('ffffffff-ffff-4fff-8fff-ffffffffffff')" >/dev/null
+root -c "insert into public.candidate_legal_sources values ('eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeef','ffffffff-ffff-4fff-8fff-ffffffffffff')" >/dev/null
+root -c "insert into public.candidate_legal_decisions values (13,'ffffffff-ffff-4fff-8fff-ffffffffffff','eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeef','approved','CZ/EU')" >/dev/null
+root -c "insert into public.candidate_legal_locks values ('ffffffff-ffff-4fff-8fff-ffffffffffff','eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeef',13,'https://www.gutenberg.org/ebooks/11','https://www.gutenberg.org/ebooks/11.epub.noimages')" >/dev/null
+deny "cross-candidate duplicate Gutenberg ID" snapshot_ci_admin "$A" "insert into public.candidate_snapshot_claims(candidate_id,source_id,decision_no,gutenberg_id,sha256,claimed_by) values ('ffffffff-ffff-4fff-8fff-ffffffffffff','eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeef',13,11,'$SHA11','$A')"
 RECEIPT="insert into public.candidate_snapshots(candidate_id,source_id,decision_no,gutenberg_id,catalog_url,locked_file_url,selected_file_url,acquired_from,storage_path,sha256,byte_count,embedded_images,captured_at,recorded_by,private_image_retention) values ('bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb','cccccccc-cccc-4ccc-8ccc-cccccccccccc',11,11,'https://www.gutenberg.org/ebooks/11','https://www.gutenberg.org/ebooks/11.epub.noimages','https://www.gutenberg.org/ebooks/11.epub.noimages','https://gutenberg.pglaf.org/cache/epub/11/pg11.epub','$PATH11','$SHA11',120,0,now(),'$A','none')"
 deny "receipt before object exists" snapshot_ci_admin "$A" "$RECEIPT"
 deny "wrong SHA storage path" snapshot_ci_admin "$A" "insert into storage.objects(bucket_id,name,owner_id,metadata) values ('artales-raw-snapshots','gutenberg/11/sha256/$SHA12/original.epub','$A','{\"mimetype\":\"application/epub+zip\",\"size\":120}'::jsonb)"

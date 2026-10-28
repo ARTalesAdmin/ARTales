@@ -12,6 +12,10 @@ test("candidate claim and receipt use separate one-record primary keys",()=>{
  assert.match(schema,/c\.sha256=split_part\(name,'\/',4\)/);
  assert.match(schema,/c\.sha256=candidate_snapshots\.sha256/);
  assert.doesNotMatch(schema,/FOR UPDATE|FOR DELETE|GRANT UPDATE|GRANT DELETE/i);
+ assert.match(schema,/gutenberg_id integer NOT NULL UNIQUE/);
+ assert.match(schema,/ALTER POLICY artales_snapshot389_admin_insert_v1/);
+ assert.match(schema,/ALTER POLICY artales_snapshot389_admin_readback_v1/);
+ assert.match(schema,/name='gutenberg\/389\/sha256\/2e12d981/);
 });
 test("source status and runtime remain held until activation",()=>{
  assert.match(route,/SNAPSHOT_GENERAL_V1_ENABLED/);

@@ -5,7 +5,7 @@ CREATE TABLE public.candidate_snapshot_claims (
   candidate_id uuid PRIMARY KEY REFERENCES public.candidate_legal_locks(candidate_id) ON DELETE RESTRICT,
   source_id uuid NOT NULL REFERENCES public.candidate_legal_sources(id) ON DELETE RESTRICT,
   decision_no bigint NOT NULL REFERENCES public.candidate_legal_decisions(decision_no) ON DELETE RESTRICT,
-  gutenberg_id integer NOT NULL CHECK (gutenberg_id BETWEEN 1 AND 99999999),
+  gutenberg_id integer NOT NULL UNIQUE CHECK (gutenberg_id BETWEEN 1 AND 99999999),
   sha256 text NOT NULL CHECK (sha256 ~ '^[a-f0-9]{64}$'),
   claimed_by uuid NOT NULL REFERENCES public.profiles(id),
   claimed_at timestamptz NOT NULL DEFAULT now()
@@ -103,8 +103,23 @@ CREATE POLICY artales_snapshot_receipt_insert_v1 ON public.candidate_snapshots
         AND o.metadata->>'mimetype'='application/epub+zip'
         AND o.metadata->>'size'=candidate_snapshots.byte_count::text));
 
--- The old #389 policy stays intact. New Storage reads and inserts require
--- the exact previously claimed Gutenberg ID AND digest.
+-- Supabase permissive policies combine with OR. Narrow the historical #389
+-- policies to the independently verified ORIGINAL, not arbitrary digests.
+-- Intentionally fails closed if expected legacy policy names drift.
+ALTER POLICY artales_snapshot389_admin_insert_v1 ON storage.objects
+  WITH CHECK (bucket_id='artales-raw-snapshots'
+    AND name='gutenberg/389/sha256/2e12d981f9c916e5c6264e284f97b03c8dda52f6de720451d32967d0be8736df/original.epub'
+    AND owner_id=(SELECT auth.uid())::text
+    AND EXISTS (SELECT 1 FROM public.profiles p WHERE p.id=(SELECT auth.uid())
+      AND p.role::text='admin' AND p.is_active));
+ALTER POLICY artales_snapshot389_admin_readback_v1 ON storage.objects
+  USING (bucket_id='artales-raw-snapshots'
+    AND name='gutenberg/389/sha256/2e12d981f9c916e5c6264e284f97b03c8dda52f6de720451d32967d0be8736df/original.epub'
+    AND EXISTS (SELECT 1 FROM public.profiles p WHERE p.id=(SELECT auth.uid())
+      AND p.role::text='admin' AND p.is_active));
+
+-- New Storage reads and inserts require exact claimed Gutenberg ID + digest.
+-- Unique Gutenberg ID for v1 prevents cross-candidate duplicate imports.
 CREATE POLICY artales_snapshot_general_upload_v1 ON storage.objects
   FOR INSERT TO authenticated
   WITH CHECK (bucket_id='artales-raw-snapshots'

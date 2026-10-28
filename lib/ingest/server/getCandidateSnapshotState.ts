@@ -21,6 +21,6 @@ export async function getCandidateSnapshotState(candidateId:string):Promise<Snap
   approved:decision?.verdict==="approved",locked:true,sourceAvailable:true,
   receipt:receipt?{sha256:receipt.sha256,readbackVerified:receipt.readback_status==="sha256_verified"}:null,
   editionVerified:receipt?.content_correspondence==="confirmed",
-  operation:!receipt&&claim?"archiving":null
+  claimWithoutReceipt:Boolean(!receipt&&claim)
  });
 }
