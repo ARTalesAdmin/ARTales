@@ -1,7 +1,7 @@
 -- ARTales Snapshot #389 single-title Storage grant.
--- STAGED ONLY. Apply only upon separate authorization of this exact migration.
+-- Authorized 2026-10-27: apply the reviewed single-title policies.
 -- No service_role usage or grants to anon; immutable INSERT + private readback.
-BEGIN;
+
 CREATE POLICY "artales_snapshot389_admin_insert_v1"
 ON storage.objects FOR INSERT TO authenticated
 WITH CHECK (
@@ -23,4 +23,3 @@ USING (
     WHERE p.id = (SELECT auth.uid()) AND p.role::text = 'admin' AND p.is_active IS TRUE
   )
 );
-COMMIT;
