@@ -20,5 +20,7 @@ test("the shared action is a consent-gated POST directly from Legal detail",()=>
 test("editors and unresolved claims cannot accidentally offer an archive button",()=>{
  assert.match(panel,/state\.status==="ready"&&!canArchive/);
  assert.match(panel,/state\.status==="reconciliation_required"/);
- assert.match(state,/sourceAvailable:\/\^https:/);
+ assert.match(state,/const acquisitionEligible=/);
+ assert.match(state,/facts\?\.textFormat==="epub"/);
+ assert.match(state,/sourceAvailable:acquisitionEligible/);
 });
