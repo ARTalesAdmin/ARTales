@@ -1,0 +1,40 @@
+name: ARTales Snapshot isolated PostgreSQL 17 validation
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'supabase/migrations/20261028110000_artales_snapshot_general_v1.sql'
+      - 'supabase/migrations/20261028111000_artales_snapshot389_register.sql'
+      - 'tests/db/snapshotGeneralFixture.sql'
+      - 'tests/db/snapshotGeneralIsolation.sh'
+      - '.github/workflows/artales-snapshot-postgres-isolation.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  isolated-postgres-rls:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_PASSWORD: ci-root-only
+          POSTGRES_DB: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 12
+    steps:
+      - uses: actions/checkout@v4
+      - name: PostgreSQL client
+        run: command -v psql || (sudo apt-get update && sudo apt-get install -y postgresql-client)
+      - name: Apply both staged migrations to synthetic data as isolated clients
+        env:
+          PGHOST: 127.0.0.1
+          PGPORT: '5432'
+          PGDATABASE: postgres
+        run: bash tests/db/snapshotGeneralIsolation.sh
