@@ -62,4 +62,13 @@ Any unknown output, identity mismatch or provider denial => STOP.
 Never repair ledger, use another privileged token or repeat a provider APPLY
 after unknown result. All changes to this PR are source-only and revertible.
 
+## Operator selection follow-up (2026-10-28)
+The previously proposed linked CLI mode is **not yet approved for a live run**.
+A dedicated Postgres least-privilege identity is preferred to avoid linked-mode
+temporary privileged logins. That proposed direct-URL CLI mode changes the exact
+argv contract and cannot be verified by the current v0.1 linked-output parser.
+Do not treat its JSON tests as provider-authenticated proof for a DB-URL session.
+See docs/protocols/ARTALES_MIGRATION_PLAN_OPERATOR_SELECTION_V0.md.
+No credential, JIT setting or DB role has been created.
+
 Dependencies: PR #280 and #281 merged into main. PR #279 and #278 remain Draft.
