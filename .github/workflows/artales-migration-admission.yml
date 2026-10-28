@@ -9,6 +9,9 @@ on:
       - 'tests/artalesMigrationPlanV01.test.mjs'
       - 'supabase/migrations/**'
       - 'docs/protocols/ARTALES_MIGRATION_PLAN_OPERATOR_SELECTION_V0.md'
+      - 'tests/artalesPlanRoleAudit.test.mjs'
+      - 'tests/artalesPlanRolePgProof.sh'
+      - 'tests/sql/artalesPlanRoleFixture.sql'
       - 'docs/protocols/ARTALES_MIGRATION_PLAN_V01.md'
       - 'docs/handoffs/ARTALES_MIGRATION_OPERATOR_SELECTION_PHOENIX_2026-10-28.md'
       - '.github/workflows/artales-migration-admission.yml'
@@ -34,3 +37,40 @@ jobs:
         run: node --test tests/artalesMigrationCliEvidence.test.mjs
       - name: Test Supabase CLI 2.122.0 JSON PLAN contract
         run: node --test tests/artalesMigrationPlanV01.test.mjs
+      - name: Test fail-closed proposed role privilege audit
+        run: node --test tests/artalesPlanRoleAudit.test.mjs
+
+  disposable-postgres-17-role-proof:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_PASSWORD: fixture-only-do-not-use
+          POSTGRES_DB: artales_plan_disposable
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d artales_plan_disposable"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Ensure Postgres client for disposable CI database
+        run: |
+          if ! command -v psql >/dev/null 2>&1; then
+            sudo apt-get update -qq
+            sudo apt-get install -y -qq postgresql-client
+          fi
+      - name: Prove narrow table grants AND inherited PUBLIC SECURITY DEFINER risk
+        env:
+          PGHOST: 127.0.0.1
+          PGPORT: '5432'
+          PGDATABASE: artales_plan_disposable
+          PGUSER: postgres
+          PGPASSWORD: fixture-only-do-not-use
+        run: bash tests/artalesPlanRolePgProof.sh

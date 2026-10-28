@@ -75,6 +75,25 @@ strategy (command-line URL arguments can leak secrets to process inspection).
 Do not run these commands before a reviewed direct-URL proof validator,
 bounded operator approval and actual JIT identity provisioning.
 
+## Fresh Production effective-privilege audit — read-only 2026-10-28
+
+The proposed `artales_migration_plan_reader` role **does not exist** in Production.
+Catalog review found 11 `public` SECURITY DEFINER functions, 10 executable
+through `PUBLIC`. Those functions are owned by `postgres`, and `public`
+has PUBLIC schema USAGE. Examples include membership/AT-credit operations and
+profile onboarding routines; their security must be assessed separately.
+Having NOINHERIT on a new role does **not** negate PUBLIC function EXECUTE.
+An isolated PG17 test proves even a role with ledger-only table SELECT can
+invoke a PUBLIC SECURITY DEFINER routine that changes its owner's private data.
+The fixture-only global REVOKE is a diagnostic control, **not** an authorized
+Production change (it could break existing application callers).
+
+Thus the proposed role is currently **BLOCKED**, not provision-ready. The
+offline `artales-migration-role-audit.mjs` rejects any effectively executable
+SECURITY DEFINER routine or other table read/write grant. Operator attestations
+are not authenticated provider receipts. No blanket PUBLIC revoke or grant
+change is approved, and the CLI plan remains not activated.
+
 ## Before any approved remote PLAN
 1. Audit proposed role's table, schema, function and SECURITY DEFINER
    effective privileges; test it with negative access cases in disposable
