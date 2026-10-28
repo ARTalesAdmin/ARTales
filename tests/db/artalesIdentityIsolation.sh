@@ -23,14 +23,14 @@ E=22222222-2222-4222-8222-222222222222
 A=11111111-1111-4111-8111-111111111111
 root -f tests/db/artalesIdentityFixture.sql >/dev/null
 # Prove fixture models the CURRENT dangerous old DML grant before patch.
-eq "$(root -c "select has_column_privilege('authenticated','public.profiles','role','UPDATE')::text")" t "fixture starts with broad role UPDATE"
+eq "$(root -c "select has_column_privilege('authenticated','public.profiles','role','UPDATE')::text")" true "fixture starts with broad role UPDATE"
 root -f supabase/migrations/20261028091029_artales_identity_role_authority_v1.sql >/dev/null
-eq "$(root -c "select has_column_privilege('authenticated','public.profiles','role','UPDATE')::text")" f "role UPDATE removed"
-eq "$(root -c "select has_column_privilege('authenticated','public.profiles','role','INSERT')::text")" f "role INSERT removed"
-eq "$(root -c "select has_column_privilege('authenticated','public.profiles','is_active','UPDATE')::text")" f "active-state UPDATE removed"
-eq "$(root -c "select has_column_privilege('authenticated','public.invites','invited_role','UPDATE')::text")" f "invite role UPDATE removed"
-eq "$(root -c "select has_column_privilege('authenticated','public.invites','status','UPDATE')::text")" t "manager revoke column allowed"
-eq "$(root -c "select has_table_privilege('service_role','public.profiles','UPDATE')::text")" t "service account retains full profile DML"
+eq "$(root -c "select has_column_privilege('authenticated','public.profiles','role','UPDATE')::text")" false "role UPDATE removed"
+eq "$(root -c "select has_column_privilege('authenticated','public.profiles','role','INSERT')::text")" false "role INSERT removed"
+eq "$(root -c "select has_column_privilege('authenticated','public.profiles','is_active','UPDATE')::text")" false "active-state UPDATE removed"
+eq "$(root -c "select has_column_privilege('authenticated','public.invites','invited_role','UPDATE')::text")" false "invite role UPDATE removed"
+eq "$(root -c "select has_column_privilege('authenticated','public.invites','status','UPDATE')::text")" true "manager revoke column allowed"
+eq "$(root -c "select has_table_privilege('service_role','public.profiles','UPDATE')::text")" true "service account retains full profile DML"
 eq "$(root -c "select count(*) from pg_policies where schemaname='public' and tablename='profiles' and policyname='Users can insert own profile'")" 0 "dangerous self-insert policy removed"
 deny "reader edits own role" identity_ci_reader "$R" "update public.profiles set role='admin' where id='$R'"
 deny "reader deactivation override" identity_ci_reader "$R" "update public.profiles set is_active=true where id='$R'"
