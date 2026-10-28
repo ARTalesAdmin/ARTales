@@ -81,3 +81,24 @@ Phoenix handoff `ARTALES_SNAPSHOT_GENERAL_V1_PHOENIX_2026-10-28.md`.
 - Existing dedicated #389 route remains a separately governed legacy pilot.
 - No merge, APPLY, grants, feature activation or publication is authorized by
   this document; each release gate requires explicit Architect approval.
+
+## 2026-10-28 reprioritization and current production prerequisite
+Architect priority: minimal required fixes, then production rollout of Snapshot
+general v1. Separate PLAN role/JIT/CI executor infrastructure is parked in
+Draft PR #283 until later library work. Do not add a new privileged identity
+merely to generate a plan.
+PR #279 remains the narrower general role-authority correction, Draft and
+unapplied. Live verified authenticated profiles.role remains UPDATE-capable,
+therefore Snapshot's new admin RLS policy cannot be safely activated on that
+profile claim alone. Before general Snapshot feature activation, ensure PR #279
+is executed via a supported approved migration path with independently checked
+ledger/grants/trigger, or an independently verified equivalent authorization
+boundary; do not treat historical survival as a security control.
+Source integration from 2026-10-28 merged main includes migration filename
+canonicalization (#280). New Snapshot selection workflow must refer to
+20261027081945_snapshot389_storage_admin_rls.sql, not historical
+20261027083000. This is source-only correction.
+The old Snapshot release-gate sequence needs review against currently
+selected canonical execution surface: a blocked provider APPLY remains blocked,
+and an exact SQL approval is not execution-surface authority.
+No Snapshot flag activation, publication or DB mutation authorized here.
