@@ -2,9 +2,11 @@
 CREATE ROLE anon NOLOGIN;
 CREATE ROLE authenticated NOLOGIN;
 CREATE ROLE service_role NOLOGIN BYPASSRLS;
+CREATE ROLE identity_ci_anon LOGIN PASSWORD 'ci-actor-only' NOBYPASSRLS;
 CREATE ROLE identity_ci_reader LOGIN PASSWORD 'ci-actor-only' NOBYPASSRLS;
 CREATE ROLE identity_ci_editor LOGIN PASSWORD 'ci-actor-only' NOBYPASSRLS;
 CREATE ROLE identity_ci_admin LOGIN PASSWORD 'ci-actor-only' NOBYPASSRLS;
+GRANT anon TO identity_ci_anon;
 GRANT authenticated TO identity_ci_reader,identity_ci_editor,identity_ci_admin;
 CREATE SCHEMA auth;
 GRANT USAGE ON SCHEMA auth,public TO authenticated,anon;
@@ -40,9 +42,10 @@ CREATE FUNCTION public.artales_find_pending_invite_for_email(input_email text)
 CREATE FUNCTION public.artales_sync_profile_from_auth_user_v081()
  RETURNS trigger LANGUAGE plpgsql SECURITY DEFINER SET search_path=public,auth
  AS $legacy$
- DECLARE raw_role text;
+ DECLARE raw_role text; meta jsonb;
  BEGIN
-  raw_role:=coalesce(new.raw_user_meta_data ->> 'role','reader');
+  meta:=coalesce(new.raw_user_meta_data, '{}'::jsonb);
+  raw_role:=coalesce(meta ->> 'role','reader');
   INSERT INTO public.profiles(id,email,role) VALUES(new.id,new.email,raw_role::public.app_role);
   RETURN new;
  END;

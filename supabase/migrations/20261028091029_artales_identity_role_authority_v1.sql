@@ -4,8 +4,12 @@
 -- Based on verified production RLS, grants, auth.users trigger and v0.8.6 function.
 DO $preflight$
 BEGIN
-  IF NOT EXISTS (SELECT 1 FROM pg_trigger t WHERE t.tgrelid='auth.users'::regclass
-       AND t.tgname='zz_artales_profile_sync_v081' AND t.tgenabled='O')
+  IF NOT EXISTS (SELECT 1 FROM pg_trigger t
+       JOIN pg_proc p ON p.oid=t.tgfoid
+       WHERE t.tgrelid='auth.users'::regclass
+       AND t.tgname='zz_artales_profile_sync_v081' AND t.tgenabled='O'
+       AND p.prosecdef AND pg_get_userbyid(p.proowner)='postgres'
+       AND position('meta ->> ''role''' in pg_get_functiondef(p.oid))>0)
   OR NOT EXISTS (SELECT 1 FROM pg_policies WHERE schemaname='public'
        AND tablename='profiles' AND policyname='Users can update own profile')
   OR NOT EXISTS (SELECT 1 FROM pg_policies WHERE schemaname='public'

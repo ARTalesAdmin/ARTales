@@ -21,8 +21,9 @@ Date: 2026-10-28. Source-only Draft PR, base `main`, separate approval required.
   database invitation, ignoring client-provided `role` metadata.
 - Limit authenticated invitation UPDATE to `status=revoked` on pending
   invitations by authorized managers. Leave service-role acceptance intact.
-- Independent NOBYPASSRLS identities prove reject/allow boundaries and
-  signup with malicious metadata; preserve normal onboarding and revocation.
+- Independent NOBYPASSRLS identities prove reject/allow boundaries, including
+  anon refusal, and signup with malicious metadata; preserve normal onboarding,
+  server-role invite acceptance and editor revocation.
 
 ## Dependencies / approval
 1. Verify exact `main`, CI PASS, and current production permissions.
@@ -31,6 +32,10 @@ Date: 2026-10-28. Source-only Draft PR, base `main`, separate approval required.
 4. Test real signup and invite flows with approved synthetic users only;
    no user role modifications or real customer data in a pilot.
 5. Confirm independent Snapshot PR #278 remains OFF until identity gate passes.
+   Emergency recovery is **forward repair**, not reopening self-service role
+   writes. If the auth trigger fails during signup, stop and inspect auth logs;
+   restore safe server-side signup before permitting public self-service again.
+   Do not globally downgrade/reassign existing profiles or revoke real users.
 6. After activation, review existing privileged profile and invite history
    for anomalous assignments; do not revoke users without an approved procedure.
 
