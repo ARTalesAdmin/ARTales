@@ -58,3 +58,81 @@ Production command. Real provider-linked PLAN and its operator scope still
 require a separate selection/authorization. If CLI JSON differs from our
 existing synthetic offline format, adapt the validator conservatively and
 retest without silently accepting unrecognized output.
+
+## Phoenix handoff — 2026-10-28 · continue in fresh ARTales thread
+
+**Canonical scope:** ARTales production migration runner bootstrap for the
+general Snapshot rollout. Keep the work isolated in
+`feature/artales-production-runner-bootstrap-20261028`,
+[Draft PR #284](https://github.com/ARTalesAdmin/ARTales/pull/284).
+No merge/production provider mutation/credentials granted by this handoff.
+
+### Verified source and provider state
+- **Implementation HEAD independently tested:** `78c7b8a2186651f1d1b363692086699741d20f57`.
+- **CI:** GitHub Actions
+  [#40745758771](https://github.com/ARTalesAdmin/ARTales/actions/runs/40745758771)
+  **SUCCESS** with both `source-only` and `disposable-postgres-cli-json`
+  jobs passing. The latter job's log is evidence; not production execution.
+- Real pinned Supabase CLI **2.122.0** returned JSON for the isolated
+  single pending fixture `20261028190000_artales_disposable_json_probe.sql`.
+  `migration list` returned `{"migrations":[{"local":"20261028190000","remote":"","time":"2026-10-28 19:00:00"}],"message":"Migrations listed"}`.
+  `db push --dry-run` returned
+  `{"upToDate":false,"dryRun":true,"migrations":["20261028190000_artales_disposable_json_probe.sql"],"seeds":[],"roles":[],"message":"Finished supabase db push."}`.
+  Thus observed disposable CLI JSON shapes **match** the prior synthetic PLAN
+  fixture for one pending migration. No schema APPLY occurred.
+- Existing PLAN code is still **offline**; these tests do not prove an
+  authenticated linked-production `migration list`, operator identity, a live
+  production `db push --dry-run`, or permission for SQL mutation.
+- **Production `main` at last readback:** `ec27f82f0862806747ccf5007026377164d68c0c`.
+- **Supabase ARTales Production:** `nmhdwmszbwgrgfbmlguu`. Fresh migration
+  ledger readback shows exactly five applied migrations:
+  `20260926142755_remote_schema`,
+  `20261023063248_prescreen_shadow_library_v1`,
+  `20261024073928_candidate_intake_ab`,
+  `20261025095658_legal_screen_v1`,
+  `20261027081945_snapshot389_storage_admin_rls`.
+  No Identity or general Snapshot migration installed.
+- **Identity Authority PR #279:** Draft, HEAD
+  `cb164af257c41e361369fd4c8cd63748b8c1d00c`;
+  SQL migration `20261028091029_artales_identity_role_authority_v1.sql`
+  required before using Snapshot policies based on `profiles.role`.
+- **Snapshot General PR #278:** Draft, HEAD
+  `e86146cec6e91392bb3075f5b6969925174b4b75`;
+  `20261028110000_artales_snapshot_general_v1.sql` then
+  `20261028111000_artales_snapshot389_register.sql`.
+  Feature `ARTALES_SNAPSHOT_GENERAL_V1` remains disabled.
+- Existing #389 private archive is immutable; no re-upload, publication,
+  new Reader binding, or public image permission inferred.
+
+### Required next continuation — do not restart the offline framework
+1. Rehydrate ARTales AGENTS/WORKFLOW/RELEASE_POLICY, Nexus
+   ADR-0013 and Execution Surface Authority, this handoff, PRs #284/#279/#278,
+   exact CI, and fresh production migration ledger.
+2. Review #284 as the completed **source-only** bootstrap and preserve the
+   green exact-head CI evidence. If this documentation-only handoff is committed,
+   independently verify CI on that final documentation HEAD before calling
+   the PR exact-head green.
+3. Next materially useful work is the **separately authorized operator
+   selection** for a real, read-only production PLAN. Confirm that the intended
+   production identity and access restrictions can be implemented in the
+   protected GitHub environment before creating/asking for Secrets. The
+   `--db-url` disposable test is NOT a linked-project identity proof.
+4. Prove actual production CLI plan: exact `main` SHA, canonical migration
+   inventory, migration list and dry-run, one pending migration only, fresh
+   provider readback. Bind evidence to operator identity, not a pasted claim.
+   Stop on unexpected pending migration, CLI JSON shape, SQL hash or version.
+5. Design and review the separate protected APPLY surface, explicit
+   action-scoped approval, post-approval revalidation and post-apply readback.
+   A blocked MCP provider operation does not authorize a stronger alternate
+   identity or silent SQL/CLI fallback (Nexus ADR-0013).
+6. After independent approvals for source merge, production operator and
+   each exact DB APPLY: Identity #279, Snapshot general schema, #389 evidence
+   registration, app release/flag activation and second-title smoke.
+   Do not infer authorizations or execute a later step from this handoff.
+
+### Explicit non-actions and limits
+PR #284 remains Draft; `main` unchanged; no merge, production SQL,
+production CLI PLAN, APPLY, credentials, GitHub Secrets/environment changes,
+Vercel env changes, feature enable or publication from this slice.
+Previous Supabase MCP `apply_migration` rejection is not resolved, and the
+reason for it remains unknown. No rewrite of applied migration history.
