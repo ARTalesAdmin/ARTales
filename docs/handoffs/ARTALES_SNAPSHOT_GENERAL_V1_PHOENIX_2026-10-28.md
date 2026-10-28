@@ -28,7 +28,7 @@
 - Akce administrátora podle konkrétního kandidáta `app/api/member/snapshot/[candidateId]/route.ts`: nový readback Legal locku; limit formuláře, kontrola původu požadavku, explicitní soukromá archivace; omezené získání EPUBu; SHA-256; neměnný upload s následným readbackem; registrace až po úspěchu.
 - `app/member/snapshot/[candidateId]/page.tsx` + odkaz z detailu Legal: stav i viditelná akce; editor vidí stav, admin může spustit. Opakovaný archivovaný kandidát má zobrazit existující receipt bez nového uploadu.
 - `lib/ingest/server/getCandidateSnapshotState.ts`: předává stav z registru. `ARTALES_SNAPSHOT_GENERAL_V1=enabled` je **default OFF**, route a stránka zůstávají nezpřístupněné, dokud nebudou migrace a oprávnění bezpečně ověřeny.
-- **Připravené, NEAPLIKOVANÉ SQL:** `supabase/migrations/20261027130000_artales_snapshot_general_v1.sql` (neměnné claims/receipts, vazba claimu na přesný SHA-256, RLS, úzký multi-title private Storage grant); `supabase/migrations/20261027131000_artales_snapshot389_register.sql` (evidence-backed jednorázové převzetí již uloženého #389 **bez nového stažení či nahrání**).
+- **Připravené, NEAPLIKOVANÉ SQL:** `supabase/migrations/20261028110000_artales_snapshot_general_v1.sql` (neměnné claims/receipts, vazba claimu na přesný SHA-256, RLS, úzký multi-title private Storage grant); `supabase/migrations/20261028111000_artales_snapshot389_register.sql` (evidence-backed jednorázové převzetí již uloženého #389 **bez nového stažení či nahrání**).
 - Zelené zdrojové testy a build **nejsou důkazem funkční obecné produkční pipeline**. Pro jiný právně schválený a uzamčený titul dosud není E2E.
 - Podrobný průběžný dokument: `docs/handoffs/ARTALES_SNAPSHOT_GENERALIZATION_2026-10-27.md`.
 

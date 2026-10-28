@@ -3,8 +3,8 @@ on:
   pull_request:
     branches: [main]
     paths:
-      - 'supabase/migrations/20261027130000_artales_snapshot_general_v1.sql'
-      - 'supabase/migrations/20261027131000_artales_snapshot389_register.sql'
+      - 'supabase/migrations/20261028110000_artales_snapshot_general_v1.sql'
+      - 'supabase/migrations/20261028111000_artales_snapshot389_register.sql'
       - 'tests/db/snapshotGeneralFixture.sql'
       - 'tests/db/snapshotGeneralIsolation.sh'
       - '.github/workflows/artales-snapshot-postgres-isolation.yml'

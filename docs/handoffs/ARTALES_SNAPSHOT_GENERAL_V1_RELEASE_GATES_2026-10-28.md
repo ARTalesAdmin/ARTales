@@ -21,8 +21,8 @@ Phoenix handoff `ARTALES_SNAPSHOT_GENERAL_V1_PHOENIX_2026-10-28.md`.
   `98508359-bce1-4e73-b842-b69a9d1112d0`, legal decision 9, owner verified,
   125934-byte EPUB, SHA-256
   `2e12d981f9c916e5c6264e284f97b03c8dda52f6de720451d32967d0be8736df`.
-- Staged migrations: `20261027130000_artales_snapshot_general_v1.sql` and
-  `20261027131000_artales_snapshot389_register.sql`.
+- Staged migrations: `20261028110000_artales_snapshot_general_v1.sql` and
+  `20261028111000_artales_snapshot389_register.sql`.
 - Isolated PostgreSQL 17 CI uses independent NOBYPASSRLS clients, validates
   admin/editor/anonymous policies, exact digest access, concurrency, duplicate
   claims and #389 readback registration.
@@ -42,11 +42,11 @@ Phoenix handoff `ARTALES_SNAPSHOT_GENERAL_V1_PHOENIX_2026-10-28.md`.
 ## Phase B — database rollout (requires separate explicit approval)
 1. Take fresh read-only production evidence. Verify bucket contains exactly one
    #389 object and generic registry tables/policies are absent.
-2. Apply ONLY the reviewed schema/RLS migration `20261027130000...`.
+2. Apply ONLY the reviewed schema/RLS migration `20261028110000...`.
    Read back exact table constraints, grants, Storage policies and advisors.
    Feature flag remains OFF; source branch still unmerged.
 3. After new dedicated authorization, apply ONLY evidence-backed backfill
-   `20261027131000...`. It aborts if historical evidence or prior claim differs.
+   `20261028111000...`. It aborts if historical evidence or prior claim differs.
    Read back exactly one candidate claim and exactly one receipt for #389,
    exact SHA/path/size and unchanged Storage object count (=1).
 4. Do NOT reapply a failed migration blindly. Investigate partial state first.
@@ -102,3 +102,15 @@ The old Snapshot release-gate sequence needs review against currently
 selected canonical execution surface: a blocked provider APPLY remains blocked,
 and an exact SQL approval is not execution-surface authority.
 No Snapshot flag activation, publication or DB mutation authorized here.
+
+## 2026-10-28 — release migration ordering correction
+
+The staged, never-applied Snapshot schema/backfill migration filenames were
+renumbered to 20261028110000 and 20261028111000, respectively, retaining
+identical SQL blobs, so that the identity hardening migration
+20261028091029_artales_identity_role_authority_v1.sql is processed first.
+The five registered Production migrations were not renamed or replayed.
+Required release sequence: identity authority verified -> Snapshot schema
+verified -> evidence-backed #389 backfill verified -> app rollout with flag OFF
+-> separately authorized feature activation. Do not apply or merge based on
+this source-only ordering note.

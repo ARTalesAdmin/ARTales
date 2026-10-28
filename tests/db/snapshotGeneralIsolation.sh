@@ -29,10 +29,10 @@ SHA11=$(printf 'a%.0s' {1..64})
 SHA12=$(printf 'b%.0s' {1..64})
 PATH11="gutenberg/11/sha256/$SHA11/original.epub"
 root -f tests/db/snapshotGeneralFixture.sql >/dev/null
-root -f supabase/migrations/20261027130000_artales_snapshot_general_v1.sql >/dev/null
+root -f supabase/migrations/20261028110000_artales_snapshot_general_v1.sql >/dev/null
 assert_eq "$(root -c "select count(*) from pg_class where relname in ('candidate_snapshots','candidate_snapshot_claims') and relrowsecurity")" "2" "both tables have RLS"
 assert_eq "$(root -c "select count(*) from pg_roles where rolname in ('snapshot_ci_admin','snapshot_ci_editor','snapshot_ci_outsider','snapshot_ci_anon') and rolbypassrls")" "0" "all test logins NOBYPASSRLS"
-root -f supabase/migrations/20261027131000_artales_snapshot389_register.sql >/dev/null
+root -f supabase/migrations/20261028111000_artales_snapshot389_register.sql >/dev/null
 assert_eq "$(root -c "select count(*) from public.candidate_snapshots where gutenberg_id=389")" "1" "existing #389 registered once"
 # Prior pilot RLS was wildcarded; ensure new exact-digest rule is not bypassed by OR.
 WRONG389="gutenberg/389/sha256/$(printf 'e%.0s' {1..64})/original.epub"
@@ -44,7 +44,7 @@ assert_eq "$(root -c "select count(*) from storage.objects where bucket_id='arta
 assert_eq "$(actor snapshot_ci_editor "$E" "select count(*) from public.candidate_snapshots where gutenberg_id=389")" "1" "editor sees archived #389"
 assert_eq "$(actor snapshot_ci_outsider "$O" "select count(*) from public.candidate_snapshots")" "0" "ordinary member sees no receipts"
 deny "anonymous receipt access" snapshot_ci_anon "$O" "select * from public.candidate_snapshots"
-if root -f supabase/migrations/20261027131000_artales_snapshot389_register.sql >/tmp/snapshot-ci-backfill.out 2>&1; then
+if root -f supabase/migrations/20261028111000_artales_snapshot389_register.sql >/tmp/snapshot-ci-backfill.out 2>&1; then
   echo "FAIL: duplicate #389 backfill allowed" >&2; exit 1
 fi
 assert_eq "$(root -c "select count(*) from public.candidate_snapshots")" "1" "duplicate #389 backfill changed nothing"
