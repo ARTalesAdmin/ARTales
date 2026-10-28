@@ -4,6 +4,8 @@ import {notFound} from "next/navigation";
 import {AutomaticLegalScreen} from "@/components/legal/AutomaticLegalScreen";
 import {LegalReviewActions} from "@/components/legal/LegalReviewActions";
 import {LegalPipelineNav} from "@/components/legal/LegalPipelineNav";
+import {SnapshotActionPanel} from "@/components/snapshot/SnapshotActionPanel";
+import {getCandidateSnapshotState} from "@/lib/ingest/server/getCandidateSnapshotState";
 import {makeReviewHistory} from "@/lib/legal/reviewHistory";
 import {LEGAL_SCREEN_V1_ENABLED} from "@/lib/legal/featureFlag";
 import {requireEditorOrAdmin} from "@/lib/guards";
@@ -25,6 +27,8 @@ export default async function LegalScreen({params,searchParams}:{params:Promise<
  if(!c)notFound();
  const {checks,history}=makeReviewHistory(decisions??[],sources??[]);
  const latest=decisions?.[0];
+ // Do not query unapplied registry tables before explicit activation.
+ const snapshotState=lock&&SNAPSHOT_GENERAL_V1_ENABLED?await getCandidateSnapshotState(id):null;
  const q=await searchParams;
  return <main className="ca-root">
   <header className="ca-head"><div><p className="ca-eyebrow">Právní screen · CZ/EU</p><h1>{c.proposed_title}</h1><p>{c.proposed_author_name}</p></div></header>
@@ -41,7 +45,13 @@ export default async function LegalScreen({params,searchParams}:{params:Promise<
     <button className="ca-btn ca-primary" type="submit">Uzamknout a připravit pro Snapshot</button>
    </form>
   </section>:null}
-  {lock?<section className="ca-card"><h2>Připraveno ke Snapshotu</h2><p>Zdroj je uzamčený. Snapshot se zatím nevytváří automaticky.</p>{SNAPSHOT_GENERAL_V1_ENABLED?<Link className="ca-btn ca-primary" href={`/member/snapshot/${id}`}>Snapshot — stav a vytvoření</Link>:<span>Snapshot — čeká na aktivaci</span>} <a className="ca-btn ca-secondary" href={`/member/candidates/${id}/legal/report`}>Stáhnout předávací protokol (JSON)</a></section>:null}
+  {lock?<section className="ca-card"><h2>Snapshot původní edice</h2>
+    {snapshotState?<>
+      <SnapshotActionPanel candidateId={id} state={snapshotState} canArchive={profile.role==="admin"}/>
+      <p className="ca-links"><Link href={`/member/snapshot/${id}`}>Detail a evidence Snapshotu</Link></p>
+    </>:<p>Právní zdroj je uzamčen. Obecná archivace čeká na schválenou aktivaci.</p>}
+    <a className="ca-btn ca-secondary" href={`/member/candidates/${id}/legal/report`}>Stáhnout předávací protokol (JSON)</a>
+   </section>:null}
   {history.length?<details className="ca-card"><summary>Historie posouzení a rozhodnutí ({history.length})</summary>
    {history.map(h=><div key={h.decisionNo} style={{paddingBlock:8,borderBottom:"1px solid var(--artales-border)"}}>
     <strong>#{h.decisionNo} · {h.label}</strong> · {new Date(h.recordedAt).toLocaleString("cs-CZ")} · <a href={`/member/legal/${id}/audit/${h.decisionNo}`}>Stáhnout JSON</a>
