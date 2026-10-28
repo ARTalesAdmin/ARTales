@@ -41,7 +41,7 @@ eq "$(actor identity_ci_reader "$R" "update public.profiles set display_name='Fo
 deny "reader rewrites invite target role" identity_ci_reader "$R" "update public.invites set invited_role='editor' where id='aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa'"
 eq "$(actor identity_ci_reader "$R" "update public.invites set status='pending' where id='aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa' returning id")" "" "reader cannot resurrect accepted invitation"
 eq "$(actor identity_ci_editor "$E" "update public.invites set status='revoked' where id='bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb' returning status")" "revoked" "editor revocation still works"
-deny "editor reopens revoked invite" identity_ci_editor "$E" "update public.invites set status='pending' where id='bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb'"
+eq "$(actor identity_ci_editor "$E" "update public.invites set status='pending' where id='bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb' returning id")" "" "revoked invitation cannot be reopened"
 # Auth signup trigger executes as trusted trigger owner, NOT an authenticated client.
 root -c "insert into auth.users(id,email,raw_user_meta_data) values('55555555-5555-4555-8555-555555555555','forged@invalid.test','{\"role\":\"admin\"}'::jsonb)" >/dev/null
 eq "$(root -c "select role::text from public.profiles where id='55555555-5555-4555-8555-555555555555'")" reader "uninvited metadata cannot assign admin"
