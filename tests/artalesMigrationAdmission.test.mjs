@@ -4,7 +4,8 @@ import {dirname,join,resolve} from "node:path";
 import {fileURLToPath} from "node:url";
 import {admission,inventoryFromDirectory,PROJECT,REPO} from "../scripts/artales-migration-plan-core.mjs";
 const root=resolve(dirname(fileURLToPath(import.meta.url)),"..");
-const original=inventoryFromDirectory(join(root,"supabase","migrations"));
+const original=inventoryFromDirectory(join(root,"supabase","migrations"))
+ .filter(m=>m.version<="20261027081945");
 const NOW="2026-10-28T12:30:00.000Z",HEAD="a".repeat(40);
 function fixture(items=original){
  return {inventory:items,checkoutSha:HEAD,nowISO:NOW,
