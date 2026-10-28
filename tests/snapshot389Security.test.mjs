@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import {readFileSync} from "node:fs";
-const sql=readFileSync("supabase/migrations/20261027083000_snapshot389_storage_admin_rls.sql","utf8");
+const sql=readFileSync("supabase/migrations/20261027081945_snapshot389_storage_admin_rls.sql","utf8");
 test("single-title Storage RLS cannot widen to all authenticated users",()=>{
  assert.match(sql,/FOR INSERT TO authenticated/);
  assert.match(sql,/FOR SELECT TO authenticated/);
