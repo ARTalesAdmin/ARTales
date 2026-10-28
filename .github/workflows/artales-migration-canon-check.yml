@@ -5,6 +5,7 @@ on:
     paths:
       - 'supabase/migrations/**'
       - 'scripts/check-artales-production-migration-canon.mjs'
+      - 'tests/snapshot389Security.test.mjs'
       - '.github/workflows/artales-migration-canon-check.yml'
   workflow_dispatch:
 permissions:
