@@ -16,7 +16,7 @@ export function validateBootstrapWorkflow(input){
   /\b(?:contents|actions|id-token|deployments)\s*:\s*write\b/i
  ];
  if(blocked.some(p=>p.test(input)))throw Error("bootstrap_privileged_capability");
- for(const line of ["permissions:","  contents: read","  pull_request:","  workflow_dispatch:","persist-credentials: false","tests/artalesProductionRunnerContract.test.mjs"]) {
+ for(const line of ["permissions:","  contents: read","  pull_request:","  workflow_dispatch:","persist-credentials: false","tests/artalesProductionRunnerContract.test.mjs","tests/artalesProductionPlanReview.test.mjs"]) {
   if(!input.includes(line))throw Error("bootstrap_guard_missing:"+line);
  }
  return BOOTSTRAP;

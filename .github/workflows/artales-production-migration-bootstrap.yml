@@ -6,6 +6,9 @@ on:
       - '.github/workflows/artales-production-migration-bootstrap.yml'
       - 'scripts/artales-production-runner-contract.mjs'
       - 'tests/artalesProductionRunnerContract.test.mjs'
+      - 'scripts/artales-production-plan-review.mjs'
+      - 'scripts/artales-production-plan-review-cli.mjs'
+      - 'tests/artalesProductionPlanReview.test.mjs'
       - 'docs/protocols/ARTALES_PRODUCTION_RUNNER_BOOTSTRAP_V0.md'
   workflow_dispatch:
 permissions:
@@ -24,7 +27,7 @@ jobs:
         with:
           node-version: '22'
       - name: Verify runner has no write capability
-        run: node --test tests/artalesProductionRunnerContract.test.mjs
+        run: node --test tests/artalesProductionRunnerContract.test.mjs tests/artalesProductionPlanReview.test.mjs
       - name: Verify canonical applied migration identities
         run: node scripts/check-artales-production-migration-canon.mjs
       - name: Verify existing offline migration admission
