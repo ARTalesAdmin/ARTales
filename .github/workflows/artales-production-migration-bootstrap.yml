@@ -6,6 +6,8 @@ on:
       - '.github/workflows/artales-production-migration-bootstrap.yml'
       - 'scripts/artales-production-runner-contract.mjs'
       - 'tests/artalesProductionRunnerContract.test.mjs'
+      - 'scripts/artales-production-one-migration-stage.mjs'
+      - 'tests/artalesProductionOneMigrationStage.test.mjs'
       - 'scripts/artales-production-plan-review.mjs'
       - 'scripts/artales-production-plan-review-cli.mjs'
       - 'tests/artalesProductionPlanReview.test.mjs'
@@ -31,7 +33,7 @@ jobs:
         with:
           node-version: '22'
       - name: Verify runner has no write capability
-        run: node --test tests/artalesProductionRunnerContract.test.mjs tests/artalesProductionPlanReview.test.mjs
+        run: node --test tests/artalesProductionRunnerContract.test.mjs tests/artalesProductionPlanReview.test.mjs tests/artalesProductionOneMigrationStage.test.mjs
       - name: Verify pinned Supabase CLI help without auth or provider access
         run: |
           node --test tests/artalesProductionCliHelpProbe.test.mjs
