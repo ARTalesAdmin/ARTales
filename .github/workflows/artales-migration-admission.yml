@@ -8,6 +8,9 @@ on:
       - 'tests/artalesMigrationCliEvidence.test.mjs'
       - 'tests/artalesMigrationPlanV01.test.mjs'
       - 'supabase/migrations/**'
+      - 'docs/protocols/ARTALES_MIGRATION_PLAN_OPERATOR_SELECTION_V0.md'
+      - 'docs/protocols/ARTALES_MIGRATION_PLAN_V01.md'
+      - 'docs/handoffs/ARTALES_MIGRATION_OPERATOR_SELECTION_PHOENIX_2026-10-28.md'
       - '.github/workflows/artales-migration-admission.yml'
   workflow_dispatch:
 permissions:
