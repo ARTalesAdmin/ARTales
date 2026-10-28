@@ -6,6 +6,7 @@ on:
       - 'scripts/artales-migration-*'
       - 'tests/artalesMigrationAdmission.test.mjs'
       - 'tests/artalesMigrationCliEvidence.test.mjs'
+      - 'tests/artalesMigrationPlanV01.test.mjs'
       - 'supabase/migrations/**'
       - '.github/workflows/artales-migration-admission.yml'
   workflow_dispatch:
@@ -28,3 +29,5 @@ jobs:
         run: node --test tests/artalesMigrationAdmission.test.mjs
       - name: Test synthetic CLI migration list and dry-run transcripts
         run: node --test tests/artalesMigrationCliEvidence.test.mjs
+      - name: Test Supabase CLI 2.122.0 JSON PLAN contract
+        run: node --test tests/artalesMigrationPlanV01.test.mjs
