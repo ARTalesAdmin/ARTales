@@ -1,0 +1,33 @@
+name: ARTales exact migration admission (offline)
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'scripts/artales-migration-*'
+      - 'tests/artalesMigrationAdmission.test.mjs'
+      - 'tests/artalesMigrationCliEvidence.test.mjs'
+      - 'tests/artalesMigrationPlanV01.test.mjs'
+      - 'supabase/migrations/**'
+      - '.github/workflows/artales-migration-admission.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  offline-admission:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Check canonical existing ledger identities
+        run: node scripts/check-artales-production-migration-canon.mjs
+      - name: Test fail-closed admission
+        run: node --test tests/artalesMigrationAdmission.test.mjs
+      - name: Test synthetic CLI migration list and dry-run transcripts
+        run: node --test tests/artalesMigrationCliEvidence.test.mjs
+      - name: Test Supabase CLI 2.122.0 JSON PLAN contract
+        run: node --test tests/artalesMigrationPlanV01.test.mjs
