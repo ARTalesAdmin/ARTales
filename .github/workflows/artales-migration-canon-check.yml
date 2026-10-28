@@ -1,0 +1,21 @@
+name: ARTales Production migration ledger source-identity guard
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'supabase/migrations/**'
+      - 'scripts/check-artales-production-migration-canon.mjs'
+      - '.github/workflows/artales-migration-canon-check.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  check-source-ledger-identities:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Verify source inventory and immutable Production SQL fingerprints
+        run: node scripts/check-artales-production-migration-canon.mjs
