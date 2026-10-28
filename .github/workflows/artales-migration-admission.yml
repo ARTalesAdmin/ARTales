@@ -5,6 +5,7 @@ on:
     paths:
       - 'scripts/artales-migration-*'
       - 'tests/artalesMigrationAdmission.test.mjs'
+      - 'tests/artalesMigrationCliEvidence.test.mjs'
       - 'supabase/migrations/**'
       - '.github/workflows/artales-migration-admission.yml'
   workflow_dispatch:
@@ -25,3 +26,5 @@ jobs:
         run: node scripts/check-artales-production-migration-canon.mjs
       - name: Test fail-closed admission
         run: node --test tests/artalesMigrationAdmission.test.mjs
+      - name: Test synthetic CLI migration list and dry-run transcripts
+        run: node --test tests/artalesMigrationCliEvidence.test.mjs
