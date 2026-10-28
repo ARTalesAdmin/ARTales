@@ -6,6 +6,8 @@ on:
       - 'supabase/migrations/**'
       - 'scripts/check-artales-production-migration-canon.mjs'
       - 'tests/snapshot389Security.test.mjs'
+      - 'docs/protocols/ARTALES_PRODUCTION_MIGRATIONS.md'
+      - 'docs/handoffs/ARTALES_MIGRATION_CANON_RECONCILIATION_2026-10-28.md'
       - '.github/workflows/artales-migration-canon-check.yml'
   workflow_dispatch:
 permissions:

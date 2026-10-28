@@ -22,10 +22,21 @@ actual Production ledger versions, mirror exact historical #389 SQL, add
 offline fingerprint check and ARTales-specific production-migration runbook.
 No DB/Env/config mutation, no ledger history update, no duplicate apply.
 
+**GitHub Production coupling evidence (resolved at observed time):**
+On 2026-10-28 12:38 local, Architect-supplied screenshot of ARTales
+Production Supabase **Settings > Integrations > GitHub** showed
+**"Choose GitHub repository"** with no selected repository. Therefore
+no Supabase GitHub integration was configured for automatic Production
+migration deployment. The separate Data API integration is unrelated.
+Independent read-only GitHub scan: all six main-repo Actions workflows
+lack database apply/push. This is a human-observed UI + repo-scan
+assertion, **not** a provider integrations API readback or a claim that
+the explicit `Deploy to production` switch was inspected. Reconfirm
+at every future merge if configuration changes.
+
 **Open blockers:**
-1. Confirm Supabase GitHub Integration `Deploy to production` disabled
-   for ARTales before merging any migration file; main deploy can never
-   silently apply a DB migration.
+1. Confirm no new Supabase GitHub repository connection / automatic
+   Production deployment immediately before an authorized merge.
 2. Establish/select an ARTales-scoped operator or executor via a separate
    authorization. The previous `mcp__Supabase__apply_migration` call was
    blocked by platform safety and cannot be bypassed using manual SQL.
@@ -40,4 +51,7 @@ No DB/Env/config mutation, no ledger history update, no duplicate apply.
 but this PR is source-only and performs no provider DB mutations.
 **Env:** no. **Rollback:** revert this source-only PR before any future
 approved Production migration that depends on it.
-**Status:** proposed, exact CI/merge/production evidence pending.
+**Status:** proposed; source CI PASS on
+`83f498dedfdd5030634885748950ea899ec311a7` before UI evidence update;
+new exact-head CI, merge authority, and Production migration execution
+remain pending. No Production change performed.

@@ -41,6 +41,33 @@ The reconciliation changes repository filenames and mirrors already-applied
 SQL as repository evidence only. It MUST NOT execute migration SQL, apply a
 repair, change Supabase credentials, re-run #389, or alter the Production ledger.
 
+## Production GitHub coupling evidence — observed 2026-10-28
+
+The Architect provided screenshots from the live ARTales Production project
+`nmhdwmszbwgrgfbmlguu`, at **Settings > Integrations** (12:38 Prague time).
+The GitHub card displayed **"Choose GitHub repository"**, not a selected
+repository. Therefore, at the observed time **the Supabase GitHub integration
+was not connected to a repository**; there was no GitHub-driven automatic
+`Deploy to production` path configured through that integration.
+
+The separate **Integrations > Data API** screenshot showed Data API installed;
+it is not evidence of GitHub-driven SQL deployment.
+
+Additional repo readback on 2026-10-28: the six GitHub Actions workflow
+files on `main` had no `supabase db push`, `apply_migration`, `psql`,
+or SQL production deployment job. This does **not** prove that no external,
+manually initiated or future execution surface could mutate Production.
+
+Evidence class: **human-observed dashboard screenshot + read-only GitHub
+workflow inspection**, not an authenticated Supabase integrations API response.
+Do not represent it as the literal switch `Deploy to production=disabled`,
+because that switch was not present for an unconnected integration.
+
+This is sufficient evidence of **no current Supabase GitHub auto-deploy
+coupling via this integration**, not permanent authorization. Recheck the
+connected repository and any production auto-deploy setting immediately
+before each future migration-file merge, especially after integration changes.
+
 ## Canonical forward flow — pending independent executor approval
 
 1. Author an exact versioned migration in an isolated PR, with rationale,
@@ -68,9 +95,11 @@ repair, change Supabase credentials, re-run #389, or alter the Production ledger
 
 ## Next ARTales steps
 
-- This reconciliation PR: source-only, must pass exact-head CI; no merge
-  until explicit approval and the production GitHub integration coupling is
-  independently checked.
+- This reconciliation PR: source-only; migration inventory and Snapshot CI
+  passed on `83f498dedfdd5030634885748950ea899ec311a7` before this evidence
+  commit. The integration no-repository UI evidence is now captured above.
+  Rerun CI on this final head and obtain separate exact-PR merge authorization.
+  No Production APPLY follows from a repository merge.
 - Identity Authority PR #279: stay Draft/not-applied. After this source
   reconciliation is accepted, refresh base + CI, then plan only that exact
   migration under a separately authorized, supported executor.
