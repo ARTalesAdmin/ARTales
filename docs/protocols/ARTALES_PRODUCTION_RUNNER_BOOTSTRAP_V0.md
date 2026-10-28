@@ -39,3 +39,22 @@ After the design has passed review and been explicitly approved as the ARTales p
 ## Pinned CLI help probe (source-only)
 
 The isolated GitHub Actions test installs exactly `supabase@2.122.0` in an unprivileged job and runs only `--version`, `migration list --help` and `db push --help`. It never links/authenticates/connects to a database. The probe checks CLI flags used by the existing offline PLAN v0.1 validator, and fails with sanitized command help if flags are unavailable. A green probe shows CLI command-line option compatibility **only**, not that the previous synthetic JSON output schema is real. No secrets or provider identities are present.
+
+## Real CLI JSON probe against disposable PG17
+
+An isolated GitHub Actions job adds a temporary PostgreSQL 17 service on
+`127.0.0.1:5432` using only synthetic credentials. It creates a new scratch
+project with a single `SELECT 1` fixture migration and uses pinned CLI
+`2.122.0` with `migration list --db-url ... --output-format json` and
+`db push --db-url ... --dry-run --skip-vault --output-format json`.
+The job prints sanitized JSON result shape to its own CI logs and fails if
+command exit status, JSON parsing or disposable-URL / dry-run protection fails.
+There is **no production access, no linked project, no production PLAN** and no
+ability to apply the fixture. This provides real CLI output evidence distinct
+from synthetic PLAN tests.
+
+Note: `--db-url` against a local Postgres fixture is not the future linked
+Production command. Real provider-linked PLAN and its operator scope still
+require a separate selection/authorization. If CLI JSON differs from our
+existing synthetic offline format, adapt the validator conservatively and
+retest without silently accepting unrecognized output.
