@@ -136,3 +136,27 @@ production CLI PLAN, APPLY, credentials, GitHub Secrets/environment changes,
 Vercel env changes, feature enable or publication from this slice.
 Previous Supabase MCP `apply_migration` rejection is not resolved, and the
 reason for it remains unknown. No rewrite of applied migration history.
+
+## PLAN operator design selected — Architect decision 2026-10-31 (source-only)
+
+Decision scope: the Architect accepted **the proposed narrow, separate read-only PLAN operator design** for ARTales Production project `nmhdwmszbwgrgfbmlguu`. This records design selection ONLY; it does not approve role creation, database grants, token issuance, GitHub Environment or Secret changes, credentials, authentication transitions, live Production PLAN, workflow dispatch, source merge or APPLY. No granted authority carries forward.
+
+### Proposed identity and execution surface
+- Operator: dedicated PostgreSQL login **`artales_prod_plan_ro`** (proposed; not created). It must not be a Supabase project owner, `postgres` account, `service_role`, generic service token or broad personal access token. Database privileges shall be constrained to CONNECT and read-only access necessary to inspect `supabase_migrations.schema_migrations`. Verify effective privileges, memberships, default PUBLIC grants, and negative CREATE/INSERT/UPDATE/DELETE capability tests before use. A `default_transaction_read_only` setting alone is not a privilege boundary.
+- Surface: separate GitHub Actions environment **`artales-production-plan`** (proposed; not configured) with a human required reviewer, `main`-only deployment-branch restriction, environment-scoped credential (not repository/PR secret), read-only `GITHUB_TOKEN`, and a workflow which cannot run PR-authored code with credentials. Operator review and actual provider PLAN need separate authorization.
+- Credential: an explicitly scoped **database connection for this read-only role**, not the administrative project database password. No real credentials in code, PR descriptions, workflow logs, chat, temporary reports or artifacts. Operator binding and host/project identity must be independently verified; a pasted `projectRef` is not sufficient proof.
+- PLAN operations: a pinned CLI 2.122.0 `migration list` plus `db push --dry-run --skip-vault` and a read-only provider-ledger/fingerprint check against immutable `main` SHA. Enforce zero or exactly one selected pending migration as appropriate; a future APPLY requires exactly one. No `migration repair`, `db pull`, `--include-seed`, `--include-roles` or real `db push` in PLAN.
+- **Unresolved CLI adapter mismatch:** existing `planCommands()` and proof validator require exact `--linked --project-ref` argv, but the proposed least-privileged Postgres operator would use `--db-url`. Do NOT create a credential or claim a live PLAN until the existing validator is conservatively adapted to a credential-redacted, independently bound `--db-url` observation mode (without duplicating its admission engine), and the pinned CLI has been demonstrated to work with a genuinely read-only Postgres role on disposable PG17. If the CLI attempts any write or requires owner-level privileges even for dry-run, stop and review rather than expand permissions.
+- The source-only one-migration staging helper is **not** a database PLAN, operator identity proof, or permission to exclude pending work without review. Verify staged history and deferred-file digests. Source target is exact, clean, approved `main` only.
+
+### Human setup sequence (not yet authorized to perform)
+1. After offline proof and review, request a **separate narrow Production identity/grant approval**. The human creates the proposed read-only login and checks role privileges in Supabase using an explicitly reviewed exact operation. No admin login/SQL Editor fallback merely to get around the prior blocked MCP apply request.
+2. After a **separate GitHub configuration approval**, the human configures `artales-production-plan`: required human reviewer, selected `main` branch, and one environment-scoped secret for the restricted DB connection. Never expose a privileged provider credential to the source-only PR workflow.
+3. After the source-only PLAN adapter is independently validated and merged under its **own** approval, obtain separate authorization to run the first real read-only PLAN. Bind results to exact `main` SHA, one immutable SQL SHA-256, effective DB identity, live migration list and fresh independent provider readback. Reject unexpected pending versions, role escalation, missing history, output-shape drift or a provider refusal.
+
+APPLY is a **different, not-yet-implemented or approved** operator and protected environment. It must not reuse the read-only PLAN credential. Its own exact human approval, post-approval revalidation, single-version CLI push and independent readback are required.
+
+### Current evidence at design selection
+- Runner Draft PR #284 HEAD `18bbadd9dcb70f4e3ffdffb1ba07b59c6f22164b`: source-only and disposable PG17 CI #40750407885 PASS (2/2).
+- Identity PR #279 and Snapshot General PR #278 remain separate Drafts. Production migration ledger still shows five applied historical versions; no Identity or general Snapshot migration.
+- This document update is source-only learning/decision provenance. Do not interpret its CI success as a production identity/PLAN/SQL success.
