@@ -1,0 +1,85 @@
+name: ARTales production migration runner bootstrap (NO APPLY)
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - '.github/workflows/artales-production-migration-bootstrap.yml'
+      - 'scripts/artales-production-runner-contract.mjs'
+      - 'tests/artalesProductionRunnerContract.test.mjs'
+      - 'scripts/artales-production-one-migration-stage.mjs'
+      - 'tests/artalesProductionOneMigrationStage.test.mjs'
+      - 'scripts/artales-production-plan-review.mjs'
+      - 'scripts/artales-production-plan-review-cli.mjs'
+      - 'tests/artalesProductionPlanReview.test.mjs'
+      - 'scripts/artales-production-cli-help-probe.mjs'
+      - 'tests/artalesProductionCliHelpProbe.test.mjs'
+      - 'scripts/artales-disposable-cli-json-proof.mjs'
+      - 'tests/artalesDisposableCliJsonProof.test.mjs'
+      - 'scripts/artales-disposable-readonly-cli-proof.mjs'
+      - 'scripts/artales-production-db-url-observation.mjs'
+      - 'tests/artalesProductionDbUrlObservation.test.mjs'
+      - 'scripts/artales-migration-plan-v01-core.mjs'
+      - 'scripts/artales-production-plan-review.mjs'
+      - 'tests/artalesDisposableReadOnlyCli.test.mjs'
+      - 'docs/protocols/ARTALES_PRODUCTION_RUNNER_BOOTSTRAP_V0.md'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  source-only:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - name: Checkout source without retained credentials
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Use Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Verify runner has no write capability
+        run: node --test tests/artalesProductionRunnerContract.test.mjs tests/artalesProductionPlanReview.test.mjs tests/artalesProductionOneMigrationStage.test.mjs tests/artalesProductionDbUrlObservation.test.mjs
+      - name: Verify pinned Supabase CLI help without auth or provider access
+        run: |
+          node --test tests/artalesProductionCliHelpProbe.test.mjs
+          node scripts/artales-production-cli-help-probe.mjs
+      - name: Verify canonical applied migration identities
+        run: node scripts/check-artales-production-migration-canon.mjs
+      - name: Verify existing offline migration admission
+        run: node --test tests/artalesMigrationAdmission.test.mjs tests/artalesMigrationPlanV01.test.mjs
+      - name: Declare bootstrap result
+        run: echo 'SOURCE_ONLY_NO_PROVIDER_ACCESS_NO_PRODUCTION_APPLY'
+
+  disposable-postgres-cli-json:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    services:
+      pg17:
+        image: postgres:17
+        env:
+          POSTGRES_DB: cli_contract
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: isolated-only
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d cli_contract"
+          --health-interval 4s
+          --health-timeout 4s
+          --health-retries 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Unit-test disposable URL and dry-run guards
+        run: node --test tests/artalesDisposableCliJsonProof.test.mjs tests/artalesDisposableReadOnlyCli.test.mjs
+      - name: Capture real JSON from pinned CLI against temporary PG17 only
+        run: node scripts/artales-disposable-cli-json-proof.mjs
+      - name: Probe read-only PG17 migration-list and dry-run (local only)
+        env:
+          ARTALES_LOCAL_PG17_ONLY: '1'
+        run: node scripts/artales-disposable-readonly-cli-proof.mjs
