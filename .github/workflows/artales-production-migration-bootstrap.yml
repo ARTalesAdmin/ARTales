@@ -15,6 +15,8 @@ on:
       - 'tests/artalesProductionCliHelpProbe.test.mjs'
       - 'scripts/artales-disposable-cli-json-proof.mjs'
       - 'tests/artalesDisposableCliJsonProof.test.mjs'
+      - 'scripts/artales-disposable-readonly-cli-proof.mjs'
+      - 'tests/artalesDisposableReadOnlyCli.test.mjs'
       - 'docs/protocols/ARTALES_PRODUCTION_RUNNER_BOOTSTRAP_V0.md'
   workflow_dispatch:
 permissions:
@@ -70,6 +72,10 @@ jobs:
         with:
           node-version: '22'
       - name: Unit-test disposable URL and dry-run guards
-        run: node --test tests/artalesDisposableCliJsonProof.test.mjs
+        run: node --test tests/artalesDisposableCliJsonProof.test.mjs tests/artalesDisposableReadOnlyCli.test.mjs
       - name: Capture real JSON from pinned CLI against temporary PG17 only
         run: node scripts/artales-disposable-cli-json-proof.mjs
+      - name: Probe read-only PG17 migration-list and dry-run (local only)
+        env:
+          ARTALES_LOCAL_PG17_ONLY: '1'
+        run: node scripts/artales-disposable-readonly-cli-proof.mjs
