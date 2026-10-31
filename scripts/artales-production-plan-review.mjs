@@ -39,7 +39,8 @@ export function verifyPlanForHumanReview(args){
   migration:{filename:requested.filename,sha256:requested.sha256},
   planProofDigest:proof.proofDigest,sourcePlanDigest:proof.sourcePlanDigest,
   completedAt:proof.completedAt,
-  evidenceClass:"operator-attested-cli-observation-not-provider-authenticated",
+  evidenceClass:proof.evidenceClass,
+  cliTransport:proof.transport||"linked",
   status:"requires-independent-operator-review",
   requiresSeparateProductionApproval:true,
   productionApplyAuthorized:false,mayApply:false

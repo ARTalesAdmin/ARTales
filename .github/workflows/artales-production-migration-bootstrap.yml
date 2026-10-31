@@ -16,6 +16,10 @@ on:
       - 'scripts/artales-disposable-cli-json-proof.mjs'
       - 'tests/artalesDisposableCliJsonProof.test.mjs'
       - 'scripts/artales-disposable-readonly-cli-proof.mjs'
+      - 'scripts/artales-production-db-url-observation.mjs'
+      - 'tests/artalesProductionDbUrlObservation.test.mjs'
+      - 'scripts/artales-migration-plan-v01-core.mjs'
+      - 'scripts/artales-production-plan-review.mjs'
       - 'tests/artalesDisposableReadOnlyCli.test.mjs'
       - 'docs/protocols/ARTALES_PRODUCTION_RUNNER_BOOTSTRAP_V0.md'
   workflow_dispatch:
@@ -35,7 +39,7 @@ jobs:
         with:
           node-version: '22'
       - name: Verify runner has no write capability
-        run: node --test tests/artalesProductionRunnerContract.test.mjs tests/artalesProductionPlanReview.test.mjs tests/artalesProductionOneMigrationStage.test.mjs
+        run: node --test tests/artalesProductionRunnerContract.test.mjs tests/artalesProductionPlanReview.test.mjs tests/artalesProductionOneMigrationStage.test.mjs tests/artalesProductionDbUrlObservation.test.mjs
       - name: Verify pinned Supabase CLI help without auth or provider access
         run: |
           node --test tests/artalesProductionCliHelpProbe.test.mjs
