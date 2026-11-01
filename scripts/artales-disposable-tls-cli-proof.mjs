@@ -138,6 +138,18 @@ function main(){
    const allowed=/^artales_db_url_capture_blocked:(?:raw_command_or_stderr_mismatch:(?:migration-list|db-push-dry-run)|[a-z0-9_]+)$/;
    if(allowed.test(code)) {
     console.error(code);
+    // These commands run ONLY against disposable localhost PG17 and fixtures.
+    // Strip all connection strings, credentials, paths, token-like literals.
+    const sanitized=[list,dry].map(x=>{
+     const clean=x.stderr.replaceAll(dbUrl,"[DB_URL]")
+      .replaceAll("disposable-readonly-only","[REDACTED]")
+      .replaceAll(ca,"[CA_PATH]")
+      .replace(/postgres(?:ql)?:\\/\\/[^\\s]+/gi,"[DB_URL]")
+      .replace(/\\/tmp\\/[^\\s]+/g,"[LOCAL_PATH]")
+      .replace(/[A-Za-z0-9_-]{48,}/g,"[LONG_TOKEN]");
+     return {command:x.id,lines:clean.slice(0,512).split(/\\r?\\n/).map(v=>v.slice(0,160))};
+    });
+    console.error("disposable_sanitized_stderr="+JSON.stringify(sanitized));
     console.error("safe_stderr_shape="+JSON.stringify([list,dry].map(x=>({
       command:x.id, length:x.stderr.length,
       exactExpected:/^(?:Connecting to remote database\\.\\.\\.\\r?\\n?)?$/.test(x.stderr),
