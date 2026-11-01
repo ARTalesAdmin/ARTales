@@ -5,7 +5,8 @@ import {fileURLToPath} from "node:url";
 import {PROJECT,REPO,inventoryFromDirectory} from "../scripts/artales-migration-plan-core.mjs";
 import {CLI_PIN,planCommands,verifyPlanV01} from "../scripts/artales-migration-plan-v01-core.mjs";
 const root=resolve(dirname(fileURLToPath(import.meta.url)),"..");
-const base=inventoryFromDirectory(join(root,"supabase","migrations"));
+const base=inventoryFromDirectory(join(root,"supabase","migrations"))
+ .filter(m=>m.version<="20261027081945");
 const HEAD="a".repeat(40),NOW="2026-10-28T14:30:00.000Z";
 const next={version:"20261028091029",name:"artales_identity_role_authority_v1",
  filename:"20261028091029_artales_identity_role_authority_v1.sql",

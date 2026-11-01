@@ -1,0 +1,40 @@
+name: ARTales identity authority isolated PostgreSQL 17
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'supabase/migrations/20261028091029_artales_identity_role_authority_v1.sql'
+      - 'tests/db/artalesIdentityFixture.sql'
+      - 'tests/db/artalesIdentityIsolation.sh'
+      - '.github/workflows/artales-identity-role-authority.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  role-authority-postgres:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_PASSWORD: ci-root-only
+          POSTGRES_DB: postgres
+        ports: [5432:5432]
+        options: >-
+          --health-cmd "pg_isready -U postgres -d postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 12
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Install client
+        run: command -v psql || (sudo apt-get update && sudo apt-get install -y postgresql-client)
+      - name: Test read-only authority compatibility on synthetic identities
+        env:
+          PGHOST: 127.0.0.1
+          PGPORT: '5432'
+          PGDATABASE: postgres
+        run: bash tests/db/artalesIdentityIsolation.sh

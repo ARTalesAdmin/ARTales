@@ -7,7 +7,8 @@ import {admission,inventoryFromDirectory,PROJECT,REPO}
 import {verifyCliEvidence,parseMigrationListTranscript,parsePushDryRunTranscript}
  from "../scripts/artales-migration-cli-evidence.mjs";
 const root=resolve(dirname(fileURLToPath(import.meta.url)),"..");
-const local=inventoryFromDirectory(join(root,"supabase","migrations"));
+const local=inventoryFromDirectory(join(root,"supabase","migrations"))
+ .filter(m=>m.version<="20261027081945");
 const NOW="2026-10-28T12:30:00.000Z",HEAD="a".repeat(40);
 const NEXT={version:"20261028091029",name:"artales_identity_role_authority_v1",
  filename:"20261028091029_artales_identity_role_authority_v1.sql",
