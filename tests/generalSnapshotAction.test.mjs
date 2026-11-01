@@ -1,0 +1,12 @@
+import test from "node:test";
+import assert from "node:assert/strict";
+import * as m from "../lib/ingest/generalSnapshotAction.ts";
+const {deriveSnapshotActionState:d}=m.default??m;
+const green={approved:true,locked:true,sourceAvailable:true};
+const sha="2e12d981f9c916e5c6264e284f97b03c8dda52f6de720451d32967d0be8736df";
+test("only approved locked item offers action",()=>{assert.equal(d(green).canStart,true);assert.equal(d({...green,approved:false}).canStart,false);assert.equal(d({...green,locked:false}).canStart,false);assert.equal(d({...green,rejected:true}).canStart,false)});
+test("archived #389 is not re-uploadable",()=>{const x=d({...green,receipt:{sha256:sha,readbackVerified:true}});assert.equal(x.status,"archived_verification_pending");assert.equal(x.canStart,false);assert.equal(x.semanticReady,false)});
+test("claim without receipt requires reconciliation, not a permanent spinner",()=>{const x=d({...green,claimWithoutReceipt:true});assert.equal(x.status,"reconciliation_required");assert.equal(x.canStart,false);assert.equal(x.publicationAuthorized,false)});
+test("incomplete receipt is a hold",()=>{assert.equal(d({...green,receipt:{sha256:"bad",readbackVerified:true}}).status,"failed")});
+test("composition requires independent edition verification",()=>{const x=d({...green,receipt:{sha256:sha,readbackVerified:true},editionVerified:true});assert.equal(x.semanticReady,true);assert.equal(x.publicationAuthorized,false)});
+test("busy, failed, unavailable source cannot trigger archive",()=>{for(const x of [{...green,operation:"acquiring"},{...green,operation:"archiving"},{...green,failed:true},{...green,sourceAvailable:false}])assert.equal(d(x).canStart,false)});

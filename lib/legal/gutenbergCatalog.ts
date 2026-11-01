@@ -52,7 +52,7 @@ async function query(path:string):Promise<unknown>{
  const u=new URL(path,"https://gutendex.com");
  if(u.origin!=="https://gutendex.com")throw Error("catalog_host");
  const res=await fetch(u,{headers:{"Accept":"application/json","User-Agent":"ARTales-LegalScreen/1.0 (https://artales.net)"},signal:AbortSignal.timeout(6500),next:{revalidate:1800}});
- if(!res.ok)throw Error("catalog_unavailable");
+ if(!res.ok)throw Error(res.status===429||res.status>=500?"catalog_transient_unavailable":"catalog_unavailable");
  const declaredSize=Number(res.headers.get("content-length")??0);
  if(declaredSize>1_000_000)throw Error("catalog_response_oversize");
  return res.json() as Promise<unknown>;
@@ -114,9 +114,21 @@ export async function getGutenbergBook(id:number):Promise<GutenbergBook|null>{
    if(found?.files.length)return found;
   }
  }catch{}
- try{
-  const data=parseGutenbergBook(await query("/books/"+id+"/"));
-  if(data)return data;
- }catch{}
+ // A single bounded retry of read-only Gutendex metadata accommodates brief
+ // outages without weakening catalog identity, host rules, or Legal approval.
+ // Never retry a malformed JSON response, 4xx rejection, or oversize payload.
+ for(let attempt=0;attempt<2;attempt++){
+  try{
+   const data=parseGutenbergBook(await query("/books/"+id+"/"));
+   if(data)return data;
+   break;
+  }catch(err){
+   const transient=err instanceof TypeError ||
+     (err instanceof Error && (err.message==="catalog_transient_unavailable" ||
+       err.name==="TimeoutError" || err.name==="AbortError"));
+   if(!transient||attempt!==0)break;
+   await new Promise(resolve=>setTimeout(resolve,175));
+  }
+ }
  return null;
 }
