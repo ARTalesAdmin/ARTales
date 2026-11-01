@@ -94,3 +94,10 @@ Subsequent one-migration PLAN requires independently approved merge of Identity 
 - PostgreSQL PUBLIC \`TEMP\` is inherited. Avoid global \`REVOKE TEMP FROM PUBLIC\` solely for this project; it may break unrelated clients. The PLAN role is denied persistent database/table writes and role membership escalation. Do not imply the account is physically incapable of all temporary writes if a session changes default settings.
 - The root CA verification with real project's host can only be proven through a separately authorized production connection, not by disposable PG17.
 - No runbook instruction is permission to run it. Every production credential, role, GitHub settings transition, source merge, workflow dispatch and SQL APPLY needs its own action-specific approval.
+
+
+## Human bootstrap outcome / current state — 2026-11-01
+
+Separate human approvals have completed the Production role and GitHub Environment setup. Project permissions were independently read back: role \`artales_prod_plan_ro\` has no effective persistent write or admin grant and is limited to reading the migration ledger; human login confirmed readonly=on and five migrations. Environment/screenshots confirm required reviewer, main-only branch, admin bypass off, and secret **names** \`ARTALES_PROD_PLAN_DB_URL\` and \`ARTALES_PROD_PLAN_CA_PEM\`. Secret values are non-retrievable; missing local copies are not a blocker **if** the subsequent protected runtime connects. Failed credentials require a separate authorized rotation/re-entry, never escalation to admin credentials.
+
+The PLAN runner additionally checks the public GitHub remote main SHA on entry and before writing the receipt. This narrows the window where queued human approvals can execute stale source; any main branch drift blocks and needs reauthorization. Not a git merge approval. No merge/PLAN/APPLY performed by this bootstrap.

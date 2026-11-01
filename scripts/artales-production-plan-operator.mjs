@@ -43,6 +43,13 @@ export function validatePlanCertificate(pem){
     start>now||end<=now)fail("ca_certificate_not_valid_ca");
  return matches[0]+"\n";
 }
+
+export function assertCurrentRemoteMain(sha,remoteOutput){
+ if(!hex40(sha)||typeof remoteOutput!=="string"||
+    remoteOutput!==sha+"\trefs/heads/main\n")
+  fail("main_head_changed_or_unverifiable");
+ return true;
+}
 export function validatePlanDispatch(env,head,clean){
  if(!env||env.GITHUB_ACTIONS!=="true"||
     env.GITHUB_EVENT_NAME!=="workflow_dispatch"||
@@ -139,6 +146,7 @@ function main(){
  const sha=runBin("git",["rev-parse","HEAD"],root).stdout.trim();
  const clean=runBin("git",["status","--porcelain"],root).stdout.trim()==="";
  const selected=validatePlanDispatch(process.env,sha,clean);
+ assertCurrentRemoteMain(sha,runBin("git",["ls-remote","--exit-code","origin","refs/heads/main"],root).stdout);
  if(process.env.ARTALES_PRODUCTION_PLAN_ENV!=="artales-production-plan")
   fail("protected_environment_marker_missing");
  const dbUrl=process.env.ARTALES_PROD_PLAN_DB_URL;
@@ -196,6 +204,7 @@ function main(){
   const after=readLedger(runtimeDbUrl);
   if(JSON.stringify(before.migrations)!==JSON.stringify(after.migrations))
    fail("ledger_changed_during_plan");
+  assertCurrentRemoteMain(sha,runBin("git",["ls-remote","--exit-code","origin","refs/heads/main"],root).stdout);
   if(!process.env.RUNNER_TEMP)fail("missing_runner_temp");
   const receipt={schema:"artales-production-readonly-plan/v0",
    repository:REPO,projectRef:PROJECT,mainSha:sha,mode:selected.mode,

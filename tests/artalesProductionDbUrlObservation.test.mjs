@@ -138,3 +138,24 @@ test("accepts only short benign no-pending dry-run diagnostic",()=>{
  p.stderr+="Would push these migrations:\n";
  assert.throws(()=>buildRedactedDbUrlObservation(f.config),/artales_db_url_capture_blocked/);
 });
+
+
+test("full zero-pending redacted-db-url baseline proof remains read-only",()=>{
+ const f=fixture();
+ f.inventory=base;
+ f.request.expectedPending=[];
+ const first=f.config.rawCommands[0];
+ first.stdout=JSON.stringify({message:"Migrations listed",
+  migrations:base.map(m=>({local:m.version,remote:m.version,time:time(m.version)}))});
+ const second=f.config.rawCommands[1];
+ second.stdout=JSON.stringify({upToDate:true,dryRun:true,migrations:[],seeds:[],roles:[],
+  message:"Remote database is up to date."});
+ second.stderr="DRY RUN: migrations will *not* be pushed to the database.\n"+
+  "Connecting to remote database...\n";
+ const observation=buildRedactedDbUrlObservation(f.config);
+ const proof=verifyPlanV01({...f,observation,checkoutSha:HEAD,nowISO:NOW});
+ assert.deepEqual(proof.pending,[]);
+ assert.equal(proof.transport,"db-url-redacted");
+ assert.equal(proof.productionApplyAuthorized,false);
+ assert.equal(proof.mayApply,false);
+});

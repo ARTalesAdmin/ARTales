@@ -4,7 +4,7 @@ import {readFileSync,mkdtempSync,rmSync} from "node:fs";
 import {spawnSync} from "node:child_process";
 import {tmpdir} from "node:os";
 import {join} from "node:path";
-import {validatePlanConnection,validatePlanCertificate,validatePlanDispatch,validatePlanLedger} from "../scripts/artales-production-plan-operator.mjs";
+import {assertCurrentRemoteMain,validatePlanConnection,validatePlanCertificate,validatePlanDispatch,validatePlanLedger} from "../scripts/artales-production-plan-operator.mjs";
 const ref="nmhdwmszbwgrgfbmlguu",sha="a".repeat(40);
 const url="postgresql://artales_prod_plan_ro:local-placeholder@db."+ref+".supabase.co:5432/postgres?sslmode=verify-full";
 test("exact TLS project and role required",()=>{
@@ -85,4 +85,18 @@ test("rejects ANY membership allowing a SET ROLE escalation",()=>{
   .map(([version,name])=>({version,name,statementMd5:"a".repeat(32)}))]};
  assert.throws(()=>validatePlanLedger(ok),/role_or_ledger_invalid/);
  assert.equal(validatePlanLedger({...ok,roleMembershipCount:0}).length,5);
+});
+
+
+test("rejects stale or unverified main ref before and after protected PLAN",()=>{
+ assert.equal(assertCurrentRemoteMain(sha,sha+"\trefs/heads/main\n"),true);
+ for(const remote of [
+   "b".repeat(40)+"\trefs/heads/main\n",
+   sha+"\trefs/heads/develop\n",
+   sha+"\trefs/heads/main",
+   sha+"\trefs/heads/main\n"+sha+"\trefs/heads/other\n",
+   "", "fatal: inaccessible remote\n"
+ ]){
+   assert.throws(()=>assertCurrentRemoteMain(sha,remote),/main_head_changed_or_unverifiable/);
+ }
 });
