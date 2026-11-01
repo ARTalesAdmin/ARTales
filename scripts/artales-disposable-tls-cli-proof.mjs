@@ -9,6 +9,7 @@ import {buildRedactedDbUrlObservation} from "./artales-production-db-url-observa
 import {PROJECT,REPO} from "./artales-migration-plan-core.mjs";
 const ROLE="artales_plan_probe_ro";
 const MIGRATION="20261028190000_artales_disposable_tls_probe.sql";
+let phase="preflight";
 function fail(code){throw Error("artales_disposable_tls_blocked:"+code);}
 function run(bin,args,{cwd,allowFailure=false,env={}}={}){
  const p=spawnSync(bin,args,{cwd,encoding:"utf8",timeout:150000,maxBuffer:131072,
@@ -40,12 +41,14 @@ function main(){
    process.env.SUPABASE_ACCESS_TOKEN||process.env.SUPABASE_DB_PASSWORD||
    process.env.DATABASE_URL||process.env.ARTALES_PROD_PLAN_DB_URL)
   fail("not_disposable_ci_environment");
+ phase="scratch_workspace";
  const root=mkdtempSync(join(tmpdir(),"artales-disposable-tls-"));
  try{
   const caKey=join(root,"ca.key"),ca=join(root,"ca.crt");
   const serverKey=join(root,"server.key"),csr=join(root,"server.csr");
   const server=join(root,"server.crt"),ext=join(root,"server.ext");
   const wrongKey=join(root,"wrong.key"),wrongRoot=join(root,"wrong.crt");
+  phase="generate_ca";
   run("openssl",["req","-x509","-new","-nodes","-newkey","rsa:2048",
    "-keyout",caKey,"-out",ca,"-days","2","-subj","/CN=ARTales disposable root",
    "-addext","basicConstraints=critical,CA:TRUE"]);
@@ -58,10 +61,12 @@ function main(){
    "-keyout",wrongKey,"-out",wrongRoot,"-days","2",
    "-subj","/CN=ARTales untrusted root",
    "-addext","basicConstraints=critical,CA:TRUE"]);
+  phase="find_service_container";
   const containers=run("docker",["ps","--format","{{.ID}} {{.Image}}"]).stdout
    .trim().split("\n").map(x=>x.split(" ")).filter(x=>x[1]==="postgres:17");
   if(containers.length!==1)fail("not_unique_pg17_service");
   const cid=containers[0][0];
+  phase="install_pg17_certificate";
   run("docker",["exec","-u","root",cid,"mkdir","-p","/tmp/artales-ci-tls"]);
   for(const path of [server,serverKey])
    run("docker",["cp",path,cid+":/tmp/artales-ci-tls/"+path.split("/").at(-1)]);
@@ -69,6 +74,7 @@ function main(){
    "/tmp/artales-ci-tls/server.key","/tmp/artales-ci-tls/server.crt"]);
   run("docker",["exec","-u","root",cid,"chmod","600",
    "/tmp/artales-ci-tls/server.key"]);
+  phase="configure_postgres_ssl";
   const admin="postgresql://postgres:isolated-only@127.0.0.1:5432/cli_contract?sslmode=disable";
   for(const sql of [
    "ALTER SYSTEM SET ssl_cert_file = '/tmp/artales-ci-tls/server.crt'",
@@ -87,14 +93,17 @@ function main(){
    }
    if(!ready)fail("pg17_ssl_not_enabled");
   }
+  phase="construct_verified_url";
   const plainUrl="postgresql://"+ROLE+":disposable-readonly-only@127.0.0.1:5432/cli_contract";
   const url=new URL(plainUrl);
   url.searchParams.set("sslmode","verify-full");
   url.searchParams.set("sslrootcert",ca);
   const dbUrl=url.toString();
+  phase="verify_psql_tls";
   const good=execPsql(dbUrl,"SELECT current_user, current_setting('ssl')",true);
   if(good.status!==0||!good.stdout.includes(ROLE))
    fail("psql_verified_tls_handshake_failed");
+  phase="reject_untrusted_ca";
   const untrusted=new URL(dbUrl);untrusted.searchParams.set("sslrootcert",wrongRoot);
   if(execPsql(untrusted.toString(),"SELECT 1",true).status===0)
    fail("untrusted_ca_was_accepted");
@@ -103,13 +112,16 @@ function main(){
   writeFileSync(join(dir,"supabase","config.toml"),
    'project_id = "artales_disposable_tls_only"\n');
   writeFileSync(join(dir,"supabase","migrations",MIGRATION),"select 1;\n");
+  phase="cli_verified_tls_list";
   const list=npmCli(dbUrl,dir,"list");
+  phase="cli_verified_tls_dry_run";
   const dry=npmCli(dbUrl,dir,"dry");
   if(!Array.isArray(list.parsed?.migrations)||list.parsed.migrations.length!==1||
    list.parsed.migrations[0].local!=="20261028190000"||
    dry.parsed?.dryRun!==true||dry.parsed.upToDate!==false||
    JSON.stringify(dry.parsed.migrations)!==JSON.stringify([MIGRATION]))
    fail("verified_tls_cli_output_contract");
+  phase="redact_cli_observation";
   const observation=buildRedactedDbUrlObservation({
    dbUrl,expectedRole:ROLE,projectRef:PROJECT,repository:REPO,
    mainSha:"a".repeat(40),cliVersion:CLI_PIN,
@@ -122,6 +134,7 @@ function main(){
   if(serialized.includes("disposable-readonly-only")||
    serialized.includes("127.0.0.1")||serialized.includes(ca))
    fail("credential_or_tls_path_leak");
+  phase="verify_migration_ledger";
   const ledger=execPsql(dbUrl,"SELECT count(*) FROM supabase_migrations.schema_migrations");
   if(ledger.stdout.trim()!=="0")fail("unexpected_migration_write");
   console.log(JSON.stringify({schema:"artales-disposable-verified-tls-cli/v0",
@@ -134,6 +147,6 @@ function main(){
 try{main();}catch(e){
  const s=String(e?.message||"");
  console.error(/^artales_disposable_tls_blocked:[a-z0-9_]+$/.test(s)?
-  s:"artales_disposable_tls_blocked:unexpected_failure");
+  s:"artales_disposable_tls_blocked:unexpected_at_"+phase);
  process.exitCode=1;
 }
