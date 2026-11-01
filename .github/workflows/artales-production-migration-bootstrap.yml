@@ -16,6 +16,7 @@ on:
       - 'scripts/artales-disposable-cli-json-proof.mjs'
       - 'tests/artalesDisposableCliJsonProof.test.mjs'
       - 'scripts/artales-disposable-readonly-cli-proof.mjs'
+      - 'scripts/artales-disposable-tls-cli-proof.mjs'
       - 'scripts/artales-production-db-url-observation.mjs'
       - 'tests/artalesProductionDbUrlObservation.test.mjs'
       - 'scripts/artales-production-plan-operator.mjs'
@@ -86,3 +87,7 @@ jobs:
         env:
           ARTALES_LOCAL_PG17_ONLY: '1'
         run: node scripts/artales-disposable-readonly-cli-proof.mjs
+      - name: Prove verified TLS and reject untrusted CA on disposable PG17
+        env:
+          ARTALES_LOCAL_PG17_ONLY: '1'
+        run: node scripts/artales-disposable-tls-cli-proof.mjs
