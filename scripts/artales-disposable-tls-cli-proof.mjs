@@ -122,14 +122,31 @@ function main(){
    JSON.stringify(dry.parsed.migrations)!==JSON.stringify([MIGRATION]))
    fail("verified_tls_cli_output_contract");
   phase="redact_cli_observation";
-  const observation=buildRedactedDbUrlObservation({
-   dbUrl,expectedRole:ROLE,projectRef:PROJECT,repository:REPO,
-   mainSha:"a".repeat(40),cliVersion:CLI_PIN,
-   completedAt:new Date().toISOString(),
-   rawCommands:[list,dry].map(({id,argv,exitCode,stdout,stderr})=>({
-    id,argv,exitCode,stdout,stderr
-   }))
-  });
+  let observation;
+  try {
+   observation=buildRedactedDbUrlObservation({
+    dbUrl,expectedRole:ROLE,projectRef:PROJECT,repository:REPO,
+    mainSha:"a".repeat(40),cliVersion:CLI_PIN,
+    completedAt:new Date().toISOString(),
+    rawCommands:[list,dry].map(({id,argv,exitCode,stdout,stderr})=>({
+     id,argv,exitCode,stdout,stderr
+    }))
+   });
+  } catch(err) {
+   // Print only non-secret validation categories and safe CLI stderr shape.
+   const code=String(err?.message||"");
+   const allowed=/^artales_db_url_capture_blocked:(?:raw_command_or_stderr_mismatch:(?:migration-list|db-push-dry-run)|[a-z0-9_]+)$/;
+   if(allowed.test(code)) {
+    console.error(code);
+    console.error("safe_stderr_shape="+JSON.stringify([list,dry].map(x=>({
+      command:x.id, length:x.stderr.length,
+      exactExpected:/^(?:Connecting to remote database\\.\\.\\.\\r?\\n?)?$/.test(x.stderr),
+      hasLineFeed:x.stderr.includes("\\n"),
+      shapeOnly:true
+    }))));
+   }
+   fail("redacted_capture_rejected");
+  }
   const serialized=JSON.stringify(observation);
   if(serialized.includes("disposable-readonly-only")||
    serialized.includes("127.0.0.1")||serialized.includes(ca))
