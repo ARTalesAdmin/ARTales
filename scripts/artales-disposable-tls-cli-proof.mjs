@@ -146,7 +146,7 @@ function main(){
 }
 try{main();}catch(e){
  const s=String(e?.message||"");
- console.error(/^artales_disposable_tls_blocked:[a-z0-9_]+$/.test(s)?
-  s:"artales_disposable_tls_blocked:unexpected_at_"+phase);
+ const match=/^artales_(?:disposable_tls|db_url_capture)_blocked:[a-z0-9_]+$/.test(s);
+ console.error(match?s:"artales_disposable_tls_blocked:unexpected_at_"+phase);
  process.exitCode=1;
 }
