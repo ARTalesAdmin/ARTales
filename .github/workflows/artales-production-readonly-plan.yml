@@ -1,0 +1,53 @@
+name: ARTales Production read-only PLAN (NO APPLY)
+on:
+  workflow_dispatch:
+    inputs:
+      main_sha:
+        required: true
+        type: string
+      mode:
+        required: true
+        type: choice
+        options:
+          - baseline
+          - one-migration
+      migration_filename:
+        required: false
+        type: string
+      migration_sha256:
+        required: false
+        type: string
+permissions:
+  contents: read
+concurrency:
+  group: artales-production-plan
+  cancel-in-progress: false
+jobs:
+  plan:
+    if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    environment: artales-production-plan
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Read-only plan (no APPLY)
+        env:
+          ARTALES_PRODUCTION_PLAN_ENV: artales-production-plan
+          ARTALES_PROD_PLAN_DB_URL: ${{ secrets.ARTALES_PROD_PLAN_DB_URL }}
+          ARTALES_PROD_PLAN_CA_PEM: ${{ secrets.ARTALES_PROD_PLAN_CA_PEM }}
+          ARTALES_EXPECTED_MAIN_SHA: ${{ inputs.main_sha }}
+          ARTALES_PLAN_MODE: ${{ inputs.mode }}
+          ARTALES_SELECTED_FILENAME: ${{ inputs.migration_filename }}
+          ARTALES_SELECTED_SHA256: ${{ inputs.migration_sha256 }}
+        run: node scripts/artales-production-plan-operator.mjs
+      - uses: actions/upload-artifact@v4
+        with:
+          name: artales-readonly-plan-receipt
+          path: ${{ runner.temp }}/artales-plan-receipt.json
+          if-no-files-found: error
+          retention-days: 30
