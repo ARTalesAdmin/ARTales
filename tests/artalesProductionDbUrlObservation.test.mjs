@@ -104,3 +104,37 @@ test("stale/false provider evidence remains blocked even after redaction",()=>{
   assert.throws(()=>verifyPlanV01({...f,observation,checkoutSha:HEAD,nowISO:NOW}),/blocked/);
  }
 });
+
+
+test("accepts only pinned CLI 2.122.0 dry-run diagnostics with exact JSON migration identity",()=>{
+ const f=fixture();
+ const selected=f.config.rawCommands[1];
+ const filename=JSON.parse(selected.stdout).migrations[0];
+ const header="DRY RUN: migrations will *not* be pushed to the database.\n"+
+  "Connecting to remote database...\n";
+ selected.stderr=header+"Would push these migrations:\n • "+filename+"\n";
+ const ok=buildRedactedDbUrlObservation(f.config);
+ assert.equal(ok.commands[1].stderr,selected.stderr);
+ assert.equal(verifyPlanV01({...f,observation:ok,checkoutSha:HEAD,nowISO:NOW}).mayApply,false);
+ for(const replacement of [
+  selected.stderr+"WARNING: secret\n",
+  header+"Would push these migrations:\n • 20260101000000_wrong.sql\n",
+  header+"Would push these migrations:\n • "+filename+"\n • "+filename+"\n",
+  "DRY RUN: migrations will *not* be pushed to the database.\nPassword: leaked\n",
+  header+"Would push these migrations:\n • "+filename+" --include-all\n"
+ ]){
+  selected.stderr=replacement;
+  assert.throws(()=>buildRedactedDbUrlObservation(f.config),/artales_db_url_capture_blocked/);
+ }
+});
+test("accepts only short benign no-pending dry-run diagnostic",()=>{
+ const f=fixture(),p=f.config.rawCommands[1];
+ p.stdout=JSON.stringify({upToDate:true,dryRun:true,migrations:[],seeds:[],roles:[],
+  message:"Remote database is up to date."});
+ p.stderr="DRY RUN: migrations will *not* be pushed to the database.\n"+
+  "Connecting to remote database...\n";
+ const accepted=buildRedactedDbUrlObservation(f.config);
+ assert.equal(accepted.commands[1].stderr,p.stderr);
+ p.stderr+="Would push these migrations:\n";
+ assert.throws(()=>buildRedactedDbUrlObservation(f.config),/artales_db_url_capture_blocked/);
+});

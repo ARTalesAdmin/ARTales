@@ -40,6 +40,25 @@ function safeStdout(id,stdout){
  }else fail("invalid_command_id");
  return JSON.stringify(parsed);
 }
+// Only specifically observed, non-secret CLI 2.122.0 diagnostics are admissible.
+// The "Would push" filename must match the already validated JSON payload.
+function safeStderr(id,stderr,sanitizedStdout){
+ if(typeof stderr!=="string"||stderr.length>1024)
+  fail("stderr_invalid_type_or_length");
+ const value=stderr.replace(/\r\n/g,"\n");
+ const connecting="Connecting to remote database...";
+ if(value===""||value===connecting||value===connecting+"\n")
+  return value;
+ if(id!=="db-push-dry-run")fail("unexpected_cli_stderr");
+ const payload=JSON.parse(sanitizedStdout);
+ const prefix="DRY RUN: migrations will *not* be pushed to the database.\n"+
+  "Connecting to remote database...\n";
+ if(payload.migrations.length===0&&value===prefix)return value;
+ if(payload.migrations.length===1&&
+    value===prefix+"Would push these migrations:\n • "+payload.migrations[0]+"\n")
+  return value;
+ fail("unexpected_dry_run_stderr");
+}
 export function buildRedactedDbUrlObservation({
   dbUrl,expectedRole,projectRef,repository,mainSha,cliVersion,
   completedAt,rawCommands
@@ -63,13 +82,11 @@ export function buildRedactedDbUrlObservation({
   const raw=rawCommands[i];
   const actualArgs=cmd.argv.map(a=>a===REDACTED_DB_URL?dbUrl:a);
   if(!exact(raw,["id","argv","exitCode","stdout","stderr"])||
-    raw.id!==cmd.id||!same(raw.argv,actualArgs)||raw.exitCode!==0||
-    typeof raw.stderr!=="string"||
-    !/^(?:Connecting to remote database\.\.\.\r?\n?)?$/.test(raw.stderr))
-   fail("raw_command_or_stderr_mismatch:"+cmd.id);
+    raw.id!==cmd.id||!same(raw.argv,actualArgs)||raw.exitCode!==0)
+   fail("raw_command_or_status_mismatch:"+cmd.id);
   const stdout=safeStdout(raw.id,raw.stdout);
-  return {id:cmd.id,argv:[...cmd.argv],exitCode:0,stdout,
-    stderr:raw.stderr};
+  const stderr=safeStderr(raw.id,raw.stderr,stdout);
+  return {id:cmd.id,argv:[...cmd.argv],exitCode:0,stdout,stderr};
  });
  return Object.freeze({
   schema:"artales-cli-plan-observation/v0.2",
