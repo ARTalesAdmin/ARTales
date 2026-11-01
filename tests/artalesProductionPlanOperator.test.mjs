@@ -26,7 +26,8 @@ test("protected manually dispatched main only",()=>{
 });
 test("effective nonwrite permissions and ledger enforced",()=>{
  const ok={principal:"artales_prod_plan_ro",sessionPrincipal:"artales_prod_plan_ro",database:"postgres",
- readOnly:"on",defaultReadOnly:"on",superuser:false,createRole:false,createDb:false,
+ readOnly:"on",defaultReadOnly:"on",inheritsPrivileges:false,roleMembershipCount:0,
+ superuser:false,createRole:false,createDb:false,
  bypassRls:false,canCreateDatabase:false,canCreateMigrationSchema:false,
  canCreatePublicSchema:false,canInsert:false,canUpdate:false,canDelete:false,canTruncate:false,
  migrations:[{version:"20260926142755",name:"remote_schema"},...[
@@ -34,7 +35,8 @@ test("effective nonwrite permissions and ledger enforced",()=>{
  ["20261025095658","legal_screen_v1"],["20261027081945","snapshot389_storage_admin_rls"]
  ].map(([version,name])=>({version,name,statementMd5:"a".repeat(32)}))]};
  assert.equal(validatePlanLedger(ok).length,5);
- for(const field of ["canInsert","canUpdate","canDelete","superuser","canCreatePublicSchema"])
+ for(const field of ["canInsert","canUpdate","canDelete","superuser",
+  "canCreatePublicSchema","inheritsPrivileges"])
  assert.throws(()=>validatePlanLedger({...ok,[field]:true}),/blocked/);
 });
 test("dormant workflow protected, no PR secrets and no apply",()=>{
@@ -66,4 +68,21 @@ test("rejects missing or invalid CA instead of pretending SSL authenticates the 
   const accepted=validatePlanCertificate(pem);
   assert.match(accepted,/BEGIN CERTIFICATE/);
  }finally{rmSync(dir,{recursive:true,force:true});}
+});
+
+test("rejects ANY membership allowing a SET ROLE escalation",()=>{
+ const ok={principal:"artales_prod_plan_ro",sessionPrincipal:"artales_prod_plan_ro",
+ database:"postgres",readOnly:"on",defaultReadOnly:"on",
+ inheritsPrivileges:false,roleMembershipCount:1,
+ superuser:false,createRole:false,createDb:false,bypassRls:false,
+ canCreateDatabase:false,canCreateMigrationSchema:false,canCreatePublicSchema:false,
+ canInsert:false,canUpdate:false,canDelete:false,canTruncate:false,
+ migrations:[{version:"20260926142755",name:"remote_schema"},
+  ...[["20261023063248","prescreen_shadow_library_v1"],
+  ["20261024073928","candidate_intake_ab"],
+  ["20261025095658","legal_screen_v1"],
+  ["20261027081945","snapshot389_storage_admin_rls"]]
+  .map(([version,name])=>({version,name,statementMd5:"a".repeat(32)}))]};
+ assert.throws(()=>validatePlanLedger(ok),/role_or_ledger_invalid/);
+ assert.equal(validatePlanLedger({...ok,roleMembershipCount:0}).length,5);
 });

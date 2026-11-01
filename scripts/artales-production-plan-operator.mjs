@@ -61,7 +61,8 @@ export function validatePlanDispatch(env,head,clean){
 export function validatePlanLedger(data){
  if(!data||data.principal!==ROLE||data.sessionPrincipal!==ROLE||
     data.database!=="postgres"||data.readOnly!=="on"||
-    data.defaultReadOnly!=="on"||
+    data.defaultReadOnly!=="on"||data.inheritsPrivileges!==false||
+    data.roleMembershipCount!==0||
     ["superuser","createRole","createDb","bypassRls","canCreateDatabase",
      "canCreateMigrationSchema","canCreatePublicSchema",
      "canInsert","canUpdate","canDelete","canTruncate"].some(k=>data[k]!==false)||
@@ -89,6 +90,9 @@ const READ_SQL=[
  " 'database',current_database(),",
  " 'readOnly',current_setting('transaction_read_only'),",
  " 'defaultReadOnly',current_setting('default_transaction_read_only'),",
+ " 'inheritsPrivileges',(SELECT rolinherit FROM pg_roles WHERE rolname=current_user),",
+ " 'roleMembershipCount',(SELECT count(*) FROM pg_auth_members",
+ "  WHERE member=(SELECT oid FROM pg_roles WHERE rolname=current_user)),",
  " 'superuser',(SELECT rolsuper FROM pg_roles WHERE rolname=current_user),",
  " 'createRole',(SELECT rolcreaterole FROM pg_roles WHERE rolname=current_user),",
  " 'createDb',(SELECT rolcreatedb FROM pg_roles WHERE rolname=current_user),",
