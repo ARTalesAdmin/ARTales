@@ -1,0 +1,64 @@
+name: ARTales Production one-migration APPLY (separate approval)
+on:
+  workflow_dispatch:
+    inputs:
+      main_sha:
+        required: true
+        type: string
+      migration_filename:
+        required: true
+        type: string
+      migration_sha256:
+        required: true
+        type: string
+      plan_run_id:
+        required: true
+        type: string
+      plan_proof_digest:
+        required: true
+        type: string
+permissions:
+  contents: read
+  actions: read
+concurrency:
+  group: artales-production-migrations-exclusive
+  cancel-in-progress: false
+jobs:
+  apply:
+    if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    environment: artales-production-apply
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Retrieve independently authorized single-migration PLAN receipt
+        uses: actions/download-artifact@v4
+        with:
+          name: artales-readonly-plan-receipt
+          path: ${{ runner.temp }}/artales-approved-plan
+          run-id: ${{ inputs.plan_run_id }}
+          github-token: ${{ github.token }}
+      - name: Revalidate and execute exactly one migration
+        env:
+          ARTALES_PRODUCTION_APPLY_ENV: artales-production-apply
+          ARTALES_PROD_APPLY_DB_URL: ${{ secrets.ARTALES_PROD_APPLY_DB_URL }}
+          ARTALES_PROD_APPLY_CA_PEM: ${{ secrets.ARTALES_PROD_APPLY_CA_PEM }}
+          ARTALES_APPLY_MAIN_SHA: ${{ inputs.main_sha }}
+          ARTALES_APPLY_FILENAME: ${{ inputs.migration_filename }}
+          ARTALES_APPLY_SQL_SHA256: ${{ inputs.migration_sha256 }}
+          ARTALES_APPLY_PLAN_RUN_ID: ${{ inputs.plan_run_id }}
+          ARTALES_APPLY_PLAN_PROOF_DIGEST: ${{ inputs.plan_proof_digest }}
+          GITHUB_TOKEN: ${{ github.token }}
+        run: node scripts/artales-production-apply-operator.mjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: artales-one-migration-apply-receipt
+          path: ${{ runner.temp }}/artales-apply-receipt.json
+          if-no-files-found: warn
+          retention-days: 30
