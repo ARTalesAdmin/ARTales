@@ -1,6 +1,7 @@
 // Protected, manually dispatched, read-only PLAN runtime. No APPLY capability.
 // All database queries are static SELECTs. Secrets and raw stderr are never logged.
 import {spawnSync} from "node:child_process";
+import {X509Certificate} from "node:crypto";
 import {mkdtempSync,rmSync,writeFileSync} from "node:fs";
 import {tmpdir} from "node:os";
 import {join,resolve} from "node:path";
@@ -20,13 +21,27 @@ export function validatePlanConnection(dbUrl){
  let u;try{u=new URL(dbUrl);}catch{fail("db_url_invalid");}
  if(u.protocol!=="postgresql:"||!u.password||u.hash||u.port!=="5432"||
     u.pathname!=="/postgres"||u.searchParams.size!==1||
-    u.searchParams.get("sslmode")!=="require")fail("db_url_tls_port_or_params");
+    u.searchParams.get("sslmode")!=="verify-full")fail("db_url_tls_port_or_params");
  const direct=u.hostname==="db."+PROJECT+".supabase.co";
  const pooler=/^[a-z0-9-]+\.pooler\.supabase\.com$/.test(u.hostname);
  let username;try{username=decodeURIComponent(u.username);}catch{fail("db_url_username");}
  if((!direct&&!pooler)||username!==(direct?ROLE:ROLE+"."+PROJECT))
   fail("db_url_project_or_role");
  return Object.freeze({role:ROLE,connectionClass:direct?"direct":"session-pooler"});
+}
+export function validatePlanCertificate(pem){
+ if(typeof pem!=="string"||pem.length<400||pem.length>16384||
+    /PRIVATE KEY/.test(pem))fail("ca_certificate_missing_or_invalid");
+ const matches=pem.match(/-----BEGIN CERTIFICATE-----[\s\S]*?-----END CERTIFICATE-----/g);
+ if(!matches||matches.length!==1||pem.trim()!==matches[0])
+  fail("ca_certificate_format");
+ let cert;
+ try{cert=new X509Certificate(matches[0]);}
+ catch{fail("ca_certificate_unparseable");}
+ const now=Date.now(),start=Date.parse(cert.validFrom),end=Date.parse(cert.validTo);
+ if(cert.ca!==true||!Number.isFinite(start)||!Number.isFinite(end)||
+    start>now||end<=now)fail("ca_certificate_not_valid_ca");
+ return matches[0]+"\n";
 }
 export function validatePlanDispatch(env,head,clean){
  if(!env||env.GITHUB_ACTIONS!=="true"||
@@ -124,9 +139,15 @@ function main(){
   fail("protected_environment_marker_missing");
  const dbUrl=process.env.ARTALES_PROD_PLAN_DB_URL;
  const identity=validatePlanConnection(dbUrl);
- const before=readLedger(dbUrl);
+ const caPem=validatePlanCertificate(process.env.ARTALES_PROD_PLAN_CA_PEM);
  const workspace=mkdtempSync(join(tmpdir(),"artales-plan-"));
  try{
+  const caFile=join(workspace,"supabase-root-ca.pem");
+  writeFileSync(caFile,caPem,{flag:"wx",mode:0o600});
+  const verifiedUrl=new URL(dbUrl);
+  verifiedUrl.searchParams.set("sslrootcert",caFile);
+  const runtimeDbUrl=verifiedUrl.toString();
+  const before=readLedger(runtimeDbUrl);
   const request={schema:"artales-migration-request/v0",
    projectRef:PROJECT,repository:REPO,ref:"refs/heads/main",
    headSha:sha,expectedPending:selected.mode==="baseline"?[]:[
@@ -151,9 +172,9 @@ function main(){
   if(version.stdout.trim()!==CLI_PIN||version.stderr.trim())
    fail("cli_version_mismatch");
   const observation=buildRedactedDbUrlObservation({
-   dbUrl,expectedRole:identity.role,projectRef:PROJECT,repository:REPO,
+   dbUrl:runtimeDbUrl,expectedRole:identity.role,projectRef:PROJECT,repository:REPO,
    mainSha:sha,cliVersion:CLI_PIN,completedAt:new Date().toISOString(),
-   rawCommands:cliCommands(cwd,dbUrl)
+   rawCommands:cliCommands(cwd,runtimeDbUrl)
   });
   const verification={inventory,readback,request,checkoutSha:sha,
     observation,nowISO:new Date().toISOString()};
@@ -168,7 +189,7 @@ function main(){
       sourceSha:sha,migrations:[{filename:selected.filename,sha256:selected.sha256}]}
    });
   }
-  const after=readLedger(dbUrl);
+  const after=readLedger(runtimeDbUrl);
   if(JSON.stringify(before.migrations)!==JSON.stringify(after.migrations))
    fail("ledger_changed_during_plan");
   if(!process.env.RUNNER_TEMP)fail("missing_runner_temp");

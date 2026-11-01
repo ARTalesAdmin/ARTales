@@ -39,6 +39,7 @@ jobs:
         env:
           ARTALES_PRODUCTION_PLAN_ENV: artales-production-plan
           ARTALES_PROD_PLAN_DB_URL: ${{ secrets.ARTALES_PROD_PLAN_DB_URL }}
+          ARTALES_PROD_PLAN_CA_PEM: ${{ secrets.ARTALES_PROD_PLAN_CA_PEM }}
           ARTALES_EXPECTED_MAIN_SHA: ${{ inputs.main_sha }}
           ARTALES_PLAN_MODE: ${{ inputs.mode }}
           ARTALES_SELECTED_FILENAME: ${{ inputs.migration_filename }}

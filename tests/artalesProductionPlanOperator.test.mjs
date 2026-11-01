@@ -1,12 +1,15 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import {readFileSync} from "node:fs";
-import {validatePlanConnection,validatePlanDispatch,validatePlanLedger} from "../scripts/artales-production-plan-operator.mjs";
+import {readFileSync,mkdtempSync,rmSync} from "node:fs";
+import {spawnSync} from "node:child_process";
+import {tmpdir} from "node:os";
+import {join} from "node:path";
+import {validatePlanConnection,validatePlanCertificate,validatePlanDispatch,validatePlanLedger} from "../scripts/artales-production-plan-operator.mjs";
 const ref="nmhdwmszbwgrgfbmlguu",sha="a".repeat(40);
-const url="postgresql://artales_prod_plan_ro:local-placeholder@db."+ref+".supabase.co:5432/postgres?sslmode=require";
+const url="postgresql://artales_prod_plan_ro:local-placeholder@db."+ref+".supabase.co:5432/postgres?sslmode=verify-full";
 test("exact TLS project and role required",()=>{
  assert.equal(validatePlanConnection(url).role,"artales_prod_plan_ro");
- for(const changed of [url.replace("sslmode=require","sslmode=disable"),
+ for(const changed of [url.replace("sslmode=verify-full","sslmode=disable"),
  url.replace("artales_prod_plan_ro","postgres"),url.replace(ref,"different"),
  url.replace(":5432",":6543")])assert.throws(()=>validatePlanConnection(changed),/blocked/);
 });
@@ -41,4 +44,26 @@ test("dormant workflow protected, no PR secrets and no apply",()=>{
  assert.match(w,/github.ref == 'refs\/heads\/main'/);
  assert.doesNotMatch(w,/\n  pull_request:|\n  schedule:|\n  push:/);
  assert.doesNotMatch(w,/migration repair|supabase db push/);
+});
+
+
+test("rejects missing or invalid CA instead of pretending SSL authenticates the provider",()=>{
+ for(const bad of [undefined,"","-----BEGIN CERTIFICATE-----\ninvalid\n-----END CERTIFICATE-----",
+  "-----BEGIN PRIVATE KEY-----\nnot-allowed\n-----END PRIVATE KEY-----"]){
+  assert.throws(()=>validatePlanCertificate(bad),/blocked/);
+ }
+ const dir=mkdtempSync(join(tmpdir(),"artales-ca-fixture-"));
+ try{
+  const ca=join(dir,"root.pem"),key=join(dir,"key.pem");
+  const result=spawnSync("openssl",[
+   "req","-x509","-newkey","rsa:2048","-nodes","-keyout",key,
+   "-out",ca,"-days","2","-subj","/CN=artales-disposable-ca",
+   "-addext","basicConstraints=critical,CA:TRUE"],{
+    encoding:"utf8",timeout:25000
+  });
+  assert.equal(result.status,0,"isolated OpenSSL CA fixture creation");
+  const pem=readFileSync(ca,"utf8");
+  const accepted=validatePlanCertificate(pem);
+  assert.match(accepted,/BEGIN CERTIFICATE/);
+ }finally{rmSync(dir,{recursive:true,force:true});}
 });

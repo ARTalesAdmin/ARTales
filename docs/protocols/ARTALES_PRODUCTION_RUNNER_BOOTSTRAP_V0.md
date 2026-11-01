@@ -160,3 +160,9 @@ APPLY is a **different, not-yet-implemented or approved** operator and protected
 - Runner Draft PR #284 HEAD `18bbadd9dcb70f4e3ffdffb1ba07b59c6f22164b`: source-only and disposable PG17 CI #40750407885 PASS (2/2).
 - Identity PR #279 and Snapshot General PR #278 remain separate Drafts. Production migration ledger still shows five applied historical versions; no Identity or general Snapshot migration.
 - This document update is source-only learning/decision provenance. Do not interpret its CI success as a production identity/PLAN/SQL success.
+
+## TLS identity gate — source-only correction, 2026-11-01
+
+The protected PLAN operator MUST NOT treat `sslmode=require` as authenticated provider evidence. A reviewed database URL must use `sslmode=verify-full` and a separately provisioned project-root certificate. The environment-scoped secret `ARTALES_PROD_PLAN_CA_PEM` is a CA PEM downloaded and independently checked by the human from the Supabase project SSL configuration. The runner parses its validity and CA constraints, saves it to a temporary mode-0600 file, adds `sslrootcert` for both `psql` and Supabase CLI, and deletes it after execution. The production role/URL/password remain separate under `ARTALES_PROD_PLAN_DB_URL`. Neither secret nor an environment is provisioned by the source change.
+
+GitHub environment deployment branch restriction, required reviewer, no automatic bypass and action-scoped human PLAN authorization remain mandatory external gates. No provider query, grant, secret change, merge or live PLAN authorized by this commit. Production TLS with the actual Supabase certificate and CLI is unverified until its own separately approved protected run.
