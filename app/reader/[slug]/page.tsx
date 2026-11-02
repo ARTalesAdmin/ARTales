@@ -5,6 +5,10 @@ import { getPreviewBlocks, getPreviewFallbackContent } from "@/lib/workPreview";
 import { getCurrentProfile } from "@/lib/auth";
 import { canOpenFullReader } from "@/lib/entitlements";
 import { getCookieLocale, resolveProfileLocale } from "@/lib/i18n/server";
+import {createClient} from "@/lib/supabase/server";
+import SemanticPublicReader from "@/components/reader/SemanticPublicReader";
+import {verifySemanticRevision} from "@/lib/semantic/compose";
+import type {SemanticRevision} from "@/lib/semantic/model";
 
 type ReaderPageProps = {
   params: Promise<{ slug: string }>;
@@ -40,6 +44,19 @@ export default async function ReaderPage({
   }
 
   const isPreview = readerMode === "preview";
+  const db=await createClient();
+  const {data:semanticRelease}=await db.from("artales_semantic_publications")
+    .select("semantic_revision").eq("work_id",work.id).maybeSingle();
+  if(semanticRelease?.semantic_revision){
+    const revision=semanticRelease.semantic_revision as SemanticRevision;
+    try {
+      verifySemanticRevision(revision);
+      return <SemanticPublicReader revision={revision} title={work.title} isPreview={isPreview}/>;
+    } catch {
+      // Never silently substitute legacy blocks for a corrupted semantic release.
+      throw new Error("published_semantic_revision_invalid");
+    }
+  }
   const blocks = isPreview
     ? getPreviewBlocks(work.content_blocks)
     : work.content_blocks;
