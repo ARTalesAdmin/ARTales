@@ -38,6 +38,7 @@ ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
 CREATE POLICY fixture_own_profile ON public.profiles FOR SELECT TO authenticated
   USING (id=(SELECT auth.uid()));
 ALTER TABLE storage.objects ENABLE ROW LEVEL SECURITY;
+CREATE POLICY fixture_public_artales_images ON storage.objects FOR SELECT TO authenticated USING(bucket_id='artales-images');
 CREATE POLICY artales_snapshot389_admin_insert_v1 ON storage.objects
  FOR INSERT TO authenticated
  WITH CHECK (bucket_id='artales-raw-snapshots'

@@ -92,6 +92,12 @@ ARCH_SHA=2e12d981f9c916e5c6264e284f97b03c8dda52f6de720451d32967d0be8736df
 CID=98508359-bce1-4e73-b842-b69a9d1112d0
 actor snapshot_ci_admin "$A" "insert into public.candidate_snapshot_reviews(candidate_id,snapshot_sha256,text_correspondence,image_disposition,evidence_note,reviewed_by) values ('$CID','$ARCH_SHA','confirmed','exclude_all',repeat('Reviewed exact source edition and verified complete literary body and provenance. ',2),'$A')" >/dev/null
 actor snapshot_ci_admin "$A" "insert into public.candidate_semantic_revisions(candidate_id,snapshot_sha256,revision_sha256,revision,source_text,component_id,source_manifest,image_selection,authored_by) values ('$CID','$ARCH_SHA','$SEM_SHA',jsonb_build_object('schema','artales.semantic-text.v2','revision_sha256','$SEM_SHA','release_allowed',false),repeat('A complete literary source paragraph. ',5),'epub:spine','{}'::jsonb,'none','$A')" >/dev/null
+IMG_SHA=$(printf "d%.0s" {1..64})
+IMG_ID=aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa
+IMAGE_PATH="works/$CID/inline/$IMG_ID.png"
+root -c "insert into storage.objects(bucket_id,name,owner_id,metadata) values ('artales-images','$IMAGE_PATH','$A','{\\\"mimetype\\\":\\\"image/png\\\",\\\"size\\\":1024}'::jsonb)" >/dev/null
+actor snapshot_ci_admin "$A" "insert into public.artales_semantic_images(candidate_id,revision_sha256,anchor_atom_id,storage_path,sha256,provenance,rights_note,approved_by) values ('$CID','$SEM_SHA','a:test-atom','$IMAGE_PATH','$IMG_SHA','original_art',repeat('Original independent image rights verification and exact placement. ',2),'$A')" >/dev/null
+deny "editor cannot authorize image" snapshot_ci_editor "$E" "insert into public.artales_semantic_images(candidate_id,revision_sha256,anchor_atom_id,storage_path,sha256,provenance,rights_note,approved_by) values ('$CID','$SEM_SHA','a:test-atom','$IMAGE_PATH','$IMG_SHA','original_art',repeat('Independent visual review evidence. ',5),'$E')"
 deny "editor cannot create semantic draft" snapshot_ci_editor "$E" "insert into public.candidate_semantic_revisions(candidate_id,snapshot_sha256,revision_sha256,revision,source_text,component_id,source_manifest,image_selection,authored_by) values ('$CID','$ARCH_SHA','$SHA11','{}'::jsonb,'x','epub:spine','{}'::jsonb,'none','$E')"
 deny "publish without reviews" snapshot_ci_admin "$A" "select public.artales_publish_semantic_candidate('$CID','$SEM_SHA','test-work',repeat('S',220),repeat('R',60))"
 for KIND in text_review visual_review proofread; do
@@ -105,6 +111,7 @@ done
 deny "editor cannot approve publication" snapshot_ci_editor "$E" "select public.artales_publish_semantic_candidate('$CID','$SEM_SHA','test-work',repeat('S',220),repeat('R',60))"
 assert_eq "$(actor snapshot_ci_admin "$A" "select public.artales_publish_semantic_candidate('$CID','$SEM_SHA','test-work',repeat('S',220),repeat('R',60))->>'result'")" "published" "approved exact semantic revision published"
 assert_eq "$(root -c "select count(*) from public.artales_semantic_publications")" "1" "one public semantic release"
+assert_eq "$(root -c "select jsonb_array_length(visual_manifest) from public.artales_semantic_publications")" "1" "approved image attached to released revision"
 assert_eq "$(root -c "select count(*) from public.works where status='published'")" "1" "work published atomically"
 deny "duplicate publication" snapshot_ci_admin "$A" "select public.artales_publish_semantic_candidate('$CID','$SEM_SHA','test-work',repeat('S',220),repeat('R',60))"
 echo "PASS: legal -> immutable snapshot -> semantic revision -> 3 signed reviews -> atomic release"
