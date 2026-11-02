@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { LEGAL_SCREEN_V1_ENABLED } from "@/lib/legal/featureFlag";
 import { CANDIDATES_AB_ENABLED } from "@/lib/candidates/featureFlag";
+import {SEMANTIC_PIPELINE_ENABLED} from "@/lib/semantic/featureFlag";
 import { getInternalDictionary } from "@/lib/i18n/internal";
 import styles from "./MemberZoneNav.module.css";
 
@@ -44,6 +45,7 @@ export default function MemberZoneNav({ role }: { role: string | null }) {
       hint: "Obsah a jeho uspořádání",
       links: editor
         ? [
+            ...(SEMANTIC_PIPELINE_ENABLED ? [{href:"/member/editorial-pipeline",label:"Redakční úkoly"}] : []),
             { href: "/member/works", label: member.works },
             { href: "/member/authors", label: member.authors },
             { href: "/member/collections", label: member.collections },

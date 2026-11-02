@@ -13,9 +13,12 @@ GRANT USAGE ON SCHEMA public, auth, storage TO anon, authenticated;
 CREATE FUNCTION auth.uid() RETURNS uuid LANGUAGE sql STABLE
   AS 'SELECT nullif(current_setting(''request.jwt.claim.sub'', true), '''')::uuid';
 CREATE TABLE public.profiles (id uuid PRIMARY KEY, role text NOT NULL, is_active boolean NOT NULL);
-CREATE TABLE public.work_candidates (id uuid PRIMARY KEY);
+CREATE TABLE public.work_candidates (id uuid PRIMARY KEY, proposed_title text NOT NULL DEFAULT 'Test Work', proposed_author_name text NOT NULL DEFAULT 'Test Author');
+CREATE TABLE public.authors(id uuid PRIMARY KEY DEFAULT gen_random_uuid(),name text NOT NULL,slug text NOT NULL UNIQUE,created_by uuid,updated_by uuid,primary_language text,is_public_visible boolean);
+CREATE TABLE public.works(id uuid PRIMARY KEY DEFAULT gen_random_uuid(),title text,slug text NOT NULL UNIQUE,summary text,content text,canonical_language text,origin_type text,source_label text,source_reference text,status text NOT NULL,primary_author_id uuid,created_by uuid,updated_by uuid,published_by uuid,published_at timestamptz,edition_title text,edition_language text,edition_source_url text,edition_note_internal text,content_blocks jsonb);
+
 CREATE TABLE public.candidate_legal_sources
-  (id uuid PRIMARY KEY, candidate_id uuid NOT NULL REFERENCES public.work_candidates(id));
+  (id uuid PRIMARY KEY, candidate_id uuid NOT NULL REFERENCES public.work_candidates(id), language_code text NOT NULL DEFAULT 'en', illustration_use text NOT NULL DEFAULT 'excluded');
 CREATE TABLE public.candidate_legal_decisions
   (decision_no bigint PRIMARY KEY, candidate_id uuid NOT NULL REFERENCES public.work_candidates(id),
    source_id uuid REFERENCES public.candidate_legal_sources(id), verdict text NOT NULL, territory text NOT NULL);
@@ -35,6 +38,7 @@ ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
 CREATE POLICY fixture_own_profile ON public.profiles FOR SELECT TO authenticated
   USING (id=(SELECT auth.uid()));
 ALTER TABLE storage.objects ENABLE ROW LEVEL SECURITY;
+CREATE POLICY fixture_public_artales_images ON storage.objects FOR SELECT TO authenticated USING(bucket_id='artales-images');
 CREATE POLICY artales_snapshot389_admin_insert_v1 ON storage.objects
  FOR INSERT TO authenticated
  WITH CHECK (bucket_id='artales-raw-snapshots'

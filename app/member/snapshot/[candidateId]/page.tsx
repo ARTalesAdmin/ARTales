@@ -16,6 +16,8 @@ export default async function SnapshotCandidate({params,searchParams}:{params:Pr
   .eq("id",candidateId).maybeSingle();
  if(!candidate)notFound();
  const state=await getCandidateSnapshotState(candidateId);
+ const {data:receipt}=await db.from("candidate_snapshots").select("sha256,embedded_images,catalog_url")
+  .eq("candidate_id",candidateId).maybeSingle();
  const query=await searchParams;
  return <main className="ca-root">
   <header className="ca-head"><div><p className="ca-eyebrow">ARTales / Snapshot</p>
@@ -26,5 +28,31 @@ export default async function SnapshotCandidate({params,searchParams}:{params:Pr
   <section className="ca-card"><h2>Archiv původního vydání</h2>
    <SnapshotActionPanel candidateId={candidateId} state={state} canArchive={profile.role==="admin"}/>
   </section>
+  {receipt?<section className="ca-card"><h2>Kontrola literární shody vydání</h2>
+    <p>Originál SHA-256: <code>{receipt.sha256}</code>. Soukromě archivované ilustrace: {receipt.embedded_images}.</p>
+    <p><a href={receipt.catalog_url} target="_blank" rel="noopener noreferrer">Záznam vydání v katalogu Gutenberg</a></p>
+    {profile.role==="admin"?<form className="ca-form" action={`/api/member/snapshot/${candidateId}/review`} method="post">
+      <input type="hidden" name="candidate_id" value={candidateId}/>
+      <input type="hidden" name="snapshot_sha256" value={receipt.sha256}/>
+      <label>Kontrola textu<select name="text_correspondence" defaultValue="needs_review">
+        <option value="needs_review">Ještě ověřit</option><option value="confirmed">Ověřená shoda — pro kompozici</option>
+        <option value="rejected">Zamítnuto</option></select></label>
+      <label>Ilustrace<select name="image_disposition" defaultValue="exclude_all">
+        <option value="exclude_all">Vyřadit z veřejného vydání</option>
+        <option value="requires_separate_review">Samostatné prověření práv</option></select></label>
+      <label>Důkazy shody konkrétní edice (min. 80 znaků)<textarea name="evidence_note" rows={5}
+        minLength={80} maxLength={4000} required/></label>
+      <button type="submit" className="ca-btn ca-primary">Uložit kontrolu vydání</button>
+    </form>:null}
+    {state.status==="verified_for_composition"?<p className="ca-success">Připraveno ke kompozici, nikoli k publikaci.</p>:null}
+  </section>:null}
+  {state.status==="verified_for_composition"&&profile.role==="admin"?<section className="ca-card">
+   <h2>Sémantická kompozice</h2>
+   <p>Vytvoření sémantických bloků z ověřeného archivu; obrázky zůstanou soukromé.</p>
+   <form method="post" action={"/api/member/semantic/"+candidateId+"/compose"}>
+    <button type="submit" className="ca-btn ca-primary">Převést EPUB na bloky</button>
+   </form>
+   <Link href={"/member/semantic/"+candidateId}>Otevřít redakční QA</Link>
+  </section>:null}
  </main>;
 }

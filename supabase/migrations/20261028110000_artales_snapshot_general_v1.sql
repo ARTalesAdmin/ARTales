@@ -154,3 +154,42 @@ CREATE POLICY artales_snapshot_general_readback_v1 ON storage.objects
         AND d.candidate_id=c.candidate_id AND d.source_id=c.source_id
         AND d.verdict='approved' AND d.territory='CZ/EU'));
 -- No UPDATE or DELETE grants or policies are created.
+
+
+-- Immutable Snapshot bytes/receipt and append-only editorial verification are
+-- separate. A review cannot rewrite the legal source or authorize publication.
+ALTER TABLE public.candidate_snapshots
+  ADD CONSTRAINT candidate_snapshots_identity_v1 UNIQUE(candidate_id,sha256);
+
+CREATE TABLE public.candidate_snapshot_reviews (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  candidate_id uuid NOT NULL,
+  snapshot_sha256 text NOT NULL CHECK(snapshot_sha256 ~ '^[a-f0-9]{64}$'),
+  text_correspondence text NOT NULL
+    CHECK(text_correspondence IN ('confirmed','needs_review','rejected')),
+  image_disposition text NOT NULL
+    CHECK(image_disposition IN ('exclude_all','requires_separate_review')),
+  evidence_note text NOT NULL CHECK(length(btrim(evidence_note)) BETWEEN 80 AND 4000),
+  reviewed_by uuid NOT NULL REFERENCES public.profiles(id) ON DELETE RESTRICT,
+  reviewed_at timestamptz NOT NULL DEFAULT now(),
+  CONSTRAINT snapshot_review_exact_receipt FOREIGN KEY(candidate_id,snapshot_sha256)
+    REFERENCES public.candidate_snapshots(candidate_id,sha256) ON DELETE RESTRICT
+);
+CREATE INDEX candidate_snapshot_review_history_v1
+  ON public.candidate_snapshot_reviews(candidate_id,reviewed_at DESC,id DESC);
+ALTER TABLE public.candidate_snapshot_reviews ENABLE ROW LEVEL SECURITY;
+REVOKE ALL ON public.candidate_snapshot_reviews FROM anon,authenticated;
+GRANT SELECT,INSERT ON public.candidate_snapshot_reviews TO authenticated;
+CREATE POLICY artales_snapshot_review_read_v1 ON public.candidate_snapshot_reviews
+  FOR SELECT TO authenticated USING(EXISTS(
+    SELECT 1 FROM public.profiles p WHERE p.id=(SELECT auth.uid()) AND p.is_active
+      AND p.role::text IN ('admin','editor')
+  ));
+CREATE POLICY artales_snapshot_review_insert_v1 ON public.candidate_snapshot_reviews
+  FOR INSERT TO authenticated WITH CHECK(
+    reviewed_by=(SELECT auth.uid()) AND EXISTS(
+      SELECT 1 FROM public.profiles p WHERE p.id=(SELECT auth.uid()) AND p.is_active
+        AND p.role::text='admin'
+    )
+  );
+-- No UPDATE or DELETE grants/policies.

@@ -7,12 +7,15 @@ export async function getCandidateSnapshotState(candidateId:string):Promise<Snap
  await requireEditorOrAdmin();
  if(!uuid.test(candidateId))throw Error("invalid_candidate_id");
  const db=await createClient();
- const [{data:lock,error:le},{data:receipt,error:re},{data:claim,error:ce}]=await Promise.all([
+ const [{data:lock,error:le},{data:receipt,error:re},{data:claim,error:ce},{data:review,error:ve}]=await Promise.all([
   db.from("candidate_legal_locks").select("candidate_id,decision_no,source_url,source_facts").eq("candidate_id",candidateId).maybeSingle(),
   db.from("candidate_snapshots").select("candidate_id,sha256,readback_status,content_correspondence").eq("candidate_id",candidateId).maybeSingle(),
-  db.from("candidate_snapshot_claims").select("candidate_id").eq("candidate_id",candidateId).maybeSingle()
+  db.from("candidate_snapshot_claims").select("candidate_id").eq("candidate_id",candidateId).maybeSingle(),
+  db.from("candidate_snapshot_reviews").select("text_correspondence")
+    .eq("candidate_id",candidateId).order("reviewed_at",{ascending:false})
+    .order("id",{ascending:false}).limit(1).maybeSingle()
  ]);
- if(le||re||ce)throw Error("snapshot_registry_unavailable");
+ if(le||re||ce||ve)throw Error("snapshot_registry_unavailable");
  if(!lock)return deriveSnapshotActionState({approved:false,locked:false,sourceAvailable:false});
  const {data:decision,error:de}=await db.from("candidate_legal_decisions")
   .select("decision_no,verdict").eq("candidate_id",candidateId).eq("decision_no",lock.decision_no).maybeSingle();
@@ -28,7 +31,7 @@ export async function getCandidateSnapshotState(candidateId:string):Promise<Snap
   approved:decision?.verdict==="approved",locked:true,
   sourceAvailable:acquisitionEligible,
   receipt:receipt?{sha256:receipt.sha256,readbackVerified:receipt.readback_status==="sha256_verified"}:null,
-  editionVerified:receipt?.content_correspondence==="confirmed",
+  editionVerified:review?.text_correspondence==="confirmed",
   claimWithoutReceipt:Boolean(!receipt&&claim)
  });
 }
