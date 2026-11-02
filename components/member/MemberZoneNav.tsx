@@ -44,6 +44,7 @@ export default function MemberZoneNav({ role }: { role: string | null }) {
       hint: "Obsah a jeho uspořádání",
       links: editor
         ? [
+            { href: "/member/editorial-pipeline", label: "Redakční úkoly" },
             { href: "/member/works", label: member.works },
             { href: "/member/authors", label: member.authors },
             { href: "/member/collections", label: member.collections },
