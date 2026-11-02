@@ -19,7 +19,7 @@ CREATE TABLE public.candidate_semantic_revisions (
 CREATE INDEX candidate_semantic_latest_idx ON public.candidate_semantic_revisions(candidate_id,created_at DESC);
 CREATE TABLE public.artales_editorial_tasks (
  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
- candidate_id uuid NOT NULL REFERENCES public.candidate_semantic_revisions(candidate_id) ON DELETE RESTRICT,
+ candidate_id uuid NOT NULL REFERENCES public.work_candidates(id) ON DELETE RESTRICT,
  revision_sha256 text NOT NULL REFERENCES public.candidate_semantic_revisions(revision_sha256) ON DELETE RESTRICT,
  kind text NOT NULL CHECK(kind IN ('text_review','visual_review','proofread')),
  title text NOT NULL CHECK(length(btrim(title)) BETWEEN 3 AND 240),
@@ -42,7 +42,7 @@ CREATE TABLE public.artales_editorial_events (
 );
 CREATE TABLE public.candidate_release_decisions (
  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
- candidate_id uuid NOT NULL REFERENCES public.candidate_semantic_revisions(candidate_id) ON DELETE RESTRICT,
+ candidate_id uuid NOT NULL REFERENCES public.work_candidates(id) ON DELETE RESTRICT,
  revision_sha256 text NOT NULL REFERENCES public.candidate_semantic_revisions(revision_sha256) ON DELETE RESTRICT,
  outcome text NOT NULL CHECK(outcome IN ('approved','held')),
  rationale text NOT NULL CHECK(length(btrim(rationale)) BETWEEN 30 AND 4000),
