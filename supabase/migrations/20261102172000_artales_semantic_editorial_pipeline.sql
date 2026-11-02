@@ -86,12 +86,12 @@ CREATE POLICY release_staff_read ON public.candidate_release_decisions FOR SELEC
 
 -- Task transitions are applied through a bounded invoker RPC, never by direct
 -- generic UPDATE or a mutable "completed" checkbox in the UI.
-CREATE FUNCTION public.artales_complete_editorial_task(p_task_id uuid)
+CREATE FUNCTION public.artales_complete_editorial_task(p_task_id uuid,p_note text)
 RETURNS jsonb LANGUAGE plpgsql SECURITY DEFINER SET search_path=''
 AS $$
 DECLARE v_actor uuid := auth.uid(); v_task public.artales_editorial_tasks%ROWTYPE;
 BEGIN
- IF v_actor IS NULL OR NOT EXISTS(SELECT 1 FROM public.profiles p WHERE p.id=v_actor AND p.is_active AND p.role::text IN ('admin','editor'))
+ IF v_actor IS NULL OR p_note IS NULL OR length(btrim(p_note)) NOT BETWEEN 40 AND 4000 OR NOT EXISTS(SELECT 1 FROM public.profiles p WHERE p.id=v_actor AND p.is_active AND p.role::text IN ('admin','editor'))
  THEN RAISE EXCEPTION 'editorial_access_denied' USING errcode='42501'; END IF;
  SELECT * INTO v_task FROM public.artales_editorial_tasks WHERE id=p_task_id FOR UPDATE;
  IF NOT FOUND OR v_task.status<>'claimed' THEN RETURN jsonb_build_object('result','unavailable'); END IF;
@@ -101,11 +101,11 @@ BEGIN
  UPDATE public.artales_editorial_tasks SET status='completed',completed_by=v_actor,completed_at=now()
  WHERE id=p_task_id;
  INSERT INTO public.artales_editorial_events(task_id,actor_id,action,note)
- VALUES(p_task_id,v_actor,'completed','Signed editorial review completion');
+ VALUES(p_task_id,v_actor,'completed',btrim(p_note));
  RETURN jsonb_build_object('result','completed','task_id',p_task_id);
 END $$;
-REVOKE ALL ON FUNCTION public.artales_complete_editorial_task(uuid) FROM PUBLIC,anon,authenticated;
-GRANT EXECUTE ON FUNCTION public.artales_complete_editorial_task(uuid) TO authenticated;
+REVOKE ALL ON FUNCTION public.artales_complete_editorial_task(uuid,text) FROM PUBLIC,anon,authenticated;
+GRANT EXECUTE ON FUNCTION public.artales_complete_editorial_task(uuid,text) TO authenticated;
 
 -- An explicitly released revision is copied to a separate, RLS-protected public
 -- surface. Raw EPUB originals and private artwork never enter this table.

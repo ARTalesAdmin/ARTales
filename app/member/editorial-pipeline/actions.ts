@@ -26,7 +26,9 @@ export async function completeSemanticTask(form:FormData){
  const taskId=String(form.get("task_id")??"");
  if(!uuid.test(taskId))redirect("/member/editorial-pipeline?error=invalid");
  const db=await createClient();
- const {data,error}=await db.rpc("artales_complete_editorial_task",{p_task_id:taskId});
+ const note=String(form.get("evidence_note")??"").trim();
+ if(note.length<40||note.length>4000)redirect("/member/editorial-pipeline?error=review_note_required");
+ const {data,error}=await db.rpc("artales_complete_editorial_task",{p_task_id:taskId,p_note:note});
  if(error||data?.result!=="completed")redirect("/member/editorial-pipeline?error=task_failed");
  void actor;
  revalidatePath("/member/editorial-pipeline");redirect("/member/editorial-pipeline?notice=completed");

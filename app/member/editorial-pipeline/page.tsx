@@ -20,6 +20,7 @@ export default async function EditorialPipeline(){
    </form>:null}
    {t.status==="claimed"&&(t.assigned_to===profile.id||profile.role==="admin")?<form action={completeSemanticTask}>
     <input type="hidden" name="task_id" value={t.id}/>
+    <label>Doklad kontroly <textarea name="evidence_note" minLength={40} maxLength={4000} required rows={3}/></label>
     <button type="submit">Dokončit kontrolu</button>
    </form>:null}
   </article>)}
