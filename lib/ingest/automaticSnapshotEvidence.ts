@@ -73,8 +73,9 @@ export function verifyAutomaticEdition(i:AutomaticEditionInput):AutomaticEdition
   refuse("text_contains_unresolved_credits_or_rights");
  let prior:StoredEvidence;
  try{
-  if(!source.notes||source.notes.length>100_000)refuse("approved_legal_audit_missing");
-  prior=JSON.parse(source.notes) as StoredEvidence;
+  const rawNotes=source.notes;
+  if(typeof rawNotes!=="string"||rawNotes.length>100_000)refuse("approved_legal_audit_missing");
+  prior=JSON.parse(rawNotes) as StoredEvidence;
  }catch{refuse("approved_legal_audit_missing");}
  if(prior!.schema!=="artales.public-domain-check.v1"||
   prior!.gutenbergId!==id||
