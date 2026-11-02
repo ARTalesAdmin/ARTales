@@ -1,4 +1,4 @@
-name: ARTales Production one-migration APPLY (separate approval)
+name: ARTales Production identity owner maintenance APPLY (separate approval)
 on:
   workflow_dispatch:
     inputs:
@@ -27,7 +27,7 @@ jobs:
   apply:
     if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
-    environment: artales-production-apply
+    environment: artales-production-identity-owner-maintenance
     timeout-minutes: 25
     steps:
       - uses: actions/checkout@v4
@@ -45,9 +45,10 @@ jobs:
           github-token: ${{ github.token }}
       - name: Revalidate and execute exactly one migration
         env:
-          ARTALES_PRODUCTION_APPLY_ENV: artales-production-apply
-          ARTALES_PROD_APPLY_DB_URL: ${{ secrets.ARTALES_PROD_APPLY_DB_URL }}
-          ARTALES_PROD_APPLY_CA_PEM: ${{ secrets.ARTALES_PROD_APPLY_CA_PEM }}
+          ARTALES_PRODUCTION_APPLY_ENV: artales-production-identity-owner-maintenance
+          ARTALES_OWNER_MAINTENANCE_SCOPE: identity-20261028091029
+          ARTALES_PROD_OWNER_DB_URL: ${{ secrets.ARTALES_PROD_OWNER_DB_URL }}
+          ARTALES_PROD_OWNER_CA_PEM: ${{ secrets.ARTALES_PROD_OWNER_CA_PEM }}
           ARTALES_APPLY_MAIN_SHA: ${{ inputs.main_sha }}
           ARTALES_APPLY_FILENAME: ${{ inputs.migration_filename }}
           ARTALES_APPLY_SQL_SHA256: ${{ inputs.migration_sha256 }}
