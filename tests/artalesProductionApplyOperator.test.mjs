@@ -11,7 +11,8 @@ const now="2026-11-01T13:00:00.000Z";
 const env={GITHUB_ACTIONS:"true",GITHUB_EVENT_NAME:"workflow_dispatch",
  GITHUB_REF:"refs/heads/main",GITHUB_REPOSITORY:"ARTalesAdmin/ARTales",
  GITHUB_SHA:sha,ARTALES_APPLY_MAIN_SHA:sha,
- ARTALES_PRODUCTION_APPLY_ENV:"artales-production-apply",
+ ARTALES_PRODUCTION_APPLY_ENV:"artales-production-identity-owner-maintenance",
+ ARTALES_OWNER_MAINTENANCE_SCOPE:"identity-20261028091029",GITHUB_RUN_ATTEMPT:"1",
  ARTALES_APPLY_FILENAME:filename,ARTALES_APPLY_SQL_SHA256:digest,
  ARTALES_APPLY_PLAN_PROOF_DIGEST:proof,ARTALES_APPLY_PLAN_RUN_ID:runId};
 const selection={sha,filename,sqlSha:digest,proof,runId};
@@ -38,20 +39,22 @@ test("requires exact main and one approved allowlisted SQL migration",()=>{
   ["GITHUB_SHA","f".repeat(40)],["ARTALES_APPLY_SQL_SHA256","invalid"],
   ["ARTALES_APPLY_FILENAME","20260101000000_dangerous.sql"],
   ["ARTALES_PRODUCTION_APPLY_ENV","artales-production-plan"],
+  ["ARTALES_OWNER_MAINTENANCE_SCOPE","snapshot"],["GITHUB_RUN_ATTEMPT","2"],
+  ["ARTALES_APPLY_FILENAME","20261028110000_artales_snapshot_general_v1.sql"],
   ["ARTALES_APPLY_PLAN_RUN_ID","0"]]){
   blocked(()=>validateApplyDispatch({...env,[k]:v},sha,true));
  }
  blocked(()=>validateApplyDispatch(env,sha,false));
 });
-test("write operator never aliases postgres, superuser or plan account",()=>{
- const good="postgresql://artales_prod_apply_operator:placeholder@db."+
+test("owner-maintenance operator only accepts exact postgres identity",()=>{
+ const good="postgresql://postgres:placeholder@db."+
   project+".supabase.co:5432/postgres?sslmode=verify-full";
- assert.equal(validateApplyConnection(good).role,"artales_prod_apply_operator");
- const pool="postgresql://artales_prod_apply_operator."+project+
+ assert.equal(validateApplyConnection(good).role,"postgres");
+ const pool="postgresql://postgres."+project+
   ":placeholder@aws-1-eu-central-1.pooler.supabase.com:5432/postgres?sslmode=verify-full";
  assert.equal(validateApplyConnection(pool).connectionClass,"session-pooler");
- for(const wrong of [good.replace("artales_prod_apply_operator","postgres"),
-  good.replace("artales_prod_apply_operator","artales_prod_plan_ro"),
+ for(const wrong of [good.replace("postgres:placeholder","artales_prod_apply_operator:placeholder"),
+  good.replace("postgres:placeholder","artales_prod_plan_ro:placeholder"),
   good.replace("verify-full","require"),good.replace(":5432",":6543"),
   good.replace(project,"wrong"),good.replace(":placeholder",":" )]){
   blocked(()=>validateApplyConnection(wrong));
@@ -84,16 +87,19 @@ const baseline=[{version:"20260926142755",name:"remote_schema"},
      ["20261025095658","legal_screen_v1"],
      ["20261027081945","snapshot389_storage_admin_rls"]]
     .map(([version,name])=>({version,name,statementMd5:"c".repeat(32)}))];
-const fixture={principal:"artales_prod_apply_operator",
- sessionPrincipal:"artales_prod_apply_operator",database:"postgres",
- readOnly:"off",superuser:false,createRole:false,createDb:false,
- bypassRls:false,migrations:baseline};
+const fixture={principal:"postgres",
+ sessionPrincipal:"postgres",database:"postgres",
+ readOnly:"off",superuser:false,createRole:true,createDb:true,
+ bypassRls:true,profilesOwner:"postgres",invitesOwner:"postgres",
+ syncFunctionOwner:"postgres",ledgerOwner:"postgres",migrations:baseline};
 test("role and historical ledger validation denies dangerous drift",()=>{
  assert.equal(validateApplyLedger(fixture).length,5);
  for(const key of ["superuser","createRole","createDb","bypassRls"]){
-  blocked(()=>validateApplyLedger({...fixture,[key]:true}));
+  blocked(()=>validateApplyLedger({...fixture,[key]:!fixture[key]}));
  }
- blocked(()=>validateApplyLedger({...fixture,principal:"postgres"}));
+ for(const key of ["profilesOwner","invitesOwner","syncFunctionOwner","ledgerOwner"])
+  blocked(()=>validateApplyLedger({...fixture,[key]:"other_owner"}));
+ blocked(()=>validateApplyLedger({...fixture,principal:"other_role"}));
  blocked(()=>validateApplyLedger({...fixture,readOnly:"on"}));
  blocked(()=>validateApplyLedger({...fixture,migrations:[baseline[0],baseline[0]]}));
 });
@@ -110,9 +116,9 @@ test("post-APPLY verifies the exact additional version and SQL md5",()=>{
 test("production workflow requires separate protected environment; no PR or auto trigger",()=>{
  const yml=readFileSync(".github/workflows/artales-production-one-migration-apply.yml","utf8");
  assert.match(yml,/workflow_dispatch:/);
- assert.match(yml,/environment: artales-production-apply/);
+ assert.match(yml,/environment: artales-production-identity-owner-maintenance/);
  assert.match(yml,/github.ref == 'refs\/heads\/main'/);
- assert.match(yml,/ARTALES_PROD_APPLY_DB_URL:.*secrets\./);
+ assert.match(yml,/ARTALES_PROD_OWNER_DB_URL:.*secrets\./);
  assert.match(yml,/permissions:\n  contents: read\n  actions: read/);
  assert.doesNotMatch(yml,/\n  pull_request:|\n  push:|\n  schedule:|--include-all|migration repair/);
 });
