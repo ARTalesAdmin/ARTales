@@ -94,7 +94,7 @@ BEGIN
  IF v_actor IS NULL OR NOT EXISTS(SELECT 1 FROM public.profiles p WHERE p.id=v_actor AND p.is_active AND p.role::text IN ('admin','editor'))
  THEN RAISE EXCEPTION 'editorial_access_denied' USING errcode='42501'; END IF;
  SELECT * INTO v_task FROM public.artales_editorial_tasks WHERE id=p_task_id FOR UPDATE;
- IF NOT FOUND OR v_task.status='completed' THEN RETURN jsonb_build_object('result','unavailable'); END IF;
+ IF NOT FOUND OR v_task.status<>'claimed' THEN RETURN jsonb_build_object('result','unavailable'); END IF;
  IF v_task.assigned_to IS NOT NULL AND v_task.assigned_to<>v_actor
  AND NOT EXISTS(SELECT 1 FROM public.profiles p WHERE p.id=v_actor AND p.role::text='admin' AND p.is_active)
  THEN RETURN jsonb_build_object('result','not_assignee'); END IF;
@@ -210,3 +210,22 @@ REVOKE ALL ON FUNCTION public.artales_publish_semantic_candidate(uuid,text,text,
  FROM PUBLIC,anon,authenticated;
 GRANT EXECUTE ON FUNCTION public.artales_publish_semantic_candidate(uuid,text,text,text,text)
  TO authenticated;
+
+CREATE FUNCTION public.artales_claim_editorial_task(p_task_id uuid)
+RETURNS jsonb LANGUAGE plpgsql SECURITY DEFINER SET search_path=''
+AS $$
+DECLARE v_actor uuid := auth.uid(); v_task public.artales_editorial_tasks%ROWTYPE;
+BEGIN
+ IF v_actor IS NULL OR NOT EXISTS(SELECT 1 FROM public.profiles p WHERE p.id=v_actor
+ AND p.is_active AND p.role::text IN ('admin','editor'))
+ THEN RAISE EXCEPTION 'editorial_access_denied' USING errcode='42501'; END IF;
+ SELECT * INTO v_task FROM public.artales_editorial_tasks WHERE id=p_task_id FOR UPDATE;
+ IF NOT FOUND OR v_task.status NOT IN ('open','returned') THEN
+  RETURN jsonb_build_object('result','unavailable'); END IF;
+ UPDATE public.artales_editorial_tasks SET status='claimed',assigned_to=v_actor WHERE id=p_task_id;
+ INSERT INTO public.artales_editorial_events(task_id,actor_id,action,note)
+ VALUES(p_task_id,v_actor,'claimed','Editor accepted exact semantic revision task');
+ RETURN jsonb_build_object('result','claimed','task_id',p_task_id);
+END $$;
+REVOKE ALL ON FUNCTION public.artales_claim_editorial_task(uuid) FROM PUBLIC,anon,authenticated;
+GRANT EXECUTE ON FUNCTION public.artales_claim_editorial_task(uuid) TO authenticated;

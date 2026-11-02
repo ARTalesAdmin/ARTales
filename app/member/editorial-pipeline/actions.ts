@@ -51,3 +51,13 @@ export async function publishSemanticCandidate(form:FormData){
  revalidatePath("/gallery");revalidatePath("/member/editorial-pipeline");
  redirect("/work/"+slug);
 }
+
+export async function claimSemanticTask(form:FormData){
+ await requireEditorOrAdmin();const id=String(form.get("task_id")??"");
+ if(!uuid.test(id))redirect("/member/editorial-pipeline?error=invalid");
+ const db=await createClient();
+ const {data,error}=await db.rpc("artales_claim_editorial_task",{p_task_id:id});
+ if(error||data?.result!=="claimed")redirect("/member/editorial-pipeline?error=unavailable");
+ revalidatePath("/member/editorial-pipeline");
+ redirect("/member/editorial-pipeline?notice=claimed");
+}
