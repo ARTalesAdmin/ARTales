@@ -77,3 +77,4 @@ jobs:
           cache: npm
       - run: npm ci --no-audit --no-fund
       - run: npx tsx --test tests/snapshot389Mirror.test.mjs
+      - run: npx tsx --test tests/epubSemantic389.test.mjs
