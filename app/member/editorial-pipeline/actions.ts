@@ -31,3 +31,23 @@ export async function completeSemanticTask(form:FormData){
  void actor;
  revalidatePath("/member/editorial-pipeline");redirect("/member/editorial-pipeline?notice=completed");
 }
+
+export async function publishSemanticCandidate(form:FormData){
+ await requireAdmin();
+ const id=String(form.get("candidate_id")??"");
+ const revision=String(form.get("revision_sha256")??"");
+ const slug=String(form.get("slug")??"");
+ const summary=String(form.get("summary")??"");
+ const reason=String(form.get("reason")??"");
+ if(!uuid.test(id)||!/^[a-f0-9]{64}$/.test(revision)||
+    !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(slug)||summary.trim().length<200||
+    summary.trim().length>800||reason.trim().length<30)redirect("/member/editorial-pipeline?error=invalid_release");
+ const db=await createClient();
+ const {data,error}=await db.rpc("artales_publish_semantic_candidate",{
+  p_candidate_id:id,p_revision_sha256:revision,p_work_slug:slug,
+  p_summary:summary,p_reason:reason
+ });
+ if(error||data?.result!=="published")redirect("/member/editorial-pipeline?error=release_blocked");
+ revalidatePath("/gallery");revalidatePath("/member/editorial-pipeline");
+ redirect("/work/"+slug);
+}
