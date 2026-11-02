@@ -34,3 +34,43 @@ Risk HIGH; Target production only after all gates; DB no in source-only PR, YES 
 
 ## Phoenix
 Observed 2026-11-01: baseline protected PLAN run #41308766110 SUCCESS on main \`0d3e6200e2cd6d06f095846694488815bc688750\`, read-only role \`artales_prod_plan_ro\`, confirmed five historical migrations and stable checksums. Identity #279 remains Draft; Snapshot #278 Draft; no new SQL applied. This proposal advances from read-only PLAN to bounded source-only APPLY. No cross-boundary approval carried forward.
+
+
+## 2026-11-02 — bounded identity owner-maintenance candidate (SOURCE ONLY)
+
+The previous `artales_prod_apply_operator` assumption proved invalid for this
+migration: PostgreSQL 17 requires the existing table/function owner for policy
+replacement and `CREATE OR REPLACE FUNCTION`. Production read-only inspection
+shows `postgres` owns both `public.profiles`, `public.invites`, the profile
+sync function, and `supabase_migrations.schema_migrations`.
+
+This source candidate now **allows only**
+`20261028091029_artales_identity_role_authority_v1.sql` and checks that
+`current_user = session_user = postgres`, with exact object ownership.
+It disallows general Snapshot and #389 APPLY, any other role, repeat attempts,
+wrong GitHub environment, wrong main SHA and stale or mismatched PLAN receipt.
+
+**This is not a standing authorized owner account.** `postgres` has
+broad `CREATEROLE`, `CREATEDB`, and `BYPASSRLS` rights in ARTales; using
+it is a **one-time high-risk maintenance exception requiring separate human
+authorization**, supported provider authority, an independently reviewed
+resolution of the earlier MCP APPLY denial and a newly protected GitHub
+environment with a required human reviewer. No credentials, secrets or
+environment are configured by this PR. The identity itself must be checked
+through a real PostgreSQL connection, not inferred from an env var.
+
+The future job uses exactly
+`artales-production-identity-owner-maintenance` and secrets
+`ARTALES_PROD_OWNER_DB_URL` and `ARTALES_PROD_OWNER_CA_PEM`,
+all **undefined until separately approved**. Do not provide passwords in
+ChatGPT, GitHub source, PR descriptions or logs. Keep production APPLY
+disabled until a real isolated PG17 integration test proves negative
+non-owner and positive owner behavior and the last source-only checks are green.
+
+**Current disposition:** operator source-only; **NOT deployable and NOT
+Production-approved**. Existing `artales_prod_plan_ro` is never used for
+writes. The baseline protected PLAN run is insufficient; require a new
+protected one-migration PLAN on the exact eventual merged main SHA.
+Independent post-apply Supabase ledger, role ACL, auth sync, and security
+readback is mandatory before AS-2 acceptance. Never auto-retry unknown
+outcomes or use a different tool after provider refusal.
