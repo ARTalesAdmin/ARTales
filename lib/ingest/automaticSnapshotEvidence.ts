@@ -75,7 +75,7 @@ export function verifyAutomaticEdition(i:AutomaticEditionInput):AutomaticEdition
  try{
   const rawNotes=source.notes;
   if(typeof rawNotes!=="string"||rawNotes.length>100_000)refuse("approved_legal_audit_missing");
-  prior=JSON.parse(rawNotes) as StoredEvidence;
+  prior=JSON.parse(rawNotes ?? "") as StoredEvidence;
  }catch{refuse("approved_legal_audit_missing");}
  if(prior!.schema!=="artales.public-domain-check.v1"||
   prior!.gutenbergId!==id||
