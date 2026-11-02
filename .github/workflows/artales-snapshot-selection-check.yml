@@ -50,6 +50,7 @@ jobs:
       - run: npx tsx --test tests/verifiedLegalSnapshotHandoff.test.mjs
       - run: npx tsx --test tests/snapshot389Pilot.test.mjs
       - run: npx tsx --test tests/snapshot389Mirror.test.mjs
+      - run: npx tsx --test tests/epubSemantic389.test.mjs
       - run: npx tsx --test tests/snapshot389RequestGate.test.mjs
       - run: node --test tests/snapshot389Security.test.mjs
       - run: npx tsx --test tests/generalSnapshotAction.test.mjs
