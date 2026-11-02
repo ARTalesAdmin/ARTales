@@ -8,6 +8,8 @@ on:
       - 'scripts/artales-production-apply-operator.mjs'
       - 'tests/artalesProductionApplyOperator.test.mjs'
       - 'docs/protocols/ARTALES_PRODUCTION_APPLY_OPERATOR_V0.md'
+      - 'tests/db/artalesIdentityOwnerFixture.sql'
+      - 'tests/db/artalesIdentityOwnerIsolation.sh'
 permissions:
   contents: read
 jobs:
@@ -23,3 +25,36 @@ jobs:
           node-version: '22'
       - name: Run fail-closed tests (no provider access, no secrets)
         run: node --test tests/artalesProductionApplyOperator.test.mjs
+
+  isolated-pg17-owner:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: isolated-only
+          POSTGRES_DB: artales_identity_fixture
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d artales_identity_fixture"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 12
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Install PostgreSQL client
+        run: command -v psql || (sudo apt-get update && sudo apt-get install -y postgresql-client)
+      - name: Prove owner-bound identity migration and RLS safety on disposable PG17
+        env:
+          ARTALES_LOCAL_PG17_ONLY: '1'
+          PGHOST: 127.0.0.1
+          PGPORT: '5432'
+          PGDATABASE: artales_identity_fixture
+          PGUSER: postgres
+          PGPASSWORD: isolated-only
+        run: bash tests/db/artalesIdentityOwnerIsolation.sh
