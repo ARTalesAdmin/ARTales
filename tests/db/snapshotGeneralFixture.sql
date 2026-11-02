@@ -18,7 +18,7 @@ CREATE TABLE public.authors(id uuid PRIMARY KEY DEFAULT gen_random_uuid(),name t
 CREATE TABLE public.works(id uuid PRIMARY KEY DEFAULT gen_random_uuid(),title text,slug text NOT NULL UNIQUE,summary text,content text,canonical_language text,origin_type text,source_label text,source_reference text,status text NOT NULL,primary_author_id uuid,created_by uuid,updated_by uuid,published_by uuid,published_at timestamptz,edition_title text,edition_language text,edition_source_url text,edition_note_internal text,content_blocks jsonb);
 
 CREATE TABLE public.candidate_legal_sources
-  (id uuid PRIMARY KEY, candidate_id uuid NOT NULL REFERENCES public.work_candidates(id), language_code text NOT NULL DEFAULT 'en');
+  (id uuid PRIMARY KEY, candidate_id uuid NOT NULL REFERENCES public.work_candidates(id), language_code text NOT NULL DEFAULT 'en', illustration_use text NOT NULL DEFAULT 'excluded');
 CREATE TABLE public.candidate_legal_decisions
   (decision_no bigint PRIMARY KEY, candidate_id uuid NOT NULL REFERENCES public.work_candidates(id),
    source_id uuid REFERENCES public.candidate_legal_sources(id), verdict text NOT NULL, territory text NOT NULL);
