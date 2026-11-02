@@ -38,6 +38,7 @@ export default function SemanticReaderNotesQa(props:Props){
   const selected=props.notes.find(item=>item.saved.note.id===props.selectedNoteId);
   const selectedIndex=props.selectedNoteIndex;
 
+  // eslint-disable-next-line react-hooks/set-state-in-effect -- explicit external note-menu open request
   useEffect(()=>{if(props.openRequest>0)setMenuOpen(true);},[props.openRequest]);
   useEffect(()=>{
     if(!menuOpen)return;
