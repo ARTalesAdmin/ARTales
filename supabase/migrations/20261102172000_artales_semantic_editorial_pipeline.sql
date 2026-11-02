@@ -8,6 +8,7 @@ CREATE TABLE public.candidate_semantic_revisions (
  revision jsonb NOT NULL CHECK(revision->>'schema'='artales.semantic-text.v2'),
  source_text text NOT NULL CHECK(length(source_text)>0),
  component_id text NOT NULL,
+ source_manifest jsonb NOT NULL CHECK(jsonb_typeof(source_manifest)='object'),
  image_selection text NOT NULL CHECK(image_selection IN ('none','review_pending','cleared')),
  status text NOT NULL DEFAULT 'draft' CHECK(status IN ('draft','qa_approved','rejected')),
  authored_by uuid NOT NULL REFERENCES public.profiles(id),

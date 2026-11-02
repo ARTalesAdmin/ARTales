@@ -22,7 +22,7 @@ export async function POST(req:Request,{params}:{params:Promise<{candidateId:str
  if(extracted.epub_sha256!==snapshot.sha256)return NextResponse.json({error:"semantic_source_digest_mismatch"},{status:409});
  const revision=composeSemanticRevision({work_id:candidateId,work_slug:"candidate-"+candidateId,snapshot_ref:"sha256:"+snapshot.sha256,source_bytes_sha256:extracted.text_sha256,component_id:extracted.component_id,original_byte_start:0,original_raw:extracted.text});
  verifySemanticRevision(revision,extracted.text);
- const {error}=await db.from("candidate_semantic_revisions").insert({candidate_id:candidateId,snapshot_sha256:snapshot.sha256,revision_sha256:revision.revision_sha256,revision,source_text:extracted.text,component_id:extracted.component_id,image_selection:"none",status:"draft",authored_by:actor.id});
+ const {error}=await db.from("candidate_semantic_revisions").insert({candidate_id:candidateId,snapshot_sha256:snapshot.sha256,revision_sha256:revision.revision_sha256,revision,source_text:extracted.text,component_id:extracted.component_id,source_manifest:{documents:extracted.documents,assets:extracted.assets,epub_sha256:extracted.epub_sha256},image_selection:"none",status:"draft",authored_by:actor.id});
  if(error)return NextResponse.json({error:"semantic_revision_insert_failed"},{status:409});
  return NextResponse.redirect(new URL("/member/semantic/"+candidateId,req.url),303);
 }
