@@ -6,9 +6,11 @@ import SemanticReaderLab from "@/components/editor/SemanticReaderLab";
 import {verifySemanticRevision,walkSemanticAtoms} from "@/lib/semantic/compose";
 import {enqueueSemanticReview,publishSemanticCandidate} from "@/app/member/editorial-pipeline/actions";
 import type {SemanticRevision} from "@/lib/semantic/model";
+import {SEMANTIC_PIPELINE_ENABLED} from "@/lib/semantic/featureFlag";
 export const dynamic="force-dynamic";
 export default async function EditorialSemanticPreview({params}:{params:Promise<{candidateId:string}>}){
  const {candidateId}=await params;
+ if(!SEMANTIC_PIPELINE_ENABLED)notFound();
  await requireEditorOrAdmin();
  if(!/^[a-f0-9-]{36}$/i.test(candidateId))notFound();
  const db=await createClient();

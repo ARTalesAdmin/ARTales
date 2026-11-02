@@ -3,8 +3,11 @@ import {redirect} from "next/navigation";
 import {revalidatePath} from "next/cache";
 import {createClient} from "@/lib/supabase/server";
 import {requireAdmin,requireEditorOrAdmin} from "@/lib/guards";
+import {SEMANTIC_PIPELINE_ENABLED} from "@/lib/semantic/featureFlag";
+import {notFound} from "next/navigation";
 const uuid=/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 export async function enqueueSemanticReview(form:FormData){
+ if(!SEMANTIC_PIPELINE_ENABLED)notFound();
  const actor=await requireAdmin(),candidateId=String(form.get("candidate_id")??"");
  if(!uuid.test(candidateId))redirect("/member/editorial-pipeline?error=invalid");
  const db=await createClient();
@@ -22,6 +25,7 @@ export async function enqueueSemanticReview(form:FormData){
  redirect("/member/editorial-pipeline?notice=queued");
 }
 export async function completeSemanticTask(form:FormData){
+ if(!SEMANTIC_PIPELINE_ENABLED)notFound();
  const actor=await requireEditorOrAdmin();
  const taskId=String(form.get("task_id")??"");
  if(!uuid.test(taskId))redirect("/member/editorial-pipeline?error=invalid");
@@ -35,6 +39,7 @@ export async function completeSemanticTask(form:FormData){
 }
 
 export async function publishSemanticCandidate(form:FormData){
+ if(!SEMANTIC_PIPELINE_ENABLED)notFound();
  await requireAdmin();
  const id=String(form.get("candidate_id")??"");
  const revision=String(form.get("revision_sha256")??"");
@@ -55,6 +60,7 @@ export async function publishSemanticCandidate(form:FormData){
 }
 
 export async function claimSemanticTask(form:FormData){
+ if(!SEMANTIC_PIPELINE_ENABLED)notFound();
  await requireEditorOrAdmin();const id=String(form.get("task_id")??"");
  if(!uuid.test(id))redirect("/member/editorial-pipeline?error=invalid");
  const db=await createClient();

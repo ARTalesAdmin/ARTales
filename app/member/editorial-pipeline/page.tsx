@@ -2,8 +2,11 @@ import Link from "next/link";
 import {requireEditorOrAdmin} from "@/lib/guards";
 import {createClient} from "@/lib/supabase/server";
 import {completeSemanticTask,claimSemanticTask} from "./actions";
+import {notFound} from "next/navigation";
+import {SEMANTIC_PIPELINE_ENABLED} from "@/lib/semantic/featureFlag";
 export const dynamic="force-dynamic";
 export default async function EditorialPipeline(){
+ if(!SEMANTIC_PIPELINE_ENABLED)notFound();
  const profile=await requireEditorOrAdmin();const db=await createClient();
  const {data,error}=await db.from("artales_editorial_tasks")
   .select("id,candidate_id,revision_sha256,title,status,kind,assigned_to")

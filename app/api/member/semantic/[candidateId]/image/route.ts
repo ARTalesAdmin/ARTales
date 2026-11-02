@@ -3,6 +3,7 @@ import {createHash,randomUUID} from "node:crypto";
 import {createClient} from "@/lib/supabase/server";
 import {requireAdmin} from "@/lib/guards";
 import {SNAPSHOT_GENERAL_V1_ENABLED} from "@/lib/ingest/snapshotGeneralFlag";
+import {SEMANTIC_PIPELINE_ENABLED} from "@/lib/semantic/featureFlag";
 import {walkSemanticAtoms,verifySemanticRevision} from "@/lib/semantic/compose";
 import type {SemanticRevision} from "@/lib/semantic/model";
 export const runtime="nodejs";
@@ -17,7 +18,7 @@ function format(bytes:Uint8Array){
  throw Error("image_format_unsupported");
 }
 export async function POST(req:Request,{params}:{params:Promise<{candidateId:string}>}){
- if(!SNAPSHOT_GENERAL_V1_ENABLED)return NextResponse.json({error:"not_enabled"},{status:503});
+ if(!SNAPSHOT_GENERAL_V1_ENABLED||!SEMANTIC_PIPELINE_ENABLED)return NextResponse.json({error:"not_enabled"},{status:503});
  if(!["https://artales.net","https://www.artales.net"].includes(req.headers.get("origin")??""))
   return NextResponse.json({error:"invalid_origin"},{status:403});
  const declared=Number(req.headers.get("content-length")??"0");
