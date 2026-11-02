@@ -30,6 +30,12 @@ export async function POST(req:Request,{params}:{params:Promise<{candidateId:str
   db.from("candidate_snapshots").select("source_id").eq("candidate_id",candidateId).maybeSingle()
  ]);
  if(revError||snapError||!rev||!snapshot||rev.status!=="draft")return NextResponse.json({error:"semantic_revision_not_ready"},{status:409});
+ // Freeze the visual manifest before editorial review starts. Otherwise an
+ // image could be added after visual sign-off yet inherit the earlier approval.
+ const {data:reviewStarted,error:reviewError}=await db.from("artales_editorial_tasks")
+  .select("id").eq("candidate_id",candidateId).eq("revision_sha256",rev.revision_sha256)
+  .limit(1).maybeSingle();
+ if(reviewError||reviewStarted)return NextResponse.json({error:"visuals_frozen_after_editorial_enqueue"},{status:409});
  const body=await req.formData();
  const file=body.get("image"),origin=String(body.get("provenance")??"");
  const anchor=String(body.get("anchor_atom_id")??"");
