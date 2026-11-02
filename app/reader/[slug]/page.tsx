@@ -46,12 +46,12 @@ export default async function ReaderPage({
   const isPreview = readerMode === "preview";
   const db=await createClient();
   const {data:semanticRelease}=await db.from("artales_semantic_publications")
-    .select("semantic_revision").eq("work_id",work.id).maybeSingle();
+    .select("semantic_revision,visual_manifest").eq("work_id",work.id).maybeSingle();
   if(semanticRelease?.semantic_revision){
     const revision=semanticRelease.semantic_revision as SemanticRevision;
     try {
       verifySemanticRevision(revision);
-      return <SemanticPublicReader revision={revision} title={work.title} isPreview={isPreview}/>;
+      return <SemanticPublicReader revision={revision} title={work.title} isPreview={isPreview} visuals={semanticRelease.visual_manifest??[]}/>;
     } catch {
       // Never silently substitute legacy blocks for a corrupted semantic release.
       throw new Error("published_semantic_revision_invalid");
