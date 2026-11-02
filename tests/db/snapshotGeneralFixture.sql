@@ -14,6 +14,9 @@ CREATE FUNCTION auth.uid() RETURNS uuid LANGUAGE sql STABLE
   AS 'SELECT nullif(current_setting(''request.jwt.claim.sub'', true), '''')::uuid';
 CREATE TABLE public.profiles (id uuid PRIMARY KEY, role text NOT NULL, is_active boolean NOT NULL);
 CREATE TABLE public.work_candidates (id uuid PRIMARY KEY);
+CREATE TABLE public.authors(id uuid PRIMARY KEY,name text NOT NULL,slug text NOT NULL UNIQUE);
+CREATE TABLE public.works(id uuid PRIMARY KEY,status text NOT NULL,slug text NOT NULL UNIQUE);
+
 CREATE TABLE public.candidate_legal_sources
   (id uuid PRIMARY KEY, candidate_id uuid NOT NULL REFERENCES public.work_candidates(id));
 CREATE TABLE public.candidate_legal_decisions
