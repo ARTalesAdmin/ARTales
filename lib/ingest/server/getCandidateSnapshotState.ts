@@ -11,7 +11,7 @@ export async function getCandidateSnapshotState(candidateId:string):Promise<Snap
   db.from("candidate_legal_locks").select("candidate_id,decision_no,source_url,source_facts").eq("candidate_id",candidateId).maybeSingle(),
   db.from("candidate_snapshots").select("candidate_id,sha256,readback_status,content_correspondence").eq("candidate_id",candidateId).maybeSingle(),
   db.from("candidate_snapshot_claims").select("candidate_id").eq("candidate_id",candidateId).maybeSingle(),
-  db.from("candidate_snapshot_reviews").select("text_correspondence")
+  db.from("candidate_snapshot_reviews").select("text_correspondence,image_disposition")
     .eq("candidate_id",candidateId).order("reviewed_at",{ascending:false})
     .order("id",{ascending:false}).limit(1).maybeSingle()
  ]);
@@ -31,7 +31,7 @@ export async function getCandidateSnapshotState(candidateId:string):Promise<Snap
   approved:decision?.verdict==="approved",locked:true,
   sourceAvailable:acquisitionEligible,
   receipt:receipt?{sha256:receipt.sha256,readbackVerified:receipt.readback_status==="sha256_verified"}:null,
-  editionVerified:review?.text_correspondence==="confirmed",
+  editionVerified:review?.text_correspondence==="confirmed" && review?.image_disposition==="exclude_all",
   claimWithoutReceipt:Boolean(!receipt&&claim)
  });
 }
