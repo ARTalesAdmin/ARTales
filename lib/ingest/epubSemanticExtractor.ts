@@ -56,7 +56,7 @@ function unescapeEntities(s:string){
  });
 }
 export function xhtmlToSourceText(source:string):string{
- if(/<!DOCTYPE|<!ENTITY|<script\b|<iframe\b|<object\b/i.test(source))throw Error("epub_active_content_refused");
+ if(/<!ENTITY|<!DOCTYPE[^>]*\[|<script\b|<iframe\b|<object\b/i.test(source))throw Error("epub_active_content_refused");
  const body=/<body\b[^>]*>([\s\S]*?)<\/body\s*>/i.exec(source)?.[1];
  if(!body)throw Error("epub_document_body_missing");
  const clean=body.replace(/<(style|svg|nav)\b[^>]*>[\s\S]*?<\/\1\s*>/gi,"")
