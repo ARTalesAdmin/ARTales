@@ -1,0 +1,27 @@
+name: ARTales automatic edition-to-semantic verification
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'lib/ingest/automaticSnapshotEvidence.ts'
+      - 'lib/ingest/gutenbergMirrorWitness.ts'
+      - 'app/api/member/snapshot/**'
+      - 'app/member/snapshot/**'
+      - 'tests/automaticSnapshotEvidence.test.mjs'
+      - '.github/workflows/artales-automatic-edition.yml'
+permissions:
+  contents: read
+jobs:
+  automatic-edition:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - run: npx tsx --test tests/automaticSnapshotEvidence.test.mjs
+      - run: npx tsc --noEmit
+      - run: npx eslint lib/ingest/automaticSnapshotEvidence.ts lib/ingest/gutenbergMirrorWitness.ts 'app/api/member/snapshot/[candidateId]/auto-compose/route.ts' 'app/member/snapshot/[candidateId]/page.tsx'
