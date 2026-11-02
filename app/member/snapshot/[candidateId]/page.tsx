@@ -28,6 +28,10 @@ export default async function SnapshotCandidate({params,searchParams}:{params:Pr
   <section className="ca-card"><h2>Archiv původního vydání</h2>
    <SnapshotActionPanel candidateId={candidateId} state={state} canArchive={profile.role==="admin"}/>
   </section>
+  {receipt?<section className="ca-card"><h2>Technické důkazy archivního EPUBu</h2>
+   <p>Ověření skutečných bajtů originálu, SHA-256, pořadí dokumentů a seznamu obrazových součástí. Výsledek sám o sobě nepotvrzuje právní stav ani obsahovou shodu edice.</p>
+   <p><a href={"/api/member/snapshot/"+candidateId+"/technical-evidence"} target="_blank" rel="noopener noreferrer">Ověřit originál a zobrazit technický protokol (JSON)</a></p>
+  </section>:null}
   {receipt?<section className="ca-card"><h2>Kontrola literární shody vydání</h2>
     <p>Originál SHA-256: <code>{receipt.sha256}</code>. Soukromě archivované ilustrace: {receipt.embedded_images}.</p>
     <p><a href={receipt.catalog_url} target="_blank" rel="noopener noreferrer">Záznam vydání v katalogu Gutenberg</a></p>
@@ -44,7 +48,9 @@ export default async function SnapshotCandidate({params,searchParams}:{params:Pr
         minLength={80} maxLength={4000} required/></label>
       <button type="submit" className="ca-btn ca-primary">Uložit kontrolu vydání</button>
     </form>:null}
-    {state.status==="verified_for_composition"?<p className="ca-success">Připraveno ke kompozici, nikoli k publikaci.</p>:null}
+    {query.result==="reviewed"?<p role="status" className="ca-success">Záznam kontroly uložen. Aktuální stav se řídí posledním rozhodnutím.</p>:null}
+    {state.status==="verified_for_composition"?<p className="ca-success">Poslední kontrola potvrdila shodu textu pro kompozici bez publikace původních ilustrací.</p>:null}
+    {state.status!=="verified_for_composition"?<p>Kompozice ještě není povolená. Je třeba potvrdit shodu textu a vyloučení neprověřených ilustrací.</p>:null}
   </section>:null}
   {state.status==="verified_for_composition"&&profile.role==="admin"?<section className="ca-card">
    <h2>Sémantická kompozice</h2>
