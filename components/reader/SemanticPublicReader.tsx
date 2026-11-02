@@ -11,6 +11,7 @@ function node(n:SemanticNode):React.ReactNode{
  </figure>;
  if(n.kind==="quote"||n.kind==="epigraph")return <blockquote key={n.id}>{atom(n.atom)}</blockquote>;
  if(n.kind==="footnote")return <aside key={n.id} role="note"><sup>{n.footnote_label??"*"}</sup>{atom(n.atom)}</aside>;
+ if(!("atom" in n))return null;
  return <p key={n.id} style={{whiteSpace:"pre-wrap",lineHeight:1.8,marginBlock:"1em"}}>{atom(n.atom)}</p>;
 }
 export default function SemanticPublicReader({revision,title,isPreview}:{
