@@ -95,7 +95,7 @@ actor snapshot_ci_admin "$A" "insert into public.candidate_semantic_revisions(ca
 IMG_SHA=$(printf "d%.0s" {1..64})
 IMG_ID=aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa
 IMAGE_PATH="works/$CID/inline/$IMG_ID.png"
-root -c "insert into storage.objects(bucket_id,name,owner_id,metadata) values ('artales-images','$IMAGE_PATH','$A','{\\\"mimetype\\\":\\\"image/png\\\",\\\"size\\\":1024}'::jsonb)" >/dev/null
+root -c "insert into storage.objects(bucket_id,name,owner_id,metadata) values ('artales-images','$IMAGE_PATH','$A',jsonb_build_object('mimetype','image/png','size',1024))" >/dev/null
 actor snapshot_ci_admin "$A" "insert into public.artales_semantic_images(candidate_id,revision_sha256,anchor_atom_id,storage_path,sha256,provenance,rights_note,approved_by) values ('$CID','$SEM_SHA','a:test-atom','$IMAGE_PATH','$IMG_SHA','original_art',repeat('Original independent image rights verification and exact placement. ',2),'$A')" >/dev/null
 deny "editor cannot authorize image" snapshot_ci_editor "$E" "insert into public.artales_semantic_images(candidate_id,revision_sha256,anchor_atom_id,storage_path,sha256,provenance,rights_note,approved_by) values ('$CID','$SEM_SHA','a:test-atom','$IMAGE_PATH','$IMG_SHA','original_art',repeat('Independent visual review evidence. ',5),'$E')"
 deny "editor cannot create semantic draft" snapshot_ci_editor "$E" "insert into public.candidate_semantic_revisions(candidate_id,snapshot_sha256,revision_sha256,revision,source_text,component_id,source_manifest,image_selection,authored_by) values ('$CID','$ARCH_SHA','$SHA11','{}'::jsonb,'x','epub:spine','{}'::jsonb,'none','$E')"
