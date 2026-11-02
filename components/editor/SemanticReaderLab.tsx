@@ -180,13 +180,16 @@ export default function SemanticReaderLab({revision,original,profileReaderDefaul
   useEffect(()=>{
     const list=locatedNotes;
     if(list.length===0){
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- keep QA note selection in sync with loaded revision
       setSelectedNoteId(previous=>previous===null?previous:null);
     }else if(!list.some(item=>item.saved.note.id===selectedNoteId)){
       setSelectedNoteId(list[0].saved.note.id);
     }
   },[locatedNotes,selectedNoteId]);
   useEffect(()=>{
-    if(!focus){setReadingPosition(previous=>previous===null?previous:null);return;}
+    if(!focus){
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- reset nonpersistent QA-only reading state
+      setReadingPosition(previous=>previous===null?previous:null);return;}
     let frame=0;
     const update=()=>{
       cancelAnimationFrame(frame);
