@@ -33,6 +33,10 @@ root -f supabase/migrations/20261028110000_artales_snapshot_general_v1.sql >/dev
 assert_eq "$(root -c "select count(*) from pg_class where relname in ('candidate_snapshots','candidate_snapshot_claims') and relrowsecurity")" "2" "both tables have RLS"
 assert_eq "$(root -c "select count(*) from pg_roles where rolname in ('snapshot_ci_admin','snapshot_ci_editor','snapshot_ci_outsider','snapshot_ci_anon') and rolbypassrls")" "0" "all test logins NOBYPASSRLS"
 root -f supabase/migrations/20261028111000_artales_snapshot389_register.sql >/dev/null
+root -f supabase/migrations/20261102172000_artales_semantic_editorial_pipeline.sql >/dev/null
+assert_eq "$(root -c "select count(*) from pg_class where relname in (\u0027candidate_semantic_revisions\u0027,\u0027artales_editorial_tasks\u0027,\u0027artales_editorial_events\u0027,\u0027candidate_release_decisions\u0027) and relrowsecurity")" "4" "semantic and editorial tables have RLS"
+assert_eq "$(actor snapshot_ci_outsider "$O" "select count(*) from public.candidate_semantic_revisions")" "0" "member cannot read semantic drafts"
+deny "editor cannot directly publish" snapshot_ci_editor "$E" "insert into public.candidate_release_decisions(candidate_id,revision_sha256,outcome,rationale,decided_by) values (\u002798508359-bce1-4e73-b842-b69a9d1112d0\u0027,\u0027$SHA11\u0027,\u0027approved\u0027,repeat(\u0027x\u0027,40),\u0027$E\u0027)"
 assert_eq "$(root -c "select count(*) from public.candidate_snapshots where gutenberg_id=389")" "1" "existing #389 registered once"
 # Prior pilot RLS was wildcarded; ensure new exact-digest rule is not bypassed by OR.
 WRONG389="gutenberg/389/sha256/$(printf 'e%.0s' {1..64})/original.epub"
