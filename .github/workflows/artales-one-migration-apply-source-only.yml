@@ -8,6 +8,7 @@ on:
       - 'scripts/artales-production-apply-operator.mjs'
       - 'tests/artalesProductionApplyOperator.test.mjs'
       - 'docs/protocols/ARTALES_PRODUCTION_APPLY_OPERATOR_V0.md'
+      - 'docs/protocols/ARTALES_PRODUCTION_APPLY_AUTHORITY_DECISION_2026-11-02.md'
 permissions:
   contents: read
 jobs:
