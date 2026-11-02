@@ -12,13 +12,10 @@ import {CLI_PIN,REDACTED_DB_URL,planCommands,verifyPlanV01} from "./artales-migr
 import {prepareOneMigrationStage} from "./artales-production-one-migration-stage.mjs";
 import {assertCurrentRemoteMain,validatePlanCertificate} from "./artales-production-plan-operator.mjs";
 
-const ROLE="artales_prod_apply_operator";
+const ROLE="postgres"; // Existing owner of identity tables, auth sync function and ledger.
 const PLAN_WORKFLOW=".github/workflows/artales-production-readonly-plan.yml";
-const ALLOWED=new Set([
- "20261028091029_artales_identity_role_authority_v1.sql",
- "20261028110000_artales_snapshot_general_v1.sql",
- "20261028111000_artales_snapshot389_register.sql"
-]);
+const ALLOWED=new Set(["20261028091029_artales_identity_role_authority_v1.sql"]);
+// Owner access is one-time IDENTITY maintenance only. Snapshot/storage are excluded.
 const hex=(s,n)=>typeof s==="string"&&new RegExp("^[a-f0-9]{"+n+"}$").test(s);
 const eq=(a,b)=>JSON.stringify(a)===JSON.stringify(b);
 const fail=s=>{throw Error("artales_apply_blocked:"+s);};
@@ -27,7 +24,9 @@ export function validateApplyDispatch(env,sha,clean){
     env.GITHUB_EVENT_NAME!=="workflow_dispatch"||
     env.GITHUB_REF!=="refs/heads/main"||env.GITHUB_REPOSITORY!==REPO||
     !hex(sha,40)||sha!==env.GITHUB_SHA||sha!==env.ARTALES_APPLY_MAIN_SHA||
-    env.ARTALES_PRODUCTION_APPLY_ENV!=="artales-production-apply"||clean!==true)
+    env.ARTALES_PRODUCTION_APPLY_ENV!=="artales-production-identity-owner-maintenance"||
+    env.ARTALES_OWNER_MAINTENANCE_SCOPE!=="identity-20261028091029"||
+    env.GITHUB_RUN_ATTEMPT!=="1"||clean!==true)
   fail("dispatch_or_main_not_exact");
  const filename=env.ARTALES_APPLY_FILENAME;
  const sqlSha=env.ARTALES_APPLY_SQL_SHA256;
@@ -85,8 +84,10 @@ export function validatePriorPlan(run,receipt,selection,nowISO){
 export function validateApplyLedger(data){
  if(!data||data.principal!==ROLE||data.sessionPrincipal!==ROLE||
     data.database!=="postgres"||data.readOnly!=="off"||
-    data.superuser!==false||data.createRole!==false||
-    data.createDb!==false||data.bypassRls!==false||
+    data.superuser!==false||data.createRole!==true||
+    data.createDb!==true||data.bypassRls!==true||
+    data.profilesOwner!==ROLE||data.invitesOwner!==ROLE||
+    data.syncFunctionOwner!==ROLE||data.ledgerOwner!==ROLE||
     !Array.isArray(data.migrations)||data.migrations.length<5||
     data.migrations.length>200)fail("apply_role_or_ledger_invalid");
  let previous="";
@@ -117,6 +118,10 @@ const SQL=[
 " 'createRole',(SELECT rolcreaterole FROM pg_roles WHERE rolname=current_user),",
 " 'createDb',(SELECT rolcreatedb FROM pg_roles WHERE rolname=current_user),",
 " 'bypassRls',(SELECT rolbypassrls FROM pg_roles WHERE rolname=current_user),",
+" 'profilesOwner',(SELECT pg_get_userbyid(relowner) FROM pg_class WHERE oid='public.profiles'::regclass),",
+" 'invitesOwner',(SELECT pg_get_userbyid(relowner) FROM pg_class WHERE oid='public.invites'::regclass),",
+" 'syncFunctionOwner',(SELECT pg_get_userbyid(proowner) FROM pg_proc WHERE oid='public.artales_sync_profile_from_auth_user_v081()'::regprocedure),",
+" 'ledgerOwner',(SELECT pg_get_userbyid(relowner) FROM pg_class WHERE oid='supabase_migrations.schema_migrations'::regclass),",
 " 'migrations',(SELECT COALESCE(json_agg(json_build_object(",
 "  'version',version,'name',name,'statementMd5',md5(statements[1]))",
 "  ORDER BY version),'[]'::json)",
@@ -188,9 +193,9 @@ async function main(){
  catch{fail("plan_receipt_unavailable");}
  const run=await getRun(selected.runId);
  validatePriorPlan(run,receipt,selected,new Date().toISOString());
- const dbUrl=process.env.ARTALES_PROD_APPLY_DB_URL;
+ const dbUrl=process.env.ARTALES_PROD_OWNER_DB_URL;
  const identity=validateApplyConnection(dbUrl);
- const pem=validatePlanCertificate(process.env.ARTALES_PROD_APPLY_CA_PEM);
+ const pem=validatePlanCertificate(process.env.ARTALES_PROD_OWNER_CA_PEM);
  const workspace=mkdtempSync(join(tmpdir(),"artales-one-apply-"));
  try{
   const certPath=join(workspace,"supabase-root-ca.pem");
@@ -231,6 +236,8 @@ async function main(){
   // any interrupted call requires independent readback, never automatic retry.
   const path=join(process.env.RUNNER_TEMP,"artales-apply-receipt.json");
   const data={schema:"artales-production-one-migration-apply/v0",
+   authorityClass:"one-time-owner-maintenance-separately-approved",
+   ownerIdentityExpected:"postgres",
    repository:REPO,projectRef:PROJECT,mainSha:sha,filename:selected.filename,
    sqlSha256:selected.sqlSha,planRunId:selected.runId,
    planProofDigest:selected.proof,preflightDigest:proof.proofDigest,
