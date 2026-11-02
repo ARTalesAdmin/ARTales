@@ -46,5 +46,13 @@ export default async function SnapshotCandidate({params,searchParams}:{params:Pr
     </form>:null}
     {state.status==="verified_for_composition"?<p className="ca-success">Připraveno ke kompozici, nikoli k publikaci.</p>:null}
   </section>:null}
+  {state.status==="verified_for_composition"&&profile.role==="admin"?<section className="ca-card">
+   <h2>Sémantická kompozice</h2>
+   <p>Vytvoření sémantických bloků z ověřeného archivu; obrázky zůstanou soukromé.</p>
+   <form method="post" action={"/api/member/semantic/"+candidateId+"/compose"}>
+    <button type="submit" className="ca-btn ca-primary">Převést EPUB na bloky</button>
+   </form>
+   <Link href={"/member/semantic/"+candidateId}>Otevřít redakční QA</Link>
+  </section>:null}
  </main>;
 }
