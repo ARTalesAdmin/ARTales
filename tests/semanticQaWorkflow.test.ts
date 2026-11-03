@@ -2,6 +2,7 @@ import {test} from "node:test";
 import {strict as assert} from "node:assert";
 import {createHash} from "node:crypto";
 import {projectSemanticProseText} from "../lib/semantic/displayText";
+import {chooseSemanticParagraphBreak} from "../lib/semantic/readerProjection";
 import {composeSemanticRevision,submitSemanticIssue,recomposeSemanticLayout,verifySemanticRevision,walkSemanticAtoms} from "../lib/semantic/compose";
 const sha=(v:string)=>createHash("sha256").update(v).digest("hex");
 test("one-letter English words stay with following word without changing source",()=>{
@@ -34,4 +35,12 @@ test("anchored QA layout repair produces a new immutable SHA and preserves exact
  assert.equal(second.release_allowed,false);
  assert.equal(first.round,0);
  assert.throws(()=>recomposeSemanticLayout(first,{...issue,target_atom_id:"wrong"},source));
+});
+
+test("pagination never cuts after isolated I or a at a page edge",()=>{
+ const raw="We discussed the question throughout the whole afternoon; I was there when the result finally arrived and many people joined the meeting.";
+ const i=raw.indexOf(" I was")+3;
+ const cut=chooseSemanticParagraphBreak(raw,0,i,raw.length,true,20);
+ assert(cut!==null);
+ assert(!/(?:^|\\s)[aI]\\s*$/u.test(raw.slice(0,cut!)));
 });
