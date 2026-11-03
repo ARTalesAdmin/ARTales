@@ -1,6 +1,6 @@
 "use client";
 import {useState,useTransition} from "react";
-import {resolveSemanticQaFlag,submitSemanticQaFlag} from "@/app/member/semantic/[candidateId]/qa-actions";
+import {applySemanticQaLayoutFix,resolveSemanticQaFlag,submitSemanticQaFlag} from "@/app/member/semantic/[candidateId]/qa-actions";
 export type SemanticQaFlag={
  id:string;revision_sha256:string;target_atom_id:string;
  source_start:number;source_end:number;kind:string;comment:string;
@@ -8,7 +8,7 @@ export type SemanticQaFlag={
 };
 type Props={candidateId:string;revisionSha:string;selectedAtomId:string|null;
  selectedText:string|null;flags:SemanticQaFlag[];onSelect:(atomId:string)=>void;
- readonly?:boolean;databaseReady:boolean};
+ readonly?:boolean;databaseReady:boolean;canApplyLayoutFix:boolean};
 const kinds=[{value:"text",label:"Text"},{value:"typography",label:"Sazba a řádky"},
  {value:"structure",label:"Struktura"},{value:"image",label:"Vizuál"},
  {value:"other",label:"Jiné"}];
@@ -74,6 +74,16 @@ export default function SemanticQaPanel(p:Props){
     <p>{f.comment}</p>
     {f.status==="resolved"?<small>{f.resolution_note}</small>:
      <div className="semantic-qa-panel__form">
+      {p.canApplyLayoutFix&&f.kind==="typography"&&f.revision_sha256===p.revisionSha?
+       <div className="semantic-qa-panel__repair">
+        <strong>Vytvořit opravenou revizi:</strong>
+        <button type="button" disabled={pending} onClick={()=>applyLayout(f.id,"compact")}>
+          Zmenšit mezery u bloku</button>
+        <button type="button" disabled={pending} onClick={()=>applyLayout(f.id,"airy")}>
+          Zvětšit mezery</button>
+        <button type="button" disabled={pending} onClick={()=>applyLayout(f.id,"centered")}>
+          Zarovnat na střed</button>
+       </div>:null}
       <label>Zdůvodnění uzavření po opravě / vysvětlení
        <textarea rows={2} minLength={30} maxLength={4000} value={resolutions[f.id]??""}
         onChange={e=>setResolutions(s=>({...s,[f.id]:e.target.value}))}/>
