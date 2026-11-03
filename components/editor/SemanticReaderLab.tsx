@@ -425,7 +425,7 @@ export default function SemanticReaderLab({
             className="semantic-reader__source-region">
             {part.unitId&&unitsById.get(part.unitId)?.source_atom_ids[0]?
               <button type="button" className="semantic-reader__block-picker"
-                onClick={()=>selectAtom(unitsById.get(part.unitId)!.source_atom_ids[0])}
+                onClick={()=>selectAtom(unitsById.get(part.unitId??"")!.source_atom_ids[0])}
                 aria-label="Vybrat tento blok v originálu">◆</button>:null}
             {part.text}</div>)}
         </div>
