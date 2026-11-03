@@ -56,3 +56,4 @@ export default async function EditorialSemanticPreview({params}:{params:Promise<
    <p>Obálka, anotace, autor a kolekce jsou oddělené úkoly.
       Publikační akce se neukazuje před dokončením všech povinností.</p>
   </section></main>;
+}
