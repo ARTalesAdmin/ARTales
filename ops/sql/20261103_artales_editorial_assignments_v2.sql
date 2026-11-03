@@ -1,5 +1,5 @@
 -- ARTales QA/editorial ownership v2; targeted, forward-only, no publication.
--- Converts legacy #389 task semantics to the agreed per-person workflow.
+-- Converts #389 pilot tasks to normal editor ownership. Existing library transfers require explicit work mapping.
 BEGIN;
 ALTER TABLE public.artales_editorial_tasks DROP CONSTRAINT artales_editorial_tasks_kind_check;
 ALTER TABLE public.artales_editorial_tasks ADD CONSTRAINT artales_editorial_tasks_kind_check
@@ -33,10 +33,27 @@ END $owner$;
 REVOKE ALL ON FUNCTION public.artales_editorial_owner(text,text) FROM PUBLIC,anon,authenticated;
 GRANT EXECUTE ON FUNCTION public.artales_editorial_owner(text,text) TO authenticated;
 
+-- Explicit migration exception; a work enters it only after the administrator
+-- approves the concrete existing-work -> candidate mapping.
+CREATE TABLE IF NOT EXISTS public.artales_legacy_transfers(
+  candidate_id uuid PRIMARY KEY REFERENCES public.work_candidates(id) ON DELETE RESTRICT,
+  existing_work_id uuid NOT NULL UNIQUE REFERENCES public.works(id) ON DELETE RESTRICT,
+  assigned_to uuid NOT NULL REFERENCES public.profiles(id) ON DELETE RESTRICT,
+  created_by uuid NOT NULL REFERENCES public.profiles(id) ON DELETE RESTRICT,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  CHECK (assigned_to=created_by)
+);
+ALTER TABLE public.artales_legacy_transfers ENABLE ROW LEVEL SECURITY;
+REVOKE ALL ON public.artales_legacy_transfers FROM PUBLIC,anon,authenticated;
+GRANT SELECT ON public.artales_legacy_transfers TO authenticated;
+CREATE POLICY artales_legacy_transfers_admin_read ON public.artales_legacy_transfers
+ FOR SELECT TO authenticated USING(EXISTS(SELECT 1 FROM public.profiles p
+  WHERE p.id=(SELECT auth.uid()) AND p.is_active AND p.role::text='admin'));
+
 CREATE OR REPLACE FUNCTION public.artales_auto_enqueue_semantic_tasks()
 RETURNS trigger LANGUAGE plpgsql SECURITY INVOKER SET search_path='' AS $tasks$
 DECLARE v_author_name text;v_work_title text;v_lubos uuid;v_ivana uuid;v_pavla uuid;
-        v_text_owner uuid;v_has_author boolean;
+        v_text_owner uuid;v_has_author boolean;v_is_legacy boolean;
 BEGIN
  IF NEW.status<>'draft' OR EXISTS(
    SELECT 1 FROM public.artales_semantic_publications published
@@ -48,10 +65,15 @@ BEGIN
    FROM public.work_candidates c WHERE c.id=NEW.candidate_id;
  IF v_work_title IS NULL OR v_author_name IS NULL THEN
   RAISE EXCEPTION 'editorial_candidate_metadata_missing' USING errcode='23514'; END IF;
+ -- Existing library migrations use an explicit, reviewed candidate whitelist.
+ -- Never infer it merely from a matching title or previously published work.
+ SELECT EXISTS(SELECT 1 FROM public.artales_legacy_transfers l
+   WHERE l.candidate_id=NEW.candidate_id AND l.assigned_to=v_lubos)
+ INTO v_is_legacy;
  SELECT t.assigned_to INTO v_text_owner FROM public.artales_editorial_tasks t
  WHERE t.candidate_id=NEW.candidate_id AND t.kind='text_review'
  ORDER BY t.created_at DESC,t.id DESC LIMIT 1;
- v_text_owner:=COALESCE(v_text_owner,v_lubos);
+ v_text_owner:=CASE WHEN v_is_legacy THEN v_lubos ELSE COALESCE(v_text_owner,v_pavla) END;
  INSERT INTO public.artales_editorial_tasks(candidate_id,revision_sha256,kind,title,assigned_to,created_by)
  VALUES(NEW.candidate_id,NEW.revision_sha256,'text_review',
   'QA textu — '||left(v_work_title,180),v_text_owner,NEW.authored_by)
@@ -188,7 +210,7 @@ BEGIN
  WHERE candidate_id=v_candidate ORDER BY created_at DESC,id DESC LIMIT 1;
  IF v_revision.id IS NULL THEN RAISE EXCEPTION '389_semantic_revision_missing'; END IF;
  UPDATE public.artales_editorial_tasks SET title='QA textu — The Great God Pan',
-    assigned_to=v_lubos
+    assigned_to=v_pavla
  WHERE candidate_id=v_candidate AND revision_sha256=v_revision.revision_sha256
    AND kind='text_review' AND status='open';
  UPDATE public.artales_editorial_tasks SET kind='cover_art',
