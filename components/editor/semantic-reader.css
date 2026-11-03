@@ -183,3 +183,14 @@
 @media(max-width:650px){.semantic-reader__controls{position:relative}
  .semantic-reader__page-navigation input{width:90px}
  .semantic-qa-overlay{inset:5px;width:auto;border-radius:10px}}
+
+/* The control bar follows the editor, not the top of the entire novel. */
+.semantic-reader header{display:contents}
+.semantic-reader__controls{position:sticky;top:8px;z-index:30;
+ box-shadow:0 6px 24px #30251c2b;border:1px solid #d0bc9e}
+.semantic-reader__unit[data-review-flag="open"]{background:#fff1d5;
+ border-left:4px solid #bf8537;padding-left:10px;border-radius:4px}
+.semantic-reader__unit[data-review-flag="open"]::after{
+ content:"K redakční kontrole";display:block;
+ font:11px/1.5 system-ui;color:#885822;letter-spacing:.02em}
+@media (max-width:650px){.semantic-reader__controls{position:sticky;top:0}}

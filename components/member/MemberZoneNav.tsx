@@ -16,7 +16,7 @@ function isActivePath(pathname: string, href: string) {
   return pathname === href || pathname.startsWith(href + "/");
 }
 
-export default function MemberZoneNav({ role }: { role: string | null }) {
+export default function MemberZoneNav({ role, assignedOpenCount=0 }: { role: string | null; assignedOpenCount?:number }) {
   const pathname = usePathname();
   const { member } = getInternalDictionary();
   const editor = role === "admin" || role === "editor";
@@ -91,6 +91,8 @@ export default function MemberZoneNav({ role }: { role: string | null }) {
         ].filter(Boolean).join(" ")}
       >
         {item.label}
+        {item.href==="/member/editorial-pipeline"&&assignedOpenCount>0
+          ?<span className="artales-member-nav__task-badge" aria-label={`${assignedOpenCount} přiřazených nedokončených úkolů`}>{assignedOpenCount}</span>:null}
       </Link>
     );
   }

@@ -4,26 +4,9 @@ import {revalidatePath} from "next/cache";
 import {createClient} from "@/lib/supabase/server";
 import {requireAdmin,requireEditorOrAdmin} from "@/lib/guards";
 import {SEMANTIC_PIPELINE_ENABLED} from "@/lib/semantic/featureFlag";
+import {slugify} from "@/lib/slug";
 import {notFound} from "next/navigation";
 const uuid=/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-export async function enqueueSemanticReview(form:FormData){
- if(!SEMANTIC_PIPELINE_ENABLED)notFound();
- const actor=await requireAdmin(),candidateId=String(form.get("candidate_id")??"");
- if(!uuid.test(candidateId))redirect("/member/editorial-pipeline?error=invalid");
- const db=await createClient();
- const {data:rev,error}=await db.from("candidate_semantic_revisions")
- .select("revision_sha256").eq("candidate_id",candidateId).order("created_at",{ascending:false}).limit(1).maybeSingle();
- if(error||!rev)redirect("/member/editorial-pipeline?error=missing_revision");
- for(const kind of ["text_review","visual_review","proofread"]){
-  const {error:taskError}=await db.from("artales_editorial_tasks").upsert({
-   candidate_id:candidateId,revision_sha256:rev.revision_sha256,kind,
-   title:kind+" — "+candidateId,created_by:actor.id
-  },{onConflict:"candidate_id,revision_sha256,kind",ignoreDuplicates:true});
-  if(taskError)redirect("/member/editorial-pipeline?error=enqueue_failed");
- }
- revalidatePath("/member/editorial-pipeline");
- redirect("/member/editorial-pipeline?notice=queued");
-}
 export async function completeSemanticTask(form:FormData){
  if(!SEMANTIC_PIPELINE_ENABLED)notFound();
  const actor=await requireEditorOrAdmin();
@@ -35,7 +18,7 @@ export async function completeSemanticTask(form:FormData){
  const {data,error}=await db.rpc("artales_complete_editorial_task",{p_task_id:taskId,p_note:note});
  if(error||data?.result!=="completed")redirect("/member/editorial-pipeline?error=task_failed");
  void actor;
- revalidatePath("/member/editorial-pipeline");redirect("/member/editorial-pipeline?notice=completed");
+ revalidatePath("/member/editorial-pipeline");revalidatePath("/member");redirect("/member/editorial-pipeline?notice=completed");
 }
 
 export async function publishSemanticCandidate(form:FormData){
@@ -43,13 +26,15 @@ export async function publishSemanticCandidate(form:FormData){
  await requireAdmin();
  const id=String(form.get("candidate_id")??"");
  const revision=String(form.get("revision_sha256")??"");
- const slug=String(form.get("slug")??"");
+ const db=await createClient();
+ const {data:candidate}=await db.from("work_candidates").select("proposed_title")
+   .eq("id",id).maybeSingle();
+ const slug=slugify(candidate?.proposed_title??"");
  const summary=String(form.get("summary")??"");
  const reason=String(form.get("reason")??"");
  if(!uuid.test(id)||!/^[a-f0-9]{64}$/.test(revision)||
     !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(slug)||summary.trim().length<200||
     summary.trim().length>800||reason.trim().length<30)redirect("/member/editorial-pipeline?error=invalid_release");
- const db=await createClient();
  const {data,error}=await db.rpc("artales_publish_semantic_candidate",{
   p_candidate_id:id,p_revision_sha256:revision,p_work_slug:slug,
   p_summary:summary,p_reason:reason
@@ -66,7 +51,7 @@ export async function claimSemanticTask(form:FormData){
  const db=await createClient();
  const {data,error}=await db.rpc("artales_claim_editorial_task",{p_task_id:id});
  if(error||data?.result!=="claimed")redirect("/member/editorial-pipeline?error=unavailable");
- revalidatePath("/member/editorial-pipeline");
+ revalidatePath("/member/editorial-pipeline");revalidatePath("/member");
  redirect("/member/editorial-pipeline?notice=claimed");
 }
 
@@ -74,15 +59,17 @@ export async function requestSemanticSecondReview(form:FormData){
  if(!SEMANTIC_PIPELINE_ENABLED)notFound();
  await requireEditorOrAdmin();
  const taskId=String(form.get("task_id")??"");
+ const reviewerId=String(form.get("reviewer_id")??"");
  const reason=String(form.get("reason")??"").trim();
- if(!uuid.test(taskId)||reason.length<40||reason.length>4000)
+ if(!uuid.test(taskId)||!uuid.test(reviewerId)||reason.length<40||reason.length>4000)
   redirect("/member/editorial-pipeline?error=reason_required");
  const db=await createClient();
  const {data,error}=await db.rpc("artales_request_semantic_second_review",{
-  p_task_id:taskId,p_note:reason
+  p_task_id:taskId,p_note:reason,p_reviewer_id:reviewerId
  });
- if(error||data?.result!=="returned")
+ if(error||data?.result!=="requested")
   redirect("/member/editorial-pipeline?error=second_review_failed");
  revalidatePath("/member/editorial-pipeline");
+ revalidatePath("/member");
  redirect("/member/editorial-pipeline?notice=second_review_requested");
 }

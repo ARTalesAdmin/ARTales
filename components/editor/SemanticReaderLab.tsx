@@ -15,7 +15,7 @@ import "./semantic-reader.css";
 
 type Props={revision:SemanticRevision;original:string;profileReaderDefaults?:FixtureProfileReaderDefaults|null;
  candidateId:string;revisionSha:string;editionTitle:string;editionAuthor:string;
- flags:SemanticQaFlag[];qaDatabaseReady:boolean;canApplyLayoutFix:boolean;}
+ flags:SemanticQaFlag[];qaDatabaseReady:boolean;}
 type ReadingSpacing = ReaderDensityId | "airy";
 type PaneSide = "source" | "composed";
 type BrowserMeasurements={
@@ -98,7 +98,7 @@ function sameMeasurements(a:BrowserMeasurements|null,b:BrowserMeasurements) {
 
 export default function SemanticReaderLab({
  revision,original,profileReaderDefaults=null,candidateId,revisionSha,editionTitle,editionAuthor,
- flags,qaDatabaseReady,canApplyLayoutFix
+ flags,qaDatabaseReady
 }:Props) {
   const accountPreferences=getProfileReaderSettings(profileReaderDefaults)??defaultReaderSettings;
   const [readerMode,setReaderMode]=useState<"scroll"|"spread">("scroll");
@@ -109,6 +109,7 @@ export default function SemanticReaderLab({
   const [focus,setFocus]=useState(false);
   const [selectedAtomId,setSelectedAtomId]=useState<string|null>(null);
   const [qaPanelOpen,setQaPanelOpen]=useState(false);
+  const [showOpenFlags,setShowOpenFlags]=useState(true);
   const [pageNumber,setPageNumber]=useState(0);
   const [fullscreen,setFullscreen]=useState(false);
   const edition=useMemo(()=>selectEditorialEdition(original),[original]);
@@ -383,6 +384,8 @@ export default function SemanticReaderLab({
           {fullscreen?"Ukončit celou obrazovku":"Celá obrazovka"}
         </button>
 
+        <label><input type="checkbox" checked={showOpenFlags}
+          onChange={e=>setShowOpenFlags(e.target.checked)}/> Upozornění na otevřené nálezy</label>
         <button type="button" className="semantic-reader__fullscreen-button"
           aria-expanded={qaPanelOpen} onClick={()=>setQaPanelOpen(v=>!v)}>
           Nálezy ({flags.filter(f=>f.status==="open").length})
@@ -404,7 +407,7 @@ export default function SemanticReaderLab({
       <SemanticQaPanel candidateId={candidateId} revisionSha={revisionSha}
         selectedAtomId={selectedAtomId} selectedText={selectedText??null}
         flags={flags} databaseReady={qaDatabaseReady} onSelect={selectAtom}
-        canApplyLayoutFix={canApplyLayoutFix}/>
+        onSaved={()=>{setQaPanelOpen(false);setSelectedAtomId(null);}}/>
     </div>}
     {focus&&<SemanticReaderNotesQa notes={locatedNotes} selectedNoteId={selectedNoteId}
       selectedNoteIndex={selectedNoteIndex} listExpanded={expanded} status={noteFeedback}
@@ -461,6 +464,7 @@ export default function SemanticReaderLab({
                 return <div className="semantic-reader__unit" key={u.id} data-page-unit-id={u.id}
                   data-semantic-root={u.fragment?.original_unit_id??u.id}
                   data-selected={selectedAtomId&&u.source_atom_ids.includes(selectedAtomId)?"true":undefined}
+                  data-review-flag={showOpenFlags&&flags.some(f=>f.status==="open"&&u.source_atom_ids.includes(f.target_atom_id))?"open":undefined}
                   {...(regionIndices.has(u.fragment?.original_unit_id??u.id)?{"data-region-index":regionIndices.get(u.fragment?.original_unit_id??u.id)}:{})}>
                   {u.source_atom_ids[0]&&<button type="button"
                     className="semantic-reader__block-picker"
