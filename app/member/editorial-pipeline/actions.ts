@@ -4,6 +4,7 @@ import {revalidatePath} from "next/cache";
 import {createClient} from "@/lib/supabase/server";
 import {requireAdmin,requireEditorOrAdmin} from "@/lib/guards";
 import {SEMANTIC_PIPELINE_ENABLED} from "@/lib/semantic/featureFlag";
+import {slugify} from "@/lib/slug";
 import {notFound} from "next/navigation";
 const uuid=/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 export async function completeSemanticTask(form:FormData){
@@ -25,13 +26,15 @@ export async function publishSemanticCandidate(form:FormData){
  await requireAdmin();
  const id=String(form.get("candidate_id")??"");
  const revision=String(form.get("revision_sha256")??"");
- const slug=String(form.get("slug")??"");
+ const db=await createClient();
+ const {data:candidate}=await db.from("work_candidates").select("proposed_title")
+   .eq("id",id).maybeSingle();
+ const slug=slugify(candidate?.proposed_title??"");
  const summary=String(form.get("summary")??"");
  const reason=String(form.get("reason")??"");
  if(!uuid.test(id)||!/^[a-f0-9]{64}$/.test(revision)||
     !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(slug)||summary.trim().length<200||
     summary.trim().length>800||reason.trim().length<30)redirect("/member/editorial-pipeline?error=invalid_release");
- const db=await createClient();
  const {data,error}=await db.rpc("artales_publish_semantic_candidate",{
   p_candidate_id:id,p_revision_sha256:revision,p_work_slug:slug,
   p_summary:summary,p_reason:reason
