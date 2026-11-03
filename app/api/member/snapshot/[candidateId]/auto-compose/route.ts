@@ -1,4 +1,5 @@
 import {createHash} from "node:crypto";
+import {isCandidateUuid} from "@/lib/ingest/candidateUuid";
 import {NextResponse} from "next/server";
 import {requireAdmin} from "@/lib/guards";
 import {createClient} from "@/lib/supabase/server";
@@ -15,7 +16,7 @@ export const runtime="nodejs";
 export const dynamic="force-dynamic";
 export const maxDuration=60;
 const sha=(v:Uint8Array)=>createHash("sha256").update(v).digest("hex");
-const uuid=/^[a-f0-9]{8}-[a-f0-9]{4}-[1-8][a-f0-9]{3}-[89ab][a-f0-9]{12}$/i;
+
 export async function POST(req:Request,{params}:{params:Promise<{candidateId:string}>}){
  if(!SNAPSHOT_GENERAL_V1_ENABLED||!SEMANTIC_PIPELINE_ENABLED)
   return NextResponse.json({error:"pipeline_disabled"},{status:503});
@@ -23,7 +24,7 @@ export async function POST(req:Request,{params}:{params:Promise<{candidateId:str
     (req.headers.get("sec-fetch-site")&&req.headers.get("sec-fetch-site")!=="same-origin"))
   return NextResponse.json({error:"invalid_origin"},{status:403});
  const actor=await requireAdmin(),{candidateId}=await params;
- if(!uuid.test(candidateId))return NextResponse.json({error:"invalid_candidate"},{status:400});
+ if(!isCandidateUuid(candidateId))return NextResponse.json({error:"invalid_candidate"},{status:400});
  const db=await createClient();
  const [candidateResult,lockResult,receiptResult,existingResult]=await Promise.all([
   db.from("work_candidates").select("proposed_title,proposed_author_name").eq("id",candidateId).maybeSingle(),
