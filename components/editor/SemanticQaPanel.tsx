@@ -39,6 +39,12 @@ export default function SemanticQaPanel(p:Props){
    setFeedback(result.message);
   });
  };
+ const applyLayout=(flagId:string,proposal:"compact"|"airy"|"centered")=>{
+  startTransition(async()=>{
+   const result=await applySemanticQaLayoutFix({candidateId:p.candidateId,flagId,proposal});
+   setFeedback(result.message);
+  });
+ };
  return <aside className="semantic-qa-panel" aria-label="Redakční nálezy a opravy">
   <div className="semantic-qa-panel__heading">
    <h2>QA nálezy</h2>
