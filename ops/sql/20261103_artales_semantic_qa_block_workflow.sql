@@ -85,7 +85,7 @@ GRANT EXECUTE ON FUNCTION public.artales_resolve_semantic_qa_flag(uuid,text) TO 
 -- Editors can explicitly return their assigned review for a second opinion.
 -- A returned task is again available in the existing claim inbox.
 CREATE OR REPLACE FUNCTION public.artales_request_semantic_second_review(p_task_id uuid,p_note text)
-RETURNS jsonb LANGUAGE plpgsql SECURITY DEFINER SET search_path='' AS $
+RETURNS jsonb LANGUAGE plpgsql SECURITY DEFINER SET search_path='' AS $$
 DECLARE v_actor uuid:=auth.uid();v_task public.artales_editorial_tasks%ROWTYPE;
 BEGIN
  IF v_actor IS NULL OR NOT EXISTS(SELECT 1 FROM public.profiles p
@@ -103,7 +103,7 @@ BEGIN
  INSERT INTO public.artales_editorial_events(task_id,actor_id,action,note)
  VALUES(p_task_id,v_actor,'returned',btrim(p_note));
  RETURN pg_catalog.jsonb_build_object('result','returned','task_id',p_task_id);
-END $;
+END $$;
 REVOKE ALL ON FUNCTION public.artales_request_semantic_second_review(uuid,text) FROM PUBLIC,anon,authenticated;
 GRANT EXECUTE ON FUNCTION public.artales_request_semantic_second_review(uuid,text) TO authenticated;
 
@@ -121,7 +121,7 @@ BEGIN
   ON CONFLICT(candidate_id,revision_sha256,kind) DO NOTHING;
  END IF;
  RETURN NEW;
-END $;
+END $$;
 REVOKE ALL ON FUNCTION public.artales_auto_enqueue_semantic_tasks() FROM PUBLIC,anon,authenticated;
 
 DO $do$ BEGIN
@@ -149,7 +149,7 @@ BEGIN
    RAISE EXCEPTION 'release_unresolved_qa_flags' USING errcode='23514';
  END IF;
  RETURN NEW;
-END $;
+END $$;
 REVOKE ALL ON FUNCTION public.artales_block_unresolved_semantic_qa() FROM PUBLIC,anon,authenticated;
 DO $do$ BEGIN
  IF NOT EXISTS(SELECT 1 FROM pg_trigger WHERE tgrelid='public.artales_editorial_tasks'::regclass
