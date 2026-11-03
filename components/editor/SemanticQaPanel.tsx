@@ -28,7 +28,7 @@ export default function SemanticQaPanel(p:Props){
     atomId:p.selectedAtomId!,kind,comment
    });
    setFeedback(result.message);
-   if(result.ok)setComment("");
+   if(result.ok){setComment("");p.onSaved();}
   });
  };
  const resolve=(id:string)=>{
