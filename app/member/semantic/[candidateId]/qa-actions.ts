@@ -1,6 +1,6 @@
 "use server";
 import {revalidatePath} from "next/cache";
-import {requireEditorOrAdmin} from "@/lib/guards";
+import {requireEditorOrAdmin,requireAdmin} from "@/lib/guards";
 import {createClient} from "@/lib/supabase/server";
 import {verifySemanticRevision,walkSemanticAtoms,recomposeSemanticBatch} from "@/lib/semantic/compose";
 import type {SemanticRevision} from "@/lib/semantic/model";
@@ -69,7 +69,7 @@ export type EditorialBatchAction="exclude_note"|"compact"|"airy"|"center";
 export async function commitSemanticQaBatch(input:{
  candidateId:string;revisionSha:string;repairs:{flagId:string;action:EditorialBatchAction}[]
 }):Promise<QaMutationResult>{
- const actor=await requireEditorOrAdmin();
+ const actor=await requireAdmin();
  if(!uuid.test(input.candidateId)||!sha.test(input.revisionSha)||
     !Array.isArray(input.repairs)||input.repairs.length<1||input.repairs.length>50||
     new Set(input.repairs.map(x=>x.flagId)).size!==input.repairs.length||
