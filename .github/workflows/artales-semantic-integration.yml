@@ -28,3 +28,5 @@ jobs:
         run: npx eslint lib/semantic lib/ingest/epubSemanticExtractor.ts components/editor/SemanticReaderLab.tsx components/editor/SemanticReaderNotesQa.tsx 'app/member/semantic/[candidateId]/page.tsx' 'app/api/member/semantic/[candidateId]/compose/route.ts'
       - name: Existing semantic regression
         run: npx tsx --test tests/semanticReaderV2.test.ts
+      - name: PostgreSQL jsonb roundtrip and legacy revision integrity
+        run: npx tsx --test tests/semanticJsonbRoundtrip.test.ts

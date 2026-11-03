@@ -9,7 +9,46 @@ import {
 
 const sha = (value: string | Uint8Array) =>
   createHash("sha256").update(value).digest("hex");
-const digest = (value: unknown) => sha(JSON.stringify(value));
+/** Stable across PostgreSQL jsonb reordering (object keys are not ordered).
+ * Arrays remain ordered: changing reading order must change the digest.
+ */
+function canonicalJson(value:unknown):string{
+ if(value===null||typeof value!=="object")return JSON.stringify(value);
+ if(Array.isArray(value))return "["+value.map(canonicalJson).join(",")+"]";
+ return "{"+Object.keys(value as Record<string,unknown>).sort()
+  .filter(k=>(value as Record<string,unknown>)[k]!==undefined)
+  .map(k=>JSON.stringify(k)+":"+canonicalJson((value as Record<string,unknown>)[k]))
+  .join(",")+"}";
+}
+const digest = (value:unknown)=>sha(canonicalJson(value));
+/** Prior v2 drafts were sealed with order-sensitive JSON.stringify.
+ * Recompose deterministic, unmodified round-zero drafts using the exact
+ * original source and compare both original digest and complete content.
+ * No weakening for edited revisions, untrusted metadata or altered bytes.
+ */
+function verifyLegacyJsonbRoundtrip(revision:SemanticRevision,exactOriginalRaw?:string):boolean{
+ if(revision.round!==0||revision.parent_revision_ref!==null||
+    revision.review_issues.length!==0||revision.title_page!==undefined)return false;
+ const source=revision.source;
+ const original=exactOriginalRaw??source.normalized_text;
+ if(source.original_byte_end-source.original_byte_start!==Buffer.byteLength(original,"utf8"))return false;
+ const expected=composeSemanticRevision({
+  work_id:revision.work_id,work_slug:revision.work_slug,
+  snapshot_ref:source.source_snapshot_ref,
+  source_bytes_sha256:source.source_bytes_sha256,
+  component_id:source.component_id,
+  original_byte_start:source.original_byte_start,
+  original_raw:original
+ });
+ const {revision_ref:_ref,revision_sha256:_hash,...payload}=expected;
+ void _ref;void _hash;
+ // The legacy seal's property order was defined by composeSemanticRevision.
+ if(sha(JSON.stringify(payload))!==revision.revision_sha256)return false;
+ // This equality includes all atoms, gaps, byte anchors and revision metadata.
+ const {revision_ref:_ref2,revision_sha256:_hash2,...actual}=revision;
+ void _ref2;void _hash2;
+ return canonicalJson(actual)===canonicalJson(payload);
+}
 /** Chapter spacing is a layout hint, never an artificial source newline. */
 export const DEFAULT_CHAPTER_PRESENTATION: SemanticBlockPresentation = Object.freeze({
   align: "left", indent: "none", space_before: "generous", space_after: "generous",
@@ -295,7 +334,9 @@ export function verifySemanticRevision(revision:SemanticRevision, exactOriginalR
   }
   const {revision_ref:_ref,revision_sha256:_hash,...payload}=revision;
   void _ref;void _hash;
-  if(digest(payload)!==revision.revision_sha256)throw new Error("Semantic revision digest tampered.");
+  if(digest(payload)!==revision.revision_sha256 &&
+     !verifyLegacyJsonbRoundtrip(revision,exactOriginalRaw))
+    throw new Error("Semantic revision digest tampered.");
   if(revision.title_page)validateTitlePage(revision.title_page,revision.work_id);
   const checkPresentations=(nodes:SemanticNode[])=>{
     for(const n of nodes){
