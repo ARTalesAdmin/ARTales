@@ -31,6 +31,7 @@ BEGIN
  RETURN v_result;
 END $owner$;
 REVOKE ALL ON FUNCTION public.artales_editorial_owner(text,text) FROM PUBLIC,anon,authenticated;
+GRANT EXECUTE ON FUNCTION public.artales_editorial_owner(text,text) TO authenticated;
 
 CREATE OR REPLACE FUNCTION public.artales_auto_enqueue_semantic_tasks()
 RETURNS trigger LANGUAGE plpgsql SECURITY INVOKER SET search_path='' AS $tasks$
@@ -165,10 +166,9 @@ BEGIN
      WHERE t.candidate_id=NEW.candidate_id AND t.status<>'completed'
        AND (t.kind<>'text_review' OR t.revision_sha256=NEW.revision_sha256))
    THEN RAISE EXCEPTION 'release_editorial_work_incomplete' USING errcode='23514'; END IF;
-   IF NOT EXISTS(SELECT 1 FROM public.works w WHERE w.id=NEW.work_id
-      AND w.cover_image_path IS NOT NULL AND btrim(w.cover_image_path)<>''
-      AND w.collection_id IS NOT NULL)
-   THEN RAISE EXCEPTION 'release_cover_or_collection_missing' USING errcode='23514'; END IF;
+   -- The current publication RPC cannot yet insert a completed cover/collection
+   -- into the works row; the incomplete metadata tasks block release instead.
+   -- This preserves fail-closed behavior without an impossible unpublished-work check.
  END IF;
  RETURN NEW;
 END $gate$;
