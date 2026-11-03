@@ -46,7 +46,17 @@ CREATE POLICY artales_semantic_flags_staff_insert ON public.artales_semantic_qa_
    WHERE r.candidate_id=artales_semantic_qa_flags.candidate_id
      AND r.revision_sha256=artales_semantic_qa_flags.revision_sha256
      AND r.id=(SELECT latest.id FROM public.candidate_semantic_revisions latest
-       WHERE latest.candidate_id=r.candidate_id ORDER BY latest.created_at DESC,latest.id DESC LIMIT 1))
+       WHERE latest.candidate_id=r.candidate_id ORDER BY latest.created_at DESC,latest.id DESC LIMIT 1)
+     AND (
+       pg_catalog.jsonb_path_exists(r.revision,
+        '$.blocks.**.atom ? (@.id == $atom && @.anchor.normalized_start == $start && @.anchor.normalized_end == $end)'::jsonpath,
+        pg_catalog.jsonb_build_object('atom',artales_semantic_qa_flags.target_atom_id,
+          'start',artales_semantic_qa_flags.source_start,'end',artales_semantic_qa_flags.source_end))
+       OR pg_catalog.jsonb_path_exists(r.revision,
+        '$.blocks.**.heading ? (@.id == $atom && @.anchor.normalized_start == $start && @.anchor.normalized_end == $end)'::jsonpath,
+        pg_catalog.jsonb_build_object('atom',artales_semantic_qa_flags.target_atom_id,
+          'start',artales_semantic_qa_flags.source_start,'end',artales_semantic_qa_flags.source_end))
+     ))
  );
 
 -- R0/R1 staff flag closure: require a recorded reason, never silent direct UPDATE.
