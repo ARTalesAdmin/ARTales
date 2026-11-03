@@ -52,9 +52,10 @@ export type SemanticSourceRegion={
  * Regions let the existing pairedScroll machinery align original and composed
  * typography without guessing page numbers or dropping Gutenberg separators.
  */
-export function buildSemanticSourceRegions(original:string,units:SemanticPageUnit[]):SemanticSourceRegion[]{
+export function buildSemanticSourceRegions(original:string,units:SemanticPageUnit[],editionRange?:{start:number;end:number}):SemanticSourceRegion[]{
   const result:SemanticSourceRegion[]=[];
-  let cursor=0,regionIndex=0;
+  let cursor=editionRange?.start??0,regionIndex=0;
+  const endBound=editionRange?.end??original.length;
   for(const unit of units){
     const span=semanticUnitSourceRange(unit);
     if(!span)continue;
@@ -66,7 +67,7 @@ export function buildSemanticSourceRegions(original:string,units:SemanticPageUni
     regionIndex++;
     cursor=end;
   }
-  if(cursor<original.length)result.push({regionIndex:null,unitId:null,start:cursor,end:original.length,text:original.slice(cursor)});
-  if(result.map(p=>p.text).join("")!==original)throw Error("Source region coverage failed.");
+  if(cursor<endBound)result.push({regionIndex:null,unitId:null,start:cursor,end:endBound,text:original.slice(cursor,endBound)});
+  if(result.map(p=>p.text).join("")!==original.slice(editionRange?.start??0,endBound))throw Error("Source region coverage failed.");
   return result;
 }

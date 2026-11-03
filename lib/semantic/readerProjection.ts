@@ -12,9 +12,10 @@ export type SemanticReaderLayout = {
   density?: "comfortable" | "compact";
   /** Optional browser measurements on exact rendered page width/typeface. */
   measured_unit_heights?: Readonly<Record<string, number>>;
+  editionRange?:{start:number;end:number};
 };
 
-export function getSemanticPageUnits(revision: SemanticRevision): SemanticPageUnit[] {
+export function getSemanticPageUnits(revision: SemanticRevision, editionRange?:{start:number;end:number}): SemanticPageUnit[] {
   const all: SemanticPageUnit[] = [];
   const append = (nodes: SemanticNode[], chapter: string | null) => {
     for (const node of nodes) {
@@ -41,7 +42,21 @@ export function getSemanticPageUnits(revision: SemanticRevision): SemanticPageUn
   append(revision.blocks, null);
   if(revision.title_page)all.unshift({id:revision.title_page.id,kind:"title_page",node:revision.title_page,
     chapter_id:null,source_atom_ids:[],estimated_height:0});
-  return all;
+  if(!editionRange)return all;
+  return all.filter(unit=>{
+    if(unit.kind==="title_page")return true;
+    const atoms=unit.kind==="chapter_heading"||unit.kind==="section_heading"
+      ? "heading" in unit.node?[unit.node.heading]:[]
+      : unit.kind==="poem"&&unit.node.kind==="poem"
+        ? unit.node.stanzas.flatMap(s=>s.lines.map(l=>l.atom))
+        : "atom" in unit.node?[unit.node.atom]:[];
+    if(!atoms.length)return false;
+    const start=atoms[0].anchor.normalized_start,end=atoms.at(-1)!.anchor.normalized_end;
+    if(start<editionRange.start&&end>editionRange.start||
+       start<editionRange.end&&end>editionRange.end)
+      throw Error("Editorial boundary intersects a semantic atom.");
+    return start>=editionRange.start&&end<=editionRange.end;
+  });
 }
 
 /** First server-render fallback; hydrated preview replaces it with real DOM heights. */
@@ -70,7 +85,7 @@ function estimateUnitHeight(unit: SemanticPageUnit, layout: SemanticReaderLayout
  */
 export function chooseSemanticParagraphBreak(
   raw: string, start: number, requestedEnd: number, stop = raw.length,
-  allowWordFallback = false,
+  allowWordFallback = false,minTail = 30,
 ): number | null {
   if (!Number.isInteger(start) || !Number.isInteger(requestedEnd) ||
       !Number.isInteger(stop) || start < 0 || start >= stop ||
@@ -81,10 +96,10 @@ export function chooseSemanticParagraphBreak(
   const add = (end: number, bonus: number) => {
     const count = end - start;
     const tail = stop - end;
-    if (count < minLength || tail < Math.min(20, Math.floor((stop - start) * 0.1))) return;
+    if (count < minLength || tail < minTail) return;
     if (end <= start || end > requestedEnd) return;
     // A strong punctuation break may be preferable to a slightly fuller page.
-    candidates.push({end, score: count / scan.length * 4 + bonus});
+    candidates.push({end, score: count / scan.length * 8 + bonus});
   };
   for (const match of scan.matchAll(/[.!?;:][”’"')\]]*\s+/g)) {
     const token = match[0];
@@ -98,7 +113,7 @@ export function chooseSemanticParagraphBreak(
   for (const match of scan.matchAll(/\b(?:but|and|yet|because|although|however|when|while)\b\s+/gi)) {
     add(start + match.index! + match[0].length, 0.35);
   }
-  if (allowWordFallback && !candidates.length) {
+  if (allowWordFallback) {
     for (const match of scan.matchAll(/\s+/g)) {
       add(start + match.index! + match[0].length, 0);
     }
@@ -152,12 +167,12 @@ export function splitParagraphUnit(unit:SemanticPageUnit,maxChars:number,allowWo
 }
 
 /** Cut only once at the page boundary; preserve the remainder as one unsplit unit. */
-function takePageFragment(unit:SemanticPageUnit,maxChars:number,allowWordFallback:boolean):
+function takePageFragment(unit:SemanticPageUnit,maxChars:number,allowWordFallback:boolean,minTail=30):
   [SemanticPageUnit,SemanticPageUnit] | null {
   if(unit.kind!=="paragraph"||unit.node.kind!=="paragraph")return null;
   const from=unit.fragment?.start??0,until=unit.fragment?.end??unit.node.atom.raw.length;
   const end=chooseSemanticParagraphBreak(unit.node.atom.raw,from,
-    Math.min(until-1,from+maxChars),until,allowWordFallback);
+    Math.min(until-1,from+maxChars),until,allowWordFallback,minTail);
   if(end===null)return null;
   return [makeFragment(unit,from,end,unit.estimated_height),
     makeFragment(unit,end,until,unit.estimated_height)];
@@ -173,7 +188,7 @@ export function projectSemanticReader(revision: SemanticRevision, layout: Semant
   if (layout.density !== undefined && layout.density !== "comfortable" && layout.density !== "compact") {
     throw new Error("Invalid Reader line density.");
   }
-  const all = getSemanticPageUnits(revision).map(unit => {
+  const all = getSemanticPageUnits(revision,layout.editionRange).map(unit => {
     const measured = layout.measured_unit_heights?.[unit.id];
     if (measured !== undefined && (!Number.isFinite(measured) || measured <= 0 || measured > 100000)) {
       throw new Error("Invalid browser-measured semantic unit height.");
@@ -181,7 +196,7 @@ export function projectSemanticReader(revision: SemanticRevision, layout: Semant
     return { ...unit, estimated_height: measured ?? estimateUnitHeight(unit, layout) };
   });
   // Budget includes real viewport height, with margins for page padding/footer and controls.
-  const capacity = Math.max(260, layout.viewport_height - 155);
+  const capacity = Math.max(260, layout.viewport_height - 100);
   const result: SemanticPage[] = [];
   let pending: SemanticPageUnit[] = [];
   let weight = 0;
@@ -216,9 +231,14 @@ export function projectSemanticReader(revision: SemanticRevision, layout: Semant
       const maxChars=Math.max(35,Math.floor(
         currentLen * (remaining - 12) / Math.max(unit.estimated_height,1)
       ));
-      // Word-only fallback is reserved for otherwise unpageable huge paragraphs.
-      const cut=takePageFragment(unit,maxChars,
-        unit.estimated_height>capacity*1.75);
+      // Break ordinary prose across pages, preserving at least two lines
+      // on either side and never splitting a source atom's identity.
+      const approxCharsPerLine=Math.max(18,Math.floor(
+        Math.max(150,layout.viewport_width-48)/(7.8*layout.font_scale)));
+      const minimumTail=Math.max(28,approxCharsPerLine*2);
+      const maxAllowed=Math.min(maxChars,currentLen-minimumTail);
+      const cut=maxAllowed>minimumTail
+        ?takePageFragment(unit,maxAllowed,true,minimumTail):null;
       if(cut){
         queue.splice(i,1,cut[0],cut[1]);
         unit=queue[i];
@@ -243,9 +263,9 @@ export function projectSemanticReader(revision: SemanticRevision, layout: Semant
   return result;
 }
 
-export function verifyReaderProjection(revision:SemanticRevision,pages:SemanticPage[]){
+export function verifyReaderProjection(revision:SemanticRevision,pages:SemanticPage[],editionRange?:{start:number;end:number}){
   verifySemanticRevision(revision);
-  const expected=getSemanticPageUnits(revision);
+  const expected=getSemanticPageUnits(revision,editionRange);
   const actual=pages.flatMap(p=>p.units);
   let index=0;
   for(const base of expected){

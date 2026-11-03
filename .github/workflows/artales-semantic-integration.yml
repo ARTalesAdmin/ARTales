@@ -30,3 +30,5 @@ jobs:
         run: npx tsx --test tests/semanticReaderV2.test.ts
       - name: PostgreSQL jsonb roundtrip and legacy revision integrity
         run: npx tsx --test tests/semanticJsonbRoundtrip.test.ts
+      - name: Editable public-domain edition and pagination regression
+        run: npx tsx --test tests/semanticEditionLayout.test.ts

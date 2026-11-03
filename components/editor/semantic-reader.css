@@ -107,3 +107,18 @@
 .semantic-reader__note-marker.artales-reader-note-marker--green{--note-color:#6f9677}
 .semantic-reader__note-marker.artales-reader-note-marker--rose{--note-color:#b97883}
 .semantic-reader__note-marker.artales-reader-note-marker--violet{--note-color:#8871a6}
+
+/* Fullscreen is native browser Fullscreen API, separate from reader focus. */
+.semantic-reader:fullscreen,.semantic-reader--fullscreen{
+  width:100vw;height:100dvh;max-height:100dvh;overflow:auto;
+  padding:16px;box-sizing:border-box;background:#efe9df;
+}
+.semantic-reader:fullscreen header,.semantic-reader--fullscreen header{max-width:none}
+.semantic-reader:fullscreen .semantic-reader__triptych,
+.semantic-reader--fullscreen .semantic-reader__triptych{max-width:none}
+.semantic-reader:fullscreen .semantic-reader__paired-scroll,
+.semantic-reader--fullscreen .semantic-reader__paired-scroll{height:calc(100dvh - 230px)}
+.semantic-reader__fullscreen-button{border:1px solid #b4a897;background:#fffdf8;
+  border-radius:8px;padding:8px 12px;cursor:pointer;font:13px system-ui}
+.semantic-reader__edition-note{font:13px system-ui;color:#61594e}
+.semantic-reader__page p{orphans:3;widows:3;hyphens:auto}

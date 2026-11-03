@@ -22,6 +22,8 @@ on:
       - 'tests/verifiedLegalSnapshotHandoff.test.mjs'
       - 'tests/snapshot389Pilot.test.mjs'
       - 'tests/snapshot389Mirror.test.mjs'
+      - 'tests/epubSemantic389.test.mjs'
+      - 'lib/semantic/editionProjection.ts'
       - 'tests/snapshot389RequestGate.test.mjs'
       - 'tests/snapshot389Security.test.mjs'
       - 'tests/generalSnapshotAction.test.mjs'
