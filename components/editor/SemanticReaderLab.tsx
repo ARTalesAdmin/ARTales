@@ -17,7 +17,8 @@ import "./semantic-reader.css";
 type Props={revision:SemanticRevision;original:string;profileReaderDefaults?:FixtureProfileReaderDefaults|null;
  candidateId:string;revisionSha:string;editionTitle:string;editionAuthor:string;
  flags:SemanticQaFlag[];qaDatabaseReady:boolean;protectedTerms:string[];
- systemSignals:{atomId:string;sourceStart:number;reason:string;kind:"source_ambiguity"}[];}
+ systemSignals:{atomId:string;sourceStart:number;reason:string;kind:"source_ambiguity"}[];
+ canCommitBatch:boolean;}
 type ReadingSpacing = ReaderDensityId | "airy";
 type PaneSide = "source" | "composed";
 type BrowserMeasurements={
@@ -100,7 +101,7 @@ function sameMeasurements(a:BrowserMeasurements|null,b:BrowserMeasurements) {
 
 export default function SemanticReaderLab({
  revision,original,profileReaderDefaults=null,candidateId,revisionSha,editionTitle,editionAuthor,
- flags,qaDatabaseReady,protectedTerms,systemSignals
+ flags,qaDatabaseReady,protectedTerms,systemSignals,canCommitBatch
 }:Props) {
   const accountPreferences=getProfileReaderSettings(profileReaderDefaults)??defaultReaderSettings;
   const [readerMode,setReaderMode]=useState<"scroll"|"spread">("scroll");
