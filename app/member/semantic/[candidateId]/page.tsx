@@ -4,20 +4,29 @@ import {requireEditorOrAdmin} from "@/lib/guards";
 import {createClient} from "@/lib/supabase/server";
 import SemanticReaderLab from "@/components/editor/SemanticReaderLab";
 import {verifySemanticRevision,walkSemanticAtoms} from "@/lib/semantic/compose";
-import {enqueueSemanticReview,publishSemanticCandidate} from "@/app/member/editorial-pipeline/actions";
+import {publishSemanticCandidate} from "@/app/member/editorial-pipeline/actions";
 import type {SemanticRevision} from "@/lib/semantic/model";
 import {SEMANTIC_PIPELINE_ENABLED} from "@/lib/semantic/featureFlag";
 export const dynamic="force-dynamic";
 export default async function EditorialSemanticPreview({params}:{params:Promise<{candidateId:string}>}){
  const {candidateId}=await params;
  if(!SEMANTIC_PIPELINE_ENABLED)notFound();
- await requireEditorOrAdmin();
+ const profile=await requireEditorOrAdmin();
  if(!/^[a-f0-9-]{36}$/i.test(candidateId))notFound();
  const db=await createClient();
  const {data,error}=await db.from("candidate_semantic_revisions")
   .select("revision,source_text,revision_sha256,status").eq("candidate_id",candidateId)
   .order("created_at",{ascending:false}).limit(1).maybeSingle();
  if(error||!data||typeof data.source_text!=="string")notFound();
+ const {data:candidate}=await db.from("work_candidates")
+  .select("proposed_title,proposed_author_name").eq("id",candidateId).maybeSingle();
+ const {data:qaFlags,error:qaFlagError}=await db.from("artales_semantic_qa_flags")
+  .select("id,revision_sha256,target_atom_id,source_start,source_end,kind,comment,status,created_at,resolution_note")
+  .eq("candidate_id",candidateId).eq("revision_sha256",data.revision_sha256)
+  .order("created_at",{ascending:true});
+ const {data:tasks}=await db.from("artales_editorial_tasks")
+  .select("id,kind,status,assigned_to").eq("candidate_id",candidateId)
+  .eq("revision_sha256",data.revision_sha256);
  const revision=data.revision as SemanticRevision;
  const atoms=walkSemanticAtoms(revision.blocks);
  const {data:visuals}=await db.from("artales_semantic_images").select("id,anchor_atom_id,storage_path,provenance,caption")
@@ -35,16 +44,21 @@ export default async function EditorialSemanticPreview({params}:{params:Promise<
  </section>
  <p style={{margin:"20px"}}><Link href={`/member/snapshot/${candidateId}`}>← Snapshot</Link>
   {" · "}<strong>{data.status}</strong> · {data.revision_sha256.slice(0,12)}</p>
-  <SemanticReaderLab revision={revision} original={data.source_text}/>
+  <SemanticReaderLab revision={revision} original={data.source_text}
+    candidateId={candidateId} revisionSha={data.revision_sha256}
+    editionTitle={candidate?.proposed_title??"Název čeká na kontrolu"}
+    editionAuthor={candidate?.proposed_author_name??"Autor čeká na kontrolu"}
+    flags={qaFlags??[]} qaDatabaseReady={!qaFlagError}
+    canApplyLayoutFix={profile.role==="admin"}/>
   <section id="editorial-actions" style={{maxWidth:900,margin:"32px auto",padding:"20px 24px",
     border:"1px solid #d9cfbf",borderRadius:12,background:"#faf7f0"}}>
-   <h2>Po dokončení QA — další kroky</h2>
-   <p>Nejprve případně doplňte oprávněné ilustrace a dokončete vizuální kontrolu.
-      Potom předejte revizi redakčním úkolům. Publikace zůstává blokovaná
-      dokud není schválená přesná revize i všechny kontroly.</p>
- <form action={enqueueSemanticReview}><input type="hidden" name="candidate_id" value={candidateId}/>
-  <button type="submit" style={{padding:"11px 17px",borderRadius:8,background:"#1d2c39",color:"white"}}>1. Předat do redakční kontroly (3 úkoly)</button></form>
- <p><Link href="/member/editorial-pipeline">Redakční fronta a stav kontrol</Link></p>
+   <h2>Redakční proces a návaznosti</h2>
+   <p>Úkoly jsou založeny systémem. Nevyřešené nálezy musí projít opravou nebo zdůvodněným uzavřením. Publikace zůstává oddělená od redakčního QA.</p>
+ <h3>Automatické redakční úkoly</h3>
+ <p>Úkoly vznikají při uložení sémantické revize. Editor je pouze přijímá,
+ kontroluje a uzavírá. Otevřené nálezy brání dokončení kontroly i publikaci.</p>
+ <p>{tasks?.length??0} ze 3 kontrol založeno. {tasks?.filter(t=>t.status==="completed").length??0} dokončeno.</p>
+ <p><Link href="/member/editorial-pipeline" className="ca-btn">Přejít do redakční fronty</Link></p>
  <details><summary>Ilustrace v sémantickém vydání</summary>
   <p>Originální EPUB zůstává soukromý. Originální ilustraci lze použít jen při doloženém
    právním schválení; vlastní kresbu lze přidat samostatně.</p>

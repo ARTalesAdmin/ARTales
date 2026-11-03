@@ -1,7 +1,7 @@
 import Link from "next/link";
 import {requireEditorOrAdmin} from "@/lib/guards";
 import {createClient} from "@/lib/supabase/server";
-import {completeSemanticTask,claimSemanticTask} from "./actions";
+import {completeSemanticTask,claimSemanticTask,requestSemanticSecondReview} from "./actions";
 import {notFound} from "next/navigation";
 import {SEMANTIC_PIPELINE_ENABLED} from "@/lib/semantic/featureFlag";
 export const dynamic="force-dynamic";
@@ -26,6 +26,15 @@ export default async function EditorialPipeline(){
     <label>Doklad kontroly <textarea name="evidence_note" minLength={40} maxLength={4000} required rows={3}/></label>
     <button type="submit">Dokončit kontrolu</button>
    </form>:null}
+   {t.status==="claimed"&&(t.assigned_to===profile.id||profile.role==="admin")?
+    <details><summary>Vyžádat další kontrolu nebo druhý názor</summary>
+     <form action={requestSemanticSecondReview}>
+      <input type="hidden" name="task_id" value={t.id}/>
+      <label>Důvod předání k další kontrole
+       <textarea name="reason" minLength={40} maxLength={4000} rows={3} required/></label>
+      <button type="submit">Vrátit úkol do fronty k další kontrole</button>
+     </form>
+    </details>:null}
   </article>)}
  </main>;
 }

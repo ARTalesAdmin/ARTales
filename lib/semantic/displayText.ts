@@ -1,6 +1,8 @@
-/** Reversible display-only soft-wrap projection. Never alter canonical source atoms or anchors. */
+/** Display-only typography. Immutable source atoms, source hashes and anchors
+ * never change. Gutenberg hard wraps are soft prose breaks; English one-letter
+ * words must stay attached to the following word (no dangling I / a).
+ */
 export function projectSemanticProseText(raw:string):string {
-  // Archived edition line endings are soft line wraps inside a paragraph.
-  // Keep semantic paragraph breaks, punctuation and words; verse uses raw directly.
-  return raw.replace(/([^\n])\n(?=[^\n])/g, "$1 ");
+ const soft=raw.replace(/([^\n])\n(?=[^\n])/g,"$1 ");
+ return soft.replace(/\b([IaA]) ([^\s])/g,"$1\u00a0$2");
 }
