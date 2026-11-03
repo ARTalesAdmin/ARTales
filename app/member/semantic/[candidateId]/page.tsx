@@ -11,7 +11,7 @@ export const dynamic="force-dynamic";
 export default async function EditorialSemanticPreview({params}:{params:Promise<{candidateId:string}>}){
  const {candidateId}=await params;
  if(!SEMANTIC_PIPELINE_ENABLED)notFound();
- await requireEditorOrAdmin();
+ const profile=await requireEditorOrAdmin();
  if(!/^[a-f0-9-]{36}$/i.test(candidateId))notFound();
  const db=await createClient();
  const {data,error}=await db.from("candidate_semantic_revisions")
@@ -48,7 +48,7 @@ export default async function EditorialSemanticPreview({params}:{params:Promise<
     editionTitle={candidate?.proposed_title??"Název čeká na kontrolu"}
     editionAuthor={candidate?.proposed_author_name??"Autor čeká na kontrolu"}
     flags={qaFlags??[]} qaDatabaseReady={!qaFlagError} systemSignals={systemSignals}
-    protectedTerms={(workRules??[]).map(x=>x.term)}
+    protectedTerms={(workRules??[]).map(x=>x.term)} canCommitBatch={profile.role==="admin"}
     />
   <section id="editorial-actions" style={{maxWidth:900,margin:"28px auto",padding:"20px 24px",
     border:"1px solid #d9cfbf",borderRadius:12,background:"#faf7f0"}}>
