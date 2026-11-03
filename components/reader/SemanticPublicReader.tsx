@@ -1,5 +1,6 @@
 import type {SemanticRevision,SemanticNode,SemanticAtom} from "@/lib/semantic/model";
 import {projectSemanticProseText} from "@/lib/semantic/displayText";
+import {selectEditorialEdition} from "@/lib/semantic/editionProjection";
 export type ApprovedSemanticImage={anchor_atom_id:string;storage_path:string;caption:string;sha256:string};
 const atom=(a:SemanticAtom)=>projectSemanticProseText(a.raw);
 function safeUrl(path:string){
@@ -47,7 +48,30 @@ export default function SemanticPublicReader({revision,title,isPreview,visuals=[
     :<p style={{whiteSpace:"pre-wrap",lineHeight:1.8,marginBlock:"1em"}}>{atom(n.atom)}</p>;
   return <div key={n.id}>{body}{illustrations(n.atom.id)}</div>;
  };
- const blocks=isPreview?revision.blocks.slice(0,Math.min(4,revision.blocks.length)):revision.blocks;
+ const range=selectEditorialEdition(revision.source.normalized_text).range;
+ const within=(n:SemanticNode):SemanticNode|null=>{
+   if(n.kind==="chapter"||n.kind==="section"){
+     const start=n.heading.anchor.normalized_start,end=n.heading.anchor.normalized_end;
+     const children=n.children.map(within).filter((v):v is SemanticNode=>v!==null);
+     if(start>=range.start&&end<=range.end)return {...n,children};
+     if(children.length)throw Error("Editorial boundary intersects a chapter heading.");
+     return null;
+   }
+   if(n.kind==="poem"){
+     const atoms=n.stanzas.flatMap(s=>s.lines.map(l=>l.atom));
+     if(!atoms.length)return null;
+     if(atoms[0].anchor.normalized_start>=range.start&&
+        atoms.at(-1)!.anchor.normalized_end<=range.end)return n;
+     return null;
+   }
+   if(!("atom" in n))return null;
+   const start=n.atom.anchor.normalized_start,end=n.atom.anchor.normalized_end;
+   if(start<range.end&&end>range.start&&(start<range.start||end>range.end))
+     throw Error("Editorial boundary intersects an atom.");
+   return start>=range.start&&end<=range.end?n:null;
+ };
+ const approvedBlocks=revision.blocks.map(within).filter((v):v is SemanticNode=>v!==null);
+ const blocks=isPreview?approvedBlocks.slice(0,Math.min(4,approvedBlocks.length)):approvedBlocks;
  return <article style={{maxWidth:780,margin:"0 auto",padding:"36px 24px",fontFamily:"Georgia,serif",fontSize:"1.15rem",lineHeight:1.8}}>
   <h1>{title}</h1>
   {blocks.map(node)}
