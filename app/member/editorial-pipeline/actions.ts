@@ -69,3 +69,20 @@ export async function claimSemanticTask(form:FormData){
  revalidatePath("/member/editorial-pipeline");
  redirect("/member/editorial-pipeline?notice=claimed");
 }
+
+export async function requestSemanticSecondReview(form:FormData){
+ if(!SEMANTIC_PIPELINE_ENABLED)notFound();
+ await requireEditorOrAdmin();
+ const taskId=String(form.get("task_id")??"");
+ const reason=String(form.get("reason")??"").trim();
+ if(!uuid.test(taskId)||reason.length<40||reason.length>4000)
+  redirect("/member/editorial-pipeline?error=reason_required");
+ const db=await createClient();
+ const {data,error}=await db.rpc("artales_request_semantic_second_review",{
+  p_task_id:taskId,p_note:reason
+ });
+ if(error||data?.result!=="returned")
+  redirect("/member/editorial-pipeline?error=second_review_failed");
+ revalidatePath("/member/editorial-pipeline");
+ redirect("/member/editorial-pipeline?notice=second_review_requested");
+}
