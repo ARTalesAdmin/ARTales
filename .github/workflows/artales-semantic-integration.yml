@@ -8,6 +8,10 @@ on:
       - 'components/editor/Semantic*'
       - 'app/api/member/semantic/**'
       - 'app/member/semantic/**'
+      - 'ops/sql/20261103_artales_semantic_qa_block_workflow.sql'
+      - 'tests/semanticQaWorkflow.test.ts'
+      - 'components/editor/semantic-reader.css'
+      - 'components/reader/SemanticPublicReader.tsx'
       - 'supabase/migrations/20261102172000_artales_semantic_editorial_pipeline.sql'
       - '.github/workflows/artales-semantic-integration.yml'
 permissions:
@@ -32,3 +36,5 @@ jobs:
         run: npx tsx --test tests/semanticJsonbRoundtrip.test.ts
       - name: Editable public-domain edition and pagination regression
         run: npx tsx --test tests/semanticEditionLayout.test.ts
+      - name: Source-anchored QA feedback, typography and immutable re-review
+        run: npx tsx --test tests/semanticQaWorkflow.test.ts
