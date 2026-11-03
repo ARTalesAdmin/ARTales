@@ -3,14 +3,15 @@ import Link from "next/link";
 import {requireEditorOrAdmin} from "@/lib/guards";
 import {createClient} from "@/lib/supabase/server";
 import SemanticReaderLab from "@/components/editor/SemanticReaderLab";
-import {verifySemanticRevision} from "@/lib/semantic/compose";
+import {verifySemanticRevision,walkSemanticAtoms} from "@/lib/semantic/compose";
+import {detectEditionReviewSignals} from "@/lib/semantic/editionProjection";
 import type {SemanticRevision} from "@/lib/semantic/model";
 import {SEMANTIC_PIPELINE_ENABLED} from "@/lib/semantic/featureFlag";
 export const dynamic="force-dynamic";
 export default async function EditorialSemanticPreview({params}:{params:Promise<{candidateId:string}>}){
  const {candidateId}=await params;
  if(!SEMANTIC_PIPELINE_ENABLED)notFound();
- await requireEditorOrAdmin();
+ const profile=await requireEditorOrAdmin();
  if(!/^[a-f0-9-]{36}$/i.test(candidateId))notFound();
  const db=await createClient();
  const {data,error}=await db.from("candidate_semantic_revisions")
@@ -23,10 +24,13 @@ export default async function EditorialSemanticPreview({params}:{params:Promise<
   .select("id,revision_sha256,target_atom_id,source_start,source_end,kind,comment,status,created_at,resolution_note")
   .eq("candidate_id",candidateId).eq("revision_sha256",data.revision_sha256)
   .order("created_at",{ascending:true});
+ const {data:workRules}=await db.from("artales_work_typography_rules")
+  .select("term").eq("candidate_id",candidateId);
  const {data:tasks}=await db.from("artales_editorial_tasks")
   .select("id,kind,status,assigned_to").eq("candidate_id",candidateId)
   .eq("revision_sha256",data.revision_sha256);
  const revision=data.revision as SemanticRevision;
+ const systemSignals=detectEditionReviewSignals(data.source_text,walkSemanticAtoms(revision.blocks),revision.editorial_exclusions??[]);
  try{verifySemanticRevision(revision,data.source_text);}
  catch{notFound();}
  return <main><section style={{maxWidth:900,margin:"20px auto",padding:16}}>
@@ -43,7 +47,8 @@ export default async function EditorialSemanticPreview({params}:{params:Promise<
     candidateId={candidateId} revisionSha={data.revision_sha256}
     editionTitle={candidate?.proposed_title??"Název čeká na kontrolu"}
     editionAuthor={candidate?.proposed_author_name??"Autor čeká na kontrolu"}
-    flags={qaFlags??[]} qaDatabaseReady={!qaFlagError}
+    flags={qaFlags??[]} qaDatabaseReady={!qaFlagError} systemSignals={systemSignals}
+    protectedTerms={(workRules??[]).map(x=>x.term)} canCommitBatch={profile.role==="admin"}
     />
   <section id="editorial-actions" style={{maxWidth:900,margin:"28px auto",padding:"20px 24px",
     border:"1px solid #d9cfbf",borderRadius:12,background:"#faf7f0"}}>

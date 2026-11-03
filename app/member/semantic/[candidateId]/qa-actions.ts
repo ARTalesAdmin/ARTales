@@ -1,8 +1,8 @@
 "use server";
 import {revalidatePath} from "next/cache";
-import {requireAdmin,requireEditorOrAdmin} from "@/lib/guards";
+import {requireEditorOrAdmin,requireAdmin} from "@/lib/guards";
 import {createClient} from "@/lib/supabase/server";
-import {verifySemanticRevision,walkSemanticAtoms,submitSemanticIssue,recomposeSemanticLayout} from "@/lib/semantic/compose";
+import {verifySemanticRevision,walkSemanticAtoms,recomposeSemanticBatch} from "@/lib/semantic/compose";
 import type {SemanticRevision} from "@/lib/semantic/model";
 const uuid=/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const sha=/^[a-f0-9]{64}$/;
@@ -64,58 +64,88 @@ export async function resolveSemanticQaFlag(input:{
  return {ok:true,message:"Nález uzavřen s dohledatelným zdůvodněním."};
 }
 
-/** Deterministic, bounded ARTales layout repair. Source bytes stay immutable.
- * A new SHA-bound revision automatically emits a NEW set of review tasks via DB trigger.
- */
-export async function applySemanticQaLayoutFix(input:{
- candidateId:string;flagId:string;proposal:"compact"|"airy"|"centered";
+
+export type EditorialBatchAction="exclude_note"|"compact"|"airy"|"center";
+export async function commitSemanticQaBatch(input:{
+ candidateId:string;revisionSha:string;repairs:{flagId:string;action:EditorialBatchAction}[]
 }):Promise<QaMutationResult>{
  const actor=await requireAdmin();
- if(!uuid.test(input.candidateId)||!uuid.test(input.flagId)||
-  !["compact","airy","centered"].includes(input.proposal))
-  return {ok:false,message:"Neplatná žádost o úpravu sazby."};
+ if(!uuid.test(input.candidateId)||!sha.test(input.revisionSha)||
+    !Array.isArray(input.repairs)||input.repairs.length<1||input.repairs.length>50||
+    new Set(input.repairs.map(x=>x.flagId)).size!==input.repairs.length||
+    input.repairs.some(x=>!uuid.test(x.flagId)||
+      !["exclude_note","compact","airy","center"].includes(x.action)))
+  return {ok:false,message:"Neplatná sada oprav."};
  const db=await createClient();
- const {data:flag,error:flagError}=await db.from("artales_semantic_qa_flags")
-  .select("id,candidate_id,revision_sha256,target_atom_id,kind,status,comment")
-  .eq("candidate_id",input.candidateId).eq("id",input.flagId).maybeSingle();
- if(flagError||!flag||flag.status!=="open"||flag.kind!=="typography")
-  return {ok:false,message:"Nález není otevřený typografický problém."};
- const {data:previous,error:revError}=await db.from("candidate_semantic_revisions")
-  .select("revision,source_text,revision_sha256,snapshot_sha256,component_id,source_manifest,image_selection")
-  .eq("candidate_id",input.candidateId)
-  .order("created_at",{ascending:false}).order("id",{ascending:false}).limit(1).maybeSingle();
- if(revError||!previous||previous.revision_sha256!==flag.revision_sha256)
-  return {ok:false,message:"Revize byla změněna. Použij aktuální revizi pro nové QA."};
- let next;
+ const [{data:previous,error:readError},{data:flags,error:flagsError}]=await Promise.all([
+  db.from("candidate_semantic_revisions").select("revision,source_text,revision_sha256")
+    .eq("candidate_id",input.candidateId).order("created_at",{ascending:false})
+    .order("id",{ascending:false}).limit(1).maybeSingle(),
+  db.from("artales_semantic_qa_flags")
+    .select("id,kind,comment,target_atom_id,status,revision_sha256")
+    .eq("candidate_id",input.candidateId).eq("revision_sha256",input.revisionSha)
+    .eq("status","open").in("id",input.repairs.map(x=>x.flagId))
+ ]);
+ if(readError||!previous||previous.revision_sha256!==input.revisionSha||
+    flagsError||!flags||flags.length!==input.repairs.length)
+  return {ok:false,message:"Revize nebo nálezy nejsou aktuální. Obnov redakci."};
+ let updated;
  try{
-  const revision=previous.revision as SemanticRevision;
-  verifySemanticRevision(revision,previous.source_text);
-  const presentation=input.proposal==="compact"
-   ? {align:"left" as const,indent:"none" as const,space_before:"none" as const,space_after:"none" as const}
-   : input.proposal==="airy"
-    ?{align:"left" as const,indent:"none" as const,space_before:"normal" as const,space_after:"generous" as const}
-    :{align:"center" as const,indent:"none" as const,space_before:"normal" as const,space_after:"normal" as const};
-  const issue=submitSemanticIssue(revision,{
-   id:input.flagId,target_atom_id:flag.target_atom_id,kind:"typography",
-   reason:flag.comment,requested_layout:"block_presentation",requested_presentation:presentation
+  const source=previous.revision as SemanticRevision;
+  verifySemanticRevision(source,previous.source_text);
+  const byId=new Map(flags.map(f=>[f.id,f]));
+  const atoms=new Map(walkSemanticAtoms(source.blocks).map(a=>[a.id,a]));
+  const changes=input.repairs.map(repair=>{
+   const flag=byId.get(repair.flagId);
+   if(!flag||flag.status!=="open")throw Error("missing flag");
+   const atom=atoms.get(flag.target_atom_id);
+   if(!atom)throw Error("missing atom");
+   if(repair.action==="exclude_note"){
+    if(!["structure","other"].includes(flag.kind)||
+       !/^\\s*(?:NOTE[.\\u2014: -]|TRANSCRIBER)/im.test(atom.raw))
+      throw Error("only explicit editorial notes may be removed by this action");
+    return {flagId:flag.id,atomId:atom.id,reason:flag.comment,
+      kind:"exclude_from_edition" as const};
+   }
+   if(!["typography","structure"].includes(flag.kind))
+    throw Error("not an actionable style finding");
+   const presentation=repair.action==="compact"
+      ?{align:"left" as const,indent:"none" as const,space_before:"none" as const,space_after:"none" as const}
+      :repair.action==="airy"
+      ?{align:"left" as const,indent:"none" as const,space_before:"normal" as const,space_after:"generous" as const}
+      :{align:"center" as const,indent:"none" as const,space_before:"normal" as const,space_after:"normal" as const};
+   return {flagId:flag.id,atomId:atom.id,reason:flag.comment,
+      kind:"block_presentation" as const,presentation};
   });
-  next=recomposeSemanticLayout(revision,issue,previous.source_text);
- }catch{return {ok:false,message:"Navrhovaná úprava není použitelná nebo by nic nezměnila."};}
- const {error:insertError}=await db.from("candidate_semantic_revisions").insert({
-  candidate_id:input.candidateId,snapshot_sha256:previous.snapshot_sha256,
-  revision_sha256:next.revision_sha256,revision:next,source_text:previous.source_text,
-  component_id:previous.component_id,source_manifest:previous.source_manifest,
-  image_selection:previous.image_selection,status:"draft",authored_by:actor.id
+  updated=recomposeSemanticBatch(source,changes,previous.source_text);
+ }catch{
+  return {ok:false,message:"Tyto nálezy nejdou bezpečně opravit zvoleným postupem. Nech je otevřené pro odbornou opravu nebo eskalaci."};
+ }
+ const {data,error}=await db.rpc("artales_commit_semantic_qa_batch",{
+  p_candidate_id:input.candidateId,p_parent_sha:input.revisionSha,
+  p_revision:updated,p_flag_ids:input.repairs.map(x=>x.flagId)
  });
- if(insertError)return {ok:false,message:"Novou revizi se nepodařilo uložit nebo založit kontrolní úkoly."};
- const proof="Systém vytvořil novou neměnnou revizi "+next.revision_sha256+
-  " z typografického nálezu "+flag.id+". Původní revize zůstává archivována; novou revizi prověří nové QA úkoly.";
- const {data:resolution,error:resolutionError}=await db.rpc("artales_resolve_semantic_qa_flag",{
-  p_flag_id:flag.id,p_resolution_note:proof
- });
+ if(error||data?.result!=="created")
+  return {ok:false,message:"Atomická revize se neuložila. Žádný nález se nemá považovat za vyřešený."};
  revalidatePath("/member/semantic/"+input.candidateId);
  revalidatePath("/member/editorial-pipeline");
- return {ok:true,message:resolutionError||resolution?.result!=="resolved"
-  ?"Vznikla nová revize a nové úkoly; starý nález musí editor samostatně uzavřít."
-  :"Vznikla nová revize a automaticky nové redakční kontroly. Původní nález je uzavřen se stopou."};
+ revalidatePath("/member");
+ void actor;
+ return {ok:true,message:"Vytvořena jedna nová revize z "+input.repairs.length+
+  " oprav. Jediný nový textový QA úkol patří původnímu editorovi."};
+}
+export async function saveWorkTypographyRule(input:{
+ candidateId:string;term:string
+}):Promise<QaMutationResult>{
+ await requireEditorOrAdmin();
+ if(!uuid.test(input.candidateId)||input.term.length>80||input.term.trim().length<2)
+  return {ok:false,message:"Zadej krátké slovo nebo sousloví k ochraně."};
+ const db=await createClient();
+ const {data,error}=await db.rpc("artales_add_work_typography_rule",{
+  p_candidate_id:input.candidateId,p_term:input.term.trim()
+ });
+ if(error||data?.result!=="saved")
+  return {ok:false,message:"Pravidlo se nepodařilo aplikovat. Zkontroluj výraz a archivovaný text."};
+ revalidatePath("/member/semantic/"+input.candidateId);
+ return {ok:true,message:"Pravidlo pro celé dílo uloženo. Výraz je chráněný před dělením ve všech výskytech bez změny zdrojového textu; překontroluj výsledek."};
 }

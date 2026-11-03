@@ -58,3 +58,21 @@ export function selectEditorialEdition(source:string):EditionSelection{
   throw Error("Empty literary text after editorial clipping.");
  return {range:{start,end},method,headerOmitted:start>0,footerOmitted:end<source.length,warnings};
 }
+
+/** Review signal, not an auto-deletion. Edition-source note remains visible until
+ * the editor explicitly excludes it in a new signed semantic revision. */
+export function detectEditionReviewSignals(source:string,atoms:ReadonlyArray<{
+ id:string;raw:string;anchor:{normalized_start:number;normalized_end:number}
+}>,excluded:ReadonlyArray<string>=[]){
+ const span=selectEditorialEdition(source).range;
+ const endMarker=/\bTHE END\.?\s*$/gim;
+ const matches=[...source.slice(span.start,span.end).matchAll(endMarker)];
+ if(!matches.length)return [];
+ const cutoff=span.start+matches.at(-1)!.index!+matches.at(-1)![0].length;
+ return atoms.filter(a=>a.anchor.normalized_start>=cutoff&&
+   a.anchor.normalized_end<=span.end&&!excluded.includes(a.id)&&
+   /^\s*(?:NOTE[.\u2014: -]|TRANSCRIBER[\u2019'S ]+NOTE)/im.test(a.raw))
+   .map(a=>({atomId:a.id,sourceStart:a.anchor.normalized_start,
+    reason:"Sporná závěrečná ediční poznámka: editor určí, zda patří do vydání.",
+    kind:"source_ambiguity" as const}));
+}

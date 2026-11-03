@@ -338,6 +338,20 @@ export function verifySemanticRevision(revision:SemanticRevision, exactOriginalR
      !verifyLegacyJsonbRoundtrip(revision,exactOriginalRaw))
     throw new Error("Semantic revision digest tampered.");
   if(revision.title_page)validateTitlePage(revision.title_page,revision.work_id);
+  if(revision.editorial_exclusions!==undefined){
+    const excluded=revision.editorial_exclusions;
+    if(!Array.isArray(excluded)||excluded.length>150||new Set(excluded).size!==excluded.length)
+      throw new Error("Untrusted edition exclusions.");
+    const eligible=new Set<string>();
+    const walk=(nodes:SemanticNode[])=>{for(const n of nodes){
+      if(n.kind==="chapter"||n.kind==="section")walk(n.children);
+      else if("atom" in n&&["paragraph","quote","epigraph","footnote"].includes(n.kind))
+        eligible.add(n.atom.id);
+    }};
+    walk(revision.blocks);
+    if(excluded.some(id=>typeof id!=="string"||!eligible.has(id)))
+      throw new Error("Edition exclusion lacks an eligible source atom.");
+  }
   const checkPresentations=(nodes:SemanticNode[])=>{
     for(const n of nodes){
       if(n.presentation)validateBlockPresentation(n.presentation,n.kind);
@@ -470,3 +484,76 @@ export function submitSemanticIssue(previous:SemanticRevision,args:{
     source_anchor:structuredClone(target.anchor)};
 }
 /** PR #205 raw PG #11 adapter is a source; old WorkBlock is not an output. */
+
+/** One editorial batch = one immutable SHA, one new assigned QA task.
+ * The complete source, byte anchors, and archive are never changed.
+ */
+export type SemanticBatchChange={
+ flagId:string;atomId:string;reason:string;
+ kind:"exclude_from_edition"|"block_presentation";
+ presentation?:SemanticBlockPresentation;
+};
+export function recomposeSemanticBatch(
+ previous:SemanticRevision,changes:SemanticBatchChange[],exactOriginalRaw:string
+):SemanticRevision{
+ verifySemanticRevision(previous,exactOriginalRaw);
+ if(!Array.isArray(changes)||changes.length<1||changes.length>50)
+  throw Error("Semantic editorial batch must contain 1–50 verified changes.");
+ const nodes=structuredClone(previous.blocks);
+ const exclusions=[...(previous.editorial_exclusions??[])];
+ const seen=new Set<string>();
+ const issues:SemanticReviewIssue[]=[];
+ for(const change of changes){
+  if(!change.flagId?.trim()||!change.reason?.trim()||
+     change.reason.length>4000||seen.has(change.flagId))
+   throw Error("Duplicate or unreasoned editorial correction.");
+  seen.add(change.flagId);
+  const anchor=walkSemanticAtoms(previous.blocks).find(a=>a.id===change.atomId);
+  if(!anchor)throw Error("Correction atom is not in the exact source revision.");
+  let found=false;
+  function visit(items:SemanticNode[]):void{
+   for(const n of items){
+    if(n.kind==="chapter"||n.kind==="section"){
+      if(n.heading.id===change.atomId && change.kind==="block_presentation"){
+        if(!change.presentation)throw Error("Missing heading presentation.");
+        validateBlockPresentation(change.presentation,n.kind);
+        if(JSON.stringify(n.presentation)===JSON.stringify(change.presentation))
+         throw Error("No effective heading change.");
+        n.presentation={...change.presentation};found=true;
+      }
+      visit(n.children);
+    }else if("atom" in n && n.atom.id===change.atomId){
+      if(change.kind==="exclude_from_edition"){
+        if(!["paragraph","quote","epigraph","footnote"].includes(n.kind)||
+           exclusions.includes(change.atomId)||change.presentation)
+         throw Error("Unsafe or duplicate editorial exclusion.");
+        exclusions.push(change.atomId);found=true;
+      }else{
+        if(!change.presentation)throw Error("Missing presentation.");
+        validateBlockPresentation(change.presentation,n.kind);
+        if(JSON.stringify(n.presentation)===JSON.stringify(change.presentation))
+          throw Error("No effective presentation change.");
+        n.presentation={...change.presentation};found=true;
+      }
+    }
+   }
+  }
+  visit(nodes);
+  if(!found)throw Error("Correction target missing or ambiguous.");
+  issues.push({
+   id:change.flagId,parent_revision_ref:previous.revision_ref,
+   round:previous.round+1,target_atom_id:change.atomId,
+   kind:change.kind==="exclude_from_edition"?"structure":"typography",
+   reason:change.reason,requested_layout:change.kind,
+   ...(change.presentation?{requested_presentation:{...change.presentation}}:{}),
+   disposition:"returned_for_changes",source_anchor:structuredClone(anchor.anchor)
+  });
+ }
+ const {revision_ref:_r,revision_sha256:_h,...payload}=previous;
+ void _r;void _h;
+ const updated=seal({...payload,blocks:nodes,editorial_exclusions:exclusions.sort(),
+   parent_revision_ref:previous.revision_ref,
+   round:previous.round+1,review_issues:[...previous.review_issues,...issues]});
+ verifySemanticRevision(updated,exactOriginalRaw);
+ return updated;
+}

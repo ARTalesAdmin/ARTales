@@ -97,6 +97,8 @@ export type SemanticRevision = {
   blocks: SemanticNode[];
   /** Title page derives from edition metadata, never from source text. */
   title_page?: SemanticTitlePage;
+  /** Exact source-anchored atoms hidden only from the ARTales edition, never from the archive. */
+  editorial_exclusions?: string[];
   gaps: SemanticGap[];
   revision_sha256: string;          // content hash includes parent & edition recipe
   revision_ref: string;
@@ -114,7 +116,7 @@ export type SemanticReviewIssue = {
   target_atom_id: string;
   kind: "typography" | "verse_spacing" | "structure" | "readability";
   reason: string;
-  requested_layout: "stanza_airy" | "stanza_natural" | "indent_small" | "indent_medium" | "indent_large" | "block_presentation";
+  requested_layout: "stanza_airy" | "stanza_natural" | "indent_small" | "indent_medium" | "indent_large" | "block_presentation" | "exclude_from_edition";
   requested_presentation?: SemanticBlockPresentation;
   disposition: "returned_for_changes";
   source_anchor: SourceAnchorV2;

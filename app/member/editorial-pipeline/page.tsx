@@ -4,6 +4,7 @@ import {requireEditorOrAdmin} from "@/lib/guards";
 import {createClient} from "@/lib/supabase/server";
 import {completeSemanticTask,claimSemanticTask,requestSemanticSecondReview} from "./actions";
 import {SEMANTIC_PIPELINE_ENABLED} from "@/lib/semantic/featureFlag";
+import {resolveEditorialHelp} from "@/app/member/editorial-help/actions";
 export const dynamic="force-dynamic";
 const kindNames:Record<string,string>={
  text_review:"Textové QA",cover_art:"Obálka knihy",work_description:"Anotace díla",
@@ -18,12 +19,14 @@ export default async function EditorialPipeline(){
  if(!SEMANTIC_PIPELINE_ENABLED)notFound();
  const profile=await requireEditorOrAdmin();
  const db=await createClient();
- const [{data,error},{data:people}]=await Promise.all([
+ const [{data,error},{data:people},{data:helpRequests}]=await Promise.all([
   db.from("artales_editorial_tasks")
     .select("id,candidate_id,revision_sha256,title,status,kind,assigned_to,created_at")
     .order("created_at",{ascending:false}).limit(200),
   db.from("profiles").select("id,display_name").eq("is_active",true)
-    .in("role",["admin","editor"])
+    .in("role",["admin","editor"]),
+  db.from("artales_editorial_escalations").select("id,context_path,subject,details,status,assigned_to,created_by,created_at")
+    .order("created_at",{ascending:false}).limit(100)
  ]);
  const roster=(people??[]).filter(p=>p.id&&p.display_name);
  const names=new Map(roster.map(p=>[p.id,p.display_name]));
@@ -32,12 +35,30 @@ export default async function EditorialPipeline(){
   const doneA=a.status==="completed"?1:0,doneB=b.status==="completed"?1:0;
   return doneA-doneB||mineA-mineB||a.title.localeCompare(b.title);
  });
- const myPending=tasks.filter(t=>t.assigned_to===profile.id&&t.status!=="completed").length;
+ const myHelp=(helpRequests??[]).filter(h=>h.assigned_to===profile.id);
+ const myPending=tasks.filter(t=>t.assigned_to===profile.id&&t.status!=="completed").length+
+  myHelp.filter(h=>h.status==="open").length;
  return <main style={{margin:"auto",maxWidth:1120,padding:"28px 24px"}}>
   <p><Link href="/member">← Interní zóna</Link></p>
   <h1>Redakční úkoly</h1>
   <p>Moje nedokončené úkoly: <strong>{myPending}</strong>.
      Každá kontrola je samostatný úkol. Připravené práce mají konkrétního vlastníka.</p>
+  {myHelp.length>0?<section style={{margin:"20px 0"}}>
+   <h2>Eskalace a žádosti o pomoc</h2>
+   {myHelp.map(h=><article key={h.id}
+     style={{padding:16,border:"1px solid #c8b79b",borderRadius:10,marginBottom:12}}>
+    <h3>{h.subject} · {h.status==="open"?"Otevřeno":"Uzavřeno"}</h3>
+    <p>{h.details}</p>
+    <p><Link href={h.context_path}>Otevřít místo problému</Link></p>
+    {h.status==="open"&&profile.role==="admin"?
+     <form action={resolveEditorialHelp}>
+      <input type="hidden" name="id" value={h.id}/>
+      <label>Výsledek řešení<textarea required minLength={20} maxLength={4000}
+       name="note" rows={3} style={{display:"block",width:"100%"}}/></label>
+      <button type="submit">Vyřešit eskalaci</button>
+     </form>:null}
+   </article>)}
+  </section>:null}
   {error?<p role="alert">Redakční fronta není dostupná.</p>:
    tasks.length===0?<p>Zatím nejsou zadány žádné úkoly.</p>:
    tasks.map(t=>{

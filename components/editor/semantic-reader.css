@@ -194,3 +194,29 @@
  content:"K redakční kontrole";display:block;
  font:11px/1.5 system-ui;color:#885822;letter-spacing:.02em}
 @media (max-width:650px){.semantic-reader__controls{position:sticky;top:0}}
+
+/* Amber: machine-detected ambiguity; blue: corrected source block in the new review. */
+.semantic-reader__unit[data-review-signal="true"],
+.semantic-reader__source-region[data-review-signal="true"]{
+ background:#fff1c8;border-left:4px solid #ca913d;padding-left:10px;
+}
+.semantic-reader__unit[data-review-signal="true"]::after{
+ content:"Prověřit ediční poznámku";display:block;color:#8c6024;font:11px/1.6 system-ui
+}
+.semantic-reader__unit[data-review-fixed="true"],
+.semantic-reader__source-region[data-review-fixed="true"]{
+ outline:2px solid #508bbb;outline-offset:2px;border-radius:4px;
+ background:#e8f2fb;
+}
+.semantic-reader__unit[data-review-fixed="true"]::after{
+ content:"Změna z poslední opravné revize – ověřit";display:block;
+ color:#27577f;font:11px/1.6 system-ui
+}
+.semantic-qa-panel__signals,.semantic-qa-panel__fast-rule,.semantic-qa-panel__batch{
+ border:1px solid #d8c5a7;border-radius:10px;padding:12px;margin:12px 0;background:#fbf5e8
+}
+.semantic-qa-panel__signals{border-left:4px solid #bf8537}
+.semantic-qa-panel__batch{border-left:4px solid #5688a9;background:#eef5fb}
+.semantic-qa-panel__fast-rule input{display:block;padding:8px;margin:8px 0;border-radius:8px;
+ border:1px solid #c7b59a;width:100%;box-sizing:border-box}
+.semantic-qa-panel__batch button,.semantic-qa-panel__signals button{margin:4px}

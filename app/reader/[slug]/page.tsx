@@ -48,17 +48,21 @@ export default async function ReaderPage({
   if (SEMANTIC_PIPELINE_ENABLED) {
   const db=await createClient();
   const {data:semanticRelease,error:semanticError}=await db.from("artales_semantic_publications")
-    .select("semantic_revision,visual_manifest").eq("work_id",work.id).maybeSingle();
+    .select("candidate_id,semantic_revision,visual_manifest").eq("work_id",work.id).maybeSingle();
   if(semanticError)throw new Error("semantic_publication_registry_unavailable");
   if(semanticRelease?.semantic_revision){
     const revision=semanticRelease.semantic_revision as SemanticRevision;
     try {
       verifySemanticRevision(revision);
-      return <SemanticPublicReader revision={revision} title={work.title} isPreview={isPreview} visuals={semanticRelease.visual_manifest??[]}/>;
     } catch {
       // Never silently substitute legacy blocks for a corrupted semantic release.
       throw new Error("published_semantic_revision_invalid");
     }
+    const {data:rules}=await db.from("artales_work_typography_rules")
+      .select("term").eq("candidate_id",semanticRelease.candidate_id);
+    return <SemanticPublicReader revision={revision} title={work.title} isPreview={isPreview}
+      protectedTerms={(rules??[]).map(x=>x.term)}
+      visuals={semanticRelease.visual_manifest??[]}/>;
   }
   }
   const blocks = isPreview

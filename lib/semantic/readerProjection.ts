@@ -45,6 +45,7 @@ export function getSemanticPageUnits(revision: SemanticRevision, editionRange?:{
   if(!editionRange)return all;
   return all.filter(unit=>{
     if(unit.kind==="title_page")return true;
+    if(unit.source_atom_ids.some(id=>revision.editorial_exclusions?.includes(id)))return false;
     const atoms=unit.kind==="chapter_heading"||unit.kind==="section_heading"
       ? "heading" in unit.node?[unit.node.heading]:[]
       : unit.kind==="poem"&&unit.node.kind==="poem"

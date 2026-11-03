@@ -1,8 +1,7 @@
 import type {SemanticRevision,SemanticNode,SemanticAtom} from "@/lib/semantic/model";
-import {projectSemanticProseText} from "@/lib/semantic/displayText";
+import ProtectedProseText from "@/components/reader/ProtectedProseText";
 import {selectEditorialEdition} from "@/lib/semantic/editionProjection";
 export type ApprovedSemanticImage={anchor_atom_id:string;storage_path:string;caption:string;sha256:string};
-const atom=(a:SemanticAtom)=>projectSemanticProseText(a.raw);
 function safeUrl(path:string){
  if(!/^works\/[a-f0-9-]{36}\/inline\/[a-f0-9-]{36}\.(png|jpg|webp)$/.test(path))return null;
  const base=process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -10,9 +9,11 @@ function safeUrl(path:string){
  return base.replace(/\/$/,"")+"/storage/v1/object/public/artales-images/"+
  path.split("/").map(encodeURIComponent).join("/");
 }
-export default function SemanticPublicReader({revision,title,isPreview,visuals=[]}:{
- revision:SemanticRevision;title:string;isPreview:boolean;visuals?:ApprovedSemanticImage[]
+export default function SemanticPublicReader({revision,title,isPreview,visuals=[],protectedTerms=[]}:{
+ revision:SemanticRevision;title:string;isPreview:boolean;visuals?:ApprovedSemanticImage[];
+ protectedTerms?:string[];
 }){
+ const atom=(a:SemanticAtom)=><ProtectedProseText raw={a.raw} terms={protectedTerms}/>;
  const images=new Map<string,ApprovedSemanticImage[]>();
  for(const image of visuals){
   const list=images.get(image.anchor_atom_id)??[];
@@ -70,7 +71,14 @@ export default function SemanticPublicReader({revision,title,isPreview,visuals=[
      throw Error("Editorial boundary intersects an atom.");
    return start>=range.start&&end<=range.end?n:null;
  };
- const approvedBlocks=revision.blocks.map(within).filter((v):v is SemanticNode=>v!==null);
+ const excluded=new Set(revision.editorial_exclusions??[]);
+ const withoutExclusions=(n:SemanticNode):SemanticNode|null=>{
+   if(n.kind==="chapter"||n.kind==="section")
+    return {...n,children:n.children.map(withoutExclusions).filter((v):v is SemanticNode=>v!==null)};
+   if(n.kind==="poem")return n;
+   return "atom" in n&&excluded.has(n.atom.id)?null:n;
+ };
+ const approvedBlocks=revision.blocks.map(within).filter((v):v is SemanticNode=>v!==null).map(withoutExclusions).filter((v):v is SemanticNode=>v!==null);
  const blocks=isPreview?approvedBlocks.slice(0,Math.min(4,approvedBlocks.length)):approvedBlocks;
  return <article style={{maxWidth:780,margin:"0 auto",padding:"36px 24px",fontFamily:"Georgia,serif",fontSize:"1.15rem",lineHeight:1.8}}>
   <h1>{title}</h1>
