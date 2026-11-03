@@ -9,6 +9,7 @@ import {getProfileReaderSettings, type FixtureProfileReaderDefaults} from "@/lib
 import {defaultReaderSettings, type ReaderDensityId} from "@/lib/reader/readerSettings";
 import type {SemanticRevision, SemanticNode, SemanticAtom, SemanticPoem, SemanticBlockPresentation, SemanticPageUnit} from "@/lib/semantic/model";
 import {getSemanticPageUnits, projectSemanticReader, verifyReaderProjection} from "@/lib/semantic/readerProjection";
+import {selectEditorialEdition} from "@/lib/semantic/editionProjection";
 import "./semantic-reader.css";
 
 type Props={revision:SemanticRevision;original:string;profileReaderDefaults?:FixtureProfileReaderDefaults|null};
@@ -100,6 +101,8 @@ export default function SemanticReaderLab({revision,original,profileReaderDefaul
   const [density,setDensity]=useState<ReadingSpacing>(accountPreferences.density);
   const [width,setWidth]=useState(900);
   const [focus,setFocus]=useState(false);
+  const [fullscreen,setFullscreen]=useState(false);
+  const edition=useMemo(()=>selectEditorialEdition(original),[original]);
   const [metrics,setMetrics]=useState<BrowserMeasurements|null>(null);
   const [qaNotes,setQaNotes]=useState<SessionReaderNote[]>([]);
   const [selectedNoteId,setSelectedNoteId]=useState<string|null>(null);
@@ -107,6 +110,7 @@ export default function SemanticReaderLab({revision,original,profileReaderDefaul
   const [readingPosition,setReadingPosition]=useState<{unitId:string;pageIndex:number}|null>(null);
   const [openNotesRequest,setOpenNotesRequest]=useState(0);
   const [noteFeedback,setNoteFeedback]=useState("");
+  const rootRef=useRef<HTMLElement>(null);
   const frameRef=useRef<HTMLDivElement>(null);
   const sourceRef=useRef<HTMLDivElement>(null);
   const composedRef=useRef<HTMLDivElement>(null);
@@ -114,10 +118,10 @@ export default function SemanticReaderLab({revision,original,profileReaderDefaul
   const ignoreSyncRef=useRef<Record<PaneSide,{top:number;until:number}|null>>({source:null,composed:null});
   const measureRef=useRef<HTMLDivElement>(null);
   const mode=resolveQaProjectionMode(focus?"reader":"editor",readerMode,width,deviceWidth);
-  const measureKey=[revision.revision_ref,mode,scale,density,width,focus].join("|");
+  const measureKey=[revision.revision_ref,mode,scale,density,width,focus,fullscreen,edition.range.start,edition.range.end].join("|");
   const measured=metrics?.key===measureKey?metrics:null;
-  const allUnits=useMemo(()=>getSemanticPageUnits(revision),[revision]);
-  const sourceRegions=useMemo(()=>buildSemanticSourceRegions(original,allUnits),[original,allUnits]);
+  const allUnits=useMemo(()=>getSemanticPageUnits(revision,edition.range),[revision,edition]);
+  const sourceRegions=useMemo(()=>buildSemanticSourceRegions(original,allUnits,edition.range),[original,allUnits,edition]);
   const regionIndices=useMemo(()=>new Map(sourceRegions.filter(x=>x.regionIndex!==null && x.unitId!==null)
     .map(x=>[x.unitId!,x.regionIndex!])),[sourceRegions]);
   const effectiveDensity:ReaderDensityId=density==="airy"?"comfortable":density;
@@ -125,9 +129,9 @@ export default function SemanticReaderLab({revision,original,profileReaderDefaul
   const pages=useMemo(()=>projectSemanticReader(revision,{
     mode,viewport_width:measured?.pageWidth??Math.max(220,fallbackWidth),
     viewport_height:measured?.viewportHeight??850,font_scale:scale,density:effectiveDensity,
-    measured_unit_heights:measured?.heights,
+    measured_unit_heights:measured?.heights,editionRange:edition.range,
   }),[revision,mode,scale,effectiveDensity,measured,fallbackWidth]);
-  const integrity=verifyReaderProjection(revision,pages);
+  const integrity=verifyReaderProjection(revision,pages,edition.range);
   const locatedNotes=useMemo(()=>locateAndSortSessionNotes(revision,pages,qaNotes),[revision,pages,qaNotes]);
   const selectedNoteIndex=locatedNotes.findIndex(item=>item.saved.note.id===selectedNoteId);
   const expanded=notesListExpanded??locatedNotes.length<=3;
@@ -223,6 +227,15 @@ export default function SemanticReaderLab({revision,original,profileReaderDefaul
     return()=>window.removeEventListener("resize",update);
   },[]);
   useEffect(()=>()=>{if(syncFrameRef.current!==null)cancelAnimationFrame(syncFrameRef.current);},[]);
+  useEffect(()=>{
+    const change=()=>setFullscreen(document.fullscreenElement===rootRef.current);
+    document.addEventListener("fullscreenchange",change);
+    return()=>document.removeEventListener("fullscreenchange",change);
+  },[]);
+  const toggleFullscreen=async()=>{
+    if(document.fullscreenElement===rootRef.current)await document.exitFullscreen();
+    else if(!document.fullscreenElement)await rootRef.current?.requestFullscreen();
+  };
   const synchronize=(side:PaneSide)=>{
     if(focus)return;
     const active=side==="source"?sourceRef.current:composedRef.current;
@@ -291,9 +304,12 @@ export default function SemanticReaderLab({revision,original,profileReaderDefaul
     ["--reader-paragraph-gap" as string]:density==="compact"?"0.65em":density==="airy"?"1.4em":"1em",
     ["--reader-page-height" as string]:(measured?.viewportHeight??758)+"px",
   } as CSSProperties;
-  return <main className="semantic-reader">
+  return <main ref={rootRef} className={"semantic-reader"+(fullscreen?" semantic-reader--fullscreen":"")}>
     <header><h1>ARTales · Sémantický Reader v2 (QA)</h1>
-      <p>Textová zkouška, nikoli veřejná publikace. Redakční srovnání originálu a nové kompozice.</p>
+      <p>Textová zkouška, nikoli veřejná publikace. Redakční srovnání literárního textu.</p>
+      <p className="semantic-reader__edition-note">ARTales vydání: Gutenberg distribuční a právní
+        aparát je vynechán z náhledu, ale zůstává v soukromém archivu a úplné revizi.
+        {edition.warnings.map(w=><span key={w}> {w}</span>)}</p>
       <div className="semantic-reader__controls">
         {focus?<label>Čtení <select value={mode==="spread"?"spread":"scroll"} onChange={e=>setReaderMode(e.target.value as typeof readerMode)}>
           <option value="scroll">Plynulý text</option>{deviceWidth>=700&&width>=700&&<option value="spread">Dvoustrana</option>}
@@ -310,6 +326,10 @@ export default function SemanticReaderLab({revision,original,profileReaderDefaul
           <option value={900}>Desktop 900</option>
         </select></label>
         <label><input type="checkbox" checked={focus} onChange={e=>setFocus(e.target.checked)}/> Samostatná čtečka</label>
+        <button type="button" className="semantic-reader__fullscreen-button"
+          onClick={()=>void toggleFullscreen()} aria-pressed={fullscreen}>
+          {fullscreen?"Ukončit celou obrazovku":"Celá obrazovka"}
+        </button>
 
         <span role="status">{integrity.ok?"QA: zachováno pořadí jednotek":"QA selhala"} · {pages.length} stránek
           {" · "}{measured?"měřeno prohlížečem":"předběžný odhad"}
@@ -324,7 +344,7 @@ export default function SemanticReaderLab({revision,original,profileReaderDefaul
       onPrevious={()=>goToRelativeNote(-1)} onNext={()=>goToRelativeNote(1)}
       onListExpanded={setNotesListExpanded} onDelete={deleteQaNote}/>}
     <div className={"semantic-reader__triptych"+(focus?" semantic-reader__triptych--focus":"")}>
-      {!focus&&<section aria-label="Archivní Gutenberg"><h2>Gutenberg #11 · originál</h2>
+      {!focus&&<section aria-label="Archivní Gutenberg"><h2>Gutenberg #389 · literární text</h2>
         <div ref={sourceRef} className="semantic-reader__paired-scroll semantic-reader__source-sheet"
           onScroll={()=>synchronize("source")} data-qa-pane="source">
           {sourceRegions.map((part,i)=><div key={i}
