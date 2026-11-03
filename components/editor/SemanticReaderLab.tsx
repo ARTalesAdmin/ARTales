@@ -411,7 +411,7 @@ export default function SemanticReaderLab({
       <SemanticQaPanel candidateId={candidateId} revisionSha={revisionSha}
         selectedAtomId={selectedAtomId} selectedText={selectedText??null}
         flags={flags} databaseReady={qaDatabaseReady} onSelect={selectAtom}
-        systemSignals={systemSignals}
+        systemSignals={systemSignals} canCommitBatch={canCommitBatch}
         onSaved={()=>{setQaPanelOpen(false);setSelectedAtomId(null);}}/>
     </div>}
     {focus&&<SemanticReaderNotesQa notes={locatedNotes} selectedNoteId={selectedNoteId}
