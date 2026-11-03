@@ -82,6 +82,31 @@ END $$;
 REVOKE ALL ON FUNCTION public.artales_resolve_semantic_qa_flag(uuid,text) FROM PUBLIC,anon,authenticated;
 GRANT EXECUTE ON FUNCTION public.artales_resolve_semantic_qa_flag(uuid,text) TO authenticated;
 
+-- Editors can explicitly return their assigned review for a second opinion.
+-- A returned task is again available in the existing claim inbox.
+CREATE OR REPLACE FUNCTION public.artales_request_semantic_second_review(p_task_id uuid,p_note text)
+RETURNS jsonb LANGUAGE plpgsql SECURITY DEFINER SET search_path='' AS $
+DECLARE v_actor uuid:=auth.uid();v_task public.artales_editorial_tasks%ROWTYPE;
+BEGIN
+ IF v_actor IS NULL OR NOT EXISTS(SELECT 1 FROM public.profiles p
+   WHERE p.id=v_actor AND p.is_active AND p.role::text IN ('admin','editor')) THEN
+  RAISE EXCEPTION 'editorial_access_denied' USING errcode='42501'; END IF;
+ IF p_note IS NULL OR length(btrim(p_note)) NOT BETWEEN 40 AND 4000 THEN
+  RETURN pg_catalog.jsonb_build_object('result','reason_required'); END IF;
+ SELECT * INTO v_task FROM public.artales_editorial_tasks WHERE id=p_task_id FOR UPDATE;
+ IF NOT FOUND OR v_task.status<>'claimed' OR (v_task.assigned_to<>v_actor AND
+  NOT EXISTS(SELECT 1 FROM public.profiles p WHERE p.id=v_actor
+  AND p.is_active AND p.role::text='admin')) THEN
+  RETURN pg_catalog.jsonb_build_object('result','unavailable'); END IF;
+ UPDATE public.artales_editorial_tasks SET status='returned',assigned_to=NULL
+  WHERE id=p_task_id;
+ INSERT INTO public.artales_editorial_events(task_id,actor_id,action,note)
+ VALUES(p_task_id,v_actor,'returned',btrim(p_note));
+ RETURN pg_catalog.jsonb_build_object('result','returned','task_id',p_task_id);
+END $;
+REVOKE ALL ON FUNCTION public.artales_request_semantic_second_review(uuid,text) FROM PUBLIC,anon,authenticated;
+GRANT EXECUTE ON FUNCTION public.artales_request_semantic_second_review(uuid,text) TO authenticated;
+
 -- No editor manually creates tasks: every new immutable draft emits 3 distinct
 -- role-based review tasks in the existing staff inbox. Caller is an admin as
 -- required by candidate_semantic_revisions INSERT RLS. Invoker respects task INSERT RLS.
