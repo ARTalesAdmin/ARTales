@@ -96,7 +96,8 @@ BEGIN
   ON CONFLICT(candidate_id,revision_sha256,kind) DO NOTHING;
  END IF;
  RETURN NEW;
-END $$;
+END $;
+REVOKE ALL ON FUNCTION public.artales_auto_enqueue_semantic_tasks() FROM PUBLIC,anon,authenticated;
 
 DO $do$ BEGIN
  IF NOT EXISTS(SELECT 1 FROM pg_trigger WHERE tgrelid='public.candidate_semantic_revisions'::regclass
@@ -123,7 +124,8 @@ BEGIN
    RAISE EXCEPTION 'release_unresolved_qa_flags' USING errcode='23514';
  END IF;
  RETURN NEW;
-END $$;
+END $;
+REVOKE ALL ON FUNCTION public.artales_block_unresolved_semantic_qa() FROM PUBLIC,anon,authenticated;
 DO $do$ BEGIN
  IF NOT EXISTS(SELECT 1 FROM pg_trigger WHERE tgrelid='public.artales_editorial_tasks'::regclass
    AND tgname='artales_semantic_block_task_completion') THEN
