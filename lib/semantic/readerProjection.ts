@@ -97,6 +97,9 @@ export function chooseSemanticParagraphBreak(
     const count = end - start;
     const tail = stop - end;
     if (count < minLength || tail < minTail) return;
+    // Never leave an isolated English article/pronoun ("a", "I") at a
+    // fragment/page edge. The following word must stay on the same page.
+    if (/(?:^|\s)[aI]\s*$/u.test(raw.slice(start,end))) return;
     if (end <= start || end > requestedEnd) return;
     // A strong punctuation break may be preferable to a slightly fuller page.
     candidates.push({end, score: count / scan.length * 8 + bonus});
