@@ -11,7 +11,8 @@ export type SemanticQaFlag={
 type SystemSignal={atomId:string;sourceStart:number;reason:string;kind:"source_ambiguity"};
 type Props={candidateId:string;revisionSha:string;selectedAtomId:string|null;
  selectedText:string|null;flags:SemanticQaFlag[];onSelect:(atomId:string)=>void;
- readonly?:boolean;databaseReady:boolean;onSaved:()=>void;systemSignals:SystemSignal[]};
+ readonly?:boolean;databaseReady:boolean;onSaved:()=>void;systemSignals:SystemSignal[];
+ canCommitBatch:boolean};
 const kinds=[{value:"text",label:"Text"},{value:"typography",label:"Sazba a řádky"},
  {value:"structure",label:"Struktura"},{value:"image",label:"Vizuál"},
  {value:"other",label:"Jiné"}];
@@ -144,13 +145,14 @@ export default function SemanticQaPanel(p:Props){
       </details>
      </div>}
    </article>)}</div>}
-  {ready.length>0?<section className="semantic-qa-panel__batch">
+  {ready.length>0&&p.canCommitBatch?<section className="semantic-qa-panel__batch">
    <p>Vybráno {ready.length} oprav. Uloží se najednou jako jediná neměnná revize,
     vznikne právě jeden nový textový QA úkol pro stejného editora.</p>
    <button type="button" disabled={pending||!p.databaseReady} onClick={batch}>
     Provést {ready.length} oprav a vytvořit novou revizi
    </button>
   </section>:null}
+  {!p.canCommitBatch&&ready.length>0?<p>Provedení dávky vyžaduje garanta. Použij „Požádat Luboše o pomoc“ nad redakcí a uveď rozsah oprav.</p>:null}
   <p role="status" aria-live="polite">{feedback}</p>
   <small>Semantické změny, které nelze provést bezpečným pravidlem,
    zůstávají otevřené pro další odbornou opravu. Nikdy se automaticky neoznačí za hotové.</small>
