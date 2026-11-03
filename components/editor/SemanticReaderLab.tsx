@@ -10,9 +10,12 @@ import {defaultReaderSettings, type ReaderDensityId} from "@/lib/reader/readerSe
 import type {SemanticRevision, SemanticNode, SemanticAtom, SemanticPoem, SemanticBlockPresentation, SemanticPageUnit} from "@/lib/semantic/model";
 import {getSemanticPageUnits, projectSemanticReader, verifyReaderProjection} from "@/lib/semantic/readerProjection";
 import {selectEditorialEdition} from "@/lib/semantic/editionProjection";
+import SemanticQaPanel,{type SemanticQaFlag} from "./SemanticQaPanel";
 import "./semantic-reader.css";
 
-type Props={revision:SemanticRevision;original:string;profileReaderDefaults?:FixtureProfileReaderDefaults|null};
+type Props={revision:SemanticRevision;original:string;profileReaderDefaults?:FixtureProfileReaderDefaults|null;
+ candidateId:string;revisionSha:string;editionTitle:string;editionAuthor:string;
+ flags:SemanticQaFlag[];qaDatabaseReady:boolean;}
 type ReadingSpacing = ReaderDensityId | "airy";
 type PaneSide = "source" | "composed";
 type BrowserMeasurements={
@@ -93,7 +96,10 @@ function sameMeasurements(a:BrowserMeasurements|null,b:BrowserMeasurements) {
   return keys.length===Object.keys(a.heights).length&&keys.every(key=>a.heights[key]===b.heights[key]);
 }
 
-export default function SemanticReaderLab({revision,original,profileReaderDefaults=null}:Props) {
+export default function SemanticReaderLab({
+ revision,original,profileReaderDefaults=null,candidateId,revisionSha,editionTitle,editionAuthor,
+ flags,qaDatabaseReady
+}:Props) {
   const accountPreferences=getProfileReaderSettings(profileReaderDefaults)??defaultReaderSettings;
   const [readerMode,setReaderMode]=useState<"scroll"|"spread">("scroll");
   const [deviceWidth,setDeviceWidth]=useState(1366);
@@ -101,6 +107,9 @@ export default function SemanticReaderLab({revision,original,profileReaderDefaul
   const [density,setDensity]=useState<ReadingSpacing>(accountPreferences.density);
   const [width,setWidth]=useState(900);
   const [focus,setFocus]=useState(false);
+  const [selectedAtomId,setSelectedAtomId]=useState<string|null>(null);
+  const [qaPanelOpen,setQaPanelOpen]=useState(false);
+  const [pageNumber,setPageNumber]=useState(0);
   const [fullscreen,setFullscreen]=useState(false);
   const edition=useMemo(()=>selectEditorialEdition(original),[original]);
   const [metrics,setMetrics]=useState<BrowserMeasurements|null>(null);
@@ -124,6 +133,11 @@ export default function SemanticReaderLab({revision,original,profileReaderDefaul
   const sourceRegions=useMemo(()=>buildSemanticSourceRegions(original,allUnits,edition.range),[original,allUnits,edition]);
   const regionIndices=useMemo(()=>new Map(sourceRegions.filter(x=>x.regionIndex!==null && x.unitId!==null)
     .map(x=>[x.unitId!,x.regionIndex!])),[sourceRegions]);
+  const unitsById=useMemo(()=>new Map(allUnits.map(u=>[u.id,u])),[allUnits]);
+  const selectedUnit=allUnits.find(u=>selectedAtomId&&u.source_atom_ids.includes(selectedAtomId));
+  const selectedText=selectedUnit?.kind==="chapter_heading"||selectedUnit?.kind==="section_heading"
+    ? "heading" in selectedUnit.node?selectedUnit.node.heading.raw:null
+    :selectedUnit&&"atom" in selectedUnit.node?selectedUnit.node.atom.raw:null;
   const effectiveDensity:ReaderDensityId=density==="airy"?"comfortable":density;
   const fallbackWidth=focus?(mode==="spread"&&width>=700?Math.floor((width-42)/2):width-24):340;
   const pages=useMemo(()=>projectSemanticReader(revision,{
@@ -236,6 +250,44 @@ export default function SemanticReaderLab({revision,original,profileReaderDefaul
     if(document.fullscreenElement===rootRef.current)await document.exitFullscreen();
     else if(!document.fullscreenElement)await rootRef.current?.requestFullscreen();
   };
+  const scrollToMarker=(pane:HTMLDivElement|null,unitId:string)=>{
+    if(!pane)return;
+    const node=[...pane.querySelectorAll<HTMLElement>("[data-semantic-root]")].find(
+      n=>n.dataset.semanticRoot===unitId);
+    if(!node)return;
+    const current=node.getBoundingClientRect().top-pane.getBoundingClientRect().top;
+    pane.scrollTo({top:pane.scrollTop+current-25,behavior:"smooth"});
+  };
+  const selectAtom=(id:string)=>{
+    setSelectedAtomId(id);setQaPanelOpen(true);
+    const unit=allUnits.find(u=>u.source_atom_ids.includes(id));
+    if(unit){
+      scrollToMarker(sourceRef.current,unit.id);
+      scrollToMarker(composedRef.current,unit.id);
+    }
+  };
+  const jumpToPage=(index:number)=>{
+    const pane=composedRef.current;
+    if(!pane)return;
+    const node=[...pane.querySelectorAll<HTMLElement>("[data-page-index]")].find(
+      e=>Number(e.dataset.pageIndex)===index-1);
+    if(node){
+      const top=node.getBoundingClientRect().top-pane.getBoundingClientRect().top;
+      pane.scrollTo({top:pane.scrollTop+top-6,behavior:"smooth"});
+      setPageNumber(index);
+    }
+  };
+  const updateCurrentPage=()=>{
+    const pane=composedRef.current;
+    if(!pane)return;
+    const origin=pane.getBoundingClientRect().top;
+    const candidates=[...pane.querySelectorAll<HTMLElement>('[data-qa-projection="visible"] [data-page-index]')];
+    const visible=candidates.findLast(n=>n.getBoundingClientRect().top<=origin+60);
+    if(visible){
+      const index=Number(visible.dataset.pageIndex)+1;
+      setPageNumber(previous=>previous===index?previous:index);
+    }
+  };
   const synchronize=(side:PaneSide)=>{
     if(focus)return;
     const active=side==="source"?sourceRef.current:composedRef.current;
@@ -331,11 +383,28 @@ export default function SemanticReaderLab({revision,original,profileReaderDefaul
           {fullscreen?"Ukončit celou obrazovku":"Celá obrazovka"}
         </button>
 
-        <span role="status">{integrity.ok?"QA: zachováno pořadí jednotek":"QA selhala"} · {pages.length} stránek
+        <button type="button" className="semantic-reader__fullscreen-button"
+          aria-expanded={qaPanelOpen} onClick={()=>setQaPanelOpen(v=>!v)}>
+          Nálezy ({flags.filter(f=>f.status==="open").length})
+        </button>
+        <label className="semantic-reader__page-navigation">Strana
+          <input type="range" min={0} max={pages.length} step={1} value={Math.min(pageNumber,pages.length)}
+            onChange={e=>jumpToPage(Number(e.target.value))}
+            aria-label="Přejít na stránku"/>
+          <span>{pageNumber===0?"Titulka":pageNumber+" / "+pages.length}</span>
+        </label>
+        <span role="status">{integrity.ok?"QA: zachováno pořadí jednotek":"QA selhala"} · {pages.length+1} stránek
           {" · "}{measured?"měřeno prohlížečem":"předběžný odhad"}
         </span>
       </div>
     </header>
+    {qaPanelOpen&&<div className="semantic-qa-overlay">
+      <button type="button" className="semantic-qa-overlay__close" onClick={()=>setQaPanelOpen(false)}
+        aria-label="Zavřít panel nálezů">×</button>
+      <SemanticQaPanel candidateId={candidateId} revisionSha={revisionSha}
+        selectedAtomId={selectedAtomId} selectedText={selectedText??null}
+        flags={flags} databaseReady={qaDatabaseReady} onSelect={selectAtom}/>
+    </div>}
     {focus&&<SemanticReaderNotesQa notes={locatedNotes} selectedNoteId={selectedNoteId}
       selectedNoteIndex={selectedNoteIndex} listExpanded={expanded} status={noteFeedback}
       canAddNote={Boolean(currentUnit&&currentUnit.unit.kind!=="title_page")}
@@ -348,14 +417,21 @@ export default function SemanticReaderLab({revision,original,profileReaderDefaul
         <div ref={sourceRef} className="semantic-reader__paired-scroll semantic-reader__source-sheet"
           onScroll={()=>synchronize("source")} data-qa-pane="source">
           {sourceRegions.map((part,i)=><div key={i}
+            data-semantic-root={part.unitId??undefined}
+            data-selected={part.unitId&&selectedUnit?.id===part.unitId?"true":undefined}
             {...(part.regionIndex!==null?{"data-region-index":part.regionIndex}:{})}
             data-source-start={part.start} data-source-end={part.end}
-            className="semantic-reader__source-region">{part.text}</div>)}
+            className="semantic-reader__source-region">
+            {part.unitId&&unitsById.get(part.unitId)?.source_atom_ids[0]?
+              <button type="button" className="semantic-reader__block-picker"
+                onClick={()=>selectAtom(unitsById.get(part.unitId)!.source_atom_ids[0])}
+                aria-label="Vybrat tento blok v originálu">◆</button>:null}
+            {part.text}</div>)}
         </div>
       </section>}
       <section aria-label="Nová sémantická revize"><h2>ARTales · sémantická kompozice</h2>
         <div className={"semantic-reader__viewport"+(!focus?" semantic-reader__paired-scroll":"")} ref={node=>{frameRef.current=node;composedRef.current=node;}}
-          onScroll={()=>synchronize("composed")} style={viewportStyle}
+          onScroll={()=>{synchronize("composed");updateCurrentPage();}} style={viewportStyle}
           data-target-width={width} data-focused={focus} data-density={density}>
           <div ref={measureRef} className="semantic-reader__measurement" aria-hidden="true">
             <div className={"semantic-reader__pages semantic-reader__pages--"+mode}>
@@ -366,6 +442,15 @@ export default function SemanticReaderLab({revision,original,profileReaderDefaul
             </div>
           </div>
           <div className={"semantic-reader__pages semantic-reader__pages--"+mode} data-qa-projection="visible">
+            <article className="semantic-reader__page semantic-reader__front-page" data-page-index="-1"
+              data-mode={mode}>
+              <div className="semantic-reader__front-inner">
+                <span className="semantic-reader__front-brand">ARTales</span>
+                <h2>{editionTitle}</h2><p className="semantic-reader__front-author">{editionAuthor}</p>
+                <div className="semantic-reader__front-ornament">✦</div>
+                <p className="semantic-reader__front-love">ARTales with Love</p>
+              </div>
+            </article>
             {pages.map(page=><article className="semantic-reader__page" key={page.index}
               data-page-index={page.index} data-overflow={page.overflow} data-mode={mode}>
               {page.units.map(u=>{
@@ -373,7 +458,13 @@ export default function SemanticReaderLab({revision,original,profileReaderDefaul
                 const first=notesAtUnit[0];
                 const selectedHere=notesAtUnit.some(item=>item.saved.note.id===selectedNoteId);
                 return <div className="semantic-reader__unit" key={u.id} data-page-unit-id={u.id}
+                  data-semantic-root={u.fragment?.original_unit_id??u.id}
+                  data-selected={selectedAtomId&&u.source_atom_ids.includes(selectedAtomId)?"true":undefined}
                   {...(regionIndices.has(u.fragment?.original_unit_id??u.id)?{"data-region-index":regionIndices.get(u.fragment?.original_unit_id??u.id)}:{})}>
+                  {u.source_atom_ids[0]&&<button type="button"
+                    className="semantic-reader__block-picker"
+                    onClick={()=>selectAtom(u.source_atom_ids[0])}
+                    aria-label="Vybrat tento sémantický blok">◆</button>}
                   {first&&<button type="button"
                     className={"semantic-reader__note-marker artales-reader-note-marker--"+first.saved.note.color+
                       (selectedHere?" semantic-reader__note-marker--selected":"")}
@@ -386,7 +477,7 @@ export default function SemanticReaderLab({revision,original,profileReaderDefaul
                   </button>}
                   {unitView(u)}</div>;
               })}
-              <footer>QA strana {page.index+1}
+              <footer>QA strana {page.index+2}
                 {page.overflow==="scroll_unit"?" · dlouhý celek, bez rozdělení":""}
               </footer>
             </article>)}
