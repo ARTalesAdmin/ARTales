@@ -23,6 +23,8 @@ export default async function EditorialSemanticPreview({params}:{params:Promise<
   .select("id,revision_sha256,target_atom_id,source_start,source_end,kind,comment,status,created_at,resolution_note")
   .eq("candidate_id",candidateId).eq("revision_sha256",data.revision_sha256)
   .order("created_at",{ascending:true});
+ const {data:workRules}=await db.from("artales_work_typography_rules")
+  .select("term").eq("candidate_id",candidateId);
  const {data:tasks}=await db.from("artales_editorial_tasks")
   .select("id,kind,status,assigned_to").eq("candidate_id",candidateId)
   .eq("revision_sha256",data.revision_sha256);
@@ -44,6 +46,7 @@ export default async function EditorialSemanticPreview({params}:{params:Promise<
     editionTitle={candidate?.proposed_title??"Název čeká na kontrolu"}
     editionAuthor={candidate?.proposed_author_name??"Autor čeká na kontrolu"}
     flags={qaFlags??[]} qaDatabaseReady={!qaFlagError}
+    protectedTerms={(workRules??[]).map(x=>x.term)}
     />
   <section id="editorial-actions" style={{maxWidth:900,margin:"28px auto",padding:"20px 24px",
     border:"1px solid #d9cfbf",borderRadius:12,background:"#faf7f0"}}>

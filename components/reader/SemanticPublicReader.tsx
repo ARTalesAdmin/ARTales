@@ -1,8 +1,7 @@
 import type {SemanticRevision,SemanticNode,SemanticAtom} from "@/lib/semantic/model";
-import {projectSemanticProseText} from "@/lib/semantic/displayText";
+import ProtectedProseText from "@/components/reader/ProtectedProseText";
 import {selectEditorialEdition} from "@/lib/semantic/editionProjection";
 export type ApprovedSemanticImage={anchor_atom_id:string;storage_path:string;caption:string;sha256:string};
-const atom=(a:SemanticAtom)=>projectSemanticProseText(a.raw);
 function safeUrl(path:string){
  if(!/^works\/[a-f0-9-]{36}\/inline\/[a-f0-9-]{36}\.(png|jpg|webp)$/.test(path))return null;
  const base=process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -10,9 +9,11 @@ function safeUrl(path:string){
  return base.replace(/\/$/,"")+"/storage/v1/object/public/artales-images/"+
  path.split("/").map(encodeURIComponent).join("/");
 }
-export default function SemanticPublicReader({revision,title,isPreview,visuals=[]}:{
- revision:SemanticRevision;title:string;isPreview:boolean;visuals?:ApprovedSemanticImage[]
+export default function SemanticPublicReader({revision,title,isPreview,visuals=[],protectedTerms=[]}:{
+ revision:SemanticRevision;title:string;isPreview:boolean;visuals?:ApprovedSemanticImage[];
+ protectedTerms?:string[];
 }){
+ const atom=(a:SemanticAtom)=><ProtectedProseText raw={a.raw} terms={protectedTerms}/>;
  const images=new Map<string,ApprovedSemanticImage[]>();
  for(const image of visuals){
   const list=images.get(image.anchor_atom_id)??[];

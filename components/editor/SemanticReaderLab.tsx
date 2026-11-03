@@ -1,6 +1,7 @@
 "use client";
 import {useEffect, useMemo, useRef, useState, type CSSProperties} from "react";
 import {projectSemanticProseText} from "@/lib/semantic/displayText";
+import ProtectedProseText from "@/components/reader/ProtectedProseText";
 import {resolveQaProjectionMode, buildSemanticSourceRegions} from "@/lib/semantic/qaReaderModes";
 import {synchronizeSemanticPanes} from "@/lib/semantic/pairedSemanticScroll";
 import {createSessionReaderNote,locateSessionReaderNote,locateAndSortSessionNotes,selectActiveQaReadingUnit,type SessionReaderNote} from "@/lib/semantic/qaNoteSession";
@@ -15,20 +16,20 @@ import "./semantic-reader.css";
 
 type Props={revision:SemanticRevision;original:string;profileReaderDefaults?:FixtureProfileReaderDefaults|null;
  candidateId:string;revisionSha:string;editionTitle:string;editionAuthor:string;
- flags:SemanticQaFlag[];qaDatabaseReady:boolean;}
+ flags:SemanticQaFlag[];qaDatabaseReady:boolean;protectedTerms:string[];}
 type ReadingSpacing = ReaderDensityId | "airy";
 type PaneSide = "source" | "composed";
 type BrowserMeasurements={
   key:string;pageWidth:number;viewportHeight:number;heights:Record<string,number>;
 };
-function inline(atom:SemanticAtom, prose=false) {
+function inline(atom:SemanticAtom, prose=false,protectedTerms:readonly string[]=[]) {
   const italic=atom.marks.some(x=>x.kind==="italic");
   const bold=atom.marks.some(x=>x.kind==="bold");
   return <span data-atom-id={atom.id} data-source-start={atom.anchor.normalized_start}
     data-source-end={atom.anchor.normalized_end} className="semantic-reader__atom"
     style={{fontStyle:italic?"italic":undefined,fontWeight:bold?700:undefined,
       marginInlineStart:atom.marks.some(x=>x.kind==="indent")?"1.3em":undefined}}>
-    {prose?projectSemanticProseText(atom.raw):atom.raw}
+    {prose?<ProtectedProseText raw={atom.raw} terms={protectedTerms}/>:atom.raw}
   </span>;
 }
 function presentationStyle(p?:SemanticBlockPresentation):CSSProperties|undefined {
@@ -44,14 +45,14 @@ function poem(node:SemanticPoem) {
       {s.lines.map(line=><div key={line.atom.id} className="semantic-reader__verse">{inline(line.atom)}</div>)}
     </div>)}</figure>;
 }
-function nodeView(n:SemanticNode):React.ReactNode {
+function nodeView(n:SemanticNode,terms:readonly string[]=[]):React.ReactNode {
   if(n.kind==="chapter"||n.kind==="section")return <section key={n.id} data-semantic-id={n.id}
     style={presentationStyle(n.presentation)}>
     {n.kind==="chapter"?<h2>{inline(n.heading)}</h2>:<h3>{inline(n.heading)}</h3>}
-    {n.children.map(nodeView)}</section>;
+    {n.children.map(child=>nodeView(child,terms))}</section>;
   if(n.kind==="poem")return <div key={n.id} style={presentationStyle(n.presentation)}>{poem(n)}</div>;
   if(!("atom" in n))return null;
-  const body=inline(n.atom,true);
+  const body=inline(n.atom,true,terms);
   if(n.kind==="quote"||n.kind==="epigraph")return <blockquote key={n.id}
     style={presentationStyle(n.presentation)}>{body}</blockquote>;
   if(n.kind==="footnote")return <aside key={n.id} role="note"
@@ -59,7 +60,7 @@ function nodeView(n:SemanticNode):React.ReactNode {
   return <p key={n.id} data-semantic-id={n.id} style={presentationStyle(n.presentation)}>{body}</p>;
 }
 /** The same markup is used both on the visible page and in the offscreen measuring page. */
-function unitView(u:SemanticPageUnit):React.ReactNode {
+function unitView(u:SemanticPageUnit,terms:readonly string[]=[]):React.ReactNode {
   if(u.fragment&&u.node.kind==="paragraph"){
     const {start,end}=u.fragment;
     const original=u.node.atom;
@@ -69,7 +70,7 @@ function unitView(u:SemanticPageUnit):React.ReactNode {
       className={"semantic-reader__fragment"+(u.fragment.continuation_before?" semantic-reader__fragment--continued":"")}
       style={presentationStyle(u.node.presentation)}>
       <span className="semantic-reader__atom" data-atom-id={original.id}>
-        {projectSemanticProseText(original.raw.slice(start,end))}
+        <ProtectedProseText raw={original.raw.slice(start,end)} terms={terms}/>
       </span>
     </p>;
   }
@@ -88,7 +89,7 @@ function unitView(u:SemanticPageUnit):React.ReactNode {
     </div>;
   }
   if(u.node.kind==="chapter"||u.node.kind==="section"||u.node.kind==="title_page")return null;
-  return nodeView(u.node);
+  return nodeView(u.node,terms);
 }
 function sameMeasurements(a:BrowserMeasurements|null,b:BrowserMeasurements) {
   if(!a||a.key!==b.key||a.pageWidth!==b.pageWidth||a.viewportHeight!==b.viewportHeight)return false;
@@ -98,7 +99,7 @@ function sameMeasurements(a:BrowserMeasurements|null,b:BrowserMeasurements) {
 
 export default function SemanticReaderLab({
  revision,original,profileReaderDefaults=null,candidateId,revisionSha,editionTitle,editionAuthor,
- flags,qaDatabaseReady
+ flags,qaDatabaseReady,protectedTerms
 }:Props) {
   const accountPreferences=getProfileReaderSettings(profileReaderDefaults)??defaultReaderSettings;
   const [readerMode,setReaderMode]=useState<"scroll"|"spread">("scroll");
@@ -441,7 +442,7 @@ export default function SemanticReaderLab({
             <div className={"semantic-reader__pages semantic-reader__pages--"+mode}>
               <article className="semantic-reader__page semantic-reader__measurement-page">
                 {allUnits.map(u=><div className="semantic-reader__unit" key={u.id}
-                  data-measure-id={u.id}>{unitView(u)}</div>)}
+                  data-measure-id={u.id}>{unitView(u,protectedTerms)}</div>)}
               </article>
             </div>
           </div>
