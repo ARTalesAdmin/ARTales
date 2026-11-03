@@ -11,7 +11,7 @@ export const dynamic="force-dynamic";
 export default async function EditorialSemanticPreview({params}:{params:Promise<{candidateId:string}>}){
  const {candidateId}=await params;
  if(!SEMANTIC_PIPELINE_ENABLED)notFound();
- await requireEditorOrAdmin();
+ const profile=await requireEditorOrAdmin();
  if(!/^[a-f0-9-]{36}$/i.test(candidateId))notFound();
  const db=await createClient();
  const {data,error}=await db.from("candidate_semantic_revisions")
@@ -48,7 +48,8 @@ export default async function EditorialSemanticPreview({params}:{params:Promise<
     candidateId={candidateId} revisionSha={data.revision_sha256}
     editionTitle={candidate?.proposed_title??"Název čeká na kontrolu"}
     editionAuthor={candidate?.proposed_author_name??"Autor čeká na kontrolu"}
-    flags={qaFlags??[]} qaDatabaseReady={!qaFlagError}/>
+    flags={qaFlags??[]} qaDatabaseReady={!qaFlagError}
+    canApplyLayoutFix={profile.role==="admin"}/>
   <section id="editorial-actions" style={{maxWidth:900,margin:"32px auto",padding:"20px 24px",
     border:"1px solid #d9cfbf",borderRadius:12,background:"#faf7f0"}}>
    <h2>Redakční proces a návaznosti</h2>
