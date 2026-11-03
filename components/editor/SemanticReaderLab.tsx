@@ -16,7 +16,8 @@ import "./semantic-reader.css";
 
 type Props={revision:SemanticRevision;original:string;profileReaderDefaults?:FixtureProfileReaderDefaults|null;
  candidateId:string;revisionSha:string;editionTitle:string;editionAuthor:string;
- flags:SemanticQaFlag[];qaDatabaseReady:boolean;protectedTerms:string[];}
+ flags:SemanticQaFlag[];qaDatabaseReady:boolean;protectedTerms:string[];
+ systemSignals:{atomId:string;sourceStart:number;reason:string;kind:"source_ambiguity"}[];}
 type ReadingSpacing = ReaderDensityId | "airy";
 type PaneSide = "source" | "composed";
 type BrowserMeasurements={
@@ -99,7 +100,7 @@ function sameMeasurements(a:BrowserMeasurements|null,b:BrowserMeasurements) {
 
 export default function SemanticReaderLab({
  revision,original,profileReaderDefaults=null,candidateId,revisionSha,editionTitle,editionAuthor,
- flags,qaDatabaseReady,protectedTerms
+ flags,qaDatabaseReady,protectedTerms,systemSignals
 }:Props) {
   const accountPreferences=getProfileReaderSettings(profileReaderDefaults)??defaultReaderSettings;
   const [readerMode,setReaderMode]=useState<"scroll"|"spread">("scroll");
@@ -261,6 +262,7 @@ export default function SemanticReaderLab({
     pane.scrollTo({top:pane.scrollTop+current-25,behavior:"smooth"});
   };
   const selectAtom=(id:string)=>{
+    if(selectedAtomId===id){setSelectedAtomId(null);setQaPanelOpen(false);return;}
     setSelectedAtomId(id);setQaPanelOpen(true);
     const unit=allUnits.find(u=>u.source_atom_ids.includes(id));
     if(unit){
@@ -408,6 +410,7 @@ export default function SemanticReaderLab({
       <SemanticQaPanel candidateId={candidateId} revisionSha={revisionSha}
         selectedAtomId={selectedAtomId} selectedText={selectedText??null}
         flags={flags} databaseReady={qaDatabaseReady} onSelect={selectAtom}
+        systemSignals={systemSignals}
         onSaved={()=>{setQaPanelOpen(false);setSelectedAtomId(null);}}/>
     </div>}
     {focus&&<SemanticReaderNotesQa notes={locatedNotes} selectedNoteId={selectedNoteId}
@@ -424,6 +427,10 @@ export default function SemanticReaderLab({
           {sourceRegions.map((part,i)=><div key={i}
             data-semantic-root={part.unitId??undefined}
             data-selected={part.unitId&&selectedUnit?.id===part.unitId?"true":undefined}
+            data-review-signal={part.unitId&&systemSignals.some(s=>
+              unitsById.get(part.unitId??"")?.source_atom_ids.includes(s.atomId))?"true":undefined}
+            data-review-fixed={part.unitId&&revision.review_issues.some(issue=>
+              issue.round===revision.round&&unitsById.get(part.unitId??"")?.source_atom_ids.includes(issue.target_atom_id))?"true":undefined}
             {...(part.regionIndex!==null?{"data-region-index":part.regionIndex}:{})}
             data-source-start={part.start} data-source-end={part.end}
             className="semantic-reader__source-region">
@@ -466,6 +473,9 @@ export default function SemanticReaderLab({
                   data-semantic-root={u.fragment?.original_unit_id??u.id}
                   data-selected={selectedAtomId&&u.source_atom_ids.includes(selectedAtomId)?"true":undefined}
                   data-review-flag={showOpenFlags&&flags.some(f=>f.status==="open"&&u.source_atom_ids.includes(f.target_atom_id))?"open":undefined}
+                  data-review-signal={systemSignals.some(s=>u.source_atom_ids.includes(s.atomId))?"true":undefined}
+                  data-review-fixed={revision.review_issues.some(issue=>issue.round===revision.round&&
+                    u.source_atom_ids.includes(issue.target_atom_id))?"true":undefined}
                   {...(regionIndices.has(u.fragment?.original_unit_id??u.id)?{"data-region-index":regionIndices.get(u.fragment?.original_unit_id??u.id)}:{})}>
                   {u.source_atom_ids[0]&&<button type="button"
                     className="semantic-reader__block-picker"
