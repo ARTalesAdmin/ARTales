@@ -27,12 +27,12 @@ test("new revision survives recursive jsonb key reordering",()=>{
  const revision=composeSemanticRevision(input);
  const fromDb=reorderJsonb(JSON.parse(JSON.stringify(revision)));
  assert.doesNotThrow(()=>verifySemanticRevision(fromDb as typeof revision,source));
- assert.equal(fromDb.revision_sha256,revision.revision_sha256);
+ assert.equal((fromDb as ReturnType<typeof composeSemanticRevision>).revision_sha256,revision.revision_sha256);
 });
 test("legacy v2 round-zero signature still validates after jsonb roundtrip",()=>{
  const old=legacy(),fromDb=reorderJsonb(JSON.parse(JSON.stringify(old)));
  assert.doesNotThrow(()=>verifySemanticRevision(fromDb as ReturnType<typeof composeSemanticRevision>,source));
- assert.equal(fromDb.revision_sha256,old.revision_sha256);
+ assert.equal((fromDb as ReturnType<typeof composeSemanticRevision>).revision_sha256,old.revision_sha256);
 });
 test("tampered text or metadata never passes legacy compatibility",()=>{
  const old=legacy();
