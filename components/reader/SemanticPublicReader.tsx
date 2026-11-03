@@ -70,7 +70,14 @@ export default function SemanticPublicReader({revision,title,isPreview,visuals=[
      throw Error("Editorial boundary intersects an atom.");
    return start>=range.start&&end<=range.end?n:null;
  };
- const approvedBlocks=revision.blocks.map(within).filter((v):v is SemanticNode=>v!==null);
+ const excluded=new Set(revision.editorial_exclusions??[]);
+ const withoutExclusions=(n:SemanticNode):SemanticNode|null=>{
+   if(n.kind==="chapter"||n.kind==="section")
+    return {...n,children:n.children.map(withoutExclusions).filter((v):v is SemanticNode=>v!==null)};
+   if(n.kind==="poem")return n;
+   return "atom" in n&&excluded.has(n.atom.id)?null:n;
+ };
+ const approvedBlocks=revision.blocks.map(within).filter((v):v is SemanticNode=>v!==null).map(withoutExclusions).filter((v):v is SemanticNode=>v!==null);
  const blocks=isPreview?approvedBlocks.slice(0,Math.min(4,approvedBlocks.length)):approvedBlocks;
  return <article style={{maxWidth:780,margin:"0 auto",padding:"36px 24px",fontFamily:"Georgia,serif",fontSize:"1.15rem",lineHeight:1.8}}>
   <h1>{title}</h1>
