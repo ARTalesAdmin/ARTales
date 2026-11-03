@@ -116,9 +116,12 @@ RETURNS jsonb LANGUAGE plpgsql SECURITY DEFINER SET search_path='' AS $batch$
 DECLARE v_actor uuid:=auth.uid();v_old public.candidate_semantic_revisions%ROWTYPE;
  v_new_sha text;v_count int;v_flags int;v_editor uuid;v_work text;
 BEGIN
+ -- The RPC accepts a complete JSON semantic document. Until a DB-side
+ -- canonical SHA validator is implemented, only the project administrator may
+ -- commit it. Editors still submit flags and receive the new review task.
  IF NOT EXISTS(SELECT 1 FROM public.profiles p WHERE p.id=v_actor
-  AND p.is_active AND p.role::text IN ('admin','editor')) THEN
-  RAISE EXCEPTION 'qa_staff_required' USING errcode='42501';END IF;
+  AND p.is_active AND p.role::text='admin') THEN
+  RAISE EXCEPTION 'qa_batch_admin_required' USING errcode='42501';END IF;
  IF p_parent_sha !~ '^[a-f0-9]{64}$' OR p_revision IS NULL OR
     pg_catalog.jsonb_typeof(p_revision)<>'object' OR
     p_flag_ids IS NULL OR pg_catalog.array_length(p_flag_ids,1) NOT BETWEEN 1 AND 50 OR
