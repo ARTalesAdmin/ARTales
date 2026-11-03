@@ -54,15 +54,15 @@ export default async function ReaderPage({
     const revision=semanticRelease.semantic_revision as SemanticRevision;
     try {
       verifySemanticRevision(revision);
-      const {data:rules}=await db.from("artales_work_typography_rules")
-        .select("term").eq("candidate_id",semanticRelease.candidate_id);
-      return <SemanticPublicReader revision={revision} title={work.title} isPreview={isPreview}
-        protectedTerms={(rules??[]).map(x=>x.term)}
-        visuals={semanticRelease.visual_manifest??[]}/>;
     } catch {
       // Never silently substitute legacy blocks for a corrupted semantic release.
       throw new Error("published_semantic_revision_invalid");
     }
+    const {data:rules}=await db.from("artales_work_typography_rules")
+      .select("term").eq("candidate_id",semanticRelease.candidate_id);
+    return <SemanticPublicReader revision={revision} title={work.title} isPreview={isPreview}
+      protectedTerms={(rules??[]).map(x=>x.term)}
+      visuals={semanticRelease.visual_manifest??[]}/>;
   }
   }
   const blocks = isPreview
