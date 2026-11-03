@@ -29,8 +29,21 @@ export default async function EditorialSemanticPreview({params}:{params:Promise<
  <h1>Sémantická redakce</h1>
  <p>Revize je interní až do schválení textu, vizuálu a korektur. Všechny
  obrazové součásti EPUBu zůstávají jen v soukromém archivním originálu.</p>
+ <p><Link href={"/member/snapshot/"+candidateId}>← Zpět na Snapshot</Link></p>
+ <p>Nejprve zkontrolujte literární text, sazbu a případné vizuální nedostatky.
+ Po dokončení QA pokračujte akcemi pod náhledem.</p>
+ </section>
+ <p style={{margin:"20px"}}><Link href={`/member/snapshot/${candidateId}`}>← Snapshot</Link>
+  {" · "}<strong>{data.status}</strong> · {data.revision_sha256.slice(0,12)}</p>
+  <SemanticReaderLab revision={revision} original={data.source_text}/>
+  <section id="editorial-actions" style={{maxWidth:900,margin:"32px auto",padding:"20px 24px",
+    border:"1px solid #d9cfbf",borderRadius:12,background:"#faf7f0"}}>
+   <h2>Po dokončení QA — další kroky</h2>
+   <p>Nejprve případně doplňte oprávněné ilustrace a dokončete vizuální kontrolu.
+      Potom předejte revizi redakčním úkolům. Publikace zůstává blokovaná
+      dokud není schválená přesná revize i všechny kontroly.</p>
  <form action={enqueueSemanticReview}><input type="hidden" name="candidate_id" value={candidateId}/>
-  <button type="submit">Založit tři revizní úkoly</button></form>
+  <button type="submit" style={{padding:"11px 17px",borderRadius:8,background:"#1d2c39",color:"white"}}>1. Předat do redakční kontroly (3 úkoly)</button></form>
  <p><Link href="/member/editorial-pipeline">Redakční fronta a stav kontrol</Link></p>
  <details><summary>Ilustrace v sémantickém vydání</summary>
   <p>Originální EPUB zůstává soukromý. Originální ilustraci lze použít jen při doloženém
@@ -48,7 +61,7 @@ export default async function EditorialSemanticPreview({params}:{params:Promise<
    </select></label></p>
    <p><label>Popisek <input name="caption" maxLength={300}/></label></p>
    <p><label>Právní a vizuální důkazy (100–4000 znaků)<textarea name="rights_note" minLength={100} maxLength={4000} rows={5} required/></label></p>
-   <button type="submit">Zařadit a ověřit ilustraci</button>
+   <button type="submit" style={{padding:"10px 15px",borderRadius:8}}>Zařadit a ověřit ilustraci</button>
   </form>
  </details>
  <details><summary>Publikovat přesně tuto revizi po dokončení kontrol</summary>
@@ -58,10 +71,8 @@ export default async function EditorialSemanticPreview({params}:{params:Promise<
    <p><label>Veřejný slug <input name="slug" required pattern="[a-z0-9]+(-[a-z0-9]+)*" maxLength={100}/></label></p>
    <p><label>Redakční anotace (200–800 znaků)<textarea name="summary" required minLength={200} maxLength={800} rows={5}/></label></p>
    <p><label>Zdůvodnění vydání (min. 30 znaků)<textarea name="reason" required minLength={30} maxLength={4000} rows={4}/></label></p>
-   <button type="submit">Publikovat po ověření všech bran</button>
+   <button type="submit" style={{padding:"11px 17px",borderRadius:8}}>2. Publikovat po schválení všech kontrol</button>
   </form></details>
- </section>
- <p style={{margin:"20px"}}><Link href={`/member/snapshot/${candidateId}`}>← Snapshot</Link>
-  {" · "}<strong>{data.status}</strong> · {data.revision_sha256.slice(0,12)}</p>
-  <SemanticReaderLab revision={revision} original={data.source_text}/></main>;
+
+  </section></main>;
 }
