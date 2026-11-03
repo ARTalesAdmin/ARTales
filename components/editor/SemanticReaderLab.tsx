@@ -130,7 +130,7 @@ export default function SemanticReaderLab({revision,original,profileReaderDefaul
     mode,viewport_width:measured?.pageWidth??Math.max(220,fallbackWidth),
     viewport_height:measured?.viewportHeight??850,font_scale:scale,density:effectiveDensity,
     measured_unit_heights:measured?.heights,editionRange:edition.range,
-  }),[revision,mode,scale,effectiveDensity,measured,fallbackWidth]);
+  }),[revision,mode,scale,effectiveDensity,measured,fallbackWidth,edition.range]);
   const integrity=verifyReaderProjection(revision,pages,edition.range);
   const locatedNotes=useMemo(()=>locateAndSortSessionNotes(revision,pages,qaNotes),[revision,pages,qaNotes]);
   const selectedNoteIndex=locatedNotes.findIndex(item=>item.saved.note.id===selectedNoteId);
