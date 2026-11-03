@@ -122,3 +122,64 @@
   border-radius:8px;padding:8px 12px;cursor:pointer;font:13px system-ui}
 .semantic-reader__edition-note{font:13px system-ui;color:#61594e}
 .semantic-reader__page p{orphans:3;widows:3;hyphens:auto}
+
+/* ARTales editorial QA: source-tethered selection and persistent review panel. */
+.semantic-reader__controls{position:sticky;top:0;z-index:15;box-shadow:0 3px 16px #30251c14}
+.semantic-reader__block-picker{position:absolute;left:-15px;top:3px;z-index:4;
+  width:18px;height:25px;line-height:1;border:1px solid #c9ae7f;border-radius:7px;
+  color:#7c6138;background:#fff9e9;cursor:pointer;font-size:10px;opacity:.52;
+  transition:opacity .12s ease,background-color .12s ease}
+.semantic-reader__unit:hover>.semantic-reader__block-picker,
+.semantic-reader__source-region:hover>.semantic-reader__block-picker,
+.semantic-reader__block-picker:focus-visible{opacity:1;background:#e8d1a3}
+.semantic-reader__unit[data-selected="true"],
+.semantic-reader__source-region[data-selected="true"]{outline:2px solid #ae8248;
+ outline-offset:4px;background:#fff0c9;border-radius:4px}
+.semantic-reader__source-region{position:relative}
+.semantic-reader__source-region .semantic-reader__block-picker{left:-18px}
+.semantic-reader__page-navigation{display:flex;gap:8px;align-items:center;font:13px system-ui}
+.semantic-reader__page-navigation input{width:125px;accent-color:#a57d47}
+.semantic-qa-overlay{position:fixed;right:16px;top:80px;bottom:16px;
+  width:min(400px,calc(100vw - 32px));overflow-y:auto;z-index:40;
+  border:1px solid #cdbfaa;border-radius:14px;background:#fdfaf4;
+  box-shadow:0 14px 45px #281d1440;padding:20px;box-sizing:border-box}
+.semantic-reader:fullscreen .semantic-qa-overlay{position:fixed}
+.semantic-qa-overlay__close{position:sticky;top:0;float:right;
+  border:1px solid #d9cbb5;border-radius:9px;background:#fff7ec;cursor:pointer;
+  padding:3px 10px;font:22px/1 system-ui}
+.semantic-qa-panel{font:14px/1.5 system-ui;color:#322b25}
+.semantic-qa-panel__heading{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.semantic-qa-panel h2{font:600 22px Georgia,serif;margin:0}
+.semantic-qa-panel h3{font:600 16px Georgia,serif;margin-top:20px}
+.semantic-qa-panel__selection{border-left:4px solid #b99862;background:#f5ecd9;
+ padding:10px 13px;border-radius:5px;max-height:170px;overflow:auto}
+.semantic-qa-panel__selection p{margin:5px 0;overflow-wrap:anywhere}
+.semantic-qa-panel__form{display:grid;gap:10px;margin:12px 0}
+.semantic-qa-panel__form label{display:grid;gap:4px;font-weight:600}
+.semantic-qa-panel__form select,.semantic-qa-panel__form textarea{
+ background:#fffefa;color:#31281f;border:1px solid #cfc1ad;border-radius:8px;
+ padding:9px;font:14px/1.5 system-ui;box-sizing:border-box;width:100%;resize:vertical}
+.semantic-qa-panel button{background:#202b39;color:white;border:0;
+ border-radius:8px;padding:9px 12px;font:13px system-ui;cursor:pointer}
+.semantic-qa-panel button:disabled{opacity:.5;cursor:not-allowed}
+.semantic-qa-panel__flags{display:grid;gap:12px}
+.semantic-qa-panel__flag{padding:12px;border:1px solid #cbbba6;border-radius:10px;background:#fbf6ed}
+.semantic-qa-panel__flag--open{border-left:4px solid #ad7c42}
+.semantic-qa-panel__flag>div:first-child{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
+.semantic-qa-panel__flag p{white-space:pre-wrap;overflow-wrap:anywhere}
+.semantic-reader__front-page{min-height:var(--reader-page-height,758px);
+ display:flex;align-items:center;justify-content:center;border:1px solid #d7c3a4;
+ background:linear-gradient(160deg,#fffcf5,#f3e8d3)}
+.semantic-reader__front-inner{text-align:center;display:flex;flex-direction:column;
+ align-items:center;justify-content:center;gap:24px;min-height:430px;
+ padding:20px;box-sizing:border-box;color:#3c3126}
+.semantic-reader__front-brand{font:500 19px Georgia,serif;letter-spacing:.27em;
+ text-transform:uppercase;color:#8e6e41}
+.semantic-reader__front-page h2{font:500 clamp(1.5rem,3vw,2.6rem)/1.22 Georgia,serif;
+ max-width:18ch;color:#2e261e;margin:20px 0 4px}
+.semantic-reader__front-author{font:18px Georgia,serif;margin:0}
+.semantic-reader__front-ornament{font-size:22px;color:#ae864b}
+.semantic-reader__front-love{font:italic 16px Georgia,serif;color:#7c6142}
+@media(max-width:650px){.semantic-reader__controls{position:relative}
+ .semantic-reader__page-navigation input{width:90px}
+ .semantic-qa-overlay{inset:5px;width:auto;border-radius:10px}}
