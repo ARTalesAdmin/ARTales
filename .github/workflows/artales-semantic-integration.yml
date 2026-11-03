@@ -38,3 +38,5 @@ jobs:
         run: npx tsx --test tests/semanticEditionLayout.test.ts
       - name: Source-anchored QA feedback, typography and immutable re-review
         run: npx tsx --test tests/semanticQaWorkflow.test.ts
+      - name: Editorial assignment and review workflow contract
+        run: npx tsx --test tests/editorialOwnershipV2.test.ts
