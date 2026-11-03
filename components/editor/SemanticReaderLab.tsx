@@ -15,7 +15,7 @@ import "./semantic-reader.css";
 
 type Props={revision:SemanticRevision;original:string;profileReaderDefaults?:FixtureProfileReaderDefaults|null;
  candidateId:string;revisionSha:string;editionTitle:string;editionAuthor:string;
- flags:SemanticQaFlag[];qaDatabaseReady:boolean;}
+ flags:SemanticQaFlag[];qaDatabaseReady:boolean;canApplyLayoutFix:boolean;}
 type ReadingSpacing = ReaderDensityId | "airy";
 type PaneSide = "source" | "composed";
 type BrowserMeasurements={
@@ -98,7 +98,7 @@ function sameMeasurements(a:BrowserMeasurements|null,b:BrowserMeasurements) {
 
 export default function SemanticReaderLab({
  revision,original,profileReaderDefaults=null,candidateId,revisionSha,editionTitle,editionAuthor,
- flags,qaDatabaseReady
+ flags,qaDatabaseReady,canApplyLayoutFix
 }:Props) {
   const accountPreferences=getProfileReaderSettings(profileReaderDefaults)??defaultReaderSettings;
   const [readerMode,setReaderMode]=useState<"scroll"|"spread">("scroll");
@@ -403,7 +403,8 @@ export default function SemanticReaderLab({
         aria-label="Zavřít panel nálezů">×</button>
       <SemanticQaPanel candidateId={candidateId} revisionSha={revisionSha}
         selectedAtomId={selectedAtomId} selectedText={selectedText??null}
-        flags={flags} databaseReady={qaDatabaseReady} onSelect={selectAtom}/>
+        flags={flags} databaseReady={qaDatabaseReady} onSelect={selectAtom}
+        canApplyLayoutFix={canApplyLayoutFix}/>
     </div>}
     {focus&&<SemanticReaderNotesQa notes={locatedNotes} selectedNoteId={selectedNoteId}
       selectedNoteIndex={selectedNoteIndex} listExpanded={expanded} status={noteFeedback}
