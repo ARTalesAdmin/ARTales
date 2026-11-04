@@ -1,6 +1,7 @@
 import {test} from "node:test";
 import {strict as assert} from "node:assert";
 import {createHash} from "node:crypto";
+import {readFileSync} from "node:fs";
 import {composeSemanticRevision,recomposeSemanticBatch,verifySemanticRevision,walkSemanticAtoms} from "../lib/semantic/compose";
 import {projectSemanticReader,getSemanticPageUnits,verifyReaderProjection,chooseSemanticParagraphBreak} from "../lib/semantic/readerProjection";
 import {selectEditorialEdition} from "../lib/semantic/editionProjection";
@@ -95,4 +96,12 @@ test("semantic page split keeps punctuation and prevents text cutting",()=>{
  assert(boundary!==null);
  assert.equal(raw.slice(0,boundary!)+raw.slice(boundary!),raw);
  assert(/\s/.test(raw[boundary!-1]));
+});
+
+test("the visible and offscreen measurement renderer apply identical work-level protected terms",()=>{
+ const reader=readFileSync(new URL("../components/editor/SemanticReaderLab.tsx",import.meta.url),"utf8");
+ const uses=reader.match(/unitView\\(u,protectedTerms\\)/g)??[];
+ assert.equal(uses.length,2,"measurement and visible page must both use protectedTerms");
+ assert.match(reader,/className="semantic-reader__measurement"/);
+ assert.match(reader,/data-qa-projection="visible"/);
 });
