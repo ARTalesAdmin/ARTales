@@ -62,5 +62,5 @@ test("layout preview and commit share one immutable source proof",()=>{
  assert.match(action,/a.raw!==afterAtoms\[i\].raw/);
  assert.match(reader,/previewRevision\?\?revision/);
  assert.match(reader,/Náhled opravené sazby/);
- assert.match(reader,/setPreviewRevision\(null\)/);
+ assert.match(reader,/setPreview\(null\)/);
 });
