@@ -2,6 +2,7 @@ import {NextRequest,NextResponse} from "next/server";
 import {createClient} from "@supabase/supabase-js";
 import {timingSafeEqual} from "node:crypto";
 import {generateSemanticAiQaSuggestions} from "@/lib/semantic/aiQaProposalEngine";
+import {prepareQaPresentationBatch,type EditorialBatchAction} from "@/lib/semantic/qaBatchPreparation";
 
 export const dynamic="force-dynamic";
 export const maxDuration=60;
@@ -29,19 +30,43 @@ export async function GET(request:NextRequest){
  if(job.result==="empty")return NextResponse.json({status:"empty"});
  if(job.result!=="claimed"||!uuid.test(job.job_id??"")||
    !uuid.test(job.candidate_id??"")||!sha.test(job.revision_sha256??"")||
-   !Array.isArray(job.flag_ids))
+   !uuid.test(job.created_by??"")||!Array.isArray(job.flag_ids))
   return NextResponse.json({status:"invalid_claim"},{status:500});
  const input={candidateId:job.candidate_id as string,
   revisionSha:job.revision_sha256 as string,expectedFlagIds:job.flag_ids as string[]};
  let suggestions:unknown=null;
  let errorCode:string|null=null;
+ let appliedRevisionSha:string|null=null;
  try{
   const answer=await generateSemanticAiQaSuggestions(input,db);
-  if(answer.ok)suggestions=answer.suggestions;
-  else errorCode="validation_or_provider_failed";
+  if(!answer.ok)errorCode="validation_or_provider_failed";
+  else{
+   suggestions=answer.suggestions;
+   // "Send for repair" is authorization for strictly presentation-only corrections.
+   // Uncertain or non-layout findings stay OPEN and never get edited by AI.
+   const safe=new Set<EditorialBatchAction>(["compact","airy","center"]);
+   const repairs=answer.suggestions.filter(x=>safe.has(x.action as EditorialBatchAction))
+    .map(x=>({flagId:x.flagId,action:x.action as EditorialBatchAction}));
+   if(repairs.length){
+    const prepared=await prepareQaPresentationBatch({
+     candidateId:input.candidateId,revisionSha:input.revisionSha,repairs
+    },db);
+    if(!prepared.ok)errorCode="layout_validation_failed";
+    else{
+     const {data:committed,error:commitError}=await db.rpc("artales_commit_safe_layout_revision",{
+      p_candidate_id:input.candidateId,p_parent_sha:input.revisionSha,
+      p_revision:prepared.revision,p_flag_ids:repairs.map(x=>x.flagId),
+      p_editor_id:job.created_by
+     });
+     if(commitError||committed?.result!=="created")errorCode="layout_commit_failed";
+     else appliedRevisionSha=committed.revision_sha256;
+    }
+   }
+  }
  }catch{errorCode="worker_exception";}
  const {data:stored,error:finishError}=await db.rpc("artales_finish_ai_qa_job",{
-  p_job_id:job.job_id,p_suggestions:suggestions,p_error_code:errorCode
+  p_job_id:job.job_id,p_suggestions:suggestions,p_error_code:errorCode,
+  p_applied_revision_sha:appliedRevisionSha
  });
  if(finishError||stored?.result!=="stored")
   return NextResponse.json({status:"persist_failed"},{status:503});
