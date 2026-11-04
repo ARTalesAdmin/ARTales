@@ -53,16 +53,17 @@ export default function SemanticReaderClient({slug,title,revisionSha,mode,locale
  const updateSettings=useCallback((patch:Partial<ReaderSettings>)=>
   setSettings(old=>({...old,...patch})),[]);
  useEffect(()=>{
-  setSettings(loadReaderSettings());
-  setHydrated(true);
   const resize=()=>setViewport({width:window.innerWidth,height:window.innerHeight});
-  resize();window.addEventListener("resize",resize);
-  return ()=>window.removeEventListener("resize",resize);
+  const frame=window.requestAnimationFrame(()=>{
+   setSettings(loadReaderSettings());
+   setHydrated(true);
+   resize();
+  });
+  window.addEventListener("resize",resize);
+  return ()=>{window.cancelAnimationFrame(frame);window.removeEventListener("resize",resize);};
  },[]);
  useEffect(()=>{if(hydrated)saveReaderSettings(settings);},[settings,hydrated]);
- useEffect(()=>{
-  setMeasured({});
- },[pageWidth,settings.fontScale,settings.density,revisionSha]);
+
  // Only the semantic position key is read. The legacy per-slug progress stays untouched.
  useEffect(()=>{
   if(!hydrated||positionLoaded)return;
@@ -71,18 +72,22 @@ export default function SemanticReaderClient({slug,title,revisionSha,mode,locale
    const saved=validateSemanticPosition(raw?JSON.parse(raw):null,slug,revisionSha);
    if(saved)savedAnchor.current={atomId:saved.atomId,offset:saved.offset};
   }catch{/* malformed local state must never block reading */}
-  setPositionLoaded(true);
+  const frame=window.requestAnimationFrame(()=>setPositionLoaded(true));
+  return ()=>window.cancelAnimationFrame(frame);
  },[hydrated,positionLoaded,slug,revisionSha]);
  useEffect(()=>{
   if(!positionLoaded||restoreComplete)return;
   // Wait for the first actual DOM measurement before resolving old source anchors.
   if(units.length>0&&Object.keys(measured).length<units.length)return;
-  if(savedAnchor.current){
-   const idx=pageForSemanticAnchor(pages,savedAnchor.current.atomId,savedAnchor.current.offset);
-   if(idx!==null)setPageIndex(idx);
-   savedAnchor.current=null;
-  }
-  setRestoreComplete(true);
+  const frame=window.requestAnimationFrame(()=>{
+   if(savedAnchor.current){
+    const idx=pageForSemanticAnchor(pages,savedAnchor.current.atomId,savedAnchor.current.offset);
+    if(idx!==null)setPageIndex(idx);
+    savedAnchor.current=null;
+   }
+   setRestoreComplete(true);
+  });
+  return ()=>window.cancelAnimationFrame(frame);
  },[pages,positionLoaded,restoreComplete,units.length,measured]);
  // Measure *exactly the same renderer* as the visible sheets at the active paper width.
  useLayoutEffect(()=>{
