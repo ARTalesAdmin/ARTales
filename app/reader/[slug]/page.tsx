@@ -62,7 +62,7 @@ export default async function ReaderPage({
       .select("term").eq("candidate_id",semanticRelease.candidate_id);
     return <SemanticPublicReader revision={revision} title={work.title} isPreview={isPreview}
       protectedTerms={(rules??[]).map(x=>x.term)}
-      visuals={semanticRelease.visual_manifest??[]}/>;
+      visuals={semanticRelease.visual_manifest??[]} locale={locale}/>;
   }
   }
   const blocks = isPreview
