@@ -26,6 +26,7 @@ export default function SemanticReaderClient({slug,title,revisionSha,mode,locale
  const [pageIndex,setPageIndex]=useState(0);
  const [hydrated,setHydrated]=useState(false);
  const [positionLoaded,setPositionLoaded]=useState(false);
+ const [restoreComplete,setRestoreComplete]=useState(false);
  const savedAnchor=useRef<{atomId:string;offset:number}|null>(null);
  const flowRef=useRef<HTMLDivElement>(null);
  const measurementRef=useRef<HTMLDivElement>(null);
@@ -73,10 +74,16 @@ export default function SemanticReaderClient({slug,title,revisionSha,mode,locale
   setPositionLoaded(true);
  },[hydrated,positionLoaded,slug,revisionSha]);
  useEffect(()=>{
-  if(!positionLoaded||!savedAnchor.current)return;
-  const idx=pageForSemanticAnchor(pages,savedAnchor.current.atomId,savedAnchor.current.offset);
-  if(idx!==null){setPageIndex(idx);savedAnchor.current=null;}
- },[pages,positionLoaded]);
+  if(!positionLoaded||restoreComplete)return;
+  // Wait for the first actual DOM measurement before resolving old source anchors.
+  if(units.length>0&&Object.keys(measured).length<units.length)return;
+  if(savedAnchor.current){
+   const idx=pageForSemanticAnchor(pages,savedAnchor.current.atomId,savedAnchor.current.offset);
+   if(idx!==null)setPageIndex(idx);
+   savedAnchor.current=null;
+  }
+  setRestoreComplete(true);
+ },[pages,positionLoaded,restoreComplete,units.length,measured]);
  // Measure *exactly the same renderer* as the visible sheets at the active paper width.
  useLayoutEffect(()=>{
   if(!hydrated)return;
@@ -104,7 +111,7 @@ export default function SemanticReaderClient({slug,title,revisionSha,mode,locale
  },[hydrated,units,settings.fontScale,settings.density,pageWidth]);
  // Save the source anchor, not the unstable page number. This is independent of legacy progress.
  useEffect(()=>{
-  if(!hydrated||!positionLoaded||mode!=="full"||!pages.length)return;
+  if(!hydrated||!restoreComplete||mode!=="full"||!pages.length)return;
   const anchor=anchorForSemanticPage(pages[current]);
   if(!anchor)return;
   try{
@@ -113,7 +120,7 @@ export default function SemanticReaderClient({slug,title,revisionSha,mode,locale
     slug,revisionSha,atomId:anchor.atomId,offset:anchor.offset,updatedAt:new Date().toISOString()
    }));
   }catch{/* reading works with storage disabled */}
- },[hydrated,positionLoaded,mode,pages,current,slug,revisionSha]);
+ },[hydrated,restoreComplete,mode,pages,current,slug,revisionSha]);
  const goToPage=useCallback((requested:number)=>{
   const requestedIndex=clamp(Math.trunc(requested-1),0,pageCount-1);
   const next=spread?requestedIndex-requestedIndex%2:requestedIndex;
@@ -142,7 +149,7 @@ export default function SemanticReaderClient({slug,title,revisionSha,mode,locale
  const renderUnit=(unit:SemanticPageUnit)=><div className="artales-semantic-public__unit"
   key={unit.id} data-page-unit-id={unit.id} data-source-atoms={unit.source_atom_ids.join(",")}>
   <SemanticUnitContent unit={unit} protectedTerms={protectedTerms}/>
-  {unit.source_atom_ids.flatMap(id=>pictureByAtom.get(id)??[]).map(img=>
+  {(unit.fragment?.continuation_after?[]:unit.source_atom_ids.flatMap(id=>pictureByAtom.get(id)??[])).map(img=>
    <figure key={img.url} className="artales-semantic-public__illustration">
     {/* eslint-disable-next-line @next/next/no-img-element -- approved immutable image manifest */}
     <img src={img.url} alt={img.caption||"Ilustrace díla"} loading="lazy"/>
