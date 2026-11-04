@@ -14,7 +14,7 @@ const cron=JSON.parse(root("vercel.json"));
 
 test("editor saves only server-recomposed verified layouts; role key never crosses to browser",()=>{
  assert.match(actions,/requireEditorOrAdmin\(\)/);
- assert.match(actions,/prepareQaPresentationBatch\(input\)/);
+ assert.match(actions,/prepareQaPresentationBatch\(input,await createClient\(\)\)/);
  assert.match(actions,/createServiceClient\(url,roleKey/);
  assert.match(actions,/p_editor_id:actor.id/);
  assert.match(actions,/if\(actor.role!=="admin"\)/);
@@ -52,7 +52,7 @@ test("reader highlights changed and selected blocks distinctly",()=>{
 test("indeterminate job progress does not promise a false duration",()=>{
  assert.match(panel,/<progress aria-label="Zpracovávání oprav v AI frontě"\/>/);
  assert.match(panel,/Délku zpracování nelze spolehlivě odhadnout/);
- assert.match(panel,/můžeš počkat zde, nebo okno zavřít/);
+ assert.match(panel,/Můžeš počkat zde, nebo okno zavřít/);
 });
 test("controlled monthly human methodology review has one owner, one task per month",()=>{
  assert.match(monthly,/month_start date NOT NULL UNIQUE/);
