@@ -23,8 +23,13 @@ export default async function MemberLayout({
     ?await db.from("artales_editorial_escalations")
       .select("id",{head:true,count:"exact"}).eq("assigned_to",profile.id).eq("status","open")
     :null;
+  const methodology=profile.role==="admin"
+    ?await db.from("artales_editorial_methodology_reviews")
+     .select("id",{head:true,count:"exact"}).eq("assigned_to",profile.id).eq("status","open")
+    :null;
   const assignedOpenCount=(count?.error?0:(count?.count??0))+
-    (escalations?.error?0:(escalations?.count??0));
+    (escalations?.error?0:(escalations?.count??0))+
+    (methodology?.error?0:(methodology?.count??0));
 
   return (
     <div className="artales-workspace-shell">
