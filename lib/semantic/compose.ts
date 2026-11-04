@@ -1,4 +1,6 @@
 import { createHash } from "node:crypto";
+import {walkSemanticAtoms} from "./atomTraversal";
+export {walkSemanticAtoms} from "./atomTraversal";
 import {
   SEMANTIC_SCHEMA, type InlineMark, type SemanticAtom, type SemanticGap,
   type SemanticBlockPresentation, type SemanticTitlePage,
@@ -310,18 +312,6 @@ export function proposeSemanticTitlePage(previous:SemanticRevision, input:{
     round:previous.round+1});
   verifySemanticRevision(result);
   return result;
-}
-export function walkSemanticAtoms(nodes:SemanticNode[]):SemanticAtom[]{
-  const all:SemanticAtom[]=[];
-  function visit(item:SemanticNode){
-    if(item.kind==="chapter"||item.kind==="section"){
-      all.push(item.heading);item.children.forEach(visit);
-    }else if(item.kind==="poem"){
-      item.stanzas.forEach(st=>st.lines.forEach(line=>all.push(line.atom)));
-    }else if("atom" in item) all.push(item.atom);
-  }
-  nodes.forEach(visit);
-  return all;
 }
 const MARKS=new Set(["italic","bold","emphasis","small_caps","indent","hard_break","page_break_before"]);
 export function verifySemanticRevision(revision:SemanticRevision, exactOriginalRaw?:string):void{
