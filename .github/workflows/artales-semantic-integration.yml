@@ -11,6 +11,9 @@ on:
       - 'ops/sql/20261103_artales_semantic_qa_block_workflow.sql'
       - 'ops/sql/20261103_artales_editorial_assignments_v2.sql'
       - 'ops/sql/20261104_artales_editorial_pool_ownership_v3.sql'
+      - 'ops/sql/20261104_artales_ai_qa_durable_jobs.sql'
+      - 'app/api/internal/editorial/ai-qa-jobs/route.ts'
+      - 'vercel.json'
       - 'ops/sql/20261103_artales_qa_batch_edition_rules_escalations.sql'
       - 'components/reader/ProtectedProseText.tsx'
       - 'app/member/editorial-help/**'
@@ -22,6 +25,7 @@ on:
       - 'tests/editorialOwnershipV2.test.ts'
       - 'tests/editorialPoolV3.test.ts'
       - 'tests/semanticPaginationMatrix.test.ts'
+      - 'tests/semanticAiQueue.test.ts'
       - 'tests/semanticQaWorkflow.test.ts'
       - 'components/editor/semantic-reader.css'
       - 'components/reader/SemanticPublicReader.tsx'
@@ -42,7 +46,7 @@ jobs:
       - name: TypeScript
         run: npx tsc --noEmit
       - name: ESLint scoped files
-        run: npx eslint lib/semantic lib/ingest/epubSemanticExtractor.ts components/editor/SemanticReaderLab.tsx components/editor/SemanticReaderNotesQa.tsx components/editor/SemanticQaPanel.tsx 'app/member/semantic/[candidateId]/qa-actions.ts' 'app/member/semantic/[candidateId]/ai-qa-actions.ts' 'app/member/semantic/[candidateId]/page.tsx' app/member/editorial-pipeline/actions.ts app/member/editorial-pipeline/page.tsx components/member/MemberZoneNav.tsx components/member/MemberHelpButton.tsx app/member/editorial-help/actions.ts app/member/layout.tsx components/reader/ProtectedProseText.tsx 'app/reader/[slug]/page.tsx' 'app/api/member/semantic/[candidateId]/compose/route.ts'
+        run: npx eslint lib/semantic lib/ingest/epubSemanticExtractor.ts components/editor/SemanticReaderLab.tsx components/editor/SemanticReaderNotesQa.tsx components/editor/SemanticQaPanel.tsx 'app/member/semantic/[candidateId]/qa-actions.ts' 'app/member/semantic/[candidateId]/ai-qa-actions.ts' 'app/member/semantic/[candidateId]/ai-job-actions.ts' app/api/internal/editorial/ai-qa-jobs/route.ts 'app/member/semantic/[candidateId]/page.tsx' app/member/editorial-pipeline/actions.ts app/member/editorial-pipeline/page.tsx components/member/MemberZoneNav.tsx components/member/MemberHelpButton.tsx app/member/editorial-help/actions.ts app/member/layout.tsx components/reader/ProtectedProseText.tsx 'app/reader/[slug]/page.tsx' 'app/api/member/semantic/[candidateId]/compose/route.ts'
       - name: Existing semantic regression
         run: npx tsx --test tests/semanticReaderV2.test.ts
       - name: PostgreSQL jsonb roundtrip and legacy revision integrity
@@ -55,6 +59,8 @@ jobs:
         run: npx tsx --test tests/editorialOwnershipV2.test.ts
       - name: Browser layout repagination source preservation
         run: npx tsx --test tests/semanticPaginationMatrix.test.ts
+      - name: Durable AI proposal queue, worker security and resume
+        run: npx tsx --test tests/semanticAiQueue.test.ts
       - name: Editorial pool, audit and AI proposal boundary
         run: npx tsx --test tests/editorialPoolV3.test.ts
       - name: Atomic batch and disputed-note semantic evidence
