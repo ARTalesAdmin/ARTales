@@ -8,10 +8,6 @@ export type EditorialBatchAction="exclude_note"|"compact"|"airy"|"center";
 export type QaBatchInput={
  candidateId:string;revisionSha:string;repairs:{flagId:string;action:EditorialBatchAction}[]
 };
-export type QaBatchPreviewResult=QaMutationResult&{
- revision?:SemanticRevision;affectedAtomIds?:string[];
-};
-
 /** The same verified plan powers preview and commit. No text mutation is supported. */
 export async function prepareQaPresentationBatch(input:QaBatchInput,db:SupabaseClient):Promise<
  {ok:true;revision:SemanticRevision;atomIds:string[]}|{ok:false;message:string}
