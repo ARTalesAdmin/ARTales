@@ -41,16 +41,17 @@ test("available-work list and overview are role scoped",()=>{
  assert.match(queue,/Dokončená práce podle editora a druhu/);
 });
 test("AI has strict proposal-only boundary and current-revision ownership",()=>{
- assert.match(ai,/verifySemanticRevision\(revision,record.source_text\)/);
+ const engine=readFileSync(new URL("../lib/semantic/aiQaProposalEngine.ts",import.meta.url),"utf8");
  assert.match(ai,/\.eq\("assigned_to",actor.id\)\.eq\("status","claimed"\)/);
- assert.match(ai,/max_output_tokens:2200/);
- assert.match(ai,/store:false/);
- assert.match(ai,/json_schema/);
- assert.match(ai,/action:"compact"\|"airy"\|"center"\|"protect_term"\|"manual_review"/);
- assert.doesNotMatch(ai,/action:"compact"\|"airy"\|"center"\|"exclude_note"/);
- assert.doesNotMatch(ai,/\.insert\(|\.update\(|artales_commit_semantic_qa_batch/);
+ assert.match(engine,/verifySemanticRevision\(revision,record.source_text\)/);
+ assert.match(engine,/max_output_tokens:2200/);
+ assert.match(engine,/store:false/);
+ assert.match(engine,/json_schema/);
+ assert.match(engine,/action:"compact"\|"airy"\|"center"\|"protect_term"\|"manual_review"/);
+ assert.doesNotMatch(engine,/action:"compact"\|"airy"\|"center"\|"exclude_note"/);
+ assert.doesNotMatch(engine,/\.insert\(|\.update\(|artales_commit_semantic_qa_batch/);
  assert.match(qa,/Navrhnout opravy pomocí AI/);
- assert.match(qa,/AI suggestions are NEVER committed automatically/);
+ assert.match(qa,/All suggested modifications remain uncommitted/);
 });
 
 test("layout preview and commit share one immutable source proof",()=>{
