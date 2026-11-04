@@ -31,6 +31,15 @@ Stav: produktový backlog, 4. 11. 2026. Tento dokument zachycuje odsouhlasený s
 - **Konkrétní nalezená a opravená chyba v PR:** viditelný `unitView` neaplikoval `protectedTerms` stejně jako měřicí průchod. Náprava v commit `0847d0d`; ověřit znovu na aktuálním HEAD CI a browserem.
 
 
+**P0e: duální publikační provoz bez regresí (tvrdá podmínka)**
+
+- **Žádné přepočítávání starých `WorkBlock` publikací.** U každého `work_id` rozhoduje pouze konkrétní potvrzený záznam v `artales_semantic_publications`: vydaná validní sémantická revize → nový reader; jinak původní `ReaderClient` + jeho `paginateReaderBlocks`, čtenářské nastavení a vazby bez změny.
+- Nový sémantický reader může převzít vizuální shell, toolbar, témata a čtenářské služby starého readeru, **nikdy ale jeho `WorkBlock` interpretaci nebo algoritmus fragmentace**. QA a sémantický reader sdílejí `getSemanticPageUnits` i `SemanticUnitContent`; viewportová paginace je přizpůsobení již schváleného obsahu, nikoli nové formátovací rozhodnutí.
+- Vlastní veřejné URL `/reader/[slug]`, autorizace `preview/full`, odemčení a čtenářské údaje zůstávají kompatibilní; sémantické kotvy se vážou na originální atomy, nikoli číslo stránky. Převod starých poznámek, záložek a progress vyžaduje explicitní a auditovaný most, bez falešného tvrzení o přesnosti mapování.
+- **Fail closed:** nevalidní publikovaná sémantická revize není důvodem tiše ukázat jiný obsah. Nevydané a dosud nepřevedené knihy zůstávají na stávajícím readeru.
+- Nejprve dokazatelně **nulová regresní změna** v legacy cestě (test route, screenshoty, mobilní čtení, původní stránkování), potom vizuální a funkční parita nového readeru. Starý kód odstranit až po 100% ověřeném cutoveru a samostatném schválení.
+- Stav rozpracovaného PR #297: sdílené vykreslení sémantických bloků a jednotná ediční projekce **jsou ve vývojové větvi**, veřejný sémantický reader ale ještě nemá hotové funkce původní čtečky ani skutečné DOM měřené stránkování. Není certifikován jako náhrada.
+
 **P0d: Jedno autoritativní sémantické vykreslování a oprava po publikaci**
 - **Editor určuje strukturu a schválenou sazbu, nikoli definitivní číslo stránky.** Společná interpretace `SemanticRevision.blocks`, `presentation`, edičních výjimek, pravých source kotviček a udržovaných typografických pravidel musí být jedna pro QA a veřejný reader. Čtečka smí přepočítat fyzické zalomení na šířce/fontu, nesmí znovu reinterpretovat či přepisovat text ani originální bloky.
 - **Aktuální stav ověřen na main:** `SemanticReaderLab` používá `getSemanticPageUnits/projectSemanticReader`, ale `SemanticPublicReader` má nezávislou rekurzivní interpretaci bloků i vlastní ořez, navíc veřejná sémantická cesta nevyužívá čtenářský toolbar a čtenářské nastavení stejné jako legacy reader. Toto ještě není sjednoceno.
