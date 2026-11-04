@@ -48,7 +48,7 @@ export default function SemanticQaPanel(p:Props){
     kind:entryKind,comment:entryComment
    });
    setFeedback(result.message);
-   if(result.ok){setComment("");p.onSaved();router.refresh();}
+   if(result.ok){setComment("");router.refresh();}
   });
  };
  const resolve=(id:string)=>{
@@ -155,7 +155,7 @@ export default function SemanticQaPanel(p:Props){
     repairs:ready.map(x=>({flagId:x.flag.id,action:x.action as EditorialBatchAction}))
    });
    setFeedback(result.message);
-   if(result.ok){setRepairs({});p.onSaved();router.refresh();}
+   if(result.ok){setRepairs({});router.refresh();}
   });
  };
  const decide=(issueId:string,decision:"accepted"|"returned")=>{
@@ -165,7 +165,7 @@ export default function SemanticQaPanel(p:Props){
      issueId,decision,note:decision==="returned"?returnNotes[issueId]??"":""
     });
     setFeedback(result.message);
-    if(result.ok){p.onSaved();router.refresh();}
+    if(result.ok)router.refresh();
    });
  };
  const finish=()=>{
