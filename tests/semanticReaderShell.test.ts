@@ -45,6 +45,11 @@ test("semantic anchor survives reflow across mobile and desktop without writing 
  assert.deepEqual(validateSemanticPosition(record,rev.work_slug,rev.revision_sha256),record);
  assert.equal(validateSemanticPosition(record,"different-book",rev.revision_sha256),null);
  assert.equal(validateSemanticPosition(record,rev.work_slug,"different-sha"),null);
+ const v2={...record,schema:"artales.semantic.saved-position.v2",
+  atomSourceSha:"source-verified-digest"};
+ assert.deepEqual(validateSemanticPosition(v2,rev.work_slug,"next-layout-sha",
+  atomId=>atomId===record.atomId?"source-verified-digest":null),v2);
+ assert.equal(validateSemanticPosition(v2,rev.work_slug,"next-layout-sha",()=>null),null);
  assert.equal(semanticPositionKey(rev.work_slug),"artales.semantic.position:"+rev.work_slug);
 });
 test("semantic reader keeps legacy reader and its local progress isolated",()=>{
