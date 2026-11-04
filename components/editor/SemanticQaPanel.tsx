@@ -77,7 +77,10 @@ export default function SemanticQaPanel(p:Props){
    void lastSemanticAiQaJob({candidateId:p.candidateId,revisionSha:p.revisionSha})
     .then(result=>{if(active&&result.ok){
       setJob(result);
-      if(result.status==="completed")acceptAiSuggestions(result.suggestions);
+      if(result.status==="completed"){
+       if(result.appliedRevisionSha)router.refresh();
+       else acceptAiSuggestions(result.suggestions);
+      }
     }});
    return ()=>{active=false;};
    // Only restore the job for the exact loaded source revision.
@@ -90,7 +93,10 @@ export default function SemanticQaPanel(p:Props){
     void readSemanticAiQaJob({jobId:job.jobId!}).then(result=>{
      if(!active||!result.ok)return;
      setJob(result);
-     if(result.status==="completed")acceptAiSuggestions(result.suggestions);
+     if(result.status==="completed"){
+      if(result.appliedRevisionSha)router.refresh();
+      else acceptAiSuggestions(result.suggestions);
+     }
      if(result.status==="failed")setFeedback(result.message);
     });
    },4000);
@@ -105,7 +111,10 @@ export default function SemanticQaPanel(p:Props){
      });
      if(queued.ok){
       setJob(queued);
-      if(queued.status==="completed")acceptAiSuggestions(queued.suggestions);
+      if(queued.status==="completed"){
+       if(queued.appliedRevisionSha)router.refresh();
+       else acceptAiSuggestions(queued.suggestions);
+      }
       setFeedback(queued.message);
       return;
      }
@@ -226,9 +235,11 @@ export default function SemanticQaPanel(p:Props){
     onClick={requestAi}>Předat {open.length} nálezů do fronty Nexus AI</button>
    {job?.jobId?<div role="status" aria-live="polite">
      <p><strong>Fronta Nexus AI · ARTales</strong>: {job.message}</p>
-     {job.status==="completed"?<progress max={100} value={100} aria-label="Opravné návrhy zpracovány"/>:
+     {job.status==="completed"?<progress max={100} value={100} aria-label="Opravná dávka dokončena"/>:
       job.status==="queued"||job.status==="running"?
       <progress aria-label="Zpracovávání oprav v AI frontě"/>:null}
+     {job.appliedRevisionSha?<p>Nová opravná revize {job.appliedRevisionSha.slice(0,12)} byla uložena.
+       Otevřené QA ji zobrazí k opakované kontrole v této seanci.</p>:null}
      {job.status==="queued"||job.status==="running"?
       <p>Úloha je trvale evidovaná. Můžeš počkat zde, nebo okno zavřít.
        Po návratu se načte výsledek stejné revize. Délku zpracování nelze spolehlivě odhadnout.</p>:null}
