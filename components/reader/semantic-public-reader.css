@@ -55,3 +55,32 @@
  .artales-semantic-public{padding:20px 16px;line-height:1.65}
  .artales-semantic-public blockquote{margin-inline:.65em}
 }
+
+/* Semantic reader shell is isolated from the unchanged legacy WorkBlock reader. */
+.artales-semantic-shell .artales-semantic-public{
+ width:100%;max-width:none;padding:0;box-sizing:border-box;
+ font-size:calc(18px * var(--reader-font-scale));line-height:1.62;
+}
+.artales-semantic-shell .artales-reader__paper--paged{
+ box-sizing:border-box;padding:48px 32px;
+}
+.artales-semantic-shell .artales-reader__page-content{min-width:0;}
+.artales-semantic-shell .artales-semantic-shell__paper--overflow .artales-reader__page-content{
+ overflow-y:auto;overflow-x:hidden;
+}
+.artales-semantic-shell__measurement{
+ position:absolute;visibility:hidden;pointer-events:none;
+ inset-inline-start:-9999px;top:0;max-width:none!important;
+ height:auto;overflow:visible;contain:layout;
+}
+.artales-semantic-shell__measurement>[data-measure-semantic-id]{
+ display:flow-root;
+}
+.artales-semantic-shell .artales-reader__paper--blank{
+ opacity:.45;pointer-events:none;
+}
+@media(max-width:700px){
+ .artales-semantic-shell .artales-reader__paper--paged{
+  padding:32px 22px;
+ }
+}
