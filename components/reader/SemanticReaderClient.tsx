@@ -5,7 +5,8 @@ import SemanticUnitContent from "@/components/reader/SemanticUnitContent";
 import {projectSemanticUnits} from "@/lib/semantic/readerProjectionCore";
 import type {SemanticPage,SemanticPageUnit} from "@/lib/semantic/model";
 import {clampReaderFontScale,defaultReaderSettings,type ReaderSettings} from "@/lib/reader/readerSettings";
-import {loadReaderSettings,saveReaderSettings} from "@/lib/reader/readerStorage";
+import {loadReaderSettings,saveReaderSettings,type ReaderNote,type ReaderNoteColor} from "@/lib/reader/readerStorage";
+import {filterSemanticReaderNotes,makeSemanticReaderNote,pageForSemanticNote,semanticNotesKey,type SemanticReaderNote} from "@/lib/semantic/readerNotes";
 import {getPublicDictionary} from "@/lib/i18n/public";
 import type {SupportedLocale} from "@/lib/i18n/config";
 import {anchorForSemanticPage,pageForSemanticAnchor,semanticPositionKey,validateSemanticPosition}
@@ -27,6 +28,10 @@ export default function SemanticReaderClient({slug,title,revisionSha,mode,locale
  const [hydrated,setHydrated]=useState(false);
  const [positionLoaded,setPositionLoaded]=useState(false);
  const [restoreComplete,setRestoreComplete]=useState(false);
+ const [semanticNotes,setSemanticNotes]=useState<SemanticReaderNote[]>([]);
+ const [notesLoaded,setNotesLoaded]=useState(false);
+ const [selectedNoteId,setSelectedNoteId]=useState<string|null>(null);
+ const [notesExpanded,setNotesExpanded]=useState(false);
  const savedAnchor=useRef<{atomId:string;offset:number}|null>(null);
  const flowRef=useRef<HTMLDivElement>(null);
  const measurementRef=useRef<HTMLDivElement>(null);
@@ -46,6 +51,14 @@ export default function SemanticReaderClient({slug,title,revisionSha,mode,locale
  const current=clamp(pageIndex,0,pageCount-1);
  const active=spread?current-current%2:current;
  const percent=pageCount>1?Math.round(active/(pageCount-1)*100):100;
+ const toolbarNotes=useMemo<ReaderNote[]>(()=>semanticNotes.map(note=>{
+  const idx=pageForSemanticNote(pages,note,units);
+  return {id:note.id,slug,title:note.title,body:note.body,color:note.color,
+   source:"local",progressPercent:idx===null?0:pageCount>1?idx/(pageCount-1)*100:100,
+   scrollY:0,pageIndex:idx??undefined,pageCount,layoutMode:settings.layoutMode,
+   createdAt:note.createdAt,updatedAt:note.updatedAt};
+ }).sort((a,b)=>(a.pageIndex??Infinity)-(b.pageIndex??Infinity)),[semanticNotes,pages,units,slug,title,pageCount,settings.layoutMode]);
+ const selectedNoteIndex=toolbarNotes.findIndex(x=>x.id===selectedNoteId);
  const pictureByAtom=useMemo(()=>{
   const map=new Map<string,Image[]>();
   for(const image of images){const list=map.get(image.atomId)??[];list.push(image);map.set(image.atomId,list);}
@@ -64,6 +77,23 @@ export default function SemanticReaderClient({slug,title,revisionSha,mode,locale
   return ()=>{window.cancelAnimationFrame(frame);window.removeEventListener("resize",resize);};
  },[]);
  useEffect(()=>{if(hydrated)saveReaderSettings(settings);},[settings,hydrated]);
+ useEffect(()=>{
+  if(!hydrated||notesLoaded)return;
+  const frame=window.requestAnimationFrame(()=>{
+   try{
+    const raw=window.localStorage.getItem(semanticNotesKey(slug));
+    setSemanticNotes(filterSemanticReaderNotes(raw?JSON.parse(raw):null,slug,units));
+   }catch{setSemanticNotes([]);}
+   setNotesLoaded(true);
+  });
+  return ()=>window.cancelAnimationFrame(frame);
+ },[hydrated,notesLoaded,slug,units]);
+ useEffect(()=>{
+  if(!notesLoaded||mode!=="full")return;
+  try{window.localStorage.setItem(semanticNotesKey(slug),JSON.stringify(semanticNotes));}
+  catch{/* allow reading without local storage */}
+ },[notesLoaded,mode,slug,semanticNotes]);
+
 
  // Only the semantic position key is read. The legacy per-slug progress stays untouched.
  useEffect(()=>{
@@ -134,6 +164,25 @@ export default function SemanticReaderClient({slug,title,revisionSha,mode,locale
   if(!spread)flowRef.current?.querySelector<HTMLElement>(`[data-page-index="${next}"]`)
    ?.scrollIntoView({behavior:"smooth",block:"start"});
  },[pageCount,spread]);
+ const goToNote=(note:ReaderNote)=>{
+  const found=semanticNotes.find(x=>x.id===note.id);
+  if(!found)return;
+  const idx=pageForSemanticNote(pages,found,units);
+  if(idx===null)return;
+  setSelectedNoteId(note.id);
+  goToPage(idx+1);
+ };
+ const addNote=(data:{title:string;body:string;color:ReaderNoteColor})=>{
+  if(!notesLoaded||mode!=="full")return;
+  const note=makeSemanticReaderNote({slug,page:pages[active],units,
+   id:crypto.randomUUID(),now:new Date().toISOString(),...data});
+  if(!note)return;
+  setSemanticNotes(prev=>[note,...prev]);setSelectedNoteId(note.id);
+ };
+ const jumpNote=(delta:number)=>{
+  const next=toolbarNotes[selectedNoteIndex+delta];
+  if(next)goToNote(next);
+ };
  // Scroll mode uses a stream of numbered pages. Report the page crossing the reading line.
  useEffect(()=>{
   if(spread)return;
@@ -185,17 +234,18 @@ export default function SemanticReaderClient({slug,title,revisionSha,mode,locale
    fullHref={`/reader/${slug}?mode=full`}progressPercent={percent}
    pageIndex={active}pageCount={pageCount}settings={settings}
    labels={dictionary.reader}chromeLabels={dictionary.public}
-   notes={[]}notesEnabled={false}selectedNoteId={null}selectedNoteIndex={-1}
-   isNotesListExpanded={false}notesSyncState="local"
+   notes={toolbarNotes}notesEnabled={mode==="full"}selectedNoteId={selectedNoteId}
+   selectedNoteIndex={selectedNoteIndex}isNotesListExpanded={notesExpanded}notesSyncState="local"
    onFontDelta={delta=>updateSettings({fontScale:clampReaderFontScale(settings.fontScale+delta)})}
    onThemeChange={theme=>updateSettings({theme})}
    onWidthChange={width=>updateSettings({width})}
    onDensityChange={density=>updateSettings({density})}
    onLayoutModeChange={layoutMode=>{updateSettings({layoutMode});setPageIndex(0);}}
    onToggleControls={()=>updateSettings({controlsCollapsed:!settings.controlsCollapsed})}
-   onAddNote={()=>{}}onGoToNote={()=>{}}onGoToPreviousNote={()=>{}}
-   onGoToNextNote={()=>{}}onNotesListExpandedChange={()=>{}}
-   onDeleteNote={()=>{}}onGoToPage={goToPage}
+   onAddNote={addNote}onGoToNote={goToNote}onGoToPreviousNote={()=>jumpNote(-1)}
+   onGoToNextNote={()=>jumpNote(1)}onNotesListExpandedChange={setNotesExpanded}
+   onDeleteNote={note=>setSemanticNotes(prev=>prev.filter(x=>x.id!==note.id))}
+   onGoToPage={goToPage}
   />
   <section className="artales-reader__stage">
    {/* Measure raw units; never measure split fragments as the original unit. */}
