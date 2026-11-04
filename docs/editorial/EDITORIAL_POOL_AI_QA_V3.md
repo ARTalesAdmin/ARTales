@@ -112,3 +112,50 @@ Changes are **not live** until a separate reviewed merge, migration, environment
 - Actual editor-authorized persistence of narrowly scoped presentation patches,
   browser screenshot rendering regression, detailed per-job cost accounting and
   richer phase breadcrumbs remain incomplete.
+
+
+## QA review cycle v4 — implementation in this PR, production NOT activated
+
+1. Editor claims the current title's text QA task, marks all source-anchored findings.
+2. With no finding and no pending repair, "Přijmout QA" closes the task.
+3. With findings, "Předat … do fronty Nexus AI" enqueues a durable job. This is an
+   **ARTales-hosted worker**; the name in the UI is not an actual Nexus integration.
+4. Worker uses GPT solely to classify safe presentation actions. For supported
+   `compact`, `airy`, `center` it recomposes a source-unchanged draft, validates
+   exact atoms and anchors and calls a service-only, independently guarded SQL RPC
+   to store the new immutable revision. Remaining findings are carried into the
+   next QA. A new text QA task is created for the same owner.
+5. Old claimed QA is marked `superseded` **within that same transaction**, never
+   marked completed. After the worker's job receipt arrives, the current reader
+   refreshes and shows the new revision; editor need not return to inbox.
+6. Corrected blocks use teal in *both* QA panels, the current selected block amber.
+   The reviewer accepts each changed block (no comment) or returns it with a note
+   (at least 15 chars), creating a new open flag.
+7. Final QA completion is allowed only when no open findings, no queued/running AI
+   repairs, and no unapproved change in the current revision. The completion event
+   records the genuine reviewer and unlocks existing parallel editorial tasks.
+   It does NOT auto-publish a work.
+8. Monthly methodology review tasks are idempotently scheduled for the admin via
+   a separate protected daily cron. The admin signs off with evidence; source
+   logs do not automatically retrain any model or update methodology.
+
+### New migration order, all subject to explicit authorization
+- `ops/sql/20261104_artales_editorial_pool_ownership_v3.sql`
+- `ops/sql/20261104_artales_ai_qa_durable_jobs.sql`
+- `ops/sql/20261104_artales_qa_change_decisions_v4.sql`
+- `ops/sql/20261104_artales_qa_closeout_v4.sql`
+- `ops/sql/20261104_artales_safe_layout_commit_v4.sql`
+- `ops/sql/20261104_artales_monthly_methodology_review.sql`
+
+Apply the migrations sequentially and verify the exact function signatures and
+constraints after each step. This is a draft SQL plan, NOT evidence of a real apply.
+
+### Verification still required
+- Live database migration precheck, authenticated role matrix, SQL transaction races
+- Cron service credentials and provider invocation, cost monitoring
+- Browser rendering screenshots of long pages, paragraph fragmentation, fullscreen
+- Crash recovery across an AI model success / DB commit / receipt interruption
+- Admin/editor task ownership transitions and completed task count consistency
+
+No login tests for Pavla or Ivana are planned until the whole version is ready,
+in accordance with the owner's request.
