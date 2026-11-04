@@ -6,6 +6,9 @@ import type {AiQaSuggestion} from "@/lib/semantic/aiQaProposalEngine";
 const uuid=/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{12}$/i;
 const sha=/^[a-f0-9]{64}$/;
 const enabled=()=>process.env.ARTALES_AI_DURABLE_JOBS_ENABLED==="enabled";
+const configured=()=>Boolean(process.env.CRON_SECRET&&process.env.CRON_SECRET.length>=16&&
+ process.env.SUPABASE_SERVICE_ROLE_KEY&&process.env.ARTALES_EDITORIAL_AI_API_KEY&&
+ process.env.ARTALES_EDITORIAL_AI_MODEL);
 export type QaJobStatus={
  ok:boolean;jobId:string|null;status:"queued"|"running"|"completed"|"failed"|"none";
  message:string;suggestions:AiQaSuggestion[];disabled?:boolean;
@@ -32,6 +35,7 @@ export async function enqueueSemanticAiQaJob(input:{
  if(!enabled())return {...fail("Trvalá AI fronta zatím není zapnutá."),disabled:true};
  if(!uuid.test(input.candidateId)||!sha.test(input.revisionSha))
   return fail("Neplatná identita díla nebo revize.");
+ if(!configured())return fail("Trvalá AI fronta není úplně nastavena; úloha nevznikla.");
  const db=await createClient();
  const {data,error}=await db.rpc("artales_enqueue_ai_qa_job",{
   p_candidate_id:input.candidateId,p_revision_sha256:input.revisionSha
