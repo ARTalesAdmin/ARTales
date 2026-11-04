@@ -38,7 +38,7 @@ Stav: produktový backlog, 4. 11. 2026. Tento dokument zachycuje odsouhlasený s
 - Vlastní veřejné URL `/reader/[slug]`, autorizace `preview/full`, odemčení a čtenářské údaje zůstávají kompatibilní; sémantické kotvy se vážou na originální atomy, nikoli číslo stránky. Převod starých poznámek, záložek a progress vyžaduje explicitní a auditovaný most, bez falešného tvrzení o přesnosti mapování.
 - **Fail closed:** nevalidní publikovaná sémantická revize není důvodem tiše ukázat jiný obsah. Nevydané a dosud nepřevedené knihy zůstávají na stávajícím readeru.
 - Nejprve dokazatelně **nulová regresní změna** v legacy cestě (test route, screenshoty, mobilní čtení, původní stránkování), potom vizuální a funkční parita nového readeru. Starý kód odstranit až po 100% ověřeném cutoveru a samostatném schválení.
-- Stav rozpracovaného PR #297: sdílené vykreslení sémantických bloků a jednotná ediční projekce **jsou ve vývojové větvi**, veřejný sémantický reader ale ještě nemá hotové funkce původní čtečky ani skutečné DOM měřené stránkování. Není certifikován jako náhrada.
+- **Stav PR #297 po rozšíření:** sdílené vykreslení sémantických bloků i jeden čistý algoritmus paginace jsou ve větvi. Sémantická čtečka má čtenářský toolbar, motivy, velikost písma, šířku, paged flow/dvojstranu, reálné skryté DOM měření jednotek, navigaci, ukládání pozice na zdrojový atom a lokální poznámky navázané na atom+hash. Původní progress/poznámky se nedotýkají ani nepřepisují. Preview klient dostává jen povolené první čtyři jednotky. **Stále chybí ověření skutečných rozměrů, vizuální parita, účetní synchronizace sémantických poznámek a bezpečný převod historických čtenářských údajů.** Není certifikován jako náhrada.
 
 **P0d: Jedno autoritativní sémantické vykreslování a oprava po publikaci**
 - **Editor určuje strukturu a schválenou sazbu, nikoli definitivní číslo stránky.** Společná interpretace `SemanticRevision.blocks`, `presentation`, edičních výjimek, pravých source kotviček a udržovaných typografických pravidel musí být jedna pro QA a veřejný reader. Čtečka smí přepočítat fyzické zalomení na šířce/fontu, nesmí znovu reinterpretovat či přepisovat text ani originální bloky.
@@ -119,3 +119,13 @@ Stav: produktový backlog, 4. 11. 2026. Tento dokument zachycuje odsouhlasený s
 - **PR #297**: programový návrh a CI, ne produkční služba.
 - **P0**: 100% současné priority. P1/P2 jsou konkrétní schválená produktová zadání do backlogu, **nikoli hotové implementace**.
 - **P1 migrace**: naplánovaná a prioritní po P0; není to povolení spustit hromadnou transformaci nebo odstavit stávající reader.
+
+## Dílčí technické ověření čtečky — 2026-11-04
+
+- Původní `ReaderClient`, `paginateReaderBlocks`, `ReaderToolbar` a původní reader CSS beze změny. Routing `/reader/[slug]` zůstává podle vydané sémantické revize, nikoliv globálního přepnutí.
+- `readerProjectionCore.ts` je jediná čistá projekční/paginační implementace, společná QA i veřejnému readeru. `readerProjection.ts` je pouze serverový adaptér s kontrolou SHA a invariantu revize. `atomTraversal.ts` eliminuje další duplikované procházení stromu.
+- `SemanticUnitContent.tsx` používají oba renderery včetně skrytého DOM měření; žádná interpretace legacy `WorkBlock` v nové čtečce.
+- `SemanticReaderClient.tsx` opět používá původní čtenářskou ovládací lištu a pouze vizuální tokeny stávajícího readeru; paginace je ale sémantická. Mobile fallback nepředstírá dvě knihovní strany, pokud chybí prostor. Dlouhý nesplittovatelný blok má bezpečný scroll místo skrytého ořezu.
+- **Přístupová ochrana:** server vytvoří jen `units` dovolené podle `preview/full`; plný text ukázkové knihy se nehydratuje skrytě v prohlížeči. Stejná přístupová kontrola jako pro původní reader.
+- **Lokální čtenářská data:** nové klíče `artales.semantic.position:` a `artales.semantic.notes:` jsou oddělené od legacy klíčů. Kotvy poznámek přecházejí přes sazební revize jen při shodě hash původního atomu; neshodná poznámka se nesmaže a nepřipojí nesprávně. Účetní synchronizace zůstává úkolem, který nelze vydávat za hotový.
+- CI na commitu `7678c0b52b55c9b5498761562983681120131768` prošlo; přesný novější head musí být znovu ověřen, pokud se změní. **Bez screenshotového browser QA není veřejný reader schválen k nasazení.**
