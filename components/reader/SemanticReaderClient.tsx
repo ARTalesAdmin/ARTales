@@ -6,7 +6,7 @@ import {projectSemanticUnits} from "@/lib/semantic/readerProjectionCore";
 import type {SemanticPage,SemanticPageUnit} from "@/lib/semantic/model";
 import {clampReaderFontScale,defaultReaderSettings,type ReaderSettings} from "@/lib/reader/readerSettings";
 import {loadReaderSettings,saveReaderSettings,type ReaderNote,type ReaderNoteColor} from "@/lib/reader/readerStorage";
-import {filterSemanticReaderNotes,makeSemanticReaderNote,pageForSemanticNote,semanticNotesKey,type SemanticReaderNote} from "@/lib/semantic/readerNotes";
+import {filterSemanticReaderNotes,makeSemanticReaderNote,pageForSemanticNote,semanticNotesKey,sourceShaForAtom,type SemanticReaderNote} from "@/lib/semantic/readerNotes";
 import {getPublicDictionary} from "@/lib/i18n/public";
 import type {SupportedLocale} from "@/lib/i18n/config";
 import {anchorForSemanticPage,pageForSemanticAnchor,semanticPositionKey,validateSemanticPosition}
@@ -101,7 +101,8 @@ export default function SemanticReaderClient({slug,title,revisionSha,mode,locale
   if(!hydrated||positionLoaded)return;
   try{
    const raw=window.localStorage.getItem(semanticPositionKey(slug));
-   const saved=validateSemanticPosition(raw?JSON.parse(raw):null,slug,revisionSha);
+   const saved=validateSemanticPosition(raw?JSON.parse(raw):null,slug,revisionSha,
+    atomId=>sourceShaForAtom(units,atomId));
    if(saved)savedAnchor.current={atomId:saved.atomId,offset:saved.offset};
   }catch{/* malformed local state must never block reading */}
   const frame=window.requestAnimationFrame(()=>setPositionLoaded(true));
@@ -153,11 +154,12 @@ export default function SemanticReaderClient({slug,title,revisionSha,mode,locale
   if(!anchor)return;
   try{
    window.localStorage.setItem(semanticPositionKey(slug),JSON.stringify({
-    schema:"artales.semantic.saved-position.v1",
-    slug,revisionSha,atomId:anchor.atomId,offset:anchor.offset,updatedAt:new Date().toISOString()
+    schema:"artales.semantic.saved-position.v2",
+    slug,revisionSha,atomId:anchor.atomId,atomSourceSha:sourceShaForAtom(units,anchor.atomId),
+    offset:anchor.offset,updatedAt:new Date().toISOString()
    }));
   }catch{/* reading works with storage disabled */}
- },[hydrated,restoreComplete,mode,pages,current,slug,revisionSha]);
+ },[hydrated,restoreComplete,mode,pages,current,slug,revisionSha,units]);
  const goToPage=useCallback((requested:number)=>{
   const requestedIndex=clamp(Math.trunc(requested-1),0,pageCount-1);
   const next=spread?requestedIndex-requestedIndex%2:requestedIndex;
