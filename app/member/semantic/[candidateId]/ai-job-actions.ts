@@ -8,7 +8,7 @@ const sha=/^[a-f0-9]{64}$/;
 const enabled=()=>process.env.ARTALES_AI_DURABLE_JOBS_ENABLED==="enabled";
 export type QaJobStatus={
  ok:boolean;jobId:string|null;status:"queued"|"running"|"completed"|"failed"|"none";
- message:string;suggestions:AiQaSuggestion[];
+ message:string;suggestions:AiQaSuggestion[];disabled?:boolean;
 };
 const fail=(message:string):QaJobStatus=>({
  ok:false,jobId:null,status:"none",message,suggestions:[]
@@ -29,7 +29,7 @@ export async function enqueueSemanticAiQaJob(input:{
  candidateId:string;revisionSha:string
 }):Promise<QaJobStatus>{
  await requireEditorOrAdmin();
- if(!enabled())return fail("Trvalá AI fronta zatím není zapnutá.");
+ if(!enabled())return {...fail("Trvalá AI fronta zatím není zapnutá."),disabled:true};
  if(!uuid.test(input.candidateId)||!sha.test(input.revisionSha))
   return fail("Neplatná identita díla nebo revize.");
  const db=await createClient();
