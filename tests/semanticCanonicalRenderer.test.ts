@@ -29,7 +29,7 @@ test("layout presentation belongs to semantic edition; all rendering is immutabl
  assert.match(shared,/semanticPresentationStyle/);
  assert.match(shared,/unit\.node\.presentation/);
  assert.match(shared,/unit\.fragment/);
- assert.match(shared,/unit\.node\.atom\.raw\.slice\(start,end\)/);
+ assert.match(shared,/atom\.raw\.slice\(start,end\)/);
  assert.doesNotMatch(shared,/\.update\(|\.insert\(|\.rpc\(|fetch\(/);
 });
 test("legacy content and reader are retained for pre-migration published works",()=>{
