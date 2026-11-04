@@ -65,12 +65,22 @@ export default function SemanticQaPanel(p:Props){
    // AI suggestions are NEVER committed automatically.
    const next:Record<string,EditorialBatchAction|"">={};
    for(const suggestion of response.suggestions){
-    if(["compact","airy","center","exclude_note"].includes(suggestion.action))
+    if(["compact","airy","center"].includes(suggestion.action))
      next[suggestion.flagId]=suggestion.action as EditorialBatchAction;
    }
    setRepairs(next);
    const proposedTerm=response.suggestions.find(x=>x.action==="protect_term"&&x.term)?.term;
    if(proposedTerm)setTerm(proposedTerm);
+  });
+ };
+ const preview=()=>{
+  startTransition(async()=>{
+   const result=await previewSemanticQaBatch({
+    candidateId:p.candidateId,revisionSha:p.revisionSha,
+    repairs:ready.map(x=>({flagId:x.flag.id,action:x.action as EditorialBatchAction}))
+   });
+   setFeedback(result.message);
+   if(result.ok&&result.revision)p.onPreview(result.revision);
   });
  };
  const protect=()=>{
