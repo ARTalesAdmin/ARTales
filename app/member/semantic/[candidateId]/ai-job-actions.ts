@@ -11,18 +11,18 @@ const configured=()=>Boolean(process.env.CRON_SECRET&&process.env.CRON_SECRET.le
  process.env.ARTALES_EDITORIAL_AI_MODEL);
 export type QaJobStatus={
  ok:boolean;jobId:string|null;status:"queued"|"running"|"completed"|"failed"|"none";
- message:string;suggestions:AiQaSuggestion[];disabled?:boolean;
+ message:string;suggestions:AiQaSuggestion[];appliedRevisionSha?:string|null;disabled?:boolean;
 };
 const fail=(message:string):QaJobStatus=>({
  ok:false,jobId:null,status:"none",message,suggestions:[]
 });
-const parseRow=(row:{id:string;status:string;suggestions:unknown;error_code:string|null}):QaJobStatus=>{
+const parseRow=(row:{id:string;status:string;suggestions:unknown;error_code:string|null;applied_revision_sha256:string|null}):QaJobStatus=>{
  const status=["queued","running","completed","failed"].includes(row.status)
   ?row.status as QaJobStatus["status"]:"failed";
  const suggested=Array.isArray(row.suggestions)?row.suggestions as AiQaSuggestion[]:[];
- return {ok:true,jobId:row.id,status,
+ return {ok:true,jobId:row.id,status,appliedRevisionSha:row.applied_revision_sha256,
   suggestions:status==="completed"?suggested:[],
-  message:status==="queued"?"Oprava čeká ve frontě; můžeš odejít a později se vrátit."
+  message:status==="queued"?"Oprava čeká ve frontě Nexus AI; můžeš odejít a později se vrátit."
    :status==="running"?"AI připravuje sazební návrhy. Můžeš pokračovat v jiné práci."
    :status==="completed"?"Návrhy jsou připravené k redakční kontrole."
    :"AI dávka nebyla dokončena ("+(row.error_code??"neznámá chyba")+")."
@@ -50,7 +50,7 @@ export async function readSemanticAiQaJob(input:{jobId:string}):Promise<QaJobSta
  if(!uuid.test(input.jobId))return fail("Neplatné ID AI úlohy.");
  const db=await createClient();
  const {data,error}=await db.from("artales_semantic_ai_qa_jobs")
-  .select("id,status,suggestions,error_code,created_by")
+  .select("id,status,suggestions,error_code,created_by,applied_revision_sha256")
   .eq("id",input.jobId).maybeSingle();
  if(error||!data|| (actor.role!=="admin"&&data.created_by!==actor.id))
   return fail("Úloha není dostupná.");
