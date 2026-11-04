@@ -100,7 +100,7 @@ test("semantic page split keeps punctuation and prevents text cutting",()=>{
 
 test("the visible and offscreen measurement renderer apply identical work-level protected terms",()=>{
  const reader=readFileSync(new URL("../components/editor/SemanticReaderLab.tsx",import.meta.url),"utf8");
- const uses=reader.split("unitView(u,protectedTerms)").length-1;
+ const uses=reader.split("<SemanticUnitContent unit={u} protectedTerms={protectedTerms}/>").length-1;
  assert.equal(uses,2,"measurement and visible page must both use protectedTerms");
  assert.match(reader,/className="semantic-reader__measurement"/);
  assert.match(reader,/data-qa-projection="visible"/);
