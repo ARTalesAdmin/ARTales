@@ -21,6 +21,7 @@ on:
       - 'app/member/layout.tsx'
       - 'tests/editorialOwnershipV2.test.ts'
       - 'tests/editorialPoolV3.test.ts'
+      - 'tests/semanticPaginationMatrix.test.ts'
       - 'tests/semanticQaWorkflow.test.ts'
       - 'components/editor/semantic-reader.css'
       - 'components/reader/SemanticPublicReader.tsx'
@@ -52,6 +53,8 @@ jobs:
         run: npx tsx --test tests/semanticQaWorkflow.test.ts
       - name: Editorial assignment and review workflow contract
         run: npx tsx --test tests/editorialOwnershipV2.test.ts
+      - name: Browser layout repagination source preservation
+        run: npx tsx --test tests/semanticPaginationMatrix.test.ts
       - name: Editorial pool, audit and AI proposal boundary
         run: npx tsx --test tests/editorialPoolV3.test.ts
       - name: Atomic batch and disputed-note semantic evidence
