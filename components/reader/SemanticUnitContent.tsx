@@ -46,6 +46,7 @@ function semanticNodeView(node:SemanticNode,terms:readonly string[]):ReactNode{
   return <div key={node.id} style={semanticPresentationStyle(node.presentation)}>
    {poemView(node)}
   </div>;
+ if(!("atom" in node))return null;
  const body=atomView(node.atom,true,terms);
  if(node.kind==="quote"||node.kind==="epigraph")
   return <blockquote key={node.id} style={semanticPresentationStyle(node.presentation)}>{body}</blockquote>;
