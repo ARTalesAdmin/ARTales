@@ -2,6 +2,7 @@
 import {revalidatePath} from "next/cache";
 import {requireEditorOrAdmin,requireAdmin} from "@/lib/guards";
 import {createClient} from "@/lib/supabase/server";
+import {createClient as createServiceClient} from "@supabase/supabase-js";
 import {verifySemanticRevision,walkSemanticAtoms,recomposeSemanticBatch} from "@/lib/semantic/compose";
 import type {SemanticRevision} from "@/lib/semantic/model";
 const uuid=/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -167,21 +168,84 @@ export async function previewSemanticQaBatch(input:QaBatchInput):Promise<QaBatch
 
 /** Persist only through the separately governed, admin-only immutable revision RPC. */
 export async function commitSemanticQaBatch(input:QaBatchInput):Promise<QaMutationResult>{
- await requireAdmin();
+ const actor=await requireEditorOrAdmin();
  const prepared=await prepareQaPresentationBatch(input);
  if(!prepared.ok)return prepared;
  const db=await createClient();
- const {data,error}=await db.rpc("artales_commit_semantic_qa_batch",{
-  p_candidate_id:input.candidateId,p_parent_sha:input.revisionSha,
-  p_revision:prepared.revision,p_flag_ids:input.repairs.map(x=>x.flagId)
- });
- if(error||data?.result!=="created")
-  return {ok:false,message:"Atomická revize nebyla potvrzena. Nálezy zůstávají otevřené."};
+ // Exclusion of nonliterary distribution apparatus is NOT AI-driven, and
+ // retains the existing admin-only approval path.
+ if(input.repairs.some(x=>x.action==="exclude_note")){
+  if(actor.role!=="admin")return {ok:false,message:"Vyřazení ediční poznámky vyžaduje garanta."};
+  const {data,error}=await db.rpc("artales_commit_semantic_qa_batch",{
+   p_candidate_id:input.candidateId,p_parent_sha:input.revisionSha,
+   p_revision:prepared.revision,p_flag_ids:input.repairs.map(x=>x.flagId)
+  });
+  if(error||data?.result!=="created")return {ok:false,message:"Ediční vyřazení nebylo schváleno."};
+ }else{
+  const {data:owner,error:ownerError}=await db.from("artales_editorial_tasks")
+   .select("id").eq("candidate_id",input.candidateId)
+   .eq("revision_sha256",input.revisionSha).eq("kind","text_review")
+   .eq("assigned_to",actor.id).eq("status","claimed").maybeSingle();
+  if(ownerError||!owner)return {ok:false,message:"Opravu smí uložit jen právě přiřazený QA editor."};
+  // No service-role key is ever passed to the browser or accepted as an argument.
+  const roleKey=process.env.SUPABASE_SERVICE_ROLE_KEY;
+  const url=process.env.NEXT_PUBLIC_SUPABASE_URL;
+  if(!roleKey||!url)return {ok:false,message:"Zabezpečené ukládání sazby není nakonfigurováno."};
+  const internal=createServiceClient(url,roleKey,{
+   auth:{persistSession:false,autoRefreshToken:false}
+  });
+  const {data,error}=await internal.rpc("artales_commit_safe_layout_revision",{
+   p_candidate_id:input.candidateId,p_parent_sha:input.revisionSha,
+   p_revision:prepared.revision,p_flag_ids:input.repairs.map(x=>x.flagId),
+   p_editor_id:actor.id
+  });
+  if(error||data?.result!=="created")
+   return {ok:false,message:"Změnu odmítla databázová kontrola. Revizi a nálezy ponecháváme beze změn."};
+ }
  revalidatePath("/member/semantic/"+input.candidateId);
  revalidatePath("/member/editorial-pipeline");
  revalidatePath("/member","layout");
- return {ok:true,message:"Uložena nová neměnná revize s "+input.repairs.length+
-   " opravami pouze formátování. Zůstáváš v aktuální redakční seanci."};
+ return {ok:true,message:"Bez změny jediného znaku byl uložen nový návrh sazby. Opravené bloky čekají na potvrzení."};
+}
+
+export async function decideSemanticChange(input:{
+ candidateId:string;revisionSha:string;issueId:string;decision:"accepted"|"returned";note:string
+}):Promise<QaMutationResult>{
+ await requireEditorOrAdmin();
+ if(!uuid.test(input.candidateId)||!sha.test(input.revisionSha)||
+  input.issueId.length<1||input.issueId.length>160||
+  !["accepted","returned"].includes(input.decision)||
+  (input.decision==="returned"&&(input.note.trim().length<15||input.note.length>4000)))
+  return {ok:false,message:"Neplatné rozhodnutí; vrácení vyžaduje důvod alespoň 15 znaků."};
+ const db=await createClient();
+ const {data,error}=await db.rpc("artales_review_semantic_change",{
+  p_candidate_id:input.candidateId,p_revision_sha:input.revisionSha,
+  p_issue_id:input.issueId,p_decision:input.decision,
+  p_note:input.decision==="returned"?input.note.trim():null
+ });
+ if(error||!["accepted","returned"].includes(data?.result))
+  return {ok:false,message:"Rozhodnutí nebylo zapsáno; ověř aktuální QA revizi."};
+ revalidatePath("/member/semantic/"+input.candidateId);
+ revalidatePath("/member/editorial-pipeline");
+ return {ok:true,message:data.result==="accepted"?"Změna přijata.":"Změna vrácena s poznámkou do další opravné dávky."};
+}
+
+export async function finishSemanticQaReview(input:{
+ candidateId:string;revisionSha:string;taskId:string
+}):Promise<QaMutationResult>{
+ await requireEditorOrAdmin();
+ if(!uuid.test(input.candidateId)||!uuid.test(input.taskId)||!sha.test(input.revisionSha))
+  return {ok:false,message:"Neplatný QA úkol."};
+ const db=await createClient();
+ const {data,error}=await db.rpc("artales_finish_semantic_text_qa",{
+  p_task_id:input.taskId,p_revision_sha:input.revisionSha
+ });
+ if(error||data?.result!=="completed")
+  return {ok:false,message:"QA zatím nelze přijmout. Ověř všechny otevřené nálezy a změněné bloky."};
+ revalidatePath("/member/semantic/"+input.candidateId);
+ revalidatePath("/member/editorial-pipeline");
+ revalidatePath("/member","layout");
+ return {ok:true,message:"Textové QA dokončeno; navazující redakční úkoly mohou pokračovat."};
 }
 
 export async function saveWorkTypographyRule(input:{
