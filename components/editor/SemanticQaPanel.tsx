@@ -194,7 +194,7 @@ export default function SemanticQaPanel(p:Props){
     vznikne právě jeden nový textový QA úkol pro stejného editora.</p>
    <button type="button" disabled={pending||!p.databaseReady} onClick={batch}>
     Provést {ready.length} oprav a vytvořit novou revizi
-   </button>
+   </button></>:null}
   </section>:null}
   {!p.canCommitBatch&&ready.length>0?<p>Provedení dávky vyžaduje garanta. Použij „Požádat Luboše o pomoc“ nad redakcí a uveď rozsah oprav.</p>:null}
   <p role="status" aria-live="polite">{feedback}</p>
