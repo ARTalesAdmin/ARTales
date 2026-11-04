@@ -9,6 +9,7 @@ CREATE TABLE IF NOT EXISTS public.artales_semantic_ai_qa_jobs(
  flag_ids uuid[] NOT NULL,
  status text NOT NULL DEFAULT 'queued' CHECK(status IN ('queued','running','completed','failed')),
  suggestions jsonb,
+ applied_revision_sha256 text REFERENCES public.candidate_semantic_revisions(revision_sha256) ON DELETE RESTRICT,
  error_code text,
  attempt_count integer NOT NULL DEFAULT 0 CHECK(attempt_count BETWEEN 0 AND 2),
  created_at timestamptz NOT NULL DEFAULT now(),
@@ -106,14 +107,15 @@ BEGIN
  WHERE id=v_job.id;
  RETURN pg_catalog.jsonb_build_object('result','claimed',
   'job_id',v_job.id,'candidate_id',v_job.candidate_id,
-  'revision_sha256',v_job.revision_sha256,'flag_ids',pg_catalog.to_jsonb(v_job.flag_ids));
+  'revision_sha256',v_job.revision_sha256,'created_by',v_job.created_by,
+  'flag_ids',pg_catalog.to_jsonb(v_job.flag_ids));
 END $claim$;
 REVOKE ALL ON FUNCTION public.artales_claim_ai_qa_job() FROM PUBLIC,anon,authenticated;
 GRANT EXECUTE ON FUNCTION public.artales_claim_ai_qa_job() TO service_role;
 
 -- Worker stores only reviewed suggestion proposals. Complete status is immutable.
 CREATE OR REPLACE FUNCTION public.artales_finish_ai_qa_job(
- p_job_id uuid,p_suggestions jsonb,p_error_code text)
+ p_job_id uuid,p_suggestions jsonb,p_error_code text,p_applied_revision_sha text)
 RETURNS jsonb LANGUAGE plpgsql SECURITY DEFINER SET search_path='' AS $finish$
 DECLARE v_job public.artales_semantic_ai_qa_jobs%ROWTYPE;v_count integer;
 BEGIN
@@ -135,15 +137,21 @@ BEGIN
    (SELECT count(DISTINCT x->>'flagId') FROM pg_catalog.jsonb_array_elements(p_suggestions) x)
       <>pg_catalog.cardinality(v_job.flag_ids) THEN
    RETURN pg_catalog.jsonb_build_object('result','invalid_result');END IF;
+  IF p_applied_revision_sha IS NOT NULL AND NOT EXISTS(
+   SELECT 1 FROM public.candidate_semantic_revisions r
+   WHERE r.candidate_id=v_job.candidate_id AND r.revision_sha256=p_applied_revision_sha
+    AND r.revision->>'parent_revision_ref'='sha256:'||v_job.revision_sha256)
+  THEN RETURN pg_catalog.jsonb_build_object('result','invalid_applied_revision');END IF;
   UPDATE public.artales_semantic_ai_qa_jobs SET status='completed',
-   suggestions=p_suggestions,updated_at=now(),finished_at=now() WHERE id=p_job_id;
+   suggestions=p_suggestions,applied_revision_sha256=p_applied_revision_sha,
+   updated_at=now(),finished_at=now() WHERE id=p_job_id;
  ELSE
   UPDATE public.artales_semantic_ai_qa_jobs SET status='failed',
    error_code=left(p_error_code,100),updated_at=now(),finished_at=now() WHERE id=p_job_id;
  END IF;
  RETURN pg_catalog.jsonb_build_object('result','stored');
 END $finish$;
-REVOKE ALL ON FUNCTION public.artales_finish_ai_qa_job(uuid,jsonb,text)
+REVOKE ALL ON FUNCTION public.artales_finish_ai_qa_job(uuid,jsonb,text,text)
  FROM PUBLIC,anon,authenticated;
-GRANT EXECUTE ON FUNCTION public.artales_finish_ai_qa_job(uuid,jsonb,text) TO service_role;
+GRANT EXECUTE ON FUNCTION public.artales_finish_ai_qa_job(uuid,jsonb,text,text) TO service_role;
 COMMIT;
