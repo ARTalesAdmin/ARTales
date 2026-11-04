@@ -112,3 +112,20 @@ export async function reassignEditorialTask(form:FormData){
  refreshEditorialQueue();
  redirect("/member/editorial-pipeline?notice=reassigned");
 }
+
+export async function completeMethodologyReview(form:FormData){
+ if(!SEMANTIC_PIPELINE_ENABLED)notFound();
+ await requireAdmin();
+ const id=String(form.get("review_id")??"");
+ const conclusion=String(form.get("conclusion")??"").trim();
+ if(!uuid.test(id)||conclusion.length<25||conclusion.length>4000)
+  redirect("/member/editorial-pipeline?error=methodology_conclusion_required");
+ const db=await createClient();
+ const {data,error}=await db.rpc("artales_complete_methodology_review",{
+  p_id:id,p_conclusion:conclusion
+ });
+ if(error||data?.result!=="completed")
+  redirect("/member/editorial-pipeline?error=methodology_review_failed");
+ refreshEditorialQueue();
+ redirect("/member/editorial-pipeline?notice=methodology_review_completed");
+}
