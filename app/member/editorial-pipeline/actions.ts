@@ -73,3 +73,42 @@ export async function requestSemanticSecondReview(form:FormData){
  revalidatePath("/member");
  redirect("/member/editorial-pipeline?notice=second_review_requested");
 }
+
+
+function refreshEditorialQueue(){
+ revalidatePath("/member/editorial-pipeline");
+ revalidatePath("/member");
+}
+export async function releaseEditorialTask(form:FormData){
+ if(!SEMANTIC_PIPELINE_ENABLED)notFound();
+ await requireEditorOrAdmin();
+ const id=String(form.get("task_id")??"");
+ const reason=String(form.get("reason")??"").trim();
+ if(!uuid.test(id)||reason.length<20||reason.length>1000)
+  redirect("/member/editorial-pipeline?error=invalid_release_reason");
+ const db=await createClient();
+ const {data,error}=await db.rpc("artales_release_editorial_task",{
+  p_task_id:id,p_reason:reason
+ });
+ if(error||data?.result!=="released")
+  redirect("/member/editorial-pipeline?error=release_failed");
+ refreshEditorialQueue();
+ redirect("/member/editorial-pipeline?notice=released");
+}
+export async function reassignEditorialTask(form:FormData){
+ if(!SEMANTIC_PIPELINE_ENABLED)notFound();
+ await requireAdmin();
+ const id=String(form.get("task_id")??"");
+ const assignee=String(form.get("assignee_id")??"");
+ const reason=String(form.get("reason")??"").trim();
+ if(!uuid.test(id)||!uuid.test(assignee)||reason.length<20||reason.length>1000)
+  redirect("/member/editorial-pipeline?error=invalid_reassignment");
+ const db=await createClient();
+ const {data,error}=await db.rpc("artales_reassign_editorial_task",{
+  p_task_id:id,p_new_assignee:assignee,p_reason:reason
+ });
+ if(error||data?.result!=="reassigned")
+  redirect("/member/editorial-pipeline?error=reassignment_failed");
+ refreshEditorialQueue();
+ redirect("/member/editorial-pipeline?notice=reassigned");
+}
