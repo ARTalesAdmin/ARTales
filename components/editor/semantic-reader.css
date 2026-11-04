@@ -220,3 +220,28 @@
 .semantic-qa-panel__fast-rule input{display:block;padding:8px;margin:8px 0;border-radius:8px;
  border:1px solid #c7b59a;width:100%;box-sizing:border-box}
 .semantic-qa-panel__batch button,.semantic-qa-panel__signals button{margin:4px}
+
+/* Review status and active selection must never be confused.
+   All corrected source/display blocks use teal; current editor selection is amber. */
+.semantic-reader__unit[data-review-fixed="true"],
+.semantic-reader__source-region[data-review-fixed="true"]{
+ outline:2px solid #2b877f;outline-offset:2px;
+ background:#e2f5f0;border-radius:4px;
+}
+.semantic-reader__unit[data-selected="true"],
+.semantic-reader__source-region[data-selected="true"],
+.semantic-reader__unit[data-selected="true"][data-review-fixed="true"],
+.semantic-reader__source-region[data-selected="true"][data-review-fixed="true"]{
+ outline:3px solid #b4771d;outline-offset:3px;
+ background:#ffe2a8;border-radius:4px;
+}
+.semantic-reader__qa-key{display:inline-flex;gap:8px;align-items:center;font:12px system-ui}
+.semantic-reader__key-swatch{width:13px;height:13px;display:inline-block;border-radius:3px}
+.semantic-reader__key-swatch--changed{background:#e2f5f0;border:2px solid #2b877f}
+.semantic-reader__key-swatch--selected{background:#ffe2a8;border:2px solid #b4771d}
+.semantic-qa-panel__review{padding:11px;margin:9px 0;border:1px solid #a6c9c2;
+ border-radius:10px;background:#eff9f5}
+.semantic-qa-panel__review-actions{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.semantic-qa-panel__review textarea{display:block;width:100%;min-height:70px;box-sizing:border-box}
+.semantic-qa-panel progress{width:100%;height:14px}
+.semantic-qa-panel__review-note{border-left:3px solid #ba7435;padding-left:10px;white-space:pre-wrap}
