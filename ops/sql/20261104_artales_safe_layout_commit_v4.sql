@@ -106,6 +106,20 @@ BEGIN
  SELECT candidate_id,v_new_sha,target_atom_id,source_start,source_end,kind,comment,created_by
  FROM public.artales_semantic_qa_flags
  WHERE candidate_id=p_candidate_id AND revision_sha256=p_parent_sha AND status='open';
+ IF NOT EXISTS(SELECT 1 FROM public.artales_editorial_tasks t
+  WHERE t.candidate_id=p_candidate_id AND t.revision_sha256=v_new_sha
+   AND t.kind='text_review' AND t.assigned_to=p_editor_id AND t.status='open')
+ THEN RAISE EXCEPTION 'followup_qa_missing';END IF;
+ UPDATE public.artales_editorial_tasks SET status='superseded'
+ WHERE candidate_id=p_candidate_id AND revision_sha256=p_parent_sha
+  AND kind='text_review' AND assigned_to=p_editor_id AND status='claimed';
+ GET DIAGNOSTICS v_changed=ROW_COUNT;
+ IF v_changed<>1 THEN RAISE EXCEPTION 'supersede_failed';END IF;
+ INSERT INTO public.artales_editorial_events(task_id,actor_id,action,note)
+ SELECT t.id,p_editor_id,'superseded','Nahrazena revizí '||v_new_sha
+ FROM public.artales_editorial_tasks t
+ WHERE t.candidate_id=p_candidate_id AND t.revision_sha256=p_parent_sha
+  AND t.kind='text_review' AND t.status='superseded';
  RETURN pg_catalog.jsonb_build_object('result','created','revision_sha256',v_new_sha,'changes',v_flags);
 END $commit$;
 REVOKE ALL ON FUNCTION public.artales_commit_safe_layout_revision(uuid,text,jsonb,uuid[],uuid) FROM PUBLIC,anon,authenticated;
