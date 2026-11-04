@@ -34,10 +34,11 @@ export default function SemanticReaderClient({slug,title,revisionSha,mode,locale
  const maxPaperWidth=WIDTHS[settings.width];
  const pageWidth=spread?clamp((viewport.width-52)/2,270,maxPaperWidth):clamp(viewport.width-28,290,maxPaperWidth);
  const pageHeight=Math.round(pageWidth*1.414);
+ const readingWidth=Math.max(200,pageWidth-64);
  const layout=useMemo(()=>({
-  mode:"paged" as const,viewport_width:pageWidth,viewport_height:pageHeight,
+  mode:"paged" as const,viewport_width:readingWidth,viewport_height:Math.max(320,pageHeight-66),
   density:settings.density,font_scale:settings.fontScale,measured_unit_heights:measured
- }),[pageWidth,pageHeight,settings.density,settings.fontScale,measured]);
+ }),[readingWidth,pageHeight,settings.density,settings.fontScale,measured]);
  const pages=useMemo(()=>projectSemanticUnits(units,layout),[units,layout]);
  const pageCount=Math.max(1,pages.length);
  const current=clamp(pageIndex,0,pageCount-1);
@@ -150,7 +151,7 @@ export default function SemanticReaderClient({slug,title,revisionSha,mode,locale
  </div>;
  const renderSheet=(page:SemanticPage|undefined,index:number,additional="")=>
   <article data-page-index={index}
-   className={`artales-reader__paper artales-reader__paper--paged ${additional}`}>
+   className={`artales-reader__paper artales-reader__paper--paged ${additional} ${page?.overflow==="scroll_unit"?"artales-semantic-shell__paper--overflow":""}`}>
    <header className="artales-reader__page-header" aria-hidden="true">
     <span>{title}</span><span>{index+1}</span>
    </header>
@@ -185,8 +186,8 @@ export default function SemanticReaderClient({slug,title,revisionSha,mode,locale
   />
   <section className="artales-reader__stage">
    {/* Measure raw units; never measure split fragments as the original unit. */}
-   <div className="artales-semantic-shell__measurement" aria-hidden="true"
-    ref={measurementRef} style={{width:pageWidth}}>
+   <div className="artales-semantic-public artales-semantic-shell__measurement" aria-hidden="true"
+    ref={measurementRef} style={{width:readingWidth}}>
     {units.map(unit=><div key={unit.id} data-measure-semantic-id={unit.id}>
      <SemanticUnitContent unit={unit} protectedTerms={protectedTerms}/>
     </div>)}
