@@ -2,8 +2,9 @@
 import {useMemo,useState,useTransition} from "react";
 import {useRouter} from "next/navigation";
 import {suggestSemanticQaRepairs,type AiQaSuggestion} from "@/app/member/semantic/[candidateId]/ai-qa-actions";
-import {commitSemanticQaBatch,resolveSemanticQaFlag,saveWorkTypographyRule,
+import {commitSemanticQaBatch,previewSemanticQaBatch,resolveSemanticQaFlag,saveWorkTypographyRule,
   submitSemanticQaFlag,type EditorialBatchAction} from "@/app/member/semantic/[candidateId]/qa-actions";
+import type {SemanticRevision} from "@/lib/semantic/model";
 export type SemanticQaFlag={
  id:string;revision_sha256:string;target_atom_id:string;
  source_start:number;source_end:number;kind:string;comment:string;
@@ -13,7 +14,7 @@ type SystemSignal={atomId:string;sourceStart:number;reason:string;kind:"source_a
 type Props={candidateId:string;revisionSha:string;selectedAtomId:string|null;
  selectedText:string|null;flags:SemanticQaFlag[];onSelect:(atomId:string)=>void;
  readonly?:boolean;databaseReady:boolean;onSaved:()=>void;systemSignals:SystemSignal[];
- canCommitBatch:boolean};
+ canCommitBatch:boolean;onPreview:(revision:SemanticRevision)=>void};
 const kinds=[{value:"text",label:"Text"},{value:"typography",label:"Sazba a řádky"},
  {value:"structure",label:"Struktura"},{value:"image",label:"Vizuál"},
  {value:"other",label:"Jiné"}];
@@ -182,7 +183,13 @@ export default function SemanticQaPanel(p:Props){
       </details>
      </div>}
    </article>)}</div>}
-  {ready.length>0&&p.canCommitBatch?<section className="semantic-qa-panel__batch">
+  {ready.length>0?<section className="semantic-qa-panel__batch">
+   <p>Bezpečný okamžitý náhled změn formátování lze vykreslit ještě před uložením.
+      Text, pořadí ani zdrojové kotvy se nemění.</p>
+   <button type="button" disabled={pending||!p.databaseReady} onClick={preview}>
+    Zobrazit opravenou sazbu bez uložení
+   </button>
+   {p.canCommitBatch?<>
    <p>Vybráno {ready.length} oprav. Uloží se najednou jako jediná neměnná revize,
     vznikne právě jeden nový textový QA úkol pro stejného editora.</p>
    <button type="button" disabled={pending||!p.databaseReady} onClick={batch}>
