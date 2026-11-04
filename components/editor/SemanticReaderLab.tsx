@@ -8,7 +8,7 @@ import {getProfileReaderSettings, type FixtureProfileReaderDefaults} from "@/lib
 import {defaultReaderSettings, type ReaderDensityId} from "@/lib/reader/readerSettings";
 import type {SemanticRevision} from "@/lib/semantic/model";
 import SemanticUnitContent from "@/components/reader/SemanticUnitContent";
-import {getSemanticPageUnits, projectSemanticReader, verifyReaderProjection} from "@/lib/semantic/readerProjection";
+import {getSemanticPageUnits, projectSemanticReader, verifyReaderProjection} from "@/lib/semantic/readerProjectionCore";
 import {selectEditorialEdition} from "@/lib/semantic/editionProjection";
 import SemanticQaPanel,{type SemanticQaFlag} from "./SemanticQaPanel";
 import "./semantic-reader.css";
