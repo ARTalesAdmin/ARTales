@@ -4,7 +4,7 @@ import {requireEditorOrAdmin} from "@/lib/guards";
 import {createClient} from "@/lib/supabase/server";
 import {
  claimSemanticTask,completeSemanticTask,requestSemanticSecondReview,
- releaseEditorialTask,reassignEditorialTask
+ releaseEditorialTask,reassignEditorialTask,completeMethodologyReview
 } from "./actions";
 import {SEMANTIC_PIPELINE_ENABLED} from "@/lib/semantic/featureFlag";
 import {resolveEditorialHelp} from "@/app/member/editorial-help/actions";
@@ -25,6 +25,8 @@ const errorMessages:Record<string,string>={
  invalid_release_reason:"Pro uvolnění úkolu uveď důvod (20 až 1 000 znaků).",
  invalid_reassignment:"Vyber způsobilého editora a uveď důvod (20 až 1 000 znaků).",
  task_failed:"Úkol nelze dokončit. Ověř nevyřešené QA nálezy.",
+ methodology_conclusion_required:"Závěr revize metodiky musí obsahovat alespoň 25 znaků.",
+ methodology_review_failed:"Revize metodiky nebyla dokončena.",
 };
 type Props={searchParams:Promise<{error?:string;notice?:string}>};
 export default async function EditorialPipeline({searchParams}:Props){
@@ -46,6 +48,11 @@ export default async function EditorialPipeline({searchParams}:Props){
   isAdmin?db.from("artales_editorial_events").select("task_id,actor_id,action,occurred_at")
    .order("occurred_at",{ascending:false}).limit(1000):Promise.resolve({data:[]})
  ]);
+ const {data:methodologyReviews}=isAdmin?await db.from("artales_editorial_methodology_reviews")
+  .select("id,month_start,due_date,status,created_at,conclusion")
+  .order("month_start",{ascending:false}).limit(12):{data:[]};
+ const {data:qaDecisions}=isAdmin?await db.from("artales_semantic_change_reviews")
+  .select("decision,reviewed_at").order("reviewed_at",{ascending:false}).limit(500):{data:[]};
  const query=await searchParams;
  const roster=(people??[]).filter(p=>p.id&&p.display_name);
  const names=new Map(roster.map(p=>[p.id,p.display_name]));
@@ -163,6 +170,28 @@ export default async function EditorialPipeline({searchParams}:Props){
     Převzetí je jednorázové a nelze získat úkol jiného editora.</p>
    {available.length?available.map(t=>taskCard(t,"available")):<p>Žádný další vhodný titul není momentálně volný.</p>}
   </section>
+  {isAdmin?<section aria-label="Kontrolované učení ARTales" style={{marginTop:24}}>
+    <h2>Kontrolované učení a revize metodiky</h2>
+    <p>Jednou měsíčně vzniká úkol garanta. Z logů posoudíš opakující se nálezy
+     a přijetí či vrácení oprav. Žádná metodika se automaticky nemění.</p>
+    <p>Posouzení jednotlivých změn: {(qaDecisions??[]).filter(x=>x.decision==="accepted").length} přijatých,
+     {" "}{(qaDecisions??[]).filter(x=>x.decision==="returned").length} vrácených
+     (z posledních 500 záznamů).</p>
+    {(methodologyReviews??[]).map(review=><article key={review.id}
+      style={{padding:16,border:"1px solid #c8b79b",borderRadius:10,margin:"12px 0"}}>
+      <h3>Revize metodiky · {review.month_start}</h3>
+      <p>Termín {review.due_date} · {review.status==="open"?"Čeká na garanta":"Dokončeno"}</p>
+      {review.status==="open"?<form action={completeMethodologyReview}
+        style={{display:"grid",gap:8,maxWidth:650}}>
+       <input type="hidden" name="review_id" value={review.id}/>
+       <label>Závěr kontroly a přijaté změny metodiky
+        <textarea name="conclusion" required minLength={25} maxLength={4000} rows={4}
+         placeholder="Co se opakovalo, jaké máme důkazy a co přijmeme nebo odmítneme…"/>
+       </label>
+       <button type="submit">Potvrdit dokončení revize metodiky</button>
+      </form>:<p>{review.conclusion}</p>}
+     </article>)}
+   </section>:null}
   {isAdmin?<section aria-label="Přehled garanta">
    <h2>Garant: celé redakční vytížení</h2>
    <p>Další přidělené úkoly: {others.length}. Dokončené evidované úkoly: {finished.length}.</p>
