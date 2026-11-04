@@ -1,6 +1,6 @@
 "use server";
 import {revalidatePath} from "next/cache";
-import {requireEditorOrAdmin,requireAdmin} from "@/lib/guards";
+import {requireEditorOrAdmin} from "@/lib/guards";
 import {createClient} from "@/lib/supabase/server";
 import {createClient as createServiceClient} from "@supabase/supabase-js";
 import {verifySemanticRevision,walkSemanticAtoms,recomposeSemanticBatch} from "@/lib/semantic/compose";
