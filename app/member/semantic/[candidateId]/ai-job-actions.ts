@@ -65,7 +65,7 @@ export async function lastSemanticAiQaJob(input:{
   return fail("Neplatná identita díla nebo revize.");
  const db=await createClient();
  const {data,error}=await db.from("artales_semantic_ai_qa_jobs")
-  .select("id,status,suggestions,error_code,created_by")
+  .select("id,status,suggestions,error_code,created_by,applied_revision_sha256")
   .eq("candidate_id",input.candidateId).eq("revision_sha256",input.revisionSha)
   .eq("created_by",actor.id).order("created_at",{ascending:false})
   .limit(1).maybeSingle();
