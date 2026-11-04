@@ -115,7 +115,8 @@ export default function SemanticReaderLab({
   const [showOpenFlags,setShowOpenFlags]=useState(true);
   const [pageNumber,setPageNumber]=useState(0);
   const [fullscreen,setFullscreen]=useState(false);
-  const [previewRevision,setPreviewRevision]=useState<SemanticRevision|null>(null);
+  const [preview,setPreview]=useState<{parentSha:string;draft:SemanticRevision}|null>(null);
+  const previewRevision=preview?.parentSha===revisionSha?preview.draft:null;
   const activeRevision=previewRevision??revision;
   const edition=useMemo(()=>selectEditorialEdition(original),[original]);
   const [metrics,setMetrics]=useState<BrowserMeasurements|null>(null);
@@ -369,7 +370,7 @@ export default function SemanticReaderLab({
        <strong>Náhled opravené sazby · neuloženo</strong>
        <p>Stejný literární text, ověřené kotvy. Zkontroluj změny a stránkování;
         zavřením náhledu se vrátíš k původní revizi.</p>
-       <button type="button" onClick={()=>{setPreviewRevision(null);setPageNumber(0);}}>
+       <button type="button" onClick={()=>{setPreview(null);setPageNumber(0);}}>
         Vrátit původní sazbu</button>
       </div>:null}
       <p>Textová zkouška, nikoli veřejná publikace. Redakční srovnání literárního textu.</p>
@@ -421,8 +422,8 @@ export default function SemanticReaderLab({
         selectedAtomId={selectedAtomId} selectedText={selectedText??null}
         flags={flags} databaseReady={qaDatabaseReady} onSelect={selectAtom}
         systemSignals={systemSignals} canCommitBatch={canCommitBatch}
-        onPreview={next=>{setPreviewRevision(next);setPageNumber(0);setQaPanelOpen(false);}}
-        onSaved={()=>{setPreviewRevision(null);setQaPanelOpen(false);setSelectedAtomId(null);}}/>
+        onPreview={next=>{setPreview({parentSha:revisionSha,draft:next});setPageNumber(0);setQaPanelOpen(false);}}
+        onSaved={()=>{setPreview(null);setQaPanelOpen(false);setSelectedAtomId(null);}}/>
     </div>}
     {focus&&<SemanticReaderNotesQa notes={locatedNotes} selectedNoteId={selectedNoteId}
       selectedNoteIndex={selectedNoteIndex} listExpanded={expanded} status={noteFeedback}
