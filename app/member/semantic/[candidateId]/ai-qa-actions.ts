@@ -7,14 +7,14 @@ import type {SemanticRevision} from "@/lib/semantic/model";
 /** Suggestions ONLY. No semantic revision, source text or QA status is changed here. */
 export type AiQaSuggestion={
  flagId:string;
- action:"compact"|"airy"|"center"|"exclude_note"|"protect_term"|"manual_review";
+ action:"compact"|"airy"|"center"|"protect_term"|"manual_review";
  term:string;
  rationale:string;
 };
 export type AiQaSuggestResult={ok:boolean;message:string;suggestions:AiQaSuggestion[]};
 const sha=/^[a-f0-9]{64}$/;
 const uuid=/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-const actions=new Set(["compact","airy","center","exclude_note","protect_term","manual_review"]);
+const actions=new Set(["compact","airy","center","protect_term","manual_review"]);
 const text=(s:string,limit:number)=>s.length>limit?s.slice(0,limit)+" [zkráceno]":s;
 
 export async function suggestSemanticQaRepairs(input:{
@@ -81,10 +81,10 @@ export async function suggestSemanticQaRepairs(input:{
      "Jsi konzervativní redakční navrhovatel ARTales. Nevytvářej ani neměň literární text.",
      "Pracuj pouze s dodanými nálezy přesné revize. Pro každý flagId vrať právě jeden návrh.",
      "Povolené akce: compact/airy/center jen pro typografické/strukturální nálezy;",
-     "exclude_note jen pro jednoznačně neautorský blok NOTE/TRANSCRIBER;",
+     "Nikdy nenavrhuj vyřazení textu, věty, poznámky ani jiného úseku z vydání;",
      "protect_term pro explicitní jméno nebo výraz, který se nesmí dělit;",
      "manual_review pro vše ostatní či nejisté případy.",
-     "Nejasné autorské poznámky ani literární text automaticky nevyřazuj.",
+     "Jakýkoliv problém s textem či s původem poznámky je manual_review.",
      "Zdůvodnění piš stručně česky. Nepřidávej neznámé flagId."
     ].join(" "),
     input:JSON.stringify({schema:"artales/editorial-ai-suggestions/v1",
@@ -113,12 +113,6 @@ export async function suggestSemanticQaRepairs(input:{
    if(["compact","airy","center"].includes(suggestion.action)&&
       !["typography","structure"].includes(flag.kind))
     return fail("AI navrhla nepovolenou změnu druhu bloku.");
-   if(suggestion.action==="exclude_note"){
-    const target=byAtom.get(flag.target_atom_id)?.atom;
-    if(!["structure","other"].includes(flag.kind)||
-      !/^\s*(?:NOTE[.\u2014: -]|TRANSCRIBER)/im.test(target?.raw??""))
-     return fail("AI navrhla nepovolené vyloučení textu.");
-   }
    if(suggestion.action==="protect_term"&&(!suggestion.term.trim()||
      !byAtom.get(flag.target_atom_id)?.atom.raw.includes(suggestion.term.trim())))
     return fail("AI navrhla ochranu výrazu, který se nenachází v bloku.");
