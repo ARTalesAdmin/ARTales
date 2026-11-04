@@ -17,7 +17,7 @@
 }
 .artales-semantic-public .artales-semantic-public__unit{margin:0;min-width:0}
 .artales-semantic-public .artales-semantic-public__unit > p{
- margin-block:1em;orphans:3;widows:3
+ margin-block:1em;orphans:3;widows:3;white-space:pre-wrap
 }
 .artales-semantic-public .semantic-reader__heading{
  break-after:avoid;page-break-after:avoid;
