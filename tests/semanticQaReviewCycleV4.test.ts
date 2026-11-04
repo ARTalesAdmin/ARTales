@@ -17,7 +17,7 @@ test("editor saves only server-recomposed verified layouts; role key never cross
  assert.match(actions,/prepareQaPresentationBatch\(input\)/);
  assert.match(actions,/createServiceClient\(url,roleKey/);
  assert.match(actions,/p_editor_id:actor.id/);
- assert.match(actions,/exclude_note.*requireAdmin/s);
+ assert.match(actions,/if\(actor.role!=="admin"\)/);
  assert.match(db,/service_only_layout_commit/);
  assert.match(db,/artales_strip_semantic_presentation\(p_revision->'blocks'\)/);
  assert.match(db,/p_revision->'source' IS DISTINCT FROM v_parent.revision->'source'/);
