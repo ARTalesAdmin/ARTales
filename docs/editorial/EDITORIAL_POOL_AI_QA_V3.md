@@ -62,9 +62,18 @@ Changes are **not live** until a separate reviewed merge, migration, environment
   automatically `router.refresh()` the current page. Editor self-service commit
   remains deliberately disabled until the database can authenticate narrowly
   scoped patch operations without allowing an editor to submit forged full JSON.
-- The AI call presently runs in a bounded foreground server action. A tab must
-  remain open for that request; there is **no durable background queue yet**.
-  Closing the tab must not be represented as a persistent job.
+- A durable proposal queue is implemented in this draft behind
+  `ARTALES_AI_DURABLE_JOBS_ENABLED=enabled`; by default it is OFF.
+  It creates an identity-bound row with a snapshot of open flag IDs, refuses stale
+  revisions and limits each editor to four requests per hour.
+- A Vercel Cron endpoint runs once per minute and claims one queued job with
+  `FOR UPDATE SKIP LOCKED`, using a server-only service-role credential, protected
+  by `CRON_SECRET`. Incomplete jobs are retried at most once.
+- The QA panel polls queued/running jobs while open, restores the latest job after
+  revisiting the same revision, and displays durable results for human approval.
+  Closing a browser does not cancel a successfully enqueued job.
+- When the durable queue is not enabled, the old bounded foreground server action
+  remains as a fallback. It does NOT survive a closed tab.
 - The viewport matrix regression exercises desktop/mobile layouts, long paragraphs,
   source continuity, and repagination after a purely presentational change.
   It is not a substitute for visual screenshot testing in actual browsers.
@@ -75,8 +84,12 @@ Changes are **not live** until a separate reviewed merge, migration, environment
    member, and anon. Verify claim races with concurrent independent sessions.
 2. Apply targeted SQL only after production DB approval, preserving the pre-change
    policies/functions for rollback. SQL migration adds no destructive operations.
-3. Set **optional** AI environment keys in an explicit, separately authorized
-   environment step; leave absent to keep AI disabled. Do not expose API key to client.
+3. Configure separately authorized server-only environment keys:
+   `ARTALES_EDITORIAL_AI_API_KEY`, `ARTALES_EDITORIAL_AI_MODEL`,
+   `ARTALES_AI_DURABLE_JOBS_ENABLED`, `CRON_SECRET` (at least 16 random bytes)
+   and `SUPABASE_SERVICE_ROLE_KEY` for the protected cron worker.
+   Keep the durable feature disabled until the DB job migration and security tests
+   are complete. Do not expose any key to client code.
 4. Merge reviewed exact branch commit only when authorized. Deploy to production
    with a separate approval and verify signed-in editor sessions.
 5. Validate badge counts, shared claims, capacity, release/reassignment,
@@ -93,5 +106,9 @@ Changes are **not live** until a separate reviewed merge, migration, environment
 - The existing assignment of Pan stays intact until explicitly transferred or completed.
 - Signed-in end-to-end behavior, DB RLS execution and live AI provider calls have
   not been verified in this isolated branch.
-- Durable AI jobs that survive closing a tab, automatic progress polling, audited provider cost/quotas, editor-authorized application of safe patches, and
-  richer pipeline phase breadcrumbs are outside this first deliverable.
+- Durable AI jobs and progress polling are implemented in the branch but have NOT
+  undergone real DB, preview worker, or authenticated browser tests and are OFF
+  until explicitly authorized and configured.
+- Actual editor-authorized persistence of narrowly scoped presentation patches,
+  browser screenshot rendering regression, detailed per-job cost accounting and
+  richer phase breadcrumbs remain incomplete.
