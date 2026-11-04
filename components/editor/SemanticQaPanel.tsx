@@ -1,7 +1,8 @@
 "use client";
-import {useMemo,useState,useTransition} from "react";
+import {useEffect,useMemo,useState,useTransition} from "react";
 import {useRouter} from "next/navigation";
 import {suggestSemanticQaRepairs,type AiQaSuggestion} from "@/app/member/semantic/[candidateId]/ai-qa-actions";
+import {enqueueSemanticAiQaJob,lastSemanticAiQaJob,readSemanticAiQaJob,type QaJobStatus} from "@/app/member/semantic/[candidateId]/ai-job-actions";
 import {commitSemanticQaBatch,previewSemanticQaBatch,resolveSemanticQaFlag,saveWorkTypographyRule,
   submitSemanticQaFlag,type EditorialBatchAction} from "@/app/member/semantic/[candidateId]/qa-actions";
 import type {SemanticRevision} from "@/lib/semantic/model";
@@ -25,6 +26,7 @@ export default function SemanticQaPanel(p:Props){
  const [resolutions,setResolutions]=useState<Record<string,string>>({});
  const [feedback,setFeedback]=useState("");
  const [aiSuggestions,setAiSuggestions]=useState<AiQaSuggestion[]>([]);
+ const [job,setJob]=useState<QaJobStatus|null>(null);
  const [repairs,setRepairs]=useState<Record<string,EditorialBatchAction|"">>({});
  const example=p.flags.find(f=>f.status==="open"&&f.kind==="typography")?.comment
   .match(/["„“]([\p{L}-]{2,50})["„“]/u)?.[1]??"";
@@ -54,24 +56,62 @@ export default function SemanticQaPanel(p:Props){
    if(result.ok)router.refresh();
   });
  };
- const requestAi=()=>{
-  startTransition(async()=>{
-   const response=await suggestSemanticQaRepairs({
-    candidateId:p.candidateId,revisionSha:p.revisionSha
-   });
-   setFeedback(response.message);
-   if(!response.ok)return;
-   setAiSuggestions(response.suggestions);
-   // AI suggestions are NEVER committed automatically.
+ const acceptAiSuggestions=(suggestions:AiQaSuggestion[])=>{
+   setAiSuggestions(suggestions);
+   // All suggested modifications remain uncommitted until independently approved.
    const next:Record<string,EditorialBatchAction|"">={};
-   for(const suggestion of response.suggestions){
+   for(const suggestion of suggestions){
     if(["compact","airy","center"].includes(suggestion.action))
      next[suggestion.flagId]=suggestion.action as EditorialBatchAction;
    }
    setRepairs(next);
-   const proposedTerm=response.suggestions.find(x=>x.action==="protect_term"&&x.term)?.term;
+   const proposedTerm=suggestions.find(x=>x.action==="protect_term"&&x.term)?.term;
    if(proposedTerm)setTerm(proposedTerm);
-  });
+ };
+ useEffect(()=>{
+   let active=true;
+   void lastSemanticAiQaJob({candidateId:p.candidateId,revisionSha:p.revisionSha})
+    .then(result=>{if(active&&result.ok){
+      setJob(result);
+      if(result.status==="completed")acceptAiSuggestions(result.suggestions);
+    }});
+   return ()=>{active=false;};
+   // Only restore the job for the exact loaded source revision.
+   // eslint-disable-next-line react-hooks/exhaustive-deps
+ },[p.candidateId,p.revisionSha]);
+ useEffect(()=>{
+   if(!job?.jobId||!["queued","running"].includes(job.status))return;
+   let active=true;
+   const interval=setInterval(()=>{
+    void readSemanticAiQaJob({jobId:job.jobId!}).then(result=>{
+     if(!active||!result.ok)return;
+     setJob(result);
+     if(result.status==="completed")acceptAiSuggestions(result.suggestions);
+     if(result.status==="failed")setFeedback(result.message);
+    });
+   },4000);
+   return ()=>{active=false;clearInterval(interval);};
+   // Intentionally restart polling only when the active job identity/status changes.
+   // eslint-disable-next-line react-hooks/exhaustive-deps
+ },[job?.jobId,job?.status]);
+ const requestAi=()=>{
+   startTransition(async()=>{
+     const queued=await enqueueSemanticAiQaJob({
+       candidateId:p.candidateId,revisionSha:p.revisionSha
+     });
+     if(queued.ok){
+      setJob(queued);
+      if(queued.status==="completed")acceptAiSuggestions(queued.suggestions);
+      setFeedback(queued.message);
+      return;
+     }
+     // If the durable queue is not active yet, keep the bounded foreground path.
+     const response=await suggestSemanticQaRepairs({
+       candidateId:p.candidateId,revisionSha:p.revisionSha
+     });
+     setFeedback(response.message);
+     if(response.ok)acceptAiSuggestions(response.suggestions);
+   });
  };
  const preview=()=>{
   startTransition(async()=>{
@@ -149,8 +189,9 @@ export default function SemanticQaPanel(p:Props){
    <p>AI přečte pouze otevřené nálezy a okolí dotčených bloků.
     Připraví návrhy k posouzení; žádný text nepřepíše, nález neuzavře ani revizi neuloží.
     Volba a potvrzení bezpečných oprav zůstává na redakci.</p>
-   <button type="button" disabled={pending||!p.databaseReady||open.length<1||open.length>25}
+   <button type="button" disabled={pending||!p.databaseReady||open.length<1||open.length>25||job?.status==="queued"||job?.status==="running"}
     onClick={requestAi}>Navrhnout opravy pomocí AI ({open.length} nálezů)</button>
+   {job?.jobId?<p role="status">{job.message}</p>:null}
    {aiSuggestions.length?<div style={{marginTop:12}}>
     <h4>Návrhy ke schválení</h4>
     {aiSuggestions.map(s=><p key={s.flagId}>
