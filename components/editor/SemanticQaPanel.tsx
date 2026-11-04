@@ -105,7 +105,12 @@ export default function SemanticQaPanel(p:Props){
       setFeedback(queued.message);
       return;
      }
-     // If the durable queue is not active yet, keep the bounded foreground path.
+     if(!queued.disabled){
+       // A queue error must never trigger a second provider call or double billing.
+       setFeedback(queued.message);
+       return;
+     }
+     // Only a deliberately disabled queue permits the legacy foreground fallback.
      const response=await suggestSemanticQaRepairs({
        candidateId:p.candidateId,revisionSha:p.revisionSha
      });
