@@ -67,7 +67,15 @@ CREATE POLICY task_staff_read ON public.artales_editorial_tasks
     assigned_to=(SELECT auth.uid())
     OR (assigned_to IS NULL AND status IN ('open','returned')
      AND EXISTS(SELECT 1 FROM public.artales_editorial_capabilities c
-      WHERE c.profile_id=(SELECT auth.uid()) AND c.kind=artales_editorial_tasks.kind))
+      WHERE c.profile_id=(SELECT auth.uid()) AND c.kind=artales_editorial_tasks.kind)
+     AND (artales_editorial_tasks.kind<>'text_review' OR EXISTS(
+      SELECT 1 FROM public.candidate_semantic_revisions newest
+       WHERE newest.candidate_id=artales_editorial_tasks.candidate_id
+       AND newest.revision_sha256=artales_editorial_tasks.revision_sha256
+       AND newest.id=(SELECT last_rev.id FROM public.candidate_semantic_revisions last_rev
+        WHERE last_rev.candidate_id=newest.candidate_id
+        ORDER BY last_rev.created_at DESC,last_rev.id DESC LIMIT 1)
+     )))
    )
   )
  );
@@ -116,6 +124,14 @@ BEGIN
  THEN RETURN pg_catalog.jsonb_build_object('result','unavailable'); END IF;
  IF v_task.assigned_to IS NOT NULL AND v_task.assigned_to<>v_actor
  THEN RETURN pg_catalog.jsonb_build_object('result','not_assignee'); END IF;
+ IF v_task.kind='text_review' AND NOT EXISTS(
+  SELECT 1 FROM public.candidate_semantic_revisions newest
+  WHERE newest.candidate_id=v_task.candidate_id
+    AND newest.revision_sha256=v_task.revision_sha256
+    AND newest.id=(SELECT latest.id FROM public.candidate_semantic_revisions latest
+      WHERE latest.candidate_id=v_task.candidate_id
+      ORDER BY latest.created_at DESC,latest.id DESC LIMIT 1)
+ ) THEN RETURN pg_catalog.jsonb_build_object('result','stale_revision'); END IF;
  IF v_task.assigned_to IS NULL THEN
   IF v_role<>'admin' AND NOT EXISTS(
    SELECT 1 FROM public.artales_editorial_capabilities c
