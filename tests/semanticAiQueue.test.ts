@@ -29,8 +29,12 @@ test("background worker requires protected authorization and service-role identi
   path:"/api/internal/editorial/ai-qa-jobs",schedule:"* * * * *"
  });
 });
-test("worker stores proposals, never source revisions or writes to flagged text",()=>{
+test("worker stores proposals and only commits independently verified layout revisions",()=>{
  assert.match(worker,/generateSemanticAiQaSuggestions/);
+ assert.match(worker,/prepareQaPresentationBatch/);
+ assert.match(worker,/artales_commit_safe_layout_revision/);
+ assert.match(worker,/p_editor_id:job.created_by/);
+ assert.match(worker,/p_applied_revision_sha:appliedRevisionSha/);
  assert.match(engine,/expectedFlagIds/);
  assert.match(engine,/verifySemanticRevision\(revision,record.source_text\)/);
  assert.doesNotMatch(worker,/\.insert\(|\.update\(|candidate_semantic_revisions.*\.insert/);
@@ -44,5 +48,6 @@ test("the session can resume an existing job and poll the saved result",()=>{
  assert.match(panel,/setInterval/);
  assert.match(panel,/clearInterval/);
  assert.match(panel,/lastSemanticAiQaJob/);
- assert.match(panel,/if\(result.status==="completed"\)acceptAiSuggestions/);
+ assert.match(panel,/if\(result.appliedRevisionSha\)router.refresh\(\)/);
+ assert.match(panel,/acceptAiSuggestions\(result.suggestions\)/);
 });
