@@ -46,8 +46,21 @@ test("AI has strict proposal-only boundary and current-revision ownership",()=>{
  assert.match(ai,/max_output_tokens:2200/);
  assert.match(ai,/store:false/);
  assert.match(ai,/json_schema/);
- assert.match(ai,/action:"compact"\|"airy"\|"center"\|"exclude_note"\|"protect_term"\|"manual_review"/);
+ assert.match(ai,/action:"compact"\|"airy"\|"center"\|"protect_term"\|"manual_review"/);
+ assert.doesNotMatch(ai,/action:"compact"\|"airy"\|"center"\|"exclude_note"/);
  assert.doesNotMatch(ai,/\.insert\(|\.update\(|artales_commit_semantic_qa_batch/);
  assert.match(qa,/Navrhnout opravy pomocí AI/);
  assert.match(qa,/AI suggestions are NEVER committed automatically/);
+});
+
+test("layout preview and commit share one immutable source proof",()=>{
+ const action=readFileSync(new URL("../app/member/semantic/[candidateId]/qa-actions.ts",import.meta.url),"utf8");
+ const reader=readFileSync(new URL("../components/editor/SemanticReaderLab.tsx",import.meta.url),"utf8");
+ assert.match(action,/previewSemanticQaBatch/);
+ assert.match(action,/prepareQaPresentationBatch/);
+ assert.match(action,/sourceAtoms.some/);
+ assert.match(action,/a.raw!==afterAtoms\[i\].raw/);
+ assert.match(reader,/previewRevision\?\?revision/);
+ assert.match(reader,/Zobrazen/);
+ assert.match(reader,/setPreviewRevision\(null\)/);
 });
