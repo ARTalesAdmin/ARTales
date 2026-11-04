@@ -50,7 +50,7 @@ test("AI has strict proposal-only boundary and current-revision ownership",()=>{
  assert.match(engine,/action:"compact"\|"airy"\|"center"\|"protect_term"\|"manual_review"/);
  assert.doesNotMatch(engine,/action:"compact"\|"airy"\|"center"\|"exclude_note"/);
  assert.doesNotMatch(engine,/\.insert\(|\.update\(|artales_commit_semantic_qa_batch/);
- assert.match(qa,/Navrhnout opravy pomocí AI/);
+ assert.match(qa,/Předat/);
  assert.match(qa,/All suggested modifications remain uncommitted/);
 });
 
@@ -59,8 +59,9 @@ test("layout preview and commit share one immutable source proof",()=>{
  const reader=readFileSync(new URL("../components/editor/SemanticReaderLab.tsx",import.meta.url),"utf8");
  assert.match(action,/previewSemanticQaBatch/);
  assert.match(action,/prepareQaPresentationBatch/);
- assert.match(action,/sourceAtoms.some/);
- assert.match(action,/a.raw!==afterAtoms\[i\].raw/);
+ const prep=readFileSync(new URL("../lib/semantic/qaBatchPreparation.ts",import.meta.url),"utf8");
+ assert.match(prep,/sourceAtoms.some/);
+ assert.match(prep,/a.raw!==afterAtoms\[i\].raw/);
  assert.match(reader,/previewRevision\?\?revision/);
  assert.match(reader,/Náhled opravené sazby/);
  assert.match(reader,/setPreview\(null\)/);
