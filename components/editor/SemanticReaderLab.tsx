@@ -18,7 +18,8 @@ type Props={revision:SemanticRevision;original:string;profileReaderDefaults?:Fix
  candidateId:string;revisionSha:string;editionTitle:string;editionAuthor:string;
  flags:SemanticQaFlag[];qaDatabaseReady:boolean;protectedTerms:string[];
  systemSignals:{atomId:string;sourceStart:number;reason:string;kind:"source_ambiguity"}[];
- canCommitBatch:boolean;}
+ canCommitBatch:boolean;currentTaskId:string|null;
+ reviewDecisions:{issue_id:string;decision:string;note:string|null;reviewed_at:string}[];}
 type ReadingSpacing = ReaderDensityId | "airy";
 type PaneSide = "source" | "composed";
 type BrowserMeasurements={
@@ -101,7 +102,7 @@ function sameMeasurements(a:BrowserMeasurements|null,b:BrowserMeasurements) {
 
 export default function SemanticReaderLab({
  revision,original,profileReaderDefaults=null,candidateId,revisionSha,editionTitle,editionAuthor,
- flags,qaDatabaseReady,protectedTerms,systemSignals,canCommitBatch
+ flags,qaDatabaseReady,protectedTerms,systemSignals,canCommitBatch,currentTaskId,reviewDecisions
 }:Props) {
   const accountPreferences=getProfileReaderSettings(profileReaderDefaults)??defaultReaderSettings;
   const [readerMode,setReaderMode]=useState<"scroll"|"spread">("scroll");
@@ -398,6 +399,10 @@ export default function SemanticReaderLab({
           {fullscreen?"Ukončit celou obrazovku":"Celá obrazovka"}
         </button>
 
+        <span className="semantic-reader__qa-key">
+          <span className="semantic-reader__key-swatch semantic-reader__key-swatch--changed"/> Opravený blok
+          <span className="semantic-reader__key-swatch semantic-reader__key-swatch--selected"/> Aktivní výběr
+        </span>
         <label><input type="checkbox" checked={showOpenFlags}
           onChange={e=>setShowOpenFlags(e.target.checked)}/> Upozornění na otevřené nálezy</label>
         <button type="button" className="semantic-reader__fullscreen-button"
@@ -422,6 +427,8 @@ export default function SemanticReaderLab({
         selectedAtomId={selectedAtomId} selectedText={selectedText??null}
         flags={flags} databaseReady={qaDatabaseReady} onSelect={selectAtom}
         systemSignals={systemSignals} canCommitBatch={canCommitBatch}
+        currentTaskId={currentTaskId} reviewDecisions={reviewDecisions}
+        currentChangeIssues={revision.review_issues.filter(issue=>issue.round===revision.round)}
         onPreview={next=>{setPreview({parentSha:revisionSha,draft:next});setPageNumber(0);setQaPanelOpen(false);}}
         onSaved={()=>{setPreview(null);setQaPanelOpen(false);setSelectedAtomId(null);}}/>
     </div>}
