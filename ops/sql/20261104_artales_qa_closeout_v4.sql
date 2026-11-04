@@ -76,27 +76,4 @@ END $finish$;
 REVOKE ALL ON FUNCTION public.artales_finish_semantic_text_qa(uuid,text) FROM PUBLIC,anon,authenticated;
 GRANT EXECUTE ON FUNCTION public.artales_finish_semantic_text_qa(uuid,text) TO authenticated;
 
--- Close superseded QA as a separate obsolete state, never a completed-task statistic.
-CREATE OR REPLACE FUNCTION public.artales_mark_qa_superseded(
- p_candidate_id uuid,p_parent_sha text,p_new_sha text,p_editor_id uuid)
-RETURNS jsonb LANGUAGE plpgsql SECURITY DEFINER SET search_path='' AS $sup$
-DECLARE v_task public.artales_editorial_tasks%ROWTYPE;
-BEGIN
- IF current_setting('request.jwt.claim.role',true)<>'service_role'
- THEN RAISE EXCEPTION 'service_only' USING errcode='42501';END IF;
- SELECT * INTO v_task FROM public.artales_editorial_tasks
- WHERE candidate_id=p_candidate_id AND revision_sha256=p_parent_sha
-  AND kind='text_review' AND assigned_to=p_editor_id AND status='claimed' FOR UPDATE;
- IF NOT FOUND THEN RETURN pg_catalog.jsonb_build_object('result','missing_prior_qa');END IF;
- IF NOT EXISTS(SELECT 1 FROM public.artales_editorial_tasks
-  WHERE candidate_id=p_candidate_id AND revision_sha256=p_new_sha
-   AND kind='text_review' AND assigned_to=p_editor_id AND status='open')
- THEN RETURN pg_catalog.jsonb_build_object('result','missing_followup');END IF;
- UPDATE public.artales_editorial_tasks SET status='superseded' WHERE id=v_task.id;
- INSERT INTO public.artales_editorial_events(task_id,actor_id,action,note)
- VALUES(v_task.id,p_editor_id,'superseded','Nahrazena opravnou revizí '||p_new_sha);
- RETURN pg_catalog.jsonb_build_object('result','superseded');
-END $sup$;
-REVOKE ALL ON FUNCTION public.artales_mark_qa_superseded(uuid,text,text,uuid) FROM PUBLIC,anon,authenticated;
-GRANT EXECUTE ON FUNCTION public.artales_mark_qa_superseded(uuid,text,text,uuid) TO service_role;
 COMMIT;
