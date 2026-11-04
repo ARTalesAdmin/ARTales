@@ -32,6 +32,7 @@ export default function SemanticReaderClient({slug,title,revisionSha,mode,locale
  const measurementRef=useRef<HTMLDivElement>(null);
  const dictionary=useMemo(()=>getPublicDictionary(locale),[locale]);
  const spread=settings.layoutMode==="spread"&&viewport.width>=700;
+ const effectiveLayout=spread?"spread":"pagedFlow";
  const maxPaperWidth=WIDTHS[settings.width];
  const pageWidth=spread?clamp((viewport.width-52)/2,270,maxPaperWidth):clamp(viewport.width-28,290,maxPaperWidth);
  const pageHeight=Math.round(pageWidth*1.414);
@@ -176,7 +177,7 @@ export default function SemanticReaderClient({slug,title,revisionSha,mode,locale
   </article>;
  return <main className={`artales-reader artales-semantic-shell artales-reader--theme-${settings.theme}
   artales-reader--width-${settings.width} artales-reader--density-${settings.density}
-  artales-reader--layout-${settings.layoutMode} artales-reader--pagefit-${settings.pageFit}`}
+  artales-reader--layout-${effectiveLayout} artales-reader--pagefit-${settings.pageFit}`}
   style={{"--reader-font-scale":String(settings.fontScale)} as CSSProperties}
   data-semantic-revision={revisionSha}>
   <ReaderToolbar
