@@ -39,14 +39,35 @@ Changes are **not live** until a separate reviewed merge, migration, environment
   `ARTALES_EDITORIAL_AI_MODEL` configuration. No default model or hidden API spend.
 - Uses provider Responses API strict JSON schema. Parsed suggestions must cover each
   requested flag ID exactly once, with an allowed action and validated constraints.
-- AI never directly updates, excludes, publishes, resolves a flag, or mutates an
+- AI never proposes exclusion of literary content. Only a human can explicitly request a bounded removal of external edition apparatus, subject to the existing admin approval gate. AI never directly updates, publishes, resolves a flag, or mutates an
   archive. Valid deterministic suggestions only preselect controls for a
   **separate human-approved** existing batch action; protect-term requires
   explicit human click. Unsupported corrections remain manual review.
-- Full literary text editing / general-purpose AI rewriting is **not** implemented
+- An editor-authorized correction of a mistake in the original source would require a separately created, provenance-preserving revised textual edition, never silent replacement of source bytes. Full literary text editing / general-purpose AI rewriting is **not** implemented
   by this PR: the source-anchored immutable v2 schema does not allow arbitrary
   rewritten raw blocks. That requires its own edition-text overlay and strict
   provenance validation before any such changes may ship.
+
+## Same-session live layout preview (implemented in draft)
+
+- The same server-side validated plan can now be projected in the existing QA reader
+  without writing to the DB. The draft revision preserves all atom IDs, raw text,
+  source hashes, original byte anchors and source separators.
+- The reader uses the draft as an isolated presentation state, runs its normal
+  browser measurement and page projection over that draft, and shows a prominent
+  "neuloženo" warning with a return-to-original button.
+- When the actual source revision changes, a preview for the old SHA is discarded
+  rather than masquerading as the new current revision.
+- Admin-only persisted batch commits still use the existing SQL guard and
+  automatically `router.refresh()` the current page. Editor self-service commit
+  remains deliberately disabled until the database can authenticate narrowly
+  scoped patch operations without allowing an editor to submit forged full JSON.
+- The AI call presently runs in a bounded foreground server action. A tab must
+  remain open for that request; there is **no durable background queue yet**.
+  Closing the tab must not be represented as a persistent job.
+- The viewport matrix regression exercises desktop/mobile layouts, long paragraphs,
+  source continuity, and repagination after a purely presentational change.
+  It is not a substitute for visual screenshot testing in actual browsers.
 
 ## Proposed rollout order (independent approvals required)
 
@@ -72,5 +93,5 @@ Changes are **not live** until a separate reviewed merge, migration, environment
 - The existing assignment of Pan stays intact until explicitly transferred or completed.
 - Signed-in end-to-end behavior, DB RLS execution and live AI provider calls have
   not been verified in this isolated branch.
-- Full worker completion, manual task bundles, autonomous AI repair queue, and
+- Durable AI jobs that survive closing a tab, automatic progress polling, audited provider cost/quotas, editor-authorized application of safe patches, and
   richer pipeline phase breadcrumbs are outside this first deliverable.
