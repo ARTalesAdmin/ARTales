@@ -51,12 +51,13 @@ export default function SemanticReaderClient({slug,title,revisionSha,mode,locale
  const current=clamp(pageIndex,0,pageCount-1);
  const active=spread?current-current%2:current;
  const percent=pageCount>1?Math.round(active/(pageCount-1)*100):100;
- const toolbarNotes=useMemo<ReaderNote[]>(()=>semanticNotes.map(note=>{
+ const toolbarNotes=useMemo<ReaderNote[]>(()=>semanticNotes.flatMap(note=>{
   const idx=pageForSemanticNote(pages,note,units);
-  return {id:note.id,slug,title:note.title,body:note.body,color:note.color,
+  if(idx===null)return [];
+  return [{id:note.id,slug,title:note.title,body:note.body,color:note.color,
    source:"local",progressPercent:idx===null?0:pageCount>1?idx/(pageCount-1)*100:100,
    scrollY:0,pageIndex:idx??undefined,pageCount,layoutMode:settings.layoutMode,
-   createdAt:note.createdAt,updatedAt:note.updatedAt};
+   createdAt:note.createdAt,updatedAt:note.updatedAt}];
  }).sort((a,b)=>(a.pageIndex??Infinity)-(b.pageIndex??Infinity)),[semanticNotes,pages,units,slug,title,pageCount,settings.layoutMode]);
  const selectedNoteIndex=toolbarNotes.findIndex(x=>x.id===selectedNoteId);
  const pictureByAtom=useMemo(()=>{
@@ -82,7 +83,7 @@ export default function SemanticReaderClient({slug,title,revisionSha,mode,locale
   const frame=window.requestAnimationFrame(()=>{
    try{
     const raw=window.localStorage.getItem(semanticNotesKey(slug));
-    setSemanticNotes(filterSemanticReaderNotes(raw?JSON.parse(raw):null,slug,units));
+    setSemanticNotes(filterSemanticReaderNotes(raw?JSON.parse(raw):null,slug));
    }catch{setSemanticNotes([]);}
    setNotesLoaded(true);
   });
