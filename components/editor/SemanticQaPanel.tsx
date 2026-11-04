@@ -1,6 +1,7 @@
 "use client";
 import {useMemo,useState,useTransition} from "react";
 import {useRouter} from "next/navigation";
+import {suggestSemanticQaRepairs,type AiQaSuggestion} from "@/app/member/semantic/[candidateId]/ai-qa-actions";
 import {commitSemanticQaBatch,resolveSemanticQaFlag,saveWorkTypographyRule,
   submitSemanticQaFlag,type EditorialBatchAction} from "@/app/member/semantic/[candidateId]/qa-actions";
 export type SemanticQaFlag={
@@ -22,6 +23,7 @@ export default function SemanticQaPanel(p:Props){
  const [comment,setComment]=useState("");
  const [resolutions,setResolutions]=useState<Record<string,string>>({});
  const [feedback,setFeedback]=useState("");
+ const [aiSuggestions,setAiSuggestions]=useState<AiQaSuggestion[]>([]);
  const [repairs,setRepairs]=useState<Record<string,EditorialBatchAction|"">>({});
  const example=p.flags.find(f=>f.status==="open"&&f.kind==="typography")?.comment
   .match(/["„“]([\p{L}-]{2,50})["„“]/u)?.[1]??"";
@@ -49,6 +51,25 @@ export default function SemanticQaPanel(p:Props){
    });
    setFeedback(result.message);
    if(result.ok)router.refresh();
+  });
+ };
+ const requestAi=()=>{
+  startTransition(async()=>{
+   const response=await suggestSemanticQaRepairs({
+    candidateId:p.candidateId,revisionSha:p.revisionSha
+   });
+   setFeedback(response.message);
+   if(!response.ok)return;
+   setAiSuggestions(response.suggestions);
+   // AI suggestions are NEVER committed automatically.
+   const next:Record<string,EditorialBatchAction|"">={};
+   for(const suggestion of response.suggestions){
+    if(["compact","airy","center","exclude_note"].includes(suggestion.action))
+     next[suggestion.flagId]=suggestion.action as EditorialBatchAction;
+   }
+   setRepairs(next);
+   const proposedTerm=response.suggestions.find(x=>x.action==="protect_term"&&x.term)?.term;
+   if(proposedTerm)setTerm(proposedTerm);
   });
  };
  const protect=()=>{
@@ -111,6 +132,22 @@ export default function SemanticQaPanel(p:Props){
      placeholder="Raymond" onChange={e=>setTerm(e.target.value)}/></label>
    <button type="button" disabled={pending||!p.databaseReady||term.trim().length<2}
      onClick={protect}>Použít na celé dílo</button>
+  </section>
+  <section className="semantic-qa-panel__batch">
+   <h3>AI návrh oprav</h3>
+   <p>AI přečte pouze otevřené nálezy a okolí dotčených bloků.
+    Připraví návrhy k posouzení; žádný text nepřepíše, nález neuzavře ani revizi neuloží.
+    Volba a potvrzení bezpečných oprav zůstává na redakci.</p>
+   <button type="button" disabled={pending||!p.databaseReady||open.length<1||open.length>25}
+    onClick={requestAi}>Navrhnout opravy pomocí AI ({open.length} nálezů)</button>
+   {aiSuggestions.length?<div style={{marginTop:12}}>
+    <h4>Návrhy ke schválení</h4>
+    {aiSuggestions.map(s=><p key={s.flagId}>
+     <strong>{s.action==="manual_review"?"Nutná ruční kontrola":s.action==="protect_term"?
+      "Ochrana výrazu: "+s.term:"Návrh: "+s.action}</strong>
+     {" — "}{s.rationale}
+    </p>)}
+   </div>:null}
   </section>
   <h3>Seznam nálezů</h3>
   {p.flags.length===0?<p>Zatím bez redakčních nálezů.</p>:
