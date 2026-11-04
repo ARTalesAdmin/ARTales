@@ -31,6 +31,7 @@ on:
       - 'tests/editorialPoolV3.test.ts'
       - 'tests/semanticPaginationMatrix.test.ts'
       - 'tests/semanticCanonicalRenderer.test.ts'
+      - 'tests/semanticReaderShell.test.ts'
       - 'tests/semanticAiQueue.test.ts'
       - 'tests/semanticQaReviewCycleV4.test.ts'
       - 'tests/semanticQaWorkflow.test.ts'
@@ -67,6 +68,8 @@ jobs:
         run: npx tsx --test tests/semanticQaWorkflow.test.ts
       - name: Editorial assignment and review workflow contract
         run: npx tsx --test tests/editorialOwnershipV2.test.ts
+      - name: Semantic reader client shell, privacy and anchor recovery
+        run: npx tsx --test tests/semanticReaderShell.test.ts
       - name: Canonical semantic renderer parity (QA vs public)
         run: npx tsx --test tests/semanticCanonicalRenderer.test.ts
       - name: Browser layout repagination source preservation
