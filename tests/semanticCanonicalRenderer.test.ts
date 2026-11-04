@@ -9,15 +9,17 @@ const read=(path:string)=>readFileSync(new URL("../"+path,import.meta.url),"utf8
 const publicReader=read("components/reader/SemanticPublicReader.tsx");
 const qaReader=read("components/editor/SemanticReaderLab.tsx");
 const shared=read("components/reader/SemanticUnitContent.tsx");
+const shell=read("components/reader/SemanticReaderClient.tsx");
 const legacy=read("components/reader/ReaderClient.tsx");
 const entry=read("app/reader/[slug]/page.tsx");
 const sha=(x:string)=>createHash("sha256").update(x).digest("hex");
 
 test("QA and public semantic reader use the exact same block renderer and canonical edition units",()=>{
  assert.match(qaReader,/import SemanticUnitContent/);
- assert.match(publicReader,/import SemanticUnitContent/);
+ assert.match(shell,/import SemanticUnitContent/);
  assert.match(qaReader,/getSemanticPageUnits\(activeRevision,edition.range\)/);
  assert.match(publicReader,/getSemanticPageUnits\(revision,edition.range\)/);
+ assert.match(shell,/projectSemanticUnits\(units,layout\)/);
  assert.match(publicReader,/selectEditorialEdition\(revision.source.normalized_text\)/);
  assert.doesNotMatch(publicReader,/function within\(/);
  assert.doesNotMatch(publicReader,/function withoutExclusions\(/);
@@ -43,6 +45,8 @@ test("dual-mode public routing is per published work; legacy stays byte-for-byte
  assert.match(entry,/verifySemanticRevision\(revision\)/);
  assert.match(entry,/published_semantic_revision_invalid/);
  assert.match(entry,/<SemanticPublicReader/);
+ assert.match(shell,/readerPosition/);
+ assert.doesNotMatch(shell,/paginateReaderBlocks/);
  assert.match(entry,/<ReaderClient/);
  assert.match(entry,/content_blocks/);
  assert.doesNotMatch(entry,/convertLegacy|migrateLegacy|toSemantic|composeSemanticRevision/);
