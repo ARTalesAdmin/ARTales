@@ -15,7 +15,9 @@ on:
       - 'ops/sql/20261104_artales_qa_change_decisions_v4.sql'
       - 'ops/sql/20261104_artales_qa_closeout_v4.sql'
       - 'ops/sql/20261104_artales_safe_layout_commit_v4.sql'
-      - 'app/api/internal/editorial/ai-qa-jobs/route.ts'
+      - 'ops/sql/20261104_artales_monthly_methodology_review.sql'
+      - 'app/api/internal/editorial/methodology-review/route.ts'
+      - 'app/api/internal/editorial/ai-qa-jobs/route.ts app/api/internal/editorial/methodology-review/route.ts'
       - 'vercel.json'
       - 'ops/sql/20261103_artales_qa_batch_edition_rules_escalations.sql'
       - 'components/reader/ProtectedProseText.tsx'
@@ -29,6 +31,7 @@ on:
       - 'tests/editorialPoolV3.test.ts'
       - 'tests/semanticPaginationMatrix.test.ts'
       - 'tests/semanticAiQueue.test.ts'
+      - 'tests/semanticQaReviewCycleV4.test.ts'
       - 'tests/semanticQaWorkflow.test.ts'
       - 'components/editor/semantic-reader.css'
       - 'components/reader/SemanticPublicReader.tsx'
@@ -62,6 +65,8 @@ jobs:
         run: npx tsx --test tests/editorialOwnershipV2.test.ts
       - name: Browser layout repagination source preservation
         run: npx tsx --test tests/semanticPaginationMatrix.test.ts
+      - name: Human QA acceptance, source-safe commits, workflow and methodology
+        run: npx tsx --test tests/semanticQaReviewCycleV4.test.ts
       - name: Durable AI proposal queue, worker security and resume
         run: npx tsx --test tests/semanticAiQueue.test.ts
       - name: Editorial pool, audit and AI proposal boundary
