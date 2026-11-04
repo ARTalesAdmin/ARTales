@@ -37,6 +37,17 @@ test("legacy content and reader are retained for pre-migration published works",
  assert.match(entry,/<ReaderClient/);
  assert.match(legacy,/paginateReaderBlocks/);
 });
+test("dual-mode public routing is per published work; legacy stays byte-for-byte independent",()=>{
+ assert.match(entry,/\.eq\("work_id",work\.id\)/);
+ assert.match(entry,/if\(semanticRelease\?\.semantic_revision\)/);
+ assert.match(entry,/verifySemanticRevision\(revision\)/);
+ assert.match(entry,/published_semantic_revision_invalid/);
+ assert.match(entry,/<SemanticPublicReader/);
+ assert.match(entry,/<ReaderClient/);
+ assert.match(entry,/content_blocks/);
+ assert.doesNotMatch(entry,/convertLegacy|migrateLegacy|toSemantic|composeSemanticRevision/);
+ assert.doesNotMatch(shared,/WorkBlock|paginateReaderBlocks/);
+});
 test("source units are identical whether the reader is opened in QA or public mode",()=>{
  const raw="CHAPTER I.\n\nA source paragraph with a protected name like Anne Shirley.\n\nA second paragraph remains intact.";
  const revision=composeSemanticRevision({work_id:"canonical-read",work_slug:"canonical-read",
