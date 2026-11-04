@@ -74,8 +74,6 @@ BEGIN
  THEN RETURN pg_catalog.jsonb_build_object('result','changed_source_or_structure');END IF;
  v_issues:=pg_catalog.jsonb_array_length(v_parent.revision->'review_issues');
  IF pg_catalog.jsonb_array_length(p_revision->'review_issues')<>v_issues+v_flags
-  OR p_revision->'review_issues'->(v_issues-1) IS DISTINCT FROM
-    v_parent.revision->'review_issues'->(v_issues-1)
   OR pg_catalog.coalesce((SELECT pg_catalog.jsonb_agg(value ORDER BY ordinality)
     FROM pg_catalog.jsonb_array_elements(p_revision->'review_issues') WITH ORDINALITY i(value,ordinality)
     WHERE ordinality<=v_issues),'[]'::jsonb) IS DISTINCT FROM v_parent.revision->'review_issues'
