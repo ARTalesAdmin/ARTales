@@ -28,10 +28,14 @@ GRANT SELECT ON public.artales_semantic_ai_qa_jobs TO authenticated;
 DROP POLICY IF EXISTS artales_ai_jobs_read_owner_admin ON public.artales_semantic_ai_qa_jobs;
 CREATE POLICY artales_ai_jobs_read_owner_admin ON public.artales_semantic_ai_qa_jobs
  FOR SELECT TO authenticated USING(
-  created_by=(SELECT auth.uid()) OR EXISTS(
-   SELECT 1 FROM public.profiles p WHERE p.id=(SELECT auth.uid()) AND p.is_active
-    AND p.role::text='admin'
-  )
+  EXISTS(SELECT 1 FROM public.profiles p
+   WHERE p.id=(SELECT auth.uid()) AND p.is_active
+    AND p.role::text IN ('admin','editor'))
+  AND (created_by=(SELECT auth.uid()) OR EXISTS(
+   SELECT 1 FROM public.profiles admin_profile
+   WHERE admin_profile.id=(SELECT auth.uid()) AND admin_profile.is_active
+    AND admin_profile.role::text='admin'
+  ))
  );
 
 -- Request is identity-bound. Flag IDs are snapshotted; a different set must be regenerated.
@@ -124,7 +128,9 @@ BEGIN
   THEN RETURN pg_catalog.jsonb_build_object('result','invalid_result');END IF;
   SELECT count(*) INTO v_count FROM pg_catalog.jsonb_array_elements(p_suggestions) x
   WHERE x->>'action' IN ('compact','airy','center','protect_term','manual_review')
-   AND (x->>'flagId')::uuid=ANY(v_job.flag_ids);
+   AND (x->>'flagId') IN (
+    SELECT f::text FROM pg_catalog.unnest(v_job.flag_ids) f
+   );
   IF v_count<>pg_catalog.cardinality(v_job.flag_ids) OR
    (SELECT count(DISTINCT x->>'flagId') FROM pg_catalog.jsonb_array_elements(p_suggestions) x)
       <>pg_catalog.cardinality(v_job.flag_ids) THEN
