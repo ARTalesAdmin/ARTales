@@ -55,7 +55,7 @@ export default function SemanticReaderClient({slug,title,revisionSha,mode,locale
   const idx=pageForSemanticNote(pages,note,units);
   if(idx===null)return [];
   return [{id:note.id,slug,title:note.title,body:note.body,color:note.color,
-   source:"local",progressPercent:idx===null?0:pageCount>1?idx/(pageCount-1)*100:100,
+   source:"local" as const,progressPercent:idx===null?0:pageCount>1?idx/(pageCount-1)*100:100,
    scrollY:0,pageIndex:idx??undefined,pageCount,layoutMode:settings.layoutMode,
    createdAt:note.createdAt,updatedAt:note.updatedAt}];
  }).sort((a,b)=>(a.pageIndex??Infinity)-(b.pageIndex??Infinity)),[semanticNotes,pages,units,slug,title,pageCount,settings.layoutMode]);
