@@ -18,7 +18,7 @@ export async function completeSemanticTask(form:FormData){
  const {data,error}=await db.rpc("artales_complete_editorial_task",{p_task_id:taskId,p_note:note});
  if(error||data?.result!=="completed")redirect("/member/editorial-pipeline?error=task_failed");
  void actor;
- revalidatePath("/member/editorial-pipeline");revalidatePath("/member");redirect("/member/editorial-pipeline?notice=completed");
+ revalidatePath("/member/editorial-pipeline");revalidatePath("/member","layout");redirect("/member/editorial-pipeline?notice=completed");
 }
 
 export async function publishSemanticCandidate(form:FormData){
@@ -51,7 +51,7 @@ export async function claimSemanticTask(form:FormData){
  const db=await createClient();
  const {data,error}=await db.rpc("artales_claim_editorial_task",{p_task_id:id});
  if(error||data?.result!=="claimed")redirect("/member/editorial-pipeline?error=unavailable");
- revalidatePath("/member/editorial-pipeline");revalidatePath("/member");
+ revalidatePath("/member/editorial-pipeline");revalidatePath("/member","layout");
  redirect("/member/editorial-pipeline?notice=claimed");
 }
 
@@ -70,14 +70,14 @@ export async function requestSemanticSecondReview(form:FormData){
  if(error||data?.result!=="requested")
   redirect("/member/editorial-pipeline?error=second_review_failed");
  revalidatePath("/member/editorial-pipeline");
- revalidatePath("/member");
+ revalidatePath("/member","layout");
  redirect("/member/editorial-pipeline?notice=second_review_requested");
 }
 
 
 function refreshEditorialQueue(){
  revalidatePath("/member/editorial-pipeline");
- revalidatePath("/member");
+ revalidatePath("/member","layout");
 }
 export async function releaseEditorialTask(form:FormData){
  if(!SEMANTIC_PIPELINE_ENABLED)notFound();
