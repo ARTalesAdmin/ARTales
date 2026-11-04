@@ -23,7 +23,7 @@ test("editor saves only server-recomposed verified layouts; role key never cross
  assert.match(db,/p_revision->'source' IS DISTINCT FROM v_parent.revision->'source'/);
  assert.match(db,/p_revision->'gaps' IS DISTINCT FROM v_parent.revision->'gaps'/);
  assert.match(db,/p_revision->'editorial_exclusions' IS DISTINCT FROM v_parent.revision->'editorial_exclusions'/);
- assert.match(db,/review_history_changed/);
+ assert.match(db,/issue_history_changed/);
  assert.match(db,/unverified_presentation_change/);
  assert.match(db,/supersede_failed/);
  assert.match(db,/followup_qa_missing/);
