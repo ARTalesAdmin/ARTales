@@ -81,7 +81,8 @@
   min-height: 42px;
   padding: 10px 17px;
   border-radius: 9px;
-  font: 650 13px/1.35 inherit;
+  font-family: inherit;
+  font-weight: 650; font-size: 13px; line-height: 1.35;
   letter-spacing: .005em;
   text-align: center;
   text-decoration: none;
@@ -167,7 +168,8 @@
 .ed-page select, .ed-page textarea {
   display: block; min-width: 0; width: 100%; min-height: 42px;
   border: 1px solid #d5c9b7; background: #fffefd; color: #222c33;
-  border-radius: 8px; padding: 10px 12px; font: 400 14px/1.5 inherit;
+  border-radius: 8px; padding: 10px 12px; font-family: inherit;
+  font-weight: 400; font-size: 14px; line-height: 1.5;
   box-shadow: inset 0 1px 2px rgba(20,20,20,.016);
 }
 .ed-page textarea { min-height: 100px; resize: vertical; }
