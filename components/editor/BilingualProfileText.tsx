@@ -17,7 +17,7 @@ export default function BilingualProfileText({field,initialCs="",initialEn="",la
     {label} ({lang==="cs"?"CZ":"EN"}) {required?"*":""}
    </label>
    <textarea id={field+"_"+lang} name={field+"_"+lang}
-    rows={7} required={required} minLength={required?200:undefined} maxLength={800}
+    rows={7} required={required} minLength={required?200:undefined} maxLength={required?800:undefined}
     value={value} onChange={e=>lang==="cs"?setCs(e.target.value):setEn(e.target.value)}
     style={{width:"100%",minHeight:150,padding:"12px 14px",border:"1px solid #ccc",
       borderRadius:9,fontSize:15,resize:"vertical"}}
