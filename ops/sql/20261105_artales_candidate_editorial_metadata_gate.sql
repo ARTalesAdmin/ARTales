@@ -57,8 +57,12 @@ BEGIN
   IF p_value IS NULL OR p_value !~* '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$'
   THEN RETURN pg_catalog.jsonb_build_object('result','select_record');END IF;
   v_new_id:=p_value::uuid;
-  IF p_field='author' AND NOT EXISTS(SELECT 1 FROM public.authors WHERE id=v_new_id)
-  THEN RETURN pg_catalog.jsonb_build_object('result','unknown_author');END IF;
+  IF p_field='author' AND NOT EXISTS(
+   SELECT 1 FROM public.authors a JOIN public.work_candidates c ON c.id=p_candidate_id
+   WHERE a.id=v_new_id AND
+    (lower(btrim(a.name))=lower(btrim(c.proposed_author_name)) OR
+     lower(btrim(pg_catalog.coalesce(a.name_en,'')))=lower(btrim(c.proposed_author_name))))
+  THEN RETURN pg_catalog.jsonb_build_object('result','author_name_mismatch');END IF;
   IF p_field='collection' AND NOT EXISTS(SELECT 1 FROM public.collections WHERE id=v_new_id)
   THEN RETURN pg_catalog.jsonb_build_object('result','unknown_collection');END IF;
  ELSIF p_field='description' THEN
@@ -121,12 +125,18 @@ BEGIN
     WHERE o.bucket_id='artales-images' AND o.name=m.cover_image_path)
   WHEN 'work_description' THEN length(btrim(pg_catalog.coalesce(m.work_description,''))) BETWEEN 200 AND 800
   WHEN 'author_bio' THEN m.author_id IS NOT NULL
-   AND EXISTS(SELECT 1 FROM public.authors a WHERE a.id=m.author_id
+   AND EXISTS(SELECT 1 FROM public.authors a JOIN public.work_candidates c ON c.id=m.candidate_id
+    WHERE a.id=m.author_id
+    AND (lower(btrim(a.name))=lower(btrim(c.proposed_author_name))
+      OR lower(btrim(pg_catalog.coalesce(a.name_en,'')))=lower(btrim(c.proposed_author_name)))
     AND (length(btrim(pg_catalog.coalesce(a.bio_en,'')))>=40
      OR length(btrim(pg_catalog.coalesce(a.bio_cs,'')))>=40
      OR length(btrim(pg_catalog.coalesce(a.bio,'')))>=40))
   WHEN 'author_visual' THEN m.author_id IS NOT NULL
-   AND EXISTS(SELECT 1 FROM public.authors a WHERE a.id=m.author_id
+   AND EXISTS(SELECT 1 FROM public.authors a JOIN public.work_candidates c ON c.id=m.candidate_id
+    WHERE a.id=m.author_id
+    AND (lower(btrim(a.name))=lower(btrim(c.proposed_author_name))
+      OR lower(btrim(pg_catalog.coalesce(a.name_en,'')))=lower(btrim(c.proposed_author_name)))
     AND length(btrim(pg_catalog.coalesce(a.portrait_image_alt,'')))>=8
     AND a.portrait_image_path IS NOT NULL
     AND EXISTS(SELECT 1 FROM storage.objects o
