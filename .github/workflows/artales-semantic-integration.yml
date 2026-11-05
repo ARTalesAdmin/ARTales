@@ -21,6 +21,7 @@ on:
       - 'components/editor/CandidateCoverInput.tsx'
       - 'ops/sql/20261105_artales_candidate_editorial_metadata_gate.sql'
       - 'tests/editorialCandidateRelease.test.ts'
+      - 'tests/editorialPoolProductionRelease.test.ts'
       - 'app/member/layout.tsx'
       - 'tests/editorialOwnershipV2.test.ts'
       - 'tests/semanticQaWorkflow.test.ts'
@@ -52,6 +53,8 @@ jobs:
         run: npx tsx --test tests/semanticEditionLayout.test.ts
       - name: Source-anchored QA feedback, typography and immutable re-review
         run: npx tsx --test tests/semanticQaWorkflow.test.ts
+      - name: Voluntary task pool and governed owner transfer
+        run: npx tsx --test tests/editorialPoolProductionRelease.test.ts
       - name: Editorial candidate release evidence and legacy safety
         run: npx tsx --test tests/editorialCandidateRelease.test.ts
       - name: Editorial assignment and review workflow contract
