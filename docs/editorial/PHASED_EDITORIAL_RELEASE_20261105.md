@@ -77,3 +77,35 @@ under realistic role and concurrency tests first; then separately approve deploy
 of the editor UI, with independent public reader gate off. The user will perform
 Pan's QA together with the assistant before five preassigned tasks are handed
 to their respective editors for feedback. Preserve legacy content and readers.
+
+## Editorial task navigation / evidence gate — 2026-11-05 (PR only)
+
+- New candidate-specific internal detail: `/member/editorial-detail/[candidateId]`.
+  Candidates are not yet `works`; **never** send their author, collection,
+  cover and blurb tasks into a legacy published-work editor or text QA.
+- Every inbox task links to its actual work surface. QA/proofreading opens
+  semantic editor; collection, cover, description and author go to dedicated
+  candidate sections; existing author and collection records link to their
+  actual editing pages. New author creation returns to the candidate detail.
+- Metadata is stored per candidate; the legacy public `works` and WorkBlocks
+  are untouched. Separate bounded field writes allow editors to work in parallel.
+- Save collection, blurb or cover **once**. If the task is currently claimed
+  by that editor, the server tries to close it automatically. A database BEFORE
+  trigger independently verifies the collection relationship, 200–800 char
+  blurb, or an existing actual cover storage object with alternative text.
+  Author text and portrait completion require a linked existing author and
+  real bio/portrait evidence. Claims and completion remain separate audit events.
+- Migration DRAFT: `ops/sql/20261105_artales_candidate_editorial_metadata_gate.sql`.
+  UI and source-contract CI green on PR. **Do not activate this UI before the
+  DB migration is authorized and the trigger/RLS are proven on realistic users.**
+- Critical existing publication gap observed read-only: current
+  `artales_publish_semantic_candidate` expects exactly three completed task
+  kinds, yet Pan has six tasks; it also creates or finds an author by name and
+  inserts work without using the candidate metadata's author/collection,
+  cover and caption. Therefore **publication remains blocked** until a
+  separately reviewed replacement supports all active task kinds, validated
+  metadata and safe author/collection/cover transfers.
+- No auto-publish or public reader switching in this change. The Pan QA task
+  remains claimed by the administrator and the five downstream assignments are
+  unchanged. This task flow is intended for their first live editorial pilot
+  after activation and QA.
