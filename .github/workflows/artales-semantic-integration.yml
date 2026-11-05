@@ -19,6 +19,8 @@ on:
       - 'app/member/editorial-pipeline/**'
       - 'app/member/editorial-detail/**'
       - 'components/editor/CandidateCoverInput.tsx'
+      - 'components/editor/editorial-workspace.css'
+      - 'tests/editorialWorkspacePolish.test.ts'
       - 'ops/sql/20261105_artales_candidate_editorial_metadata_gate.sql'
       - 'tests/editorialCandidateRelease.test.ts'
       - 'tests/editorialPoolProductionRelease.test.ts'
@@ -55,6 +57,8 @@ jobs:
         run: npx tsx --test tests/semanticQaWorkflow.test.ts
       - name: Voluntary task pool and governed owner transfer
         run: npx tsx --test tests/editorialPoolProductionRelease.test.ts
+      - name: Editorial workspace design and functionality safety
+        run: npx tsx --test tests/editorialWorkspacePolish.test.ts
       - name: Editorial candidate release evidence and legacy safety
         run: npx tsx --test tests/editorialCandidateRelease.test.ts
       - name: Editorial assignment and review workflow contract
