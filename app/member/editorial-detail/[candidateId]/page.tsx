@@ -20,7 +20,7 @@ function entryStatus(complete:boolean){
  </span>;
 }
 export default async function CandidateEditorialDetail({params,searchParams}:{
- params:Promise<{candidateId:string}>;searchParams:Promise<{error?:string;saved?:string}>
+ params:Promise<{candidateId:string}>;searchParams:Promise<{error?:string;saved?:string;closed?:string;createdAuthorId?:string}>
 }){
  if(!SEMANTIC_PIPELINE_ENABLED)notFound();
  const {candidateId}=await params;
@@ -43,11 +43,13 @@ export default async function CandidateEditorialDetail({params,searchParams}:{
  const tasks=(tasksRes.data??[]) as Task[];
  if(me.role!=="admin"&&!tasks.some(t=>t.assigned_to===me.id))notFound();
  const candidate=candidateRes.data;
+ const err=await searchParams;
  const metadata:Metadata=metadataRes.data??{author_id:null,collection_id:null,work_description:null,
   cover_image_path:null,cover_image_alt:null,cover_image_caption:null};
  const authors=authorsRes.data??[];
  const collections=collectionsRes.data??[];
  const author=authors.find(a=>a.id===metadata.author_id);
+ const recommendedAuthorId=metadata.author_id??(authors.some(a=>a.id===err.createdAuthorId)?err.createdAuthorId:"");
  const collection=collections.find(c=>c.id===metadata.collection_id);
  const byKind=(kind:string)=>tasks.find(t=>t.kind===kind);
  const authorized=(kind:string)=>me.role==="admin"||
@@ -63,14 +65,15 @@ export default async function CandidateEditorialDetail({params,searchParams}:{
  const coverPresent=Boolean(metadata.cover_image_path&&
   (metadata.cover_image_alt??"").trim().length>=8);
  const collectionPresent=Boolean(collection);
- const err=await searchParams;
  const errors:Record<string,string>={
   save_failed:"Uložení se nezdařilo. Zkontroluj oprávnění a aktuální stav.",
   select_record:"Vyber existující záznam.",unknown_author:"Autor neexistuje.",
   unknown_collection:"Kolekce neexistuje.",description_required:"Anotace musí mít 200–800 znaků.",
   cover_required:"Nahraj platnou obálku a vyplň alternativní text.",
   cover_asset_missing:"Soubor obálky nebyl nalezen v úložišti.",
-  not_claimed:"Nejdřív převezmi odpovídající úkol.",invalid_input:"Neplatné údaje."
+  not_claimed:"Nejdřív převezmi odpovídající úkol.",invalid_input:"Neplatné údaje.",
+  evidence_missing:"Chybí ověřené údaje nebo uložený soubor. Úkol zůstává otevřený.",
+  qa_in_reader:"Dokončení textového QA probíhá v sémantickém editoru."
  };
  const completeForm=(kind:string,ready:boolean)=>{
   const task=byKind(kind);
@@ -88,7 +91,8 @@ export default async function CandidateEditorialDetail({params,searchParams}:{
   <p>Autor podle námětu: {candidate.proposed_author_name}. Záznamy níže jsou pracovní
    metadata kandidáta; zveřejnění je až samostatný schvalovací krok.</p>
   {err.error?<p role="alert">{errors[err.error]??"Uložení se nezdařilo."}</p>:null}
-  {err.saved?<p role="status">Údaje byly uloženy: {labels[err.saved]??err.saved}.</p>:null}
+  {err.saved?<p role="status">Údaje byly uloženy: {labels[err.saved]??err.saved}.
+   {err.closed==="1"?" Odpovídající úkol je dokončený.":""}</p>:null}
   <section aria-label="Stav díla" style={{margin:"24px 0",padding:16,border:"1px solid #ddd"}}>
    <h2>Postup přípravy díla</h2>
    <p>QA a sémantická sazba se kontrolují samostatně. Ostatní položky lze připravit souběžně.</p>
@@ -104,7 +108,7 @@ export default async function CandidateEditorialDetail({params,searchParams}:{
     <input type="hidden" name="candidate_id" value={candidateId}/>
     <input type="hidden" name="field" value="author"/>
     <label>Propojit s existujícím autorem
-     <select name="value" defaultValue={metadata.author_id??""} required>
+     <select name="value" defaultValue={recommendedAuthorId} required>
       <option value="" disabled>Vyber autora</option>
       {authors.map(a=><option key={a.id} value={a.id}>{a.name}</option>)}
      </select>
@@ -112,7 +116,7 @@ export default async function CandidateEditorialDetail({params,searchParams}:{
     <button type="submit">Uložit vazbu na autora</button>
    </form>:<p>Úpravu provádí pověřený editor příslušného úkolu.</p>}
    <p>{author?<Link href={"/member/authors/"+author.slug+"/edit"}>Otevřít profil autora</Link>:
-    <Link href={"/member/authors/new?returnTo="+encodeURIComponent("/member/editorial-detail/"+candidateId+"#author")}>
+    <Link href={"/member/authors/new?returnTo="+encodeURIComponent("/member/editorial-detail/"+candidateId)}>
      Založit chybějícího autora</Link>}</p>
    <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(240px,1fr))",gap:18}}>
     <div><h3>Profil autora {entryStatus(bioPresent)}</h3>
@@ -137,11 +141,11 @@ export default async function CandidateEditorialDetail({params,searchParams}:{
       {collections.map(c=><option key={c.id} value={c.id}>{c.title_en??c.title}</option>)}
      </select>
     </label>
-    <button type="submit">Uložit kolekci díla</button>
+    <button type="submit">Uložit kolekci a ověřit dokončení úkolu</button>
    </form>:<p>Kolekci přiřazuje pověřený editor.</p>}
    <p>{collection?<Link href={"/member/collections/"+collection.slug+"/edit"}>Otevřít kolekci</Link>:
     <Link href="/member/collections/new">Založit novou kolekci</Link>}</p>
-   {completeForm("collection_curation",collectionPresent)}
+
   </section>
 
   <section id="description" style={{borderTop:"1px solid #ddd",padding:"20px 0"}}>
@@ -153,9 +157,9 @@ export default async function CandidateEditorialDetail({params,searchParams}:{
      <textarea name="value" required minLength={200} maxLength={800} rows={6}
       defaultValue={metadata.work_description??""}/>
     </label>
-    <button type="submit">Uložit anotaci</button>
+    <button type="submit">Uložit anotaci a ověřit dokončení úkolu</button>
    </form>:<p>Anotaci připravuje pověřený editor.</p>}
-   {completeForm("work_description",descriptionPresent)}
+
   </section>
 
   <section id="cover" style={{borderTop:"1px solid #ddd",padding:"20px 0"}}>
@@ -167,7 +171,7 @@ export default async function CandidateEditorialDetail({params,searchParams}:{
      initialPath={metadata.cover_image_path??""} initialAlt={metadata.cover_image_alt??""}
      initialCaption={metadata.cover_image_caption??""}/>
    </form>:<p>Obálku připravuje pověřený editor.</p>}
-   {completeForm("cover_art",coverPresent)}
+
   </section>
   <p><Link href="/member/editorial-pipeline">← Zpět k přiděleným úkolům</Link></p>
  </main>;
