@@ -6,6 +6,7 @@ import {SEMANTIC_PIPELINE_ENABLED} from "@/lib/semantic/featureFlag";
 import {saveCandidateEditorialField} from "./actions";
 import {completeSemanticTask} from "@/app/member/editorial-pipeline/actions";
 import CandidateCoverInput from "@/components/editor/CandidateCoverInput";
+import "@/components/editor/editorial-workspace.css";
 
 export const dynamic="force-dynamic";
 type Metadata={author_id:string|null;collection_id:string|null;work_description:string|null;
@@ -15,8 +16,8 @@ const labels:Record<string,string>={
  author:"Autor",collection:"Kolekce",description:"Anotace",cover:"Obálka"
 };
 function entryStatus(complete:boolean){
- return <span style={{fontSize:13,color:complete?"#166534":"#9a3412"}}>
-  {complete?"Údaje vyplněny":"Čeká na doplnění"}
+ return <span className={"ed-status "+(complete?"ed-status--complete":"")}>
+  {complete?"Připraveno":"Čeká na doplnění"}
  </span>;
 }
 export default async function CandidateEditorialDetail({params,searchParams}:{
@@ -79,101 +80,192 @@ export default async function CandidateEditorialDetail({params,searchParams}:{
  const completeForm=(kind:string,ready:boolean)=>{
   const task=byKind(kind);
   if(!task||task.assigned_to!==me.id||task.status!=="claimed")return null;
-  return <div style={{marginTop:10}}>
+  return <div>
    {ready?<form action={completeSemanticTask}>
     <input type="hidden" name="task_id" value={task.id}/>
-    <button type="submit">Uzavřít úkol po kontrole uložených údajů</button>
-   </form>:<p>Úkol nelze dokončit, dokud nejsou povinné údaje uložené.</p>}
+    <button className="ed-button ed-button--soft ed-button--compact" type="submit">Dokončit ověřený úkol ✓</button>
+   </form>:<p className="ed-quiet">Nejprve doplň a ulož potřebné údaje.</p>}
   </div>;
  };
- return <main style={{maxWidth:990,margin:"24px auto",padding:"0 20px",lineHeight:1.6}}>
-  <p><Link href="/member/editorial-pipeline">← Redakční úkoly</Link></p>
-  <h1>Redakční detail · {candidate.proposed_title}</h1>
-  <p>Autor podle námětu: {candidate.proposed_author_name}. Záznamy níže jsou pracovní
-   metadata kandidáta; zveřejnění je až samostatný schvalovací krok.</p>
-  {err.error?<p role="alert">{errors[err.error]??"Uložení se nezdařilo."}</p>:null}
-  {err.saved?<p role="status">Údaje byly uloženy: {labels[err.saved]??err.saved}.
-   {err.closed==="1"?" Odpovídající úkol je dokončený.":""}</p>:null}
-  <section aria-label="Stav díla" style={{margin:"24px 0",padding:16,border:"1px solid #ddd"}}>
-   <h2>Postup přípravy díla</h2>
-   <p>QA a sémantická sazba se kontrolují samostatně. Ostatní položky lze připravit souběžně.</p>
-   <p>{[metadata.author_id,metadata.collection_id,descriptionPresent,coverPresent].filter(Boolean).length} / 4 základních vazeb vyplněno</p>
-   <progress max={4} value={[metadata.author_id,metadata.collection_id,descriptionPresent,coverPresent].filter(Boolean).length}
-    aria-label="Základní metadata díla"/>
-   <p><Link href={"/member/semantic/"+candidateId}>Otevřít textové QA a sémantický editor</Link></p>
-  </section>
-
-  <section id="author" style={{borderTop:"1px solid #ddd",padding:"20px 0"}}>
-   <h2>Autor a jeho údaje {entryStatus(Boolean(author))}</h2>
-   {canEditAuthor?<form action={saveCandidateEditorialField} style={{display:"grid",gap:10}}>
-    <input type="hidden" name="candidate_id" value={candidateId}/>
-    <input type="hidden" name="field" value="author"/>
-    <label>Propojit s existujícím autorem
-     <select name="value" defaultValue={recommendedAuthorId} required>
-      <option value="" disabled>Vyber autora</option>
-      {authors.map(a=><option key={a.id} value={a.id}>{a.name}</option>)}
-     </select>
-    </label>
-    <button type="submit">Uložit vazbu na autora</button>
-   </form>:<p>Úpravu provádí pověřený editor příslušného úkolu.</p>}
-   <p>{author?<Link href={"/member/authors/"+author.slug+"/edit"}>Otevřít profil autora</Link>:
-    <Link href={"/member/authors/new?returnTo="+encodeURIComponent("/member/editorial-detail/"+candidateId)}>
-     Založit chybějícího autora</Link>}</p>
-   <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(240px,1fr))",gap:18}}>
-    <div><h3>Profil autora {entryStatus(bioPresent)}</h3>
-     <p>Ulož biografii v profilu autora; alespoň jedna jazyková verze musí mít 40 znaků.</p>
-     {completeForm("author_bio",Boolean(author)&&bioPresent)}
+ const sections=[
+  {id:"author",label:"Autor",done:Boolean(author)},
+  {id:"collection",label:"Kolekce",done:collectionPresent},
+  {id:"description",label:"Anotace",done:descriptionPresent},
+  {id:"cover",label:"Obálka",done:coverPresent}
+ ];
+ const completedCount=sections.filter(x=>x.done).length;
+ const sectionTasks=(kind:string)=>{
+  const t=byKind(kind);
+  if(!t)return null;
+  return t.status==="claimed"?<span className="ed-status ed-status--claimed">Rozpracováno</span>
+   :<span className="ed-status">Přiděleno</span>;
+ };
+ return <main className="ed-page" id="editorial-detail">
+  <nav className="ed-breadcrumb" aria-label="Drobečková navigace">
+   <Link href="/member/editorial-pipeline">Redakční práce</Link>
+   <span className="ed-breadcrumb__sep">/</span>
+   <span>{candidate.proposed_title}</span>
+  </nav>
+  <header className="ed-hero">
+   <p className="ed-eyebrow">ARTales · Redakční příprava</p>
+   <div className="ed-hero__row">
+    <div>
+     <h1>{candidate.proposed_title}</h1>
+     <p className="ed-hero__subtitle">{candidate.proposed_author_name} · Pracovní karta díla.
+      Doplň údaje, které později převezme publikovaná kniha. Každá oblast má vlastní kontrolu.</p>
     </div>
-    <div><h3>Vizuál autora {entryStatus(portraitPresent)}</h3>
-     <p>V profilu autora nahraj portrét a vyplň alternativní popis.</p>
-     {completeForm("author_visual",Boolean(author)&&portraitPresent)}
+    <div className="ed-hero__actions">
+     <Link className="ed-button ed-button--soft" href="/member/editorial-pipeline">← Moje úkoly</Link>
+     <Link className="ed-button" href={"/member/semantic/"+candidateId}>Otevřít textové QA ↗</Link>
     </div>
    </div>
+  </header>
+  {err.error?<div className="ed-notice ed-notice--error" role="alert">{errors[err.error]??"Uložení se nezdařilo."}</div>:null}
+  {err.saved?<div className="ed-notice" role="status">✓ Údaje byly uloženy: {labels[err.saved]??err.saved}.
+   {err.closed==="1"?" Odpovídající úkol byl zároveň uzavřen.":""}</div>:null}
+  <section className="ed-progress" aria-label="Postup přípravy díla">
+   <div className="ed-progress__row"><strong>Příprava díla</strong>
+    <span className="ed-progress__count">{completedCount} ze 4 oblastí připraveno</span>
+   </div>
+   <progress value={completedCount} max={4} aria-label="Vyplněná základní metadata"/>
+   <p className="ed-quiet" style={{margin:"10px 0 0"}}>Základní metadata může redakce připravovat souběžně.
+    Textové QA a schválení vydání jsou samostatné kroky.</p>
+   <nav className="ed-progress__links" aria-label="Oblasti karty">
+    {sections.map(section=><a key={section.id} href={"#"+section.id}
+      data-ready={section.done}>{section.done?"✓ ":""}{section.label}</a>)}
+   </nav>
   </section>
-
-  <section id="collection" style={{borderTop:"1px solid #ddd",padding:"20px 0"}}>
-   <h2>Zařazení do kolekce {entryStatus(collectionPresent)}</h2>
-   {canEditCollection?<form action={saveCandidateEditorialField} style={{display:"grid",gap:10}}>
-    <input type="hidden" name="candidate_id" value={candidateId}/>
-    <input type="hidden" name="field" value="collection"/>
-    <label>Kolekce
-     <select name="value" defaultValue={metadata.collection_id??""} required>
-      <option value="" disabled>Vyber kolekci</option>
-      {collections.map(c=><option key={c.id} value={c.id}>{c.title_en??c.title}</option>)}
-     </select>
-    </label>
-    <button type="submit">Uložit kolekci a ověřit dokončení úkolu</button>
-   </form>:<p>Kolekci přiřazuje pověřený editor.</p>}
-   <p>{collection?<Link href={"/member/collections/"+collection.slug+"/edit"}>Otevřít kolekci</Link>:
-    <Link href="/member/collections/new">Založit novou kolekci</Link>}</p>
-
-  </section>
-
-  <section id="description" style={{borderTop:"1px solid #ddd",padding:"20px 0"}}>
-   <h2>Anotace díla {entryStatus(descriptionPresent)}</h2>
-   {canEditDescription?<form action={saveCandidateEditorialField} style={{display:"grid",gap:10}}>
-    <input type="hidden" name="candidate_id" value={candidateId}/>
-    <input type="hidden" name="field" value="description"/>
-    <label>Originální text anotace (200–800 znaků)
-     <textarea name="value" required minLength={200} maxLength={800} rows={6}
-      defaultValue={metadata.work_description??""}/>
-    </label>
-    <button type="submit">Uložit anotaci a ověřit dokončení úkolu</button>
-   </form>:<p>Anotaci připravuje pověřený editor.</p>}
-
-  </section>
-
-  <section id="cover" style={{borderTop:"1px solid #ddd",padding:"20px 0"}}>
-   <h2>Obálka knihy {entryStatus(coverPresent)}</h2>
-   {canEditCover?<form action={saveCandidateEditorialField} style={{display:"grid",gap:10}}>
-    <input type="hidden" name="candidate_id" value={candidateId}/>
-    <input type="hidden" name="field" value="cover"/>
-    <CandidateCoverInput candidateId={candidateId}
-     initialPath={metadata.cover_image_path??""} initialAlt={metadata.cover_image_alt??""}
-     initialCaption={metadata.cover_image_caption??""}/>
-   </form>:<p>Obálku připravuje pověřený editor.</p>}
-
-  </section>
-  <p><Link href="/member/editorial-pipeline">← Zpět k přiděleným úkolům</Link></p>
+  <div className="ed-detail-grid">
+   <div className="ed-detail-content">
+    <section id="author" className="ed-card" aria-labelledby="ed-author-title">
+     <div className="ed-card__head">
+      <div className="ed-card__heading"><span className="ed-card__number">01</span>
+       <div><h2 id="ed-author-title">Autor díla</h2>
+        <p className="ed-card__lead">Propoj správného autora, doplň profil a portrét.</p></div>
+      </div>
+      {entryStatus(Boolean(author))}
+     </div>
+     <div className="ed-card__body">
+      {canEditAuthor?<form className="ed-card__form" action={saveCandidateEditorialField}>
+       <input type="hidden" name="candidate_id" value={candidateId}/>
+       <input type="hidden" name="field" value="author"/>
+       <label className="ed-label">Autor v katalogu
+        <select name="value" defaultValue={recommendedAuthorId} required>
+         <option value="" disabled>Vyber autora…</option>
+         {authors.map(a=><option key={a.id} value={a.id}>{a.name}</option>)}
+        </select>
+       </label>
+       <button className="ed-button" type="submit">Uložit autora ↗</button>
+      </form>:<p className="ed-quiet">Změny může ukládat pověřený editor tohoto úkolu.</p>}
+      <div className="ed-inline-links">
+       {author?<Link className="ed-inline-link" href={"/member/authors/"+author.slug+"/edit"}>Upravit profil autora ↗</Link>:
+       <Link className="ed-inline-link" href={"/member/authors/new?returnTo="+encodeURIComponent("/member/editorial-detail/"+candidateId)}>
+        + Založit chybějícího autora</Link>}
+      </div>
+      <div className="ed-related">
+       <div className="ed-related__item">
+        <h3>Životopis {entryStatus(bioPresent)}</h3>
+        <p>Text autora se připravuje v jeho profilu. Alespoň jedna jazyková verze musí mít 40 znaků.</p>
+        {completeForm("author_bio",Boolean(author)&&bioPresent)}
+       </div>
+       <div className="ed-related__item">
+        <h3>Portrét {entryStatus(portraitPresent)}</h3>
+        <p>V profilu autora nahraj obrázek a doplň alternativní popis.</p>
+        {completeForm("author_visual",Boolean(author)&&portraitPresent)}
+       </div>
+      </div>
+     </div>
+    </section>
+    <section id="collection" className="ed-card" aria-labelledby="ed-collection-title">
+     <div className="ed-card__head">
+      <div className="ed-card__heading"><span className="ed-card__number">02</span>
+       <div><h2 id="ed-collection-title">Zařazení do kolekce</h2>
+        <p className="ed-card__lead">Vyber kolekci, do které bude dílo patřit.</p></div>
+      </div>
+      {entryStatus(collectionPresent)}
+     </div>
+     <div className="ed-card__body">
+      {canEditCollection?<form className="ed-card__form" action={saveCandidateEditorialField}>
+       <input type="hidden" name="candidate_id" value={candidateId}/>
+       <input type="hidden" name="field" value="collection"/>
+       <label className="ed-label">Kolekce díla
+        <select name="value" defaultValue={metadata.collection_id??""} required>
+         <option value="" disabled>Vyber kolekci…</option>
+         {collections.map(c=><option key={c.id} value={c.id}>{c.title_en??c.title}</option>)}
+        </select>
+       </label>
+       <button className="ed-button" type="submit">Uložit kolekci ✓</button>
+       <small className="ed-help">Po uložení systém ověří vazbu a může úkol automaticky dokončit.</small>
+      </form>:<p className="ed-quiet">Kolekci vybírá pověřený editor.</p>}
+      <div className="ed-inline-links">
+       {collection?<Link className="ed-inline-link" href={"/member/collections/"+collection.slug+"/edit"}>Upravit kolekci ↗</Link>:
+        <Link className="ed-inline-link" href="/member/collections/new">+ Vytvořit novou kolekci</Link>}
+      </div>
+     </div>
+    </section>
+    <section id="description" className="ed-card" aria-labelledby="ed-description-title">
+     <div className="ed-card__head">
+      <div className="ed-card__heading"><span className="ed-card__number">03</span>
+       <div><h2 id="ed-description-title">Anotace knihy</h2>
+        <p className="ed-card__lead">Krátké představení díla pro čtenáře.</p></div>
+      </div>
+      {entryStatus(descriptionPresent)}
+     </div>
+     <div className="ed-card__body">
+      {canEditDescription?<form className="ed-card__form" action={saveCandidateEditorialField}>
+       <input type="hidden" name="candidate_id" value={candidateId}/>
+       <input type="hidden" name="field" value="description"/>
+       <label className="ed-label">Text anotace
+        <textarea name="value" required minLength={200} maxLength={800} rows={6}
+         defaultValue={metadata.work_description??""}
+         placeholder="Napiš originální anotaci knihy…"/>
+       </label>
+       <small className="ed-help">Rozsah 200–800 znaků. Text nezasahuje do originálu knihy.</small>
+       <button className="ed-button" type="submit">Uložit anotaci ✓</button>
+      </form>:<p className="ed-quiet">Anotaci připravuje pověřený editor.</p>}
+     </div>
+    </section>
+    <section id="cover" className="ed-card" aria-labelledby="ed-cover-title">
+     <div className="ed-card__head">
+      <div className="ed-card__heading"><span className="ed-card__number">04</span>
+       <div><h2 id="ed-cover-title">Obálka díla</h2>
+        <p className="ed-card__lead">Připrav veřejný vizuál a jeho přístupný popis.</p></div>
+      </div>
+      {entryStatus(coverPresent)}
+     </div>
+     <div className="ed-card__body">
+      {canEditCover?<form className="ed-card__form" action={saveCandidateEditorialField}>
+       <input type="hidden" name="candidate_id" value={candidateId}/>
+       <input type="hidden" name="field" value="cover"/>
+       <CandidateCoverInput candidateId={candidateId}
+        initialPath={metadata.cover_image_path??""}
+        initialAlt={metadata.cover_image_alt??""}
+        initialCaption={metadata.cover_image_caption??""}/>
+      </form>:<p className="ed-quiet">Obálku připravuje pověřený editor.</p>}
+     </div>
+    </section>
+   </div>
+   <aside className="ed-sidebar" aria-label="Přehled práce">
+    <div className="ed-aside-card">
+     <p className="ed-eyebrow">Stav přípravy</p>
+     <h2>Co ještě zbývá?</h2>
+     <ul className="ed-aside-card__list">{sections.map(section=><li key={section.id}>
+      <span className="ed-aside-bullet" data-ready={section.done}/>
+      <a href={"#"+section.id}>{section.label}{section.done?" · připraveno":" · čeká"}</a>
+     </li>)}</ul>
+    </div>
+    <div className="ed-aside-card">
+     <p className="ed-eyebrow">Samostatný krok</p>
+     <h2>Textové QA</h2>
+     <p>Text, sémantické bloky a opravy se posuzují ve vlastním editoru. Sazba nesmí měnit originální text.</p>
+     <Link className="ed-button ed-button--soft" href={"/member/semantic/"+candidateId}>Otevřít QA ↗</Link>
+    </div>
+    <div className="ed-aside-card">
+     <h2>Redakční úkoly</h2>
+     <p>Vlastnictví, převzetí a dokončení se evidují samostatně. Uložené údaje jsou podmínkou uzavření úkolu.</p>
+     <Link className="ed-inline-link" href="/member/editorial-pipeline">Zpět do redakční fronty ↗</Link>
+    </div>
+   </aside>
+  </div>
  </main>;
 }
