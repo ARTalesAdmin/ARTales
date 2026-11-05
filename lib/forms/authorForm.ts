@@ -135,7 +135,13 @@ function toNullableNumber(value: string): number | null {
   return parsed
 }
 
-export function validateAuthorFormValues(values: AuthorFormValues): string | null {
+export function validateAuthorFormValues(values: AuthorFormValues,requireBilingual=false): string | null {
+  if (requireBilingual) {
+   const cs=values.bio_cs.trim().length
+   const en=values.bio_en.trim().length
+   if (cs<200||cs>800||en<200||en>800) return "bilingual_description_required"
+  }
+
   if (!values.name_en) {
     return "name_missing"
   }
