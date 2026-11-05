@@ -61,7 +61,7 @@ BEGIN
    SELECT 1 FROM public.authors a JOIN public.work_candidates c ON c.id=p_candidate_id
    WHERE a.id=v_new_id AND
     (lower(btrim(a.name))=lower(btrim(c.proposed_author_name)) OR
-     lower(btrim(pg_catalog.coalesce(a.name_en,'')))=lower(btrim(c.proposed_author_name))))
+     lower(btrim(coalesce(a.name_en,'')))=lower(btrim(c.proposed_author_name))))
   THEN RETURN pg_catalog.jsonb_build_object('result','author_name_mismatch');END IF;
   IF p_field='collection' AND NOT EXISTS(SELECT 1 FROM public.collections WHERE id=v_new_id)
   THEN RETURN pg_catalog.jsonb_build_object('result','unknown_collection');END IF;
@@ -69,10 +69,10 @@ BEGIN
   IF p_value IS NULL OR length(btrim(p_value)) NOT BETWEEN 200 AND 800
   THEN RETURN pg_catalog.jsonb_build_object('result','description_required');END IF;
  ELSE
-  v_path:=btrim(pg_catalog.coalesce(p_value,''));
+  v_path:=btrim(coalesce(p_value,''));
   IF v_path !~ ('^works/'||p_candidate_id::text||'/cover/[a-zA-Z0-9_.-]+[.](jpg|png|webp)$')
-   OR length(btrim(pg_catalog.coalesce(p_alt,''))) NOT BETWEEN 8 AND 350
-   OR length(btrim(pg_catalog.coalesce(p_caption,'')))>500
+   OR length(btrim(coalesce(p_alt,''))) NOT BETWEEN 8 AND 350
+   OR length(btrim(coalesce(p_caption,'')))>500
   THEN RETURN pg_catalog.jsonb_build_object('result','cover_required');END IF;
   IF NOT EXISTS(SELECT 1 FROM storage.objects s
    WHERE s.bucket_id='artales-images' AND s.name=v_path)
@@ -95,7 +95,7 @@ BEGIN
  ELSE
   UPDATE public.artales_candidate_editorial_metadata
    SET cover_image_path=v_path,cover_image_alt=btrim(p_alt),
-    cover_image_caption=pg_catalog.nullif(btrim(pg_catalog.coalesce(p_caption,'')),''),
+    cover_image_caption=nullif(btrim(coalesce(p_caption,'')),''),
     updated_by=v_actor,updated_at=now() WHERE candidate_id=p_candidate_id;
  END IF;
  RETURN pg_catalog.jsonb_build_object('result','saved','field',p_field);
@@ -120,29 +120,29 @@ BEGIN
   WHEN 'collection_curation' THEN m.collection_id IS NOT NULL
    AND EXISTS(SELECT 1 FROM public.collections c WHERE c.id=m.collection_id)
   WHEN 'cover_art' THEN m.cover_image_path IS NOT NULL
-   AND length(btrim(pg_catalog.coalesce(m.cover_image_alt,'')))>=8
+   AND length(btrim(coalesce(m.cover_image_alt,'')))>=8
    AND EXISTS(SELECT 1 FROM storage.objects o
     WHERE o.bucket_id='artales-images' AND o.name=m.cover_image_path)
-  WHEN 'work_description' THEN length(btrim(pg_catalog.coalesce(m.work_description,''))) BETWEEN 200 AND 800
+  WHEN 'work_description' THEN length(btrim(coalesce(m.work_description,''))) BETWEEN 200 AND 800
   WHEN 'author_bio' THEN m.author_id IS NOT NULL
    AND EXISTS(SELECT 1 FROM public.authors a JOIN public.work_candidates c ON c.id=m.candidate_id
     WHERE a.id=m.author_id
     AND (lower(btrim(a.name))=lower(btrim(c.proposed_author_name))
-      OR lower(btrim(pg_catalog.coalesce(a.name_en,'')))=lower(btrim(c.proposed_author_name)))
-    AND (length(btrim(pg_catalog.coalesce(a.bio_en,'')))>=40
-     OR length(btrim(pg_catalog.coalesce(a.bio_cs,'')))>=40
-     OR length(btrim(pg_catalog.coalesce(a.bio,'')))>=40))
+      OR lower(btrim(coalesce(a.name_en,'')))=lower(btrim(c.proposed_author_name)))
+    AND (length(btrim(coalesce(a.bio_en,'')))>=40
+     OR length(btrim(coalesce(a.bio_cs,'')))>=40
+     OR length(btrim(coalesce(a.bio,'')))>=40))
   WHEN 'author_visual' THEN m.author_id IS NOT NULL
    AND EXISTS(SELECT 1 FROM public.authors a JOIN public.work_candidates c ON c.id=m.candidate_id
     WHERE a.id=m.author_id
     AND (lower(btrim(a.name))=lower(btrim(c.proposed_author_name))
-      OR lower(btrim(pg_catalog.coalesce(a.name_en,'')))=lower(btrim(c.proposed_author_name)))
-    AND length(btrim(pg_catalog.coalesce(a.portrait_image_alt,'')))>=8
+      OR lower(btrim(coalesce(a.name_en,'')))=lower(btrim(c.proposed_author_name)))
+    AND length(btrim(coalesce(a.portrait_image_alt,'')))>=8
     AND a.portrait_image_path IS NOT NULL
     AND EXISTS(SELECT 1 FROM storage.objects o
      WHERE o.bucket_id='artales-images' AND o.name=a.portrait_image_path))
   ELSE false END;
- IF NOT pg_catalog.coalesce(v_valid,false) THEN
+ IF NOT coalesce(v_valid,false) THEN
   RAISE EXCEPTION 'editorial_evidence_missing_for_%', NEW.kind USING errcode='23514';
  END IF;
  RETURN NEW;
