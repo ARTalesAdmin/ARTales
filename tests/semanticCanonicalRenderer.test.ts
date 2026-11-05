@@ -39,6 +39,12 @@ test("legacy content and reader are retained for pre-migration published works",
  assert.match(entry,/<ReaderClient/);
  assert.match(legacy,/paginateReaderBlocks/);
 });
+test("editorial rollout never implicitly activates public semantic reader",()=>{
+ assert.match(entry,/process\.env\.ARTALES_SEMANTIC_PUBLIC_READER_V1 === "enabled"/);
+ assert.match(entry,/SEMANTIC_PIPELINE_ENABLED && semanticPublicReaderEnabled/);
+ assert.match(entry,/<ReaderClient/);
+ assert.doesNotMatch(entry,/NEXT_PUBLIC_ARTALES_SEMANTIC_PUBLIC_READER_V1/);
+});
 test("dual-mode public routing is per published work; legacy stays byte-for-byte independent",()=>{
  assert.match(entry,/\.eq\("work_id",work\.id\)/);
  assert.match(entry,/if\(semanticRelease\?\.semantic_revision\)/);
