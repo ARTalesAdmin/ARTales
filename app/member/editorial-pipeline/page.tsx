@@ -73,20 +73,31 @@ export default async function EditorialPipeline(){
        Přiřazeno: {t.assigned_to?(names.get(t.assigned_to)??"Aktivní redaktor"):"Nepřiřazeno"}
        {" · "}Revize {t.revision_sha256.slice(0,12)}
      </p>
-     <p><Link href={"/member/semantic/"+t.candidate_id}>Otevřít dílo a QA</Link></p>
+     <p><Link href={["text_review","second_review","proofread","visual_review"].includes(t.kind)
+       ?"/member/semantic/"+t.candidate_id
+       :"/member/editorial-detail/"+t.candidate_id+"#"+(
+        t.kind==="cover_art"?"cover":t.kind==="collection_curation"?"collection":
+        t.kind==="work_description"?"description":"author"
+       )}>
+       {["text_review","second_review","proofread","visual_review"].includes(t.kind)
+        ?"Otevřít text a QA":"Otevřít místo úkolu"}
+      </Link></p>
      {waiting&&canWork?<form action={claimSemanticTask}>
       <input type="hidden" name="task_id" value={t.id}/>
       <button type="submit">Začít pracovat</button>
      </form>:null}
      {t.status==="claimed"&&canWork?<>
-      <form action={completeSemanticTask} style={{display:"grid",gap:8,maxWidth:600}}>
-       <input type="hidden" name="task_id" value={t.id}/>
-       <label>Výsledek kontroly
-        <textarea name="evidence_note" minLength={40} maxLength={4000} required rows={3}
-          style={{display:"block",width:"100%"}} placeholder="Zkontrolováno, výsledek a případné důkazy..."/>
-       </label>
-       <button type="submit">Dokončit tento úkol</button>
-      </form>
+      {["proofread","second_review","visual_review"].includes(t.kind)?
+       <form action={completeSemanticTask} style={{display:"grid",gap:8,maxWidth:600}}>
+        <input type="hidden" name="task_id" value={t.id}/>
+        <label>Výsledek kontroly
+         <textarea name="evidence_note" minLength={40} maxLength={4000} required rows={3}
+          style={{display:"block",width:"100%"}}/>
+        </label>
+        <button type="submit">Dokončit ověřenou kontrolu</button>
+       </form>:t.kind==="text_review"?
+       <p>Textové QA uzavřeš v sémantickém editoru po posouzení nálezů.</p>:
+       <p>Dokončení vyžaduje skutečně uložené údaje v redakčním detailu díla.</p>}
       {t.kind!=="second_review"?<details style={{marginTop:14}}>
        <summary>Vyžádat kontrolu od jiného editora</summary>
        <form action={requestSemanticSecondReview} style={{display:"grid",gap:8,maxWidth:600,padding:12}}>

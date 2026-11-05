@@ -13,12 +13,31 @@ export async function completeSemanticTask(form:FormData){
  const taskId=String(form.get("task_id")??"");
  if(!uuid.test(taskId))redirect("/member/editorial-pipeline?error=invalid");
  const db=await createClient();
- const note=String(form.get("evidence_note")??"").trim();
- if(note.length<40||note.length>4000)redirect("/member/editorial-pipeline?error=review_note_required");
+ const {data:task,error:lookupError}=await db.from("artales_editorial_tasks")
+  .select("candidate_id,kind,status,assigned_to").eq("id",taskId).maybeSingle();
+ if(lookupError||!task||task.status!=="claimed"||task.assigned_to!==actor.id)
+  redirect("/member/editorial-pipeline?error=unavailable");
+ // QA must finish in its own per-block verdict workflow; it cannot be bypassed
+ // via the general editorial completion button.
+ if(task.kind==="text_review")
+  redirect("/member/editorial-detail/"+task.candidate_id+"?error=qa_in_reader");
+ const metadataKinds:Record<string,string>={
+  cover_art:"Obálka knihy",work_description:"Anotace díla",
+  collection_curation:"Zařazení do kolekce",author_bio:"Profil autora",
+  author_visual:"Vizuál autora"
+ };
+ const typedNote=String(form.get("evidence_note")??"").trim();
+ const note=metadataKinds[task.kind]
+  ?metadataKinds[task.kind]+": dokončeno po ověření uložených údajů v databázi redakčního kandidáta."
+  :typedNote;
+ if(note.length<40||note.length>4000)
+  redirect("/member/editorial-pipeline?error=review_note_required");
  const {data,error}=await db.rpc("artales_complete_editorial_task",{p_task_id:taskId,p_note:note});
- if(error||data?.result!=="completed")redirect("/member/editorial-pipeline?error=task_failed");
- void actor;
- revalidatePath("/member/editorial-pipeline");revalidatePath("/member");redirect("/member/editorial-pipeline?notice=completed");
+ if(error||data?.result!=="completed")
+  redirect("/member/editorial-detail/"+task.candidate_id+"?error=evidence_missing");
+ revalidatePath("/member/editorial-pipeline");revalidatePath("/member","layout");
+ revalidatePath("/member/editorial-detail/"+task.candidate_id);
+ redirect("/member/editorial-detail/"+task.candidate_id+"?saved=completed");
 }
 
 export async function publishSemanticCandidate(form:FormData){
