@@ -7,7 +7,7 @@ import { getDefaultCollectionFormValues } from "@/lib/forms/collectionForm";
 import { COLLECTION_TYPE_OPTIONS } from "@/lib/collectionTypes";
 
 type PageProps = {
-  searchParams: Promise<{ error?: string }>;
+  searchParams: Promise<{ error?: string;returnTo?: string }>;
 };
 
 function getErrorMessage(error?: string) {
@@ -27,23 +27,25 @@ function getErrorMessage(error?: string) {
 export default async function NewCollectionPage({ searchParams }: PageProps) {
   await requireEditorOrAdmin();
   const defaults = getDefaultCollectionFormValues();
-  const { error } = await searchParams;
+  const { error,returnTo } = await searchParams;
+  const safeReturnTo=returnTo&&/^\/member\/editorial-detail\/[0-9a-f-]{36}$/.test(returnTo)?returnTo:null;
   const errorMessage = getErrorMessage(error);
 
   return (
     <main style={{ padding: "48px 32px", fontFamily: "serif", lineHeight: 1.6, maxWidth: "1000px", margin: "0 auto" }}>
-      <p style={{ marginBottom: "20px" }}><Link href="/member/collections">{"<- Zpět na kolekce"}</Link></p>
+      <p style={{ marginBottom: "20px" }}><Link href={safeReturnTo??"/member/collections"}>{"<- Zpět"}</Link></p>
       <h1 style={{ fontSize: "40px", lineHeight: 1.1, marginTop: 0, marginBottom: "12px" }}>Nová kolekce</h1>
       <p style={{ maxWidth: "760px", marginBottom: "20px" }}>Kolekce jsou kurátorské literární galerie. Veřejně se zobrazují podle lokalizace, ale interně drží plnou bilingvní strukturu.</p>
       {errorMessage ? <p style={{ marginBottom: "18px", padding: "12px 14px", border: "1px solid #d99", background: "#fff7f7" }}>{errorMessage}</p> : null}
-      <CollectionForm defaults={defaults} action={createCollection} submitLabel="Vytvořit kolekci" />
+      <CollectionForm defaults={defaults} action={createCollection} submitLabel="Vytvořit kolekci" returnTo={safeReturnTo??""} />
     </main>
   )
 }
 
-function CollectionForm({ defaults, action, submitLabel }: any) {
+function CollectionForm({ defaults, action, submitLabel,returnTo }: any) {
   return (
     <form action={action} style={{ display: "grid", gap: "22px" }}>
+      <input type="hidden" name="returnTo" value={returnTo??""} />
       <section style={{ border: "1px solid #ddd", padding: "24px", display: "grid", gap: "18px" }}>
         <h2 style={{ margin: 0, fontSize: "26px" }}>Základ kolekce</h2>
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px" }}>
