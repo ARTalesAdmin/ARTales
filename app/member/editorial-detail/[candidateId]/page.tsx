@@ -94,12 +94,6 @@ export default async function CandidateEditorialDetail({params,searchParams}:{
   {id:"cover",label:"Obálka",done:coverPresent}
  ];
  const completedCount=sections.filter(x=>x.done).length;
- const sectionTasks=(kind:string)=>{
-  const t=byKind(kind);
-  if(!t)return null;
-  return t.status==="claimed"?<span className="ed-status ed-status--claimed">Rozpracováno</span>
-   :<span className="ed-status">Přiděleno</span>;
- };
  return <main className="ed-page" id="editorial-detail">
   <nav className="ed-breadcrumb" aria-label="Drobečková navigace">
    <Link href="/member/editorial-pipeline">Redakční práce</Link>
