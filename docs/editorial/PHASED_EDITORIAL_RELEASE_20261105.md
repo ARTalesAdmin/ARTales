@@ -54,3 +54,26 @@ Production has neither `artales_commit_safe_layout_revision` nor
 
 Do not collapse phases, equate successful CI with database migration, or turn on
 public semantic reader to test editorial QA.
+
+
+## Actual production checkpoint — 2026-11-05
+
+**Applied:** Supabase ARTales production migration `20261105105037_artales_editorial_pool_ownership_v3`
+from `ops/sql/20261104_artales_editorial_pool_ownership_v3.sql`.
+Provider returned `success:true`. Readback verified:
+- `artales_editorial_capabilities`: Pavla 5 competencies; Ivana 9 competencies.
+- `artales_editorial_default_owners`: cover, author visual and collection to Ivana.
+- `task_staff_read` RLS is active and scoped to admin, existing owner or eligible unassigned work.
+- Pan candidate `98508359-bce1-4e73-b842-b69a9d1112d0`: six existing tasks unchanged except explicit QA takeover.
+- Pan QA `fe8257aa-d624-41f3-9e7c-24b49ad02455` reassigned **from Pavla to Luboš** and `claimed` with durable event. The other five retain their owners and statuses.
+- Open QA finding around the typography of `Raymond` persists.
+- No schema apply for AI jobs, change decision v4, safe layout commit v4, closeout v4 or monthly review.
+- Production UI remains main `72ae85687b9aefbad8fd5d72f3f6706b974e1c37`; large PR #297 is still draft.
+- Public semantic reader stays disabled, no semantic publication created, no AI keys activated.
+
+**Next release gate:** do not merge the composite PR #297 just because its CI succeeds.
+Validate v4 service-only commit, per-change acceptance, AI crash/retry and SQL RLS
+under realistic role and concurrency tests first; then separately approve deployment
+of the editor UI, with independent public reader gate off. The user will perform
+Pan's QA together with the assistant before five preassigned tasks are handed
+to their respective editors for feedback. Preserve legacy content and readers.
