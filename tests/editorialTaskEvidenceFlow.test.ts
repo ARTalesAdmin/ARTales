@@ -36,6 +36,8 @@ test("task completion is rejected in database without actual result, not merely 
  assert.match(sql,/WHEN 'work_description' THEN length/);
  assert.match(sql,/WHEN 'author_bio' THEN m\.author_id IS NOT NULL/);
  assert.match(sql,/WHEN 'author_visual' THEN m\.author_id IS NOT NULL/);
+ assert.match(sql,/author_name_mismatch/);
+ assert.match(sql,/c\.proposed_author_name/);
  assert.match(sql,/RAISE EXCEPTION 'editorial_evidence_missing/);
 });
 test("client cannot forge stored metadata or claim unowned task",()=>{
