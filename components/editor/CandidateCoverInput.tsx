@@ -31,22 +31,28 @@ export default function CandidateCoverInput({candidateId,initialPath="",initialA
   }catch{setMessage("Nahrávání selhalo. Opakuj pokus.")}
   finally{setBusy(false);if(input.current)input.current.value="";}
  };
- return <div style={{display:"grid",gap:10}}>
+ return <div className="ed-filebox">
   <input type="hidden" name="value" value={path}/>
-  <label>Soubor obálky
+  <p className="ed-eyebrow">Soubor obálky</p>
+  <label className="ed-label">Nahrát obrázek
    <input ref={input} type="file" accept="image/jpeg,image/png,image/webp"
     disabled={busy} onChange={event=>void upload(event.target.files?.[0])}/>
   </label>
-  {path?<p>Vybraný soubor: <code>{path}</code></p>:<p>Nejdřív nahraj obálku.</p>}
-  <label>Alternativní popis obrázku (povinný)
+  <p className="ed-filebox__message">{busy?"Nahrávám obrázek…":
+   path?"✓ Obálka je připravena k uložení.":"JPG, PNG nebo WebP do 5 MB."}</p>
+  {path?<p className="ed-filebox__path">Uložený soubor: {path}</p>:null}
+  <label className="ed-label">Alternativní popis obrázku
    <input name="alt" required minLength={8} maxLength={350} value={alt}
-    onChange={e=>setAlt(e.target.value)} placeholder="Obálka knihy The Great God Pan"/>
+    onChange={e=>setAlt(e.target.value)} placeholder="Co je na obálce zobrazeno?"/>
   </label>
-  <label>Popisek obrázku (nepovinný)
+  <label className="ed-label">Popisek nebo kredit (nepovinný)
    <input name="caption" maxLength={500} value={caption}
-    onChange={e=>setCaption(e.target.value)}/>
+    onChange={e=>setCaption(e.target.value)} placeholder="Například autor ilustrace"/>
   </label>
-  {message?<p role="status">{message}</p>:null}
-  <button type="submit" disabled={busy||!path||alt.trim().length<8}>Uložit obálku díla</button>
+  {message?<p role="status" className="ed-filebox__message">{message}</p>:null}
+  <button className="ed-button" type="submit" disabled={busy||!path||alt.trim().length<8}>
+   Uložit obálku ✓
+  </button>
+  <small className="ed-help">Úkol se dokončí až po úspěšném uložení a ověření souboru.</small>
  </div>;
 }
