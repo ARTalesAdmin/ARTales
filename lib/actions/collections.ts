@@ -15,7 +15,7 @@ export async function createCollection(formData: FormData): Promise<void> {
   const supabase = await createClient()
 
   const values = parseCollectionFormData(formData)
-  const validationError = validateCollectionFormValues(values)
+  const validationError = validateCollectionFormValues(values,true)
 
   if (validationError) {
     redirect(`/member/collections/new?error=${validationError}`)
