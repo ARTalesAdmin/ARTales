@@ -19,6 +19,9 @@ on:
       - 'app/member/editorial-pipeline/**'
       - 'app/member/editorial-detail/**'
       - 'components/editor/CandidateCoverInput.tsx'
+      - 'components/editor/CandidateBilingualAnnotationFields.tsx'
+      - 'ops/sql/20261105_artales_candidate_bilingual_descriptions.sql'
+      - 'tests/editorialBilingualAnnotations.test.ts'
       - 'components/editor/editorial-workspace.css'
       - 'tests/editorialWorkspacePolish.test.ts'
       - 'ops/sql/20261105_artales_candidate_editorial_metadata_gate.sql'
@@ -46,7 +49,7 @@ jobs:
       - name: TypeScript
         run: npx tsc --noEmit
       - name: ESLint scoped files
-        run: npx eslint lib/semantic lib/ingest/epubSemanticExtractor.ts components/editor/SemanticReaderLab.tsx components/editor/SemanticReaderNotesQa.tsx components/editor/SemanticQaPanel.tsx 'app/member/semantic/[candidateId]/qa-actions.ts' 'app/member/semantic/[candidateId]/page.tsx' app/member/editorial-pipeline/actions.ts app/member/editorial-pipeline/page.tsx 'app/member/editorial-detail/[candidateId]/actions.ts' 'app/member/editorial-detail/[candidateId]/page.tsx' components/editor/CandidateCoverInput.tsx components/member/MemberZoneNav.tsx components/member/MemberHelpButton.tsx app/member/editorial-help/actions.ts app/member/layout.tsx components/reader/ProtectedProseText.tsx 'app/reader/[slug]/page.tsx' 'app/api/member/semantic/[candidateId]/compose/route.ts'
+        run: npx eslint lib/semantic lib/ingest/epubSemanticExtractor.ts components/editor/SemanticReaderLab.tsx components/editor/SemanticReaderNotesQa.tsx components/editor/SemanticQaPanel.tsx 'app/member/semantic/[candidateId]/qa-actions.ts' 'app/member/semantic/[candidateId]/page.tsx' app/member/editorial-pipeline/actions.ts app/member/editorial-pipeline/page.tsx 'app/member/editorial-detail/[candidateId]/actions.ts' 'app/member/editorial-detail/[candidateId]/page.tsx' components/editor/CandidateCoverInput.tsx components/editor/CandidateBilingualAnnotationFields.tsx components/member/MemberZoneNav.tsx components/member/MemberHelpButton.tsx app/member/editorial-help/actions.ts app/member/layout.tsx components/reader/ProtectedProseText.tsx 'app/reader/[slug]/page.tsx' 'app/api/member/semantic/[candidateId]/compose/route.ts'
       - name: Existing semantic regression
         run: npx tsx --test tests/semanticReaderV2.test.ts
       - name: PostgreSQL jsonb roundtrip and legacy revision integrity
@@ -57,6 +60,8 @@ jobs:
         run: npx tsx --test tests/semanticQaWorkflow.test.ts
       - name: Voluntary task pool and governed owner transfer
         run: npx tsx --test tests/editorialPoolProductionRelease.test.ts
+      - name: Required bilingual annotation UI and DB evidence
+        run: npx tsx --test tests/editorialBilingualAnnotations.test.ts
       - name: Editorial workspace design and functionality safety
         run: npx tsx --test tests/editorialWorkspacePolish.test.ts
       - name: Editorial candidate release evidence and legacy safety

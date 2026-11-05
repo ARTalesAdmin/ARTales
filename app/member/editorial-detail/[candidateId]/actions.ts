@@ -15,14 +15,21 @@ export async function saveCandidateEditorialField(form:FormData){
  const field=String(form.get("field")??"");
  if(!uuid.test(candidateId)||!fields.some(f=>f===field))notFound();
  const value=String(form.get("value")??"").trim();
+ const descriptionCs=String(form.get("description_cs")??"").trim();
+ const descriptionEn=String(form.get("description_en")??"").trim();
  const alt=String(form.get("alt")??"").trim();
  const caption=String(form.get("caption")??"").trim();
- if(value.length>4000||alt.length>350||caption.length>500)
+ if(value.length>4000||alt.length>350||caption.length>500||
+    descriptionCs.length>800||descriptionEn.length>800)
   redirect("/member/editorial-detail/"+candidateId+"?error=invalid_input");
  const db=await createClient();
- const {data,error}=await db.rpc("artales_save_candidate_editorial_field",{
-  p_candidate_id:candidateId,p_field:field,p_value:value,p_alt:alt||null,p_caption:caption||null
- });
+ const {data,error}=field==="description"?
+  await db.rpc("artales_save_candidate_bilingual_description",{
+   p_candidate_id:candidateId,p_description_cs:descriptionCs,p_description_en:descriptionEn
+  }):
+  await db.rpc("artales_save_candidate_editorial_field",{
+   p_candidate_id:candidateId,p_field:field,p_value:value,p_alt:alt||null,p_caption:caption||null
+  });
  if(error||data?.result!=="saved")
   redirect("/member/editorial-detail/"+candidateId+"?error="+encodeURIComponent(
    typeof data?.result==="string"?data.result:"save_failed"));
