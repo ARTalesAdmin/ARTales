@@ -66,7 +66,6 @@ export default async function EditorialPipeline({searchParams}:Props){
  const finished=tasks.filter(t=>t.status==="completed");
  const help=(helpRequests??[]).filter(h=>h.assigned_to===profile.id);
  const waitingHelp=help.filter(h=>h.status==="open");
- const pending=mine.length+waitingHelp.length;
  const completedBy=new Map<string,Record<string,number>>();
  for(const t of finished){
   const who=t.completed_by??"unknown";
