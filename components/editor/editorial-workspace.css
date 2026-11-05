@@ -310,3 +310,16 @@
   background: #fffbf4;
   border-radius: 11px;
 }
+
+/* Required bilingual candidate annotation: two focused writing areas. */
+.ed-bilingual-fields {display:grid;gap:17px;}
+.ed-bilingual-fields__item {display:grid;gap:7px;min-width:0;}
+.ed-bilingual-fields__item textarea {min-height:160px;}
+.ed-bilingual-fields__help {display:flex;gap:10px;justify-content:space-between;align-items:center;flex-wrap:wrap;}
+.ed-character-count {font-size:12px;font-weight:650;color:#92662e;white-space:nowrap;}
+.ed-character-count--valid {color:#356b43;}
+.ed-bilingual-fields > .ed-button {justify-self:start;}
+@media(max-width:690px){
+ .ed-bilingual-fields__help {align-items:start;flex-direction:column;gap:3px;}
+ .ed-bilingual-fields > .ed-button {width:100%;}
+}
