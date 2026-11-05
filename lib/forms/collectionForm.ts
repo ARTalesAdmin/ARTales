@@ -95,8 +95,14 @@ function toNullableString(value: string): string | null {
 }
 
 export function validateCollectionFormValues(
-  values: CollectionFormValues
+  values: CollectionFormValues,requireBilingual=false
 ): string | null {
+  if (requireBilingual) {
+   const cs=values.description_cs.trim().length
+   const en=values.description_en.trim().length
+   if (cs<200||cs>800||en<200||en>800) return "bilingual_description_required"
+  }
+
   if (!values.title_cs && !values.title_en) {
     return "title_missing"
   }

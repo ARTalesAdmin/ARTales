@@ -14,31 +14,35 @@ export async function createCollection(formData: FormData): Promise<void> {
   const profile = await requireEditorOrAdmin()
   const supabase = await createClient()
 
+  const returnTo=String(formData.get("returnTo")??"").trim()
+  const safeReturnTo=/^\/member\/editorial-detail\/[0-9a-f-]{36}$/.test(returnTo)?returnTo:null
+  const formReturn=(path:string)=>safeReturnTo?path+(path.includes("?")?"&":"?")+"returnTo="+encodeURIComponent(safeReturnTo):path
   const values = parseCollectionFormData(formData)
-  const validationError = validateCollectionFormValues(values)
+  const validationError = validateCollectionFormValues(values,true)
 
   if (validationError) {
-    redirect(`/member/collections/new?error=${validationError}`)
+    redirect(formReturn(`/member/collections/new?error=${validationError}`))
   }
 
   const payload = mapCollectionFormValuesToInsertPayload(values, profile.id)
 
-  const { error } = await supabase
+  const { data, error } = await supabase
     .from("collections")
     .insert(payload)
-    .select("slug")
+    .select("id,slug")
     .single()
 
   if (error) {
     const message = error.message.toLowerCase()
 
     if (message.includes("duplicate") || message.includes("unique")) {
-      redirect("/member/collections/new?error=slug_taken")
+      redirect(formReturn("/member/collections/new?error=slug_taken"))
     }
 
-    redirect("/member/collections/new?error=save_failed")
+    redirect(formReturn("/member/collections/new?error=save_failed"))
   }
 
+  if(safeReturnTo&&data?.id)redirect(safeReturnTo+"?createdCollectionId="+encodeURIComponent(data.id))
   redirect(`/member/collections/${payload.slug}/edit?success=collection_created`)
 }
 

@@ -1,3 +1,4 @@
+import BilingualProfileText from "@/components/editor/BilingualProfileText"
 import Link from "next/link"
 import { getLanguageOptions } from "@/lib/dictionaries/language"
 import EditorialImageUploadField from "@/components/media/EditorialImageUploadField"
@@ -11,6 +12,8 @@ type PageProps = {
 
 function getErrorMessage(error?: string) {
   switch (error) {
+    case "bilingual_description_required":
+      return "Česká i anglická biografie jsou povinné (každá 200–800 znaků)."
     case "name_missing":
       return "Jméno autora je povinné."
     case "slug_missing":
@@ -221,63 +224,9 @@ export default async function NewAuthorPage({ searchParams }: PageProps) {
             </p>
           </div>
 
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))",
-              gap: "18px",
-            }}
-          >
-            <div>
-              <label
-                htmlFor="bio_en"
-                style={{ display: "block", marginBottom: "8px", fontWeight: 600 }}
-              >
-                Biografie anglicky
-              </label>
-              <textarea
-                id="bio_en"
-                name="bio_en"
-                defaultValue={defaults.bio_en}
-                rows={7}
-                style={{
-                  width: "100%",
-                  padding: "12px 14px",
-                  border: "1px solid #ccc",
-                  fontSize: "16px",
-                  resize: "vertical",
-                }}
-              />
-              <p style={{ margin: "8px 0 0 0", fontSize: "14px", opacity: 0.75 }}>
-                Výchozí biografie autora pro anglické i fallback zobrazení.
-              </p>
-            </div>
-
-            <div>
-              <label
-                htmlFor="bio_cs"
-                style={{ display: "block", marginBottom: "8px", fontWeight: 600 }}
-              >
-                Biografie česky
-              </label>
-              <textarea
-                id="bio_cs"
-                name="bio_cs"
-                defaultValue={defaults.bio_cs}
-                rows={7}
-                style={{
-                  width: "100%",
-                  padding: "12px 14px",
-                  border: "1px solid #ccc",
-                  fontSize: "16px",
-                  resize: "vertical",
-                }}
-              />
-              <p style={{ margin: "8px 0 0 0", fontSize: "14px", opacity: 0.75 }}>
-                Česká verze se použije v českém prostředí. Pokud chybí, použije se anglická biografie.
-              </p>
-            </div>
-          </div>
+          <BilingualProfileText field="bio" label="Biografie autora"
+           initialCs={defaults.bio_cs} initialEn={defaults.bio_en}
+           required={true} />
 
         </section>
 
