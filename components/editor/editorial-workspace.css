@@ -273,3 +273,40 @@
   .ed-page .ed-button { transition: none; }
   .ed-page .ed-button:hover { transform: none; }
 }
+
+/* Presentation polish only; the semantic pagination geometry stays in its own CSS. */
+.ed-qa-workspace .semantic-reader__controls {
+  border-radius: 12px;
+  border-color: #d9c4a5;
+  box-shadow: 0 5px 20px rgba(46,34,19,.12);
+}
+.ed-qa-workspace .semantic-reader__fullscreen-button {
+  border-radius: 8px;
+  background: #fff9ed;
+  border: 1px solid #ceb893;
+  color: #4c3b25;
+  font-weight: 650;
+}
+.ed-qa-workspace .semantic-qa-overlay {
+  border-radius: 15px;
+  border-color: #d2c2ab;
+  box-shadow: 0 16px 48px rgba(33,27,22,.22);
+}
+.ed-qa-workspace .semantic-qa-panel__heading {
+  padding-bottom: 12px;
+  border-bottom: 1px solid #e9dece;
+}
+.ed-qa-workspace .semantic-qa-panel button:focus-visible,
+.ed-qa-workspace .semantic-qa-panel select:focus-visible,
+.ed-qa-workspace .semantic-qa-panel textarea:focus-visible {
+  outline: 3px solid rgba(182,139,72,.42);
+  outline-offset: 2px;
+}
+.ed-qa-workspace .semantic-qa-panel__flags {
+  gap: 10px;
+}
+.ed-qa-workspace .semantic-qa-panel__flag {
+  border-color: #e0ceb5;
+  background: #fffbf4;
+  border-radius: 11px;
+}
