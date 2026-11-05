@@ -1,3 +1,4 @@
+import BilingualProfileText from "@/components/editor/BilingualProfileText";
 import Link from "next/link";
 import EditorialImageUploadField from "@/components/media/EditorialImageUploadField";
 import { notFound } from "next/navigation";
@@ -15,6 +16,7 @@ type PageProps = {
 
 function getErrorMessage(error?: string) {
   switch (error) {
+    case "bilingual_description_required": return "Český i anglický popis jsou povinné (každý 200–800 znaků).";
     case "title_missing": return "Alespoň jeden název kolekce je povinný.";
     case "slug_missing": return "Slug je povinný.";
     case "slug_invalid": return "Slug může obsahovat jen malá písmena, čísla a pomlčky.";
@@ -93,10 +95,9 @@ export default async function EditCollectionPage({ params, searchParams }: PageP
 
         <section style={{ border: "1px solid #ddd", padding: "24px", display: "grid", gap: "18px" }}>
           <h2 style={{ margin: 0, fontSize: "26px" }}>Texty pro veřejný detail</h2>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px" }}>
-            <TextArea id="description_cs" label="Popis (CZ)" defaultValue={defaults.description_cs} rows={5} />
-            <TextArea id="description_en" label="Popis (EN)" defaultValue={defaults.description_en} rows={5} />
-          </div>
+          <BilingualProfileText field="description" label="Popis kolekce"
+           initialCs={defaults.description_cs} initialEn={defaults.description_en}
+           required={false} />
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px" }}>
             <TextArea id="curator_note_cs" label="Kurátorská poznámka (CZ)" defaultValue={defaults.curator_note_cs} rows={5} />
             <TextArea id="curator_note_en" label="Kurátorská poznámka (EN)" defaultValue={defaults.curator_note_en} rows={5} />
