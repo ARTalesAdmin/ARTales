@@ -122,8 +122,9 @@ BEGIN
   WHEN 'work_description' THEN length(btrim(pg_catalog.coalesce(m.work_description,''))) BETWEEN 200 AND 800
   WHEN 'author_bio' THEN m.author_id IS NOT NULL
    AND EXISTS(SELECT 1 FROM public.authors a WHERE a.id=m.author_id
-    AND length(btrim(pg_catalog.coalesce(
-     pg_catalog.nullif(a.bio_en,''),pg_catalog.nullif(a.bio_cs,''),a.bio,'')))>=40)
+    AND (length(btrim(pg_catalog.coalesce(a.bio_en,'')))>=40
+     OR length(btrim(pg_catalog.coalesce(a.bio_cs,'')))>=40
+     OR length(btrim(pg_catalog.coalesce(a.bio,'')))>=40))
   WHEN 'author_visual' THEN m.author_id IS NOT NULL
    AND EXISTS(SELECT 1 FROM public.authors a WHERE a.id=m.author_id
     AND length(btrim(pg_catalog.coalesce(a.portrait_image_alt,'')))>=8
