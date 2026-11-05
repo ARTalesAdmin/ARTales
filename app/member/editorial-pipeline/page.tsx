@@ -8,6 +8,7 @@ import {
 } from "./actions";
 import {SEMANTIC_PIPELINE_ENABLED} from "@/lib/semantic/featureFlag";
 import {resolveEditorialHelp} from "@/app/member/editorial-help/actions";
+import "@/components/editor/editorial-workspace.css";
 
 export const dynamic="force-dynamic";
 type Task={id:string;candidate_id:string;revision_sha256:string;title:string;
@@ -74,124 +75,225 @@ export default async function EditorialPipeline({searchParams}:Props){
   completedBy.set(who,kinds);
  }
  const recentChanges=(events??[]).filter(e=>["claimed","returned","reassigned","completed"].includes(e.action)).slice(0,20);
+
+ const taskHref=(t:Task)=>["text_review","second_review","proofread","visual_review"].includes(t.kind)
+  ?"/member/semantic/"+t.candidate_id
+  :"/member/editorial-detail/"+t.candidate_id+"#"+(
+   t.kind==="cover_art"?"cover":t.kind==="collection_curation"?"collection":
+   t.kind==="work_description"?"description":"author"
+  );
+ const actionName=(t:Task)=>["text_review","second_review","proofread","visual_review"].includes(t.kind)
+  ?"Otevřít kontrolu ↗":t.kind==="cover_art"?"Otevřít obálku ↗":
+   t.kind==="collection_curation"?"Přiřadit kolekci ↗":
+   t.kind==="work_description"?"Upravit anotaci ↗":"Otevřít autora ↗";
+ const stateName=(t:Task)=>t.status==="claimed"?"Rozpracováno":
+  t.status==="returned"?"Vráceno":t.status==="completed"?"Dokončeno":"Připraveno";
  function taskCard(t:Task,mode:"mine"|"available"|"admin"){
   const canClaim=(mode==="mine"||mode==="available")&&["open","returned"].includes(t.status);
-  return <article key={t.id} style={{padding:16,border:"1px solid var(--border, #d9cbb6)",borderRadius:12,marginBottom:12}}>
-   <strong>{kindNames[t.kind]??t.kind}</strong>
-   <p>{t.title}</p>
-   <p style={{fontSize:13}}>
-    {t.status==="claimed"?"Rozpracováno":t.status==="returned"?"Vráceno do fronty":"Připraveno"}
-    {" · "}{t.assigned_to?names.get(t.assigned_to)??"Přiřazený editor":"Volný úkol"}
-    {" · "}Revize {t.revision_sha256.slice(0,12)}
-   </p>
-   <p><Link href={["text_review","second_review","proofread","visual_review"].includes(t.kind)
-     ?"/member/semantic/"+t.candidate_id
-     :"/member/editorial-detail/"+t.candidate_id+"#"+(
-      t.kind==="cover_art"?"cover":
-      t.kind==="collection_curation"?"collection":
-      t.kind==="work_description"?"description":"author"
-     )}>
-    {["text_review","second_review","proofread","visual_review"].includes(t.kind)
-      ?"Otevřít text a QA":"Otevřít místo úkolu"}
-   </Link></p>
-   {canClaim?<form action={claimSemanticTask}>
-    <input type="hidden" name="task_id" value={t.id}/>
-    <button type="submit">{mode==="available"?"Převzít tento úkol":"Začít pracovat"}</button>
-   </form>:null}
-   {mode==="mine"&&t.status==="claimed"?<>
-    {["proofread","second_review","visual_review"].includes(t.kind)?<form action={completeSemanticTask}
-     style={{display:"grid",gap:8,maxWidth:600,marginTop:12}}>
-     <input type="hidden" name="task_id" value={t.id}/>
-     <label>Výsledek kontroly
-      <textarea name="evidence_note" minLength={40} maxLength={4000} required rows={3}
-       style={{display:"block",width:"100%"}}/>
-     </label>
-     <button type="submit">Dokončit ověřenou kontrolu</button>
-    </form>:t.kind==="text_review"?
-    <p>QA se dokončuje po posouzení jednotlivých změn přímo v sémantickém editoru.</p>:
-    <p>Dokončení vyžaduje skutečně uložené údaje v redakčním detailu díla.</p>}
-    {t.kind!=="second_review"?<details style={{marginTop:12}}>
-     <summary>Požádat o druhé posouzení</summary>
-     <form action={requestSemanticSecondReview} style={{display:"grid",gap:8,maxWidth:600,padding:12}}>
+  const isClaimed=t.status==="claimed";
+  const isText=t.kind==="text_review";
+  const isMetadata=["cover_art","collection_curation","work_description","author_bio","author_visual"].includes(t.kind);
+  return <article key={t.id}
+   className={"ed-task "+(mode==="mine"?"ed-task--mine":mode==="available"?"ed-task--available":"")}>
+   <div className="ed-task__top">
+    <div>
+     <span className="ed-task__category">{kindNames[t.kind]??t.kind}</span>
+     <h3>{t.title}</h3>
+     <p className="ed-task__meta">
+      {t.assigned_to?names.get(t.assigned_to)??"Pověřený editor":"Volný úkol"}
+      {" · "}{t.kind==="text_review"?"Kontrola sémantické revize":"Příprava knihy"}
+     </p>
+    </div>
+    <span className={"ed-status "+(isClaimed?"ed-status--claimed":"")}>{stateName(t)}</span>
+   </div>
+   <div className="ed-task__bottom">
+    <p className="ed-task__hint">
+     {isText?"Zkontroluj sazbu a nálezy. Případné opravy se před vydáním znovu ověřují.":
+       isMetadata?"Otevři odpovídající oblast a ulož skutečný výsledek. Potvrzení hlídá systém.":
+       "Výsledek kontroly zaznamenej po dokončení práce."}
+    </p>
+    <div className="ed-task__actions">
+     {canClaim?<form action={claimSemanticTask}>
       <input type="hidden" name="task_id" value={t.id}/>
-      <label>Další editor
-       <select name="reviewer_id" required defaultValue="">
-        <option value="" disabled>Vyber editora</option>
-        {roster.filter(p=>p.id!==profile.id).map(p=><option key={p.id} value={p.id}>{p.display_name}</option>)}
-       </select>
-      </label>
-      <label>Důvod<textarea name="reason" required minLength={40} maxLength={4000} rows={3}/></label>
-      <button type="submit">Vyžádat další kontrolu</button>
-     </form>
+      <button className="ed-button" type="submit">{mode==="available"?"Převzít úkol":"Začít pracovat"}</button>
+     </form>:null}
+     <Link className={"ed-button "+(canClaim?"ed-button--soft":"")}
+      href={taskHref(t)}>{actionName(t)}</Link>
+    </div>
+   </div>
+   {mode==="mine"&&isClaimed&&["proofread","second_review","visual_review"].includes(t.kind)?
+    <details className="ed-disclosure">
+     <summary>Dokončení kontroly</summary>
+     <div className="ed-disclosure__body">
+      <form className="ed-form-grid" action={completeSemanticTask}>
+       <input type="hidden" name="task_id" value={t.id}/>
+       <label>Výsledek kontroly
+        <textarea name="evidence_note" minLength={40} maxLength={4000} required rows={3}
+         placeholder="Co bylo ověřeno a s jakým výsledkem?"/>
+       </label>
+       <button className="ed-button" type="submit">Dokončit kontrolu ✓</button>
+      </form>
+     </div>
     </details>:null}
-   </>:null}
+   {mode==="mine"&&isClaimed&&isText?
+    <p className="ed-quiet" style={{margin:"11px 0 0"}}>Textové QA dokončíš po kontrole změn v sémantickém editoru.</p>:null}
    {mode==="mine"&&["text_review","work_description","author_bio","second_review","proofread"].includes(t.kind)?
-    <details style={{marginTop:12}}>
-     <summary>Uvolnit tento úkol pro dalšího editora</summary>
-     <form action={releaseEditorialTask} style={{display:"grid",gap:8,maxWidth:600,padding:12}}>
-      <input type="hidden" name="task_id" value={t.id}/>
-      <label>Důvod předání<textarea name="reason" required minLength={20} maxLength={1000} rows={2}/></label>
-      <button type="submit">Vrátit do společné fronty</button>
-     </form>
+    <details className="ed-disclosure">
+     <summary>Potřebuji úkol předat</summary>
+     <div className="ed-disclosure__body">
+      <form className="ed-form-grid" action={releaseEditorialTask}>
+       <input type="hidden" name="task_id" value={t.id}/>
+       <label>Důvod předání
+        <textarea name="reason" required minLength={20} maxLength={1000} rows={2}/>
+       </label>
+       <button className="ed-button ed-button--soft" type="submit">Vrátit do společné fronty</button>
+      </form>
+     </div>
     </details>:null}
-   {isAdmin&&t.status!=="completed"&&roster.length>1?<details style={{marginTop:12}}>
-    <summary>Administrátorsky přeřadit</summary>
-    <form action={reassignEditorialTask} style={{display:"grid",gap:8,maxWidth:600,padding:12}}>
-     <input type="hidden" name="task_id" value={t.id}/>
-     <label>Nový vlastník<select name="assignee_id" required defaultValue="">
-      <option value="" disabled>Vyber způsobilého editora</option>
-      {roster.filter(p=>p.id!==t.assigned_to).map(p=><option key={p.id} value={p.id}>{p.display_name}</option>)}
-     </select></label>
-     <label>Důvod<textarea name="reason" required minLength={20} maxLength={1000} rows={2}/></label>
-     <button type="submit">Přeřadit a zaznamenat</button>
-    </form>
-   </details>:null}
+   {mode==="mine"&&isClaimed&&t.kind!=="second_review"?
+    <details className="ed-disclosure">
+     <summary>Požádat o druhé posouzení</summary>
+     <div className="ed-disclosure__body">
+      <form className="ed-form-grid" action={requestSemanticSecondReview}>
+       <input type="hidden" name="task_id" value={t.id}/>
+       <label>Další editor
+        <select name="reviewer_id" required defaultValue="">
+         <option value="" disabled>Vyber editora…</option>
+         {roster.filter(p=>p.id!==profile.id).map(p=><option value={p.id} key={p.id}>{p.display_name}</option>)}
+        </select>
+       </label>
+       <label>Důvod nové kontroly
+        <textarea name="reason" required minLength={40} maxLength={4000} rows={3}/>
+       </label>
+       <button className="ed-button ed-button--soft" type="submit">Požádat o kontrolu</button>
+      </form>
+     </div>
+    </details>:null}
+   {isAdmin&&t.status!=="completed"&&roster.length>1?
+    <details className="ed-disclosure">
+     <summary>Přeřadit úkol</summary>
+     <div className="ed-disclosure__body">
+      <form className="ed-form-grid" action={reassignEditorialTask}>
+       <input type="hidden" name="task_id" value={t.id}/>
+       <label>Nový vlastník
+        <select name="assignee_id" required defaultValue="">
+         <option value="" disabled>Vyber editora…</option>
+         {roster.filter(p=>p.id!==t.assigned_to).map(p=><option key={p.id} value={p.id}>{p.display_name}</option>)}
+        </select>
+       </label>
+       <label>Důvod přeřazení
+        <textarea name="reason" required minLength={20} maxLength={1000} rows={2}/>
+       </label>
+       <button className="ed-button ed-button--soft" type="submit">Přeřadit a zaznamenat</button>
+      </form>
+     </div>
+    </details>:null}
   </article>;
  }
- return <main style={{margin:"auto",maxWidth:1100,padding:"24px"}}>
-  <p><Link href="/member">← Interní zóna</Link></p>
-  <h1>Redakční práce</h1>
-  <p>Moje nedokončené úkoly: <strong>{pending}</strong>.
-   Úkol patří jedinému editorovi; volnou práci lze bezpečně převzít.</p>
-  {query.error?<p role="alert">{errorMessages[query.error]??"Akci se nepodařilo dokončit."}</p>:null}
-  {query.notice?<p role="status">Změna úkolu byla zaznamenána: {query.notice}.</p>:null}
-  {error?<p role="alert">Redakční úkoly nejsou dostupné.</p>:null}
-  <section aria-label="Moje práce"><h2>Moje práce ({mine.length})</h2>
-   {mine.length?mine.map(t=>taskCard(t,"mine")):<p>Nemáš žádnou rozpracovanou práci.</p>}
+ return <main className="ed-page">
+  <nav className="ed-breadcrumb" aria-label="Drobečková navigace">
+   <Link href="/member">Interní zóna</Link><span className="ed-breadcrumb__sep">/</span>
+   <span>Redakční práce</span>
+  </nav>
+  <header className="ed-hero">
+   <p className="ed-eyebrow">ARTales · Redakční studio</p>
+   <div className="ed-hero__row">
+    <div>
+     <h1>Moje redakční práce</h1>
+     <p className="ed-hero__subtitle">Jeden přehled všech kroků od převzetí knihy po schválení.
+      Otevři přiřazený úkol, nebo si vyber další volnou práci. Změny se průběžně evidují.</p>
+    </div>
+    <div className="ed-hero__actions">
+     <a className="ed-button" href="#dalsi-titul">Chci zpracovat další titul ↘</a>
+    </div>
+   </div>
+  </header>
+  <div className="ed-stats" aria-label="Přehled redakční práce">
+   <div className="ed-stat"><strong className="ed-stat__value">{mine.length}</strong>
+    <span className="ed-stat__label">Moje aktivní úkoly</span></div>
+   <div className="ed-stat"><strong className="ed-stat__value">{available.length}</strong>
+    <span className="ed-stat__label">Volné úkoly pro mě</span></div>
+   <div className="ed-stat"><strong className="ed-stat__value">{waitingHelp.length}</strong>
+    <span className="ed-stat__label">Žádosti o pomoc</span></div>
+  </div>
+  <nav className="ed-jump-nav" aria-label="Sekce redakční práce">
+   <a href="#moje-prace">Moje práce</a>
+   <a href="#dalsi-titul">Volné úkoly</a>
+   {waitingHelp.length?<a href="#zadosti">Žádosti o pomoc</a>:null}
+   {isAdmin?<a href="#prehled-garanta">Přehled garanta</a>:null}
+  </nav>
+  {query.error?<div className="ed-notice ed-notice--error" role="alert">
+   {errorMessages[query.error]??"Akci se nepodařilo dokončit."}</div>:null}
+  {query.notice?<div className="ed-notice" role="status">
+   ✓ Změna úkolu byla zaznamenána.</div>:null}
+  {error?<div className="ed-notice ed-notice--error" role="alert">Redakční úkoly nejsou dostupné.</div>:null}
+  <section id="moje-prace" className="ed-section" aria-labelledby="ed-mine-title">
+   <div className="ed-section__head">
+    <div><h2 className="ed-section__title" id="ed-mine-title">Moje práce</h2>
+     <p className="ed-section__description">Úkoly, které máš aktuálně na starosti.</p></div>
+    <span className="ed-count">{mine.length}</span>
+   </div>
+   {mine.length?<div className="ed-task-grid">{mine.map(t=>taskCard(t,"mine"))}</div>:
+    <p className="ed-empty">Aktuálně nemáš žádný rozpracovaný úkol. Vyber si další práci z nabídky níže.</p>}
   </section>
-  {waitingHelp.length?<section><h2>Žádosti o pomoc ({waitingHelp.length})</h2>
-   {waitingHelp.map(h=><article key={h.id} style={{padding:12,marginBottom:8}}>
-    <strong>{h.subject}</strong><p>{h.details}</p>
-    <p><Link href={h.context_path}>Otevřít místo problému</Link></p>
-    {isAdmin?<form action={resolveEditorialHelp}>
-     <input type="hidden" name="id" value={h.id}/>
-     <label>Vyřešení<textarea required minLength={20} maxLength={4000} name="note" rows={2}/></label>
-     <button type="submit">Vyřešit eskalaci</button>
-    </form>:null}
+  {waitingHelp.length?<section id="zadosti" className="ed-section">
+   <div className="ed-section__head"><h2 className="ed-section__title">Žádosti o pomoc</h2>
+    <span className="ed-count">{waitingHelp.length}</span></div>
+   {help.map(h=><article key={h.id} className="ed-request">
+    <h3>{h.subject}</h3>
+    <p>{h.details}</p>
+    <Link className="ed-button ed-button--soft ed-button--compact" href={h.context_path}>Otevřít místo problému ↗</Link>
+    {h.status==="open"&&isAdmin?<details className="ed-disclosure">
+     <summary>Uzavřít vyřešenou žádost</summary>
+     <div className="ed-disclosure__body">
+      <form className="ed-form-grid" action={resolveEditorialHelp}>
+       <input type="hidden" name="id" value={h.id}/>
+       <label>Výsledek řešení
+        <textarea required minLength={20} maxLength={4000} name="note" rows={3}/>
+       </label>
+       <button className="ed-button" type="submit">Potvrdit vyřešení ✓</button>
+      </form>
+     </div>
+    </details>:null}
    </article>)}
   </section>:null}
-  <section id="dalsi-titul" aria-label="Volná práce">
-   <h2>Chci zpracovat další titul ({available.length})</h2>
-   <p>Nabízejí se jen volné úkoly, které odpovídají tvým kompetencím.
-    Převzetí je jednorázové a nelze získat úkol jiného editora.</p>
-   {available.length?available.map(t=>taskCard(t,"available")):<p>Žádný další vhodný titul není momentálně volný.</p>}
+  <section id="dalsi-titul" className="ed-section">
+   <div className="ed-section__head">
+    <div><h2 className="ed-section__title">Chci zpracovat další titul</h2>
+     <p className="ed-section__description">Jen dostupná práce podle tvých kompetencí. Převzetí je výhradní a evidované.</p></div>
+    <span className="ed-count">{available.length}</span>
+   </div>
+   {available.length?<div className="ed-task-grid">{available.map(t=>taskCard(t,"available"))}</div>:
+    <p className="ed-empty">Teď není volný žádný vhodný úkol. Práci již převzatou kolegyní nelze převzít bez předání.</p>}
   </section>
-  {isAdmin?<section aria-label="Přehled garanta">
-   <h2>Garant: celé redakční vytížení</h2>
-   <p>Další přidělené úkoly: {others.length}. Dokončené evidované úkoly: {finished.length}.</p>
-   <h3>Dokončená práce podle editora a druhu</h3>
-   {completedBy.size?<table><thead><tr><th>Editor</th><th>Dokončené úkoly</th><th>Druhy</th></tr></thead>
-    <tbody>{[...completedBy.entries()].map(([person,byKind])=>
-     <tr key={person}><td>{names.get(person)??"Neznámý"}</td>
-      <td>{Object.values(byKind).reduce((a,b)=>a+b,0)}</td>
-      <td>{Object.entries(byKind).map(([k,n])=>`${kindNames[k]??k}: ${n}`).join("; ")}</td>
-     </tr>)}</tbody></table>:<p>Zatím nejsou evidovány dokončené úkoly.</p>}
-   <h3>Úkoly ostatních editorů</h3>
-   {others.map(t=>taskCard(t,"admin"))}
-   <h3>Poslední události</h3>
-   {recentChanges.length?<ul>{recentChanges.map((e,i)=><li key={e.task_id+"-"+e.occurred_at+"-"+i}>
-    {names.get(e.actor_id)??"Editor"}: {e.action} ({new Date(e.occurred_at).toLocaleString("cs-CZ")})
-   </li>)}</ul>:<p>Žádné události zatím nejsou.</p>}
+  {isAdmin?<section id="prehled-garanta" className="ed-section">
+   <div className="ed-section__head">
+    <div><h2 className="ed-section__title">Přehled redakce</h2>
+     <p className="ed-section__description">Ostatní přidělené úkoly, historie a výsledky. Přeřazení je auditované.</p></div>
+    <span className="ed-count">{others.length} přiřazených</span>
+   </div>
+   {others.length?<div className="ed-task-grid">{others.map(t=>taskCard(t,"admin"))}</div>:
+    <p className="ed-empty">Ostatní editorky nemají aktivní přidělené úkoly.</p>}
+   <div className="ed-section" style={{marginTop:22}}>
+    <div className="ed-section__head"><h3 className="ed-section__title">Dokončená práce</h3>
+     <span className="ed-count">{finished.length}</span></div>
+    {completedBy.size?<div className="ed-table-wrap"><table className="ed-table">
+     <thead><tr><th>Editor</th><th>Hotovo</th><th>Druhy práce</th></tr></thead>
+     <tbody>{[...completedBy.entries()].map(([person,byKind])=>
+      <tr key={person}><td>{names.get(person)??"Neznámý"}</td>
+       <td>{Object.values(byKind).reduce((a,b)=>a+b,0)}</td>
+       <td>{Object.entries(byKind).map(([k,n])=>`${kindNames[k]??k}: ${n}`).join(" · ")}</td></tr>)}</tbody>
+    </table></div>:<p className="ed-empty">Zatím nejsou evidované dokončené úkoly.</p>}
+   </div>
+   <details className="ed-disclosure">
+    <summary>Poslední redakční události</summary>
+    <div className="ed-disclosure__body">
+     {recentChanges.length?<ol className="ed-log">{recentChanges.map((e,i)=>
+      <li key={e.task_id+"-"+e.occurred_at+"-"+i}>
+       {names.get(e.actor_id)??"Editor"} · {e.action} · {new Date(e.occurred_at).toLocaleString("cs-CZ")}
+      </li>)}</ol>:<p className="ed-quiet">Žádné události nejsou evidované.</p>}
+    </div>
+   </details>
   </section>:null}
  </main>;
 }
