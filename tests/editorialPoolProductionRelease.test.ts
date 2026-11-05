@@ -18,8 +18,8 @@ test("pool and admin handoff are identity-bound and audited through RPCs",()=>{
  assert.match(actions,/requireAdmin\(\)/);
  assert.match(actions,/requireEditorOrAdmin\(\)/);
  assert.match(actions,/refreshEditorialQueue\(\)/);
- assert.match(page,/Administrátorsky přeřadit/);
- assert.match(page,/Uvolnit tento úkol pro dalšího editora/);
+ assert.match(page,/Přeřadit úkol/);
+ assert.match(page,/Potřebuji úkol předat/);
 });
 test("work pool links to correct candidate details without replacing semantic QA",()=>{
  assert.match(page,/\/member\/editorial-detail\//);
