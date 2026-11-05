@@ -45,7 +45,13 @@ export default async function ReaderPage({
   }
 
   const isPreview = readerMode === "preview";
-  if (SEMANTIC_PIPELINE_ENABLED) {
+  // Independent, server-only release gate. Editorial QA can ship and be tested
+  // while every public book continues to use the proven legacy ReaderClient.
+  // Enable only after semantic reader screenshots, account-state compatibility
+  // and per-book publishing rollback have passed their acceptance checks.
+  const semanticPublicReaderEnabled =
+    process.env.ARTALES_SEMANTIC_PUBLIC_READER_V1 === "enabled";
+  if (SEMANTIC_PIPELINE_ENABLED && semanticPublicReaderEnabled) {
   const db=await createClient();
   const {data:semanticRelease,error:semanticError}=await db.from("artales_semantic_publications")
     .select("candidate_id,semantic_revision,visual_manifest").eq("work_id",work.id).maybeSingle();
@@ -62,7 +68,7 @@ export default async function ReaderPage({
       .select("term").eq("candidate_id",semanticRelease.candidate_id);
     return <SemanticPublicReader revision={revision} title={work.title} isPreview={isPreview}
       protectedTerms={(rules??[]).map(x=>x.term)}
-      visuals={semanticRelease.visual_manifest??[]}/>;
+      visuals={semanticRelease.visual_manifest??[]} locale={locale}/>;
   }
   }
   const blocks = isPreview

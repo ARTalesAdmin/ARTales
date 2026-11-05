@@ -1,0 +1,12 @@
+{
+  "crons": [
+    {
+      "path": "/api/internal/editorial/ai-qa-jobs",
+      "schedule": "* * * * *"
+    },
+    {
+      "path": "/api/internal/editorial/methodology-review",
+      "schedule": "0 7 * * *"
+    }
+  ]
+}

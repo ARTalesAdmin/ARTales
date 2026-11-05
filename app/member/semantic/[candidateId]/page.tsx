@@ -29,6 +29,11 @@ export default async function EditorialSemanticPreview({params}:{params:Promise<
  const {data:tasks}=await db.from("artales_editorial_tasks")
   .select("id,kind,status,assigned_to").eq("candidate_id",candidateId)
   .eq("revision_sha256",data.revision_sha256);
+ const {data:reviewDecisions}=await db.from("artales_semantic_change_reviews")
+  .select("issue_id,decision,note,reviewed_at")
+  .eq("candidate_id",candidateId).eq("revision_sha256",data.revision_sha256);
+ const qaTask=(tasks??[]).find(t=>t.kind==="text_review"&&
+  t.assigned_to===profile.id&&t.status==="claimed");
  const revision=data.revision as SemanticRevision;
  const systemSignals=detectEditionReviewSignals(data.source_text,walkSemanticAtoms(revision.blocks),revision.editorial_exclusions??[]);
  try{verifySemanticRevision(revision,data.source_text);}
@@ -48,7 +53,9 @@ export default async function EditorialSemanticPreview({params}:{params:Promise<
     editionTitle={candidate?.proposed_title??"Název čeká na kontrolu"}
     editionAuthor={candidate?.proposed_author_name??"Autor čeká na kontrolu"}
     flags={qaFlags??[]} qaDatabaseReady={!qaFlagError} systemSignals={systemSignals}
-    protectedTerms={(workRules??[]).map(x=>x.term)} canCommitBatch={profile.role==="admin"}
+    protectedTerms={(workRules??[]).map(x=>x.term)}
+    canCommitBatch={Boolean(qaTask)||profile.role==="admin"}
+    currentTaskId={qaTask?.id??null} reviewDecisions={reviewDecisions??[]}
     />
   <section id="editorial-actions" style={{maxWidth:900,margin:"28px auto",padding:"20px 24px",
     border:"1px solid #d9cfbf",borderRadius:12,background:"#faf7f0"}}>

@@ -1,0 +1,86 @@
+/* Shared semantic edition, visually aligned to the existing ARTales paper/typography.
+ * Layout/user preferences belong to the reader shell, not to the source edition.
+ */
+.artales-semantic-public{
+ --semantic-paper:var(--reader-paper,#faf7ef);
+ --semantic-ink:var(--reader-paper-text,#302f2c);
+ --semantic-muted:var(--reader-paper-muted,#6b6259);
+ max-width:780px;margin:0 auto;padding:36px 24px;
+ background:var(--semantic-paper);color:var(--semantic-ink);
+ font-family:Georgia,serif;font-size:clamp(1rem,1.6vw,1.15rem);
+ line-height:1.8;overflow-wrap:break-word;hyphens:auto;
+}
+.artales-semantic-public h1{
+ font-size:clamp(1.55rem,4vw,2.45rem);
+ line-height:1.25;margin:0 0 2rem;
+ font-weight:500;text-align:center;
+}
+.artales-semantic-public .artales-semantic-public__unit{margin:0;min-width:0}
+.artales-semantic-public .artales-semantic-public__unit > p{
+ margin-block:1em;orphans:3;widows:3;white-space:pre-wrap
+}
+.artales-semantic-public .semantic-reader__heading{
+ break-after:avoid;page-break-after:avoid;
+ margin:2.5em 0 .7em
+}
+.artales-semantic-public .semantic-reader__heading h3,
+.artales-semantic-public .semantic-reader__heading h4{
+ margin:0;line-height:1.35;font-weight:600;
+}
+.artales-semantic-public .semantic-reader__fragment--continued{
+ margin-block-start:0
+}
+.artales-semantic-public .semantic-reader__poem{
+ white-space:pre-wrap;margin:1.5em 0;break-inside:avoid
+}
+.artales-semantic-public .semantic-reader__stanza{margin:0 0 1em}
+.artales-semantic-public .semantic-reader__verse{white-space:pre-wrap}
+.artales-semantic-public blockquote{
+ margin:1.6em 1.4em;padding:0 0 0 1em;
+ border-left:2px solid var(--reader-accent,#b8893f)
+}
+.artales-semantic-public aside[role="note"]{
+ color:var(--semantic-muted);font-size:.9em
+}
+.artales-semantic-public .artales-semantic-public__illustration{
+ max-width:680px;text-align:center;margin:2em auto
+}
+.artales-semantic-public .artales-semantic-public__illustration img{
+ max-width:100%;height:auto
+}
+.artales-semantic-public figcaption{
+ font-size:.82em;color:var(--semantic-muted);margin-top:.6em
+}
+@media(max-width:650px){
+ .artales-semantic-public{padding:20px 16px;line-height:1.65}
+ .artales-semantic-public blockquote{margin-inline:.65em}
+}
+
+/* Semantic reader shell is isolated from the unchanged legacy WorkBlock reader. */
+.artales-semantic-shell .artales-semantic-public{
+ width:100%;max-width:none;padding:0;box-sizing:border-box;
+ font-size:calc(18px * var(--reader-font-scale));line-height:1.62;
+}
+.artales-semantic-shell .artales-reader__paper--paged{
+ box-sizing:border-box;padding:48px 32px;
+}
+.artales-semantic-shell .artales-reader__page-content{min-width:0;}
+.artales-semantic-shell .artales-semantic-shell__paper--overflow .artales-reader__page-content{
+ overflow-y:auto;overflow-x:hidden;
+}
+.artales-semantic-shell__measurement{
+ position:absolute;visibility:hidden;pointer-events:none;
+ inset-inline-start:-9999px;top:0;max-width:none!important;
+ height:auto;overflow:visible;contain:layout;
+}
+.artales-semantic-shell__measurement>[data-measure-semantic-id]{
+ display:flow-root;
+}
+.artales-semantic-shell .artales-reader__paper--blank{
+ opacity:.45;pointer-events:none;
+}
+@media(max-width:700px){
+ .artales-semantic-shell .artales-reader__paper--paged{
+  padding:32px 22px;
+ }
+}
