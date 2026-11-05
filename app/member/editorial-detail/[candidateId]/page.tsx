@@ -22,7 +22,7 @@ function entryStatus(complete:boolean){
  </span>;
 }
 export default async function CandidateEditorialDetail({params,searchParams}:{
- params:Promise<{candidateId:string}>;searchParams:Promise<{error?:string;saved?:string;closed?:string;createdAuthorId?:string}>
+ params:Promise<{candidateId:string}>;searchParams:Promise<{error?:string;saved?:string;closed?:string;createdAuthorId?:string;createdCollectionId?:string}>
 }){
  if(!SEMANTIC_PIPELINE_ENABLED)notFound();
  const {candidateId}=await params;
@@ -53,6 +53,7 @@ export default async function CandidateEditorialDetail({params,searchParams}:{
  const author=authors.find(a=>a.id===metadata.author_id);
  const recommendedAuthorId=metadata.author_id??(authors.some(a=>a.id===err.createdAuthorId)?err.createdAuthorId:"");
  const collection=collections.find(c=>c.id===metadata.collection_id);
+ const recommendedCollectionId=metadata.collection_id??(collections.some(c=>c.id===err.createdCollectionId)?err.createdCollectionId:"");
  const byKind=(kind:string)=>tasks.find(t=>t.kind===kind);
  const authorized=(kind:string)=>me.role==="admin"||
   (byKind(kind)?.assigned_to===me.id&&byKind(kind)?.status==="claimed");
@@ -60,7 +61,8 @@ export default async function CandidateEditorialDetail({params,searchParams}:{
  const canEditCollection=authorized("collection_curation");
  const canEditDescription=authorized("work_description");
  const canEditCover=authorized("cover_art");
- const bioPresent=[author?.bio_en,author?.bio_cs,author?.bio].some(v=>(v??"").trim().length>=40);
+ const bioPresent=[author?.bio_en,author?.bio_cs].every(v=>
+  (v??"").trim().length>=200&&(v??"").trim().length<=800);
  const portraitPresent=Boolean(author?.portrait_image_path&&
   (author?.portrait_image_alt??"").trim().length>=8);
  const descriptionPresent=[metadata.work_description_cs,metadata.work_description_en].every(v=>
@@ -163,7 +165,7 @@ export default async function CandidateEditorialDetail({params,searchParams}:{
       <div className="ed-related">
        <div className="ed-related__item">
         <h3>Životopis {entryStatus(bioPresent)}</h3>
-        <p>Text autora se připravuje v jeho profilu. Alespoň jedna jazyková verze musí mít 40 znaků.</p>
+        <p>Česká i anglická biografie autora musí mít každá 200–800 znaků.</p>
         {completeForm("author_bio",Boolean(author)&&bioPresent)}
        </div>
        <div className="ed-related__item">
@@ -187,7 +189,7 @@ export default async function CandidateEditorialDetail({params,searchParams}:{
        <input type="hidden" name="candidate_id" value={candidateId}/>
        <input type="hidden" name="field" value="collection"/>
        <label className="ed-label">Kolekce díla
-        <select name="value" defaultValue={metadata.collection_id??""} required>
+        <select name="value" defaultValue={recommendedCollectionId} required>
          <option value="" disabled>Vyber kolekci…</option>
          {collections.map(c=><option key={c.id} value={c.id}>{c.title_en??c.title}</option>)}
         </select>
@@ -197,7 +199,7 @@ export default async function CandidateEditorialDetail({params,searchParams}:{
       </form>:<p className="ed-quiet">Kolekci vybírá pověřený editor.</p>}
       <div className="ed-inline-links">
        {collection?<Link className="ed-inline-link" href={"/member/collections/"+collection.slug+"/edit"}>Upravit kolekci ↗</Link>:
-        <Link className="ed-inline-link" href="/member/collections/new">+ Vytvořit novou kolekci</Link>}
+        <Link className="ed-inline-link" href={"/member/collections/new?returnTo="+encodeURIComponent("/member/editorial-detail/"+candidateId)}>+ Vytvořit novou kolekci</Link>}
       </div>
      </div>
     </section>
