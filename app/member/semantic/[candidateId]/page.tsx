@@ -73,7 +73,7 @@ export default async function EditorialSemanticPreview({params}:{params:Promise<
      <span className="ed-stat__label">Dokončené úkoly</span></div>
    </div>
   </header>
-  <div id="editorial-qa-workspace">
+  <div className="ed-qa-workspace" id="editorial-qa-workspace">
    <SemanticReaderLab revision={revision} original={data.source_text}
     candidateId={candidateId} revisionSha={data.revision_sha256}
     editionTitle={candidate?.proposed_title??"Název čeká na kontrolu"}
