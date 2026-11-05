@@ -58,7 +58,7 @@ export default async function CandidateEditorialDetail({params,searchParams}:{
  const canEditCollection=authorized("collection_curation");
  const canEditDescription=authorized("work_description");
  const canEditCover=authorized("cover_art");
- const bioPresent=Boolean((author?.bio_en??author?.bio_cs??author?.bio??"").trim().length>=40);
+ const bioPresent=[author?.bio_en,author?.bio_cs,author?.bio].some(v=>(v??"").trim().length>=40);
  const portraitPresent=Boolean(author?.portrait_image_path&&
   (author?.portrait_image_alt??"").trim().length>=8);
  const descriptionPresent=Boolean((metadata.work_description??"").trim().length>=200);
@@ -67,6 +67,7 @@ export default async function CandidateEditorialDetail({params,searchParams}:{
  const collectionPresent=Boolean(collection);
  const errors:Record<string,string>={
   save_failed:"Uložení se nezdařilo. Zkontroluj oprávnění a aktuální stav.",
+  author_name_mismatch:"Vybraný autor neodpovídá autorovi podle námětu. Zkontroluj identitu autora.",
   select_record:"Vyber existující záznam.",unknown_author:"Autor neexistuje.",
   unknown_collection:"Kolekce neexistuje.",description_required:"Anotace musí mít 200–800 znaků.",
   cover_required:"Nahraj platnou obálku a vyplň alternativní text.",
