@@ -35,7 +35,7 @@ export async function createAuthor(formData: FormData): Promise<void> {
   const returnTo = String(formData.get("returnTo") ?? "").trim()
 
   const values = parseAuthorFormData(formData)
-  const validationError = validateAuthorFormValues(values)
+  const validationError = validateAuthorFormValues(values,true)
 
   if (validationError) {
     redirect(withReturnTo(`/member/authors/new?error=${validationError}`, returnTo))
