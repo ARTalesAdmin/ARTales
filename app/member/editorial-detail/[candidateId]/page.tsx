@@ -6,10 +6,11 @@ import {SEMANTIC_PIPELINE_ENABLED} from "@/lib/semantic/featureFlag";
 import {saveCandidateEditorialField} from "./actions";
 import {completeSemanticTask} from "@/app/member/editorial-pipeline/actions";
 import CandidateCoverInput from "@/components/editor/CandidateCoverInput";
+import CandidateBilingualAnnotationFields from "@/components/editor/CandidateBilingualAnnotationFields";
 import "@/components/editor/editorial-workspace.css";
 
 export const dynamic="force-dynamic";
-type Metadata={author_id:string|null;collection_id:string|null;work_description:string|null;
+type Metadata={author_id:string|null;collection_id:string|null;work_description_cs:string|null;work_description_en:string|null;
  cover_image_path:string|null;cover_image_alt:string|null;cover_image_caption:string|null};
 type Task={id:string;kind:string;status:string;assigned_to:string|null};
 const labels:Record<string,string>={
@@ -34,7 +35,7 @@ export default async function CandidateEditorialDetail({params,searchParams}:{
   db.from("artales_editorial_tasks").select("id,kind,status,assigned_to")
    .eq("candidate_id",candidateId).in("status",["open","claimed","returned"]),
   db.from("artales_candidate_editorial_metadata")
-   .select("author_id,collection_id,work_description,cover_image_path,cover_image_alt,cover_image_caption")
+   .select("author_id,collection_id,work_description_cs,work_description_en,cover_image_path,cover_image_alt,cover_image_caption")
    .eq("candidate_id",candidateId).maybeSingle(),
   db.from("authors").select("id,slug,name,name_en,bio_en,bio_cs,bio,portrait_image_path,portrait_image_alt")
    .order("name").limit(250),
@@ -45,7 +46,7 @@ export default async function CandidateEditorialDetail({params,searchParams}:{
  if(me.role!=="admin"&&!tasks.some(t=>t.assigned_to===me.id))notFound();
  const candidate=candidateRes.data;
  const err=await searchParams;
- const metadata:Metadata=metadataRes.data??{author_id:null,collection_id:null,work_description:null,
+ const metadata:Metadata=metadataRes.data??{author_id:null,collection_id:null,work_description_cs:null,work_description_en:null,
   cover_image_path:null,cover_image_alt:null,cover_image_caption:null};
  const authors=authorsRes.data??[];
  const collections=collectionsRes.data??[];
@@ -62,13 +63,16 @@ export default async function CandidateEditorialDetail({params,searchParams}:{
  const bioPresent=[author?.bio_en,author?.bio_cs,author?.bio].some(v=>(v??"").trim().length>=40);
  const portraitPresent=Boolean(author?.portrait_image_path&&
   (author?.portrait_image_alt??"").trim().length>=8);
- const descriptionPresent=Boolean((metadata.work_description??"").trim().length>=200);
+ const descriptionPresent=[metadata.work_description_cs,metadata.work_description_en].every(v=>
+  (v??"").trim().length>=200&&(v??"").trim().length<=800);
  const coverPresent=Boolean(metadata.cover_image_path&&
   (metadata.cover_image_alt??"").trim().length>=8);
  const collectionPresent=Boolean(collection);
  const errors:Record<string,string>={
   save_failed:"Uložení se nezdařilo. Zkontroluj oprávnění a aktuální stav.",
   author_name_mismatch:"Vybraný autor neodpovídá autorovi podle námětu. Zkontroluj identitu autora.",
+  bilingual_description_required:"Vyplň českou i anglickou anotaci (každou 200–800 znaků).",
+  bilingual_required:"Původní jednojazyčné uložení není povolené.",
   select_record:"Vyber existující záznam.",unknown_author:"Autor neexistuje.",
   unknown_collection:"Kolekce neexistuje.",description_required:"Anotace musí mít 200–800 znaků.",
   cover_required:"Nahraj platnou obálku a vyplň alternativní text.",
@@ -201,7 +205,7 @@ export default async function CandidateEditorialDetail({params,searchParams}:{
      <div className="ed-card__head">
       <div className="ed-card__heading"><span className="ed-card__number">03</span>
        <div><h2 id="ed-description-title">Anotace knihy</h2>
-        <p className="ed-card__lead">Krátké představení díla pro čtenáře.</p></div>
+        <p className="ed-card__lead">Povinná česká i anglická anotace. Každá 200–800 znaků.</p></div>
       </div>
       {entryStatus(descriptionPresent)}
      </div>
@@ -209,13 +213,9 @@ export default async function CandidateEditorialDetail({params,searchParams}:{
       {canEditDescription?<form className="ed-card__form" action={saveCandidateEditorialField}>
        <input type="hidden" name="candidate_id" value={candidateId}/>
        <input type="hidden" name="field" value="description"/>
-       <label className="ed-label">Text anotace
-        <textarea name="value" required minLength={200} maxLength={800} rows={6}
-         defaultValue={metadata.work_description??""}
-         placeholder="Napiš originální anotaci knihy…"/>
-       </label>
-       <small className="ed-help">Rozsah 200–800 znaků. Text nezasahuje do originálu knihy.</small>
-       <button className="ed-button" type="submit">Uložit anotaci ✓</button>
+       <CandidateBilingualAnnotationFields
+        initialCs={metadata.work_description_cs??""}
+        initialEn={metadata.work_description_en??""}/>
       </form>:<p className="ed-quiet">Anotaci připravuje pověřený editor.</p>}
      </div>
     </section>
