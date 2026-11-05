@@ -26,6 +26,29 @@ export async function saveCandidateEditorialField(form:FormData){
  if(error||data?.result!=="saved")
   redirect("/member/editorial-detail/"+candidateId+"?error="+encodeURIComponent(
    typeof data?.result==="string"?data.result:"save_failed"));
+ // One save is enough for the single-field tasks. The independent database
+ // completion trigger must verify durable evidence before it accepts the task.
+ const kind=field==="collection"?"collection_curation":field==="description"?
+  "work_description":field==="cover"?"cover_art":null;
+ if(kind){
+  const {data:mine}=await db.from("artales_editorial_tasks")
+   .select("id,status,assigned_to").eq("candidate_id",candidateId)
+   .eq("kind",kind).in("status",["open","claimed","returned"]).maybeSingle();
+  const actor=await requireEditorOrAdmin();
+  if(mine?.status==="claimed"&&mine.assigned_to===actor.id){
+   // A failed closeout leaves the saved metadata intact and the task open.
+   const note="Redakční úkol "+kind+
+    " dokončen po uložení podkladů, validaci povinných údajů a databázovém ověření.";
+   const {data:completed}=await db.rpc("artales_complete_editorial_task",{
+    p_task_id:mine.id,p_note:note
+   });
+   if(completed?.result==="completed"){
+    revalidatePath("/member/editorial-detail/"+candidateId);
+    revalidatePath("/member/editorial-pipeline");revalidatePath("/member","layout");
+    redirect("/member/editorial-detail/"+candidateId+"?saved="+encodeURIComponent(field)+"&closed=1");
+   }
+  }
+ }
  revalidatePath("/member/editorial-detail/"+candidateId);
  revalidatePath("/member/editorial-pipeline");
  redirect("/member/editorial-detail/"+candidateId+"?saved="+encodeURIComponent(field));
