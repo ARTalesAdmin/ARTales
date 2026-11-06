@@ -3,6 +3,7 @@ import {strict as assert} from "node:assert";
 import {readFileSync} from "node:fs";
 const sql=readFileSync(new URL("../ops/sql/20261103_artales_editorial_assignments_v2.sql",import.meta.url),"utf8");
 const qa=readFileSync(new URL("../components/editor/SemanticQaPanel.tsx",import.meta.url),"utf8");
+const review=readFileSync(new URL("../components/editor/SemanticReviewBar.tsx",import.meta.url),"utf8");
 const preview=readFileSync(new URL("../app/member/semantic/[candidateId]/page.tsx",import.meta.url),"utf8");
 test("only one new text QA per revision; metadata responsibilities are once per work",()=>{
  assert.match(sql,/VALUES\(NEW.candidate_id,NEW.revision_sha256,'text_review'/);
@@ -20,7 +21,8 @@ test("real editors and optional independent reviewer are identity-bound",()=>{
  assert.match(sql,/v_task.assigned_to<>v_actor/);
 });
 test("editor logs one issue, does not select arbitrary technical fixes or create tasks",()=>{
- assert.match(qa,/p.onSaved\(\)/);
+ assert.match(review,/p.onFinished\(\)/);
+ assert.match(qa,/p.onFindingAdded\(\)/);
  assert.doesNotMatch(qa,/applySemanticQaLayoutFix/);
  assert.doesNotMatch(preview,/publishSemanticCandidate|enqueueSemanticReview/);
 });

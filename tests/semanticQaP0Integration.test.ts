@@ -5,18 +5,20 @@ const file=(p:string)=>readFileSync(new URL("../"+p,import.meta.url),"utf8");
 const page=file("app/member/semantic/[candidateId]/page.tsx");
 const panel=file("components/editor/SemanticQaPanel.tsx");
 const lab=file("components/editor/SemanticReaderLab.tsx");
+const review=file("components/editor/SemanticReviewBar.tsx");
 const sql=file("ops/sql/20261104_artales_safe_layout_commit_v4.sql");
 const worker=file("app/api/internal/editorial/ai-qa-jobs/route.ts");
 test("editorial styling, breadcrumbs and task ownership are preserved",()=>{
  assert.match(page,/ed-qa-head/); assert.match(page,/ed-qa-workspace/);
  assert.match(page,/qaTask=\(tasks\?\?\[\]\)\.find/);
- assert.match(page,/qaDatabaseReady=\{!qaFlagError&&!reviewError\}/);
+ assert.match(page,/qaDatabaseReady=\{!qaFlagError&&!reviewError&&!pendingAiError\}/);
+ assert.match(page,/aiJobPending=\{Boolean\(pendingAiJobs\?\.length\)/);
 });
 test("AI jobs fail closed without fallback and can resume in same session",()=>{
  assert.doesNotMatch(panel,/suggestSemanticQaRepairs|Nexus AI/);
  assert.match(panel,/lastSemanticAiQaJob/); assert.match(panel,/readSemanticAiQaJob/);
  assert.match(panel,/setInterval/); assert.match(panel,/clearInterval/);
- assert.match(panel,/decideSemanticChange/); assert.match(panel,/finishSemanticQaReview/);
+ assert.match(review,/decideSemanticChange/); assert.match(review,/finishSemanticQaReview/);
 });
 test("no known source text mutation in worker and atomic receipt commit",()=>{
  assert.match(sql,/changed_source_or_structure/);
@@ -57,11 +59,12 @@ test("QA panel keeps one prominent AI handoff and compact searchable findings",(
  assert.match(lab,/Obecná oprava/);
  assert.match(lab,/Hledat v textu/);
  assert.match(panel,/Přidat nález/);
- assert.match(panel,/Zobrazit a posoudit jednotlivé opravy/);
+ assert.match(review,/Oprava je v pořádku/);
+ assert.match(review,/Najít v textu/);
  assert.match(css,/semantic-qa-panel__flags--compact/);
  assert.match(css,/max-height:min\(52dvh,430px\)/);
  assert.match(panel,/enqueueSemanticAiQaJob/);
- assert.match(panel,/finishSemanticQaReview/);
+ assert.match(review,/finishSemanticQaReview/);
 });
 
 test("reader-first QA adds notes and returns editor to text",()=>{
@@ -93,4 +96,33 @@ test("general QA uses the identity-bound durable queue and safely scoped model d
  assert.match(dialog,/role="dialog"/);
  assert.match(dialog,/max. 4 800 výstupních tokenů/);
  assert.doesNotMatch(dialog,/Nexus/);
+});
+
+test("review one corrected block at a time, accept without explanation and keep return reason",()=>{
+ assert.match(review,/Oprava je v pořádku/);
+ assert.match(review,/Vrátit k opravě/);
+ assert.match(review,/returnNote\.trim\(\)\.length<15/);
+ assert.match(review,/decision==="returned"\?returnNote:""/);
+ assert.match(review,/const next=unreviewed\.find/);
+ assert.match(review,/p\.onFind\(next\.target_atom_id\)/);
+ assert.match(review,/Dokončit celé QA/);
+ assert.match(review,/p\.openFindings===0/);
+ assert.match(review,/p\.aiJobPending/);
+ assert.match(review,/p\.onFind\(current\.target_atom_id\)/);
+ assert.doesNotMatch(panel,/Vrátit s poznámkou/);
+ assert.doesNotMatch(panel,/Uzavřít celé QA/);
+ assert.match(panel,/onStartReview/);
+ assert.match(lab,/SemanticReviewBar/);
+ assert.match(lab,/data-review-state=/);
+ assert.match(lab,/data-review-focus=/);
+});
+test("review colors separate active editor selection from pending and accepted changes",()=>{
+ const css=file("components/editor/semantic-reader.css");
+ assert.match(css,/data-review-state="pending"/);
+ assert.match(css,/data-review-state="accepted"/);
+ assert.match(css,/data-review-state="returned"/);
+ assert.match(css,/data-review-focus="true"/);
+ assert.match(css,/data-selected="true"/);
+ assert.match(lab,/reviewDecisionById/);
+ assert.match(lab,/reviewStateForUnits/);
 });

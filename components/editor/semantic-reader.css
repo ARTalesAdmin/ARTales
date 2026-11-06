@@ -350,3 +350,71 @@
 .semantic-reader__dialog select{padding:9px;border-radius:8px;border:1px solid #c4b293}
 .semantic-reader__dialog-results>button{display:block;width:100%;
  color:#fff;background:#1e2b3a;padding:12px;margin:12px 0}
+
+
+/* Review UX: find, inspect, confirm and move on without nested forms. */
+.semantic-reader__fullscreen-button--review{border-color:#287d75!important;background:#e1f5ee!important;color:#155c53!important;font-weight:700!important}
+.semantic-reader__review-bar{position:sticky;top:74px;z-index:32;background:#f7fffc;
+ border:2px solid #77aca7;border-radius:12px;padding:12px 14px;margin:8px 0 14px;
+ box-shadow:0 8px 24px #21443a25;color:#163e36;font:13px/1.5 system-ui}
+.semantic-reader__review-head,.semantic-reader__review-nav,
+.semantic-reader__review-actions,.semantic-reader__review-footer{
+ display:flex;align-items:center;gap:9px;flex-wrap:wrap}
+.semantic-reader__review-head{justify-content:space-between}
+.semantic-reader__review-head strong{font-size:16px}
+.semantic-reader__review-head>button{margin-left:auto}
+.semantic-reader__review-bar button{cursor:pointer;border:1px solid #8faaa0;
+ background:white;border-radius:8px;padding:8px 11px;color:#243630;font:600 13px system-ui}
+.semantic-reader__review-bar button:disabled{cursor:not-allowed;opacity:.5}
+.semantic-reader__review-active{border-top:1px solid #c5ded6;margin-top:8px;padding-top:10px}
+.semantic-reader__review-nav{justify-content:flex-start}
+.semantic-reader__review-nav span{font-weight:600}
+.semantic-reader__review-find{margin-left:auto}
+.semantic-reader__review-reason{padding:8px 10px;margin:9px 0;background:#fff;border-radius:6px;
+ border-left:3px solid #4e9b9b;overflow-wrap:anywhere}
+.semantic-reader__review-actions{margin:8px 0}
+.semantic-reader__review-accept,.semantic-reader__review-finish:not(:disabled){
+ background:#197566!important;color:#fff!important;border-color:#197566!important}
+.semantic-reader__review-return{padding:12px;border-radius:8px;background:#fff5ec}
+.semantic-reader__review-return label{display:grid;gap:6px;font-weight:600}
+.semantic-reader__review-return textarea{width:100%;box-sizing:border-box;resize:vertical;
+ border:1px solid #c99c72;border-radius:8px;padding:10px;background:#fff}
+.semantic-reader__review-return button{margin-top:8px}
+.semantic-reader__review-footer{justify-content:space-between;border-top:1px solid #c5ded6;
+ padding-top:10px;margin-top:10px}
+.semantic-reader__review-blockers{flex:1 1 260px}
+.semantic-reader__review-key{display:flex;flex-wrap:wrap;gap:11px;margin:8px 0 0;font-size:11px}
+.semantic-reader__review-key>span{display:inline-flex;align-items:center;gap:5px}
+.semantic-reader__review-dot{display:inline-block;width:12px;height:12px;border:1px solid;border-radius:3px}
+.semantic-reader__review-dot--finding{background:#fff1d5;border-color:#bf8537}
+.semantic-reader__review-dot--pending{background:#dbf2fb;border-color:#2485aa}
+.semantic-reader__review-dot--accepted{background:#e2f6e7;border-color:#3a9860}
+.semantic-reader__review-dot--selected{background:#ffe2a8;border-color:#b4771d}
+.semantic-reader__review-feedback{padding:8px;background:#fff8de;border-radius:6px}
+.semantic-qa-panel__next{border:1px solid #b2c9c7;border-left:4px solid #2d877b;
+ background:#f1f8f6;border-radius:10px;padding:12px;margin:14px 0}
+.semantic-qa-panel__next>h3{margin-top:0}
+.semantic-qa-panel__next-note{font-size:12px;color:#53655d}
+.semantic-reader__unit[data-review-state="pending"],
+.semantic-reader__source-region[data-review-state="pending"]{
+ background:#dff2fb!important;box-shadow:inset 4px 0 #2485aa}
+.semantic-reader__unit[data-review-state="accepted"],
+.semantic-reader__source-region[data-review-state="accepted"]{
+ background:#e6f7eb!important;box-shadow:inset 4px 0 #32925e}
+.semantic-reader__unit[data-review-state="returned"],
+.semantic-reader__source-region[data-review-state="returned"]{
+ background:#fbe9df!important;box-shadow:inset 4px 0 #ba673d}
+.semantic-reader__unit[data-review-state="pending"]::after{
+ content:"Změna k ověření";display:block;color:#245f82;font:11px/1.6 system-ui}
+.semantic-reader__unit[data-review-state="accepted"]::after{
+ content:"Oprava potvrzena";display:block;color:#26704a;font:11px/1.6 system-ui}
+.semantic-reader__unit[data-review-state="returned"]::after{
+ content:"Vráceno k opravě";display:block;color:#944520;font:11px/1.6 system-ui}
+.semantic-reader__unit[data-review-focus="true"],
+.semantic-reader__source-region[data-review-focus="true"]{
+ outline:3px solid #156baf!important;outline-offset:4px;border-radius:4px}
+.semantic-reader__unit[data-selected="true"],
+.semantic-reader__source-region[data-selected="true"]{
+ outline:3px solid #b4771d!important;outline-offset:4px}
+@media(max-width:650px){.semantic-reader__review-bar{top:4px;padding:9px}
+ .semantic-reader__review-nav button{font-size:12px}}
