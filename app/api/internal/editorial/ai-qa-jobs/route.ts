@@ -73,7 +73,9 @@ export async function GET(request:NextRequest){
    const safe=new Set<EditorialBatchAction>(["compact","airy","center"]);
    const repairs=answer.suggestions.filter(x=>safe.has(x.action as EditorialBatchAction))
     .map(x=>({flagId:x.flagId,action:x.action as EditorialBatchAction}));
-   if(repairs.length){
+   // Whole-work discovery is a proposal, not authorization to change layout
+   // on incidental ordinary findings bundled into the same queued snapshot.
+   if(repairs.length&&!answer.generalRequest){
     const prepared=await prepareQaPresentationBatch({
      candidateId:input.candidateId,revisionSha:input.revisionSha,repairs
     },db);
@@ -91,15 +93,24 @@ export async function GET(request:NextRequest){
    }
   }
  }catch{errorCode="worker_exception";}
- // The safe commit already saved a completed job receipt in the same transaction.
+ // The atomic commit already completed this job and saved suggestions.
  if(appliedRevisionSha)return NextResponse.json({
   status:"completed",job_id:job.job_id,applied_revision_sha256:appliedRevisionSha
  });
+ // A valid paid AI proposal must NEVER be discarded because the downstream
+ // layout transaction refused to write. Persist it as completed reviewable work
+ // (no revision SHA), do not bill the provider again for the same result.
+ const validSuggestions=Array.isArray(suggestions)&&suggestions.length>0;
+ const commitWarning=validSuggestions?errorCode:null;
+ const terminalError=validSuggestions?null:errorCode??"missing_ai_proposals";
  const {data:stored,error:finishError}=await db.rpc("artales_finish_ai_qa_job",{
-  p_job_id:job.job_id,p_suggestions:suggestions,p_error_code:errorCode,
-  p_applied_revision_sha:appliedRevisionSha
+  p_job_id:job.job_id,p_suggestions:validSuggestions?suggestions:null,
+  p_error_code:terminalError,p_applied_revision_sha:null
  });
  if(finishError||stored?.result!=="stored")
   return NextResponse.json({status:"persist_failed"},{status:503});
- return NextResponse.json({status:errorCode?"failed":"completed",job_id:job.job_id});
+ return NextResponse.json({
+  status:terminalError?"failed":"completed",job_id:job.job_id,
+  ...(commitWarning?{layout_warning:commitWarning}:{})
+ });
 }
