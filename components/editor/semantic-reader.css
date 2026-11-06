@@ -335,3 +335,18 @@
 .semantic-reader__dialog-targets button{font-size:12px}
 @media(max-width:700px){.semantic-reader__search{top:0}
  .semantic-reader__dialog{padding:14px}}
+
+.semantic-reader__dialog-results-list{display:grid;gap:8px;
+ max-height:38dvh;overflow-y:auto;margin:12px 0;padding-right:4px}
+.semantic-reader__dialog-result{display:flex;gap:8px;align-items:center;
+ justify-content:space-between;background:#f9f4e9;
+ border:1px solid #dfd2bc;border-radius:9px;padding:9px}
+.semantic-reader__dialog-result label{display:flex;align-items:start;
+ min-width:0;gap:9px;flex:1;font-weight:400}
+.semantic-reader__dialog-result label span{overflow-wrap:anywhere;max-height:57px;overflow:hidden}
+.semantic-reader__dialog-result button{flex-shrink:0}
+.semantic-reader__dialog-selectall{display:flex!important;
+ align-items:center;gap:8px}
+.semantic-reader__dialog select{padding:9px;border-radius:8px;border:1px solid #c4b293}
+.semantic-reader__dialog-results>button{display:block;width:100%;
+ color:#fff;background:#1e2b3a;padding:12px;margin:12px 0}
