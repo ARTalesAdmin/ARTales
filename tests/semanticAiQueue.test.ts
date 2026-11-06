@@ -47,7 +47,8 @@ test("failed or unavailable queue reports its reason beside the AI trigger",()=>
  assert.match(panel,/catch\{/);
  assert.match(panel,/setAiError\(true\)/);
  assert.match(actions,/function configurationIssue\(\)/);
- assert.match(actions,/VERCEL_OIDC_TOKEN/);
+ assert.doesNotMatch(actions,/process\.env\.VERCEL_OIDC_TOKEN/);
+ assert.match(worker,/request\.headers\.get\("x-vercel-oidc-token"\)/);
  assert.match(actions,/databázová chyba/);
 });
 
