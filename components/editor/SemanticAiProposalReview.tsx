@@ -28,6 +28,7 @@ export default function SemanticAiProposalReview(p:Props){
  const [index,setIndex]=useState(0);
  const [targetIndex,setTargetIndex]=useState(0);
  const [choices,setChoices]=useState<Record<string,"approve"|"reject">>({});
+ const [visitedTargets,setVisitedTargets]=useState<Record<string,string[]>>({});
  const [message,setMessage]=useState("");
  const [saved,setSaved]=useState(false);
  const [pending,startTransition]=useTransition();
@@ -61,6 +62,8 @@ export default function SemanticAiProposalReview(p:Props){
  };
  const decide=(choice:"approve"|"reject")=>{
   if(!current)return;
+  if(choice==="approve"&&current.action==="manual_review"&&current.targetAtomIds.length>1&&
+   !current.targetAtomIds.every(id=>(visitedTargets[current.flagId]??[]).includes(id)))return;
   setChoices(old=>({...old,[current.flagId]:choice}));
   if(index<suggestions.length-1)jumpTo(index+1);
  };
@@ -105,6 +108,18 @@ export default function SemanticAiProposalReview(p:Props){
  const targets=current?.targetAtomIds?.length?current.targetAtomIds:
    flag?[flag.target_atom_id]:[];
  const target=targets[Math.min(targetIndex,targets.length-1)];
+ const visited=visitedTargets[current?.flagId??""]??[];
+ const requiresFullReview=current?.action==="manual_review"&&targets.length>1;
+ const canApprove=!requiresFullReview||targets.every(id=>visited.includes(id));
+ const findTarget=(id:string)=>{
+  if(!id||!current)return;
+  p.onFind(id);
+  if(current.action==="manual_review")
+   setVisitedTargets(old=>{
+    const known=old[current.flagId]??[];
+    return known.includes(id)?old:{...old,[current.flagId]:[...known,id]};
+   });
+ };
  return <section className="semantic-reader__proposal-review" aria-label="Revize návrhů AI">
   <div className="semantic-reader__proposal-head">
    <strong>Revize navržených oprav</strong>
@@ -121,7 +136,7 @@ export default function SemanticAiProposalReview(p:Props){
     <span><strong>Návrh {index+1} / {suggestions.length}</strong></span>
     <button type="button" disabled={index>=suggestions.length-1||pending}
      aria-label="Další návrh" onClick={()=>jumpTo(index+1)}>→</button>
-    <button type="button" onClick={()=>{if(target)p.onFind(target);}}>
+    <button type="button" onClick={()=>{if(target)findTarget(target);}}>
      Najít v textu</button>
    </div>
    <p><strong>{current.action==="protect_term"&&!isSafeWorkTypographyTerm(current.term)
@@ -141,16 +156,21 @@ export default function SemanticAiProposalReview(p:Props){
    {flag?<p className="semantic-reader__proposal-finding">Nález: {flag.comment}</p>:null}
    {targets.length>1?<div className="semantic-reader__proposal-targets">
     <button type="button" disabled={targetIndex===0}
-     onClick={()=>{setTargetIndex(targetIndex-1);p.onFind(targets[targetIndex-1]);}}>‹</button>
+     onClick={()=>{setTargetIndex(targetIndex-1);findTarget(targets[targetIndex-1]);}}>‹</button>
     <span>Ukázkový blok {targetIndex+1} / {targets.length}</span>
     <button type="button" disabled={targetIndex===targets.length-1}
-     onClick={()=>{setTargetIndex(targetIndex+1);p.onFind(targets[targetIndex+1]);}}>›</button>
-    <small>U obecného návrhu musí editor skutečně posoudit nalezená místa.</small>
+     onClick={()=>{setTargetIndex(targetIndex+1);findTarget(targets[targetIndex+1]);}}>›</button>
+    <small>{requiresFullReview?
+     "Prohlédnuto "+visited.length+" / "+targets.length+
+     " bloků. Otevři postupně každý blok a zkontroluj ho."
+     :"U obecného návrhu musí editor skutečně posoudit nalezená místa."}</small>
    </div>:null}
    <div className="semantic-reader__proposal-choice">
     <button type="button" className={choices[current.flagId]==="approve"?"is-selected":""}
+     disabled={!canApprove}
      onClick={()=>decide("approve")} aria-pressed={choices[current.flagId]==="approve"}>
-     <span aria-hidden="true">✓</span> Přijmout</button>
+     <span aria-hidden="true">✓</span> {current.action==="manual_review"?
+      "Prověřeno, bez další změny":"Přijmout"}</button>
     <button type="button" className={choices[current.flagId]==="reject"?"is-rejected":""}
      onClick={()=>decide("reject")} aria-pressed={choices[current.flagId]==="reject"}>
      <span aria-hidden="true">✕</span> Ponechat k opravě</button>
