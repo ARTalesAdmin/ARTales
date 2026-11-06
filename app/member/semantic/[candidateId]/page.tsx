@@ -33,6 +33,9 @@ export default async function EditorialSemanticPreview({params}:{params:Promise<
  const {data:reviewDecisions,error:reviewError}=await db.from("artales_semantic_change_reviews")
   .select("issue_id,decision,note,reviewed_at").eq("candidate_id",candidateId)
   .eq("revision_sha256",data.revision_sha256);
+ const {data:pendingAiJobs,error:pendingAiError}=await db.from("artales_semantic_ai_qa_jobs")
+  .select("id").eq("candidate_id",candidateId).eq("revision_sha256",data.revision_sha256)
+  .in("status",["queued","running"]).limit(1);
  const qaTask=(tasks??[]).find(t=>t.kind==="text_review"&&
   t.assigned_to===profile.id&&t.status==="claimed");
  const revision=data.revision as SemanticRevision;
@@ -83,7 +86,7 @@ export default async function EditorialSemanticPreview({params}:{params:Promise<
     candidateId={candidateId} revisionSha={data.revision_sha256}
     editionTitle={candidate?.proposed_title??"Název čeká na kontrolu"}
     editionAuthor={candidate?.proposed_author_name??"Autor čeká na kontrolu"}
-    flags={qaFlags??[]} qaDatabaseReady={!qaFlagError&&!reviewError} systemSignals={systemSignals}
+    flags={qaFlags??[]} qaDatabaseReady={!qaFlagError&&!reviewError&&!pendingAiError} aiJobPending={Boolean(pendingAiJobs?.length)||Boolean(pendingAiError)} systemSignals={systemSignals}
     protectedTerms={(workRules??[]).map(x=>x.term)} canCommitBatch={Boolean(qaTask)}
     currentTaskId={qaTask?.id??null} reviewDecisions={reviewDecisions??[]}
    />
