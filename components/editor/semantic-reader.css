@@ -245,3 +245,38 @@
 .semantic-qa-panel__review textarea{display:block;width:100%;min-height:70px;box-sizing:border-box}
 .semantic-qa-panel progress{width:100%;height:14px}
 .semantic-qa-panel__review-note{border-left:3px solid #ba7435;padding-left:10px;white-space:pre-wrap}
+
+
+/* Compact task-first semantic QA panel. Long inventories are browsed on demand. */
+.semantic-qa-panel__hint{color:#625c54;font-size:13px;margin:10px 0}
+.semantic-qa-panel__ai{border:1px solid #9bb5c8;background:#edf4f8;margin:12px 0 16px;padding:14px}
+.semantic-qa-panel__ai>h3{margin:0 0 7px;font:600 19px Georgia,serif}
+.semantic-qa-panel__ai>p{margin:7px 0 10px}
+.semantic-qa-panel__ai>button{display:block;width:100%;min-height:44px;font-size:14px;font-weight:650;background:#202b39}
+.semantic-qa-panel__findings,.semantic-qa-panel__advanced,.semantic-qa-panel__review-list{
+ border:1px solid #dacbb7;border-radius:10px;margin:13px 0;background:#fffdf8;
+}
+.semantic-qa-panel__findings>summary,.semantic-qa-panel__advanced>summary,
+.semantic-qa-panel__review-list>summary{
+ display:block;cursor:pointer;font-weight:650;padding:13px 14px;list-style-position:inside;
+}
+.semantic-qa-panel__findings[open]>summary,.semantic-qa-panel__advanced[open]>summary{border-bottom:1px solid #eaded0}
+.semantic-qa-panel__filters{display:grid;grid-template-columns:1fr 120px;gap:8px;padding:10px 12px}
+.semantic-qa-panel__filters label{display:grid;gap:4px;font-size:12px;font-weight:600}
+.semantic-qa-panel__filters input,.semantic-qa-panel__filters select{
+ background:white;border:1px solid #d6c9b7;border-radius:7px;min-width:0;width:100%;padding:8px;
+ box-sizing:border-box;font:13px system-ui;color:#322b25}
+.semantic-qa-panel__flags--compact{padding:0 10px 10px;max-height:min(52dvh,430px);overflow-y:auto;overscroll-behavior:contain;gap:7px}
+.semantic-qa-panel__flags--compact .semantic-qa-panel__flag{padding:9px 10px}
+.semantic-qa-panel__flag-top{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.semantic-qa-panel__flag-top span{font-size:12px;color:#534739}
+.semantic-qa-panel__flag-top button{padding:7px 9px;white-space:nowrap}
+.semantic-qa-panel__flags--compact .semantic-qa-panel__flag>p{margin:7px 0;font-size:13px;line-height:1.4}
+.semantic-qa-panel__flag-tools{border-top:1px solid #e8dcca;padding-top:7px}
+.semantic-qa-panel__flag-tools summary{cursor:pointer;font-size:12px;color:#655342}
+.semantic-qa-panel__review-list{padding:0 10px 10px}
+.semantic-qa-panel__review-list>summary{padding:12px 2px}
+.semantic-qa-panel__advanced>.semantic-qa-panel__fast-rule{margin:10px}
+.semantic-qa-panel__selection{max-height:108px}
+.semantic-qa-panel__selection p{max-height:52px;overflow:auto;font-size:12px}
+@media(max-width:450px){.semantic-qa-panel__filters{grid-template-columns:1fr}}
