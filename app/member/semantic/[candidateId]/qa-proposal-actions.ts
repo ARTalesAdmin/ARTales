@@ -41,7 +41,7 @@ export async function applyReviewedQaProposals(input:{
    .eq("candidate_id",input.candidateId).eq("revision_sha256",input.revisionSha)
    .eq("assigned_to",actor.id).eq("status","claimed").eq("kind","text_review")
    .maybeSingle(),
-  db.from("artales_semantic_qa_flags").select("id,status,kind")
+  db.from("artales_semantic_qa_flags").select("id,status,kind,target_atom_id")
    .eq("candidate_id",input.candidateId)
    .eq("revision_sha256",input.revisionSha)
  ]);
@@ -55,11 +55,17 @@ export async function applyReviewedQaProposals(input:{
  try{
   plan=planQaProposalReview(job.suggestions as AiQaSuggestion[],flags,input.decisions);
  }catch(e){return fail(e instanceof Error?e.message:"Nelze bezpečně ověřit rozhodnutí.");}
+ const byFlag=new Map(flags.map(f=>[f.id,f]));
+ const layoutTargets=plan.layout.map(x=>byFlag.get(x.flagId)?.target_atom_id);
+ if(new Set(layoutTargets).size!==layoutTargets.length)
+  return fail("Více přijatých sazebních návrhů mění stejný blok. Ponech jeden návrh "+
+   "k opravě a znovu zkontroluj společný náhled.");
  let resolved=0;
  // Apply safe work-wide protections first, idempotently. Never edit source bytes.
  for(const change of plan.protectedTerms){
   const rule=await saveWorkTypographyRule({candidateId:input.candidateId,term:change.term});
   if(!rule.ok)return fail("Ukládání bylo přerušeno: "+rule.message);
+  if(byFlag.get(change.flagId)?.status==="resolved")continue;
   const closed=await resolveSemanticQaFlag({
    candidateId:input.candidateId,flagId:change.flagId,
    resolutionNote:"Editor přijal a ověřil ochranu výrazu „"+change.term+
@@ -71,6 +77,7 @@ export async function applyReviewedQaProposals(input:{
  // Explicit editorial acknowledgement that no textual/layout change is warranted.
  // This is not an autonomous AI acceptance.
  for(const id of plan.confirmedNoChange){
+  if(byFlag.get(id)?.status==="resolved")continue;
   const closed=await resolveSemanticQaFlag({
    candidateId:input.candidateId,flagId:id,
    resolutionNote:"Editor po vizuálním posouzení označil návrh jako prověřený bez potřeby "+
