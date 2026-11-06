@@ -24,6 +24,7 @@ on:
       - 'app/member/editorial-pipeline/**'
       - 'app/member/editorial-detail/**'
       - 'app/member/authors/**'
+      - 'lib/actions/authors.ts'
       - 'app/member/collections/**'
       - 'lib/forms/authorForm.ts'
       - 'lib/forms/collectionForm.ts'

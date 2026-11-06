@@ -9,7 +9,7 @@ import EditorialImageUploadField from "@/components/media/EditorialImageUploadFi
 
 type PageProps = {
   params: Promise<{ slug: string }>
-  searchParams: Promise<{ error?: string; success?: string }>
+  searchParams: Promise<{ error?: string; success?: string; editorial_closeout?: string }>
 }
 
 function getErrorMessage(error?: string) {
@@ -53,7 +53,7 @@ export default async function EditAuthorPage({
   await requireEditorOrAdmin()
 
   const { slug } = await params
-  const { error, success } = await searchParams
+  const { error, success, editorial_closeout } = await searchParams
   const author = await getAuthorForEditBySlug(slug)
 
   if (!author) {
@@ -146,6 +146,12 @@ export default async function EditAuthorPage({
         </p>
       ) : null}
 
+      {editorial_closeout === "pending" ? (
+        <p role="alert" style={{ padding: "12px 14px", border:"1px solid #d99", background:"#fff7f7" }}>
+          Profil byl uložen, ale při uzavření některého přiřazeného redakčního úkolu
+          neprošla validace. Úkol zůstává rozpracovaný, text není potřeba opisovat.
+        </p>
+      ) : null}
       <form action={submitAction} style={{ display: "grid", gap: "22px" }}>
         <section
           style={{

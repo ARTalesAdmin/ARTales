@@ -53,3 +53,16 @@ test("monthly assigned/completed member columns and bounded month selection",()=
  assert.match(report,/searchParams:Promise<\{month\?:string\}>/);
  assert.match(report,/<select id="report-month" name="month"/);
 });
+test("single save of author biography/portrait closes only owner's claimed and validated candidate tasks",()=>{
+ const authorAction=file("lib/actions/authors.ts");
+ const authorEdit=file("app/member/authors/[slug]/edit/page.tsx");
+ assert.match(authorAction,/\.eq\("author_id", savedAuthor\.id\)/);
+ assert.match(authorAction,/\.eq\("assigned_to", profile\.id\)/);
+ assert.match(authorAction,/\.eq\("status", "claimed"\)/);
+ assert.match(authorAction,/\.in\("kind", kinds\)/);
+ assert.match(authorAction,/artales_complete_editorial_task/);
+ assert.match(authorAction,/bioReady/);
+ assert.match(authorAction,/closeoutFailed/);
+ assert.match(authorEdit,/editorial_closeout === "pending"/);
+ assert.match(actions,/field==="author"\?\["author_bio","author_visual"\]/);
+});
