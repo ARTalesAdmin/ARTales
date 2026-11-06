@@ -418,3 +418,42 @@
  outline:3px solid #b4771d!important;outline-offset:4px}
 @media(max-width:650px){.semantic-reader__review-bar{top:4px;padding:9px}
  .semantic-reader__review-nav button{font-size:12px}}
+
+
+/* Read-first QA proposal review. One proposal in view, no nested edit forms. */
+.semantic-reader__proposal-review{position:sticky;top:74px;z-index:34;max-width:100%;
+ background:#f5fafc;border:2px solid #7aa9c2;border-radius:12px;
+ padding:12px 14px;box-sizing:border-box;color:#1c3645;
+ box-shadow:0 7px 20px #263e512b;font:13px/1.5 system-ui}
+.semantic-reader__proposal-head,.semantic-reader__proposal-nav,
+.semantic-reader__proposal-choice,.semantic-reader__proposal-final{
+ display:flex;align-items:center;flex-wrap:wrap;gap:9px}
+.semantic-reader__proposal-head{justify-content:space-between}
+.semantic-reader__proposal-head strong{font-size:17px}
+.semantic-reader__proposal-head>button{margin-left:auto}
+.semantic-reader__proposal-review button{cursor:pointer;border:1px solid #88a9b4;
+ background:white;border-radius:8px;padding:8px 12px;font:600 13px system-ui;color:#234357}
+.semantic-reader__proposal-review button:disabled{opacity:.46;cursor:not-allowed}
+.semantic-reader__proposal-current{padding:10px 0;border-top:1px solid #bad5df;margin-top:9px}
+.semantic-reader__proposal-nav>span{font-weight:600}
+.semantic-reader__proposal-nav>button:last-child{margin-left:auto}
+.semantic-reader__proposal-reason{font-size:14px;line-height:1.5;margin:8px 0}
+.semantic-reader__proposal-finding{font-size:12px;color:#516b79;margin:7px 0;
+ max-height:70px;overflow-y:auto}
+.semantic-reader__proposal-choice{gap:12px;margin-top:11px}
+.semantic-reader__proposal-choice button{font-size:14px;min-height:42px}
+.semantic-reader__proposal-choice .is-selected{background:#dbf3e6;color:#136342;border-color:#4f9d73}
+.semantic-reader__proposal-choice .is-rejected{background:#fde7dd;color:#92451f;border-color:#bf7851}
+.semantic-reader__proposal-help{font-size:11px;color:#536974}
+.semantic-reader__proposal-targets{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:6px 0}
+.semantic-reader__proposal-targets small{flex:1 1 100%;color:#5e7180}
+.semantic-reader__proposal-final{border-top:1px solid #bad5df;padding-top:11px;margin-top:8px}
+.semantic-reader__proposal-final>p{flex:1 1 100%;margin:0}
+.semantic-reader__proposal-final>small{flex:1 1 100%;color:#4c6572}
+.semantic-reader__proposal-save{background:#1c654d!important;border-color:#1c654d!important;color:white!important;min-height:42px}
+.semantic-reader__proposal-finished{background:#e2f7e9;border:1px solid #78b894;border-radius:8px;padding:9px}
+.semantic-qa-panel__ai-ready{margin-top:12px;padding:11px;border:1px solid #9bc9b8;
+ border-radius:9px;background:#f0f9f3}
+.semantic-qa-panel__ai-ready button{width:100%;min-height:43px;background:#203e34!important;color:#fff!important}
+@media(max-width:680px){.semantic-reader__proposal-review{top:0;padding:10px}
+.semantic-reader__proposal-choice>button{flex:1 1 130px}}
