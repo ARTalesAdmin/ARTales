@@ -370,7 +370,7 @@ export default function SemanticQaPanel(p:Props){
      placeholder="Raymond" onChange={e=>setTerm(e.target.value)}/></label>
    <button type="button" disabled={pending||!p.databaseReady||term.trim().length<2}
      onClick={protect}>Použít na celé dílo</button>
-   </section
+   </section>
   </details>
   {ready.length>0?<section className="semantic-qa-panel__batch">
    <p>Bezpečný okamžitý náhled změn formátování lze vykreslit ještě před uložením.
