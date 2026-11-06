@@ -2,6 +2,7 @@ import Link from "next/link";
 import {notFound} from "next/navigation";
 import {requireEditorOrAdmin} from "@/lib/guards";
 import {createClient} from "@/lib/supabase/server";
+import {getEditorialPeople} from "@/lib/editorial/staffDirectory";
 import {
  claimSemanticTask,completeSemanticTask,requestSemanticSecondReview,
  releaseEditorialTask,reassignEditorialTask
@@ -34,11 +35,11 @@ export default async function EditorialPipeline({searchParams}:Props){
  const profile=await requireEditorOrAdmin();
  const isAdmin=profile.role==="admin";
  const db=await createClient();
- const [{data,error},{data:people},{data:helpRequests},{data:capabilities},{data:revisions},{data:events}]=await Promise.all([
+ const [{data,error},{data:helpRequests},{data:capabilities},{data:revisions},{data:events},people]=await Promise.all([
   db.from("artales_editorial_tasks")
    .select("id,candidate_id,revision_sha256,title,status,kind,assigned_to,created_at,completed_at,completed_by")
    .order("created_at",{ascending:false}).limit(500),
-  db.from("profiles").select("id,display_name").eq("is_active",true).in("role",["admin","editor"]),
+  getEditorialPeople(),
   db.from("artales_editorial_escalations")
    .select("id,context_path,subject,details,status,assigned_to,created_by,created_at")
    .order("created_at",{ascending:false}).limit(100),
@@ -49,8 +50,10 @@ export default async function EditorialPipeline({searchParams}:Props){
    .order("occurred_at",{ascending:false}).limit(1000):Promise.resolve({data:[]})
  ]);
  const query=await searchParams;
- const roster=(people??[]).filter(p=>p.id&&p.display_name);
- const names=new Map(roster.map(p=>[p.id,p.display_name]));
+ const roster=people.filter(p=>p.id&&p.display_name&&p.is_active&&
+  ["admin","editor"].includes(p.role));
+ const names=new Map(people.filter(p=>p.id&&p.display_name)
+  .map(p=>[p.id,p.display_name!]));
  const eligible=new Set((capabilities??[]).map(x=>x.kind));
  const currentRevisions=new Map<string,string>();
  for(const rev of revisions??[])
@@ -68,7 +71,9 @@ export default async function EditorialPipeline({searchParams}:Props){
  const waitingHelp=help.filter(h=>h.status==="open");
  const completedBy=new Map<string,Record<string,number>>();
  for(const t of finished){
-  const who=t.completed_by??"unknown";
+  // Show the editor who owned and performed the work; completion actor is
+  // separately recorded in the immutable task event history.
+  const who=t.assigned_to??t.completed_by??"unknown";
   const kinds=completedBy.get(who)??{};
   kinds[t.kind]=(kinds[t.kind]??0)+1;
   completedBy.set(who,kinds);
