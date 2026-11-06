@@ -11,7 +11,8 @@ const worker=file("app/api/internal/editorial/ai-qa-jobs/route.ts");
 test("editorial styling, breadcrumbs and task ownership are preserved",()=>{
  assert.match(page,/ed-qa-head/); assert.match(page,/ed-qa-workspace/);
  assert.match(page,/qaTask=\(tasks\?\?\[\]\)\.find/);
- assert.match(page,/qaDatabaseReady=\{!qaFlagError&&!reviewError\}/);
+ assert.match(page,/qaDatabaseReady=\{!qaFlagError&&!reviewError&&!pendingAiError\}/);
+ assert.match(page,/aiJobPending=\{Boolean\(pendingAiJobs\?\.length\)/);
 });
 test("AI jobs fail closed without fallback and can resume in same session",()=>{
  assert.doesNotMatch(panel,/suggestSemanticQaRepairs|Nexus AI/);
@@ -58,7 +59,8 @@ test("QA panel keeps one prominent AI handoff and compact searchable findings",(
  assert.match(lab,/Obecná oprava/);
  assert.match(lab,/Hledat v textu/);
  assert.match(panel,/Přidat nález/);
- assert.match(panel,/Zobrazit a posoudit jednotlivé opravy/);
+ assert.match(review,/Oprava je v pořádku/);
+ assert.match(review,/Najít v textu/);
  assert.match(css,/semantic-qa-panel__flags--compact/);
  assert.match(css,/max-height:min\(52dvh,430px\)/);
  assert.match(panel,/enqueueSemanticAiQaJob/);
