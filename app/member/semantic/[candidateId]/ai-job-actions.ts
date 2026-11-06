@@ -134,6 +134,11 @@ export async function enqueueGeneralSemanticQaJob(input:{
  if(input.exampleAtomId&&!example)return fail("Ukázkový blok již není v této revizi.");
  const anchor=example??atoms.find(a=>a.raw.trim().length>0);
  if(!anchor)return fail("Dílo neobsahuje žádný použitelný textový blok.");
+ const {count:openCount,error:countError}=await db.from("artales_semantic_qa_flags")
+  .select("id",{count:"exact",head:true})
+  .eq("candidate_id",input.candidateId).eq("revision_sha256",input.revisionSha)
+  .eq("status","open");
+ if(countError||openCount===null)return fail("Nebylo možné ověřit počet otevřených nálezů.");
  const comment=(example?"Obecné zadání s ukázkou: ":"Obecné zadání pro dílo: ")+instruction;
  // Repeated clicks must not create duplicate QA findings or duplicate billing.
  const {data:existing,error:existingError}=await db.from("artales_semantic_qa_flags")
@@ -143,6 +148,7 @@ export async function enqueueGeneralSemanticQaJob(input:{
   .limit(1).maybeSingle();
  if(existingError)return fail("Nepodařilo se ověřit starší obecná zadání.");
  if(!existing){
+  if(openCount>=25)return fail("V této revizi je už 25 otevřených nálezů. Nejprve vyřeš část stávajících.");
   const {error:flagError}=await db.from("artales_semantic_qa_flags").insert({
    candidate_id:input.candidateId,revision_sha256:input.revisionSha,
    target_atom_id:anchor.id,source_start:anchor.anchor.normalized_start,
