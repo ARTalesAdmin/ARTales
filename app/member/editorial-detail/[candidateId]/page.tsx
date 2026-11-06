@@ -18,11 +18,11 @@ const labels:Record<string,string>={
 };
 function entryStatus(complete:boolean){
  return <span className={"ed-status "+(complete?"ed-status--complete":"")}>
-  {complete?"Připraveno":"Čeká na doplnění"}
+  {complete?"Podklady vyplněny":"Podklady chybí"}
  </span>;
 }
 export default async function CandidateEditorialDetail({params,searchParams}:{
- params:Promise<{candidateId:string}>;searchParams:Promise<{error?:string;saved?:string;closed?:string;createdAuthorId?:string;createdCollectionId?:string}>
+ params:Promise<{candidateId:string}>;searchParams:Promise<{error?:string;saved?:string;closed?:string;closeout?:string;createdAuthorId?:string;createdCollectionId?:string}>
 }){
  if(!SEMANTIC_PIPELINE_ENABLED)notFound();
  const {candidateId}=await params;
@@ -33,17 +33,20 @@ export default async function CandidateEditorialDetail({params,searchParams}:{
   db.from("work_candidates").select("id,proposed_title,proposed_author_name")
    .eq("id",candidateId).maybeSingle(),
   db.from("artales_editorial_tasks").select("id,kind,status,assigned_to")
-   .eq("candidate_id",candidateId).in("status",["open","claimed","returned"]),
+   .eq("candidate_id",candidateId).order("created_at",{ascending:false}),
   db.from("artales_candidate_editorial_metadata")
    .select("author_id,collection_id,work_description_cs,work_description_en,cover_image_path,cover_image_alt,cover_image_caption")
    .eq("candidate_id",candidateId).maybeSingle(),
   db.from("authors").select("id,slug,name,name_en,bio_en,bio_cs,bio,portrait_image_path,portrait_image_alt")
    .order("name").limit(250),
-  db.from("collections").select("id,slug,title,title_en").order("title").limit(250)
+  db.from("collections").select("id,slug,title,title_en,description_cs,description_en").order("title").limit(250)
  ]);
  if(candidateRes.error||!candidateRes.data||tasksRes.error)notFound();
  const tasks=(tasksRes.data??[]) as Task[];
- if(me.role!=="admin"&&!tasks.some(t=>t.assigned_to===me.id))notFound();
+ // Keep the page owner-bound: completed assignments remain visible for status
+ // badges, but a non-admin needs at least one active assignment for access.
+ if(me.role!=="admin"&&!tasks.some(t=>t.assigned_to===me.id&&
+   ["open","claimed","returned"].includes(t.status)))notFound();
  const candidate=candidateRes.data;
  const err=await searchParams;
  const metadata:Metadata=metadataRes.data??{author_id:null,collection_id:null,work_description_cs:null,work_description_en:null,
@@ -55,6 +58,16 @@ export default async function CandidateEditorialDetail({params,searchParams}:{
  const collection=collections.find(c=>c.id===metadata.collection_id);
  const recommendedCollectionId=metadata.collection_id??(collections.some(c=>c.id===err.createdCollectionId)?err.createdCollectionId:"");
  const byKind=(kind:string)=>tasks.find(t=>t.kind===kind);
+ const taskStatus=(kind:string)=>{
+  const task=byKind(kind);
+  if(!task)return null;
+  const label=task.status==="completed"?"Dokončeno":
+   task.status==="claimed"?"Rozpracováno":
+   task.status==="returned"?"Vráceno":
+   task.status==="open"?"Přiřazeno":"Nahrazeno";
+  return <span className={"ed-status "+(task.status==="completed"?"ed-status--complete":
+    task.status==="claimed"?"ed-status--claimed":"")}>Úkol: {label}</span>;
+ };
  const authorized=(kind:string)=>me.role==="admin"||
   (byKind(kind)?.assigned_to===me.id&&byKind(kind)?.status==="claimed");
  const canEditAuthor=authorized("author_bio")||authorized("author_visual");
@@ -69,7 +82,9 @@ export default async function CandidateEditorialDetail({params,searchParams}:{
   (v??"").trim().length>=200&&(v??"").trim().length<=800);
  const coverPresent=Boolean(metadata.cover_image_path&&
   (metadata.cover_image_alt??"").trim().length>=8);
- const collectionPresent=Boolean(collection);
+ const collectionPresent=Boolean(collection&&
+   [collection.description_cs,collection.description_en].every(v=>
+    (v??"").trim().length>=200&&(v??"").trim().length<=800));
  const errors:Record<string,string>={
   save_failed:"Uložení se nezdařilo. Zkontroluj oprávnění a aktuální stav.",
   author_name_mismatch:"Vybraný autor neodpovídá autorovi podle námětu. Zkontroluj identitu autora.",
@@ -85,7 +100,9 @@ export default async function CandidateEditorialDetail({params,searchParams}:{
  };
  const completeForm=(kind:string,ready:boolean)=>{
   const task=byKind(kind);
-  if(!task||task.assigned_to!==me.id||task.status!=="claimed")return null;
+  if(!task||task.assigned_to!==me.id)return null;
+  if(task.status==="completed")return <p className="ed-quiet">Úkol je uzavřený a již se nezobrazuje v aktivní práci.</p>;
+  if(task.status!=="claimed")return null;
   return <div>
    {ready?<form action={completeSemanticTask}>
     <input type="hidden" name="task_id" value={task.id}/>
@@ -123,16 +140,19 @@ export default async function CandidateEditorialDetail({params,searchParams}:{
   {err.error?<div className="ed-notice ed-notice--error" role="alert">{errors[err.error]??"Uložení se nezdařilo."}</div>:null}
   {err.saved?<div className="ed-notice" role="status">✓ Údaje byly uloženy: {labels[err.saved]??err.saved}.
    {err.closed==="1"?" Odpovídající úkol byl zároveň uzavřen.":""}</div>:null}
+  {err.closeout==="pending"?<div className="ed-notice ed-notice--error" role="alert">
+   Údaje jsou uložené, ale úkol nebylo možné dokončit. Zkontroluj povinné podklady;
+   úkol zůstává rozpracovaný.</div>:null}
   <section className="ed-progress" aria-label="Postup přípravy díla">
    <div className="ed-progress__row"><strong>Příprava díla</strong>
-    <span className="ed-progress__count">{completedCount} ze 4 oblastí připraveno</span>
+    <span className="ed-progress__count">{completedCount} ze 4 oblastí má vyplněné podklady</span>
    </div>
    <progress value={completedCount} max={4} aria-label="Vyplněná základní metadata"/>
    <p className="ed-quiet" style={{margin:"10px 0 0"}}>Základní metadata může redakce připravovat souběžně.
     Textové QA a schválení vydání jsou samostatné kroky.</p>
    <nav className="ed-progress__links" aria-label="Oblasti karty">
     {sections.map(section=><a key={section.id} href={"#"+section.id}
-      data-ready={section.done}>{section.done?"✓ ":""}{section.label}</a>)}
+      data-ready={section.done}>{section.label}{section.done?" · vyplněno":" · čeká"}</a>)}
    </nav>
   </section>
   <div className="ed-detail-grid">
@@ -143,7 +163,7 @@ export default async function CandidateEditorialDetail({params,searchParams}:{
        <div><h2 id="ed-author-title">Autor díla</h2>
         <p className="ed-card__lead">Propoj správného autora, doplň profil a portrét.</p></div>
       </div>
-      {entryStatus(Boolean(author))}
+      <div className="ed-card__statuses">{entryStatus(Boolean(author))}</div>
      </div>
      <div className="ed-card__body">
       {canEditAuthor?<form className="ed-card__form" action={saveCandidateEditorialField}>
@@ -164,12 +184,12 @@ export default async function CandidateEditorialDetail({params,searchParams}:{
       </div>
       <div className="ed-related">
        <div className="ed-related__item">
-        <h3>Životopis {entryStatus(bioPresent)}</h3>
+        <h3>Životopis</h3><div className="ed-card__statuses">{entryStatus(bioPresent)}{taskStatus("author_bio")}</div>
         <p>Česká i anglická biografie autora musí mít každá 200–800 znaků.</p>
         {completeForm("author_bio",Boolean(author)&&bioPresent)}
        </div>
        <div className="ed-related__item">
-        <h3>Portrét {entryStatus(portraitPresent)}</h3>
+        <h3>Portrét</h3><div className="ed-card__statuses">{entryStatus(portraitPresent)}{taskStatus("author_visual")}</div>
         <p>V profilu autora nahraj obrázek a doplň alternativní popis.</p>
         {completeForm("author_visual",Boolean(author)&&portraitPresent)}
        </div>
@@ -182,7 +202,7 @@ export default async function CandidateEditorialDetail({params,searchParams}:{
        <div><h2 id="ed-collection-title">Zařazení do kolekce</h2>
         <p className="ed-card__lead">Vyber kolekci, do které bude dílo patřit.</p></div>
       </div>
-      {entryStatus(collectionPresent)}
+      <div className="ed-card__statuses">{entryStatus(collectionPresent)}{taskStatus("collection_curation")}</div>
      </div>
      <div className="ed-card__body">
       {canEditCollection?<form className="ed-card__form" action={saveCandidateEditorialField}>
@@ -195,7 +215,7 @@ export default async function CandidateEditorialDetail({params,searchParams}:{
         </select>
        </label>
        <button className="ed-button" type="submit">Uložit kolekci ✓</button>
-       <small className="ed-help">Po uložení systém ověří vazbu a může úkol automaticky dokončit.</small>
+       <small className="ed-help">Dokončení vyžaduje také český i anglický popis kolekce, každý 200–800 znaků.</small>
       </form>:<p className="ed-quiet">Kolekci vybírá pověřený editor.</p>}
       <div className="ed-inline-links">
        {collection?<Link className="ed-inline-link" href={"/member/collections/"+collection.slug+"/edit"}>Upravit kolekci ↗</Link>:
@@ -209,7 +229,7 @@ export default async function CandidateEditorialDetail({params,searchParams}:{
        <div><h2 id="ed-description-title">Anotace knihy</h2>
         <p className="ed-card__lead">Povinná česká i anglická anotace. Každá 200–800 znaků.</p></div>
       </div>
-      {entryStatus(descriptionPresent)}
+      <div className="ed-card__statuses">{entryStatus(descriptionPresent)}{taskStatus("work_description")}</div>
      </div>
      <div className="ed-card__body">
       {canEditDescription?<form className="ed-card__form" action={saveCandidateEditorialField}>
@@ -227,7 +247,7 @@ export default async function CandidateEditorialDetail({params,searchParams}:{
        <div><h2 id="ed-cover-title">Obálka díla</h2>
         <p className="ed-card__lead">Připrav veřejný vizuál a jeho přístupný popis.</p></div>
       </div>
-      {entryStatus(coverPresent)}
+      <div className="ed-card__statuses">{entryStatus(coverPresent)}{taskStatus("cover_art")}</div>
      </div>
      <div className="ed-card__body">
       {canEditCover?<form className="ed-card__form" action={saveCandidateEditorialField}>

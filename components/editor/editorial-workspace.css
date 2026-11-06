@@ -323,3 +323,8 @@
  .ed-bilingual-fields__help {align-items:start;flex-direction:column;gap:3px;}
  .ed-bilingual-fields > .ed-button {width:100%;}
 }
+
+/* Evidence is not the same thing as task completion. Keep both statuses visible. */
+.ed-card__statuses { display:flex; gap:7px; align-items:center; flex-wrap:wrap; }
+.ed-related__item .ed-card__statuses { margin:2px 0 10px; }
+.ed-card__statuses .ed-status { white-space:normal; font-size:11px; }

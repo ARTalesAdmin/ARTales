@@ -54,6 +54,10 @@ export async function saveCandidateEditorialField(form:FormData){
     revalidatePath("/member/editorial-pipeline");revalidatePath("/member","layout");
     redirect("/member/editorial-detail/"+candidateId+"?saved="+encodeURIComponent(field)+"&closed=1");
    }
+   // The metadata write succeeded but the independent evidence gate refused
+   // closeout: never show a false confirmation or hide the still-active task.
+   revalidatePath("/member/editorial-detail/"+candidateId);
+   redirect("/member/editorial-detail/"+candidateId+"?saved="+encodeURIComponent(field)+"&closeout=pending");
   }
  }
  revalidatePath("/member/editorial-detail/"+candidateId);
