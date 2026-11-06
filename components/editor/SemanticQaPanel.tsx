@@ -12,10 +12,9 @@ export type SemanticQaFlag={
  source_start:number;source_end:number;kind:string;comment:string;
  status:"open"|"resolved";created_at:string;resolution_note:string|null;
 };
-type SystemSignal={atomId:string;sourceStart:number;reason:string;kind:"source_ambiguity"};
 type Props={candidateId:string;revisionSha:string;selectedAtomId:string|null;
  selectedText:string|null;flags:SemanticQaFlag[];onSelect:(atomId:string)=>void;
- readonly?:boolean;databaseReady:boolean;onSaved:()=>void;systemSignals:SystemSignal[];
+ readonly?:boolean;databaseReady:boolean;onSaved:()=>void;onFindingAdded:()=>void;
  canCommitBatch:boolean;onPreview:(revision:SemanticRevision)=>void;
  currentTaskId:string|null;currentChangeIssues:SemanticReviewIssue[];
  reviewDecisions:{issue_id:string;decision:string;note:string|null;reviewed_at:string}[]};
@@ -26,6 +25,8 @@ export default function SemanticQaPanel(p:Props){
  const router=useRouter();
  const [kind,setKind]=useState("typography");
  const [comment,setComment]=useState("");
+ const [findingQuery,setFindingQuery]=useState("");
+ const [findingStatus,setFindingStatus]=useState<"open"|"resolved"|"all">("open");
  const [resolutions,setResolutions]=useState<Record<string,string>>({});
  const [feedback,setFeedback]=useState("");
  const [aiFeedback,setAiFeedback]=useState("");
@@ -40,6 +41,8 @@ export default function SemanticQaPanel(p:Props){
  const [pending,startTransition]=useTransition();
  const open=p.flags.filter(f=>f.status==="open");
  const selected=p.flags.filter(f=>f.target_atom_id===p.selectedAtomId);
+ const visibleFindings=p.flags.filter(f=>(findingStatus==="all"||f.status===findingStatus)&&
+  (!findingQuery.trim()||(`${f.comment} ${f.kind}`).toLocaleLowerCase("cs").includes(findingQuery.trim().toLocaleLowerCase("cs"))));
  const options=useMemo(()=>open.map(f=>({flag:f,action:repairs[f.id]??""})),[open,repairs]);
  const ready=options.filter(x=>x.action);
  const submit=(atomId:string,entryKind:string,entryComment:string)=>{
@@ -50,7 +53,7 @@ export default function SemanticQaPanel(p:Props){
     kind:entryKind,comment:entryComment
    });
    setFeedback(result.message);
-   if(result.ok){setComment("");router.refresh();}
+   if(result.ok){setComment("");p.onFindingAdded();router.refresh();}
   });
  };
  const resolve=(id:string)=>{
@@ -192,58 +195,37 @@ export default function SemanticQaPanel(p:Props){
  const unreviewed=p.currentChangeIssues.filter(issue=>verdictById.get(issue.id)?.decision!=="accepted");
  const canFinish=p.databaseReady&&Boolean(p.currentTaskId)&&!pending&&open.length===0&&unreviewed.length===0&&
   job?.status!=="queued"&&job?.status!=="running";
- const unaddressedSignals=p.systemSignals.filter(s=>
-   !p.flags.some(f=>f.target_atom_id===s.atomId&&f.status==="open"));
  return <aside className="semantic-qa-panel" aria-label="Redakční nálezy a opravy">
   <div className="semantic-qa-panel__heading"><h2>QA nálezy</h2>
    <span>{open.length} otevřených · {p.flags.length-open.length} uzavřených</span></div>
   {!p.databaseReady?<p role="alert">Databázová QA evidence není dostupná. Opravy nelze bezpečně uložit.</p>:null}
-  <p>Výběrem diamantové značky zvolíš blok v obou panelech. Opětovným kliknutím ho odznačíš.</p>
   {p.selectedAtomId?<div className="semantic-qa-panel__selection">
-   <strong>Vybraný blok</strong><p>{p.selectedText?.slice(0,240)??p.selectedAtomId}</p>
+   <strong>Vybraný blok</strong><p>{p.selectedText?.slice(0,150)??p.selectedAtomId}</p>
    <small>{selected.length} nálezů pro tento blok</small>
-  </div>:<p className="semantic-qa-panel__selection">Vyber problémový blok.</p>}
-  {unaddressedSignals.length>0?<section className="semantic-qa-panel__signals">
-   <h3><span aria-hidden="true">◆</span> Automaticky označené nejasnosti</h3>
-   {unaddressedSignals.map(s=><div key={s.atomId}>
-    <p>{s.reason}</p>
-    <button type="button" onClick={()=>p.onSelect(s.atomId)}>Najít v textu</button>
-    <button type="button" disabled={pending||!p.databaseReady}
-     onClick={()=>submit(s.atomId,"structure",
-       "Sporná ediční poznámka: potřebuji rozhodnout, zda patří do vlastního vydání ARTales.")}>
-     Převzít k redakčnímu posouzení</button>
-   </div>)}
-  </section>:null}
+   {selected.length>0?<ul className="semantic-qa-panel__selected-findings">
+    {selected.slice(-3).map(f=><li key={f.id}>{f.comment.slice(0,120)}</li>)}
+   </ul>:null}
+  </div>:null}
   {p.selectedAtomId&&p.databaseReady&&!p.readonly?
    <form onSubmit={e=>{e.preventDefault();submit(p.selectedAtomId!,kind,comment);}}
     className="semantic-qa-panel__form">
-    <label>Druh problému<select value={kind} onChange={e=>setKind(e.target.value)}>
+    <h3>{selected.length>0?"Přidat další poznámku":"Přidat nález"}</h3>
+    <label>Co je špatně?<textarea value={comment} minLength={15} maxLength={4000}
+     rows={3} onChange={e=>setComment(e.target.value)}
+     placeholder="Např. Jméno je rozdělené mezi dva řádky."/>
+    </label>
+    <label>Typ problému<select value={kind} onChange={e=>setKind(e.target.value)}>
      {kinds.map(k=><option key={k.value} value={k.value}>{k.label}</option>)}
     </select></label>
-    <label>Co je třeba opravit?<textarea value={comment} minLength={15} maxLength={4000}
-     rows={3} onChange={e=>setComment(e.target.value)}
-     placeholder="Napiš, co je špatně. Způsob opravy není nutné vymýšlet."/>
-    </label>
     <button type="submit" disabled={pending||comment.trim().length<15}>
-     Uložit nález a pokračovat</button>
+     Přidat nález</button>
    </form>:null}
-  <section className="semantic-qa-panel__fast-rule">
-   <h3>Rychlá oprava pro celé dílo</h3>
-   <p>Chránit slovo či jméno před dělením ve všech výskytech. Jde jen o sazbu:
-     archiv i SHA textu zůstanou beze změny. Výsledek je potřeba vizuálně ověřit.</p>
-   <label>Výraz<input type="text" value={term} maxLength={80}
-     placeholder="Raymond" onChange={e=>setTerm(e.target.value)}/></label>
-   <button type="button" disabled={pending||!p.databaseReady||term.trim().length<2}
-     onClick={protect}>Použít na celé dílo</button>
-  </section>
-  <section className="semantic-qa-panel__batch">
-   <h3>AI návrh oprav</h3>
-   <p>ARTales AI zpracuje otevřené nálezy a bezpečné opravy sazby provede sama.
-    Jména a názvy chrání před zalomením bez zásahu do originálního textu.
-    Výsledek editor zkontroluje; nejisté nálezy zůstanou otevřené.</p>
+  <section className="semantic-qa-panel__batch semantic-qa-panel__ai">
+   <h3>Opravy</h3>
+   <p>{open.length>0?"AI zpracuje otevřené nálezy. Po opravě můžeš pokračovat ve čtení.":"Jakmile přidáš nález, můžeš jej odeslat k opravě."}</p>
    <button type="button" disabled={pending||!p.databaseReady||!p.currentTaskId||open.length<1||open.length>25||job?.status==="queued"||job?.status==="running"}
     aria-describedby="artales-ai-queue-feedback"
-    onClick={requestAi}>{pending?"Odesílám do ARTales AI…":"Předat "+open.length+" nálezů do fronty ARTales AI"}</button>
+    onClick={requestAi}>{pending?"Odesílám do ARTales AI…":"Odeslat "+open.length+" nálezů k opravě"}</button>
    <p id="artales-ai-queue-feedback" role="status" aria-live="polite" aria-atomic="true"
     style={{fontWeight:aiError?700:500,margin:"10px 0"}}>
     {aiFeedback||(!p.databaseReady?"Databázová evidence QA není dostupná.":
@@ -262,7 +244,7 @@ export default function SemanticQaPanel(p:Props){
        Po návratu se načte výsledek stejné revize. Délku zpracování nelze spolehlivě odhadnout.</p>:null}
     </div>:null}
    {aiSuggestions.length?<div style={{marginTop:12}}>
-    <h4>Návrhy ke schválení</h4>
+    <h4>Výsledek AI</h4>
     {aiSuggestions.map(s=><p key={s.flagId}>
      <strong>{s.action==="manual_review"?"Nutná ruční kontrola":s.action==="protect_term"?
       "Ochrana výrazu: "+s.term:"Návrh: "+s.action}</strong>
@@ -277,6 +259,8 @@ export default function SemanticQaPanel(p:Props){
     <p>Ověřeno {p.currentChangeIssues.length-unreviewed.length} / {p.currentChangeIssues.length}</p>
     <progress max={p.currentChangeIssues.length}
      value={p.currentChangeIssues.length-unreviewed.length} aria-label="Kontrola změněných bloků"/>
+    <details className="semantic-qa-panel__review-list">
+     <summary>Zobrazit a posoudit jednotlivé opravy ({p.currentChangeIssues.length})</summary>
     {p.currentChangeIssues.map(issue=>{
       const verdict=verdictById.get(issue.id);
       return <div className="semantic-qa-panel__review" key={issue.id}>
@@ -300,50 +284,82 @@ export default function SemanticQaPanel(p:Props){
        </div>:null}
       </div>;
     })}
+    </details>
    </section>:null}
   {p.currentTaskId?<section className="semantic-qa-panel__batch">
-   <h3>Dokončení textového QA</h3>
+   <h3>Hotovo s kontrolou?</h3>
    {open.length>0?<p>První nebo opakovaná kontrola nalezla {open.length} nedořešených problémů.
     Předat je do opravy a následně projít změny v téže seanci.</p>:
     unreviewed.length>0?<p>Nejprve výslovně přijmi všechny opravené bloky,
      případně je vrať s poznámkou.</p>:
     <p>Všechny nálezy i opravy jsou posouzené. Přijetím se úkol uzavře
      a uvolní navazující redakční práci.</p>}
-   <button type="button" disabled={!canFinish} onClick={finish}>✓ Přijmout QA a dokončit úkol</button>
+   <button type="button" disabled={!canFinish} onClick={finish}>Dokončit kontrolu</button>
   </section>:null}
-  <h3>Seznam nálezů</h3>
-  {p.flags.length===0?<p>Zatím bez redakčních nálezů.</p>:
-   <div className="semantic-qa-panel__flags">{p.flags.map(f=><article key={f.id}
-     className={"semantic-qa-panel__flag"+(f.status==="open"?" semantic-qa-panel__flag--open":"")}>
-    <div><strong>{kinds.find(k=>k.value===f.kind)?.label??f.kind}</strong>
-     {" · "}{f.status==="open"?"Čeká na opravu":"Uzavřeno"}
-     <button type="button" onClick={()=>p.onSelect(f.target_atom_id)}>Najít blok</button></div>
-    <p>{f.comment}</p>
-    {f.status==="resolved"?<small>{f.resolution_note}</small>:
-     <div className="semantic-qa-panel__form">
-      {["typography","structure","other"].includes(f.kind)?
-       <label>Volitelná oprava v jedné společné revizi
-        <select value={repairs[f.id]??""}
-         onChange={e=>setRepairs(v=>({...v,[f.id]:e.target.value as EditorialBatchAction|""}))}>
-         <option value="">Zatím neřešit dávkově</option>
-         {f.kind==="typography"||f.kind==="structure"?<>
-          <option value="compact">Zmenšit mezery</option>
-          <option value="airy">Zvětšit mezery</option>
-          <option value="center">Zarovnat na střed</option>
-         </>:null}
-         {f.kind==="structure"||f.kind==="other"?
-          <option value="exclude_note">Vyřadit ediční poznámku z vydání</option>:null}
-        </select>
-       </label>:null}
-      <details><summary>Zdůvodněně uzavřít bez úpravy</summary>
-       <label>Vysvětlení po kontrole
-        <textarea rows={2} minLength={30} maxLength={4000} value={resolutions[f.id]??""}
-         onChange={e=>setResolutions(s=>({...s,[f.id]:e.target.value}))}/></label>
-       <button type="button" disabled={pending||(resolutions[f.id]?.trim().length??0)<30}
-        onClick={()=>resolve(f.id)}>Uzavřít s důkazem</button>
-      </details>
-     </div>}
-   </article>)}</div>}
+  <details className="semantic-qa-panel__findings">
+   <summary>Najít a spravovat nálezy ({p.flags.length})</summary>
+   <div className="semantic-qa-panel__filters">
+    <label>Hledat nález
+     <input type="search" value={findingQuery}
+      placeholder="Hledat v poznámkách…"
+      onChange={e=>setFindingQuery(e.target.value)}/>
+    </label>
+    <label>Zobrazit
+     <select value={findingStatus} onChange={e=>setFindingStatus(e.target.value as "open"|"resolved"|"all")}>
+      <option value="open">K opravě ({open.length})</option>
+      <option value="resolved">Vyřešené ({p.flags.length-open.length})</option>
+      <option value="all">Všechny ({p.flags.length})</option>
+     </select>
+    </label>
+   </div>
+   <div className="semantic-qa-panel__flags semantic-qa-panel__flags--compact">
+    {visibleFindings.length===0?<p>Žádné odpovídající nálezy.</p>:
+     visibleFindings.map(f=><article key={f.id} className={"semantic-qa-panel__flag"+(f.status==="open"?" semantic-qa-panel__flag--open":"")}>
+      <div className="semantic-qa-panel__flag-top">
+       <span><strong>{kinds.find(k=>k.value===f.kind)?.label??f.kind}</strong>
+       {" · "}{f.status==="open"?"K opravě":"Vyřešeno"}</span>
+       <button type="button" onClick={()=>p.onSelect(f.target_atom_id)}>Najít v textu</button>
+      </div>
+      <p>{f.comment}</p>
+      {f.status==="resolved"?<small>{f.resolution_note}</small>:
+       <details className="semantic-qa-panel__flag-tools">
+        <summary>Upravit jednotlivý nález</summary>
+        <div className="semantic-qa-panel__form">
+         {["typography","structure","other"].includes(f.kind)?<label>Ruční návrh sazby
+          <select value={repairs[f.id]??""}
+           onChange={e=>setRepairs(v=>({...v,[f.id]:e.target.value as EditorialBatchAction|""}))}>
+           <option value="">Ponechat AI</option>
+           {f.kind==="typography"||f.kind==="structure"?<>
+            <option value="compact">Zmenšit mezery</option>
+            <option value="airy">Zvětšit mezery</option>
+            <option value="center">Zarovnat na střed</option>
+           </>:null}
+           {f.kind==="structure"||f.kind==="other"?<option value="exclude_note">Vyřadit ediční poznámku</option>:null}
+          </select>
+         </label>:null}
+         <label>Uzavřít bez opravy — zdůvodnění
+          <textarea minLength={30} maxLength={4000} rows={2}
+           value={resolutions[f.id]??""} onChange={e=>setResolutions(v=>({...v,[f.id]:e.target.value}))}/>
+         </label>
+         <button type="button" disabled={pending||(resolutions[f.id]?.trim().length??0)<30}
+          onClick={()=>resolve(f.id)}>Uzavřít s odůvodněním</button>
+        </div>
+       </details>}
+     </article>)}
+   </div>
+  </details>
+  <details className="semantic-qa-panel__advanced">
+   <summary>Další možnosti sazby</summary>
+   <section className="semantic-qa-panel__fast-rule">
+   <h3>Rychlá oprava pro celé dílo</h3>
+   <p>Chránit slovo či jméno před dělením ve všech výskytech. Jde jen o sazbu:
+     archiv i SHA textu zůstanou beze změny. Výsledek je potřeba vizuálně ověřit.</p>
+   <label>Výraz<input type="text" value={term} maxLength={80}
+     placeholder="Raymond" onChange={e=>setTerm(e.target.value)}/></label>
+   <button type="button" disabled={pending||!p.databaseReady||term.trim().length<2}
+     onClick={protect}>Použít na celé dílo</button>
+   </section>
+  </details>
   {ready.length>0?<section className="semantic-qa-panel__batch">
    <p>Bezpečný okamžitý náhled změn formátování lze vykreslit ještě před uložením.
       Text, pořadí ani zdrojové kotvy se nemění.</p>
