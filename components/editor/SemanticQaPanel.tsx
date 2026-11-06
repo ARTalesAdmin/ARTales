@@ -3,7 +3,7 @@ import {useEffect,useMemo,useState,useTransition} from "react";
 import {useRouter} from "next/navigation";
 import type {AiQaSuggestion} from "@/lib/semantic/aiQaProposalEngine";
 import {enqueueSemanticAiQaJob,lastSemanticAiQaJob,readSemanticAiQaJob,type QaJobStatus} from "@/app/member/semantic/[candidateId]/ai-job-actions";
-import {commitSemanticQaBatch,previewSemanticQaBatch,resolveSemanticQaFlag,saveWorkTypographyRule,
+import {commitSemanticQaBatch,previewSemanticQaBatch,resolveSemanticQaFlag,
   decideSemanticChange,finishSemanticQaReview,
   submitSemanticQaFlag,type EditorialBatchAction} from "@/app/member/semantic/[candidateId]/qa-actions";
 import type {SemanticRevision,SemanticReviewIssue} from "@/lib/semantic/model";
@@ -35,7 +35,6 @@ export default function SemanticQaPanel(p:Props){
  const [job,setJob]=useState<QaJobStatus|null>(null);
  const [returnNotes,setReturnNotes]=useState<Record<string,string>>({});
  const [repairs,setRepairs]=useState<Record<string,EditorialBatchAction|"">>({});
- const [term,setTerm]=useState("");
  const [pending,startTransition]=useTransition();
  const open=p.flags.filter(f=>f.status==="open");
  const selected=p.flags.filter(f=>f.target_atom_id===p.selectedAtomId);
@@ -73,8 +72,6 @@ export default function SemanticQaPanel(p:Props){
      next[suggestion.flagId]=suggestion.action as EditorialBatchAction;
    }
    setRepairs(next);
-   const proposedTerm=suggestions.find(x=>x.action==="protect_term"&&x.term)?.term;
-   if(proposedTerm)setTerm(proposedTerm);
  };
  useEffect(()=>{
    let active=true;
@@ -148,13 +145,6 @@ export default function SemanticQaPanel(p:Props){
    });
    setFeedback(result.message);
    if(result.ok&&result.revision)p.onPreview(result.revision);
-  });
- };
- const protect=()=>{
-  startTransition(async()=>{
-   const result=await saveWorkTypographyRule({candidateId:p.candidateId,term});
-   setFeedback(result.message);
-   if(result.ok)router.refresh();
   });
  };
  const batch=()=>{
@@ -343,19 +333,6 @@ export default function SemanticQaPanel(p:Props){
        </details>}
      </article>)}
    </div>
-  </details>
-  <details className="semantic-qa-panel__advanced">
-   <summary>Další možnosti sazby</summary>
-   <section className="semantic-qa-panel__fast-rule">
-   <h3>Opakovaný problém v celém díle</h3>
-   <p>Běžné dělení slov a typografické vazby řeší editor automaticky.
-     Pokud má určitá fráze držet pohromadě ve všech výskytech, zadej ji zde.
-     Archivovaný text zůstává nezměněný.</p>
-   <label>Nedělit tento výraz nebo spojení<input type="text" value={term} maxLength={80}
-     placeholder="Zadej výraz nebo slovní spojení" onChange={e=>setTerm(e.target.value)}/></label>
-   <button type="button" disabled={pending||!p.databaseReady||term.trim().length<2}
-     onClick={protect}>Chránit v celém díle</button>
-   </section>
   </details>
   {ready.length>0?<section className="semantic-qa-panel__batch">
    <p>Bezpečný okamžitý náhled změn formátování lze vykreslit ještě před uložením.
