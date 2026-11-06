@@ -35,9 +35,7 @@ export default function SemanticQaPanel(p:Props){
  const [job,setJob]=useState<QaJobStatus|null>(null);
  const [returnNotes,setReturnNotes]=useState<Record<string,string>>({});
  const [repairs,setRepairs]=useState<Record<string,EditorialBatchAction|"">>({});
- const example=p.flags.find(f=>f.status==="open"&&f.kind==="typography")?.comment
-  .match(/["„“]([\p{L}-]{2,50})["„“]/u)?.[1]??"";
- const [term,setTerm]=useState(example);
+ const [term,setTerm]=useState("");
  const [pending,startTransition]=useTransition();
  const open=p.flags.filter(f=>f.status==="open");
  const selected=p.flags.filter(f=>f.target_atom_id===p.selectedAtomId);
@@ -110,7 +108,6 @@ export default function SemanticQaPanel(p:Props){
      }
      setAiFeedback(result.message);
      setAiError(result.status==="failed");
-     if(result.status==="failed")setFeedback(result.message);
     });
    },4000);
    return ()=>{active=false;clearInterval(interval);};
@@ -128,7 +125,6 @@ export default function SemanticQaPanel(p:Props){
     });
     setAiFeedback(queued.message);
     setAiError(!queued.ok);
-    setFeedback(queued.message);
     if(queued.ok){
      setJob(queued);
      if(queued.status==="completed"){
@@ -232,8 +228,8 @@ export default function SemanticQaPanel(p:Props){
      !p.currentTaskId?"Pro odeslání je nutné mít převzatý aktuální úkol QA.":
      open.length<1?"Nejsou žádné otevřené nálezy.":open.length>25?"Najednou lze odeslat nejvýše 25 nálezů.":"Po kliknutí se zde zobrazí stav odeslání.")}
    </p>
-   {job?.jobId?<div role="status" aria-live="polite">
-     <p><strong>Fronta ARTales AI · ARTales</strong>: {job.message}</p>
+   {job?.jobId?<div className="semantic-qa-panel__job-progress">
+     <p><strong>Stav AI:</strong> {job.status==="queued"?"Zařazeno":job.status==="running"?"Probíhá oprava":job.status==="completed"?"Zpracováno":"Nepodařilo se dokončit"}</p>
      {job.status==="completed"?<progress max={100} value={100} aria-label="Opravná dávka dokončena"/>:
       job.status==="queued"||job.status==="running"?
       <progress aria-label="Zpracovávání oprav v AI frontě"/>:null}
@@ -351,13 +347,14 @@ export default function SemanticQaPanel(p:Props){
   <details className="semantic-qa-panel__advanced">
    <summary>Další možnosti sazby</summary>
    <section className="semantic-qa-panel__fast-rule">
-   <h3>Rychlá oprava pro celé dílo</h3>
-   <p>Chránit slovo či jméno před dělením ve všech výskytech. Jde jen o sazbu:
-     archiv i SHA textu zůstanou beze změny. Výsledek je potřeba vizuálně ověřit.</p>
-   <label>Výraz<input type="text" value={term} maxLength={80}
-     placeholder="Raymond" onChange={e=>setTerm(e.target.value)}/></label>
+   <h3>Opakovaný problém v celém díle</h3>
+   <p>Běžné dělení slov a typografické vazby řeší editor automaticky.
+     Pokud má určitá fráze držet pohromadě ve všech výskytech, zadej ji zde.
+     Archivovaný text zůstává nezměněný.</p>
+   <label>Nedělit tento výraz nebo spojení<input type="text" value={term} maxLength={80}
+     placeholder="Zadej výraz nebo slovní spojení" onChange={e=>setTerm(e.target.value)}/></label>
    <button type="button" disabled={pending||!p.databaseReady||term.trim().length<2}
-     onClick={protect}>Použít na celé dílo</button>
+     onClick={protect}>Chránit v celém díle</button>
    </section>
   </details>
   {ready.length>0?<section className="semantic-qa-panel__batch">
