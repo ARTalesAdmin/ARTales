@@ -18,7 +18,7 @@ const actions=new Set(["compact","airy","center","protect_term","manual_review"]
 const text=(s:string,limit:number)=>s.length>limit?s.slice(0,limit)+" [zkráceno]":s;
 
 export async function generateSemanticAiQaSuggestions(input:{
- candidateId:string;revisionSha:string;editorId:string;expectedFlagIds?:string[]
+ candidateId:string;revisionSha:string;editorId:string;oidcToken:string;expectedFlagIds?:string[]
 },db:SupabaseClient):Promise<AiQaSuggestResult>{
  const fail=(message:string,usage:ArtalesAiUsage|null=null):AiQaSuggestResult=>({ok:false,message,suggestions:[],usage});
  if(!uuid.test(input.candidateId)||!sha.test(input.revisionSha))
@@ -66,7 +66,7 @@ export async function generateSemanticAiQaSuggestions(input:{
  };
  try{
   const {body,usage}=await requestArtalesAiResponse({
-   candidateId:input.candidateId,editorId:input.editorId,
+   candidateId:input.candidateId,editorId:input.editorId,oidcToken:input.oidcToken,
    instructions:"Jsi konzervativní redakční navrhovatel ARTales. Nevytvářej ani neměň literární text. Pracuj pouze s dodanými nálezy přesné revize. Pro každý flagId vrať právě jeden návrh. compact/airy/center jen pro typografické nebo strukturální nálezy; nikdy nezahazuj text. protect_term pro jména, názvy a jiné výrazy, které nemají být rozděleny. manual_review pro nejisté či obsahové nálezy. Zdůvodnění stručně česky. Neznámé flagId a změny originálního textu jsou zakázány.",
    payload:{schema:"artales/editorial-ai-suggestions/v1",
      revisionSha:input.revisionSha,requests},
