@@ -40,3 +40,23 @@ test("an atomic semantic commit continues the same editor QA session",()=>{
  assert.match(sql,/status='claimed'/);
  assert.match(sql,/Automatické pokračování téže QA seance/);
 });
+
+test("QA panel keeps one prominent AI handoff and compact searchable findings",()=>{
+ const panel=file("components/editor/SemanticQaPanel.tsx");
+ const css=file("components/editor/semantic-reader.css");
+ assert.match(panel,/Odeslat "\+open.length\+" nálezů k opravě/);
+ assert.match(panel,/aria-describedby="artales-ai-queue-feedback"/);
+ assert.match(panel,/id="artales-ai-queue-feedback"/);
+ assert.match(panel,/Najít a spravovat nálezy/);
+ assert.match(panel,/type="search"/);
+ assert.match(panel,/findingStatus/);
+ assert.match(panel,/Najít v textu/);
+ assert.match(panel,/Upravit jednotlivý nález/);
+ assert.match(panel,/Další možnosti sazby/);
+ assert.match(panel,/Přidat nález/);
+ assert.match(panel,/Zobrazit a posoudit jednotlivé opravy/);
+ assert.match(css,/semantic-qa-panel__flags--compact/);
+ assert.match(css,/max-height:min\(52dvh,430px\)/);
+ assert.match(panel,/enqueueSemanticAiQaJob/);
+ assert.match(panel,/finishSemanticQaReview/);
+});
