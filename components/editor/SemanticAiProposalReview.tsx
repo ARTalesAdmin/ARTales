@@ -53,12 +53,22 @@ export default function SemanticAiProposalReview(p:Props){
    ["typography","structure"].includes(f.kind)))
   .map(s=>({flagId:s.flagId,action:s.action as "compact"|"airy"|"center"}));
  const approvedLayout=proposedLayout.filter(s=>choices[s.flagId]==="approve");
+ const showTarget=(proposal:AiQaSuggestion,atomId:string)=>{
+  if(!atomId)return;
+  p.onFind(atomId);
+  // Opening the first target on proposal navigation is an actual review visit.
+  if(proposal.action==="manual_review")
+   setVisitedTargets(old=>{
+    const known=old[proposal.flagId]??[];
+    return known.includes(atomId)?old:{...old,[proposal.flagId]:[...known,atomId]};
+   });
+ };
  const jumpTo=(next:number)=>{
   if(next<0||next>=suggestions.length)return;
   setIndex(next);setTargetIndex(0);
   const proposed=suggestions[next];const flag=p.flags.find(f=>f.id===proposed.flagId);
   const atom=proposed.targetAtomIds?.[0]??flag?.target_atom_id;
-  if(atom)p.onFind(atom);
+  if(atom)showTarget(proposed,atom);
  };
  const decide=(choice:"approve"|"reject")=>{
   if(!current)return;
@@ -111,14 +121,15 @@ export default function SemanticAiProposalReview(p:Props){
  const visited=visitedTargets[current?.flagId??""]??[];
  const requiresFullReview=current?.action==="manual_review"&&targets.length>1;
  const canApprove=!requiresFullReview||targets.every(id=>visited.includes(id));
+ const firstUnvisitedIndex=requiresFullReview?targets.findIndex(id=>!visited.includes(id)):-1;
  const findTarget=(id:string)=>{
   if(!id||!current)return;
-  p.onFind(id);
-  if(current.action==="manual_review")
-   setVisitedTargets(old=>{
-    const known=old[current.flagId]??[];
-    return known.includes(id)?old:{...old,[current.flagId]:[...known,id]};
-   });
+  showTarget(current,id);
+ };
+ const showMissingTarget=()=>{
+  if(firstUnvisitedIndex<0)return;
+  setTargetIndex(firstUnvisitedIndex);
+  findTarget(targets[firstUnvisitedIndex]);
  };
  return <section className="semantic-reader__proposal-review" aria-label="Revize návrhů AI">
   <div className="semantic-reader__proposal-head">
@@ -164,6 +175,9 @@ export default function SemanticAiProposalReview(p:Props){
      "Prohlédnuto "+visited.length+" / "+targets.length+
      " bloků. Otevři postupně každý blok a zkontroluj ho."
      :"U obecného návrhu musí editor skutečně posoudit nalezená místa."}</small>
+    {firstUnvisitedIndex>=0?<button type="button" onClick={showMissingTarget}>
+     Zobrazit neprohlédnutý blok ({firstUnvisitedIndex+1}/{targets.length})
+    </button>:null}
    </div>:null}
    <div className="semantic-reader__proposal-choice">
     <button type="button" className={choices[current.flagId]==="approve"?"is-selected":""}
