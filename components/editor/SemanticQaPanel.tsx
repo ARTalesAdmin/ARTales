@@ -4,7 +4,6 @@ import {useRouter} from "next/navigation";
 import type {AiQaSuggestion} from "@/lib/semantic/aiQaProposalEngine";
 import {enqueueSemanticAiQaJob,lastSemanticAiQaJob,readSemanticAiQaJob,type QaJobStatus} from "@/app/member/semantic/[candidateId]/ai-job-actions";
 import {commitSemanticQaBatch,previewSemanticQaBatch,resolveSemanticQaFlag,
-  decideSemanticChange,finishSemanticQaReview,
   submitSemanticQaFlag,type EditorialBatchAction} from "@/app/member/semantic/[candidateId]/qa-actions";
 import type {SemanticRevision,SemanticReviewIssue} from "@/lib/semantic/model";
 export type SemanticQaFlag={
@@ -16,6 +15,7 @@ type Props={candidateId:string;revisionSha:string;selectedAtomId:string|null;
  selectedText:string|null;flags:SemanticQaFlag[];onSelect:(atomId:string)=>void;
  readonly?:boolean;databaseReady:boolean;onSaved:()=>void;onFindingAdded:()=>void;
  canCommitBatch:boolean;onPreview:(revision:SemanticRevision)=>void;
+ onStartReview:()=>void;aiJobPending:boolean;
  currentTaskId:string|null;currentChangeIssues:SemanticReviewIssue[];
  reviewDecisions:{issue_id:string;decision:string;note:string|null;reviewed_at:string}[]};
 const kinds=[{value:"text",label:"Text"},{value:"typography",label:"Sazba a řádky"},
@@ -157,30 +157,11 @@ export default function SemanticQaPanel(p:Props){
    if(result.ok){setRepairs({});router.refresh();}
   });
  };
- const decide=(issueId:string,decision:"accepted"|"returned")=>{
-   startTransition(async()=>{
-    const result=await decideSemanticChange({
-     candidateId:p.candidateId,revisionSha:p.revisionSha,
-     issueId,decision,note:decision==="returned"?returnNotes[issueId]??"":""
-    });
-    setFeedback(result.message);
-    if(result.ok)router.refresh();
-   });
- };
- const finish=()=>{
-   if(!p.currentTaskId)return;
-   startTransition(async()=>{
-    const result=await finishSemanticQaReview({
-     candidateId:p.candidateId,revisionSha:p.revisionSha,taskId:p.currentTaskId!
-    });
-    setFeedback(result.message);
-    if(result.ok){p.onSaved();router.refresh();}
-   });
- };
  const verdictById=new Map(p.reviewDecisions.map(d=>[d.issue_id,d]));
  const unreviewed=p.currentChangeIssues.filter(issue=>verdictById.get(issue.id)?.decision!=="accepted");
- const canFinish=p.databaseReady&&Boolean(p.currentTaskId)&&!pending&&open.length===0&&unreviewed.length===0&&
-  job?.status!=="queued"&&job?.status!=="running";
+ const returned=p.currentChangeIssues.filter(issue=>verdictById.get(issue.id)?.decision==="returned");
+ const canFinish=p.databaseReady&&Boolean(p.currentTaskId)&&!pending&&open.length===0&&
+  unreviewed.length===0&&returned.length===0&&!p.aiJobPending&&job?.status!=="queued"&&job?.status!=="running";
  return <aside className="semantic-qa-panel" aria-label="Redakční nálezy a opravy">
   <div className="semantic-qa-panel__heading"><h2>QA nálezy</h2>
    <span>{open.length} otevřených · {p.flags.length-open.length} uzavřených</span></div>
@@ -238,50 +219,26 @@ export default function SemanticQaPanel(p:Props){
     </p>)}
    </div>:null}
   </section>
-  {p.currentChangeIssues.length>0?<section className="semantic-qa-panel__batch">
-    <h3>Ověření opravených bloků</h3>
-    <p>Opravené bloky jsou vyznačeny tyrkysově, aktivní výběr zlatě.
-     Každá změna vyžaduje samostatné rozhodnutí. Přijetí nepotřebuje komentář.</p>
-    <p>Ověřeno {p.currentChangeIssues.length-unreviewed.length} / {p.currentChangeIssues.length}</p>
-    <progress max={p.currentChangeIssues.length}
-     value={p.currentChangeIssues.length-unreviewed.length} aria-label="Kontrola změněných bloků"/>
-    <details className="semantic-qa-panel__review-list">
-     <summary>Zobrazit a posoudit jednotlivé opravy ({p.currentChangeIssues.length})</summary>
-    {p.currentChangeIssues.map(issue=>{
-      const verdict=verdictById.get(issue.id);
-      return <div className="semantic-qa-panel__review" key={issue.id}>
-       <button type="button" onClick={()=>p.onSelect(issue.target_atom_id)}>Zobrazit změněný blok</button>
-       <p>{issue.reason}</p>
-       <p><strong>{verdict?.decision==="accepted"?"Přijato":
-         verdict?.decision==="returned"?"Vráceno k opravě":"Čeká na rozhodnutí"}</strong></p>
-       {verdict?.note?<p className="semantic-qa-panel__review-note">{verdict.note}</p>:null}
-       {!verdict&&p.currentTaskId&&p.databaseReady?<div className="semantic-qa-panel__review-actions">
-         <button type="button" disabled={pending} onClick={()=>decide(issue.id,"accepted")}
-          aria-label="Přijmout tuto opravu">✓ Přijmout</button>
-         <details><summary>✕ Vrátit s poznámkou</summary>
-          <label>Co ještě opravit?
-           <textarea required minLength={15} maxLength={4000}
-            value={returnNotes[issue.id]??""}
-            onChange={e=>setReturnNotes(v=>({...v,[issue.id]:e.target.value}))}/>
-          </label>
-          <button type="button" disabled={pending||(returnNotes[issue.id]?.trim().length??0)<15}
-           onClick={()=>decide(issue.id,"returned")}>Vrátit tuto opravu</button>
-         </details>
-       </div>:null}
-      </div>;
-    })}
-    </details>
-   </section>:null}
-  {p.currentTaskId?<section className="semantic-qa-panel__batch">
-   <h3>Hotovo s kontrolou?</h3>
-   {open.length>0?<p>První nebo opakovaná kontrola nalezla {open.length} nedořešených problémů.
-    Předat je do opravy a následně projít změny v téže seanci.</p>:
-    unreviewed.length>0?<p>Nejprve výslovně přijmi všechny opravené bloky,
-     případně je vrať s poznámkou.</p>:
-    <p>Všechny nálezy i opravy jsou posouzené. Přijetím se úkol uzavře
-     a uvolní navazující redakční práci.</p>}
-   <button type="button" disabled={!canFinish} onClick={finish}>Dokončit kontrolu</button>
-  </section>:null}
+  <section className="semantic-qa-panel__next">
+   <h3>Co dál?</h3>
+   {p.currentChangeIssues.length>0?<div>
+    <p>Opravené bloky se kontrolují samostatně, bez odůvodňování přijaté opravy.
+     <strong> Zbývá ověřit {unreviewed.length} změn.</strong></p>
+    <button type="button" onClick={p.onStartReview}>Ověřit opravené bloky</button>
+   </div>:null}
+   {open.length>0?<p><strong>{open.length} nálezů čeká na vyřešení.</strong>
+    Po provedení oprav je znovu zkontroluj. Odeslání nálezů k AI není totéž jako dokončení QA.</p>:null}
+   {!p.currentChangeIssues.length&&open.length===0?<p>Žádné otevřené nálezy ani změny k ověření.</p>:null}
+   {p.aiJobPending?<p>AI právě pracuje. Dokončení QA zatím není možné.</p>:null}
+   {returned.length>0?<p>{returned.length} vrácených oprav vyžaduje další řešení.</p>:null}
+   <button type="button" disabled={!canFinish}
+    title={canFinish?"Dokončení QA je dostupné v režimu Ověřit opravy.":"Nedokončené nálezy nebo změny brání uzavření QA."}
+    onClick={p.onStartReview}>Dokončit celé QA v kontrole oprav</button>
+   <p className="semantic-qa-panel__next-note">
+    {canFinish?"Všechny podmínky jsou splněny. Otevři kontrolu oprav a dokonči QA.":
+      "Dokončení se zpřístupní po vyřešení nálezů, přijetí změn a dokončení AI úloh."}
+   </p>
+  </section>
   <details className="semantic-qa-panel__findings">
    <summary>Najít a spravovat nálezy ({p.flags.length})</summary>
    <div className="semantic-qa-panel__filters">
