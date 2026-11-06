@@ -35,7 +35,7 @@ const parseRow=(row:{id:string;status:string;suggestions:unknown;error_code:stri
   suggestions:status==="completed"?suggested:[],
   message:status==="queued"?"Oprava čeká ve frontě ARTales AI; můžeš odejít a později se vrátit."
    :status==="running"?"AI připravuje sazební návrhy. Můžeš pokračovat v jiné práci."
-   :status==="completed"?"Návrhy jsou připravené k redakční kontrole."
+   :status==="completed"?(row.applied_revision_sha256?"Opravná revize byla uložena k redakční kontrole.":"Návrhy AI jsou bezpečně uložené. Nová sazební revize zatím nevznikla; nálezy můžeš zkontrolovat a opravit bez dalšího volání AI.")
    :"AI dávka nebyla dokončena ("+(row.error_code??"neznámá chyba")+")."
  };
 };
