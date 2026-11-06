@@ -25,7 +25,10 @@ test("worker cannot run without configured secret/service role",()=>{
 });
 test("source-verified structured AI patches with atomic job receipt",()=>{
  assert.match(engine,/verifySemanticRevision/);
- assert.match(engine,/strict:true/);
+ assert.match(engine,/requestArtalesAiResponse/);
+ assert.doesNotMatch(engine,/api\\.openai\\.com/);
+ assert.match(worker,/artales_semantic_ai_usage/);
+ assert.match(worker,/ignoreDuplicates:true/);
  assert.match(safe,/changed_source_or_structure/);
  assert.match(safe,/unattributed_presentation_delta/);
  assert.match(safe,/p_job_suggestions/);
