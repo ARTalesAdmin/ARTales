@@ -2,6 +2,10 @@ import type {AiQaSuggestion} from "./aiQaProposalEngine";
 
 /** Choices are local editorial decisions. No AI output is trusted as authority. */
 export type QaProposalDecision={flagId:string;choice:"approve"|"reject"};
+export function isSafeWorkTypographyTerm(term:string):boolean{
+ return term.length>=2&&term.length<=80&&/^[\p{L}][\p{L} '\u2019-]{1,79}$/u.test(term);
+}
+
 export type QaProposalFlag={id:string;kind:string;status:string};
 export type QaProposalPlan={
  layout:{flagId:string;action:"compact"|"airy"|"center"}[];
@@ -39,7 +43,12 @@ export function planQaProposalReview(
    if(typeof suggestion.term!=="string"||suggestion.term.trim().length<2||
      suggestion.term.length>80)
     throw new Error("Výraz navržený k ochraně neprošel validací.");
-   result.protectedTerms.push({flagId:flag.id,term:suggestion.term.trim()});
+   // Punctuation-bearing manuscript notes are not valid non-breaking
+   // expressions. Explicit editorial approval acknowledges a checked note,
+   // not an invalid work-level typography rule.
+   if(isSafeWorkTypographyTerm(suggestion.term.trim()))
+    result.protectedTerms.push({flagId:flag.id,term:suggestion.term.trim()});
+   else result.confirmedNoChange.push(flag.id);
   }else if(suggestion.action==="manual_review"){
    // Only explicit editor approval in UI may mean "inspected, no change needed".
    result.confirmedNoChange.push(flag.id);
