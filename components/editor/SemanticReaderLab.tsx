@@ -389,6 +389,7 @@ export default function SemanticReaderLab({
     const passive=side==="source"?composedRef.current:sourceRef.current;
     if(!active||!passive)return;
     const ignored=ignoreSyncRef.current[side];
+    // eslint-disable-next-line react-hooks/purity -- executed solely by scroll handlers, not during rendering
     if(ignored && performance.now()<ignored.until && Math.abs(active.scrollTop-ignored.top)<2)return;
     if(syncFrameRef.current!==null)cancelAnimationFrame(syncFrameRef.current);
     syncFrameRef.current=requestAnimationFrame(()=>{
