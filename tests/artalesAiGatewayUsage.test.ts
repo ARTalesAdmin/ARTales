@@ -35,7 +35,8 @@ test("missing or invalid token usage is never invented",()=>{
 test("ARTales calls Vercel Gateway through server-only OIDC, never a direct provider",()=>{
   const source=readFileSync(new URL("../lib/semantic/artalesAiGateway.ts",import.meta.url),"utf8");
   assert.match(source,/import "server-only"/);
-  assert.match(source,/VERCEL_OIDC_TOKEN/);
+  assert.match(source,/oidcToken/);
+ assert.doesNotMatch(source,/process\.env\.VERCEL_OIDC_TOKEN/);
   assert.match(source,/ai-gateway\.vercel\.sh\/v1\/responses/);
   assert.doesNotMatch(source,/api\.openai\.com/);
   assert.match(source,/cache: "no-store"/);
@@ -64,4 +65,16 @@ test("usage table is RLS protected and keeps retry receipts distinct",()=>{
  assert.match(page,/await requireAdmin\(\)/);
  assert.match(page,/missing_schema/);
  assert.match(page,/summary.unpricedGenerations/);
+});
+
+test("queue does not require runtime OIDC; worker reads the Vercel request header",()=>{
+ const actions=readFileSync(new URL("../app/member/semantic/[candidateId]/ai-job-actions.ts",import.meta.url),"utf8");
+ const worker=readFileSync(new URL("../app/api/internal/editorial/ai-qa-jobs/route.ts",import.meta.url),"utf8");
+ const engine=readFileSync(new URL("../lib/semantic/aiQaProposalEngine.ts",import.meta.url),"utf8");
+ assert.doesNotMatch(actions,/process\.env\.VERCEL_OIDC_TOKEN/);
+ assert.match(worker,/request\.headers\.get\("x-vercel-oidc-token"\)/);
+ assert.match(worker,/gateway_oidc_unavailable/);
+ assert.match(worker,/oidcToken,expectedFlagIds/);
+ assert.match(engine,/oidcToken:input\.oidcToken/);
+ assert.match(actions,/artales_enqueue_ai_qa_job/);
 });
