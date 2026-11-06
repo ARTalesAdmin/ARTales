@@ -60,3 +60,13 @@ test("QA panel keeps one prominent AI handoff and compact searchable findings",(
  assert.match(panel,/enqueueSemanticAiQaJob/);
  assert.match(panel,/finishSemanticQaReview/);
 });
+
+test("reader-first QA adds notes and returns editor to text",()=>{
+ assert.match(panel,/p\.onFindingAdded\(\)/);
+ assert.match(lab,/onFindingAdded=\{\(\)=>\{setQaPanelOpen\(false\);setSelectedAtomId\(null\);\}\}/);
+ assert.match(panel,/Přidat další poznámku/);
+ assert.doesNotMatch(panel,/Automaticky označené nejasnosti/);
+ assert.match(lab,/data-review-signal=/);
+ assert.match(lab,/aria-expanded=\{qaPanelOpen\}/);
+ assert.match(panel,/Najít a spravovat nálezy/);
+});
