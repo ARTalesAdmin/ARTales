@@ -1,8 +1,10 @@
 "use server";
 import {revalidatePath} from "next/cache";
-import {requireEditorOrAdmin,requireAdmin} from "@/lib/guards";
+import {requireEditorOrAdmin} from "@/lib/guards";
 import {createClient} from "@/lib/supabase/server";
-import {verifySemanticRevision,walkSemanticAtoms,recomposeSemanticBatch} from "@/lib/semantic/compose";
+import {createClient as createServiceClient} from "@supabase/supabase-js";
+import {verifySemanticRevision,walkSemanticAtoms} from "@/lib/semantic/compose";
+import {prepareQaPresentationBatch,type QaBatchInput} from "@/lib/semantic/qaBatchPreparation";
 import type {SemanticRevision} from "@/lib/semantic/model";
 const uuid=/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const sha=/^[a-f0-9]{64}$/;
@@ -65,75 +67,111 @@ export async function resolveSemanticQaFlag(input:{
 }
 
 
-export type EditorialBatchAction="exclude_note"|"compact"|"airy"|"center";
-export async function commitSemanticQaBatch(input:{
- candidateId:string;revisionSha:string;repairs:{flagId:string;action:EditorialBatchAction}[]
-}):Promise<QaMutationResult>{
- const actor=await requireAdmin();
- if(!uuid.test(input.candidateId)||!sha.test(input.revisionSha)||
-    !Array.isArray(input.repairs)||input.repairs.length<1||input.repairs.length>50||
-    new Set(input.repairs.map(x=>x.flagId)).size!==input.repairs.length||
-    input.repairs.some(x=>!uuid.test(x.flagId)||
-      !["exclude_note","compact","airy","center"].includes(x.action)))
-  return {ok:false,message:"Neplatná sada oprav."};
- const db=await createClient();
- const [{data:previous,error:readError},{data:flags,error:flagsError}]=await Promise.all([
-  db.from("candidate_semantic_revisions").select("revision,source_text,revision_sha256")
-    .eq("candidate_id",input.candidateId).order("created_at",{ascending:false})
-    .order("id",{ascending:false}).limit(1).maybeSingle(),
-  db.from("artales_semantic_qa_flags")
-    .select("id,kind,comment,target_atom_id,status,revision_sha256")
-    .eq("candidate_id",input.candidateId).eq("revision_sha256",input.revisionSha)
-    .eq("status","open").in("id",input.repairs.map(x=>x.flagId))
- ]);
- if(readError||!previous||previous.revision_sha256!==input.revisionSha||
-    flagsError||!flags||flags.length!==input.repairs.length)
-  return {ok:false,message:"Revize nebo nálezy nejsou aktuální. Obnov redakci."};
- let updated;
- try{
-  const source=previous.revision as SemanticRevision;
-  verifySemanticRevision(source,previous.source_text);
-  const byId=new Map(flags.map(f=>[f.id,f]));
-  const atoms=new Map(walkSemanticAtoms(source.blocks).map(a=>[a.id,a]));
-  const changes=input.repairs.map(repair=>{
-   const flag=byId.get(repair.flagId);
-   if(!flag||flag.status!=="open")throw Error("missing flag");
-   const atom=atoms.get(flag.target_atom_id);
-   if(!atom)throw Error("missing atom");
-   if(repair.action==="exclude_note"){
-    if(!["structure","other"].includes(flag.kind)||
-       !/^\\s*(?:NOTE[.\\u2014: -]|TRANSCRIBER)/im.test(atom.raw))
-      throw Error("only explicit editorial notes may be removed by this action");
-    return {flagId:flag.id,atomId:atom.id,reason:flag.comment,
-      kind:"exclude_from_edition" as const};
-   }
-   if(!["typography","structure"].includes(flag.kind))
-    throw Error("not an actionable style finding");
-   const presentation=repair.action==="compact"
-      ?{align:"left" as const,indent:"none" as const,space_before:"none" as const,space_after:"none" as const}
-      :repair.action==="airy"
-      ?{align:"left" as const,indent:"none" as const,space_before:"normal" as const,space_after:"generous" as const}
-      :{align:"center" as const,indent:"none" as const,space_before:"normal" as const,space_after:"normal" as const};
-   return {flagId:flag.id,atomId:atom.id,reason:flag.comment,
-      kind:"block_presentation" as const,presentation};
-  });
-  updated=recomposeSemanticBatch(source,changes,previous.source_text);
- }catch{
-  return {ok:false,message:"Tyto nálezy nejdou bezpečně opravit zvoleným postupem. Nech je otevřené pro odbornou opravu nebo eskalaci."};
+export type {EditorialBatchAction,QaBatchInput} from "@/lib/semantic/qaBatchPreparation";
+export type QaBatchPreviewResult=QaMutationResult&{
+ revision?:SemanticRevision;affectedAtomIds?:string[];
+};
+
+/** Read-only, source-byte-verified layout preview; no database mutation. */
+export async function previewSemanticQaBatch(input:QaBatchInput):Promise<QaBatchPreviewResult>{
+ const actor=await requireEditorOrAdmin();
+ if(!uuid.test(input.candidateId)||!sha.test(input.revisionSha))
+  return {ok:false,message:"Neplatná identita revize."};
+ if(actor.role!=="admin"){
+  const db=await createClient();
+  const {data,error}=await db.from("artales_editorial_tasks").select("id")
+   .eq("candidate_id",input.candidateId).eq("revision_sha256",input.revisionSha)
+   .eq("kind","text_review").eq("assigned_to",actor.id).eq("status","claimed").limit(1);
+  if(error||!data?.length)return {ok:false,message:"Náhled může vyžádat pouze aktuální QA editor."};
  }
- const {data,error}=await db.rpc("artales_commit_semantic_qa_batch",{
-  p_candidate_id:input.candidateId,p_parent_sha:input.revisionSha,
-  p_revision:updated,p_flag_ids:input.repairs.map(x=>x.flagId)
- });
- if(error||data?.result!=="created")
-  return {ok:false,message:"Atomická revize se neuložila. Žádný nález se nemá považovat za vyřešený."};
+ const result=await prepareQaPresentationBatch(input,await createClient());
+ if(!result.ok)return result;
+ return {ok:true,message:"Bezpečný náhled. Zdrojový text zůstává beze změn.",
+   revision:result.revision,affectedAtomIds:result.atomIds};
+}
+
+/** Persist only through the separately governed, admin-only immutable revision RPC. */
+export async function commitSemanticQaBatch(input:QaBatchInput):Promise<QaMutationResult>{
+ const actor=await requireEditorOrAdmin();
+ const prepared=await prepareQaPresentationBatch(input,await createClient());
+ if(!prepared.ok)return prepared;
+ const db=await createClient();
+ // Exclusion of nonliterary distribution apparatus is NOT AI-driven, and
+ // retains the existing admin-only approval path.
+ if(input.repairs.some(x=>x.action==="exclude_note")){
+  if(actor.role!=="admin")return {ok:false,message:"Vyřazení ediční poznámky vyžaduje garanta."};
+  const {data,error}=await db.rpc("artales_commit_semantic_qa_batch",{
+   p_candidate_id:input.candidateId,p_parent_sha:input.revisionSha,
+   p_revision:prepared.revision,p_flag_ids:input.repairs.map(x=>x.flagId)
+  });
+  if(error||data?.result!=="created")return {ok:false,message:"Ediční vyřazení nebylo schváleno."};
+ }else{
+  const {data:owner,error:ownerError}=await db.from("artales_editorial_tasks")
+   .select("id").eq("candidate_id",input.candidateId)
+   .eq("revision_sha256",input.revisionSha).eq("kind","text_review")
+   .eq("assigned_to",actor.id).eq("status","claimed").maybeSingle();
+  if(ownerError||!owner)return {ok:false,message:"Opravu smí uložit jen právě přiřazený QA editor."};
+  // No service-role key is ever passed to the browser or accepted as an argument.
+  const roleKey=process.env.SUPABASE_SERVICE_ROLE_KEY;
+  const url=process.env.NEXT_PUBLIC_SUPABASE_URL;
+  if(!roleKey||!url)return {ok:false,message:"Zabezpečené ukládání sazby není nakonfigurováno."};
+  const internal=createServiceClient(url,roleKey,{
+   auth:{persistSession:false,autoRefreshToken:false}
+  });
+  const {data,error}=await internal.rpc("artales_commit_safe_layout_revision",{
+   p_candidate_id:input.candidateId,p_parent_sha:input.revisionSha,
+   p_revision:prepared.revision,p_flag_ids:input.repairs.map(x=>x.flagId),
+   p_editor_id:actor.id
+  });
+  if(error||data?.result!=="created")
+   return {ok:false,message:"Změnu odmítla databázová kontrola. Revizi a nálezy ponecháváme beze změn."};
+ }
  revalidatePath("/member/semantic/"+input.candidateId);
  revalidatePath("/member/editorial-pipeline");
- revalidatePath("/member");
- void actor;
- return {ok:true,message:"Vytvořena jedna nová revize z "+input.repairs.length+
-  " oprav. Jediný nový textový QA úkol patří původnímu editorovi."};
+ revalidatePath("/member","layout");
+ return {ok:true,message:"Bez změny jediného znaku byl uložen nový návrh sazby. Opravené bloky čekají na potvrzení."};
 }
+
+export async function decideSemanticChange(input:{
+ candidateId:string;revisionSha:string;issueId:string;decision:"accepted"|"returned";note:string
+}):Promise<QaMutationResult>{
+ await requireEditorOrAdmin();
+ if(!uuid.test(input.candidateId)||!sha.test(input.revisionSha)||
+  input.issueId.length<1||input.issueId.length>160||
+  !["accepted","returned"].includes(input.decision)||
+  (input.decision==="returned"&&(input.note.trim().length<15||input.note.length>4000)))
+  return {ok:false,message:"Neplatné rozhodnutí; vrácení vyžaduje důvod alespoň 15 znaků."};
+ const db=await createClient();
+ const {data,error}=await db.rpc("artales_review_semantic_change",{
+  p_candidate_id:input.candidateId,p_revision_sha:input.revisionSha,
+  p_issue_id:input.issueId,p_decision:input.decision,
+  p_note:input.decision==="returned"?input.note.trim():null
+ });
+ if(error||!["accepted","returned"].includes(data?.result))
+  return {ok:false,message:"Rozhodnutí nebylo zapsáno; ověř aktuální QA revizi."};
+ revalidatePath("/member/semantic/"+input.candidateId);
+ revalidatePath("/member/editorial-pipeline");
+ return {ok:true,message:data.result==="accepted"?"Změna přijata.":"Změna vrácena s poznámkou do další opravné dávky."};
+}
+
+export async function finishSemanticQaReview(input:{
+ candidateId:string;revisionSha:string;taskId:string
+}):Promise<QaMutationResult>{
+ await requireEditorOrAdmin();
+ if(!uuid.test(input.candidateId)||!uuid.test(input.taskId)||!sha.test(input.revisionSha))
+  return {ok:false,message:"Neplatný QA úkol."};
+ const db=await createClient();
+ const {data,error}=await db.rpc("artales_finish_semantic_text_qa",{
+  p_task_id:input.taskId,p_revision_sha:input.revisionSha
+ });
+ if(error||data?.result!=="completed")
+  return {ok:false,message:"QA zatím nelze přijmout. Ověř všechny otevřené nálezy a změněné bloky."};
+ revalidatePath("/member/semantic/"+input.candidateId);
+ revalidatePath("/member/editorial-pipeline");
+ revalidatePath("/member","layout");
+ return {ok:true,message:"Textové QA dokončeno; navazující redakční úkoly mohou pokračovat."};
+}
+
 export async function saveWorkTypographyRule(input:{
  candidateId:string;term:string
 }):Promise<QaMutationResult>{

@@ -66,7 +66,8 @@ test("QA layout is linked to editorial work without changing the source or QA co
  assert.match(qa,/openFindings/);
  assert.match(qa,/\/member\/editorial-detail\//);
  assert.match(qa,/\/member\/editorial-pipeline/);
- assert.match(qa,/canCommitBatch=\{profile\.role==="admin"\}/);
+ assert.match(qa,/canCommitBatch=\{Boolean\(qaTask\)\}/);
+ assert.match(qa,/currentTaskId=\{qaTask\?\.id\?\?null\}/);
  assert.match(qa,/flags=\{qaFlags\?\?\[\]\}/);
  assert.doesNotMatch(qa,/update.*source_text/);
 });
