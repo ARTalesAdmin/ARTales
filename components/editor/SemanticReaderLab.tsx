@@ -421,10 +421,11 @@ export default function SemanticReaderLab({
       <SemanticQaPanel candidateId={candidateId} revisionSha={revisionSha}
         selectedAtomId={selectedAtomId} selectedText={selectedText??null}
         flags={flags} databaseReady={qaDatabaseReady} onSelect={selectAtom}
-        systemSignals={systemSignals} canCommitBatch={canCommitBatch}
+        canCommitBatch={canCommitBatch}
         currentTaskId={currentTaskId} reviewDecisions={reviewDecisions}
         currentChangeIssues={revision.review_issues.filter(issue=>issue.round===revision.round)}
         onPreview={next=>{setPreview({parentSha:revisionSha,draft:next});setPageNumber(0);setQaPanelOpen(false);}}
+        onFindingAdded={()=>{setQaPanelOpen(false);setSelectedAtomId(null);}}
         onSaved={()=>{setPreview(null);setQaPanelOpen(false);setSelectedAtomId(null);}}/>
     </div>}
     {focus&&<SemanticReaderNotesQa notes={locatedNotes} selectedNoteId={selectedNoteId}
