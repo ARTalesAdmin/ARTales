@@ -2,6 +2,9 @@
 import {requireEditorOrAdmin} from "@/lib/guards";
 import {createClient} from "@/lib/supabase/server";
 import type {AiQaSuggestion} from "@/lib/semantic/aiQaProposalEngine";
+import {walkSemanticAtoms,verifySemanticRevision} from "@/lib/semantic/compose";
+import type {SemanticRevision} from "@/lib/semantic/model";
+import {revalidatePath} from "next/cache";
 
 const uuid=/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const sha=/^[a-f0-9]{64}$/;
@@ -88,4 +91,65 @@ export async function lastSemanticAiQaJob(input:{
  if(error)return fail("Trvalá AI fronta není dostupná.");
  if(!data)return {ok:true,jobId:null,status:"none",message:"Bez předchozí AI dávky.",suggestions:[]};
  return parseRow(data);
+}
+
+
+/**
+ * A general request is a normal, source-anchored QA finding with a special
+ * instruction. The existing identity-bound durable job, retries, RLS and token
+ * ledger remain authoritative. No new DB schema or background privilege.
+ */
+export async function enqueueGeneralSemanticQaJob(input:{
+ candidateId:string;revisionSha:string;instruction:string;exampleAtomId:string|null;
+}):Promise<QaJobStatus>{
+ const actor=await requireEditorOrAdmin();
+ if(!enabled())return fail("ARTales AI není zapnutá.");
+ const instruction=input.instruction?.trim()??"";
+ if(!uuid.test(input.candidateId)||!sha.test(input.revisionSha)||
+    instruction.length<20||instruction.length>550||
+    (input.exampleAtomId!==null&&
+     (typeof input.exampleAtomId!=="string"||input.exampleAtomId.length>160)))
+  return fail("Popiš obecný problém alespoň 20 a nejvýše 550 znaky.");
+ const missing=configurationIssue();
+ if(missing)return fail("Úlohu nelze založit. "+missing);
+ const db=await createClient();
+ const [{data:record,error:revisionError},{data:task,error:taskError}]=await Promise.all([
+  db.from("candidate_semantic_revisions").select("revision,source_text,revision_sha256")
+   .eq("candidate_id",input.candidateId).order("created_at",{ascending:false})
+   .order("id",{ascending:false}).limit(1).maybeSingle(),
+  db.from("artales_editorial_tasks").select("id")
+   .eq("candidate_id",input.candidateId).eq("revision_sha256",input.revisionSha)
+   .eq("kind","text_review").eq("status","claimed")
+   .eq("assigned_to",actor.id).limit(1).maybeSingle()
+ ]);
+ if(revisionError||!record||record.revision_sha256!==input.revisionSha||
+    taskError||!task)return fail("Nejsi vlastníkem právě převzaté aktuální QA kontroly.");
+ let atoms:ReturnType<typeof walkSemanticAtoms>;
+ try{
+  const revision=record.revision as SemanticRevision;
+  verifySemanticRevision(revision,record.source_text);
+  atoms=walkSemanticAtoms(revision.blocks);
+ }catch{return fail("Nepodařilo se ověřit neporušenou revizi textu.");}
+ const example=atoms.find(a=>a.id===input.exampleAtomId);
+ if(input.exampleAtomId&&!example)return fail("Ukázkový blok již není v této revizi.");
+ const anchor=example??atoms.find(a=>a.raw.trim().length>0);
+ if(!anchor)return fail("Dílo neobsahuje žádný použitelný textový blok.");
+ const comment=(example?"Obecné zadání s ukázkou: ":"Obecné zadání pro dílo: ")+instruction;
+ // Repeated clicks must not create duplicate QA findings or duplicate billing.
+ const {data:existing,error:existingError}=await db.from("artales_semantic_qa_flags")
+  .select("id").eq("candidate_id",input.candidateId)
+  .eq("revision_sha256",input.revisionSha).eq("status","open")
+  .eq("kind","other").eq("comment",comment)
+  .limit(1).maybeSingle();
+ if(existingError)return fail("Nepodařilo se ověřit starší obecná zadání.");
+ if(!existing){
+  const {error:flagError}=await db.from("artales_semantic_qa_flags").insert({
+   candidate_id:input.candidateId,revision_sha256:input.revisionSha,
+   target_atom_id:anchor.id,source_start:anchor.anchor.normalized_start,
+   source_end:anchor.anchor.normalized_end,kind:"other",comment,created_by:actor.id
+  });
+  if(flagError)return fail("Obecné zadání se nepodařilo bezpečně uložit.");
+ }
+ revalidatePath("/member/semantic/"+input.candidateId);
+ return enqueueSemanticAiQaJob({candidateId:input.candidateId,revisionSha:input.revisionSha});
 }
