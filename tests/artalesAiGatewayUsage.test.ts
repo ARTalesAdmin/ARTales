@@ -41,3 +41,27 @@ test("ARTales calls Vercel Gateway through server-only OIDC, never a direct prov
   assert.match(source,/cache: "no-store"/);
   assert.match(source,/AbortSignal\.timeout/);
 });
+
+test("AI work-local protected terms do not need an administrator approval",()=>{
+ const worker=readFileSync(new URL("../app/api/internal/editorial/ai-qa-jobs/route.ts",import.meta.url),"utf8");
+ const job=readFileSync(new URL("../app/member/semantic/[candidateId]/ai-job-actions.ts",import.meta.url),"utf8");
+ assert.match(worker,/action==="protect_term"/);
+ assert.match(worker,/artales_work_typography_rules/);
+ assert.match(worker,/ignoreDuplicates:true/);
+ assert.match(job,/artales_enqueue_ai_qa_job/);
+ assert.doesNotMatch(worker,/Nexus|requireAdmin/);
+});
+
+test("usage table is RLS protected and keeps retry receipts distinct",()=>{
+ const sql=readFileSync(new URL("../ops/sql/20261106_artales_ai_gateway_usage.sql",import.meta.url),"utf8");
+ const worker=readFileSync(new URL("../app/api/internal/editorial/ai-qa-jobs/route.ts",import.meta.url),"utf8");
+ const page=readFileSync(new URL("../app/member/admin/ai-usage/page.tsx",import.meta.url),"utf8");
+ assert.match(sql,/PRIMARY KEY/);
+ assert.match(sql,/ENABLE ROW LEVEL SECURITY/);
+ assert.match(sql,/GRANT SELECT, INSERT ON public.artales_semantic_ai_usage TO service_role/);
+ assert.match(sql,/p.role::text='admin'/);
+ assert.match(worker,/onConflict:"generation_id"/);
+ assert.match(page,/await requireAdmin\(\)/);
+ assert.match(page,/missing_schema/);
+ assert.match(page,/summary.unpricedGenerations/);
+});
