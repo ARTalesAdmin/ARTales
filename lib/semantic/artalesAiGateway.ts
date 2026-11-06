@@ -48,7 +48,7 @@ export async function requestArtalesAiResponse(input: {
         }
       }
     }),
-    signal: AbortSignal.timeout(30000),
+    signal: AbortSignal.timeout(input.maxOutputTokens===4800?45000:30000),
     cache: "no-store"
   });
   if (!response.ok) {
