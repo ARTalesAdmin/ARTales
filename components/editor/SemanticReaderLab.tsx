@@ -163,7 +163,7 @@ export default function SemanticReaderLab({
       const lower=raw.toLocaleLowerCase("cs");
       let at=lower.indexOf(query);
       while(at!==-1&&found.length<1500){
-       found.push({unitId:u.fragment?.original_unit_id??u.id,offset:at});
+       found.push({unitId:u.id,offset:at});
        at=lower.indexOf(query,at+query.length);
       }
       if(found.length===1500)break;
@@ -310,8 +310,11 @@ export default function SemanticReaderLab({
     const target=searchMatches[normalized];
     setActiveSearchIndex(normalized);
     setActiveSearchUnit(target.unitId);
-    scrollToMarker(sourceRef.current,target.unitId);
-    scrollToMarker(composedRef.current,target.unitId);
+    const unit=allUnits.find(u=>u.id===target.unitId);
+    scrollToMarker(sourceRef.current,unit?.fragment?.original_unit_id??target.unitId);
+    const exact=[...(composedRef.current?.querySelectorAll<HTMLElement>("[data-page-unit-id]")??[])]
+     .find(e=>e.dataset.pageUnitId===target.unitId);
+    if(exact)exact.scrollIntoView({behavior:"smooth",block:"center"});
   };
   const jumpToAtomWithoutNote=(id:string)=>{
     const unit=allUnits.find(u=>u.source_atom_ids.includes(id));
@@ -474,6 +477,8 @@ export default function SemanticReaderLab({
        ?(Math.min(activeSearchIndex+1,searchMatches.length)+" / "+searchMatches.length+" výskytů")
        :"Nenalezeno"}</span>
       <button type="button" disabled={!searchMatches.length}
+       onClick={()=>goToSearchMatch(activeSearchIndex)}>Najít</button>
+      <button type="button" disabled={!searchMatches.length}
        onClick={()=>goToSearchMatch(activeSearchIndex-1)}>Předchozí</button>
       <button type="button" disabled={!searchMatches.length}
        onClick={()=>goToSearchMatch(activeSearchIndex+1)}>Další</button>
@@ -567,7 +572,7 @@ export default function SemanticReaderLab({
                 return <div className="semantic-reader__unit" key={u.id} data-page-unit-id={u.id}
                   data-semantic-root={u.fragment?.original_unit_id??u.id}
                   data-selected={selectedAtomId&&u.source_atom_ids.includes(selectedAtomId)?"true":undefined}
-                  data-search-current={activeSearchUnit===(u.fragment?.original_unit_id??u.id)?"true":undefined}
+                  data-search-current={activeSearchUnit===u.id?"true":undefined}
                   data-review-flag={showOpenFlags&&flags.some(f=>f.status==="open"&&u.source_atom_ids.includes(f.target_atom_id))?"open":undefined}
                   data-review-signal={systemSignals.some(s=>u.source_atom_ids.includes(s.atomId))?"true":undefined}
                   data-review-fixed={activeRevision.review_issues.some(issue=>issue.round===activeRevision.round&&
