@@ -121,7 +121,19 @@
 .semantic-reader__fullscreen-button{border:1px solid #b4a897;background:#fffdf8;
   border-radius:8px;padding:8px 12px;cursor:pointer;font:13px system-ui}
 .semantic-reader__edition-note{font:13px system-ui;color:#61594e}
-.semantic-reader__page p{orphans:3;widows:3;hyphens:auto}
+/* Semantic QA typography: never algorithmically hyphenate source prose.
+ * An explicit soft hyphen in source remains an intentional break opportunity.
+ * Same class is rendered in measurement and visible page (no pagination drift). */
+.semantic-reader__page p,
+.semantic-reader__page blockquote,
+.semantic-reader__page aside[role="note"]{
+ orphans:3;widows:3;
+ hyphens:manual;
+ -webkit-hyphens:manual;
+ overflow-wrap:normal;
+ word-break:normal;
+ text-wrap:pretty;
+}
 
 /* ARTales editorial QA: source-tethered selection and persistent review panel. */
 .semantic-reader__controls{position:sticky;top:0;z-index:15;box-shadow:0 3px 16px #30251c14}
