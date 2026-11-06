@@ -12,8 +12,7 @@ function configurationIssue():string|null{
   return "Chybí autorizace interní AI fronty (cron).";
  if(!process.env.SUPABASE_SERVICE_ROLE_KEY)
   return "Není dostupné serverové spojení s databází.";
- if(!process.env.VERCEL_OIDC_TOKEN)
-  return "Vercel AI Gateway není připravena: chybí OIDC token serveru.";
+ // OIDC is injected on the worker Request header, not in the server-action env.
  if(!process.env.ARTALES_EDITORIAL_AI_MODEL)
   return "Není nakonfigurovaný AI model.";
  return null;
