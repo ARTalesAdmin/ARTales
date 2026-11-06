@@ -37,3 +37,16 @@ test("source-verified structured AI patches with atomic job receipt",()=>{
  assert.match(actions,/readSemanticAiQaJob/);
  assert.match(actions,/lastSemanticAiQaJob/);
 });
+
+test("failed or unavailable queue reports its reason beside the AI trigger",()=>{
+ const panel=file("components/editor/SemanticQaPanel.tsx");
+ const actions=file("app/member/semantic/[candidateId]/ai-job-actions.ts");
+ assert.match(panel,/id="artales-ai-queue-feedback"/);
+ assert.match(panel,/role="status" aria-live="polite"/);
+ assert.match(panel,/setAiFeedback\(queued.message\)/);
+ assert.match(panel,/catch\{/);
+ assert.match(panel,/setAiError\(true\)/);
+ assert.match(actions,/function configurationIssue\(\)/);
+ assert.match(actions,/VERCEL_OIDC_TOKEN/);
+ assert.match(actions,/databázová chyba/);
+});
