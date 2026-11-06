@@ -75,7 +75,7 @@ export default function GeneralQaDialog(p:{
    <p role="status" aria-live="polite">{message}</p>
    {done&&<div className="semantic-reader__dialog-results">
     <h3>Výsledky k posouzení ({matches.length} bloků)</h3>
-    {job.suggestions.filter(s=>s.targetAtomIds?.length).map(s=><div key={s.flagId}>
+    {(job?.suggestions??[]).filter(s=>s.targetAtomIds?.length).map(s=><div key={s.flagId}>
      <p>{s.rationale}</p>
      <div className="semantic-reader__dialog-targets">
       {s.targetAtomIds.map(id=><button type="button" key={id}
