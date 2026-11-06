@@ -49,6 +49,7 @@ export default async function AdminDashboardPage({ searchParams }: PageProps) {
             {range === "month" ? "Zobrazit celkem" : "Zobrazit tento měsíc"}
           </Link>
           <Link className="artales-button-secondary" href="/member/admin/prescreen/shadow">Prescreen · Stínová knihovna</Link>
+          <Link className="artales-button-secondary" href="/member/admin/editorial-performance">Redakční výkon</Link>
           <Link className="artales-button-secondary" href="/member/admin/payments">
             QR platby
           </Link>

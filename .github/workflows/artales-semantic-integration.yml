@@ -16,6 +16,11 @@ on:
       - 'app/reader/[slug]/page.tsx'
       - 'tests/semanticQaBatch.test.ts'
       - 'components/member/**'
+      - 'lib/editorial/**'
+      - 'app/member/admin/editorial-performance/**'
+      - 'app/member/admin/dashboard/page.tsx'
+      - 'ops/sql/20261106_artales_editorial_completion_bilingual_guard.sql'
+      - 'tests/editorialTaskReporting.test.ts'
       - 'app/member/editorial-pipeline/**'
       - 'app/member/editorial-detail/**'
       - 'app/member/authors/**'
@@ -81,3 +86,5 @@ jobs:
         run: npx tsx --test tests/editorialOwnershipV2.test.ts
       - name: Atomic batch and disputed-note semantic evidence
         run: npx tsx --test tests/semanticQaBatch.test.ts
+      - name: Editorial task completion and admin reporting
+        run: npx tsx --test tests/editorialTaskReporting.test.ts
