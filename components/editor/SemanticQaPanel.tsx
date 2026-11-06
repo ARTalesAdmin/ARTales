@@ -28,6 +28,8 @@ export default function SemanticQaPanel(p:Props){
  const [comment,setComment]=useState("");
  const [resolutions,setResolutions]=useState<Record<string,string>>({});
  const [feedback,setFeedback]=useState("");
+ const [aiFeedback,setAiFeedback]=useState("");
+ const [aiError,setAiError]=useState(false);
  const [aiSuggestions,setAiSuggestions]=useState<AiQaSuggestion[]>([]);
  const [job,setJob]=useState<QaJobStatus|null>(null);
  const [returnNotes,setReturnNotes]=useState<Record<string,string>>({});
@@ -78,6 +80,8 @@ export default function SemanticQaPanel(p:Props){
    void lastSemanticAiQaJob({candidateId:p.candidateId,revisionSha:p.revisionSha})
     .then(result=>{if(active&&result.ok){
       setJob(result);
+      setAiFeedback(result.message);
+      setAiError(result.status==="failed");
       if(result.status==="completed"){
        if(result.appliedRevisionSha)router.refresh();
        else acceptAiSuggestions(result.suggestions);
@@ -101,6 +105,8 @@ export default function SemanticQaPanel(p:Props){
        if(result.suggestions.some(s=>s.action==="protect_term"))router.refresh();
       }
      }
+     setAiFeedback(result.message);
+     setAiError(result.status==="failed");
      if(result.status==="failed")setFeedback(result.message);
     });
    },4000);
@@ -109,23 +115,31 @@ export default function SemanticQaPanel(p:Props){
    // eslint-disable-next-line react-hooks/exhaustive-deps
  },[job?.jobId,job?.status]);
  const requestAi=()=>{
-   startTransition(async()=>{
-     const queued=await enqueueSemanticAiQaJob({
-       candidateId:p.candidateId,revisionSha:p.revisionSha
-     });
-     if(queued.ok){
-      setJob(queued);
-      if(queued.status==="completed"){
-       if(queued.appliedRevisionSha)router.refresh();
-       else acceptAiSuggestions(queued.suggestions);
-      }
-      setFeedback(queued.message);
-      return;
+  if(pending)return;
+  setAiFeedback("Zařazuji úlohu do fronty ARTales AI…");
+  setAiError(false);
+  startTransition(async()=>{
+   try {
+    const queued=await enqueueSemanticAiQaJob({
+     candidateId:p.candidateId,revisionSha:p.revisionSha
+    });
+    setAiFeedback(queued.message);
+    setAiError(!queued.ok);
+    setFeedback(queued.message);
+    if(queued.ok){
+     setJob(queued);
+     if(queued.status==="completed"){
+      if(queued.appliedRevisionSha)router.refresh();
+      else acceptAiSuggestions(queued.suggestions);
      }
-     // Missing worker configuration is a hard stop. Never fall back to a
-     // foreground provider request or create a second billable attempt.
-     setFeedback(queued.message);
-   });
+    }
+   }catch{
+    const message="AI úlohu se nepodařilo zařadit: serverové volání selhalo. Nový požadavek zatím neposílej; ověř stav fronty.";
+    setAiFeedback(message);
+    setAiError(true);
+    setFeedback(message);
+   }
+  });
  };
  const preview=()=>{
   startTransition(async()=>{
@@ -228,7 +242,14 @@ export default function SemanticQaPanel(p:Props){
     Jména a názvy chrání před zalomením bez zásahu do originálního textu.
     Výsledek editor zkontroluje; nejisté nálezy zůstanou otevřené.</p>
    <button type="button" disabled={pending||!p.databaseReady||!p.currentTaskId||open.length<1||open.length>25||job?.status==="queued"||job?.status==="running"}
-    onClick={requestAi}>Předat {open.length} nálezů do fronty ARTales AI</button>
+    aria-describedby="artales-ai-queue-feedback"
+    onClick={requestAi}>{pending?"Odesílám do ARTales AI…":"Předat "+open.length+" nálezů do fronty ARTales AI"}</button>
+   <p id="artales-ai-queue-feedback" role="status" aria-live="polite" aria-atomic="true"
+    style={{fontWeight:aiError?700:500,margin:"10px 0"}}>
+    {aiFeedback||(!p.databaseReady?"Databázová evidence QA není dostupná.":
+     !p.currentTaskId?"Pro odeslání je nutné mít převzatý aktuální úkol QA.":
+     open.length<1?"Nejsou žádné otevřené nálezy.":open.length>25?"Najednou lze odeslat nejvýše 25 nálezů.":"Po kliknutí se zde zobrazí stav odeslání.")}
+   </p>
    {job?.jobId?<div role="status" aria-live="polite">
      <p><strong>Fronta ARTales AI · ARTales</strong>: {job.message}</p>
      {job.status==="completed"?<progress max={100} value={100} aria-label="Opravná dávka dokončena"/>:
