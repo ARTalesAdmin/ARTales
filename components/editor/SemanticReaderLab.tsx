@@ -18,7 +18,8 @@ type Props={revision:SemanticRevision;original:string;profileReaderDefaults?:Fix
  candidateId:string;revisionSha:string;editionTitle:string;editionAuthor:string;
  flags:SemanticQaFlag[];qaDatabaseReady:boolean;protectedTerms:string[];
  systemSignals:{atomId:string;sourceStart:number;reason:string;kind:"source_ambiguity"}[];
- canCommitBatch:boolean;}
+ canCommitBatch:boolean;currentTaskId:string|null;
+ reviewDecisions:{issue_id:string;decision:string;note:string|null;reviewed_at:string}[];}
 type ReadingSpacing = ReaderDensityId | "airy";
 type PaneSide = "source" | "composed";
 type BrowserMeasurements={
@@ -101,7 +102,7 @@ function sameMeasurements(a:BrowserMeasurements|null,b:BrowserMeasurements) {
 
 export default function SemanticReaderLab({
  revision,original,profileReaderDefaults=null,candidateId,revisionSha,editionTitle,editionAuthor,
- flags,qaDatabaseReady,protectedTerms,systemSignals,canCommitBatch
+ flags,qaDatabaseReady,protectedTerms,systemSignals,canCommitBatch,currentTaskId,reviewDecisions
 }:Props) {
   const accountPreferences=getProfileReaderSettings(profileReaderDefaults)??defaultReaderSettings;
   const [readerMode,setReaderMode]=useState<"scroll"|"spread">("scroll");
@@ -112,6 +113,9 @@ export default function SemanticReaderLab({
   const [focus,setFocus]=useState(false);
   const [selectedAtomId,setSelectedAtomId]=useState<string|null>(null);
   const [qaPanelOpen,setQaPanelOpen]=useState(false);
+  const [preview,setPreview]=useState<{parentSha:string;draft:SemanticRevision}|null>(null);
+  const previewRevision=preview?.parentSha===revisionSha?preview.draft:null;
+  const activeRevision=previewRevision??revision;
   const [showOpenFlags,setShowOpenFlags]=useState(true);
   const [pageNumber,setPageNumber]=useState(0);
   const [fullscreen,setFullscreen]=useState(false);
@@ -131,9 +135,9 @@ export default function SemanticReaderLab({
   const ignoreSyncRef=useRef<Record<PaneSide,{top:number;until:number}|null>>({source:null,composed:null});
   const measureRef=useRef<HTMLDivElement>(null);
   const mode=resolveQaProjectionMode(focus?"reader":"editor",readerMode,width,deviceWidth);
-  const measureKey=[revision.revision_ref,mode,scale,density,width,focus,fullscreen,edition.range.start,edition.range.end].join("|");
+  const measureKey=[activeRevision.revision_ref,mode,scale,density,width,focus,fullscreen,edition.range.start,edition.range.end].join("|");
   const measured=metrics?.key===measureKey?metrics:null;
-  const allUnits=useMemo(()=>getSemanticPageUnits(revision,edition.range),[revision,edition]);
+  const allUnits=useMemo(()=>getSemanticPageUnits(activeRevision,edition.range),[activeRevision,edition]);
   const sourceRegions=useMemo(()=>buildSemanticSourceRegions(original,allUnits,edition.range),[original,allUnits,edition]);
   const regionIndices=useMemo(()=>new Map(sourceRegions.filter(x=>x.regionIndex!==null && x.unitId!==null)
     .map(x=>[x.unitId!,x.regionIndex!])),[sourceRegions]);
@@ -144,13 +148,13 @@ export default function SemanticReaderLab({
     :selectedUnit&&"atom" in selectedUnit.node?selectedUnit.node.atom.raw:null;
   const effectiveDensity:ReaderDensityId=density==="airy"?"comfortable":density;
   const fallbackWidth=focus?(mode==="spread"&&width>=700?Math.floor((width-42)/2):width-24):340;
-  const pages=useMemo(()=>projectSemanticReader(revision,{
+  const pages=useMemo(()=>projectSemanticReader(activeRevision,{
     mode,viewport_width:measured?.pageWidth??Math.max(220,fallbackWidth),
     viewport_height:measured?.viewportHeight??850,font_scale:scale,density:effectiveDensity,
     measured_unit_heights:measured?.heights,editionRange:edition.range,
-  }),[revision,mode,scale,effectiveDensity,measured,fallbackWidth,edition.range]);
-  const integrity=verifyReaderProjection(revision,pages,edition.range);
-  const locatedNotes=useMemo(()=>locateAndSortSessionNotes(revision,pages,qaNotes),[revision,pages,qaNotes]);
+  }),[activeRevision,mode,scale,effectiveDensity,measured,fallbackWidth,edition.range]);
+  const integrity=verifyReaderProjection(activeRevision,pages,edition.range);
+  const locatedNotes=useMemo(()=>locateAndSortSessionNotes(activeRevision,pages,qaNotes),[activeRevision,pages,qaNotes]);
   const selectedNoteIndex=locatedNotes.findIndex(item=>item.saved.note.id===selectedNoteId);
   const expanded=notesListExpanded??locatedNotes.length<=3;
   const pageUnits=useMemo(()=>new Map(pages.flatMap(page=>
@@ -163,7 +167,7 @@ export default function SemanticReaderLab({
       return false;
     }
     try{
-      const saved=createSessionReaderNote(revision,currentUnit.unit,{
+      const saved=createSessionReaderNote(activeRevision,currentUnit.unit,{
         id:crypto.randomUUID(),...input,
         now:new Date().toISOString(),pageIndex:currentUnit.pageIndex,pageCount:pages.length,
         layoutMode:mode==="spread"?"spread":"pagedFlow",
@@ -178,7 +182,7 @@ export default function SemanticReaderLab({
     }
   };
   const jumpToQaNote=(saved:SessionReaderNote)=>{
-    const location=locateSessionReaderNote(revision,pages,saved);
+    const location=locateSessionReaderNote(activeRevision,pages,saved);
     if(location.status!=="exact"||!location.unitId){
       setNoteFeedback("Kotva není dostupná; původní poznámka zůstává zachována.");return;
     }
@@ -405,6 +409,12 @@ export default function SemanticReaderLab({
         </span>
       </div>
     </header>
+    {previewRevision?<div role="status" className="semantic-reader__live-preview">
+      <strong>Náhled opravené sazby · neuloženo</strong>
+      <p>Zkontroluj zalomení a stránky. Archivovaný text zůstává neměnný.</p>
+      <button type="button" onClick={()=>{setPreview(null);setPageNumber(0);}}>
+       Vrátit původní sazbu</button>
+    </div>:null}
     {qaPanelOpen&&<div className="semantic-qa-overlay">
       <button type="button" className="semantic-qa-overlay__close" onClick={()=>setQaPanelOpen(false)}
         aria-label="Zavřít panel nálezů">×</button>
@@ -412,7 +422,10 @@ export default function SemanticReaderLab({
         selectedAtomId={selectedAtomId} selectedText={selectedText??null}
         flags={flags} databaseReady={qaDatabaseReady} onSelect={selectAtom}
         systemSignals={systemSignals} canCommitBatch={canCommitBatch}
-        onSaved={()=>{setQaPanelOpen(false);setSelectedAtomId(null);}}/>
+        currentTaskId={currentTaskId} reviewDecisions={reviewDecisions}
+        currentChangeIssues={revision.review_issues.filter(issue=>issue.round===revision.round)}
+        onPreview={next=>{setPreview({parentSha:revisionSha,draft:next});setPageNumber(0);setQaPanelOpen(false);}}
+        onSaved={()=>{setPreview(null);setQaPanelOpen(false);setSelectedAtomId(null);}}/>
     </div>}
     {focus&&<SemanticReaderNotesQa notes={locatedNotes} selectedNoteId={selectedNoteId}
       selectedNoteIndex={selectedNoteIndex} listExpanded={expanded} status={noteFeedback}
@@ -430,8 +443,8 @@ export default function SemanticReaderLab({
             data-selected={part.unitId&&selectedUnit?.id===part.unitId?"true":undefined}
             data-review-signal={part.unitId&&systemSignals.some(s=>
               unitsById.get(part.unitId??"")?.source_atom_ids.includes(s.atomId))?"true":undefined}
-            data-review-fixed={part.unitId&&revision.review_issues.some(issue=>
-              issue.round===revision.round&&unitsById.get(part.unitId??"")?.source_atom_ids.includes(issue.target_atom_id))?"true":undefined}
+            data-review-fixed={part.unitId&&activeRevision.review_issues.some(issue=>
+              issue.round===activeRevision.round&&unitsById.get(part.unitId??"")?.source_atom_ids.includes(issue.target_atom_id))?"true":undefined}
             {...(part.regionIndex!==null?{"data-region-index":part.regionIndex}:{})}
             data-source-start={part.start} data-source-end={part.end}
             className="semantic-reader__source-region">
@@ -475,7 +488,7 @@ export default function SemanticReaderLab({
                   data-selected={selectedAtomId&&u.source_atom_ids.includes(selectedAtomId)?"true":undefined}
                   data-review-flag={showOpenFlags&&flags.some(f=>f.status==="open"&&u.source_atom_ids.includes(f.target_atom_id))?"open":undefined}
                   data-review-signal={systemSignals.some(s=>u.source_atom_ids.includes(s.atomId))?"true":undefined}
-                  data-review-fixed={revision.review_issues.some(issue=>issue.round===revision.round&&
+                  data-review-fixed={activeRevision.review_issues.some(issue=>issue.round===activeRevision.round&&
                     u.source_atom_ids.includes(issue.target_atom_id))?"true":undefined}
                   {...(regionIndices.has(u.fragment?.original_unit_id??u.id)?{"data-region-index":regionIndices.get(u.fragment?.original_unit_id??u.id)}:{})}>
                   {u.source_atom_ids[0]&&<button type="button"
@@ -492,7 +505,7 @@ export default function SemanticReaderLab({
                     }}>
                     {notesAtUnit.length>1?notesAtUnit.length:null}
                   </button>}
-                  {unitView(u)}</div>;
+                  {unitView(u,protectedTerms)}</div>;
               })}
               <footer>QA strana {page.index+2}
                 {page.overflow==="scroll_unit"?" · dlouhý celek, bez rozdělení":""}
