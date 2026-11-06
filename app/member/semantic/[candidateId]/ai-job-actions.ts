@@ -242,3 +242,29 @@ export async function adoptGeneralQaTargets(input:{
  return {ok:true,message:"Přidáno "+additions.length+
   " bloků mezi QA nálezy. Nyní je můžeš jedním tlačítkem odeslat k opravě."};
 }
+
+
+/** Return the most recent owner-bound general job, including after page reload. */
+export async function lastGeneralSemanticQaJob(input:{
+ candidateId:string;revisionSha:string
+}):Promise<QaJobStatus>{
+ const actor=await requireEditorOrAdmin();
+ if(!uuid.test(input.candidateId)||!sha.test(input.revisionSha))
+  return fail("Neplatná revize.");
+ const db=await createClient();
+ const {data:jobs,error}=await db.from("artales_semantic_ai_qa_jobs")
+  .select("id,status,suggestions,error_code,created_by,applied_revision_sha256,flag_ids")
+  .eq("candidate_id",input.candidateId).eq("revision_sha256",input.revisionSha)
+  .eq("created_by",actor.id).order("created_at",{ascending:false}).limit(12);
+ if(error)return fail("Historii obecných oprav nelze načíst.");
+ const ids=[...new Set((jobs??[]).flatMap(j=>Array.isArray(j.flag_ids)?j.flag_ids:[]))];
+ if(!ids.length)return {ok:true,jobId:null,status:"none",message:"Zatím bez obecné opravy.",suggestions:[]};
+ const {data:flags,error:flagsError}=await db.from("artales_semantic_qa_flags")
+  .select("id,comment").eq("candidate_id",input.candidateId)
+  .eq("revision_sha256",input.revisionSha).in("id",ids);
+ if(flagsError)return fail("Obecná zadání nejsou dostupná.");
+ const generalIds=new Set((flags??[]).filter(f=>f.comment.startsWith("Obecné zadání ")).map(f=>f.id));
+ const found=(jobs??[]).find(j=>j.flag_ids.some((id:string)=>generalIds.has(id)));
+ if(!found)return {ok:true,jobId:null,status:"none",message:"Zatím bez obecné opravy.",suggestions:[]};
+ return parseRow(found);
+}
