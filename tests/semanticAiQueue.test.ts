@@ -137,6 +137,15 @@ test("Pan's four actual AI proposals become one editor-approved, source-safe bat
  assert.throws(()=>planQaProposalReview(suggestions,flags.slice(1),approved));
 });
 
+test("AI proposal navigation records first manual target and offers remaining-block shortcut",()=>{
+ const component=file("components/editor/SemanticAiProposalReview.tsx");
+ assert.match(component,/if\(atom\)showTarget\(proposed,atom\)/);
+ assert.match(component,/if\(proposal\.action==="manual_review"\)/);
+ assert.match(component,/const firstUnvisitedIndex=requiresFullReview\?/);
+ assert.match(component,/findTarget\(targets\[firstUnvisitedIndex\]\)/);
+ assert.match(component,/Zobrazit neprohlédnutý blok/);
+});
+
 test("AI proposal review offers one-by-one navigation and only server-owned persistence",()=>{
  const component=file("components/editor/SemanticAiProposalReview.tsx");
  const apply=file("app/member/semantic/[candidateId]/qa-proposal-actions.ts");
