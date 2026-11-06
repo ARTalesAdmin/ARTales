@@ -66,3 +66,29 @@ test("single save of author biography/portrait closes only owner's claimed and v
  assert.match(authorEdit,/editorial_closeout === "pending"/);
  assert.match(actions,/field==="author"\?\["author_bio","author_visual"\]/);
 });
+
+test("admin-only staff directory bypasses own-profile RLS only on the server",()=>{
+ const directory=file("lib/editorial/staffDirectory.ts");
+ const report=file("app/member/admin/editorial-performance/page.tsx");
+ const pipeline=file("app/member/editorial-pipeline/page.tsx");
+ assert.match(directory,/import "server-only"/);
+ assert.match(directory,/await requireEditorOrAdmin\(\)/);
+ assert.match(directory,/createAdminClient\(\)/);
+ assert.match(directory,/\.select\("id,display_name,role,is_active"\)/);
+ assert.match(report,/await requireAdmin\(\)/);
+ assert.match(report,/getEditorialPeople\(memberIds\)/);
+ assert.match(pipeline,/getEditorialPeople\(\)/);
+ assert.match(pipeline,/const who=t\.assigned_to\?\?t\.completed_by/);
+ assert.doesNotMatch(report,/db\.from\("profiles"\)/);
+ assert.doesNotMatch(pipeline,/db\.from\("profiles"\)/);
+});
+test("late admin closeout credits the assigned editor, not the audit actor",()=>{
+ const s=buildEditorialTaskReport([{
+  id:"p-1",candidate_id:"pan",kind:"author_bio",status:"completed",
+  assigned_to:"pavla",completed_by:"admin",
+  created_at:"2026-11-03T00:00:00Z",completed_at:"2026-11-06T11:00:00Z"
+ }],[{id:"pavla",name:"Pavla Kratochvílová"},{id:"admin",name:"Luboš Žížlavský"}],
+ [{id:"pan",title:"The Great God Pan"}],"2026-11");
+ assert.equal(s.members.find(m=>m.id==="pavla")?.completed,1);
+ assert.equal(s.members.find(m=>m.id==="admin")?.completed,0);
+});
