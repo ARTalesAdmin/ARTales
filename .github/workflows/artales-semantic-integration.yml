@@ -4,6 +4,16 @@ on:
     branches: [main]
     paths:
       - 'lib/semantic/**'
+      - 'app/api/internal/editorial/ai-qa-jobs/**'
+      - 'app/member/admin/ai-usage/**'
+      - 'ops/sql/20261104_artales_ai_qa_durable_jobs.sql'
+      - 'ops/sql/20261104_artales_qa_change_decisions_v4.sql'
+      - 'ops/sql/20261104_artales_qa_closeout_v4.sql'
+      - 'ops/sql/20261104_artales_safe_layout_commit_v4.sql'
+      - 'ops/sql/20261106_artales_ai_gateway_usage.sql'
+      - 'tests/semanticAiQueue.test.ts'
+      - 'tests/semanticQaP0Integration.test.ts'
+      - 'tests/artalesAiGatewayUsage.test.ts'
       - 'lib/ingest/epubSemanticExtractor.ts'
       - 'components/editor/Semantic*'
       - 'app/api/member/semantic/**'
@@ -64,7 +74,7 @@ jobs:
       - name: TypeScript
         run: npx tsc --noEmit
       - name: ESLint scoped files
-        run: npx eslint lib/semantic lib/ingest/epubSemanticExtractor.ts components/editor/SemanticReaderLab.tsx components/editor/SemanticReaderNotesQa.tsx components/editor/SemanticQaPanel.tsx 'app/member/semantic/[candidateId]/qa-actions.ts' 'app/member/semantic/[candidateId]/page.tsx' app/member/editorial-pipeline/actions.ts app/member/editorial-pipeline/page.tsx 'app/member/editorial-detail/[candidateId]/actions.ts' 'app/member/editorial-detail/[candidateId]/page.tsx' components/editor/CandidateCoverInput.tsx components/editor/CandidateBilingualAnnotationFields.tsx components/editor/BilingualProfileText.tsx components/member/MemberZoneNav.tsx components/member/MemberHelpButton.tsx app/member/editorial-help/actions.ts app/member/layout.tsx components/reader/ProtectedProseText.tsx 'app/reader/[slug]/page.tsx' 'app/api/member/semantic/[candidateId]/compose/route.ts'
+        run: npx eslint lib/semantic lib/ingest/epubSemanticExtractor.ts components/editor/SemanticReaderLab.tsx components/editor/SemanticReaderNotesQa.tsx app/api/internal/editorial/ai-qa-jobs/route.ts app/member/admin/ai-usage/page.tsx components/editor/SemanticQaPanel.tsx 'app/member/semantic/[candidateId]/qa-actions.ts' 'app/member/semantic/[candidateId]/page.tsx' app/member/editorial-pipeline/actions.ts app/member/editorial-pipeline/page.tsx 'app/member/editorial-detail/[candidateId]/actions.ts' 'app/member/editorial-detail/[candidateId]/page.tsx' components/editor/CandidateCoverInput.tsx components/editor/CandidateBilingualAnnotationFields.tsx components/editor/BilingualProfileText.tsx components/member/MemberZoneNav.tsx components/member/MemberHelpButton.tsx app/member/editorial-help/actions.ts app/member/layout.tsx components/reader/ProtectedProseText.tsx 'app/reader/[slug]/page.tsx' 'app/api/member/semantic/[candidateId]/compose/route.ts'
       - name: Existing semantic regression
         run: npx tsx --test tests/semanticReaderV2.test.ts
       - name: PostgreSQL jsonb roundtrip and legacy revision integrity
@@ -89,3 +99,7 @@ jobs:
         run: npx tsx --test tests/semanticQaBatch.test.ts
       - name: Editorial task completion and admin reporting
         run: npx tsx --test tests/editorialTaskReporting.test.ts
+      - name: Safe semantic AI queue, revision and review contract
+        run: npx tsx --test tests/semanticAiQueue.test.ts tests/semanticQaP0Integration.test.ts tests/semanticProtectedTermsVisualParity.test.ts
+      - name: Vercel Gateway token and privacy contract
+        run: npx tsx --test tests/artalesAiGatewayUsage.test.ts
