@@ -35,7 +35,7 @@ export default async function EditorialPipeline({searchParams}:Props){
  const profile=await requireEditorOrAdmin();
  const isAdmin=profile.role==="admin";
  const db=await createClient();
- const [{data,error},{data:helpRequests},{data:capabilities},{data:revisions},{data:events},people]=await Promise.all([
+ const [{data,error},people,{data:helpRequests},{data:capabilities},{data:revisions},{data:events}]=await Promise.all([
   db.from("artales_editorial_tasks")
    .select("id,candidate_id,revision_sha256,title,status,kind,assigned_to,created_at,completed_at,completed_by")
    .order("created_at",{ascending:false}).limit(500),
