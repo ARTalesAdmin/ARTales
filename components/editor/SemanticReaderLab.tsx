@@ -19,7 +19,7 @@ import "./semantic-reader.css";
 
 type Props={revision:SemanticRevision;original:string;profileReaderDefaults?:FixtureProfileReaderDefaults|null;
  candidateId:string;revisionSha:string;editionTitle:string;editionAuthor:string;
- flags:SemanticQaFlag[];qaDatabaseReady:boolean;aiJobPending:boolean;protectedTerms:string[];
+ flags:SemanticQaFlag[];qaDatabaseReady:boolean;aiJobPending:boolean;hasAiProposals:boolean;protectedTerms:string[];
  systemSignals:{atomId:string;sourceStart:number;reason:string;kind:"source_ambiguity"}[];
  canCommitBatch:boolean;currentTaskId:string|null;
  reviewDecisions:{issue_id:string;decision:string;note:string|null;reviewed_at:string}[];}
@@ -105,7 +105,7 @@ function sameMeasurements(a:BrowserMeasurements|null,b:BrowserMeasurements) {
 
 export default function SemanticReaderLab({
  revision,original,profileReaderDefaults=null,candidateId,revisionSha,editionTitle,editionAuthor,
- flags,qaDatabaseReady,aiJobPending,protectedTerms,systemSignals,canCommitBatch,currentTaskId,reviewDecisions
+ flags,qaDatabaseReady,aiJobPending,hasAiProposals,protectedTerms,systemSignals,canCommitBatch,currentTaskId,reviewDecisions
 }:Props) {
   const accountPreferences=getProfileReaderSettings(profileReaderDefaults)??defaultReaderSettings;
   const [readerMode,setReaderMode]=useState<"scroll"|"spread">("scroll");
@@ -499,11 +499,11 @@ export default function SemanticReaderLab({
           aria-expanded={qaPanelOpen} onClick={()=>setQaPanelOpen(v=>!v)}>
           Nálezy ({flags.filter(f=>f.status==="open").length})
         </button>
-        <button type="button" className="semantic-reader__fullscreen-button semantic-reader__fullscreen-button--review"
+        {hasAiProposals?<button type="button" className="semantic-reader__fullscreen-button semantic-reader__fullscreen-button--review"
           aria-pressed={proposalReviewOpen} onClick={()=>proposalReviewOpen?
             setProposalReviewOpen(false):openProposalReview()}>
           Projít návrhy AI
-        </button>
+        </button>:null}
         <button type="button"
           className="semantic-reader__fullscreen-button semantic-reader__fullscreen-button--review"
           aria-pressed={reviewBarOpen} onClick={()=>{
