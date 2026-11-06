@@ -20,7 +20,7 @@ const text=(s:string,limit:number)=>s.length>limit?s.slice(0,limit)+" [zkráceno
 export async function generateSemanticAiQaSuggestions(input:{
  candidateId:string;revisionSha:string;editorId:string;expectedFlagIds?:string[]
 },db:SupabaseClient):Promise<AiQaSuggestResult>{
- const fail=(message:string):AiQaSuggestResult=>({ok:false,message,suggestions:[]});
+ const fail=(message:string,usage:ArtalesAiUsage|null=null):AiQaSuggestResult=>({ok:false,message,suggestions:[],usage});
  if(!uuid.test(input.candidateId)||!sha.test(input.revisionSha))
   return fail("Neplatná identita díla nebo revize.");
  const [{data:record,error:revisionError},{data:flags,error:flagError}]=await Promise.all([
@@ -78,7 +78,7 @@ export async function generateSemanticAiQaSuggestions(input:{
   if(!raw)return fail("AI nevrátila použitelný výsledek; nic se nezměnilo.");
   const parsed=JSON.parse(raw) as {suggestions:AiQaSuggestion[]};
   if(!Array.isArray(parsed.suggestions)||parsed.suggestions.length!==flags.length)
-   return fail("AI vrátila neúplný seznam. Návrhy nebyly přijaty.");
+   return fail("AI vrátila neúplný seznam. Návrhy nebyly přijaty.",usage);
   const expected=new Map(flags.map(f=>[f.id,f]));
   const seen=new Set<string>();
   for(const suggestion of parsed.suggestions){
@@ -86,14 +86,14 @@ export async function generateSemanticAiQaSuggestions(input:{
    if(!flag||seen.has(suggestion.flagId)||!actions.has(suggestion.action)||
       typeof suggestion.term!=="string"||typeof suggestion.rationale!=="string"||
       suggestion.rationale.length>500||suggestion.term.length>80)
-    return fail("AI vrátila neplatný návrh. Žádná oprava se neprovedla.");
+    return fail("AI vrátila neplatný návrh. Žádná oprava se neprovedla.",usage);
    seen.add(suggestion.flagId);
    if(["compact","airy","center"].includes(suggestion.action)&&
       !["typography","structure"].includes(flag.kind))
-    return fail("AI navrhla nepovolenou změnu druhu bloku.");
+    return fail("AI navrhla nepovolenou změnu druhu bloku.",usage);
    if(suggestion.action==="protect_term"&&(!suggestion.term.trim()||
      !byAtom.get(flag.target_atom_id)?.atom.raw.includes(suggestion.term.trim())))
-    return fail("AI navrhla ochranu výrazu, který se nenachází v bloku.");
+    return fail("AI navrhla ochranu výrazu, který se nenachází v bloku.",usage);
   }
   return {ok:true,message:"Návrhy AI jsou připraveny ke kontrole; zatím nic nemění.",suggestions:parsed.suggestions,usage};
  }catch{
