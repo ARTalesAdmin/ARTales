@@ -15,7 +15,7 @@ type Props={candidateId:string;revisionSha:string;selectedAtomId:string|null;
  selectedText:string|null;flags:SemanticQaFlag[];onSelect:(atomId:string)=>void;
  readonly?:boolean;databaseReady:boolean;onSaved:()=>void;onFindingAdded:()=>void;
  canCommitBatch:boolean;onPreview:(revision:SemanticRevision)=>void;
- onStartReview:()=>void;aiJobPending:boolean;
+ onStartReview:()=>void;onOpenProposalReview:()=>void;aiJobPending:boolean;
  currentTaskId:string|null;currentChangeIssues:SemanticReviewIssue[];
  reviewDecisions:{issue_id:string;decision:string;note:string|null;reviewed_at:string}[]};
 const kinds=[{value:"text",label:"Text"},{value:"typography",label:"Sazba a řádky"},
@@ -209,13 +209,13 @@ export default function SemanticQaPanel(p:Props){
       <p>Úloha je trvale evidovaná. Můžeš počkat zde, nebo okno zavřít.
        Po návratu se načte výsledek stejné revize. Délku zpracování nelze spolehlivě odhadnout.</p>:null}
     </div>:null}
-   {aiSuggestions.length?<div style={{marginTop:12}}>
-    <h4>Výsledek AI</h4>
-    {aiSuggestions.map(s=><p key={s.flagId}>
-     <strong>{s.action==="manual_review"?"Nutná ruční kontrola":s.action==="protect_term"?
-      "Ochrana výrazu: "+s.term:"Návrh: "+s.action}</strong>
-     {" — "}{s.rationale}
-    </p>)}
+   {aiSuggestions.length?<div className="semantic-qa-panel__ai-ready">
+    <p><strong>{aiSuggestions.length} návrhů AI připraveno.</strong>
+     Projdi je jeden po druhém, potvrď nebo odmítni a společně ulož.
+     Není potřeba další placené generování.</p>
+    <button type="button" onClick={p.onOpenProposalReview}>
+     Projít návrhy a vytvořit revizi
+    </button>
    </div>:null}
   </section>
   <section className="semantic-qa-panel__next">
@@ -290,7 +290,7 @@ export default function SemanticQaPanel(p:Props){
      </article>)}
    </div>
   </details>
-  {ready.length>0?<section className="semantic-qa-panel__batch">
+  {ready.length>0&&!aiSuggestions.length?<section className="semantic-qa-panel__batch">
    <p>Bezpečný okamžitý náhled změn formátování lze vykreslit ještě před uložením.
       Text, pořadí ani zdrojové kotvy se nemění.</p>
    <button type="button" disabled={pending||!p.databaseReady} onClick={preview}>
@@ -303,7 +303,7 @@ export default function SemanticQaPanel(p:Props){
     Provést {ready.length} oprav a vytvořit novou revizi
    </button></>:null}
   </section>:null}
-  {!p.canCommitBatch&&ready.length>0?<p>Opravu lze uložit pouze vlastníkovi právě převzatého QA úkolu;
+  {!p.canCommitBatch&&ready.length>0&&!aiSuggestions.length?<p>Opravu lze uložit pouze vlastníkovi právě převzatého QA úkolu;
     případně požádej garanta o přiřazení práce.</p>:null}
   <p role="status" aria-live="polite">{feedback}</p>
   <small>Semantické změny, které nelze provést bezpečným pravidlem,
