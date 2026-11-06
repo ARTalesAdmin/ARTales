@@ -50,3 +50,16 @@ test("failed or unavailable queue reports its reason beside the AI trigger",()=>
  assert.match(actions,/VERCEL_OIDC_TOKEN/);
  assert.match(actions,/databázová chyba/);
 });
+
+test("canonical UUID validation accepts Pan candidate, claimed task and job IDs",()=>{
+ const match=actions.match(/const uuid=\/(.+?)\/i;/);
+ assert.ok(match,"server action must declare a UUID validator");
+ const uuid=new RegExp(match[1],"i");
+ assert.equal(uuid.test("98508359-bce1-4e73-b842-b69a9d1112d0"),true);
+ assert.equal(uuid.test("fe8257aa-d624-41f3-9e7c-24b49ad02455"),true);
+ assert.equal(uuid.test("22cd2a55-7d34-468c-b567-ff87df6bdce6"),true);
+ assert.equal(uuid.test("98508359-bce1-4e73-b842-b69a9d1112d"),false);
+ assert.equal(uuid.test("98508359-bce1-4e73-b842-b69a9d1112d0-extra"),false);
+ const sha=/^[a-f0-9]{64}$/;
+ assert.equal(sha.test("b8f99acc5abc5c965ec2707cca66abebb45fd4b9592c1dea79d20960b50f35b8"),true);
+});
