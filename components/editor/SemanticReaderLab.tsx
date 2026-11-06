@@ -481,6 +481,13 @@ export default function SemanticReaderLab({
     </section>}
     {generalOpen&&<GeneralQaDialog candidateId={candidateId} revisionSha={revisionSha}
       exampleAtomId={selectedAtomId} exampleText={selectedText??null}
+      getExcerpt={id=>{
+       const unit=allUnits.find(u=>u.source_atom_ids.includes(id));
+       if(!unit)return "";
+       if("atom" in unit.node)return unit.node.atom.raw;
+       if(unit.node.kind==="chapter"||unit.node.kind==="section")return unit.node.heading.raw;
+       return unit.node.kind==="poem"?unit.node.stanzas.flatMap(s=>s.lines.map(l=>l.atom.raw)).join(" "):"";
+      }}
       onFindAtom={jumpToAtomWithoutNote} onClose={()=>setGeneralOpen(false)}/>}
     {previewRevision?<div role="status" className="semantic-reader__live-preview">
       <strong>Náhled opravené sazby · neuloženo</strong>
