@@ -6,9 +6,18 @@ import type {AiQaSuggestion} from "@/lib/semantic/aiQaProposalEngine";
 const uuid=/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{12}$/i;
 const sha=/^[a-f0-9]{64}$/;
 const enabled=()=>process.env.ARTALES_AI_DURABLE_JOBS_ENABLED==="enabled";
-const configured=()=>Boolean(process.env.CRON_SECRET&&process.env.CRON_SECRET.length>=16&&
- process.env.SUPABASE_SERVICE_ROLE_KEY&&process.env.VERCEL_OIDC_TOKEN&&
- process.env.ARTALES_EDITORIAL_AI_MODEL);
+// Report only the missing capability, never environment values or credentials.
+function configurationIssue():string|null{
+ if(!process.env.CRON_SECRET||process.env.CRON_SECRET.length<16)
+  return "Chybí autorizace interní AI fronty (cron).";
+ if(!process.env.SUPABASE_SERVICE_ROLE_KEY)
+  return "Není dostupné serverové spojení s databází.";
+ if(!process.env.VERCEL_OIDC_TOKEN)
+  return "Vercel AI Gateway není připravena: chybí OIDC token serveru.";
+ if(!process.env.ARTALES_EDITORIAL_AI_MODEL)
+  return "Není nakonfigurovaný AI model.";
+ return null;
+}
 export type QaJobStatus={
  ok:boolean;jobId:string|null;status:"queued"|"running"|"completed"|"failed"|"none";
  message:string;suggestions:AiQaSuggestion[];appliedRevisionSha?:string|null;disabled?:boolean;
@@ -35,13 +44,19 @@ export async function enqueueSemanticAiQaJob(input:{
  if(!enabled())return {...fail("Trvalá AI fronta zatím není zapnutá."),disabled:true};
  if(!uuid.test(input.candidateId)||!sha.test(input.revisionSha))
   return fail("Neplatná identita díla nebo revize.");
- if(!configured())return fail("Trvalá AI fronta není úplně nastavena; úloha nevznikla.");
+ const missing=configurationIssue();
+ if(missing)return fail("Úloha nevznikla. "+missing);
  const db=await createClient();
  const {data,error}=await db.rpc("artales_enqueue_ai_qa_job",{
   p_candidate_id:input.candidateId,p_revision_sha256:input.revisionSha
  });
- if(error||!data||!["queued","existing"].includes(data.result)||!uuid.test(data.job_id??""))
-  return fail("Úlohu nelze zařadit: "+String(data?.result??"nedostupná DB vrstva"));
+ if(error){
+  // Only the PostgREST error code is shown, never the SQL query or credentials.
+  return fail("Úlohu nelze zařadit: databázová chyba ("+(error.code??"neznámý kód")+").");
+ }
+ if(!data)return fail("Úlohu nelze zařadit: databáze nevrátila výsledek.");
+ if(!["queued","existing"].includes(data.result)||!uuid.test(data.job_id??""))
+  return fail("Úlohu nelze zařadit ("+String(data.result??"neznámý stav")+").");
  return readSemanticAiQaJob({jobId:data.job_id});
 }
 export async function readSemanticAiQaJob(input:{jobId:string}):Promise<QaJobStatus>{
@@ -61,6 +76,8 @@ export async function lastSemanticAiQaJob(input:{
 }):Promise<QaJobStatus>{
  const actor=await requireEditorOrAdmin();
  if(!enabled())return fail("Trvalá AI fronta zatím není zapnutá.");
+ const missing=configurationIssue();
+ if(missing)return fail("ARTales AI není připravena. "+missing);
  if(!uuid.test(input.candidateId)||!sha.test(input.revisionSha))
   return fail("Neplatná identita díla nebo revize.");
  const db=await createClient();
