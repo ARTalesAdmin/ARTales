@@ -1,7 +1,7 @@
 import type {SupabaseClient} from "@supabase/supabase-js";
 import {verifySemanticRevision,walkSemanticAtoms,recomposeSemanticBatch} from "@/lib/semantic/compose";
 import type {SemanticRevision} from "@/lib/semantic/model";
-const uuid=/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{12}$/i;
+const uuid=/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const sha=/^[a-f0-9]{64}$/;
 
 export type EditorialBatchAction="exclude_note"|"compact"|"airy"|"center";
