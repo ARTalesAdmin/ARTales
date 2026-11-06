@@ -24,6 +24,7 @@ CREATE INDEX IF NOT EXISTS artales_ai_usage_member_idx
  ON public.artales_semantic_ai_usage(requested_by,recorded_at DESC);
 ALTER TABLE public.artales_semantic_ai_usage ENABLE ROW LEVEL SECURITY;
 REVOKE ALL ON public.artales_semantic_ai_usage FROM PUBLIC,anon,authenticated;
+GRANT SELECT, INSERT ON public.artales_semantic_ai_usage TO service_role;
 GRANT SELECT ON public.artales_semantic_ai_usage TO authenticated;
 CREATE POLICY artales_ai_usage_read_admin ON public.artales_semantic_ai_usage
  FOR SELECT TO authenticated USING(
