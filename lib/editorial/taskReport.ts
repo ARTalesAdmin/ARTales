@@ -58,7 +58,7 @@ export function buildEditorialTaskReport(
   if(active)title.active++;
   if(finished){
    title.completed++;
-   const doer=t.completed_by??t.assigned_to;
+   const doer=t.assigned_to??t.completed_by;
    if(doer){
     if(!byMember.has(doer))byMember.set(doer,{
      id:doer,name:users.get(doer)??"Neaktivní editor",

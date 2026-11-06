@@ -1,6 +1,7 @@
 import Link from "next/link";
 import {requireAdmin} from "@/lib/guards";
 import {createClient} from "@/lib/supabase/server";
+import {getEditorialPeople} from "@/lib/editorial/staffDirectory";
 import {
  buildEditorialTaskReport,monthKey,type EditorialReportTask
 } from "@/lib/editorial/taskReport";
@@ -32,16 +33,18 @@ export default async function EditorialReport({
  const db=await createClient();
  const tasks=await readAllTasks(db);
  const ids=[...new Set(tasks.map(t=>t.candidate_id))];
- const [membersRes,...workResults]=await Promise.all([
-  db.from("profiles").select("id,display_name").in("role",["admin","editor"]).limit(500),
-  ...Array.from({length:Math.ceil(ids.length/100)},(_,i)=>
+ const memberIds=[...new Set(tasks.flatMap(t=>[t.assigned_to,t.completed_by])
+  .filter((id):id is string=>Boolean(id)))];
+ const [people,workResults]=await Promise.all([
+  getEditorialPeople(memberIds),
+  Promise.all(Array.from({length:Math.ceil(ids.length/100)},(_,i)=>
    db.from("work_candidates").select("id,proposed_title")
-    .in("id",ids.slice(i*100,(i+1)*100)))
+    .in("id",ids.slice(i*100,(i+1)*100))))
  ]);
- if(membersRes.error||workResults.some(result=>result.error)){
+ if(workResults.some(result=>result.error)){
   throw Error("Redakční statistiky nebylo možné kompletně načíst.");
  }
- const members=(membersRes.data??[]).map(p=>({id:p.id,name:p.display_name??"Člen redakce"}));
+ const members=people.map(p=>({id:p.id,name:p.display_name?.trim()||"Člen redakce"}));
  const works=workResults.flatMap(r=>r.data??[])
   .map(w=>({id:w.id,title:w.proposed_title??"Dílo bez názvu"}));
  const requested=(await searchParams).month;
@@ -119,7 +122,7 @@ export default async function EditorialReport({
     </tr>)}</tbody>
    </table></div>
    <p className="ed-quiet">Přiřazeno = současný vlastník úkolu; dokončeno = skutečný
-    autor uzavření. Historické přesuny vlastnictví se nepřisuzují současnému členovi.</p>
+    vykonavatel úkolu dle přiřazení. Audit zaznamenává zvlášť, kdo úkol uzavřel.</p>
   </section>
   <section className="ed-card ed-report__section">
    <div className="ed-report__section-heading"><div><p className="ed-eyebrow">Tituly</p>
