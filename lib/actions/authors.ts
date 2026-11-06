@@ -91,7 +91,7 @@ export async function updateAuthor(
     .maybeSingle()
 
   if (error || !savedAuthor) {
-    const message = error.message.toLowerCase()
+    const message = error?.message.toLowerCase() ?? ""
 
     if (message.includes("duplicate") || message.includes("unique")) {
       redirect(`/member/authors/${originalSlug}/edit?error=slug_taken`)
