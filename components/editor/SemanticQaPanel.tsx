@@ -62,7 +62,8 @@ export default function SemanticQaPanel(p:Props){
  };
  const acceptAiSuggestions=(suggestions:AiQaSuggestion[])=>{
    setAiSuggestions(suggestions);
-   // All suggested modifications remain uncommitted until independently approved.
+   // Layout fixes are recorded by the authorized job; any remaining proposals
+   // can be previewed or corrected by the assigned QA editor.
    const next:Record<string,EditorialBatchAction|"">={};
    for(const suggestion of suggestions){
     if(["compact","airy","center"].includes(suggestion.action))
@@ -95,7 +96,10 @@ export default function SemanticQaPanel(p:Props){
      setJob(result);
      if(result.status==="completed"){
       if(result.appliedRevisionSha)router.refresh();
-      else acceptAiSuggestions(result.suggestions);
+      else {
+       acceptAiSuggestions(result.suggestions);
+       if(result.suggestions.some(s=>s.action==="protect_term"))router.refresh();
+      }
      }
      if(result.status==="failed")setFeedback(result.message);
     });
@@ -220,9 +224,9 @@ export default function SemanticQaPanel(p:Props){
   </section>
   <section className="semantic-qa-panel__batch">
    <h3>AI návrh oprav</h3>
-   <p>AI přečte pouze otevřené nálezy a okolí dotčených bloků.
-    Připraví návrhy k posouzení; žádný text nepřepíše, nález neuzavře ani revizi neuloží.
-    Volba a potvrzení bezpečných oprav zůstává na redakci.</p>
+   <p>ARTales AI zpracuje otevřené nálezy a bezpečné opravy sazby provede sama.
+    Jména a názvy chrání před zalomením bez zásahu do originálního textu.
+    Výsledek editor zkontroluje; nejisté nálezy zůstanou otevřené.</p>
    <button type="button" disabled={pending||!p.databaseReady||!p.currentTaskId||open.length<1||open.length>25||job?.status==="queued"||job?.status==="running"}
     onClick={requestAi}>Předat {open.length} nálezů do fronty ARTales AI</button>
    {job?.jobId?<div role="status" aria-live="polite">
