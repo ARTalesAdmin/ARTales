@@ -492,7 +492,7 @@ export default function SemanticReaderLab({
                     }}>
                     {notesAtUnit.length>1?notesAtUnit.length:null}
                   </button>}
-                  {unitView(u)}</div>;
+                  {unitView(u,protectedTerms)}</div>;
               })}
               <footer>QA strana {page.index+2}
                 {page.overflow==="scroll_unit"?" · dlouhý celek, bez rozdělení":""}
