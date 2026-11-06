@@ -237,6 +237,22 @@ BEGIN
  FROM public.artales_editorial_tasks t
  WHERE t.candidate_id=p_candidate_id AND t.revision_sha256=p_parent_sha
   AND t.kind='text_review' AND t.status='superseded';
+
+ -- Preserve the same active QA session: the freshly created, owner-bound task
+ -- becomes claimed before returning the revision. This is a continuation of
+ -- the editor's own claimed task, not a new assignment decision.
+ UPDATE public.artales_editorial_tasks SET status='claimed'
+ WHERE candidate_id=p_candidate_id AND revision_sha256=v_new_sha
+  AND kind='text_review' AND assigned_to=p_editor_id AND status='open';
+ GET DIAGNOSTICS v_changed=ROW_COUNT;
+ IF v_changed<>1 THEN RAISE EXCEPTION 'qa_session_continuation_failed';END IF;
+ INSERT INTO public.artales_editorial_events(task_id,actor_id,action,note,from_assignee,to_assignee)
+ SELECT t.id,p_editor_id,'claimed','Automatické pokračování téže QA seance po nové revizi',
+  p_editor_id,p_editor_id
+ FROM public.artales_editorial_tasks t
+ WHERE t.candidate_id=p_candidate_id AND t.revision_sha256=v_new_sha
+  AND t.kind='text_review' AND t.assigned_to=p_editor_id AND t.status='claimed';
+
  
  IF p_job_id IS NOT NULL THEN
   UPDATE public.artales_semantic_ai_qa_jobs SET status='completed',

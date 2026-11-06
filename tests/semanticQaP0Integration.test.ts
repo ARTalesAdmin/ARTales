@@ -34,3 +34,9 @@ test("dual QA pages use protected terms and preview is isolated",()=>{
  assert.match(lab,/unitView\(u,protectedTerms\)/);
  assert.match(lab,/setPreview\(null\)/);
 });
+test("an atomic semantic commit continues the same editor QA session",()=>{
+ assert.match(sql,/qa_session_continuation_failed/);
+ assert.match(sql,/assigned_to=p_editor_id AND status='open'/);
+ assert.match(sql,/status='claimed'/);
+ assert.match(sql,/Automatické pokračování téže QA seance/);
+});
