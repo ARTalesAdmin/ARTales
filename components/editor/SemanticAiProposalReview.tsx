@@ -15,7 +15,7 @@ type Props={
  candidateId:string;revisionSha:string;flags:Flag[];
  onClose:()=>void;onFind:(atomId:string)=>void;
  onPreview:(revision:SemanticRevision)=>void;
- onClearPreview:()=>void;onShowFinalReview:()=>void;
+ onClearPreview:()=>void;onApplied:(revisionCreated:boolean)=>void;
 };
 const actionLabel:Record<AiQaSuggestion["action"],string>={
  compact:"Zhuštění sazby",airy:"Vzdušnější sazba",center:"Zarovnání na střed",
@@ -96,6 +96,7 @@ export default function SemanticAiProposalReview(p:Props){
     setMessage(result.message);
     if(result.ok){
      setSaved(true);p.onClearPreview();
+     p.onApplied(result.revisionCreated);
      router.refresh();
     }
    }catch{setMessage("Ukládání rozhodnutí se nezdařilo. Před opakováním ověř aktuální revizi.");}
@@ -162,7 +163,7 @@ export default function SemanticAiProposalReview(p:Props){
   </div>:null}
   {saved?<div className="semantic-reader__proposal-finished">
    <p>Rozhodnutí jsou uložená. Otevři aktuální revizi a zkontroluj změněné bloky.</p>
-   <button type="button" onClick={()=>{p.onClose();p.onShowFinalReview();}}>
+   <button type="button" onClick={p.onClose}>
     Přejít ke kontrole výsledné revize</button>
   </div>:null}
   {message?<p role="status" aria-live="polite">{message}</p>:null}
