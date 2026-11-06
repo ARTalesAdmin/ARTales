@@ -12,12 +12,13 @@ import type {SemanticRevision, SemanticNode, SemanticAtom, SemanticPoem, Semanti
 import {getSemanticPageUnits, projectSemanticReader, verifyReaderProjection} from "@/lib/semantic/readerProjection";
 import {selectEditorialEdition} from "@/lib/semantic/editionProjection";
 import SemanticQaPanel,{type SemanticQaFlag} from "./SemanticQaPanel";
+import SemanticReviewBar from "./SemanticReviewBar";
 import GeneralQaDialog from "./GeneralQaDialog";
 import "./semantic-reader.css";
 
 type Props={revision:SemanticRevision;original:string;profileReaderDefaults?:FixtureProfileReaderDefaults|null;
  candidateId:string;revisionSha:string;editionTitle:string;editionAuthor:string;
- flags:SemanticQaFlag[];qaDatabaseReady:boolean;protectedTerms:string[];
+ flags:SemanticQaFlag[];qaDatabaseReady:boolean;aiJobPending:boolean;protectedTerms:string[];
  systemSignals:{atomId:string;sourceStart:number;reason:string;kind:"source_ambiguity"}[];
  canCommitBatch:boolean;currentTaskId:string|null;
  reviewDecisions:{issue_id:string;decision:string;note:string|null;reviewed_at:string}[];}
@@ -103,7 +104,7 @@ function sameMeasurements(a:BrowserMeasurements|null,b:BrowserMeasurements) {
 
 export default function SemanticReaderLab({
  revision,original,profileReaderDefaults=null,candidateId,revisionSha,editionTitle,editionAuthor,
- flags,qaDatabaseReady,protectedTerms,systemSignals,canCommitBatch,currentTaskId,reviewDecisions
+ flags,qaDatabaseReady,aiJobPending,protectedTerms,systemSignals,canCommitBatch,currentTaskId,reviewDecisions
 }:Props) {
   const accountPreferences=getProfileReaderSettings(profileReaderDefaults)??defaultReaderSettings;
   const [readerMode,setReaderMode]=useState<"scroll"|"spread">("scroll");
@@ -114,6 +115,8 @@ export default function SemanticReaderLab({
   const [focus,setFocus]=useState(false);
   const [selectedAtomId,setSelectedAtomId]=useState<string|null>(null);
   const [qaPanelOpen,setQaPanelOpen]=useState(false);
+  const [reviewBarOpen,setReviewBarOpen]=useState(false);
+  const [reviewFocusAtomId,setReviewFocusAtomId]=useState<string|null>(null);
   const [generalOpen,setGeneralOpen]=useState(false);
   const [showSearch,setShowSearch]=useState(false);
   const [searchQuery,setSearchQuery]=useState("");
@@ -145,6 +148,23 @@ export default function SemanticReaderLab({
   const measured=metrics?.key===measureKey?metrics:null;
   const allUnits=useMemo(()=>getSemanticPageUnits(activeRevision,edition.range),[activeRevision,edition]);
   const sourceRegions=useMemo(()=>buildSemanticSourceRegions(original,allUnits,edition.range),[original,allUnits,edition]);
+  // Colors reflect persisted review decisions, not whichever block the editor clicked.
+  const currentReviewIssues=revision.review_issues.filter(issue=>issue.round===revision.round);
+  const reviewDecisionById=new Map(reviewDecisions.map(d=>[d.issue_id,d.decision]));
+  const unreviewedIssues=currentReviewIssues.filter(issue=>!reviewDecisionById.has(issue.id));
+  const reviewStateByAtom=new Map<string,"pending"|"accepted"|"returned">();
+  for(const issue of currentReviewIssues){
+    const state=reviewDecisionById.get(issue.id)==="accepted"?"accepted":
+      reviewDecisionById.get(issue.id)==="returned"?"returned":"pending";
+    const old=reviewStateByAtom.get(issue.target_atom_id);
+    if(!old||state==="pending"||(state==="returned"&&old==="accepted"))
+      reviewStateByAtom.set(issue.target_atom_id,state);
+  }
+  const reviewStateForUnits=(atomIds:readonly string[])=>
+   atomIds.map(id=>reviewStateByAtom.get(id)).find(x=>x==="pending") ??
+   atomIds.map(id=>reviewStateByAtom.get(id)).find(x=>x==="returned") ??
+   atomIds.map(id=>reviewStateByAtom.get(id)).find(x=>x==="accepted");
+
   const regionIndices=useMemo(()=>new Map(sourceRegions.filter(x=>x.regionIndex!==null && x.unitId!==null)
     .map(x=>[x.unitId!,x.regionIndex!])),[sourceRegions]);
   const unitsById=useMemo(()=>new Map(allUnits.map(u=>[u.id,u])),[allUnits]);
@@ -296,6 +316,7 @@ export default function SemanticReaderLab({
     pane.scrollTo({top:pane.scrollTop+current-25,behavior:"smooth"});
   };
   const selectAtom=(id:string)=>{
+    setReviewBarOpen(false);setReviewFocusAtomId(null);
     if(selectedAtomId===id){setSelectedAtomId(null);setQaPanelOpen(false);return;}
     setSelectedAtomId(id);setQaPanelOpen(true);
     const unit=allUnits.find(u=>u.source_atom_ids.includes(id));
@@ -303,6 +324,22 @@ export default function SemanticReaderLab({
       scrollToMarker(sourceRef.current,unit.id);
       scrollToMarker(composedRef.current,unit.id);
     }
+  };
+  const locateReviewAtom=(atomId:string)=>{
+    const unit=allUnits.find(u=>u.source_atom_ids.includes(atomId));
+    if(!unit)return;
+    setSelectedAtomId(null);setQaPanelOpen(false);setReviewFocusAtomId(atomId);
+    const rootId=unit.fragment?.original_unit_id??unit.id;
+    scrollToMarker(sourceRef.current,rootId);
+    const exact=[...(composedRef.current?.querySelectorAll<HTMLElement>(
+      '[data-qa-projection="visible"] [data-page-unit-id]')??[])].find(
+        element=>element.dataset.pageUnitId===unit.id);
+    if(exact)exact.scrollIntoView({behavior:"smooth",block:"center"});
+  };
+  const openReview=()=>{
+    setQaPanelOpen(false);setReviewBarOpen(true);
+    const first=unreviewedIssues[0]??currentReviewIssues[0];
+    if(first)locateReviewAtom(first.target_atom_id);
   };
   const goToSearchMatch=(index:number)=>{
     if(!searchMatches.length)return;
@@ -447,6 +484,14 @@ export default function SemanticReaderLab({
           aria-expanded={qaPanelOpen} onClick={()=>setQaPanelOpen(v=>!v)}>
           Nálezy ({flags.filter(f=>f.status==="open").length})
         </button>
+        {currentReviewIssues.length>0?<button type="button"
+          className="semantic-reader__fullscreen-button semantic-reader__fullscreen-button--review"
+          aria-pressed={reviewBarOpen} onClick={()=>{
+           if(reviewBarOpen){setReviewBarOpen(false);setReviewFocusAtomId(null);}
+           else openReview();
+          }}>
+          Ověřit opravy ({unreviewedIssues.length})
+        </button>:null}
         <button type="button" className="semantic-reader__fullscreen-button"
           aria-expanded={showSearch} onClick={()=>setShowSearch(v=>!v)}>
           Hledat v textu
@@ -484,6 +529,14 @@ export default function SemanticReaderLab({
        onClick={()=>goToSearchMatch(activeSearchIndex+1)}>Další</button>
       <button type="button" onClick={()=>{setShowSearch(false);setActiveSearchUnit(null);}}>Zavřít</button>
     </section>}
+    {reviewBarOpen&&<SemanticReviewBar key={revisionSha}
+      candidateId={candidateId} revisionSha={revisionSha} taskId={currentTaskId}
+      issues={currentReviewIssues} decisions={reviewDecisions}
+      openFindings={flags.filter(f=>f.status==="open").length}
+      aiJobPending={aiJobPending} databaseReady={qaDatabaseReady}
+      onFind={locateReviewAtom}
+      onClose={()=>{setReviewBarOpen(false);setReviewFocusAtomId(null);}}
+      onFinished={()=>{setReviewBarOpen(false);setReviewFocusAtomId(null);}}/>}
     {generalOpen&&<GeneralQaDialog candidateId={candidateId} revisionSha={revisionSha}
       exampleAtomId={selectedAtomId} exampleText={selectedText??null}
       getExcerpt={id=>{
@@ -506,7 +559,8 @@ export default function SemanticReaderLab({
       <SemanticQaPanel candidateId={candidateId} revisionSha={revisionSha}
         selectedAtomId={selectedAtomId} selectedText={selectedText??null}
         flags={flags} databaseReady={qaDatabaseReady} onSelect={selectAtom}
-        canCommitBatch={canCommitBatch}
+        canCommitBatch={canCommitBatch} aiJobPending={aiJobPending}
+        onStartReview={openReview}
         currentTaskId={currentTaskId} reviewDecisions={reviewDecisions}
         currentChangeIssues={revision.review_issues.filter(issue=>issue.round===revision.round)}
         onPreview={next=>{setPreview({parentSha:revisionSha,draft:next});setPageNumber(0);setQaPanelOpen(false);}}
@@ -529,8 +583,10 @@ export default function SemanticReaderLab({
             data-selected={part.unitId&&selectedUnit?.id===part.unitId?"true":undefined}
             data-review-signal={part.unitId&&systemSignals.some(s=>
               unitsById.get(part.unitId??"")?.source_atom_ids.includes(s.atomId))?"true":undefined}
-            data-review-fixed={part.unitId&&activeRevision.review_issues.some(issue=>
-              issue.round===activeRevision.round&&unitsById.get(part.unitId??"")?.source_atom_ids.includes(issue.target_atom_id))?"true":undefined}
+            data-review-state={part.unitId?
+              reviewStateForUnits(unitsById.get(part.unitId)?.source_atom_ids??[]):undefined}
+            data-review-focus={part.unitId&&reviewFocusAtomId&&
+              unitsById.get(part.unitId)?.source_atom_ids.includes(reviewFocusAtomId)?"true":undefined}
             {...(part.regionIndex!==null?{"data-region-index":part.regionIndex}:{})}
             data-source-start={part.start} data-source-end={part.end}
             className="semantic-reader__source-region">
@@ -575,8 +631,9 @@ export default function SemanticReaderLab({
                   data-search-current={activeSearchUnit===u.id?"true":undefined}
                   data-review-flag={showOpenFlags&&flags.some(f=>f.status==="open"&&u.source_atom_ids.includes(f.target_atom_id))?"open":undefined}
                   data-review-signal={systemSignals.some(s=>u.source_atom_ids.includes(s.atomId))?"true":undefined}
-                  data-review-fixed={activeRevision.review_issues.some(issue=>issue.round===activeRevision.round&&
-                    u.source_atom_ids.includes(issue.target_atom_id))?"true":undefined}
+                  data-review-state={reviewStateForUnits(u.source_atom_ids)}
+                  data-review-focus={reviewFocusAtomId&&
+                    u.source_atom_ids.includes(reviewFocusAtomId)?"true":undefined}
                   {...(regionIndices.has(u.fragment?.original_unit_id??u.id)?{"data-region-index":regionIndices.get(u.fragment?.original_unit_id??u.id)}:{})}>
                   {u.source_atom_ids[0]&&<button type="button"
                     className="semantic-reader__block-picker"
