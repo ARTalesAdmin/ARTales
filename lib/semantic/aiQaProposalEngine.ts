@@ -1,3 +1,5 @@
+import {requestArtalesAiResponse} from "@/lib/semantic/artalesAiGateway";
+import type {ArtalesAiUsage} from "@/lib/semantic/aiGatewayUsage";
 import type {SupabaseClient} from "@supabase/supabase-js";
 import {verifySemanticRevision,walkSemanticAtoms} from "@/lib/semantic/compose";
 import type {SemanticRevision} from "@/lib/semantic/model";
@@ -9,21 +11,18 @@ export type AiQaSuggestion={
  term:string;
  rationale:string;
 };
-export type AiQaSuggestResult={ok:boolean;message:string;suggestions:AiQaSuggestion[]};
+export type AiQaSuggestResult={ok:boolean;message:string;suggestions:AiQaSuggestion[];usage?:ArtalesAiUsage|null};
 const sha=/^[a-f0-9]{64}$/;
 const uuid=/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const actions=new Set(["compact","airy","center","protect_term","manual_review"]);
 const text=(s:string,limit:number)=>s.length>limit?s.slice(0,limit)+" [zkráceno]":s;
 
 export async function generateSemanticAiQaSuggestions(input:{
- candidateId:string;revisionSha:string;expectedFlagIds?:string[]
+ candidateId:string;revisionSha:string;editorId:string;expectedFlagIds?:string[]
 },db:SupabaseClient):Promise<AiQaSuggestResult>{
  const fail=(message:string):AiQaSuggestResult=>({ok:false,message,suggestions:[]});
  if(!uuid.test(input.candidateId)||!sha.test(input.revisionSha))
   return fail("Neplatná identita díla nebo revize.");
- const apiKey=process.env.ARTALES_EDITORIAL_AI_API_KEY;
- const model=process.env.ARTALES_EDITORIAL_AI_MODEL;
- if(!apiKey||!model)return fail("AI redakční návrhy nejsou aktivované. Chybí serverová konfigurace.");
  const [{data:record,error:revisionError},{data:flags,error:flagError}]=await Promise.all([
   db.from("candidate_semantic_revisions").select("revision,source_text,revision_sha256")
    .eq("candidate_id",input.candidateId).order("created_at",{ascending:false})
@@ -66,31 +65,16 @@ export async function generateSemanticAiQaSuggestions(input:{
   }
  };
  try{
-  const response=await fetch("https://api.openai.com/v1/responses",{
-   method:"POST",headers:{"Content-Type":"application/json",
-    Authorization:"Bearer "+apiKey},
-   body:JSON.stringify({model,store:false,max_output_tokens:2200,
-    instructions:[
-     "Jsi konzervativní redakční navrhovatel ARTales. Nevytvářej ani neměň literární text.",
-     "Pracuj pouze s dodanými nálezy přesné revize. Pro každý flagId vrať právě jeden návrh.",
-     "Povolené akce: compact/airy/center jen pro typografické/strukturální nálezy;",
-     "Nikdy nenavrhuj vyřazení textu, věty, poznámky ani jiného úseku z vydání;",
-     "protect_term pro explicitní jméno nebo výraz, který se nesmí dělit;",
-     "manual_review pro vše ostatní či nejisté případy.",
-     "Jakýkoliv problém s textem či s původem poznámky je manual_review.",
-     "Zdůvodnění piš stručně česky. Nepřidávej neznámé flagId."
-    ].join(" "),
-    input:JSON.stringify({schema:"artales/editorial-ai-suggestions/v1",
-     revisionSha:input.revisionSha,requests}),
-    text:{format:{type:"json_schema",name:"artales_qa_suggestions",strict:true,schema}}
-   }),
-   signal:AbortSignal.timeout(30000)
+  const {body,usage}=await requestArtalesAiResponse({
+   candidateId:input.candidateId,editorId:input.editorId,
+   instructions:"Jsi konzervativní redakční navrhovatel ARTales. Nevytvářej ani neměň literární text. Pracuj pouze s dodanými nálezy přesné revize. Pro každý flagId vrať právě jeden návrh. compact/airy/center jen pro typografické nebo strukturální nálezy; nikdy nezahazuj text. protect_term pro jména, názvy a jiné výrazy, které nemají být rozděleny. manual_review pro nejisté či obsahové nálezy. Zdůvodnění stručně česky. Neznámé flagId a změny originálního textu jsou zakázány.",
+   payload:{schema:"artales/editorial-ai-suggestions/v1",
+     revisionSha:input.revisionSha,requests},
+   schemaName:"artales_qa_suggestions",schema
   });
-  if(!response.ok)return fail("AI poskytovatel požadavek nepřijal; nic se nezměnilo.");
-  const body=await response.json() as {status?:string;output?:Array<{content?:Array<{type:string;text?:string}>}>};
-  if(body.status!=="completed")return fail("Model nevrátil dokončený výstup.");
-  const raw=(body.output??[]).flatMap(o=>o.content??[])
-    .filter(c=>c.type==="output_text").map(c=>c.text??"").join("");
+  const output=body.output as Array<{content?:Array<{type:string;text?:string}>}>|undefined;
+  const raw=(output??[]).flatMap(o=>o.content??[])
+   .filter(x=>x.type==="output_text").map(x=>x.text??"").join("");
   if(!raw)return fail("AI nevrátila použitelný výsledek; nic se nezměnilo.");
   const parsed=JSON.parse(raw) as {suggestions:AiQaSuggestion[]};
   if(!Array.isArray(parsed.suggestions)||parsed.suggestions.length!==flags.length)
@@ -111,7 +95,7 @@ export async function generateSemanticAiQaSuggestions(input:{
      !byAtom.get(flag.target_atom_id)?.atom.raw.includes(suggestion.term.trim())))
     return fail("AI navrhla ochranu výrazu, který se nenachází v bloku.");
   }
-  return {ok:true,message:"Návrhy AI jsou připraveny ke kontrole; zatím nic nemění.",suggestions:parsed.suggestions};
+  return {ok:true,message:"Návrhy AI jsou připraveny ke kontrole; zatím nic nemění.",suggestions:parsed.suggestions,usage};
  }catch{
   return fail("AI návrh se nepodařilo bezpečně získat nebo ověřit; žádná data nebyla změněna.");
  }
