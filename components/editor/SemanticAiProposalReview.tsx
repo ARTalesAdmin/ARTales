@@ -8,7 +8,7 @@ import {lastSemanticAiQaJob,type QaJobStatus}
 import {previewSemanticQaBatch} from "@/app/member/semantic/[candidateId]/qa-actions";
 import {applyReviewedQaProposals} from "@/app/member/semantic/[candidateId]/qa-proposal-actions";
 import type {SemanticRevision} from "@/lib/semantic/model";
-import type {QaProposalDecision} from "@/lib/semantic/qaProposalReview";
+import {isSafeWorkTypographyTerm,type QaProposalDecision} from "@/lib/semantic/qaProposalReview";
 
 type Flag={id:string;target_atom_id:string;comment:string;kind:string;status:string};
 type Props={
@@ -124,9 +124,20 @@ export default function SemanticAiProposalReview(p:Props){
     <button type="button" onClick={()=>{if(target)p.onFind(target);}}>
      Najít v textu</button>
    </div>
-   <p><strong>{actionLabel[current.action]}</strong>
+   <p><strong>{current.action==="protect_term"&&!isSafeWorkTypographyTerm(current.term)
+    ?"Ověřit poznámku beze změny textu":actionLabel[current.action]}</strong>
     {current.action==="protect_term"&&current.term?" · "+current.term:""}</p>
    <p className="semantic-reader__proposal-reason">{current.rationale}</p>
+   {current.action==="compact"?<p className="semantic-reader__proposal-help">
+    Tato oprava mění mezery a odsazení bloku. Není to automatická oprava
+    dělení slova v řádku. Ověř výsledek v náhledu.</p>:null}
+   {current.action==="manual_review"?<p className="semantic-reader__proposal-help">
+    Jde o redakční posouzení. Přijetí znamená, že jsi nález ověřil a
+    nevyžaduješ další zásah; nic se nepřepisuje.</p>:null}
+   {current.action==="protect_term"&&!isSafeWorkTypographyTerm(current.term)?
+    <p className="semantic-reader__proposal-help">Výraz obsahuje interpunkci,
+     takže jej nelze uložit jako typografické pravidlo. Přijetí znamená
+     výslovné potvrzení, že obsahová poznámka má zůstat beze změny.</p>:null}
    {flag?<p className="semantic-reader__proposal-finding">Nález: {flag.comment}</p>:null}
    {targets.length>1?<div className="semantic-reader__proposal-targets">
     <button type="button" disabled={targetIndex===0}
