@@ -118,6 +118,7 @@ export default function SemanticReaderLab({
   const [qaPanelOpen,setQaPanelOpen]=useState(false);
   const [reviewBarOpen,setReviewBarOpen]=useState(false);
   const [proposalReviewOpen,setProposalReviewOpen]=useState(false);
+  const [reviewAfterRevision,setReviewAfterRevision]=useState<string|null>(null);
   const [reviewFocusAtomId,setReviewFocusAtomId]=useState<string|null>(null);
   const [generalOpen,setGeneralOpen]=useState(false);
   const [showSearch,setShowSearch]=useState(false);
@@ -127,6 +128,13 @@ export default function SemanticReaderLab({
   const [preview,setPreview]=useState<{parentSha:string;draft:SemanticRevision}|null>(null);
   const previewRevision=preview?.parentSha===revisionSha?preview.draft:null;
   const activeRevision=previewRevision??revision;
+  useEffect(()=>{
+    if(reviewAfterRevision&&revisionSha!==reviewAfterRevision){
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- continue after server-updated immutable revision
+      setReviewBarOpen(true);
+      setReviewAfterRevision(null);
+    }
+  },[revisionSha,reviewAfterRevision]);
   const [showOpenFlags,setShowOpenFlags]=useState(true);
   const [pageNumber,setPageNumber]=useState(0);
   const [fullscreen,setFullscreen]=useState(false);
@@ -547,7 +555,11 @@ export default function SemanticReaderLab({
       onFind={locateReviewAtom}
       onPreview={next=>{setPreview({parentSha:revisionSha,draft:next});setPageNumber(0);}}
       onClearPreview={()=>{setPreview(null);setPageNumber(0);}}
-      onShowFinalReview={()=>{setProposalReviewOpen(false);setPreview(null);setPageNumber(0);}}/>}
+      onApplied={revisionCreated=>{
+        setProposalReviewOpen(false);setPreview(null);setPageNumber(0);
+        if(revisionCreated)setReviewAfterRevision(revisionSha);
+        else setReviewBarOpen(true);
+      }}/>}
     {reviewBarOpen&&<SemanticReviewBar key={revisionSha}
       candidateId={candidateId} revisionSha={revisionSha} taskId={currentTaskId}
       issues={currentReviewIssues} decisions={reviewDecisions}
