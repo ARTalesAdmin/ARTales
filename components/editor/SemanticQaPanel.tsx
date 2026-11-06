@@ -12,10 +12,9 @@ export type SemanticQaFlag={
  source_start:number;source_end:number;kind:string;comment:string;
  status:"open"|"resolved";created_at:string;resolution_note:string|null;
 };
-type SystemSignal={atomId:string;sourceStart:number;reason:string;kind:"source_ambiguity"};
 type Props={candidateId:string;revisionSha:string;selectedAtomId:string|null;
  selectedText:string|null;flags:SemanticQaFlag[];onSelect:(atomId:string)=>void;
- readonly?:boolean;databaseReady:boolean;onSaved:()=>void;systemSignals:SystemSignal[];
+ readonly?:boolean;databaseReady:boolean;onSaved:()=>void;onFindingAdded:()=>void;
  canCommitBatch:boolean;onPreview:(revision:SemanticRevision)=>void;
  currentTaskId:string|null;currentChangeIssues:SemanticReviewIssue[];
  reviewDecisions:{issue_id:string;decision:string;note:string|null;reviewed_at:string}[]};
@@ -54,7 +53,7 @@ export default function SemanticQaPanel(p:Props){
     kind:entryKind,comment:entryComment
    });
    setFeedback(result.message);
-   if(result.ok){setComment("");router.refresh();}
+   if(result.ok){setComment("");p.onFindingAdded();router.refresh();}
   });
  };
  const resolve=(id:string)=>{
@@ -196,16 +195,34 @@ export default function SemanticQaPanel(p:Props){
  const unreviewed=p.currentChangeIssues.filter(issue=>verdictById.get(issue.id)?.decision!=="accepted");
  const canFinish=p.databaseReady&&Boolean(p.currentTaskId)&&!pending&&open.length===0&&unreviewed.length===0&&
   job?.status!=="queued"&&job?.status!=="running";
- const unaddressedSignals=p.systemSignals.filter(s=>
-   !p.flags.some(f=>f.target_atom_id===s.atomId&&f.status==="open"));
  return <aside className="semantic-qa-panel" aria-label="Redakční nálezy a opravy">
   <div className="semantic-qa-panel__heading"><h2>QA nálezy</h2>
    <span>{open.length} otevřených · {p.flags.length-open.length} uzavřených</span></div>
   {!p.databaseReady?<p role="alert">Databázová QA evidence není dostupná. Opravy nelze bezpečně uložit.</p>:null}
-  <p className="semantic-qa-panel__hint">Čti dílo a u problematického místa klikni na diamant. Přidej nález a pokračuj ve čtení.</p>
+  {p.selectedAtomId?<div className="semantic-qa-panel__selection">
+   <strong>Vybraný blok</strong><p>{p.selectedText?.slice(0,150)??p.selectedAtomId}</p>
+   <small>{selected.length} nálezů pro tento blok</small>
+   {selected.length>0?<ul className="semantic-qa-panel__selected-findings">
+    {selected.slice(-3).map(f=><li key={f.id}>{f.comment.slice(0,120)}</li>)}
+   </ul>:null}
+  </div>:null}
+  {p.selectedAtomId&&p.databaseReady&&!p.readonly?
+   <form onSubmit={e=>{e.preventDefault();submit(p.selectedAtomId!,kind,comment);}}
+    className="semantic-qa-panel__form">
+    <h3>{selected.length>0?"Přidat další poznámku":"Přidat nález"}</h3>
+    <label>Co je špatně?<textarea value={comment} minLength={15} maxLength={4000}
+     rows={3} onChange={e=>setComment(e.target.value)}
+     placeholder="Např. Jméno je rozdělené mezi dva řádky."/>
+    </label>
+    <label>Typ problému<select value={kind} onChange={e=>setKind(e.target.value)}>
+     {kinds.map(k=><option key={k.value} value={k.value}>{k.label}</option>)}
+    </select></label>
+    <button type="submit" disabled={pending||comment.trim().length<15}>
+     Přidat nález</button>
+   </form>:null}
   <section className="semantic-qa-panel__batch semantic-qa-panel__ai">
-   <h3>Odeslat nálezy k opravě</h3>
-   <p>AI opraví bezpečné chyby sazby. Výsledek pak zkontroluješ v textu.</p>
+   <h3>Opravy</h3>
+   <p>{open.length>0?"AI zpracuje otevřené nálezy. Po opravě můžeš pokračovat ve čtení.":"Jakmile přidáš nález, můžeš jej odeslat k opravě."}</p>
    <button type="button" disabled={pending||!p.databaseReady||!p.currentTaskId||open.length<1||open.length>25||job?.status==="queued"||job?.status==="running"}
     aria-describedby="artales-ai-queue-feedback"
     onClick={requestAi}>{pending?"Odesílám do ARTales AI…":"Odeslat "+open.length+" nálezů k opravě"}</button>
@@ -235,35 +252,6 @@ export default function SemanticQaPanel(p:Props){
     </p>)}
    </div>:null}
   </section>
-  {p.selectedAtomId?<div className="semantic-qa-panel__selection">
-   <strong>Vybraný blok</strong><p>{p.selectedText?.slice(0,150)??p.selectedAtomId}</p>
-   <small>{selected.length} nálezů pro tento blok</small>
-  </div>:null}
-  {unaddressedSignals.length>0?<section className="semantic-qa-panel__signals">
-   <h3><span aria-hidden="true">◆</span> Automaticky označené nejasnosti</h3>
-   {unaddressedSignals.map(s=><div key={s.atomId}>
-    <p>{s.reason}</p>
-    <button type="button" onClick={()=>p.onSelect(s.atomId)}>Najít v textu</button>
-    <button type="button" disabled={pending||!p.databaseReady}
-     onClick={()=>submit(s.atomId,"structure",
-       "Sporná ediční poznámka: potřebuji rozhodnout, zda patří do vlastního vydání ARTales.")}>
-     Převzít k redakčnímu posouzení</button>
-   </div>)}
-  </section>:null}
-  {p.selectedAtomId&&p.databaseReady&&!p.readonly?
-   <form onSubmit={e=>{e.preventDefault();submit(p.selectedAtomId!,kind,comment);}}
-    className="semantic-qa-panel__form">
-    <h3>Přidat nález</h3>
-    <label>Co je špatně?<textarea value={comment} minLength={15} maxLength={4000}
-     rows={3} onChange={e=>setComment(e.target.value)}
-     placeholder="Např. Jméno je rozdělené mezi dva řádky."/>
-    </label>
-    <label>Typ problému<select value={kind} onChange={e=>setKind(e.target.value)}>
-     {kinds.map(k=><option key={k.value} value={k.value}>{k.label}</option>)}
-    </select></label>
-    <button type="submit" disabled={pending||comment.trim().length<15}>
-     Přidat nález</button>
-   </form>:null}
   {p.currentChangeIssues.length>0?<section className="semantic-qa-panel__batch">
     <h3>Ověření opravených bloků</h3>
     <p>Opravené bloky jsou vyznačeny tyrkysově, aktivní výběr zlatě.
@@ -299,14 +287,14 @@ export default function SemanticQaPanel(p:Props){
     </details>
    </section>:null}
   {p.currentTaskId?<section className="semantic-qa-panel__batch">
-   <h3>Dokončení textového QA</h3>
+   <h3>Hotovo s kontrolou?</h3>
    {open.length>0?<p>První nebo opakovaná kontrola nalezla {open.length} nedořešených problémů.
     Předat je do opravy a následně projít změny v téže seanci.</p>:
     unreviewed.length>0?<p>Nejprve výslovně přijmi všechny opravené bloky,
      případně je vrať s poznámkou.</p>:
     <p>Všechny nálezy i opravy jsou posouzené. Přijetím se úkol uzavře
      a uvolní navazující redakční práci.</p>}
-   <button type="button" disabled={!canFinish} onClick={finish}>✓ Přijmout QA a dokončit úkol</button>
+   <button type="button" disabled={!canFinish} onClick={finish}>Dokončit kontrolu</button>
   </section>:null}
   <details className="semantic-qa-panel__findings">
    <summary>Najít a spravovat nálezy ({p.flags.length})</summary>
