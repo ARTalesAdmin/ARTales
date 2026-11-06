@@ -33,7 +33,6 @@ export default function SemanticQaPanel(p:Props){
  const [aiError,setAiError]=useState(false);
  const [aiSuggestions,setAiSuggestions]=useState<AiQaSuggestion[]>([]);
  const [job,setJob]=useState<QaJobStatus|null>(null);
- const [returnNotes,setReturnNotes]=useState<Record<string,string>>({});
  const [repairs,setRepairs]=useState<Record<string,EditorialBatchAction|"">>({});
  const [pending,startTransition]=useTransition();
  const open=p.flags.filter(f=>f.status==="open");
