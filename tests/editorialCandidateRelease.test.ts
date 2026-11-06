@@ -35,7 +35,7 @@ test("real DB evidence gates every nontext completion",()=>{
 test("single form save closes collection, description, cover with DB verification",()=>{
  assert.match(save,/artales_save_candidate_editorial_field/);
  assert.match(save,/artales_complete_editorial_task/);
- assert.match(save,/if\(completed\?\.result==="completed"\)/);
+ assert.match(save,/completed\?\.result!=="completed"/);
  assert.match(cover,/\.upload\(target,file/);
  assert.match(sql,/cover_asset_missing/);
  assert.match(actions,/if\(task\.kind==="text_review"\)/);
