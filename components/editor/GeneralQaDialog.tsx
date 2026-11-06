@@ -49,6 +49,7 @@ export default function GeneralQaDialog(p:{
     });
     setJob(result.ok?result:null);
     setMessage(result.message);
+    if(result.ok)router.refresh();
    }catch{
     setMessage("Odeslání se nepodařilo. Před opakováním zkontroluj stav AI fronty.");
    }
