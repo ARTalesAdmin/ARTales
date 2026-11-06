@@ -25,7 +25,7 @@ BEGIN
   RETURN v_result;
  END IF;
  RETURN p_value;
-END $function$
+END $function$;
 
 
 CREATE OR REPLACE FUNCTION public.artales_semantic_presentation_index(p_nodes jsonb, p_prefix text DEFAULT ''::text)
@@ -64,7 +64,7 @@ BEGIN
   END IF;
  END LOOP;
  RETURN v_index;
-END $function$
+END $function$;
 
 
 CREATE OR REPLACE FUNCTION public.artales_commit_safe_layout_revision(p_candidate_id uuid, p_parent_sha text, p_revision jsonb, p_flag_ids uuid[], p_editor_id uuid, p_job_id uuid DEFAULT NULL::uuid, p_job_suggestions jsonb DEFAULT NULL::jsonb)
@@ -266,7 +266,7 @@ BEGIN
  END IF;
  
  RETURN pg_catalog.jsonb_build_object('result','created','revision_sha256',v_new_sha,'changes',v_flags);
-END $function$
+END $function$;
 
 
 -- The migration aborts if either read-only helper still fails to execute.
