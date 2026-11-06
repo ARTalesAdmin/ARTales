@@ -26,6 +26,7 @@ CREATE INDEX IF NOT EXISTS artales_semantic_ai_jobs_owner_idx
 ALTER TABLE public.artales_semantic_ai_qa_jobs ENABLE ROW LEVEL SECURITY;
 REVOKE ALL ON public.artales_semantic_ai_qa_jobs FROM PUBLIC,anon,authenticated;
 GRANT SELECT ON public.artales_semantic_ai_qa_jobs TO authenticated;
+GRANT SELECT, INSERT, UPDATE ON public.artales_semantic_ai_qa_jobs TO service_role;
 DROP POLICY IF EXISTS artales_ai_jobs_read_owner_admin ON public.artales_semantic_ai_qa_jobs;
 CREATE POLICY artales_ai_jobs_read_owner_admin ON public.artales_semantic_ai_qa_jobs
  FOR SELECT TO authenticated USING(
@@ -56,7 +57,9 @@ BEGIN
  ORDER BY r.created_at DESC,r.id DESC LIMIT 1;
  IF v_current IS NULL OR v_current<>p_revision_sha256 THEN
   RETURN pg_catalog.jsonb_build_object('result','stale_revision');END IF;
- IF v_role='editor' AND NOT EXISTS(
+ -- Even an admin may request AI repairs only for the QA task they claimed.
+ -- There is no implicit right to charge or mutate somebody else's session.
+ IF NOT EXISTS(
   SELECT 1 FROM public.artales_editorial_tasks t WHERE t.candidate_id=p_candidate_id
    AND t.revision_sha256=p_revision_sha256 AND t.kind='text_review'
    AND t.assigned_to=v_actor AND t.status='claimed'
