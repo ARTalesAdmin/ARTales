@@ -25,7 +25,9 @@ async function readAllTasks(db:Awaited<ReturnType<typeof createClient>>){
 function maxBar(value:number,max:number){
  return Math.round(100*value/Math.max(1,max));
 }
-export default async function EditorialReport(){
+export default async function EditorialReport({
+ searchParams
+}:{searchParams:Promise<{month?:string}>}){
  await requireAdmin();
  const db=await createClient();
  const tasks=await readAllTasks(db);
@@ -42,8 +44,11 @@ export default async function EditorialReport(){
  const members=(membersRes.data??[]).map(p=>({id:p.id,name:p.display_name??"Člen redakce"}));
  const works=workResults.flatMap(r=>r.data??[])
   .map(w=>({id:w.id,title:w.proposed_title??"Dílo bez názvu"}));
- const currentMonth=monthKey(new Date().toISOString());
- const report=buildEditorialTaskReport(tasks,members,works,currentMonth);
+ const requested=(await searchParams).month;
+ const thisMonth=monthKey(new Date().toISOString());
+ const selectedMonth=requested&&/^\d{4}-(0[1-9]|1[0-2])$/.test(requested)
+  ?requested:thisMonth;
+ const report=buildEditorialTaskReport(tasks,members,works,selectedMonth);
  const maxValue=Math.max(1,...report.months.map(m=>Math.max(m.assigned,m.completed)));
  return <main className="ed-page ed-report">
   <nav className="ed-breadcrumb" aria-label="Drobečková navigace">
@@ -94,12 +99,22 @@ export default async function EditorialReport(){
   </section>
   <section className="ed-card ed-report__section">
    <div className="ed-report__section-heading"><div><p className="ed-eyebrow">Tým</p>
-    <h2>Výkon jednotlivých členů</h2></div><span>Celkem a {currentMonth}</span></div>
+    <h2>Výkon jednotlivých členů</h2></div>
+    <form className="ed-report__month-filter" method="get">
+     <label htmlFor="report-month">Období</label>
+     <select id="report-month" name="month" defaultValue={selectedMonth}>
+      {[...new Set([thisMonth,selectedMonth,...report.months.map(m=>m.month)])]
+       .sort((a,b)=>b.localeCompare(a)).map(month=><option key={month} value={month}>{month}</option>)}
+     </select>
+     <button className="ed-button ed-button--soft" type="submit">Zobrazit</button>
+    </form>
+   </div>
    <div className="ed-table-wrap"><table className="ed-table">
-    <thead><tr><th>Člen</th><th>Přiřazeno celkem</th><th>Aktivní</th>
-     <th>Dokončeno celkem</th><th>Dokončeno tento měsíc</th></tr></thead>
+    <thead><tr><th>Člen</th><th>Přiřazeno celkem</th><th>Přiřazeno {selectedMonth}</th>
+     <th>Aktivní</th><th>Dokončeno celkem</th><th>Dokončeno {selectedMonth}</th></tr></thead>
     <tbody>{report.members.map(member=><tr key={member.id}>
-     <th scope="row">{member.name}</th><td>{member.assigned}</td><td>{member.active}</td>
+     <th scope="row">{member.name}</th><td>{member.assigned}</td>
+     <td>{member.assignedThisMonth}</td><td>{member.active}</td>
      <td>{member.completed}</td><td>{member.completedThisMonth}</td>
     </tr>)}</tbody>
    </table></div>

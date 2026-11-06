@@ -5,7 +5,7 @@ export type EditorialReportTask={
  completed_by:string|null;
 };
 export type MemberSummary={
- id:string;name:string;assigned:number;active:number;completed:number;completedThisMonth:number;
+ id:string;name:string;assigned:number;assignedThisMonth:number;active:number;completed:number;completedThisMonth:number;
 };
 export type TitleSummary={
  id:string;title:string;assigned:number;active:number;completed:number;unassigned:number;
@@ -26,7 +26,7 @@ export function buildEditorialTaskReport(
  const users=new Map(members.map(m=>[m.id,m.name]));
  const works=new Map(titles.map(t=>[t.id,t.title]));
  const byMember=new Map<string,MemberSummary>(members.map(m=>[m.id,{
-  id:m.id,name:m.name,assigned:0,active:0,completed:0,completedThisMonth:0
+  id:m.id,name:m.name,assigned:0,assignedThisMonth:0,active:0,completed:0,completedThisMonth:0
  }]));
  const byTitle=new Map<string,TitleSummary>();
  const monthly=new Map<string,MonthlySummary>();
@@ -48,10 +48,11 @@ export function buildEditorialTaskReport(
    title.assigned++;
    if(!byMember.has(t.assigned_to))byMember.set(t.assigned_to,{
     id:t.assigned_to,name:users.get(t.assigned_to)??"Neaktivní editor",
-    assigned:0,active:0,completed:0,completedThisMonth:0
+    assigned:0,assignedThisMonth:0,active:0,completed:0,completedThisMonth:0
    });
    const owner=byMember.get(t.assigned_to)!;
    owner.assigned++;
+   if(monthKey(t.created_at)===currentMonth)owner.assignedThisMonth++;
    if(active)owner.active++;
   }
   if(active)title.active++;
@@ -61,7 +62,7 @@ export function buildEditorialTaskReport(
    if(doer){
     if(!byMember.has(doer))byMember.set(doer,{
      id:doer,name:users.get(doer)??"Neaktivní editor",
-     assigned:0,active:0,completed:0,completedThisMonth:0
+     assigned:0,assignedThisMonth:0,active:0,completed:0,completedThisMonth:0
     });
     const actor=byMember.get(doer)!;
     actor.completed++;
