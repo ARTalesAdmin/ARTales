@@ -35,26 +35,31 @@ export async function saveCandidateEditorialField(form:FormData){
    typeof data?.result==="string"?data.result:"save_failed"));
  // One save is enough for the single-field tasks. The independent database
  // completion trigger must verify durable evidence before it accepts the task.
- const kind=field==="collection"?"collection_curation":field==="description"?
-  "work_description":field==="cover"?"cover_art":null;
- if(kind){
-  const {data:mine}=await db.from("artales_editorial_tasks")
-   .select("id,status,assigned_to").eq("candidate_id",candidateId)
-   .eq("kind",kind).in("status",["open","claimed","returned"]).maybeSingle();
+ const kinds=field==="author"?["author_bio","author_visual"]:
+  field==="collection"?["collection_curation"]:
+  field==="description"?["work_description"]:
+  field==="cover"?["cover_art"]:[];
+ if(kinds.length){
   const actor=await requireEditorOrAdmin();
-  if(mine?.status==="claimed"&&mine.assigned_to===actor.id){
-   // A failed closeout leaves the saved metadata intact and the task open.
-   const note="Redakční úkol "+kind+
-    " dokončen po uložení podkladů, validaci povinných údajů a databázovém ověření.";
-   const {data:completed}=await db.rpc("artales_complete_editorial_task",{
-    p_task_id:mine.id,p_note:note
+  const {data:owned,error:lookupError}=await db.from("artales_editorial_tasks")
+   .select("id,kind").eq("candidate_id",candidateId)
+   .eq("assigned_to",actor.id).eq("status","claimed").in("kind",kinds);
+  if(lookupError)redirect("/member/editorial-detail/"+candidateId+"?saved="+encodeURIComponent(field)+"&closeout=pending");
+  let closed=0,failed=0;
+  for(const task of owned??[]){
+   // Every closeout is validated by the production evidence trigger, not JSX.
+   const note="Redakční úkol "+task.kind+
+    " dokončen automaticky po uložení podkladů a databázovém ověření editorovy práce.";
+   const {data:completed,error:finishError}=await db.rpc("artales_complete_editorial_task",{
+    p_task_id:task.id,p_note:note
    });
-   if(completed?.result==="completed"){
-    revalidatePath("/member/editorial-detail/"+candidateId);
-    revalidatePath("/member/editorial-pipeline");revalidatePath("/member","layout");
-    redirect("/member/editorial-detail/"+candidateId+"?saved="+encodeURIComponent(field)+"&closed=1");
-   }
+   if(finishError||completed?.result!=="completed")failed++;
+   else closed++;
   }
+  revalidatePath("/member/editorial-detail/"+candidateId);
+  revalidatePath("/member/editorial-pipeline");revalidatePath("/member","layout");
+  if(failed>0)redirect("/member/editorial-detail/"+candidateId+"?saved="+encodeURIComponent(field)+"&closeout=pending");
+  if(closed>0)redirect("/member/editorial-detail/"+candidateId+"?saved="+encodeURIComponent(field)+"&closed=1");
  }
  revalidatePath("/member/editorial-detail/"+candidateId);
  revalidatePath("/member/editorial-pipeline");

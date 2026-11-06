@@ -72,6 +72,7 @@ export default function MemberZoneNav({ role, assignedOpenCount=0 }: { role: str
       links: admin
         ? [
             { href: "/member/admin/dashboard", label: "Admin přehled" },
+            { href: "/member/admin/editorial-performance", label: "Redakční výkon" },
             { href: "/member/admin/payments", label: "QR platby" },
           ]
         : [],
