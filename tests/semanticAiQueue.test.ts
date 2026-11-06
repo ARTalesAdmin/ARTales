@@ -1,3 +1,4 @@
+import {planQaProposalReview,isSafeWorkTypographyTerm} from "../lib/semantic/qaProposalReview";
 import {test} from "node:test";
 import {strict as assert} from "node:assert";
 import {readFileSync} from "node:fs";
@@ -102,4 +103,57 @@ test("legacy Pan-like revision can be safely recomposed without inserting absent
  assert.deepEqual(updated.gaps,initial.gaps);
  assert.equal(updated.review_issues.length,1);
  assert.equal(updated.round,1);
+});
+
+test("Pan's four actual AI proposals become one editor-approved, source-safe batch",()=>{
+ const ids=["b39525e5-c4fd-4b7f-9871-dbc2fcea6565",
+  "d5441b6f-8996-4bc7-ae4a-1d955ca1c86a",
+  "a2996b3f-8d56-41e9-9ca4-121b1aa67dd2",
+  "e5995127-de06-46d2-944a-e11334a045be"];
+ const suggestions=[
+  {flagId:ids[0],action:"protect_term" as const,term:"Raymond",
+   rationale:"Jméno nemá být rozdělené.",targetAtomIds:[]},
+  {flagId:ids[1],action:"compact" as const,term:"",rationale:"Sazba",targetAtomIds:[]},
+  {flagId:ids[2],action:"protect_term" as const,term:"NOTE.—Helen Vaughan",
+   rationale:"Autorská poznámka musí zůstat.",targetAtomIds:[]},
+  {flagId:ids[3],action:"manual_review" as const,term:"",
+   rationale:"Nutná redakční kontrola.",targetAtomIds:[]}
+ ];
+ const flags=ids.map((id,i)=>({id,status:"open",
+  kind:i<2?"typography":"other"}));
+ const approved=ids.map(flagId=>({flagId,choice:"approve" as const}));
+ const plan=planQaProposalReview(suggestions,flags,approved);
+ assert.deepEqual(plan.layout,[{flagId:ids[1],action:"compact"}]);
+ assert.deepEqual(plan.protectedTerms,[{flagId:ids[0],term:"Raymond"}]);
+ assert.deepEqual(plan.confirmedNoChange,[ids[2],ids[3]]);
+ assert.equal(plan.rejected.length,0);
+ assert.equal(isSafeWorkTypographyTerm("Raymond"),true);
+ assert.equal(isSafeWorkTypographyTerm("NOTE.—Helen Vaughan"),false);
+ const declined=planQaProposalReview(suggestions,flags,
+  ids.map(flagId=>({flagId,choice:"reject" as const})));
+ assert.equal(declined.layout.length,0);
+ assert.equal(declined.rejected.length,4);
+ assert.throws(()=>planQaProposalReview(suggestions,flags,approved.slice(0,3)));
+ assert.throws(()=>planQaProposalReview(suggestions,flags.slice(1),approved));
+});
+
+test("AI proposal review offers one-by-one navigation and only server-owned persistence",()=>{
+ const component=file("components/editor/SemanticAiProposalReview.tsx");
+ const apply=file("app/member/semantic/[candidateId]/qa-proposal-actions.ts");
+ const reader=file("components/editor/SemanticReaderLab.tsx");
+ const panel=file("components/editor/SemanticQaPanel.tsx");
+ assert.match(component,/Přijmout/);
+ assert.match(component,/Ponechat k opravě/);
+ assert.match(component,/Zobrazit navrženou sazbu/);
+ assert.match(component,/Uložit schválené změny společně/);
+ assert.match(component,/applyReviewedQaProposals/);
+ assert.match(reader,/SemanticAiProposalReview/);
+ assert.match(panel,/onOpenProposalReview/);
+ assert.match(apply,/planQaProposalReview/);
+ assert.match(apply,/commitSemanticQaBatch/);
+ assert.match(apply,/resolveSemanticQaFlag/);
+ assert.match(apply,/saveWorkTypographyRule/);
+ assert.match(apply,/job.created_by!==actor.id/);
+ assert.match(apply,/revision.revision_sha256!==input.revisionSha/);
+ assert.doesNotMatch(apply,/requestArtalesAiResponse|generateSemanticAiQaSuggestions/);
 });
