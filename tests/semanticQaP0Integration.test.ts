@@ -52,7 +52,10 @@ test("QA panel keeps one prominent AI handoff and compact searchable findings",(
  assert.match(panel,/findingStatus/);
  assert.match(panel,/Najít v textu/);
  assert.match(panel,/Upravit jednotlivý nález/);
- assert.match(panel,/Další možnosti sazby/);
+ assert.doesNotMatch(panel,/Další možnosti sazby/);
+ assert.match(lab,/GeneralQaDialog/);
+ assert.match(lab,/Obecná oprava/);
+ assert.match(lab,/Hledat v textu/);
  assert.match(panel,/Přidat nález/);
  assert.match(panel,/Zobrazit a posoudit jednotlivé opravy/);
  assert.match(css,/semantic-qa-panel__flags--compact/);
@@ -69,4 +72,25 @@ test("reader-first QA adds notes and returns editor to text",()=>{
  assert.match(lab,/data-review-signal=/);
  assert.match(lab,/aria-expanded=\{qaPanelOpen\}/);
  assert.match(panel,/Najít a spravovat nálezy/);
+});
+
+test("general QA uses the identity-bound durable queue and safely scoped model discovery",()=>{
+ const actions=file("app/member/semantic/[candidateId]/ai-job-actions.ts");
+ const engine=file("lib/semantic/aiQaProposalEngine.ts");
+ const gateway=file("lib/semantic/artalesAiGateway.ts");
+ const dialog=file("components/editor/GeneralQaDialog.tsx");
+ assert.match(actions,/enqueueGeneralSemanticQaJob/);
+ assert.match(actions,/artales_semantic_qa_flags/);
+ assert.match(actions,/kind:"other",comment,created_by:actor.id/);
+ assert.match(actions,/enqueueSemanticAiQaJob/);
+ assert.match(engine,/generalCandidates/);
+ assert.match(engine,/targetAtomIds/);
+ assert.match(engine,/new Set\(suggestion.targetAtomIds\)/);
+ assert.match(engine,/maxOutputTokens:isGeneral\?4800:2200/);
+ assert.match(gateway,/max_output_tokens: input.maxOutputTokens\?\?2200/);
+ assert.match(dialog,/exampleAtomId:includeExample\?p.exampleAtomId:null/);
+ assert.match(dialog,/readSemanticAiQaJob/);
+ assert.match(dialog,/role="dialog"/);
+ assert.match(dialog,/max. 4 800 výstupních tokenů/);
+ assert.doesNotMatch(dialog,/Nexus/);
 });

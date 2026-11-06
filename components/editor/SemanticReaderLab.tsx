@@ -12,6 +12,7 @@ import type {SemanticRevision, SemanticNode, SemanticAtom, SemanticPoem, Semanti
 import {getSemanticPageUnits, projectSemanticReader, verifyReaderProjection} from "@/lib/semantic/readerProjection";
 import {selectEditorialEdition} from "@/lib/semantic/editionProjection";
 import SemanticQaPanel,{type SemanticQaFlag} from "./SemanticQaPanel";
+import GeneralQaDialog from "./GeneralQaDialog";
 import "./semantic-reader.css";
 
 type Props={revision:SemanticRevision;original:string;profileReaderDefaults?:FixtureProfileReaderDefaults|null;
@@ -113,6 +114,11 @@ export default function SemanticReaderLab({
   const [focus,setFocus]=useState(false);
   const [selectedAtomId,setSelectedAtomId]=useState<string|null>(null);
   const [qaPanelOpen,setQaPanelOpen]=useState(false);
+  const [generalOpen,setGeneralOpen]=useState(false);
+  const [showSearch,setShowSearch]=useState(false);
+  const [searchQuery,setSearchQuery]=useState("");
+  const [activeSearchIndex,setActiveSearchIndex]=useState(0);
+  const [activeSearchUnit,setActiveSearchUnit]=useState<string|null>(null);
   const [preview,setPreview]=useState<{parentSha:string;draft:SemanticRevision}|null>(null);
   const previewRevision=preview?.parentSha===revisionSha?preview.draft:null;
   const activeRevision=previewRevision??revision;
@@ -142,6 +148,29 @@ export default function SemanticReaderLab({
   const regionIndices=useMemo(()=>new Map(sourceRegions.filter(x=>x.regionIndex!==null && x.unitId!==null)
     .map(x=>[x.unitId!,x.regionIndex!])),[sourceRegions]);
   const unitsById=useMemo(()=>new Map(allUnits.map(u=>[u.id,u])),[allUnits]);
+  const searchMatches=useMemo(()=>{
+    const query=searchQuery.trim().toLocaleLowerCase("cs");
+    if(query.length<2)return [] as {unitId:string;offset:number}[];
+    const found:{unitId:string;offset:number}[]=[];
+    for(const u of allUnits){
+      if(!u.source_atom_ids.length)continue;
+      const node=u.node;
+      let raw="";
+      if("atom" in node)raw=node.atom.raw;
+      else if(node.kind==="chapter"||node.kind==="section")raw=node.heading.raw;
+      else if(node.kind==="poem")raw=node.stanzas.flatMap(s=>s.lines.map(l=>l.atom.raw)).join(" ");
+      if(u.fragment&&"atom" in node)raw=raw.slice(u.fragment.start,u.fragment.end);
+      const lower=raw.toLocaleLowerCase("cs");
+      let at=lower.indexOf(query);
+      while(at!==-1&&found.length<1500){
+       found.push({unitId:u.id,offset:at});
+       at=lower.indexOf(query,at+query.length);
+      }
+      if(found.length===1500)break;
+    }
+    return found;
+  },[allUnits,searchQuery]);
+
   const selectedUnit=allUnits.find(u=>selectedAtomId&&u.source_atom_ids.includes(selectedAtomId));
   const selectedText=selectedUnit?.kind==="chapter_heading"||selectedUnit?.kind==="section_heading"
     ? "heading" in selectedUnit.node?selectedUnit.node.heading.raw:null
@@ -275,6 +304,26 @@ export default function SemanticReaderLab({
       scrollToMarker(composedRef.current,unit.id);
     }
   };
+  const goToSearchMatch=(index:number)=>{
+    if(!searchMatches.length)return;
+    const normalized=((index%searchMatches.length)+searchMatches.length)%searchMatches.length;
+    const target=searchMatches[normalized];
+    setActiveSearchIndex(normalized);
+    setActiveSearchUnit(target.unitId);
+    const unit=allUnits.find(u=>u.id===target.unitId);
+    scrollToMarker(sourceRef.current,unit?.fragment?.original_unit_id??target.unitId);
+    const exact=[...(composedRef.current?.querySelectorAll<HTMLElement>("[data-page-unit-id]")??[])]
+     .find(e=>e.dataset.pageUnitId===target.unitId);
+    if(exact)exact.scrollIntoView({behavior:"smooth",block:"center"});
+  };
+  const jumpToAtomWithoutNote=(id:string)=>{
+    const unit=allUnits.find(u=>u.source_atom_ids.includes(id));
+    if(!unit)return;
+    scrollToMarker(sourceRef.current,unit.fragment?.original_unit_id??unit.id);
+    scrollToMarker(composedRef.current,unit.fragment?.original_unit_id??unit.id);
+    setSelectedAtomId(id);
+    setQaPanelOpen(false);
+  };
   const jumpToPage=(index:number)=>{
     const pane=composedRef.current;
     if(!pane)return;
@@ -398,6 +447,14 @@ export default function SemanticReaderLab({
           aria-expanded={qaPanelOpen} onClick={()=>setQaPanelOpen(v=>!v)}>
           Nálezy ({flags.filter(f=>f.status==="open").length})
         </button>
+        <button type="button" className="semantic-reader__fullscreen-button"
+          aria-expanded={showSearch} onClick={()=>setShowSearch(v=>!v)}>
+          Hledat v textu
+        </button>
+        <button type="button" className="semantic-reader__fullscreen-button"
+          disabled={!currentTaskId||!qaDatabaseReady} onClick={()=>setGeneralOpen(true)}>
+          Obecná oprava
+        </button>
         <label className="semantic-reader__page-navigation">Strana
           <input type="range" min={0} max={pages.length} step={1} value={Math.min(pageNumber,pages.length)}
             onChange={e=>jumpToPage(Number(e.target.value))}
@@ -409,6 +466,34 @@ export default function SemanticReaderLab({
         </span>
       </div>
     </header>
+    {showSearch&&<section className="semantic-reader__search" aria-label="Vyhledávání v díle">
+      <label>Hledat
+       <input type="search" value={searchQuery} autoFocus
+        placeholder="Slovo nebo část věty…" onChange={e=>{
+          setSearchQuery(e.target.value);setActiveSearchIndex(0);setActiveSearchUnit(null);
+        }}/>
+      </label>
+      <span role="status">{searchQuery.trim().length<2?"Zadej alespoň 2 znaky":searchMatches.length
+       ?(Math.min(activeSearchIndex+1,searchMatches.length)+" / "+searchMatches.length+" výskytů")
+       :"Nenalezeno"}</span>
+      <button type="button" disabled={!searchMatches.length}
+       onClick={()=>goToSearchMatch(activeSearchIndex)}>Najít</button>
+      <button type="button" disabled={!searchMatches.length}
+       onClick={()=>goToSearchMatch(activeSearchIndex-1)}>Předchozí</button>
+      <button type="button" disabled={!searchMatches.length}
+       onClick={()=>goToSearchMatch(activeSearchIndex+1)}>Další</button>
+      <button type="button" onClick={()=>{setShowSearch(false);setActiveSearchUnit(null);}}>Zavřít</button>
+    </section>}
+    {generalOpen&&<GeneralQaDialog candidateId={candidateId} revisionSha={revisionSha}
+      exampleAtomId={selectedAtomId} exampleText={selectedText??null}
+      getExcerpt={id=>{
+       const unit=allUnits.find(u=>u.source_atom_ids.includes(id));
+       if(!unit)return "";
+       if("atom" in unit.node)return unit.node.atom.raw;
+       if(unit.node.kind==="chapter"||unit.node.kind==="section")return unit.node.heading.raw;
+       return unit.node.kind==="poem"?unit.node.stanzas.flatMap(s=>s.lines.map(l=>l.atom.raw)).join(" "):"";
+      }}
+      onFindAtom={jumpToAtomWithoutNote} onClose={()=>setGeneralOpen(false)}/>}
     {previewRevision?<div role="status" className="semantic-reader__live-preview">
       <strong>Náhled opravené sazby · neuloženo</strong>
       <p>Zkontroluj zalomení a stránky. Archivovaný text zůstává neměnný.</p>
@@ -487,6 +572,7 @@ export default function SemanticReaderLab({
                 return <div className="semantic-reader__unit" key={u.id} data-page-unit-id={u.id}
                   data-semantic-root={u.fragment?.original_unit_id??u.id}
                   data-selected={selectedAtomId&&u.source_atom_ids.includes(selectedAtomId)?"true":undefined}
+                  data-search-current={activeSearchUnit===u.id?"true":undefined}
                   data-review-flag={showOpenFlags&&flags.some(f=>f.status==="open"&&u.source_atom_ids.includes(f.target_atom_id))?"open":undefined}
                   data-review-signal={systemSignals.some(s=>u.source_atom_ids.includes(s.atomId))?"true":undefined}
                   data-review-fixed={activeRevision.review_issues.some(issue=>issue.round===activeRevision.round&&

@@ -121,7 +121,19 @@
 .semantic-reader__fullscreen-button{border:1px solid #b4a897;background:#fffdf8;
   border-radius:8px;padding:8px 12px;cursor:pointer;font:13px system-ui}
 .semantic-reader__edition-note{font:13px system-ui;color:#61594e}
-.semantic-reader__page p{orphans:3;widows:3;hyphens:auto}
+/* Semantic QA typography: never algorithmically hyphenate source prose.
+ * An explicit soft hyphen in source remains an intentional break opportunity.
+ * Same class is rendered in measurement and visible page (no pagination drift). */
+.semantic-reader__page p,
+.semantic-reader__page blockquote,
+.semantic-reader__page aside[role="note"]{
+ orphans:3;widows:3;
+ hyphens:manual;
+ -webkit-hyphens:manual;
+ overflow-wrap:normal;
+ word-break:normal;
+ text-wrap:pretty;
+}
 
 /* ARTales editorial QA: source-tethered selection and persistent review panel. */
 .semantic-reader__controls{position:sticky;top:0;z-index:15;box-shadow:0 3px 16px #30251c14}
@@ -280,3 +292,61 @@
 .semantic-qa-panel__selection{max-height:108px}
 .semantic-qa-panel__selection p{max-height:52px;overflow:auto;font-size:12px}
 @media(max-width:450px){.semantic-qa-panel__filters{grid-template-columns:1fr}}
+
+/* Work search remains small and independent of the editorial-findings overlay. */
+.semantic-reader__search{position:sticky;top:64px;z-index:29;display:flex;
+ align-items:end;flex-wrap:wrap;gap:8px;padding:11px 14px;
+ border:1px solid #ceba9c;border-radius:10px;background:#fffcf5;
+ box-shadow:0 5px 16px #30251c1a;font:13px system-ui;color:#40352a}
+.semantic-reader__search label{display:grid;gap:4px;flex:1 1 220px}
+.semantic-reader__search input{font:14px system-ui;padding:8px 10px;
+ border-radius:7px;border:1px solid #cdbd9f;background:white;width:100%}
+.semantic-reader__search button,.semantic-reader__dialog button{
+ border:1px solid #bfab8b;border-radius:8px;padding:9px 12px;
+ font:600 13px system-ui;cursor:pointer;color:#23303f;background:#fffbf3}
+.semantic-reader__search button:disabled,.semantic-reader__dialog button:disabled{
+ opacity:.5;cursor:not-allowed}
+.semantic-reader__unit[data-search-current="true"]{outline:3px solid #5088a2;
+ outline-offset:3px;background:#e2f2fc;border-radius:4px}
+.semantic-reader__dialog-backdrop{position:fixed;inset:0;z-index:70;
+ display:flex;align-items:center;justify-content:center;padding:16px;
+ background:#161e2b91;box-sizing:border-box}
+.semantic-reader__dialog{width:min(660px,100%);max-height:calc(100dvh - 32px);
+ overflow:auto;box-sizing:border-box;padding:22px;border-radius:14px;
+ border:1px solid #c9b593;background:#fffaf0;
+ box-shadow:0 18px 60px #0003;font:14px/1.5 system-ui;color:#302b24}
+.semantic-reader__dialog-title{display:flex;justify-content:space-between;gap:12px;
+ align-items:center;margin-bottom:10px}
+.semantic-reader__dialog-title h2{font:600 24px/1.2 Georgia,serif;margin:0}
+.semantic-reader__dialog label{display:grid;gap:7px;font-weight:650}
+.semantic-reader__dialog textarea{box-sizing:border-box;width:100%;resize:vertical;
+ border:1px solid #bfb39f;border-radius:8px;padding:12px;
+ background:#fff;font:14px/1.5 system-ui;color:#252321}
+.semantic-reader__dialog-example{margin:12px 0;display:flex!important;
+ flex-wrap:wrap;gap:9px;align-items:start}
+.semantic-reader__dialog-example small{flex-basis:100%;margin-left:27px;
+ color:#625849;font-weight:400;max-height:60px;overflow:hidden}
+.semantic-reader__dialog-budget{padding:12px;background:#edf3f7;
+ border-radius:9px;border:1px solid #bfccdb;font-size:12px}
+.semantic-reader__dialog>button{background:#1e2b3a;color:white;
+ width:100%;font-size:14px;padding:12px}
+.semantic-reader__dialog-results{border-top:1px solid #d9c6a6;margin-top:14px}
+.semantic-reader__dialog-targets{display:flex;gap:7px;flex-wrap:wrap}
+.semantic-reader__dialog-targets button{font-size:12px}
+@media(max-width:700px){.semantic-reader__search{top:0}
+ .semantic-reader__dialog{padding:14px}}
+
+.semantic-reader__dialog-results-list{display:grid;gap:8px;
+ max-height:38dvh;overflow-y:auto;margin:12px 0;padding-right:4px}
+.semantic-reader__dialog-result{display:flex;gap:8px;align-items:center;
+ justify-content:space-between;background:#f9f4e9;
+ border:1px solid #dfd2bc;border-radius:9px;padding:9px}
+.semantic-reader__dialog-result label{display:flex;align-items:start;
+ min-width:0;gap:9px;flex:1;font-weight:400}
+.semantic-reader__dialog-result label span{overflow-wrap:anywhere;max-height:57px;overflow:hidden}
+.semantic-reader__dialog-result button{flex-shrink:0}
+.semantic-reader__dialog-selectall{display:flex!important;
+ align-items:center;gap:8px}
+.semantic-reader__dialog select{padding:9px;border-radius:8px;border:1px solid #c4b293}
+.semantic-reader__dialog-results>button{display:block;width:100%;
+ color:#fff;background:#1e2b3a;padding:12px;margin:12px 0}

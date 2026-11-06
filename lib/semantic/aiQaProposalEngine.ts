@@ -10,6 +10,7 @@ export type AiQaSuggestion={
  action:"compact"|"airy"|"center"|"protect_term"|"manual_review";
  term:string;
  rationale:string;
+ targetAtomIds:string[];
 };
 export type AiQaSuggestResult={ok:boolean;message:string;suggestions:AiQaSuggestion[];usage?:ArtalesAiUsage|null};
 const sha=/^[a-f0-9]{64}$/;
@@ -46,6 +47,14 @@ export async function generateSemanticAiQaSuggestions(input:{
   atoms=walkSemanticAtoms(revision.blocks);
  }catch{return fail("Integrita výchozí revize nebyla potvrzena.");}
  const byAtom=new Map(atoms.map((a,i)=>[a.id,{atom:a,index:i}]));
+ const generalFlags=flags.filter(f=>f.kind==="other"&&f.comment.startsWith("Obecné zadání "));
+ const isGeneral=generalFlags.length>0;
+ // Bounded whole-work survey for general requests. The model sees at most
+ // 1,200 actual source anchors; no free-form or ungrounded target may be used.
+ const generalCandidates=isGeneral?atoms.slice(0,1200).map(a=>({
+  atomId:a.id,excerpt:text(a.raw.replace(/\s+/g," ").trim(),115)
+ })):null;
+ const generalCoverage=generalCandidates?.length??0;
  const requests=flags.map(f=>{
   const selected=byAtom.get(f.target_atom_id);
   if(!selected)return null;
@@ -58,19 +67,22 @@ export async function generateSemanticAiQaSuggestions(input:{
  const schema={
   type:"object",additionalProperties:false,required:["suggestions"],properties:{
    suggestions:{type:"array",items:{type:"object",additionalProperties:false,
-    required:["flagId","action","term","rationale"],properties:{
+    required:["flagId","action","term","rationale","targetAtomIds"],properties:{
      flagId:{type:"string"},action:{type:"string",enum:[...actions]},
-     term:{type:"string"},rationale:{type:"string"}
+     term:{type:"string"},rationale:{type:"string"},
+     targetAtomIds:{type:"array",items:{type:"string"}}
     }}}
   }
  };
  try{
   const {body,usage}=await requestArtalesAiResponse({
    candidateId:input.candidateId,editorId:input.editorId,oidcToken:input.oidcToken,
-   instructions:"Jsi konzervativní redakční navrhovatel ARTales. Nevytvářej ani neměň literární text. Pracuj pouze s dodanými nálezy přesné revize. Pro každý flagId vrať právě jeden návrh. compact/airy/center jen pro typografické nebo strukturální nálezy; nikdy nezahazuj text. protect_term pro jména, názvy a jiné výrazy, které nemají být rozděleny. manual_review pro nejisté či obsahové nálezy. Zdůvodnění stručně česky. Neznámé flagId a změny originálního textu jsou zakázány.",
+   instructions:"Jsi konzervativní redakční navrhovatel ARTales. Nevytvářej ani neměň literární text. Pracuj pouze s dodanými nálezy přesné revize. Pro každý flagId vrať právě jeden návrh. compact/airy/center jen pro typografické nebo strukturální nálezy; nikdy nezahazuj text. protect_term pro jména, názvy a jiné výrazy, které nemají být rozděleny. manual_review pro nejisté či obsahové nálezy. Pro běžný nález vrať targetAtomIds jako prázdné pole. Pro obecné zadání vyber nejvýše 24 konkrétních atomId výhradně z generalCandidates, kam problém podle ukázek skutečně patří. Neznámé atomId jsou zakázány. Obecné zadání je pouze návrh pro redakční kontrolu: action=manual_review, pokud nejde o jeden bezpečně doložený nedělitelný výraz v textu (protect_term). V žádném případě neslibuj pokrytí celého díla při omezeném vzorku. Zdůvodnění stručně česky. Neznámé flagId a změny originálního textu jsou zakázány.",
    payload:{schema:"artales/editorial-ai-suggestions/v1",
-     revisionSha:input.revisionSha,requests},
-   schemaName:"artales_qa_suggestions",schema
+     revisionSha:input.revisionSha,requests,generalCandidates,generalCoverage,
+     totalAtoms:atoms.length},
+   schemaName:"artales_qa_suggestions",schema,
+   maxOutputTokens:isGeneral?4800:2200
   });
   const output=body.output as Array<{content?:Array<{type:string;text?:string}>}>|undefined;
   const raw=(output??[]).flatMap(o=>o.content??[])
@@ -85,14 +97,23 @@ export async function generateSemanticAiQaSuggestions(input:{
    const flag=expected.get(suggestion.flagId);
    if(!flag||seen.has(suggestion.flagId)||!actions.has(suggestion.action)||
       typeof suggestion.term!=="string"||typeof suggestion.rationale!=="string"||
-      suggestion.rationale.length>500||suggestion.term.length>80)
+      suggestion.rationale.length>500||suggestion.term.length>80||
+      !Array.isArray(suggestion.targetAtomIds)||suggestion.targetAtomIds.length>24||
+      new Set(suggestion.targetAtomIds).size!==suggestion.targetAtomIds.length||
+      suggestion.targetAtomIds.some(id=>typeof id!=="string"||!byAtom.has(id)||
+       (isGeneral&&!generalCandidates?.some(c=>c.atomId===id))))
     return fail("AI vrátila neplatný návrh. Žádná oprava se neprovedla.",usage);
    seen.add(suggestion.flagId);
+   if(flag.comment.startsWith("Obecné zadání ")&&
+      ["compact","airy","center"].includes(suggestion.action))
+    return fail("Obecná oprava vyžaduje redakční kontrolu konkrétních bloků.",usage);
    if(["compact","airy","center"].includes(suggestion.action)&&
       !["typography","structure"].includes(flag.kind))
     return fail("AI navrhla nepovolenou změnu druhu bloku.",usage);
    if(suggestion.action==="protect_term"&&(!suggestion.term.trim()||
-     !byAtom.get(flag.target_atom_id)?.atom.raw.includes(suggestion.term.trim())))
+     !(flag.comment.startsWith("Obecné zadání ")?
+      atoms.some(a=>a.raw.includes(suggestion.term.trim())):
+      byAtom.get(flag.target_atom_id)?.atom.raw.includes(suggestion.term.trim()))))
     return fail("AI navrhla ochranu výrazu, který se nenachází v bloku.",usage);
   }
   return {ok:true,message:"Návrhy AI jsou připraveny ke kontrole; zatím nic nemění.",suggestions:parsed.suggestions,usage};

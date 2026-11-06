@@ -64,3 +64,17 @@ test("canonical UUID validation accepts Pan candidate, claimed task and job IDs"
  const sha=/^[a-f0-9]{64}$/;
  assert.equal(sha.test("b8f99acc5abc5c965ec2707cca66abebb45fd4b9592c1dea79d20960b50f35b8"),true);
 });
+
+test("safe layout preparation uses the same complete UUID validator as enqueue",()=>{
+ const prep=file("lib/semantic/qaBatchPreparation.ts");
+ const match=prep.match(/const uuid=\/(.+?)\/i;/);
+ assert.ok(match,"QA batch must validate exact canonical UUID");
+ const uuid=new RegExp(match[1],"i");
+ for(const id of [
+  "98508359-bce1-4e73-b842-b69a9d1112d0",
+  "b39525e5-c4fd-4b7f-9871-dbc2fcea6565",
+  "d5441b6f-8996-4bc7-ae4a-1d955ca1c86a"
+ ])assert.equal(uuid.test(id),true);
+ assert.equal(uuid.test("98508359-bce1-4e73-b842-b69a9d1112d"),false);
+ assert.match(prep,/verifySemanticRevision\(original,previous.source_text\)/);
+});
