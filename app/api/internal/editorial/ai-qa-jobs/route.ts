@@ -20,7 +20,7 @@ export async function GET(request:NextRequest){
  if(process.env.ARTALES_AI_DURABLE_JOBS_ENABLED!=="enabled")
   return NextResponse.json({status:"disabled"},{status:503});
  const url=process.env.NEXT_PUBLIC_SUPABASE_URL,roleKey=process.env.SUPABASE_SERVICE_ROLE_KEY;
- if(!url||!roleKey||!process.env.ARTALES_EDITORIAL_AI_API_KEY||
+ if(!url||!roleKey||!process.env.VERCEL_OIDC_TOKEN||
    !process.env.ARTALES_EDITORIAL_AI_MODEL)
   return NextResponse.json({status:"not_configured"},{status:503});
  const db=createClient(url,roleKey,{auth:{persistSession:false,autoRefreshToken:false}});
@@ -33,12 +33,24 @@ export async function GET(request:NextRequest){
    !uuid.test(job.created_by??"")||!Array.isArray(job.flag_ids))
   return NextResponse.json({status:"invalid_claim"},{status:500});
  const input={candidateId:job.candidate_id as string,
-  revisionSha:job.revision_sha256 as string,expectedFlagIds:job.flag_ids as string[]};
+  revisionSha:job.revision_sha256 as string,editorId:job.created_by as string,
+  expectedFlagIds:job.flag_ids as string[]};
  let suggestions:unknown=null;
  let errorCode:string|null=null;
  let appliedRevisionSha:string|null=null;
  try{
   const answer=await generateSemanticAiQaSuggestions(input,db);
+  if(answer.usage){
+   const u=answer.usage;
+   // A job can run twice after a worker timeout. Keep each billed generation.
+   const {error:usageError}=await db.from("artales_semantic_ai_usage").upsert({
+    generation_id:u.generationId,job_id:job.job_id,
+    candidate_id:u.candidateId,requested_by:u.requestedBy,model:u.model,
+    input_tokens:u.inputTokens,output_tokens:u.outputTokens,total_tokens:u.totalTokens,
+    cost_usd:u.costUsd,cost_status:u.status
+   },{onConflict:"generation_id",ignoreDuplicates:true});
+   if(usageError)throw Error("gateway_usage_receipt_failed");
+  }
   if(!answer.ok)errorCode="validation_or_provider_failed";
   else{
    suggestions=answer.suggestions;
