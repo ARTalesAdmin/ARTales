@@ -14,13 +14,15 @@ export type GatewayRequestResult = {
 export async function requestArtalesAiResponse(input: {
   candidateId: string;
   editorId: string;
+  oidcToken: string;
   instructions: string;
   payload: unknown;
   schemaName: string;
   schema: Record<string, unknown>;
 }): Promise<GatewayRequestResult> {
   const model = process.env.ARTALES_EDITORIAL_AI_MODEL;
-  const oidc = process.env.VERCEL_OIDC_TOKEN;
+  // Runtime token is injected in the Vercel Function request, never stored in env.
+  const oidc = input.oidcToken;
   if (!model || !/^[a-z0-9-]+\/[a-z0-9._-]+$/i.test(model) || !oidc) {
     throw new Error("gateway_not_configured");
   }
