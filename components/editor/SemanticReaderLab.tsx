@@ -13,6 +13,7 @@ import {getSemanticPageUnits, projectSemanticReader, verifyReaderProjection} fro
 import {selectEditorialEdition} from "@/lib/semantic/editionProjection";
 import SemanticQaPanel,{type SemanticQaFlag} from "./SemanticQaPanel";
 import SemanticReviewBar from "./SemanticReviewBar";
+import SemanticAiProposalReview from "./SemanticAiProposalReview";
 import GeneralQaDialog from "./GeneralQaDialog";
 import "./semantic-reader.css";
 
@@ -116,6 +117,7 @@ export default function SemanticReaderLab({
   const [selectedAtomId,setSelectedAtomId]=useState<string|null>(null);
   const [qaPanelOpen,setQaPanelOpen]=useState(false);
   const [reviewBarOpen,setReviewBarOpen]=useState(false);
+  const [proposalReviewOpen,setProposalReviewOpen]=useState(false);
   const [reviewFocusAtomId,setReviewFocusAtomId]=useState<string|null>(null);
   const [generalOpen,setGeneralOpen]=useState(false);
   const [showSearch,setShowSearch]=useState(false);
@@ -336,6 +338,10 @@ export default function SemanticReaderLab({
         element=>element.dataset.pageUnitId===unit.id);
     if(exact)exact.scrollIntoView({behavior:"smooth",block:"center"});
   };
+  const openProposalReview=()=>{
+    setQaPanelOpen(false);setReviewBarOpen(false);setReviewFocusAtomId(null);
+    setProposalReviewOpen(true);
+  };
   const openReview=()=>{
     setQaPanelOpen(false);setReviewBarOpen(true);
     const first=unreviewedIssues[0]??currentReviewIssues[0];
@@ -485,6 +491,11 @@ export default function SemanticReaderLab({
           aria-expanded={qaPanelOpen} onClick={()=>setQaPanelOpen(v=>!v)}>
           Nálezy ({flags.filter(f=>f.status==="open").length})
         </button>
+        <button type="button" className="semantic-reader__fullscreen-button semantic-reader__fullscreen-button--review"
+          aria-pressed={proposalReviewOpen} onClick={()=>proposalReviewOpen?
+            setProposalReviewOpen(false):openProposalReview()}>
+          Projít návrhy AI
+        </button>
         <button type="button"
           className="semantic-reader__fullscreen-button semantic-reader__fullscreen-button--review"
           aria-pressed={reviewBarOpen} onClick={()=>{
@@ -530,6 +541,13 @@ export default function SemanticReaderLab({
        onClick={()=>goToSearchMatch(activeSearchIndex+1)}>Další</button>
       <button type="button" onClick={()=>{setShowSearch(false);setActiveSearchUnit(null);}}>Zavřít</button>
     </section>}
+    {proposalReviewOpen&&<SemanticAiProposalReview key={revisionSha}
+      candidateId={candidateId} revisionSha={revisionSha}
+      flags={flags} onClose={()=>setProposalReviewOpen(false)}
+      onFind={locateReviewAtom}
+      onPreview={next=>{setPreview({parentSha:revisionSha,draft:next});setPageNumber(0);}}
+      onClearPreview={()=>{setPreview(null);setPageNumber(0);}}
+      onShowFinalReview={()=>{setProposalReviewOpen(false);setPreview(null);setPageNumber(0);}}/>}
     {reviewBarOpen&&<SemanticReviewBar key={revisionSha}
       candidateId={candidateId} revisionSha={revisionSha} taskId={currentTaskId}
       issues={currentReviewIssues} decisions={reviewDecisions}
@@ -562,6 +580,7 @@ export default function SemanticReaderLab({
         flags={flags} databaseReady={qaDatabaseReady} onSelect={selectAtom}
         canCommitBatch={canCommitBatch} aiJobPending={aiJobPending}
         onStartReview={openReview}
+        onOpenProposalReview={openProposalReview}
         currentTaskId={currentTaskId} reviewDecisions={reviewDecisions}
         currentChangeIssues={revision.review_issues.filter(issue=>issue.round===revision.round)}
         onPreview={next=>{setPreview({parentSha:revisionSha,draft:next});setPageNumber(0);setQaPanelOpen(false);}}
