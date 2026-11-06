@@ -484,14 +484,14 @@ export default function SemanticReaderLab({
           aria-expanded={qaPanelOpen} onClick={()=>setQaPanelOpen(v=>!v)}>
           Nálezy ({flags.filter(f=>f.status==="open").length})
         </button>
-        {currentReviewIssues.length>0?<button type="button"
+        <button type="button"
           className="semantic-reader__fullscreen-button semantic-reader__fullscreen-button--review"
           aria-pressed={reviewBarOpen} onClick={()=>{
            if(reviewBarOpen){setReviewBarOpen(false);setReviewFocusAtomId(null);}
            else openReview();
           }}>
-          Ověřit opravy ({unreviewedIssues.length})
-        </button>:null}
+          {currentReviewIssues.length?"Ověřit opravy ("+unreviewedIssues.length+")":"Dokončení QA"}
+        </button>
         <button type="button" className="semantic-reader__fullscreen-button"
           aria-expanded={showSearch} onClick={()=>setShowSearch(v=>!v)}>
           Hledat v textu
