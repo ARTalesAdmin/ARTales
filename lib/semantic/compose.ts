@@ -551,7 +551,13 @@ export function recomposeSemanticBatch(
  }
  const {revision_ref:_r,revision_sha256:_h,...payload}=previous;
  void _r;void _h;
- const updated=seal({...payload,blocks:nodes,editorial_exclusions:exclusions.sort(),
+ // Layout-only revisions must preserve document metadata exactly.
+ // Legacy round-zero revisions such as Pan do not have this field at all.
+ // Introducing [] changes JSONB and rightly fails the independent SQL guard.
+ const hasExclusions=Object.prototype.hasOwnProperty.call(previous,"editorial_exclusions");
+ const exclusionDelta=(hasExclusions||exclusions.length>0)
+  ?{editorial_exclusions:exclusions.sort()}:{}; 
+ const updated=seal({...payload,blocks:nodes,...exclusionDelta,
    parent_revision_ref:previous.revision_ref,
    round:previous.round+1,review_issues:[...previous.review_issues,...issues]});
  verifySemanticRevision(updated,exactOriginalRaw);

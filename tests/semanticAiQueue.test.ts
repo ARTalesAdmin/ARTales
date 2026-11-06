@@ -1,6 +1,8 @@
 import {test} from "node:test";
 import {strict as assert} from "node:assert";
 import {readFileSync} from "node:fs";
+import {createHash} from "node:crypto";
+import {composeSemanticRevision,recomposeSemanticBatch,verifySemanticRevision,walkSemanticAtoms} from "../lib/semantic/compose";
 const file=(p:string)=>readFileSync(new URL("../"+p,import.meta.url),"utf8");
 const sql=file("ops/sql/20261104_artales_ai_qa_durable_jobs.sql");
 const worker=file("app/api/internal/editorial/ai-qa-jobs/route.ts");
@@ -77,4 +79,27 @@ test("safe layout preparation uses the same complete UUID validator as enqueue",
  ])assert.equal(uuid.test(id),true);
  assert.equal(uuid.test("98508359-bce1-4e73-b842-b69a9d1112d"),false);
  assert.match(prep,/verifySemanticRevision\(original,previous.source_text\)/);
+});
+
+test("legacy Pan-like revision can be safely recomposed without inserting absent JSONB metadata",()=>{
+ const raw="CHAPTER I.\n\nDr. Raymond looked toward the hill.\n\nThe men went home.\n";
+ const hash=createHash("sha256").update(raw).digest("hex");
+ const initial=composeSemanticRevision({
+  work_id:"qa-fixture",work_slug:"qa-fixture",snapshot_ref:"sha256:"+hash,
+  source_bytes_sha256:hash,component_id:"text",original_byte_start:0,original_raw:raw
+ });
+ const atom=walkSemanticAtoms(initial.blocks).find(a=>a.raw.includes("Raymond"));
+ assert.ok(atom);
+ assert.equal(Object.hasOwn(initial,"editorial_exclusions"),false);
+ const updated=recomposeSemanticBatch(initial,[{
+  flagId:"b39525e5-c4fd-4b7f-9871-dbc2fcea6565",atomId:atom.id,
+  reason:"Typografická úprava",kind:"block_presentation",
+  presentation:{align:"center",indent:"none",space_before:"normal",space_after:"normal"}
+ }],raw);
+ verifySemanticRevision(updated,raw);
+ assert.equal(Object.hasOwn(updated,"editorial_exclusions"),false);
+ assert.deepEqual(updated.source,initial.source);
+ assert.deepEqual(updated.gaps,initial.gaps);
+ assert.equal(updated.review_issues.length,1);
+ assert.equal(updated.round,1);
 });
