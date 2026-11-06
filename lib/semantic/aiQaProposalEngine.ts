@@ -12,7 +12,7 @@ export type AiQaSuggestion={
  rationale:string;
  targetAtomIds:string[];
 };
-export type AiQaSuggestResult={ok:boolean;message:string;suggestions:AiQaSuggestion[];usage?:ArtalesAiUsage|null};
+export type AiQaSuggestResult={ok:boolean;message:string;suggestions:AiQaSuggestion[];generalRequest?:boolean;usage?:ArtalesAiUsage|null};
 const sha=/^[a-f0-9]{64}$/;
 const uuid=/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const actions=new Set(["compact","airy","center","protect_term","manual_review"]);
@@ -116,7 +116,7 @@ export async function generateSemanticAiQaSuggestions(input:{
       byAtom.get(flag.target_atom_id)?.atom.raw.includes(suggestion.term.trim()))))
     return fail("AI navrhla ochranu výrazu, který se nenachází v bloku.",usage);
   }
-  return {ok:true,message:"Návrhy AI jsou připraveny ke kontrole; zatím nic nemění.",suggestions:parsed.suggestions,usage};
+  return {ok:true,message:"Návrhy AI jsou připraveny ke kontrole; zatím nic nemění.",suggestions:parsed.suggestions,generalRequest:isGeneral,usage};
  }catch{
   return fail("AI návrh se nepodařilo bezpečně získat nebo ověřit; žádná data nebyla změněna.");
  }
