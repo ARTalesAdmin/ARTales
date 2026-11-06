@@ -54,6 +54,16 @@ export async function GET(request:NextRequest){
   if(!answer.ok)errorCode="validation_or_provider_failed";
   else{
    suggestions=answer.suggestions;
+   // A protected name/title is a rendering-only instruction for this work.
+   // The editor authorized this through the assigned QA job; there is no
+   // additional administrator approval and no mutation of source text.
+   const terms=answer.suggestions.filter(x=>x.action==="protect_term");
+   for(const item of terms){
+    const {error:termError}=await db.from("artales_work_typography_rules").upsert({
+      candidate_id:input.candidateId,term:item.term.trim(),created_by:job.created_by
+    },{onConflict:"candidate_id,term",ignoreDuplicates:true});
+    if(termError)throw Error("protected_term_write_failed");
+   }
    // "Send for repair" is authorization for strictly presentation-only corrections.
    // Uncertain or non-layout findings stay OPEN and never get edited by AI.
    const safe=new Set<EditorialBatchAction>(["compact","airy","center"]);
