@@ -1,7 +1,7 @@
 "use client";
 import {useEffect,useState,useTransition} from "react";
 import {useRouter} from "next/navigation";
-import {enqueueGeneralSemanticQaJob,adoptGeneralQaTargets,readSemanticAiQaJob,type QaJobStatus}
+import {enqueueGeneralSemanticQaJob,adoptGeneralQaTargets,lastGeneralSemanticQaJob,readSemanticAiQaJob,type QaJobStatus}
  from "@/app/member/semantic/[candidateId]/ai-job-actions";
 
 /** Separate task dialog: discovery only, never free-form mutation of the literary source. */
@@ -18,6 +18,14 @@ export default function GeneralQaDialog(p:{
  const [job,setJob]=useState<QaJobStatus|null>(null);
  const [message,setMessage]=useState("");
  const [pending,startTransition]=useTransition();
+ useEffect(()=>{
+  let active=true;
+  void lastGeneralSemanticQaJob({candidateId:p.candidateId,revisionSha:p.revisionSha})
+   .then(result=>{if(active&&result.ok&&result.jobId){
+    setJob(result);setMessage(result.message);
+   }}).catch(()=>{});
+  return()=>{active=false;};
+ },[p.candidateId,p.revisionSha]);
  useEffect(()=>{
   if(!job?.jobId||!["queued","running"].includes(job.status))return;
   let active=true;
