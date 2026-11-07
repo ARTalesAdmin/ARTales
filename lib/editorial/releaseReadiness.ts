@@ -33,7 +33,7 @@ export function assessEditorialRelease(input:ReleaseReadinessInput){
   blockers.push("Není dostupná platná aktuální sémantická revize.");
  if(!input.legalApproved)blockers.push("Chybí právní souhlas se zvoleným zdrojem.");
  if(!input.snapshotConfirmed)blockers.push("Chybí ověřená shoda archivovaného textu.");
- if(!input.sourceAuthorized)blockers.push("Potvrdit původ archivovaného zdroje pro vydání.");
+ if(!input.sourceAuthorized)blockers.push("Archivní zdroj neodpovídá právnímu schválení nebo ověřenému snapshotu.");
  if(!input.latestSha||!input.tasks.some(t=>t.kind==="text_review"&&
     t.revision_sha256===input.latestSha&&t.status==="completed"))
   blockers.push("Aktuální textová revize nemá dokončené QA.");
