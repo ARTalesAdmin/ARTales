@@ -11,7 +11,7 @@ test("legal detail renders the Snapshot action only on a locked source with enab
  assert.match(legal,/canArchive=\{profile\.role==="admin"\}/);
 });
 test("the shared action is a consent-gated POST directly from Legal detail",()=>{
- assert.match(panel,/state\.status==="ready"&&canArchive/);
+ assert.match(panel,/\(state\.status==="ready"\|\|state\.status==="recovery_ready"\)\&\&canArchive/);
  assert.match(panel,/action=\{\`\/api\/member\/snapshot\/\$\{candidateId\}\`\}/);
  assert.match(panel,/name="private_original_retention" value="archive_only" required/);
  assert.match(panel,/Vytvořit Snapshot/);
