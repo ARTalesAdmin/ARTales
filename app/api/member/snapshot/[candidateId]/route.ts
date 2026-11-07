@@ -72,17 +72,22 @@ export async function POST(req:Request,{params}:{params:Promise<{candidateId:str
  // A persisted claim without a verified receipt must never initiate a retry.
  const [{data:existing,error:existingError},{data:priorClaim,error:priorClaimError}]=await Promise.all([
   db.from("candidate_snapshots").select("sha256,storage_path,readback_status").eq("candidate_id",candidateId).maybeSingle(),
-  db.from("candidate_snapshot_claims").select("candidate_id").eq("candidate_id",candidateId).maybeSingle()
+  db.from("candidate_snapshot_claims").select("candidate_id,source_id,decision_no,gutenberg_id,sha256,claimed_by,claimed_at").eq("candidate_id",candidateId).maybeSingle()
  ]);
  if(existingError||priorClaimError)return NextResponse.json({ok:false,error:"snapshot_registry_not_ready"},{status:503});
  const preflight=deriveSnapshotPreflight(Boolean(existing),Boolean(priorClaim));
  if(preflight==="already_archived")return NextResponse.redirect(new URL(
   `/member/snapshot/${candidateId}?result=already_archived`,req.url),303);
- if(preflight==="claim_without_receipt")return NextResponse.json({
-  ok:false,error:"snapshot_claim_exists_inspection_required",claimed:false,
-  reconciliation_required:true
- },{status:409,headers:{"Cache-Control":"no-store"}});
- let claimed=false;
+ // Only the original claimant may finish a failed upload. A claim is immutable;
+ // we never delete, replace, or bypass it. Exact legal/source/digest agreement
+ // is verified before any attempt to write a storage object.
+ const recovery=preflight==="claim_without_receipt";
+ if(recovery&&(!priorClaim||priorClaim.claimed_by!==actor.id||!priorClaim.sha256))
+  return NextResponse.json({
+   ok:false,error:"snapshot_claim_requires_owner_inspection",claimed:false,
+   reconciliation_required:true
+  },{status:409,headers:{"Cache-Control":"no-store"}});
+ let claimed=recovery;
  try{
   const packet=await readLockedSnapshotPacket(candidateId);
   if(packet.actor.id!==actor.id)throw Error("snapshot_actor_mismatch");
@@ -94,23 +99,42 @@ export async function POST(req:Request,{params}:{params:Promise<{candidateId:str
   const plan=planLockedSnapshot(packet,book);
   const proposal=proposeGutenbergSnapshotAcquisition(plan,book);
   const captured=captureRawSource(plan.selection,await loadMirror(proposal.acquisitionUrl),new Date().toISOString());
-  const {error:claimError}=await db.from("candidate_snapshot_claims").insert({
-    candidate_id:candidateId,source_id:packet.lock.source_id,decision_no:packet.lock.decision_no,
-    gutenberg_id:id,sha256:captured.manifest.sha256,claimed_by:actor.id
-  });
-  if(claimError){
-    // Concurrent requests may both pass preflight. The immutable DB primary key
-    // arbitrates; inspect the actual outcome before giving recovery guidance.
-    const {data:observedClaim,error:readbackError}=await db.from("candidate_snapshot_claims")
-      .select("candidate_id").eq("candidate_id",candidateId).maybeSingle();
-    if(readbackError)throw Error("snapshot_claim_readback_failed");
-    if(observedClaim)return NextResponse.json({
-      ok:false,error:"snapshot_claim_exists_inspection_required",claimed:false,
-      reconciliation_required:true
-    },{status:409,headers:{"Cache-Control":"no-store"}});
-    throw Error("snapshot_already_claimed_or_denied");
+  if(recovery){
+    if(priorClaim!.source_id!==packet.lock.source_id||
+       priorClaim!.decision_no!==packet.lock.decision_no||
+       priorClaim!.gutenberg_id!==id||
+       priorClaim!.sha256!==captured.manifest.sha256||
+       priorClaim!.claimed_by!==actor.id)
+      throw Error("snapshot_recovery_claim_identity_or_digest_mismatch");
+  }else{
+    const {error:claimError}=await db.from("candidate_snapshot_claims").insert({
+      candidate_id:candidateId,source_id:packet.lock.source_id,decision_no:packet.lock.decision_no,
+      gutenberg_id:id,sha256:captured.manifest.sha256,claimed_by:actor.id
+    });
+    if(claimError){
+      // Concurrent requests may pass preflight: an existing immutable claim
+      // must be inspected by its claimant, not adopted by this request.
+      const {data:observedClaim,error:readbackError}=await db.from("candidate_snapshot_claims")
+       .select("candidate_id").eq("candidate_id",candidateId).maybeSingle();
+      if(readbackError)throw Error("snapshot_claim_readback_failed");
+      if(observedClaim)return NextResponse.json({
+       ok:false,error:"snapshot_claim_exists_inspection_required",claimed:false,
+       reconciliation_required:true
+      },{status:409,headers:{"Cache-Control":"no-store"}});
+      throw Error("snapshot_already_claimed_or_denied");
+    }
+    claimed=true;
   }
-  claimed=true;
+  // Never overwrite a possibly complete object or implicitly claim it as ours.
+  // Storage metadata is not sufficient to substitute for full byte readback.
+  if(recovery){
+    const {data:found,error:lookupError}=await db.storage.from(RAW_SNAPSHOT_BUCKET)
+      .list("gutenberg/"+id+"/sha256/"+captured.manifest.sha256,
+       {search:captured.manifest.original_filename,limit:10});
+    if(lookupError)throw Error("snapshot_recovery_storage_inspection_failed");
+    if((found??[]).some(entry=>entry.name===captured.manifest.original_filename))
+      throw Error("snapshot_recovery_existing_object_needs_readback");
+  }
   const receipt=await archiveRawSource(captured,db,RAW_SNAPSHOT_BUCKET,
     captured.manifest.embedded_images?{privateImageRetentionApproved:true}:undefined);
   const {error:recordError}=await db.from("candidate_snapshots").insert({

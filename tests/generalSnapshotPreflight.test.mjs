@@ -22,3 +22,16 @@ test("route has preflight before mirror fetch and an independent conflict readba
  assert.match(route,/if\(claimError\)[\s\S]*select\("candidate_id"\)/);
  assert.match(route,/reconciliation_required:true/);
 });
+
+test("route may resume only original claim with an exact SHA-256 comparison",()=>{
+ const route=readFileSync("app/api/member/snapshot/[candidateId]/route.ts","utf8");
+ const state=readFileSync("lib/ingest/server/getCandidateSnapshotState.ts","utf8");
+ const panel=readFileSync("components/snapshot/SnapshotActionPanel.tsx","utf8");
+ assert.match(route,/preflight==="claim_without_receipt"/);
+ assert.match(route,/priorClaim\.claimed_by!==actor\.id/);
+ assert.match(route,/priorClaim!\.sha256!==captured\.manifest\.sha256/);
+ assert.match(route,/snapshot_recovery_existing_object_needs_readback/);
+ assert.match(route,/upsert: false|archiveRawSource/);
+ assert.match(state,/recoverableClaim:Boolean/);
+ assert.match(panel,/Bezpečně dokončit Snapshot/);
+});

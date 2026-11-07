@@ -10,3 +10,9 @@ test("claim without receipt requires reconciliation, not a permanent spinner",()
 test("incomplete receipt is a hold",()=>{assert.equal(d({...green,receipt:{sha256:"bad",readbackVerified:true}}).status,"failed")});
 test("composition requires independent edition verification",()=>{const x=d({...green,receipt:{sha256:sha,readbackVerified:true},editionVerified:true});assert.equal(x.semanticReady,true);assert.equal(x.publicationAuthorized,false)});
 test("busy, failed, unavailable source cannot trigger archive",()=>{for(const x of [{...green,operation:"acquiring"},{...green,operation:"archiving"},{...green,failed:true},{...green,sourceAvailable:false}])assert.equal(d(x).canStart,false)});
+
+test("claim owned by same active administrator resumes after exact digest validation",()=>{
+ const x=d({...green,claimWithoutReceipt:true,recoverableClaim:true});
+ assert.equal(x.status,"recovery_ready");assert.equal(x.canStart,true);
+ assert.equal(d({...green,claimWithoutReceipt:true,recoverableClaim:false}).canStart,false);
+});
