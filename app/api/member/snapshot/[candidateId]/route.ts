@@ -82,7 +82,7 @@ export async function POST(req:Request,{params}:{params:Promise<{candidateId:str
  // we never delete, replace, or bypass it. Exact legal/source/digest agreement
  // is verified before any attempt to write a storage object.
  const recovery=preflight==="claim_without_receipt";
- if(recovery&&(priorClaim?.claimed_by!==actor.id||!priorClaim.sha256))
+ if(recovery&&(!priorClaim||priorClaim.claimed_by!==actor.id||!priorClaim.sha256))
   return NextResponse.json({
    ok:false,error:"snapshot_claim_requires_owner_inspection",claimed:false,
    reconciliation_required:true
