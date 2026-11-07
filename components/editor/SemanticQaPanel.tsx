@@ -218,28 +218,21 @@ export default function SemanticQaPanel(p:Props){
     </button>
    </div>:null}
   </section>
-  <section className="semantic-qa-panel__next">
-   <h3>Co dál?</h3>
-   {p.currentChangeIssues.length>0?<div>
-    <p>Opravené bloky se kontrolují samostatně, bez odůvodňování přijaté opravy.
-     <strong> Zbývá ověřit {unreviewed.length} změn.</strong></p>
-    <button type="button" onClick={p.onStartReview}>Ověřit opravené bloky</button>
-   </div>:null}
-   {open.length>0?<p><strong>{open.length} nálezů čeká na vyřešení.</strong>
-    Po provedení oprav je znovu zkontroluj. Odeslání nálezů k AI není totéž jako dokončení QA.</p>:null}
-   {!p.currentChangeIssues.length&&open.length===0?<p>Žádné otevřené nálezy ani změny k ověření.</p>:null}
-   {p.aiJobPending?<p>AI právě pracuje. Dokončení QA zatím není možné.</p>:null}
-   {returned.length>0?<p>{returned.length} vrácených oprav vyžaduje další řešení.</p>:null}
-   <button type="button" disabled={!canFinish}
-    title={canFinish?"Dokončení QA je dostupné v režimu Ověřit opravy.":"Nedokončené nálezy nebo změny brání uzavření QA."}
-    onClick={p.onStartReview}>Dokončit celé QA v kontrole oprav</button>
-   <p className="semantic-qa-panel__next-note">
-    {canFinish?"Všechny podmínky jsou splněny. Otevři kontrolu oprav a dokonči QA.":
-      "Dokončení se zpřístupní po vyřešení nálezů, přijetí změn a dokončení AI úloh."}
-   </p>
-  </section>
+  {p.currentChangeIssues.length>0&&<section className="semantic-qa-panel__next">
+   <h3>Opravy čekají na kontrolu</h3>
+   <p>{unreviewed.length>0?unreviewed.length+" změn čeká na posouzení vedle textu.":
+    "Všechny změny této revize byly posouzeny."}</p>
+   <button type="button" onClick={p.onStartReview}>
+    {unreviewed.length>0?"Zkontrolovat změny":"Přejít k dokončení QA"}
+   </button>
+  </section>}
+  {p.currentChangeIssues.length===0&&open.length===0&&p.currentTaskId?
+   <section className="semantic-qa-panel__next">
+    <p>Žádné nevyřešené nálezy. Dokončení najdeš v jediném panelu kontroly.</p>
+    <button type="button" onClick={p.onStartReview}>Přejít k dokončení QA</button>
+   </section>:null}
   <details className="semantic-qa-panel__findings">
-   <summary>Najít a spravovat nálezy ({p.flags.length})</summary>
+   <summary>Historie nálezů a pokročilé ruční zásahy ({p.flags.length})</summary>
    <div className="semantic-qa-panel__filters">
     <label>Hledat nález
      <input type="search" value={findingQuery}
