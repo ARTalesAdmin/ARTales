@@ -457,3 +457,66 @@
 .semantic-qa-panel__ai-ready button{width:100%;min-height:43px;background:#203e34!important;color:#fff!important}
 @media(max-width:680px){.semantic-reader__proposal-review{top:0;padding:10px}
 .semantic-reader__proposal-choice>button{flex:1 1 130px}}
+
+
+/* ARTales QA verdicts must remain beside both source and edited text.
+ * Do not pin a full-width decision strip above the reading panes. */
+.semantic-reader__review-layout{max-width:1680px;margin:0 auto;min-width:0}
+.semantic-reader__review-layout--active{
+ display:grid;grid-template-columns:minmax(0,1fr) minmax(280px,330px);
+ gap:12px;align-items:start;max-width:none
+}
+.semantic-reader__review-layout--active>.semantic-reader__triptych{min-width:0;max-width:none;width:100%}
+.semantic-reader__review-layout--active .semantic-reader__triptych>section{
+ padding:9px;min-width:0
+}
+.semantic-reader__review-layout--active .semantic-reader__source-sheet{padding:14px 10px}
+.semantic-reader__review-layout--active .semantic-reader__page{padding:15px 11px}
+.semantic-reader__review-layout--active>.semantic-reader__review-bar{
+ position:sticky;top:75px;z-index:16;box-sizing:border-box;
+ width:100%;max-height:min(75dvh,800px);overflow:auto;
+ margin:0;padding:12px;background:#f7fffc;
+}
+.semantic-reader__review-layout .semantic-reader__review-head{
+ display:flex;align-items:start;gap:8px
+}
+.semantic-reader__review-layout .semantic-reader__review-head>div{
+ display:grid;gap:3px;min-width:0
+}
+.semantic-reader__review-layout .semantic-reader__review-head small{
+ color:#426158;font:12px/1.35 system-ui
+}
+.semantic-reader__review-layout .semantic-reader__review-nav{gap:7px}
+.semantic-reader__review-layout .semantic-reader__review-find{
+ margin-left:0;width:100%;text-align:left
+}
+.semantic-reader__review-excerpt{
+ border:1px solid #b8d2ce;background:#fff;border-radius:8px;
+ padding:9px;margin:8px 0;max-height:26dvh;overflow:auto
+}
+.semantic-reader__review-excerpt small{color:#526e68;font:11px/1.3 system-ui}
+.semantic-reader__review-excerpt p{
+ white-space:pre-wrap;overflow-wrap:anywhere;font:13px/1.55 Georgia,serif;
+ margin:5px 0 0;color:#2b322e
+}
+.semantic-reader__review-layout .semantic-reader__review-actions button{
+ flex:1 1 120px;min-height:42px
+}
+.semantic-reader__review-layout .semantic-reader__review-footer{
+ display:grid;gap:9px
+}
+.semantic-reader__review-layout .semantic-reader__review-footer button{width:100%}
+.semantic-reader__review-guidance{display:block;color:#426158}
+.semantic-reader__review-legend{border-top:1px solid #c5ded6;padding-top:8px}
+.semantic-reader__review-legend summary{cursor:pointer;font:12px system-ui}
+.semantic-reader__review-legend p{display:flex;flex-wrap:wrap;align-items:center;gap:5px;font:11px system-ui}
+@media(max-width:980px){
+ .semantic-reader__review-layout--active{grid-template-columns:minmax(0,1fr)}
+ .semantic-reader__review-layout--active>.semantic-reader__review-bar{
+  position:sticky;top:8px;max-height:38dvh;order:-1
+ }
+ .semantic-reader__review-layout--active>.semantic-reader__triptych{order:1}
+ .semantic-reader__review-layout--active .semantic-reader__paired-scroll{
+  height:min(48dvh,500px)
+ }
+}
