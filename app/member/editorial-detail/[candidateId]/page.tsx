@@ -116,7 +116,9 @@ export default async function CandidateEditorialDetail({params,searchParams}:{
   cover_asset_missing:"Soubor obálky nebyl nalezen v úložišti.",
   not_claimed:"Nejdřív převezmi odpovídající úkol.",invalid_input:"Neplatné údaje.",
   evidence_missing:"Chybí ověřené údaje nebo uložený soubor. Úkol zůstává otevřený.",
-  qa_in_reader:"Dokončení textového QA probíhá v sémantickém editoru."
+  qa_in_reader:"Dokončení textového QA probíhá v sémantickém editoru.",
+  invalid_release:"Neplatné odůvodnění nebo metadata vydání.",
+  release_blocked:"Publikace byla odmítnuta serverovou kontrolou. Stav úkolů a zdrojů zůstává beze změny."
  };
  const completeForm=(kind:string,ready:boolean)=>{
   const task=byKind(kind);
