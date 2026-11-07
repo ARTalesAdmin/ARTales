@@ -33,7 +33,7 @@ test("open cover, unapproved source, AI or missing bilingual text block release"
  x.tasks.find(t=>t.kind==="cover_art")!.status="open";
  x.sourceAuthorized=false;x.pendingAi=true;x.metadata!.descriptionCs="Too short";
  const blockers=assessEditorialRelease(x).blockers.join("\n");
- assert.match(blockers,/Obálka/);assert.match(blockers,/zdrojová kontrola/);
+ assert.match(blockers,/Obálka/);assert.match(blockers,/původ archivovaného zdroje/);
  assert.match(blockers,/AI/);assert.match(blockers,/anglická anotace/);
 });
 test("release is explicitly admin-approved, uses latest source and the real bilingual assets",()=>{

@@ -33,7 +33,7 @@ export function assessEditorialRelease(input:ReleaseReadinessInput){
   blockers.push("Není dostupná platná aktuální sémantická revize.");
  if(!input.legalApproved)blockers.push("Chybí právní souhlas se zvoleným zdrojem.");
  if(!input.snapshotConfirmed)blockers.push("Chybí ověřená shoda archivovaného textu.");
- if(!input.sourceAuthorized)blockers.push("Chybí potvrzená nezávislá zdrojová kontrola snapshotu.");
+ if(!input.sourceAuthorized)blockers.push("Potvrdit původ archivovaného zdroje pro vydání.");
  if(!input.latestSha||!input.tasks.some(t=>t.kind==="text_review"&&
     t.revision_sha256===input.latestSha&&t.status==="completed"))
   blockers.push("Aktuální textová revize nemá dokončené QA.");
@@ -45,21 +45,24 @@ export function assessEditorialRelease(input:ReleaseReadinessInput){
  for(const [kind,label] of [
   ["cover_art","Obálka"],["work_description","Anotace"],["collection_curation","Kolekce"]
  ] as const)
-  if(task(kind)?.status!=="completed")blockers.push(label+" — úkol není dokončen.");
+  if(task(kind)?.status!=="completed")blockers.push(label+": dokončit redakční úkol"+(kind==="cover_art"?" a nahrát soubor":"")+".");
  for(const [kind,label] of [["author_bio","Text autora"],["author_visual","Vizuál autora"]] as const)
-  if(task(kind)&&task(kind)?.status!=="completed")blockers.push(label+" — úkol není dokončen.");
+  if(task(kind)&&task(kind)?.status!=="completed")blockers.push(label+": dokončit redakční úkol"+(kind==="author_visual"?" a nahrát portrét":"")+".");
  if(!metadata||!completeBilingual(metadata.descriptionCs,metadata.descriptionEn))
   blockers.push("Chybí platná česká a anglická anotace.");
- if(!metadata?.coverPath||(metadata.coverAlt??"").trim().length<8)
-  blockers.push("Chybí obálka nebo její alternativní popis.");
+ if(task("cover_art")?.status==="completed"&&(!metadata?.coverPath||(metadata.coverAlt??"").trim().length<8))
+  blockers.push("Dokončená obálka nemá platný soubor nebo popis.");
  if(!metadata?.authorId||!input.author||!completeBilingual(input.author.bioCs,input.author.bioEn))
   blockers.push("Profil autora není kompletní v obou jazycích.");
- if(!input.author?.portraitPath||(input.author.portraitAlt??"").trim().length<8)
-  blockers.push("Chybí portrét autora nebo alternativní popis.");
+ if(task("author_visual")?.status==="completed"&&(!input.author?.portraitPath||(input.author.portraitAlt??"").trim().length<8))
+  blockers.push("Dokončený vizuál autora nemá platný portrét nebo popis.");
  if(!metadata?.collectionId||!input.collection||
     !completeBilingual(input.collection.descriptionCs,input.collection.descriptionEn))
   blockers.push("Kolekce nemá kompletní dvojjazyčný popis.");
- if(input.tasks.some(t=>t.status==="open"||t.status==="claimed"||t.status==="returned"))
-  blockers.push("V redakci zbývají nedokončené úkoly.");
+ // Individual incomplete tasks already explain the relevant redaction blockers.
+ if(input.tasks.some(t=>t.status==="open"||t.status==="claimed"||t.status==="returned")&&
+    !input.tasks.some(t=>["cover_art","work_description","collection_curation","author_bio","author_visual"].includes(t.kind)&&
+      ["open","claimed","returned"].includes(t.status)))
+  blockers.push("Zbývá další nedokončená kontrola.");
  return {ready:blockers.length===0,blockers};
 }
