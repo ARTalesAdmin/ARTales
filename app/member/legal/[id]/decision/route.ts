@@ -3,6 +3,7 @@ import {requireEditorOrAdmin} from "@/lib/guards";
 import {createClient} from "@/lib/supabase/server";
 import {LEGAL_SCREEN_V1_ENABLED} from "@/lib/legal/featureFlag";
 import {approvalBlockers,isAutomaticScreen} from "@/lib/legal/reviewHistory";
+import {humanIllustrationEvidenceIssues,type HumanIllustrationReview} from "@/lib/legal/humanIllustrationEvidence";
 const valid=(s:string)=>/^[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i.test(s);
 export async function POST(req:Request,{params}:{params:Promise<{id:string}>}){
  if(!LEGAL_SCREEN_V1_ENABLED)return NextResponse.json({error:"disabled"},{status:404});
@@ -12,6 +13,13 @@ export async function POST(req:Request,{params}:{params:Promise<{id:string}>}){
  const sourceId=String(form.get("source_id")??""),decisionNo=Number(form.get("decision_no"));
  const verdict=String(form.get("verdict")??""),rationale=String(form.get("rationale")??"").trim();
  const includeImages=String(form.get("include_illustrations")??"false")==="true";
+ const imageEvidence:HumanIllustrationReview={
+  contributors:String(form.get("illustrator_contributors")??"").trim(),
+  basis:String(form.get("illustration_basis")??"") as HumanIllustrationReview["basis"],
+  evidenceUrl:String(form.get("illustration_evidence_url")??"").trim(),
+  completeEdition:String(form.get("illustration_edition_scope")??"")==="true"
+ };
+ const evidenceIssues=includeImages?humanIllustrationEvidenceIssues(imageEvidence,new Date().getUTCFullYear()):[];
  if(!valid(sourceId)||!Number.isSafeInteger(decisionNo)||decisionNo<1||!["approved","needs_evidence","deferred","rejected"].includes(verdict)||rationale.length<15||rationale.length>5000)
   return NextResponse.json({error:"invalid"},{status:400});
  const db=await createClient();
@@ -26,8 +34,25 @@ export async function POST(req:Request,{params}:{params:Promise<{id:string}>}){
  if(current?.decision_no!==decisionNo)return NextResponse.json({error:"stale_run"},{status:409});
  let recordedOutcome:string|null=null;
  try{const note=JSON.parse(src.notes??"{}") as {schema?:string;outcome?:string};if(note.schema==="artales.public-domain-check.v1")recordedOutcome=note.outcome??null;}catch{}
- if(verdict==="approved"&&(rationale.length<30||approvalBlockers(src).length||recordedOutcome===null||recordedOutcome==="no"||(includeImages&&recordedOutcome!=="yes_with_illustrations")))
+ if(verdict==="approved"&&(rationale.length<30||approvalBlockers(src).length||recordedOutcome===null||recordedOutcome==="no"))
   return NextResponse.json({error:"missing_evidence"},{status:422});
- const {error}=await db.from("candidate_legal_decisions").insert({candidate_id:id,source_id:sourceId,verdict,territory:"CZ/EU",rationale,reviewed_by:profile.id});
+ if(verdict==="approved"&&includeImages&&evidenceIssues.length)
+  return NextResponse.json({error:"illustration_evidence_incomplete",issues:evidenceIssues},{status:422});
+ // Image rights determination belongs to the named reviewer, never the automatic check.
+ // Retain the original automatic verdict and keep all imagery excluded from public
+ // publication. The signed review is audit evidence, NOT a public-image release gate.
+ const humanImageAudit=includeImages?{
+  schema:"artales.human-illustration-review.v1",
+  reviewedSourceId:sourceId,reviewedAutoDecisionNo:decisionNo,
+  originalAutoOutcome:recordedOutcome,
+  basis:imageEvidence.basis,contributors:imageEvidence.contributors,
+  evidenceUrl:imageEvidence.evidenceUrl,completeEdition:imageEvidence.completeEdition,
+  publicationUse:"not_authorized_by_this_decision",
+  reviewedBy:profile.id
+ }:null;
+ const recordedRationale=humanImageAudit?
+  rationale+" | HUMAN_ILLUSTRATION_EVIDENCE "+JSON.stringify(humanImageAudit):rationale;
+ if(recordedRationale.length>5000)return NextResponse.json({error:"invalid"},{status:400});
+ const {error}=await db.from("candidate_legal_decisions").insert({candidate_id:id,source_id:sourceId,verdict,territory:"CZ/EU",rationale:recordedRationale,reviewed_by:profile.id});
  return error?NextResponse.json({error:"cannot_save_decision"},{status:422}):NextResponse.json({ok:true});
 }
