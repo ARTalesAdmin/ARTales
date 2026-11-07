@@ -46,9 +46,9 @@ export default async function CandidateEditorialDetail({params,searchParams}:{
   db.from("candidate_semantic_revisions").select("revision_sha256,status,image_selection,revision")
    .eq("candidate_id",candidateId).order("created_at",{ascending:false})
    .order("id",{ascending:false}).limit(1).maybeSingle(),
-  db.from("candidate_legal_locks").select("decision_no,source_id")
+  db.from("candidate_legal_locks").select("decision_no,source_id,source_url,download_url")
    .eq("candidate_id",candidateId).maybeSingle(),
-  db.from("candidate_snapshots").select("sha256,publication_authorized,semantic_ready")
+  db.from("candidate_snapshots").select("sha256,source_id,decision_no,gutenberg_id,catalog_url,locked_file_url,selected_file_url,storage_bucket,storage_path,readback_status,byte_count,image_publication_clearance")
    .eq("candidate_id",candidateId).maybeSingle(),
   db.from("candidate_snapshot_reviews").select("snapshot_sha256,text_correspondence,image_disposition")
    .eq("candidate_id",candidateId).order("reviewed_at",{ascending:false})
@@ -149,7 +149,18 @@ export default async function CandidateEditorialDetail({params,searchParams}:{
    snapshotReviewRes.data.text_correspondence==="confirmed"&&
    snapshotReviewRes.data.image_disposition==="exclude_all"),
   published:Boolean(publicationRes.data),
-  sourceAuthorized:Boolean(snapshotRes.data?.publication_authorized&&snapshotRes.data?.semantic_ready),tasks,
+  sourceAuthorized:Boolean(snapshotRes.data&&legalLockRes.data&&
+   snapshotRes.data.source_id===legalLockRes.data.source_id&&
+   snapshotRes.data.decision_no===legalLockRes.data.decision_no&&
+   snapshotRes.data.catalog_url===legalLockRes.data.source_url&&
+   snapshotRes.data.locked_file_url===legalLockRes.data.download_url&&
+   snapshotRes.data.selected_file_url===legalLockRes.data.download_url&&
+   snapshotRes.data.readback_status==="sha256_verified"&&
+   snapshotRes.data.storage_bucket==="artales-raw-snapshots"&&
+   snapshotRes.data.image_publication_clearance==="excluded"&&
+   snapshotRes.data.storage_path===
+    "gutenberg/"+snapshotRes.data.gutenberg_id+"/sha256/"+snapshotRes.data.sha256+"/original.epub"&&
+   snapshotRes.data.byte_count>=64),tasks,
   openFindings:qaFlagRes.error?null:(qaFlagRes.data??[]).filter(flag=>flag.status==="open").length,
   unacceptedChanges:reviewDecisionRes.error?null:currentIssues.filter(
    (issue:{id:string})=>!decisions.some(d=>d.revision_sha256===latest?.revision_sha256&&
@@ -235,7 +246,7 @@ export default async function CandidateEditorialDetail({params,searchParams}:{
        <textarea name="reason" rows={3} minLength={30} maxLength={4000} required
         placeholder="Stručně potvrď kontrolu aktuální revize a připravenost díla."/>
       </label>
-      <button className="ed-button" type="submit" disabled={!releaseState.ready||!snapshotRes.data?.publication_authorized}>
+      <button className="ed-button" type="submit" disabled={!releaseState.ready}>
        Schválit a publikovat dílo
       </button>
      </form>:<p className="ed-quiet">Zveřejnění potvrzuje pouze administrátor.</p>}
