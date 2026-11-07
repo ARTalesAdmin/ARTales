@@ -49,7 +49,7 @@ test("QA panel keeps one prominent AI handoff and compact searchable findings",(
  assert.match(panel,/Odeslat "\+open.length\+" nálezů k opravě/);
  assert.match(panel,/aria-describedby="artales-ai-queue-feedback"/);
  assert.match(panel,/id="artales-ai-queue-feedback"/);
- assert.match(panel,/Najít a spravovat nálezy/);
+ assert.match(panel,/Historie nálezů a pokročilé ruční zásahy/);
  assert.match(panel,/type="search"/);
  assert.match(panel,/findingStatus/);
  assert.match(panel,/Najít v textu/);
@@ -59,8 +59,8 @@ test("QA panel keeps one prominent AI handoff and compact searchable findings",(
  assert.match(lab,/Obecná oprava/);
  assert.match(lab,/Hledat v textu/);
  assert.match(panel,/Přidat nález/);
- assert.match(review,/Oprava je v pořádku/);
- assert.match(review,/Najít v textu/);
+ assert.match(review,/✓ Přijmout/);
+ assert.match(review,/Ukázat blok v textu/);
  assert.match(css,/semantic-qa-panel__flags--compact/);
  assert.match(css,/max-height:min\(52dvh,430px\)/);
  assert.match(panel,/enqueueSemanticAiQaJob/);
@@ -74,7 +74,7 @@ test("reader-first QA adds notes and returns editor to text",()=>{
  assert.doesNotMatch(panel,/Automaticky označené nejasnosti/);
  assert.match(lab,/data-review-signal=/);
  assert.match(lab,/aria-expanded=\{qaPanelOpen\}/);
- assert.match(panel,/Najít a spravovat nálezy/);
+ assert.match(panel,/Historie nálezů a pokročilé ruční zásahy/);
 });
 
 test("general QA uses the identity-bound durable queue and safely scoped model discovery",()=>{
@@ -99,8 +99,8 @@ test("general QA uses the identity-bound durable queue and safely scoped model d
 });
 
 test("review one corrected block at a time, accept without explanation and keep return reason",()=>{
- assert.match(review,/Oprava je v pořádku/);
- assert.match(review,/Vrátit k opravě/);
+ assert.match(review,/✓ Přijmout/);
+ assert.match(review,/Vrátit s poznámkou/);
  assert.match(review,/returnNote\.trim\(\)\.length<15/);
  assert.match(review,/decision==="returned"\?returnNote:""/);
  assert.match(review,/const next=unreviewed\.find/);
@@ -125,4 +125,18 @@ test("review colors separate active editor selection from pending and accepted c
  assert.match(css,/data-selected="true"/);
  assert.match(lab,/reviewDecisionById/);
  assert.match(lab,/reviewStateForUnits/);
+});
+
+test("compact QA verdict dock keeps source and corrected panes readable",()=>{
+ const css=file("components/editor/semantic-reader.css");
+ assert.match(lab,/semantic-reader__review-layout--active/);
+ assert.match(css,/grid-template-columns:minmax\(0,1fr\) minmax\(280px,330px\)/);
+ assert.match(lab,/getExcerpt=\{atomId=>/);
+ assert.match(lab,/if\(reviewBarOpen\)\{locateReviewAtom\(id\);return;\}/);
+ assert.match(review,/getExcerpt:\(atomId:string\)=>string/);
+ assert.match(review,/semantic-reader__review-excerpt/);
+ assert.match(review,/router\.refresh\(\)/);
+ assert.match(review,/Zbývá: /);
+ assert.match(review,/finishSemanticQaReview/);
+ assert.doesNotMatch(panel,/semantic-qa-panel__next-note/);
 });
