@@ -213,7 +213,7 @@ export default async function CandidateEditorialDetail({params,searchParams}:{
    <div className="ed-card__head"><div className="ed-card__heading">
     <span className="ed-card__number">✓</span><div>
      <h2>Vydání díla</h2>
-     <p className="ed-card__lead">QA, redakční podklady a závěrečné schválení na jednom místě.</p>
+     <p className="ed-card__lead">Co zbývá před zveřejněním.</p>
     </div></div>
     <div className="ed-card__statuses">
      <span className={"ed-status "+(releaseState.ready?"ed-status--complete":"")}>
@@ -225,17 +225,15 @@ export default async function CandidateEditorialDetail({params,searchParams}:{
     {releaseState.blockers.length?<ul className="ed-release-checklist">
      {releaseState.blockers.map(blocker=><li key={blocker}>{blocker}</li>)}
     </ul>:<p>Všechny evidované podmínky jsou splněné. Před vydáním zkontroluj veřejný náhled.</p>}
-    {snapshotRes.data&&!snapshotRes.data.publication_authorized?
-     <p className="ed-quiet">Archivní snapshot zatím nemá potvrzení publication_authorized.
-      Před vydáním je nutné dokončit nezávislé ověření zdroje.</p>:null}
+
     {publicationRes.data?<p>Dílo je již v katalogu.</p>:
      me.role==="admin"?<form action={publishSemanticCandidate} className="ed-release-form">
       <input type="hidden" name="candidate_id" value={candidateId}/>
       <input type="hidden" name="revision_sha256" value={latest?.revision_sha256??""}/>
       <p><strong>Veřejná adresa:</strong> /work/{slugify(candidate.proposed_title)}</p>
-      <label>Odůvodnění konečného schválení
+      <label>Potvrzení vydání
        <textarea name="reason" rows={3} minLength={30} maxLength={4000} required
-        placeholder="Uveď věcný důvod schválení této konkrétní revize."/>
+        placeholder="Stručně potvrď kontrolu aktuální revize a připravenost díla."/>
       </label>
       <button className="ed-button" type="submit" disabled={!releaseState.ready||!snapshotRes.data?.publication_authorized}>
        Schválit a publikovat dílo
