@@ -326,7 +326,9 @@ export default function SemanticReaderLab({
     pane.scrollTo({top:pane.scrollTop+current-25,behavior:"smooth"});
   };
   const selectAtom=(id:string)=>{
-    setReviewBarOpen(false);setReviewFocusAtomId(null);
+    // Selecting an already highlighted block must not tear down QA verification.
+    if(reviewBarOpen){locateReviewAtom(id);return;}
+    setReviewFocusAtomId(null);
     if(selectedAtomId===id){setSelectedAtomId(null);setQaPanelOpen(false);return;}
     setSelectedAtomId(id);setQaPanelOpen(true);
     const unit=allUnits.find(u=>u.source_atom_ids.includes(id));
@@ -351,7 +353,7 @@ export default function SemanticReaderLab({
     setProposalReviewOpen(true);
   };
   const openReview=()=>{
-    setQaPanelOpen(false);setReviewBarOpen(true);
+    setQaPanelOpen(false);setProposalReviewOpen(false);setReviewBarOpen(true);
     const first=unreviewedIssues[0]??currentReviewIssues[0];
     if(first)locateReviewAtom(first.target_atom_id);
   };
@@ -510,7 +512,7 @@ export default function SemanticReaderLab({
            if(reviewBarOpen){setReviewBarOpen(false);setReviewFocusAtomId(null);}
            else openReview();
           }}>
-          {currentReviewIssues.length?"Ověřit opravy ("+unreviewedIssues.length+")":"Dokončení QA"}
+          {currentReviewIssues.length?"Zkontrolovat změny ("+unreviewedIssues.length+")":"Dokončit QA"}
         </button>
         <button type="button" className="semantic-reader__fullscreen-button"
           aria-expanded={showSearch} onClick={()=>setShowSearch(v=>!v)}>
@@ -560,15 +562,7 @@ export default function SemanticReaderLab({
         if(revisionCreated)setReviewAfterRevision(revisionSha);
         else setReviewBarOpen(true);
       }}/>}
-    {reviewBarOpen&&<SemanticReviewBar key={revisionSha}
-      candidateId={candidateId} revisionSha={revisionSha} taskId={currentTaskId}
-      issues={currentReviewIssues} decisions={reviewDecisions}
-      openFindings={flags.filter(f=>f.status==="open").length}
-      aiJobPending={aiJobPending} databaseReady={qaDatabaseReady}
-      onFind={locateReviewAtom}
-      onClose={()=>{setReviewBarOpen(false);setReviewFocusAtomId(null);}}
-      onFinished={()=>{setReviewBarOpen(false);setReviewFocusAtomId(null);}}/>}
-    {generalOpen&&<GeneralQaDialog candidateId={candidateId} revisionSha={revisionSha}
+     {generalOpen&&<GeneralQaDialog candidateId={candidateId} revisionSha={revisionSha}
       exampleAtomId={selectedAtomId} exampleText={selectedText??null}
       getExcerpt={id=>{
        const unit=allUnits.find(u=>u.source_atom_ids.includes(id));
@@ -606,6 +600,7 @@ export default function SemanticReaderLab({
       onAdd={addQaNote} onGoTo={jumpToQaNote}
       onPrevious={()=>goToRelativeNote(-1)} onNext={()=>goToRelativeNote(1)}
       onListExpanded={setNotesListExpanded} onDelete={deleteQaNote}/>}
+    <div className={"semantic-reader__review-layout"+(reviewBarOpen?" semantic-reader__review-layout--active":"")}>
     <div className={"semantic-reader__triptych"+(focus?" semantic-reader__triptych--focus":"")}>
       {!focus&&<section aria-label="Archivní Gutenberg"><h2>Gutenberg #389 · literární text</h2>
         <div ref={sourceRef} className="semantic-reader__paired-scroll semantic-reader__source-sheet"
@@ -690,6 +685,22 @@ export default function SemanticReaderLab({
           </div>
         </div>
       </section>
+    </div>
+    {reviewBarOpen&&<SemanticReviewBar key={revisionSha}
+      candidateId={candidateId} revisionSha={revisionSha} taskId={currentTaskId}
+      issues={currentReviewIssues} decisions={reviewDecisions}
+      openFindings={flags.filter(f=>f.status==="open").length}
+      aiJobPending={aiJobPending} databaseReady={qaDatabaseReady}
+      getExcerpt={atomId=>{
+       const unit=allUnits.find(u=>u.source_atom_ids.includes(atomId));
+       if(!unit)return "";
+       if("atom" in unit.node)return unit.node.atom.raw;
+       if(unit.node.kind==="chapter"||unit.node.kind==="section")return unit.node.heading.raw;
+       return unit.node.kind==="poem"?unit.node.stanzas.flatMap(stanza=>stanza.lines.map(line=>line.atom.raw)).join(" "):"";
+      }}
+      onFind={locateReviewAtom}
+      onClose={()=>{setReviewBarOpen(false);setReviewFocusAtomId(null);}}
+      onFinished={()=>{setReviewBarOpen(false);setReviewFocusAtomId(null);}}/>}
     </div>
   </main>;
 }
