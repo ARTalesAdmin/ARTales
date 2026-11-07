@@ -31,7 +31,7 @@ const normalized=(s:string):string[]=>s.normalize("NFKD").toLowerCase()
 const samePerson=(a:string,b:string)=>JSON.stringify(normalized(a))===JSON.stringify(normalized(b));
 const shaValid=(s:string)=>/^[a-f0-9]{64}$/.test(s);
 type StoredEvidence={schema?:string;outcome?:string;gutenbergId?:number;
- text?:{status?:string;people?:Array<{name?:string;died?:number;source?:string}>};
+ text?:{status?:string;people?:Array<{name?:string;died?:number;source?:string;role?:string}>};
  translation?:{status?:string};illustrations?:{status?:string}};
 export type AutomaticEditionEvidence={
  schema:"artales.automatic-edition-evidence.v1";status:"verified_for_text_composition";
@@ -85,20 +85,38 @@ export function verifyAutomaticEdition(i:AutomaticEditionInput):AutomaticEdition
   !Array.isArray(prior!.text?.people)||prior!.text!.people!.length!==1)
   refuse("approved_legal_audit_incomplete");
  const person=prior!.text!.people![0];
+ const editor=person.role==="editor";
+ // Historical anthologies can name an editor (e.g. Andrew Lang), not a
+ // conventional single author. The legally locked Gutenberg RDF audit names
+ // that person as editor; do not treat a missing source.author_died as unknown
+ // when the same reviewed person and death date are present in that audit.
+ const personDied=editor&&source.author_died===null?person.died:source.author_died;
  if(!samePerson(person.name??"",candidate.proposed_author_name)||
-   person.died!==source.author_died||
+   (person.role!==undefined&&!["editor","author"].includes(person.role))||
+   !Number.isInteger(personDied)||personDied===null||
+   person.died!==personDied||
    person.source!=="https://www.gutenberg.org/ebooks/"+id+".rdf"||
-   deathTerm(source.author_died,i.year)!=="public_domain")
+   deathTerm(personDied,i.year)!=="public_domain")
   refuse("author_identity_or_death_term_unverified");
  if(i.liveRdf.checked&&i.liveRdf.usStatus==="restricted")
   refuse("gutenberg_live_rights_restriction");
  let rightsEvidenceSource:AutomaticEditionEvidence["rightsEvidenceSource"]="approved_locked_gutenberg_rdf_evidence";
- if(i.liveRdf.checked&&i.liveRdf.people.length){
-  if(i.liveRdf.people.length!==1||!samePerson(i.liveRdf.people[0].name,candidate.proposed_author_name)||
-    i.liveRdf.people[0].died!==source.author_died||
-    i.liveRdf.contributors.some(x=>/marcrel:trl$/.test(x.role)))
+ if(i.liveRdf.checked){
+  if(i.liveRdf.contributors.some(x=>/marcrel:trl$/.test(x.role)))
    refuse("live_rdf_contradicts_locked_legal_evidence");
-  rightsEvidenceSource="live_gutenberg_rdf";
+  const matchingContributor=i.liveRdf.contributors.some(x=>
+    (editor?/marcrel:edt$/.test(x.role):x.role==="dcterms:creator")&&
+    samePerson(x.name,candidate.proposed_author_name)&&x.died===personDied);
+  const matchingCreator=!editor&&i.liveRdf.people.length===1&&
+    samePerson(i.liveRdf.people[0].name,candidate.proposed_author_name)&&
+    i.liveRdf.people[0].died===personDied;
+  // Live RDF may be unavailable or carry no parseable agents; retain the
+  // separately reviewed locked RDF evidence, but fail on contradictory agents.
+  if(i.liveRdf.contributors.length>0||i.liveRdf.people.length>0){
+   if(!matchingContributor&&!matchingCreator)
+    refuse("live_rdf_contradicts_locked_legal_evidence");
+   rightsEvidenceSource="live_gutenberg_rdf";
+  }
  }
  return{
   schema:"artales.automatic-edition-evidence.v1",status:"verified_for_text_composition",
@@ -106,8 +124,8 @@ export function verifyAutomaticEdition(i:AutomaticEditionInput):AutomaticEdition
   mirrorUrl:"https://gutenberg.pglaf.org/cache/epub/"+id+"/pg"+id+".epub",
   editionSha256:receipt.sha256,sourceTextSha256:i.sourceTextSha256,
   byteCount:receipt.byte_count,spineDocuments:i.spineDocuments,textCharacters:i.textCharacters,
-  privateImages:i.imageCount,author:candidate.proposed_author_name,authorDied:source.author_died!,
-  publicDomainFrom:source.author_died!+71,territory:"CZ/EU",
+  privateImages:i.imageCount,author:candidate.proposed_author_name,authorDied:personDied,
+  publicDomainFrom:personDied+71,territory:"CZ/EU",
   rightsEvidenceSource,rightsEvidenceUrl:"https://www.gutenberg.org/ebooks/"+id+".rdf",
   textScan:"no_explicit_notice",images:"exclude_all",
   evaluatedAt:i.verifiedAt,publicationAuthorized:false
