@@ -33,11 +33,11 @@ test("open cover, unapproved source, AI or missing bilingual text block release"
  x.tasks.find(t=>t.kind==="cover_art")!.status="open";
  x.sourceAuthorized=false;x.pendingAi=true;x.metadata!.descriptionCs="Too short";
  const blockers=assessEditorialRelease(x).blockers.join("\n");
- assert.match(blockers,/Obálka/);assert.match(blockers,/původ archivovaného zdroje/);
+ assert.match(blockers,/Obálka/);assert.match(blockers,/Archivní zdroj neodpovídá/);
  assert.match(blockers,/AI/);assert.match(blockers,/anglická anotace/);
 });
 test("release is explicitly admin-approved, uses latest source and the real bilingual assets",()=>{
- const sql=file("supabase/migrations/20261107094500_artales_candidate_release_canonical.sql");
+ const sql=file("supabase/migrations/20261107104000_artales_release_verified_snapshot_gate.sql");
  const action=file("app/member/editorial-pipeline/actions.ts");
  const page=file("app/member/editorial-detail/[candidateId]/page.tsx");
  const candidate=file("app/member/candidates/[id]/page.tsx");
@@ -48,7 +48,12 @@ test("release is explicitly admin-approved, uses latest source and the real bili
  assert.match(sql,/t\.revision_sha256=p_revision_sha256/);
  assert.match(sql,/t\.kind=v_task_kind/);
  assert.doesNotMatch(sql,/t\.revision_sha256=p_revision_sha256[\s\S]{0,100}t\.kind=v_task_kind/);
- assert.match(sql,/v_snapshot\.publication_authorized IS DISTINCT FROM true/);
+ assert.match(sql,/v_snapshot\.readback_status IS DISTINCT FROM 'sha256_verified'/);
+ assert.match(sql,/candidate_snapshot_claims/);
+ assert.match(sql,/storage\.objects archived/);
+ assert.match(sql,/legal_lock\.source_url=v_snapshot\.catalog_url/);
+ assert.doesNotMatch(sql,/v_snapshot\.publication_authorized IS DISTINCT FROM true/);
+ assert.doesNotMatch(sql,/v_snapshot\.semantic_ready IS DISTINCT FROM true/);
  assert.match(sql,/INSERT INTO public\.works/);
  assert.match(sql,/INSERT INTO public\.artales_semantic_publications/);
  assert.match(sql,/v_meta\.cover_image_path/);
@@ -58,6 +63,9 @@ test("release is explicitly admin-approved, uses latest source and the real bili
  assert.match(action,/work_description_en/);
  assert.match(page,/id="publication-readiness"/);
  assert.match(page,/sourceAuthorized/);
+ assert.doesNotMatch(page,/snapshotRes\.data\?\.publication_authorized/);
+ assert.doesNotMatch(page,/snapshotRes\.data\?\.semantic_ready/);
+ assert.match(page,/snapshotRes\.data\.readback_status==="sha256_verified"/);
  assert.match(candidate,/Otevřít redakční kartu a stav vydání/);
  assert.match(pipeline,/id="rozpracovana-dila"/);
 });
