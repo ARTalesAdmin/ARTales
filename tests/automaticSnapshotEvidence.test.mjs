@@ -33,6 +33,28 @@ test("valid original and independently identical EPUB advances text only",()=>{
  assert.equal(proof.publicationAuthorized,false);
  assert(formatAutomaticEditionAudit(proof).length>=80);
 });
+test("Red Fairy Book #540 accepts locked verified editor death evidence, excludes images",()=>{
+ const d=example();d.candidate={proposed_title:"The Red Fairy Book",proposed_author_name:"Andrew Lang"};
+ d.receipt.gutenberg_id=540;d.receipt.catalog_url="https://www.gutenberg.org/ebooks/540";
+ d.lock.source_url=d.receipt.catalog_url;d.lock.download_url=d.receipt.catalog_url+".epub.noimages";
+ d.receipt.locked_file_url=d.lock.download_url;
+ d.source.edition_title="The Red Fairy Book";d.source.source_url=d.receipt.catalog_url;d.source.download_url=d.lock.download_url;
+ d.source.author_died=null;
+ const audit=JSON.parse(d.source.notes);
+ audit.gutenbergId=540;audit.text.people=[{name:"Lang, Andrew",died:1912,role:"editor",source:d.receipt.catalog_url+".rdf"}];
+ d.source.notes=JSON.stringify(audit);
+ d.liveRdf={people:[],contributors:[{role:"marcrel:edt",name:"Lang, Andrew",died:1912}],
+  checked:true,usStatus:"public_domain",url:d.receipt.catalog_url+".rdf"};
+ const verified=verifyAutomaticEdition(d);
+ assert.equal(verified.authorDied,1912);assert.equal(verified.publicDomainFrom,1983);
+ assert.equal(verified.images,"exclude_all");
+ assert.equal(verified.rightsEvidenceSource,"live_gutenberg_rdf");
+ assert.equal(verified.publicationAuthorized,false);
+ const wrong=structuredClone(d);wrong.liveRdf.contributors[0].name="Someone Else";
+ assert.throws(()=>verifyAutomaticEdition(wrong),AutomaticEditionHold);
+ const incorrect=structuredClone(d);incorrect.source.notes="{}";
+ assert.throws(()=>verifyAutomaticEdition(incorrect),AutomaticEditionHold);
+});
 test("historical approved RDF evidence remains distinguishable if live endpoint unavailable",()=>{
  const d=example();d.liveRdf.checked=false;d.liveRdf.people=[];
  assert.equal(verifyAutomaticEdition(d).rightsEvidenceSource,"approved_locked_gutenberg_rdf_evidence");
