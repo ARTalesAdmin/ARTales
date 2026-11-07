@@ -33,6 +33,30 @@ test('cannot borrow another edition, translator or author or mismatched source',
  assert.throws(()=>planLockedSnapshot({...packet,source:{...packet.source,download_url:catalog+'.txt'}},book));
  assert.throws(()=>planLockedSnapshot({...packet,source:{...packet.source,source_kind:'other'}},book));
 });
+test('The Red Fairy Book: validated collection editor is a legitimate locked identity',()=>{
+ const cat='https://www.gutenberg.org/ebooks/540';
+ const ed={...packet,
+  candidate:{...packet.candidate,proposed_title:'The Red Fairy Book',proposed_author_name:'Andrew Lang'},
+  source:{...packet.source,edition_title:'The Red Fairy Book',source_url:cat,download_url:cat+'.epub.noimages'},
+  lock:{...packet.lock,source_url:cat,download_url:cat+'.epub.noimages',
+   source_facts:{...packet.lock.source_facts,edition:'The Red Fairy Book',notes:JSON.stringify({
+    schema:'artales.public-domain-check.v1',gutenbergId:540,text:{people:[{
+     name:'Lang, Andrew',role:'editor',source:cat+'.rdf',died:1912
+    }]}
+   })}}
+ };
+ const catalogue={...book,id:540,title:'The Red Fairy Book',authors:[],catalogUrl:cat,files:[{
+  url:cat+'.epub.noimages',label:'EPUB',format:'epub'
+ }]};
+ const valid=planLockedSnapshot(ed,catalogue);
+ assert.equal(valid.selection.catalog_url,cat);
+ assert.equal(valid.review_status,'legal_lock_verified');
+ assert.throws(()=>planLockedSnapshot({...ed,lock:{...ed.lock,source_facts:{...ed.lock.source_facts,notes:'{}'}}},catalogue),/catalog_author_or_title_mismatch/);
+ assert.throws(()=>planLockedSnapshot({...ed,candidate:{...ed.candidate,proposed_author_name:'Someone Else'}},catalogue),/catalog_author_or_title_mismatch/);
+ assert.throws(()=>planLockedSnapshot(ed,{...catalogue,title:'Other Fairy Book'}),/catalog_author_or_title_mismatch/);
+ assert.throws(()=>planLockedSnapshot(ed,{...catalogue,catalogUrl:'https://www.gutenberg.org/ebooks/999'}),/catalog_author_or_title_mismatch/);
+});
+
 test('decision must precede immutable legal lock',()=>{
  assert.throws(()=>planLockedSnapshot({...packet,approved:{...packet.approved,recorded_at:'2026-10-26T14:52:00.000Z'}},book));
  assert.throws(()=>planLockedSnapshot({...packet,approved:{...packet.approved,decision_no:8}},book));
