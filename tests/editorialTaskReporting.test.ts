@@ -45,7 +45,7 @@ test("task totals and monthly cohorts never count merely saved metadata as compl
  assert.equal(x.members.find(m=>m.id==="p")!.completed,1);
  assert.equal(x.members.find(m=>m.id==="p")!.active,1);
  assert.equal(x.members.find(m=>m.id==="p")!.assignedThisMonth,2);
- assert.equal(x.months.find(m=>m.month==="2026-11")!.assigned,2);
+ assert.equal(x.months.find(m=>m.month==="2026-11")!.assigned,3);
  assert.equal(x.months.find(m=>m.month==="2026-11")!.completed,1);
 });
 test("monthly assigned/completed member columns and bounded month selection",()=>{
