@@ -93,7 +93,7 @@ export function verifyAutomaticEdition(i:AutomaticEditionInput):AutomaticEdition
  const personDied=editor&&source.author_died===null?person.died:source.author_died;
  if(!samePerson(person.name??"",candidate.proposed_author_name)||
    (person.role!==undefined&&!["editor","author"].includes(person.role))||
-   !Number.isInteger(personDied)||personDied===null||
+   typeof personDied!=="number"||!Number.isInteger(personDied)||
    person.died!==personDied||
    person.source!=="https://www.gutenberg.org/ebooks/"+id+".rdf"||
    deathTerm(personDied,i.year)!=="public_domain")
