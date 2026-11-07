@@ -4,7 +4,9 @@ import {requireEditorOrAdmin} from "@/lib/guards";
 import {createClient} from "@/lib/supabase/server";
 import {SEMANTIC_PIPELINE_ENABLED} from "@/lib/semantic/featureFlag";
 import {saveCandidateEditorialField} from "./actions";
-import {completeSemanticTask} from "@/app/member/editorial-pipeline/actions";
+import {completeSemanticTask,publishSemanticCandidate} from "@/app/member/editorial-pipeline/actions";
+import {assessEditorialRelease} from "@/lib/editorial/releaseReadiness";
+import {slugify} from "@/lib/slug";
 import CandidateCoverInput from "@/components/editor/CandidateCoverInput";
 import CandidateBilingualAnnotationFields from "@/components/editor/CandidateBilingualAnnotationFields";
 import "@/components/editor/editorial-workspace.css";
@@ -12,7 +14,7 @@ import "@/components/editor/editorial-workspace.css";
 export const dynamic="force-dynamic";
 type Metadata={author_id:string|null;collection_id:string|null;work_description_cs:string|null;work_description_en:string|null;
  cover_image_path:string|null;cover_image_alt:string|null;cover_image_caption:string|null};
-type Task={id:string;kind:string;status:string;assigned_to:string|null};
+type Task={id:string;kind:string;status:string;assigned_to:string|null;revision_sha256:string};
 const labels:Record<string,string>={
  author:"Autor",collection:"Kolekce",description:"Anotace",cover:"Obálka"
 };
@@ -29,24 +31,42 @@ export default async function CandidateEditorialDetail({params,searchParams}:{
  if(!/^[a-f0-9-]{36}$/i.test(candidateId))notFound();
  const me=await requireEditorOrAdmin();
  const db=await createClient();
- const [candidateRes,tasksRes,metadataRes,authorsRes,collectionsRes]=await Promise.all([
+ const [candidateRes,tasksRes,metadataRes,authorsRes,collectionsRes,revisionRes,
+  legalLockRes,snapshotRes,snapshotReviewRes,publicationRes,qaFlagRes,reviewDecisionRes,aiJobsRes]=await Promise.all([
   db.from("work_candidates").select("id,proposed_title,proposed_author_name")
    .eq("id",candidateId).maybeSingle(),
-  db.from("artales_editorial_tasks").select("id,kind,status,assigned_to")
+  db.from("artales_editorial_tasks").select("id,kind,status,assigned_to,revision_sha256")
    .eq("candidate_id",candidateId).order("created_at",{ascending:false}),
   db.from("artales_candidate_editorial_metadata")
    .select("author_id,collection_id,work_description_cs,work_description_en,cover_image_path,cover_image_alt,cover_image_caption")
    .eq("candidate_id",candidateId).maybeSingle(),
   db.from("authors").select("id,slug,name,name_en,bio_en,bio_cs,bio,portrait_image_path,portrait_image_alt")
    .order("name").limit(250),
-  db.from("collections").select("id,slug,title,title_en,description_cs,description_en").order("title").limit(250)
+  db.from("collections").select("id,slug,title,title_en,description_cs,description_en").order("title").limit(250),
+  db.from("candidate_semantic_revisions").select("revision_sha256,status,image_selection,revision")
+   .eq("candidate_id",candidateId).order("created_at",{ascending:false})
+   .order("id",{ascending:false}).limit(1).maybeSingle(),
+  db.from("candidate_legal_locks").select("decision_no,source_id")
+   .eq("candidate_id",candidateId).maybeSingle(),
+  db.from("candidate_snapshots").select("sha256,publication_authorized,semantic_ready")
+   .eq("candidate_id",candidateId).maybeSingle(),
+  db.from("candidate_snapshot_reviews").select("snapshot_sha256,text_correspondence,image_disposition")
+   .eq("candidate_id",candidateId).order("reviewed_at",{ascending:false})
+   .order("id",{ascending:false}).limit(1).maybeSingle(),
+  db.from("artales_semantic_publications").select("candidate_id,work_id")
+   .eq("candidate_id",candidateId).maybeSingle(),
+  db.from("artales_semantic_qa_flags").select("status").eq("candidate_id",candidateId),
+  db.from("artales_semantic_change_reviews").select("revision_sha256,issue_id,decision")
+   .eq("candidate_id",candidateId),
+  db.from("artales_semantic_ai_qa_jobs").select("status,revision_sha256")
+   .eq("candidate_id",candidateId).in("status",["queued","running"])
  ]);
  if(candidateRes.error||!candidateRes.data||tasksRes.error)notFound();
  const tasks=(tasksRes.data??[]) as Task[];
  // Keep the page owner-bound: completed assignments remain visible for status
  // badges, but a non-admin needs at least one active assignment for access.
- if(me.role!=="admin"&&!tasks.some(t=>t.assigned_to===me.id&&
-   ["open","claimed","returned"].includes(t.status)))notFound();
+ // Completed work stays readable to its owner. Edits remain checked by their own RPC.
+ if(me.role!=="admin"&&!tasks.some(t=>t.assigned_to===me.id))notFound();
  const candidate=candidateRes.data;
  const err=await searchParams;
  const metadata:Metadata=metadataRes.data??{author_id:null,collection_id:null,work_description_cs:null,work_description_en:null,
@@ -96,7 +116,9 @@ export default async function CandidateEditorialDetail({params,searchParams}:{
   cover_asset_missing:"Soubor obálky nebyl nalezen v úložišti.",
   not_claimed:"Nejdřív převezmi odpovídající úkol.",invalid_input:"Neplatné údaje.",
   evidence_missing:"Chybí ověřené údaje nebo uložený soubor. Úkol zůstává otevřený.",
-  qa_in_reader:"Dokončení textového QA probíhá v sémantickém editoru."
+  qa_in_reader:"Dokončení textového QA probíhá v sémantickém editoru.",
+  invalid_release:"Neplatné odůvodnění nebo metadata vydání.",
+  release_blocked:"Publikace byla odmítnuta serverovou kontrolou. Stav úkolů a zdrojů zůstává beze změny."
  };
  const completeForm=(kind:string,ready:boolean)=>{
   const task=byKind(kind);
@@ -110,6 +132,37 @@ export default async function CandidateEditorialDetail({params,searchParams}:{
    </form>:<p className="ed-quiet">Nejprve doplň a ulož potřebné údaje.</p>}
   </div>;
  };
+ const latest=revisionRes.data;
+ const currentIssues=Array.isArray(latest?.revision?.review_issues)?
+   latest.revision.review_issues.filter((issue:{round?:number})=>issue.round===latest.revision.round):[];
+ const decisions=reviewDecisionRes.data??[];
+ const legalDecision=legalLockRes.data?await db.from("candidate_legal_decisions")
+  .select("verdict,territory").eq("candidate_id",candidateId)
+  .eq("source_id",legalLockRes.data.source_id)
+  .eq("decision_no",legalLockRes.data.decision_no).maybeSingle():null;
+ const releaseState=assessEditorialRelease({
+  latestSha:latest?.revision_sha256??null,
+  revisionStatus:latest?.status??null,imageSelection:latest?.image_selection??null,
+  legalApproved:legalDecision?.data?.verdict==="approved"&&legalDecision.data.territory==="CZ/EU",
+  snapshotConfirmed:Boolean(snapshotRes.data&&snapshotReviewRes.data&&
+   snapshotRes.data.sha256===snapshotReviewRes.data.snapshot_sha256&&
+   snapshotReviewRes.data.text_correspondence==="confirmed"&&
+   snapshotReviewRes.data.image_disposition==="exclude_all"),
+  published:Boolean(publicationRes.data),
+  sourceAuthorized:Boolean(snapshotRes.data?.publication_authorized&&snapshotRes.data?.semantic_ready),tasks,
+  openFindings:qaFlagRes.error?null:(qaFlagRes.data??[]).filter(flag=>flag.status==="open").length,
+  unacceptedChanges:reviewDecisionRes.error?null:currentIssues.filter(
+   (issue:{id:string})=>!decisions.some(d=>d.revision_sha256===latest?.revision_sha256&&
+    d.issue_id===issue.id&&d.decision==="accepted")).length,
+  pendingAi:Boolean(aiJobsRes.error||(aiJobsRes.data??[]).length>0),
+  metadata:{authorId:metadata.author_id,collectionId:metadata.collection_id,
+   descriptionCs:metadata.work_description_cs,descriptionEn:metadata.work_description_en,
+   coverPath:metadata.cover_image_path,coverAlt:metadata.cover_image_alt},
+  author:author?{bioCs:author.bio_cs,bioEn:author.bio_en,
+   portraitPath:author.portrait_image_path,portraitAlt:author.portrait_image_alt}:null,
+  collection:collection?{descriptionCs:collection.description_cs,
+   descriptionEn:collection.description_en}:null
+ });
  const sections=[
   {id:"author",label:"Autor",done:Boolean(author)},
   {id:"collection",label:"Kolekce",done:collectionPresent},
@@ -134,6 +187,7 @@ export default async function CandidateEditorialDetail({params,searchParams}:{
     <div className="ed-hero__actions">
      <Link className="ed-button ed-button--soft" href="/member/editorial-pipeline">← Moje úkoly</Link>
      <Link className="ed-button" href={"/member/semantic/"+candidateId}>Otevřít textové QA ↗</Link>
+     <a className="ed-button ed-button--soft" href="#publication-readiness">Stav vydání ↘</a>
     </div>
    </div>
   </header>
@@ -154,6 +208,41 @@ export default async function CandidateEditorialDetail({params,searchParams}:{
     {sections.map(section=><a key={section.id} href={"#"+section.id}
       data-ready={section.done}>{section.label}{section.done?" · vyplněno":" · čeká"}</a>)}
    </nav>
+  </section>
+  <section id="publication-readiness" className="ed-card" aria-label="Stav přípravy k publikaci">
+   <div className="ed-card__head"><div className="ed-card__heading">
+    <span className="ed-card__number">✓</span><div>
+     <h2>Vydání díla</h2>
+     <p className="ed-card__lead">QA, redakční podklady a závěrečné schválení na jednom místě.</p>
+    </div></div>
+    <div className="ed-card__statuses">
+     <span className={"ed-status "+(releaseState.ready?"ed-status--complete":"")}>
+      {publicationRes.data?"Publikováno":releaseState.ready?"Připraveno ke schválení":"Čeká na podklady"}
+     </span>
+    </div>
+   </div>
+   <div className="ed-card__body">
+    {releaseState.blockers.length?<ul className="ed-release-checklist">
+     {releaseState.blockers.map(blocker=><li key={blocker}>{blocker}</li>)}
+    </ul>:<p>Všechny evidované podmínky jsou splněné. Před vydáním zkontroluj veřejný náhled.</p>}
+    {snapshotRes.data&&!snapshotRes.data.publication_authorized?
+     <p className="ed-quiet">Archivní snapshot zatím nemá potvrzení publication_authorized.
+      Před vydáním je nutné dokončit nezávislé ověření zdroje.</p>:null}
+    {publicationRes.data?<p>Dílo je již v katalogu.</p>:
+     me.role==="admin"?<form action={publishSemanticCandidate} className="ed-release-form">
+      <input type="hidden" name="candidate_id" value={candidateId}/>
+      <input type="hidden" name="revision_sha256" value={latest?.revision_sha256??""}/>
+      <p><strong>Veřejná adresa:</strong> /work/{slugify(candidate.proposed_title)}</p>
+      <label>Odůvodnění konečného schválení
+       <textarea name="reason" rows={3} minLength={30} maxLength={4000} required
+        placeholder="Uveď věcný důvod schválení této konkrétní revize."/>
+      </label>
+      <button className="ed-button" type="submit" disabled={!releaseState.ready||!snapshotRes.data?.publication_authorized}>
+       Schválit a publikovat dílo
+      </button>
+     </form>:<p className="ed-quiet">Zveřejnění potvrzuje pouze administrátor.</p>}
+    <p className="ed-quiet">Dokončení posledního úkolu samo publikaci nespouští.</p>
+   </div>
   </section>
   <div className="ed-detail-grid">
    <div className="ed-detail-content">
