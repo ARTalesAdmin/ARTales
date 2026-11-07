@@ -6,7 +6,7 @@ export type ReleaseReadinessInput={
  revisionStatus:string|null;
  imageSelection:string|null;
  legalApproved:boolean;
- snapshotConfirmed:boolean;
+ snapshotConfirmed:boolean;sourceAuthorized:boolean;
  published:boolean;
  tasks:EditorialTaskState[];
  openFindings:number|null;
@@ -33,6 +33,7 @@ export function assessEditorialRelease(input:ReleaseReadinessInput){
   blockers.push("Není dostupná platná aktuální sémantická revize.");
  if(!input.legalApproved)blockers.push("Chybí právní souhlas se zvoleným zdrojem.");
  if(!input.snapshotConfirmed)blockers.push("Chybí ověřená shoda archivovaného textu.");
+ if(!input.sourceAuthorized)blockers.push("Chybí potvrzená nezávislá zdrojová kontrola snapshotu.");
  if(!input.latestSha||!input.tasks.some(t=>t.kind==="text_review"&&
     t.revision_sha256===input.latestSha&&t.status==="completed"))
   blockers.push("Aktuální textová revize nemá dokončené QA.");
