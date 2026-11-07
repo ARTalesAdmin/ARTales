@@ -41,11 +41,11 @@ test("task totals and monthly cohorts never count merely saved metadata as compl
  ];
  const x=buildEditorialTaskReport(rows,[{id:"p",name:"Pavla"},{id:"i",name:"Ivana"}],
   [{id:"pan",title:"The Great God Pan"}],now);
- assert.equal(x.total,4);assert.equal(x.completed,1);assert.equal(x.active,2);
+ assert.equal(x.total,3);assert.equal(x.completed,1);assert.equal(x.active,2);
  assert.equal(x.members.find(m=>m.id==="p")!.completed,1);
  assert.equal(x.members.find(m=>m.id==="p")!.active,1);
  assert.equal(x.members.find(m=>m.id==="p")!.assignedThisMonth,2);
- assert.equal(x.months.find(m=>m.month==="2026-11")!.assigned,3);
+ assert.equal(x.months.find(m=>m.month==="2026-11")!.assigned,2);
  assert.equal(x.months.find(m=>m.month==="2026-11")!.completed,1);
 });
 test("monthly assigned/completed member columns and bounded month selection",()=>{
@@ -91,4 +91,21 @@ test("late admin closeout credits the assigned editor, not the audit actor",()=>
  [{id:"pan",title:"The Great God Pan"}],"2026-11");
  assert.equal(s.members.find(m=>m.id==="pavla")?.completed,1);
  assert.equal(s.members.find(m=>m.id==="admin")?.completed,0);
+});
+
+test("superseded QA remains audit history but never inflates Pan's reporting",()=>{
+ const types=["cover_art","author_visual","collection_curation","author_bio","work_description"];
+ const entries=[
+  ...types.map((kind,i)=>({id:String(i),candidate_id:"pan",kind,status:i<2?"open":"completed",
+    assigned_to:i<2?"ivana":"pavla",created_at:"2026-11-03T00:00:00Z",
+    completed_at:i<2?null:"2026-11-06T00:00:00Z",completed_by:i<2?null:"pavla"})),
+  {id:"qa-original",candidate_id:"pan",kind:"text_review",status:"superseded",assigned_to:"lubos",
+    created_at:"2026-11-03T00:00:00Z",completed_at:null,completed_by:null},
+  {id:"qa-final",candidate_id:"pan",kind:"text_review",status:"completed",assigned_to:"lubos",
+    created_at:"2026-11-06T00:00:00Z",completed_at:"2026-11-06T20:16:12Z",completed_by:"lubos"}
+ ];
+ const x=buildEditorialTaskReport(entries,[],[{id:"pan",title:"The Great God Pan"}],"2026-11");
+ assert.equal(x.total,6);assert.equal(x.completed,4);assert.equal(x.active,2);
+ assert.equal(x.assigned,6);assert.equal(x.months[0].assigned,6);
+ assert.equal(x.titles[0].completed,4);assert.equal(x.members.find(m=>m.id==="lubos")?.completed,1);
 });
