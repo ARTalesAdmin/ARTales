@@ -4,13 +4,13 @@ import {deriveSnapshotActionState} from "@/lib/ingest/generalSnapshotAction";
 import type {SnapshotActionState} from "@/lib/ingest/generalSnapshotAction";
 const uuid=/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 export async function getCandidateSnapshotState(candidateId:string):Promise<SnapshotActionState>{
- await requireEditorOrAdmin();
+ const actor=await requireEditorOrAdmin();
  if(!uuid.test(candidateId))throw Error("invalid_candidate_id");
  const db=await createClient();
  const [{data:lock,error:le},{data:receipt,error:re},{data:claim,error:ce},{data:review,error:ve}]=await Promise.all([
   db.from("candidate_legal_locks").select("candidate_id,decision_no,source_url,source_facts").eq("candidate_id",candidateId).maybeSingle(),
   db.from("candidate_snapshots").select("candidate_id,sha256,readback_status,content_correspondence").eq("candidate_id",candidateId).maybeSingle(),
-  db.from("candidate_snapshot_claims").select("candidate_id").eq("candidate_id",candidateId).maybeSingle(),
+  db.from("candidate_snapshot_claims").select("candidate_id,claimed_by,sha256,source_id,decision_no").eq("candidate_id",candidateId).maybeSingle(),
   db.from("candidate_snapshot_reviews").select("text_correspondence,image_disposition")
     .eq("candidate_id",candidateId).order("reviewed_at",{ascending:false})
     .order("id",{ascending:false}).limit(1).maybeSingle()
@@ -32,6 +32,8 @@ export async function getCandidateSnapshotState(candidateId:string):Promise<Snap
   sourceAvailable:acquisitionEligible,
   receipt:receipt?{sha256:receipt.sha256,readbackVerified:receipt.readback_status==="sha256_verified"}:null,
   editionVerified:review?.text_correspondence==="confirmed" && review?.image_disposition==="exclude_all",
-  claimWithoutReceipt:Boolean(!receipt&&claim)
+  claimWithoutReceipt:Boolean(!receipt&&claim),
+  recoverableClaim:Boolean(!receipt&&claim&&actor.role==="admin"&&claim.claimed_by===actor.id&&
+   /^[a-f0-9]{64}$/.test(claim.sha256))
  });
 }
