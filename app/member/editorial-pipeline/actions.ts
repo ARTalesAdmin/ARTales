@@ -49,17 +49,21 @@ export async function publishSemanticCandidate(form:FormData){
  const {data:candidate}=await db.from("work_candidates").select("proposed_title")
    .eq("id",id).maybeSingle();
  const slug=slugify(candidate?.proposed_title??"");
- const summary=String(form.get("summary")??"");
+ const {data:metadata,error:metadataError}=await db.from("artales_candidate_editorial_metadata")
+   .select("work_description_en").eq("candidate_id",id).maybeSingle();
+ const summary=metadata?.work_description_en??"";
+ if(metadataError||!metadata)redirect("/member/editorial-detail/"+id+"?error=release_blocked");
  const reason=String(form.get("reason")??"");
  if(!uuid.test(id)||!/^[a-f0-9]{64}$/.test(revision)||
     !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(slug)||summary.trim().length<200||
-    summary.trim().length>800||reason.trim().length<30)redirect("/member/editorial-pipeline?error=invalid_release");
+    summary.trim().length>800||reason.trim().length<30||reason.trim().length>4000)redirect("/member/editorial-detail/"+id+"?error=invalid_release");
  const {data,error}=await db.rpc("artales_publish_semantic_candidate",{
   p_candidate_id:id,p_revision_sha256:revision,p_work_slug:slug,
   p_summary:summary,p_reason:reason
  });
- if(error||data?.result!=="published")redirect("/member/editorial-pipeline?error=release_blocked");
+ if(error||data?.result!=="published")redirect("/member/editorial-detail/"+id+"?error=release_blocked");
  revalidatePath("/gallery");revalidatePath("/member/editorial-pipeline");
+ revalidatePath("/member/editorial-detail/"+id);
  redirect("/work/"+slug);
 }
 
