@@ -146,7 +146,8 @@ export default async function CandidateEditorialDetail({params,searchParams}:{
    snapshotRes.data.sha256===snapshotReviewRes.data.snapshot_sha256&&
    snapshotReviewRes.data.text_correspondence==="confirmed"&&
    snapshotReviewRes.data.image_disposition==="exclude_all"),
-  published:Boolean(publicationRes.data),tasks,
+  published:Boolean(publicationRes.data),
+  sourceAuthorized:Boolean(snapshotRes.data?.publication_authorized&&snapshotRes.data?.semantic_ready),tasks,
   openFindings:qaFlagRes.error?null:(qaFlagRes.data??[]).filter(flag=>flag.status==="open").length,
   unacceptedChanges:reviewDecisionRes.error?null:currentIssues.filter(
    (issue:{id:string})=>!decisions.some(d=>d.revision_sha256===latest?.revision_sha256&&
