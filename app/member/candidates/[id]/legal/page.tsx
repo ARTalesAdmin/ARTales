@@ -34,12 +34,12 @@ export default async function LegalScreen({params,searchParams}:{params:Promise<
   <header className="ca-head"><div><p className="ca-eyebrow">Právní screen · CZ/EU</p><h1>{c.proposed_title}</h1><p>{c.proposed_author_name}</p></div></header>
   <LegalPipelineNav step="legal" candidateId={id} admin={profile.role==="admin"}/>
   <p className="ca-links"><Link href="/member/legal">← Přehled právních screenů</Link> · <Link href={`/member/candidates/${id}`}>Kandidát</Link></p>
-  {q.ok?<p role="status" className="ca-success">Rozhodnutí bylo uloženo.</p>:null}
+  {q.ok?<p role="status" className="ca-success">Rozhodnutí bylo úspěšně uloženo do historie. {latest?.verdict==="approved"?"Další krok: uzamkni schválený zdroj pro Snapshot.":"Další postup závisí na výsledku právního posouzení."}</p>:null}
   {q.error?<p role="alert" className="ca-error">Akci nelze dokončit; zkontroluj podklady nebo právní stav.</p>:null}
   {!lock?<AutomaticLegalScreen candidateId={id}/>:<p role="status" className="ca-success">Právní posouzení je uzamčeno. Zdroj i rozhodnutí jsou připraveny k předání.</p>}
   {!lock?<LegalReviewActions candidateId={id} checks={checks} locked={false}/>:null}
-  {!lock&&latest?.verdict==="approved"&&latest.source_id?<section className="ca-card"><h2>Předání ke Snapshotu</h2>
-   <p>Schválení zdroje je zapsané. Uzamčení vytvoří neměnný předávací podklad, nikoli samotný Snapshot.</p>
+  {!lock&&latest?.verdict==="approved"&&latest.source_id?<section className="ca-card" id="legal-next-step" aria-label="Další krok po schválení"><h2>Právní kontrola dokončena · pokračuj ke Snapshotu</h2>
+   <p>Rozhodnutí je uložené v historii. Nyní uzamkni schválený zdroj, aby Snapshot převzal přesně tuto edici. K samotné archivaci dojde až v dalším kroku.</p>
    <form action={lockScreening.bind(null,id)} className="ca-form">
     <input type="hidden" name="source_id" value={latest.source_id}/><input type="hidden" name="decision_no" value={latest.decision_no}/>
     <button className="ca-btn ca-primary" type="submit">Uzamknout a připravit pro Snapshot</button>
