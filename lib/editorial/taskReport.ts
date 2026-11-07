@@ -23,6 +23,9 @@ export function buildEditorialTaskReport(
  titles:{id:string;title:string}[],
  currentMonth:string,
 ){
+ // Superseded QA is an immutable audit record, not another assigned work item.
+ // Preserve it in the DB; exclude it from every active/reporting aggregate.
+ const reportable=tasks.filter(t=>t.status!=="superseded");
  const users=new Map(members.map(m=>[m.id,m.name]));
  const works=new Map(titles.map(t=>[t.id,t.title]));
  const byMember=new Map<string,MemberSummary>(members.map(m=>[m.id,{
@@ -35,7 +38,7 @@ export function buildEditorialTaskReport(
   if(!row){row={month,assigned:0,completed:0};monthly.set(month,row);}
   return row;
  }
- for(const t of tasks){
+ for(const t of reportable){
   if(!byTitle.has(t.candidate_id))byTitle.set(t.candidate_id,{
    id:t.candidate_id,title:works.get(t.candidate_id)??"Dílo bez názvu",
    assigned:0,active:0,completed:0,unassigned:0
@@ -78,10 +81,10 @@ export function buildEditorialTaskReport(
  const membersOut=[...byMember.values()].sort((a,b)=>a.name.localeCompare(b.name,"cs"));
  const titlesOut=[...byTitle.values()].sort((a,b)=>a.title.localeCompare(b.title,"cs"));
  return{
-  total:tasks.length,
-  completed:tasks.filter(t=>t.status==="completed").length,
-  active:tasks.filter(t=>activeStatuses.has(t.status)).length,
-  assigned:tasks.filter(t=>t.assigned_to!==null).length,
+  total:reportable.length,
+  completed:reportable.filter(t=>t.status==="completed").length,
+  active:reportable.filter(t=>activeStatuses.has(t.status)).length,
+  assigned:reportable.filter(t=>t.assigned_to!==null).length,
   members:membersOut,titles:titlesOut,months:allMonths,
   currentMonth,
  };
