@@ -35,7 +35,7 @@ export default async function EditorialPipeline({searchParams}:Props){
  const profile=await requireEditorOrAdmin();
  const isAdmin=profile.role==="admin";
  const db=await createClient();
- const [{data,error},people,{data:helpRequests},{data:capabilities},{data:revisions},{data:events}]=await Promise.all([
+ const [{data,error},people,{data:helpRequests},{data:capabilities},{data:revisions},{data:events},{data:candidates}]=await Promise.all([
   db.from("artales_editorial_tasks")
    .select("id,candidate_id,revision_sha256,title,status,kind,assigned_to,created_at,completed_at,completed_by")
    .order("created_at",{ascending:false}).limit(500),
@@ -47,7 +47,9 @@ export default async function EditorialPipeline({searchParams}:Props){
   db.from("candidate_semantic_revisions").select("candidate_id,revision_sha256,created_at")
    .order("created_at",{ascending:false}).limit(500),
   isAdmin?db.from("artales_editorial_events").select("task_id,actor_id,action,occurred_at")
-   .order("occurred_at",{ascending:false}).limit(1000):Promise.resolve({data:[]})
+   .order("occurred_at",{ascending:false}).limit(1000):Promise.resolve({data:[]}),
+  db.from("work_candidates").select("id,proposed_title,proposed_author_name")
+   .order("updated_at",{ascending:false}).limit(500)
  ]);
  const query=await searchParams;
  const roster=people.filter(p=>p.id&&p.display_name&&p.is_active&&
@@ -58,6 +60,12 @@ export default async function EditorialPipeline({searchParams}:Props){
  const currentRevisions=new Map<string,string>();
  for(const rev of revisions??[])
   if(!currentRevisions.has(rev.candidate_id))currentRevisions.set(rev.candidate_id,rev.revision_sha256);
+ const candidateNames=new Map((candidates??[]).map(c=>[c.id,c]));
+ const workingCandidates=[...currentRevisions.keys()].map(id=>({
+  id,candidate:candidateNames.get(id),tasks:(data??[]).filter(t=>t.candidate_id===id)
+ })).filter(entry=>entry.candidate)
+ .sort((a,b)=>String(a.candidate?.proposed_title??"").localeCompare(
+  String(b.candidate?.proposed_title??""),"cs"));
  const tasks=(data??[]) as Task[];
  const isCurrent=(t:Task)=>t.kind!=="text_review"||
   currentRevisions.get(t.candidate_id)===t.revision_sha256;
@@ -220,6 +228,33 @@ export default async function EditorialPipeline({searchParams}:Props){
    <div className="ed-stat"><strong className="ed-stat__value">{waitingHelp.length}</strong>
     <span className="ed-stat__label">Žádosti o pomoc</span></div>
   </div>
+  <section id="rozpracovana-dila" className="ed-section" aria-label="Redakční díla">
+   <div className="ed-section__head"><div>
+    <h2 className="ed-section__title">Redakční díla</h2>
+    <p className="ed-section__description">Trvalý přehled připravovaných titulů. Nezmizí po dokončení posledního úkolu.</p>
+   </div></div>
+   <div className="ed-task-grid">
+    {workingCandidates.filter(entry=>isAdmin||entry.tasks.some(t=>t.assigned_to===profile.id))
+      .map(entry=><article className="ed-task" key={entry.id}>
+       <div className="ed-task__top">
+        <div><h3>{entry.candidate?.proposed_title}</h3>
+         <p className="ed-task__meta">{entry.candidate?.proposed_author_name}</p></div>
+        <span className="ed-status">
+         {entry.tasks.some(t=>t.status==="open"||t.status==="claimed"||t.status==="returned")
+          ?"V přípravě":"Redakční úkoly dokončeny"}
+        </span>
+       </div>
+       <div className="ed-task__bottom">
+        <p className="ed-task__hint">QA, ostatní podklady a stav vydání na jednom místě.</p>
+        <div className="ed-task__actions">
+         <Link className="ed-button" href={"/member/editorial-detail/"+entry.id}>
+          Otevřít kartu díla ↗
+         </Link>
+        </div>
+       </div>
+      </article>)}
+   </div>
+  </section>
   <nav className="ed-jump-nav" aria-label="Sekce redakční práce">
    <a href="#moje-prace">Moje práce</a>
    <a href="#dalsi-titul">Volné úkoly</a>
