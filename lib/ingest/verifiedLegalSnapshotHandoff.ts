@@ -53,8 +53,34 @@ export function planLockedSnapshot(packet:VerifiedLegalSnapshotPacket, book:Gute
     source.language_match!=="matches"||canon(source.edition_title)!==canon(candidate.proposed_title)||
     source.text_format!==(lock.source_facts as {textFormat?:unknown})?.textFormat||
     source.language_code!==(lock.source_facts as {language?:unknown})?.language)throw Error("source_identity_mismatch");
- if(!book||canon(book.title)!==canon(candidate.proposed_title)||!book.authors?.length||
-    !book.authors.some(a=>words(candidate.proposed_author_name).every(t=>words(a.name).includes(t))))throw Error("catalog_author_or_title_mismatch");
+ // A collection may credit the named person as editor, not as book author.
+ // Gutenberg #540 (The Red Fairy Book) is one such case: preserve identity
+ // via the already approved and locked official Gutenberg RDF contributor.
+ let approvedEditorMatch=false;
+ const facts=lock.source_facts as {notes?:unknown}|null;
+ if(typeof facts?.notes==="string"&&facts.notes.length<=100_000){
+  try{
+   const evidence=JSON.parse(facts.notes) as {
+    schema?:string;gutenbergId?:number;
+    text?:{people?:Array<{name?:string;role?:string;source?:string}>}
+   };
+   const bookId=/^https:\/\/www\.gutenberg\.org\/ebooks\/([1-9][0-9]{0,7})$/.exec(lock.source_url);
+   approvedEditorMatch=evidence.schema==="artales.public-domain-check.v1"&&
+    Number(bookId?.[1])===evidence.gutenbergId&&
+    Array.isArray(evidence.text?.people)&&
+    evidence.text!.people!.some(person=>
+     person.role==="editor"&&
+     typeof person.name==="string"&&
+     words(candidate.proposed_author_name).every(t=>words(person.name!).includes(t))&&
+     person.source==="https://www.gutenberg.org/ebooks/"+evidence.gutenbergId+".rdf");
+  }catch{}
+ }
+ const catalogAuthorMatch=Boolean(book?.authors?.some(a=>
+  words(candidate.proposed_author_name).every(t=>words(a.name).includes(t))));
+ if(!book||canon(book.title)!==canon(candidate.proposed_title)||
+    book.catalogUrl!==lock.source_url||
+    (!catalogAuthorMatch&&!approvedEditorMatch))
+  throw Error("catalog_author_or_title_mismatch");
  const selection=chooseSnapshotFile(lock,book,alternative);
  return {schema:"artales.legal-snapshot-handoff.v1",selection,actor_id:actor.id,legal_territory:"CZ/EU",
    legal_decision_ref:`legal:${candidate.id}:${approved.decision_no}`,locked_at:lock.locked_at,
