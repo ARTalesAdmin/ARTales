@@ -39,7 +39,7 @@ function time(s:string){const n=Date.parse(s);if(!Number.isFinite(n))throw Error
 /** Refuse partial, stale and cross-candidate evidence; no approval is invented. */
 export function planLockedSnapshot(packet:VerifiedLegalSnapshotPacket, book:GutenbergBook, alternative?:string):LegalSnapshotPlan {
  const {actor,candidate,source,approved,lock}=packet;
- if(!actor||!uuid.test(actor.id)||actor.role!=="admin"||actor.is_active!==true)throw Error("snapshot_admin_gate_missing");
+ if(!actor||!uuid.test(actor.id)||!["admin","editor"].includes(actor.role)||actor.is_active!==true)throw Error("snapshot_admin_gate_missing");
  if(!candidate||!uuid.test(candidate.id)||!canon(candidate.proposed_title)||!canon(candidate.proposed_author_name))throw Error("invalid_candidate");
  if(!lock||!uuid.test(lock.locked_by)||lock.candidate_id!==candidate.id||
     approved?.candidate_id!==candidate.id||source?.candidate_id!==candidate.id||
