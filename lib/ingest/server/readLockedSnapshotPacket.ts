@@ -1,5 +1,6 @@
 import "server-only";
-import {requireAdmin} from "@/lib/guards";
+import {requireEditorOrAdmin} from "@/lib/guards";
+import {canProgressCandidate} from "@/lib/editorial/candidateAuthority";
 import {createClient} from "@/lib/supabase/server";
 import type {VerifiedLegalSnapshotPacket} from "../verifiedLegalSnapshotHandoff";
 
@@ -9,8 +10,8 @@ import type {VerifiedLegalSnapshotPacket} from "../verifiedLegalSnapshotHandoff"
 export async function readLockedSnapshotPacket(candidateId:string):Promise<VerifiedLegalSnapshotPacket> {
  if(!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(candidateId))
   throw new Error("invalid_snapshot_candidate");
- const profile=await requireAdmin();
- if(profile.role!=="admin"||profile.is_active!==true)throw new Error("snapshot_admin_required");
+ const profile=await requireEditorOrAdmin();
+ if(!await canProgressCandidate(candidateId,profile))throw new Error("candidate_progress_forbidden");
  const db=await createClient();
  const {data:lock,error:lockError}=await db.from("candidate_legal_locks")
   .select("candidate_id,source_id,decision_no,source_url,download_url,source_facts,illustrations,locked_at,locked_by")
@@ -31,7 +32,7 @@ export async function readLockedSnapshotPacket(candidateId:string):Promise<Verif
  // Pure verifier (planLockedSnapshot) enforces all cross-record identity and
  // legal authority invariants before any binary can be admitted.
  return {
-  actor:{id:profile.id,role:"admin",is_active:true},
+  actor:{id:profile.id,role:profile.role as "admin"|"editor",is_active:true},
   candidate:candidateResult.data,
   source:sourceResult.data,
   approved:decisionResult.data,

@@ -3,6 +3,7 @@ import {redirect} from "next/navigation";
 import {CANDIDATES_AB_ENABLED} from "@/lib/candidates/featureFlag";
 import {requireEditorOrAdmin} from "@/lib/guards";
 import {createClient} from "@/lib/supabase/server";
+import {canProgressCandidate} from "@/lib/editorial/candidateAuthority";
 const allowed=new Set(["new","checking","ready","deferred","rejected"]);
 export async function createManualCandidate(form:FormData){
  if(!CANDIDATES_AB_ENABLED)throw new Error("candidates_not_enabled");
@@ -21,6 +22,7 @@ export async function createManualCandidate(form:FormData){
 export async function updateCandidate(id:string,form:FormData){
  if(!CANDIDATES_AB_ENABLED)throw new Error("candidates_not_enabled");
  const profile=await requireEditorOrAdmin();
+ if(!await canProgressCandidate(id,profile))redirect("/member/candidates/"+id+"?error=forbidden");
  const status=String(form.get("status")??""),notes=String(form.get("notes")??""),priority=Number(form.get("priority"));
  if(!allowed.has(status)||notes.length>5000||!Number.isInteger(priority)||priority<0||priority>100)redirect(`/member/candidates/${id}?error=invalid`);
  const db=await createClient();const {error}=await db.from("work_candidates").update({status,notes,priority,updated_by:profile.id,updated_at:new Date().toISOString()}).eq("id",id);

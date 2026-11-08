@@ -1,7 +1,8 @@
 import {createHash} from "node:crypto";
 import {isCandidateUuid} from "@/lib/ingest/candidateUuid";
 import {NextResponse} from "next/server";
-import {requireAdmin} from "@/lib/guards";
+import {requireEditorOrAdmin} from "@/lib/guards";
+import {canProgressCandidate} from "@/lib/editorial/candidateAuthority";
 import {createClient} from "@/lib/supabase/server";
 import {SNAPSHOT_GENERAL_V1_ENABLED} from "@/lib/ingest/snapshotGeneralFlag";
 import {SEMANTIC_PIPELINE_ENABLED} from "@/lib/semantic/featureFlag";
@@ -23,8 +24,10 @@ export async function POST(req:Request,{params}:{params:Promise<{candidateId:str
  if(!["https://artales.net","https://www.artales.net"].includes(req.headers.get("origin")??"")||
     (req.headers.get("sec-fetch-site")&&req.headers.get("sec-fetch-site")!=="same-origin"))
   return NextResponse.json({error:"invalid_origin"},{status:403});
- const actor=await requireAdmin(),{candidateId}=await params;
+ const actor=await requireEditorOrAdmin(),{candidateId}=await params;
  if(!isCandidateUuid(candidateId))return NextResponse.json({error:"invalid_candidate"},{status:400});
+ if(!await canProgressCandidate(candidateId,actor))
+  return NextResponse.json({error:"candidate_progress_forbidden"},{status:403});
  const db=await createClient();
  const [candidateResult,lockResult,receiptResult,existingResult]=await Promise.all([
   db.from("work_candidates").select("proposed_title,proposed_author_name").eq("id",candidateId).maybeSingle(),

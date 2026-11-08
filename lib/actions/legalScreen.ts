@@ -3,6 +3,7 @@ import {redirect} from "next/navigation";
 import {LEGAL_SCREEN_V1_ENABLED} from "@/lib/legal/featureFlag";
 import {requireEditorOrAdmin} from "@/lib/guards";
 import {createClient} from "@/lib/supabase/server";
+import {canProgressCandidate} from "@/lib/editorial/candidateAuthority";
 const values=(form:FormData,k:string)=>String(form.get(k)??"").trim();
 const safeUrl=(v:string)=>!v||(/^https:\/\/[^\s]+$/.test(v)&&v.length<=1000);
 const validId=(s:string)=>/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(s);
@@ -10,7 +11,7 @@ const back=(id:string,error:boolean)=>redirect(`/member/legal/${id}?${error?"err
 export async function addLegalSource(id:string,form:FormData){
  if(!LEGAL_SCREEN_V1_ENABLED)throw Error("legal_screen_not_enabled");
  const profile=await requireEditorOrAdmin();
- if(!validId(id))throw Error("invalid_id");
+ if(!validId(id)||!await canProgressCandidate(id,profile))throw Error("candidate_progress_forbidden");
  const keys=["source_kind","edition_title","source_url","download_url","translation_status","read_url","edition_year","language_code","translator","illustrator","author_died","translator_died","illustrator_died","identity_match","language_match","text_format","completeness","text_quality","original_rights","translation_rights","illustration_use","source_terms","evidence_url","notes"] as const;
  const p=Object.fromEntries(keys.map(k=>[k,values(form,k)]));
  if(!p.download_url||!p.edition_title||p.edition_title.length>300||!p.source_url||![p.source_url,p.download_url,p.read_url,p.evidence_url].every(safeUrl)||p.notes.length>5000)back(id,true);
@@ -27,7 +28,7 @@ export async function addLegalSource(id:string,form:FormData){
 export async function recordLegalVerdict(id:string,form:FormData){
  if(!LEGAL_SCREEN_V1_ENABLED)throw Error("legal_screen_not_enabled");
  const profile=await requireEditorOrAdmin();
- if(!validId(id))throw Error("invalid_id");
+ if(!validId(id)||!await canProgressCandidate(id,profile))throw Error("candidate_progress_forbidden");
  const source=values(form,"source_id"),verdict=values(form,"verdict"),rationale=values(form,"rationale");
  if(!["needs_evidence","deferred","approved","rejected"].includes(verdict)||rationale.length<15||rationale.length>5000||(source&&!validId(source)))back(id,true);
  const db=await createClient();
@@ -40,7 +41,8 @@ export async function lockScreening(id:string,form:FormData){
  if(!LEGAL_SCREEN_V1_ENABLED)throw Error("legal_screen_not_enabled");
  const profile=await requireEditorOrAdmin();
  const source=values(form,"source_id"),decision=Number(values(form,"decision_no"));
- if(!validId(id)||!validId(source)||!Number.isSafeInteger(decision)||decision<=0)throw Error("invalid_legal_lock");
+ if(!validId(id)||!validId(source)||!Number.isSafeInteger(decision)||decision<=0||
+    !await canProgressCandidate(id,profile))throw Error("candidate_progress_forbidden");
  const db=await createClient();
  const {error}=await db.from("candidate_legal_locks").insert({
   candidate_id:id,source_id:source,decision_no:decision,locked_by:profile.id,
@@ -54,7 +56,7 @@ export async function lockScreening(id:string,form:FormData){
 export async function addLegalIllustration(id:string,form:FormData){
  if(!LEGAL_SCREEN_V1_ENABLED)throw Error("legal_screen_not_enabled");
  const profile=await requireEditorOrAdmin();
- if(!validId(id))throw Error("invalid_id");
+ if(!validId(id)||!await canProgressCandidate(id,profile))throw Error("candidate_progress_forbidden");
  const sourceId=values(form,"source_id"),assetUrl=values(form,"asset_url");
  const evidenceUrl=values(form,"evidence_url"),plannedUse=values(form,"planned_use");
  if(!validId(sourceId)||!assetUrl||!safeUrl(assetUrl)||!safeUrl(evidenceUrl)||

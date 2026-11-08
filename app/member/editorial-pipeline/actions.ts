@@ -124,7 +124,7 @@ export async function reassignEditorialTask(form:FormData){
  const id=String(form.get("task_id")??"");
  const assignee=String(form.get("assignee_id")??"");
  const reason=String(form.get("reason")??"").trim();
- if(!uuid.test(id)||!uuid.test(assignee)||reason.length<20||reason.length>1000)
+ if(!uuid.test(id)||!uuid.test(assignee)||reason.length>1000)
   redirect("/member/editorial-pipeline?error=invalid_reassignment");
  const db=await createClient();
  const {data,error}=await db.rpc("artales_reassign_editorial_task",{

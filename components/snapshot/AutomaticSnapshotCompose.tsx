@@ -33,6 +33,7 @@ export function AutomaticSnapshotCompose({candidateId}:{candidateId:string}){
    "Některý z archivních nebo právních dokladů není dostupný.",
   legal_or_archive_unavailable:
    "Nepodařilo se načíst uzamčený zdroj nebo archivní soubor.",
+  candidate_progress_forbidden:"Tento titul může dále zpracovat jen jeho původní editor nebo administrátor.",
   semantic_revision_insert_failed:
    "Ověření doběhlo, ale nepodařilo se uložit sémantickou revizi. Zkontroluj stav díla před opakováním."
  };

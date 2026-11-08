@@ -1,5 +1,6 @@
 import {NextResponse} from "next/server";
 import {requireEditorOrAdmin} from "@/lib/guards";
+import {canProgressCandidate} from "@/lib/editorial/candidateAuthority";
 import {createClient} from "@/lib/supabase/server";
 import {getMatchingGutenberg,legalFacts} from "@/lib/legal/automaticAssessment";
 import {getGutenbergRights} from "@/lib/legal/gutenbergRights";
@@ -14,6 +15,8 @@ export async function POST(_req:Request,{params}:{params:Promise<{id:string}>}){
  const profile=await requireEditorOrAdmin();
  const {id}=await params;
  if(!/^[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i.test(id))return NextResponse.json({error:"invalid"},{status:400});
+ if(!await canProgressCandidate(id,profile))
+  return NextResponse.json({error:"candidate_progress_forbidden"},{status:403});
  const db=await createClient();
  const {data:c}=await db.from("work_candidates").select("proposed_title,proposed_author_name,prescreen_metadata").eq("id",id).maybeSingle();
  if(!c)return NextResponse.json({error:"candidate_missing"},{status:404});

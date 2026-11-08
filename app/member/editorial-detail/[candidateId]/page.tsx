@@ -4,7 +4,8 @@ import {requireEditorOrAdmin} from "@/lib/guards";
 import {createClient} from "@/lib/supabase/server";
 import {SEMANTIC_PIPELINE_ENABLED} from "@/lib/semantic/featureFlag";
 import {saveCandidateEditorialField,reassignCandidateTask} from "./actions";
-import {getEditorialPeople} from "@/lib/editorial/staffDirectory";
+import {getEditorialPeople,getEditorialCompetencies} from "@/lib/editorial/staffDirectory";
+import {canAssignCandidate} from "@/lib/editorial/candidateAuthority";
 import {completeSemanticTask,publishSemanticCandidate} from "@/app/member/editorial-pipeline/actions";
 import {assessEditorialRelease} from "@/lib/editorial/releaseReadiness";
 import {slugify} from "@/lib/slug";
@@ -72,8 +73,9 @@ export default async function CandidateEditorialDetail({params,searchParams}:{
  const tasks=(tasksRes.data??[]) as Task[];
  const activeTasks=tasks.filter(t=>t.status!=="superseded");
  const people=await getEditorialPeople();
+ const canAssign=await canAssignCandidate(candidateId,me);
  const names=new Map(people.map(p=>[p.id,p.display_name??"Neznámý editor"]));
- const {data:capabilities}=me.role==="admin"?await db.from("artales_editorial_capabilities").select("profile_id,kind"): {data:[] as {profile_id:string;kind:string}[]};
+ const capabilities=canAssign?await getEditorialCompetencies():[];
  const eligibleFor=(kind:string)=>people.filter(p=>p.is_active&&
    (p.role==="admin"||(p.role==="editor"&&(capabilities??[]).some(c=>c.profile_id===p.id&&c.kind===kind))));
  // Keep the page owner-bound: completed assignments remain visible for status
@@ -260,7 +262,7 @@ export default async function CandidateEditorialDetail({params,searchParams}:{
          task.kind==="work_description"?"#description":"#author"
        }>Otevřít práci ↗</Link>
       </div>
-      {me.role==="admin"&&!["completed","superseded"].includes(task.status)?
+      {canAssign&&!["completed","superseded"].includes(task.status)?
        <details className="ed-disclosure"><summary>Přiřadit nebo změnit vlastníka</summary>
         <div className="ed-disclosure__body">
          <form className="ed-form-grid" action={reassignCandidateTask}>
@@ -273,8 +275,8 @@ export default async function CandidateEditorialDetail({params,searchParams}:{
              <option key={p.id} value={p.id}>{p.display_name}</option>)}
            </select>
           </label>
-          <label>Důvod přiřazení
-           <textarea name="reason" minLength={20} maxLength={1000} rows={2} required
+          <label>Důvod přiřazení {me.role==="admin"?"(volitelné)":""}
+           <textarea name="reason" minLength={me.role==="admin"?0:20} maxLength={1000} rows={2} required={me.role!=="admin"}
             placeholder="Např. Předání textového QA pro redakční pilot tohoto titulu."/>
           </label>
           <button type="submit" className="ed-button ed-button--soft">Uložit přiřazení</button>

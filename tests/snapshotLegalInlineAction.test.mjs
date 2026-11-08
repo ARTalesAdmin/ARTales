@@ -8,7 +8,8 @@ const state=readFileSync("lib/ingest/server/getCandidateSnapshotState.ts","utf8"
 test("legal detail renders the Snapshot action only on a locked source with enabled flag",()=>{
  assert.match(legal,/lock&&SNAPSHOT_GENERAL_V1_ENABLED\?await getCandidateSnapshotState\(id\):null/);
  assert.match(legal,/snapshotState\?<><SnapshotActionPanel|snapshotState\?<\>/);
- assert.match(legal,/canArchive=\{profile\.role==="admin"\}/);
+ assert.match(legal,/canArchive=\{canProgress\}/);
+ assert.match(legal,/canProgressCandidate\(id,profile\)/);
 });
 test("the shared action is a consent-gated POST directly from Legal detail",()=>{
  assert.match(panel,/\(state\.status==="ready"\|\|state\.status==="recovery_ready"\)\&\&canArchive/);
@@ -17,7 +18,7 @@ test("the shared action is a consent-gated POST directly from Legal detail",()=>
  assert.match(panel,/Vytvořit Snapshot/);
  assert.match(snapshot,/<SnapshotActionPanel candidateId=\{candidateId\}/);
 });
-test("editors and unresolved claims cannot accidentally offer an archive button",()=>{
+test("unauthorized actors and unresolved claims cannot accidentally offer an archive button",()=>{
  assert.match(panel,/state\.status==="ready"&&!canArchive/);
  assert.match(panel,/state\.status==="reconciliation_required"/);
  assert.match(state,/const acquisitionEligible=/);

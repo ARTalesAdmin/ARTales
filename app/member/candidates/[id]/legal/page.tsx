@@ -9,6 +9,7 @@ import {getCandidateSnapshotState} from "@/lib/ingest/server/getCandidateSnapsho
 import {makeReviewHistory} from "@/lib/legal/reviewHistory";
 import {LEGAL_SCREEN_V1_ENABLED} from "@/lib/legal/featureFlag";
 import {requireEditorOrAdmin} from "@/lib/guards";
+import {canProgressCandidate} from "@/lib/editorial/candidateAuthority";
 import {createClient} from "@/lib/supabase/server";
 import {lockScreening} from "@/lib/actions/legalScreen";
 import "../../candidates.css";
@@ -25,6 +26,7 @@ export default async function LegalScreen({params,searchParams}:{params:Promise<
   db.from("candidate_legal_locks").select("*").eq("candidate_id",id).maybeSingle()
  ]);
  if(!c)notFound();
+ const canProgress=await canProgressCandidate(id,profile);
  const {checks,history}=makeReviewHistory(decisions??[],sources??[]);
  const latest=decisions?.[0];
  // Do not query unapplied registry tables before explicit activation.
@@ -36,9 +38,9 @@ export default async function LegalScreen({params,searchParams}:{params:Promise<
   <p className="ca-links"><Link href="/member/legal">← Přehled právních screenů</Link> · <Link href={`/member/candidates/${id}`}>Kandidát</Link></p>
   {q.ok?<p role="status" className="ca-success">Rozhodnutí bylo úspěšně uloženo do historie. {latest?.verdict==="approved"?"Další krok: uzamkni schválený zdroj pro Snapshot.":"Další postup závisí na výsledku právního posouzení."}</p>:null}
   {q.error?<p role="alert" className="ca-error">Akci nelze dokončit; zkontroluj podklady nebo právní stav.</p>:null}
-  {!lock?<AutomaticLegalScreen candidateId={id}/>:<p role="status" className="ca-success">Právní posouzení je uzamčeno. Zdroj i rozhodnutí jsou připraveny k předání.</p>}
-  {!lock?<LegalReviewActions candidateId={id} checks={checks} locked={false}/>:null}
-  {!lock&&latest?.verdict==="approved"&&latest.source_id?<section className="ca-card" id="legal-next-step" aria-label="Další krok po schválení"><h2>Právní kontrola dokončena · pokračuj ke Snapshotu</h2>
+  {!lock&&canProgress?<AutomaticLegalScreen candidateId={id}/>:<p role="status" className="ca-success">Právní posouzení je uzamčeno. Zdroj i rozhodnutí jsou připraveny k předání.</p>}
+  {!lock&&canProgress?<LegalReviewActions candidateId={id} checks={checks} locked={false}/>:null}
+  {canProgress&&!lock&&latest?.verdict==="approved"&&latest.source_id?<section className="ca-card" id="legal-next-step" aria-label="Další krok po schválení"><h2>Právní kontrola dokončena · pokračuj ke Snapshotu</h2>
    <p>Rozhodnutí je uložené v historii. Nyní uzamkni schválený zdroj, aby Snapshot převzal přesně tuto edici. K samotné archivaci dojde až v dalším kroku.</p>
    <form action={lockScreening.bind(null,id)} className="ca-form">
     <input type="hidden" name="source_id" value={latest.source_id}/><input type="hidden" name="decision_no" value={latest.decision_no}/>
@@ -47,7 +49,7 @@ export default async function LegalScreen({params,searchParams}:{params:Promise<
   </section>:null}
   {lock?<section className="ca-card"><h2>Snapshot původní edice</h2>
     {snapshotState?<>
-      <SnapshotActionPanel candidateId={id} state={snapshotState} canArchive={profile.role==="admin"}/>
+      <SnapshotActionPanel candidateId={id} state={snapshotState} canArchive={canProgress}/>
       <p className="ca-links"><Link href={`/member/snapshot/${id}`}>Detail a evidence Snapshotu</Link></p>
     </>:<p>Právní zdroj je uzamčen. Obecná archivace čeká na schválenou aktivaci.</p>}
     <a className="ca-btn ca-secondary" href={`/member/candidates/${id}/legal/report`}>Stáhnout předávací protokol (JSON)</a>

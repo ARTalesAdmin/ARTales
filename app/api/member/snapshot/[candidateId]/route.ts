@@ -1,6 +1,7 @@
 import {NextResponse} from "next/server";
 import {SNAPSHOT_GENERAL_V1_ENABLED} from "@/lib/ingest/snapshotGeneralFlag";
-import {requireAdmin} from "@/lib/guards";
+import {requireEditorOrAdmin} from "@/lib/guards";
+import {canProgressCandidate} from "@/lib/editorial/candidateAuthority";
 import {createClient} from "@/lib/supabase/server";
 import {getGutenbergBook} from "@/lib/legal/gutenbergCatalog";
 import {readLockedSnapshotPacket} from "@/lib/ingest/server/readLockedSnapshotPacket";
@@ -66,7 +67,9 @@ export async function POST(req:Request,{params}:{params:Promise<{candidateId:str
  try{await readForm(req,candidateId);}catch(e){
   return NextResponse.json({ok:false,error:e instanceof Error?e.message:"snapshot_bad_request"},{status:403});
  }
- const actor=await requireAdmin();
+ const actor=await requireEditorOrAdmin();
+ if(!await canProgressCandidate(candidateId,actor))
+  return NextResponse.json({ok:false,error:"candidate_progress_forbidden"},{status:403});
  const db=await createClient();
  // Both registry reads precede any network acquisition or Storage write.
  // A persisted claim without a verified receipt must never initiate a retry.

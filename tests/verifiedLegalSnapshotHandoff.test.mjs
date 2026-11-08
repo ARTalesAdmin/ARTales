@@ -22,8 +22,9 @@ test('same Gutenberg work alternative remains pending comparison, not legal re-c
  const p=planLockedSnapshot(packet,book,other);assert.equal(p.selection.format,'plain_text');assert.equal(p.selection.correspondence,'pending_content_comparison');
  assert.equal(p.legal_decision_ref,`legal:${cid}:9`);
 });
-test('admin role, identity and verdict are hard gates',()=>{
- for(const change of [{actor:{...packet.actor,role:'editor'}},{actor:{...packet.actor,is_active:false}},{approved:{...packet.approved,verdict:'needs_evidence'}},{approved:{...packet.approved,territory:'US'}},{approved:{...packet.approved,candidate_id:'00000000-0000-4000-8000-000000000001'}}])
+test('qualified active editor and admin pass pure source verification; other roles and wrong evidence fail',()=>{
+ assert.equal(planLockedSnapshot({...packet,actor:{...packet.actor,role:'editor'}},book).legal_decision_ref,`legal:${cid}:9`);
+ for(const change of [{actor:{...packet.actor,role:'member'}},{actor:{...packet.actor,is_active:false}},{approved:{...packet.approved,verdict:'needs_evidence'}},{approved:{...packet.approved,territory:'US'}},{approved:{...packet.approved,candidate_id:'00000000-0000-4000-8000-000000000001'}}])
  assert.throws(()=>planLockedSnapshot({...packet,...change},book));
 });
 test('cannot borrow another edition, translator or author or mismatched source',()=>{
