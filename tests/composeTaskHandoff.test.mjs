@@ -18,13 +18,11 @@ test("compose task assignment works without revealing other editor profiles",()=
  assert.doesNotMatch(sql,/CREATE POLICY.*profiles|ALTER POLICY.*profiles/);
 });
 test("every compose entrypoint redirects to permanent work card, not directly QA",()=>{
- for(const path of [
-  "app/api/member/snapshot/[candidateId]/auto-compose/route.ts",
-  "app/api/member/semantic/[candidateId]/compose/route.ts"]){
-  const route=read(path);
-  assert.match(route,/\/member\/editorial-detail\/.*\?composed=1#tasks/);
-  assert.doesNotMatch(route,/NextResponse\.redirect\(new URL\("\/member\/semantic\//);
- }
+ const route=read("app/api/member/snapshot/[candidateId]/auto-compose/route.ts");
+ assert.match(route,/\/member\/editorial-detail\/.*\?composed=1#tasks/);
+ const alias=read("app/api/member/semantic/[candidateId]/compose/route.ts");
+ assert.match(alias,/export \{POST,runtime,dynamic,maxDuration\} from/);
+ assert.doesNotMatch(alias,/candidate_semantic_revisions/);
  const component=read("components/snapshot/AutomaticSnapshotCompose.tsx");
  assert.match(component,/destination\.pathname==="\/member\/editorial-detail\/"/);
  assert.match(component,/router\.push\(destination\.pathname\+destination\.search\+destination\.hash\)/);
