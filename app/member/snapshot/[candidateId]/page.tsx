@@ -4,6 +4,7 @@ import {requireEditorOrAdmin} from "@/lib/guards";
 import {createClient} from "@/lib/supabase/server";
 import {getCandidateSnapshotState} from "@/lib/ingest/server/getCandidateSnapshotState";
 import {SnapshotActionPanel} from "@/components/snapshot/SnapshotActionPanel";
+import {AutomaticSnapshotCompose} from "@/components/snapshot/AutomaticSnapshotCompose";
 import {notFound} from "next/navigation";
 import "../../candidates/candidates.css";
 export const dynamic="force-dynamic";
@@ -58,9 +59,7 @@ export default async function SnapshotCandidate({params,searchParams}:{params:Pr
    zkontroluje právní lock, rok úmrtí, překlad, textová omezení a všechny
    soukromě archivované obrázky. Při jakékoliv nejasnosti se zastaví.
    Vytvoří pouze interní sémantickou revizi, nikoliv veřejnou publikaci.</p>
-   <form method="post" action={"/api/member/snapshot/"+candidateId+"/auto-compose"}>
-    <button type="submit" className="ca-btn ca-primary">Automaticky ověřit a zpracovat</button>
-   </form>
+   <AutomaticSnapshotCompose candidateId={candidateId}/>
   </section>:null}
   {state.status==="verified_for_composition"&&profile.role==="admin"?<section className="ca-card">
    <h2>Sémantická kompozice</h2>
