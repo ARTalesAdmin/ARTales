@@ -1,5 +1,6 @@
 import {createClient} from "@/lib/supabase/server";
 import {requireEditorOrAdmin} from "@/lib/guards";
+import {canProgressCandidate} from "@/lib/editorial/candidateAuthority";
 import {deriveSnapshotActionState} from "@/lib/ingest/generalSnapshotAction";
 import type {SnapshotActionState} from "@/lib/ingest/generalSnapshotAction";
 const uuid=/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -33,7 +34,7 @@ export async function getCandidateSnapshotState(candidateId:string):Promise<Snap
   receipt:receipt?{sha256:receipt.sha256,readbackVerified:receipt.readback_status==="sha256_verified"}:null,
   editionVerified:review?.text_correspondence==="confirmed" && review?.image_disposition==="exclude_all",
   claimWithoutReceipt:Boolean(!receipt&&claim),
-  recoverableClaim:Boolean(!receipt&&claim&&actor.role==="admin"&&claim.claimed_by===actor.id&&
+  recoverableClaim:Boolean(!receipt&&claim&&await canProgressCandidate(candidateId,actor)&&claim.claimed_by===actor.id&&
    /^[a-f0-9]{64}$/.test(claim.sha256))
  });
 }
