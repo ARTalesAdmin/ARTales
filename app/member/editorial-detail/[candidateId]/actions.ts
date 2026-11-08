@@ -5,6 +5,7 @@ import {notFound} from "next/navigation";
 import {requireEditorOrAdmin} from "@/lib/guards";
 import {createClient} from "@/lib/supabase/server";
 import {SEMANTIC_PIPELINE_ENABLED} from "@/lib/semantic/featureFlag";
+import {canAssignCandidate} from "@/lib/editorial/candidateAuthority";
 
 const uuid=/^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i;
 const fields=["author","collection","description","cover"] as const;
@@ -71,7 +72,7 @@ export async function saveCandidateEditorialField(form:FormData){
 export async function reassignCandidateTask(form:FormData){
  if(!SEMANTIC_PIPELINE_ENABLED)notFound();
  const actor=await requireEditorOrAdmin();
- if(actor.role!=="admin")notFound();
+ if(!await canAssignCandidate(String(form.get("candidate_id")??""),actor))notFound();
  const candidateId=String(form.get("candidate_id")??"");
  const taskId=String(form.get("task_id")??"");
  const assigneeId=String(form.get("assignee_id")??"");
@@ -79,7 +80,7 @@ export async function reassignCandidateTask(form:FormData){
  if(!uuid.test(candidateId))notFound();
  const back="/member/editorial-detail/"+candidateId;
  if(!uuid.test(taskId)||!uuid.test(assigneeId)||
-    reason.length<20||reason.length>1000)
+    reason.length>1000||(actor.role!=="admin"&&reason.length<20))
   redirect(back+"?error=invalid_assignment#tasks");
  const db=await createClient();
  const {data:task,error:readError}=await db.from("artales_editorial_tasks")
