@@ -65,3 +65,34 @@ export async function saveCandidateEditorialField(form:FormData){
  revalidatePath("/member/editorial-pipeline");
  redirect("/member/editorial-detail/"+candidateId+"?saved="+encodeURIComponent(field));
 }
+
+/** Reassign from the permanent candidate work card. No access is gained by
+ * rendering the form: the existing audited RPC enforces admin and capability. */
+export async function reassignCandidateTask(form:FormData){
+ if(!SEMANTIC_PIPELINE_ENABLED)notFound();
+ const actor=await requireEditorOrAdmin();
+ if(actor.role!=="admin")notFound();
+ const candidateId=String(form.get("candidate_id")??"");
+ const taskId=String(form.get("task_id")??"");
+ const assigneeId=String(form.get("assignee_id")??"");
+ const reason=String(form.get("reason")??"").trim();
+ if(!uuid.test(candidateId))notFound();
+ const back="/member/editorial-detail/"+candidateId;
+ if(!uuid.test(taskId)||!uuid.test(assigneeId)||
+    reason.length<20||reason.length>1000)
+  redirect(back+"?error=invalid_assignment#tasks");
+ const db=await createClient();
+ const {data:task,error:readError}=await db.from("artales_editorial_tasks")
+  .select("candidate_id,status").eq("id",taskId).maybeSingle();
+ if(readError||!task||task.candidate_id!==candidateId||
+    ["completed","superseded"].includes(task.status))
+  redirect(back+"?error=assignment_unavailable#tasks");
+ const {data,error}=await db.rpc("artales_reassign_editorial_task",{
+  p_task_id:taskId,p_new_assignee:assigneeId,p_reason:reason
+ });
+ if(error||data?.result!=="reassigned")
+  redirect(back+"?error=assignment_unavailable#tasks");
+ revalidatePath(back);
+ revalidatePath("/member/editorial-pipeline");
+ redirect(back+"?assigned=1#tasks");
+}
