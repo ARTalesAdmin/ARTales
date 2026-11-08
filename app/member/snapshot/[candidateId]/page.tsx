@@ -56,20 +56,12 @@ export default async function SnapshotCandidate({params,searchParams}:{params:Pr
     {state.status!=="verified_for_composition"?<p>Kompozice ještě není povolená. Je třeba potvrdit shodu textu a vyloučení neprověřených ilustrací.</p>:null}
   </section>:null}
   {receipt&&canProgress?<section className="ca-card">
-   <h2>Automaticky ověřit vydání a sestavit sémantické bloky</h2>
-   <p>Systém porovná archiv s nezávisle načteným Gutenberg souborem,
-   zkontroluje právní lock, rok úmrtí, překlad, textová omezení a všechny
-   soukromě archivované obrázky. Při jakékoliv nejasnosti se zastaví.
-   Vytvoří pouze interní sémantickou revizi, nikoliv veřejnou publikaci.</p>
+   <h2>Pokračovat v automatickém zpracování</h2>
+   <p>Systém naváže na poslední ověřený krok. Pokud již bloky existují, otevře
+   redakční kartu. Jinak ověří archiv a právní zdroj a vytvoří bloky a úkoly.
+   Při problému ukáže konkrétní důvod; nic automaticky nezveřejní.</p>
    <AutomaticSnapshotCompose candidateId={candidateId}/>
   </section>:null}
-  {state.status==="verified_for_composition"&&profile.role==="admin"?<section className="ca-card">
-   <h2>Sémantická kompozice</h2>
-   <p>Vytvoření sémantických bloků z ověřeného archivu; obrázky zůstanou soukromé.</p>
-   <form method="post" action={"/api/member/semantic/"+candidateId+"/compose"}>
-    <button type="submit" className="ca-btn ca-primary">Převést EPUB na bloky</button>
-   </form>
-   <Link href={"/member/semantic/"+candidateId}>Otevřít redakční QA</Link>
-  </section>:null}
+
  </main>;
 }
