@@ -21,7 +21,7 @@ test("every compose entrypoint redirects to permanent work card, not directly QA
  const route=read("app/api/member/snapshot/[candidateId]/auto-compose/route.ts");
  assert.match(route,/\/member\/editorial-detail\/.*\?composed=1#tasks/);
  const alias=read("app/api/member/semantic/[candidateId]/compose/route.ts");
- assert.match(alias,/export \{POST,runtime,dynamic,maxDuration\} from/);
+ assert.match(alias,/return runAutomaticCompose\(req,ctx\)/);
  assert.doesNotMatch(alias,/candidate_semantic_revisions/);
  const component=read("components/snapshot/AutomaticSnapshotCompose.tsx");
  assert.match(component,/destination\.pathname==="\/member\/editorial-detail\/"/);
