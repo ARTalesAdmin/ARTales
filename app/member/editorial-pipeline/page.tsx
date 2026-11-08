@@ -156,7 +156,7 @@ export default async function EditorialPipeline({searchParams}:Props){
       <form className="ed-form-grid" action={releaseEditorialTask}>
        <input type="hidden" name="task_id" value={t.id}/>
        <label>Důvod předání
-        <textarea name="reason" required minLength={20} maxLength={1000} rows={2}/>
+        <textarea name="reason" maxLength={1000} rows={2} placeholder="Volitelná poznámka k přeřazení"/>
        </label>
        <button className="ed-button ed-button--soft" type="submit">Vrátit do společné fronty</button>
       </form>
