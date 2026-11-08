@@ -46,8 +46,8 @@ export function AutomaticSnapshotCompose({candidateId}:{candidateId:string}){
    if(response.redirected){
     const destination=new URL(response.url);
     if(destination.origin===window.location.origin&&
-      destination.pathname==="/member/semantic/"+candidateId){
-     router.push(destination.pathname);router.refresh();return;
+      destination.pathname==="/member/editorial-detail/"+candidateId){
+     router.push(destination.pathname+destination.search+destination.hash);router.refresh();return;
     }
     throw Error("unexpected_redirect");
    }
@@ -64,6 +64,6 @@ export function AutomaticSnapshotCompose({candidateId}:{candidateId:string}){
    {pending?"Ověřuji archiv a vytvářím bloky…":"Automaticky ověřit a zpracovat"}
   </button>
   {error?<p role="alert" className="ca-error">{error}</p>:null}
-  <p className="ca-hint">Úspěšné zpracování otevře sémantický editor. Při chybě zůstaneš tady a uvidíš její příčinu.</p>
+  <p className="ca-hint">Úspěšné zpracování otevře redakční kartu s úkoly a odkazem na textové QA. Při chybě zůstaneš tady a uvidíš její příčinu.</p>
  </div>;
 };
