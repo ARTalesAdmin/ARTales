@@ -194,10 +194,13 @@ ALTER POLICY artales_snapshot_claimed_admin_insert_v2 ON storage.objects
     AND l.source_url='https://www.gutenberg.org/ebooks/'||c.gutenberg_id::text
     AND name='gutenberg/'||c.gutenberg_id::text||'/sha256/'||c.sha256||'/original.epub')
  );
+-- Read access follows approved candidate authority, not the original upload
+-- actor: an admin may archive an editor-owned title and the responsible editor
+-- must still be able to verify the exact locked binary during Compose.
+-- INSERT remains strictly owner-bound and never allows overwrite.
 ALTER POLICY artales_snapshot_claimed_admin_readback_v2 ON storage.objects
  USING (
   bucket_id='artales-raw-snapshots'
-  AND owner_id=(SELECT auth.uid())::text
   AND EXISTS(SELECT 1 FROM public.candidate_snapshot_claims c
    JOIN public.candidate_legal_locks l ON l.candidate_id=c.candidate_id
      AND l.source_id=c.source_id AND l.decision_no=c.decision_no
