@@ -2,7 +2,7 @@ import {NextResponse} from "next/server";
 import {requireEditorOrAdmin} from "@/lib/guards";
 import {canProgressCandidate} from "@/lib/editorial/candidateAuthority";
 import {createClient} from "@/lib/supabase/server";
-import {LEGAL_SCREEN_V1_ENABLED} from "@/lib/legal/featureFlag";
+import {LEGAL_SCREEN_V1_ENABLED,LEGAL_IMAGE_APPROVAL_ENABLED} from "@/lib/legal/featureFlag";
 import {approvalBlockers,isAutomaticScreen} from "@/lib/legal/reviewHistory";
 const valid=(s:string)=>/^[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i.test(s);
 export async function POST(req:Request,{params}:{params:Promise<{id:string}>}){
@@ -15,6 +15,8 @@ export async function POST(req:Request,{params}:{params:Promise<{id:string}>}){
  const sourceId=String(form.get("source_id")??""),decisionNo=Number(form.get("decision_no"));
  const verdict=String(form.get("verdict")??""),rationale=String(form.get("rationale")??"").trim();
  const includeImages=String(form.get("include_illustrations")??"false")==="true";
+ if(includeImages&&!LEGAL_IMAGE_APPROVAL_ENABLED)
+  return NextResponse.json({error:"illustration_publication_not_supported"},{status:422});
  if(!valid(sourceId)||!Number.isSafeInteger(decisionNo)||decisionNo<1||!["approved","needs_evidence","deferred","rejected"].includes(verdict)||rationale.length<15||rationale.length>5000)
   return NextResponse.json({error:"invalid"},{status:400});
  const db=await createClient();
