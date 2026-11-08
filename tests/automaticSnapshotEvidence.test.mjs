@@ -55,3 +55,64 @@ for(const [name,change] of [
   const d=example();change(d);assert.throws(()=>verifyAutomaticEdition(d),AutomaticEditionHold);
  });
 }
+
+function anthologyExample(){
+ const d=example(),id=540,url="https://www.gutenberg.org/ebooks/540";
+ const editor={name:"Lang, Andrew",died:1912,role:"editor",source:url+".rdf"};
+ d.candidate={proposed_title:"The Red Fairy Book",proposed_author_name:"Andrew Lang"};
+ d.lock={...d.lock,source_url:url,download_url:url+".epub.noimages"};
+ d.source={...d.source,edition_title:"The Red Fairy Book",source_url:url,
+  download_url:url+".epub.noimages",author_died:null,
+  notes:JSON.stringify({schema:"artales.public-domain-check.v1",gutenbergId:id,
+   outcome:"yes_without_illustrations",
+   text:{status:"public_domain",people:[editor]},
+   translation:{status:"not_applicable"},illustrations:{status:"unknown"}})};
+ d.receipt={...d.receipt,gutenberg_id:id,catalog_url:url,
+  locked_file_url:url+".epub.noimages"};
+ d.liveRdf={people:[],contributors:[{role:"marcrel:edt",name:"Lang, Andrew",died:1912}],
+  checked:true,usStatus:"public_domain",url:url+".rdf"};
+ return d;
+}
+test("editor-only historical anthology composes using previously cleared RDF editor evidence",()=>{
+ const proof=verifyAutomaticEdition(anthologyExample());
+ assert.equal(proof.authorDied,1912);
+ assert.equal(proof.publicDomainFrom,1983);
+ assert.equal(proof.textCreators[0].role,"editor");
+ assert.equal(proof.rightsEvidenceSource,"live_gutenberg_rdf");
+ assert.equal(proof.images,"exclude_all");
+});
+test("verified contributor death must be valid even if anthology candidate has no author death",()=>{
+ const d=anthologyExample();const z=JSON.parse(d.source.notes);
+ z.text.people[0].died=null;d.source.notes=JSON.stringify(z);
+ assert.throws(()=>verifyAutomaticEdition(d),/text_creator_identity_role_or_death_unverified/);
+});
+test("unexpected creator role and mismatching editor RDF still fail closed",()=>{
+ const a=anthologyExample();const z=JSON.parse(a.source.notes);
+ z.text.people[0].role="illustrator";a.source.notes=JSON.stringify(z);
+ assert.throws(()=>verifyAutomaticEdition(a),/text_creator_identity_role_or_death_unverified/);
+ const b=anthologyExample();b.liveRdf.contributors[0].died=1950;
+ assert.throws(()=>verifyAutomaticEdition(b),/live_rdf_contradicts_locked_legal_evidence/);
+});
+test("multiple original writers must all have expired terms and match live RDF",()=>{
+ const d=anthologyExample(),url=d.receipt.catalog_url+".rdf";
+ d.candidate.proposed_author_name="Various Authors";d.source.author_died=null;
+ const people=[
+  {name:"Writer, Alice",died:1899,role:"autor",source:url},
+  {name:"Writer, Bob",died:1901,role:"autor",source:url}
+ ];
+ const evidence=JSON.parse(d.source.notes);
+ evidence.text.people=people;d.source.notes=JSON.stringify(evidence);
+ d.liveRdf={...d.liveRdf,people:people.map(p=>({name:p.name,died:p.died})),
+  contributors:people.map(p=>({role:"dcterms:creator",name:p.name,died:p.died}))};
+ const result=verifyAutomaticEdition(d);
+ assert.equal(result.textCreators.length,2);assert.equal(result.publicDomainFrom,1972);
+ const missing={...d,liveRdf:{...d.liveRdf,contributors:d.liveRdf.contributors.slice(0,1),people:[]}};
+ assert.throws(()=>verifyAutomaticEdition(missing),/live_rdf_contradicts_locked_legal_evidence/);
+ const protectedWriter=JSON.parse(d.source.notes);protectedWriter.text.people[1].died=1980;
+ d.source.notes=JSON.stringify(protectedWriter);
+ assert.throws(()=>verifyAutomaticEdition(d),/text_creator_identity_role_or_death_unverified/);
+});
+test("original single author with legacy missing role remains supported",()=>{
+ const proof=verifyAutomaticEdition(example());
+ assert.equal(proof.textCreators[0].role,"author");
+});
