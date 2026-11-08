@@ -31,7 +31,7 @@ function entryStatus(complete:boolean){
  </span>;
 }
 export default async function CandidateEditorialDetail({params,searchParams}:{
- params:Promise<{candidateId:string}>;searchParams:Promise<{error?:string;saved?:string;closed?:string;closeout?:string;assigned?:string;createdAuthorId?:string;createdCollectionId?:string}>
+ params:Promise<{candidateId:string}>;searchParams:Promise<{error?:string;saved?:string;closed?:string;closeout?:string;assigned?:string;composed?:string;createdAuthorId?:string;createdCollectionId?:string}>
 }){
  if(!SEMANTIC_PIPELINE_ENABLED)notFound();
  const {candidateId}=await params;
@@ -218,6 +218,7 @@ export default async function CandidateEditorialDetail({params,searchParams}:{
    </div>
   </header>
   {err.error?<div className="ed-notice ed-notice--error" role="alert">{errors[err.error]??"Uložení se nezdařilo."}</div>:null}
+  {err.composed?<div className="ed-notice" role="status">✓ Archiv byl ověřen, sémantické bloky byly uloženy a redakční úkoly jsou připravené. Z této karty můžeš přiřadit práci nebo otevřít textové QA.</div>:null}
   {err.assigned?<div className="ed-notice" role="status">✓ Přiřazení úkolu bylo uloženo a zaznamenáno do auditu.</div>:null}
   {err.saved?<div className="ed-notice" role="status">✓ Údaje byly uloženy: {labels[err.saved]??err.saved}.
    {err.closed==="1"?" Odpovídající úkol byl zároveň uzavřen.":""}</div>:null}
