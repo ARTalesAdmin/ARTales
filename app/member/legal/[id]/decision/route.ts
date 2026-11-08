@@ -1,5 +1,6 @@
 import {NextResponse} from "next/server";
 import {requireEditorOrAdmin} from "@/lib/guards";
+import {canProgressCandidate} from "@/lib/editorial/candidateAuthority";
 import {createClient} from "@/lib/supabase/server";
 import {LEGAL_SCREEN_V1_ENABLED} from "@/lib/legal/featureFlag";
 import {approvalBlockers,isAutomaticScreen} from "@/lib/legal/reviewHistory";
@@ -8,6 +9,8 @@ export async function POST(req:Request,{params}:{params:Promise<{id:string}>}){
  if(!LEGAL_SCREEN_V1_ENABLED)return NextResponse.json({error:"disabled"},{status:404});
  const profile=await requireEditorOrAdmin(),{id}=await params;
  if(!valid(id))return NextResponse.json({error:"invalid"},{status:400});
+ if(!await canProgressCandidate(id,profile))
+  return NextResponse.json({error:"candidate_progress_forbidden"},{status:403});
  const form=await req.formData();
  const sourceId=String(form.get("source_id")??""),decisionNo=Number(form.get("decision_no"));
  const verdict=String(form.get("verdict")??""),rationale=String(form.get("rationale")??"").trim();
