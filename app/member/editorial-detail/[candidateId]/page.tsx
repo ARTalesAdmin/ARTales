@@ -3,7 +3,8 @@ import {notFound} from "next/navigation";
 import {requireEditorOrAdmin} from "@/lib/guards";
 import {createClient} from "@/lib/supabase/server";
 import {SEMANTIC_PIPELINE_ENABLED} from "@/lib/semantic/featureFlag";
-import {saveCandidateEditorialField} from "./actions";
+import {saveCandidateEditorialField,reassignCandidateTask} from "./actions";
+import {getEditorialPeople} from "@/lib/editorial/staffDirectory";
 import {completeSemanticTask,publishSemanticCandidate} from "@/app/member/editorial-pipeline/actions";
 import {assessEditorialRelease} from "@/lib/editorial/releaseReadiness";
 import {slugify} from "@/lib/slug";
@@ -15,6 +16,12 @@ export const dynamic="force-dynamic";
 type Metadata={author_id:string|null;collection_id:string|null;work_description_cs:string|null;work_description_en:string|null;
  cover_image_path:string|null;cover_image_alt:string|null;cover_image_caption:string|null};
 type Task={id:string;kind:string;status:string;assigned_to:string|null;revision_sha256:string};
+const taskTitles:Record<string,string>={
+ text_review:"Textové QA",cover_art:"Obálka",work_description:"Anotace",
+ author_visual:"Vizuál autora",author_bio:"Profil autora",
+ collection_curation:"Kolekce",second_review:"Druhé posouzení",
+ proofread:"Korektury",visual_review:"Vizuální QA"
+};
 const labels:Record<string,string>={
  author:"Autor",collection:"Kolekce",description:"Anotace",cover:"Obálka"
 };
@@ -24,7 +31,7 @@ function entryStatus(complete:boolean){
  </span>;
 }
 export default async function CandidateEditorialDetail({params,searchParams}:{
- params:Promise<{candidateId:string}>;searchParams:Promise<{error?:string;saved?:string;closed?:string;closeout?:string;createdAuthorId?:string;createdCollectionId?:string}>
+ params:Promise<{candidateId:string}>;searchParams:Promise<{error?:string;saved?:string;closed?:string;closeout?:string;assigned?:string;composed?:string;createdAuthorId?:string;createdCollectionId?:string}>
 }){
  if(!SEMANTIC_PIPELINE_ENABLED)notFound();
  const {candidateId}=await params;
@@ -63,6 +70,12 @@ export default async function CandidateEditorialDetail({params,searchParams}:{
  ]);
  if(candidateRes.error||!candidateRes.data||tasksRes.error)notFound();
  const tasks=(tasksRes.data??[]) as Task[];
+ const activeTasks=tasks.filter(t=>t.status!=="superseded");
+ const people=await getEditorialPeople();
+ const names=new Map(people.map(p=>[p.id,p.display_name??"Neznámý editor"]));
+ const {data:capabilities}=me.role==="admin"?await db.from("artales_editorial_capabilities").select("profile_id,kind"): {data:[] as {profile_id:string;kind:string}[]};
+ const eligibleFor=(kind:string)=>people.filter(p=>p.is_active&&
+   (p.role==="admin"||(p.role==="editor"&&(capabilities??[]).some(c=>c.profile_id===p.id&&c.kind===kind))));
  // Keep the page owner-bound: completed assignments remain visible for status
  // badges, but a non-admin needs at least one active assignment for access.
  // Completed work stays readable to its owner. Edits remain checked by their own RPC.
@@ -118,7 +131,9 @@ export default async function CandidateEditorialDetail({params,searchParams}:{
   evidence_missing:"Chybí ověřené údaje nebo uložený soubor. Úkol zůstává otevřený.",
   qa_in_reader:"Dokončení textového QA probíhá v sémantickém editoru.",
   invalid_release:"Neplatné odůvodnění nebo metadata vydání.",
-  release_blocked:"Publikace byla odmítnuta serverovou kontrolou. Stav úkolů a zdrojů zůstává beze změny."
+  release_blocked:"Publikace byla odmítnuta serverovou kontrolou. Stav úkolů a zdrojů zůstává beze změny.",
+  invalid_assignment:"Vyber editora a uveď věcný důvod přeřazení (20–1000 znaků).",
+  assignment_unavailable:"Úkol už nelze přiřadit vybranému editorovi, nebo není oprávněný k této práci."
  };
  const completeForm=(kind:string,ready:boolean)=>{
   const task=byKind(kind);
@@ -203,6 +218,8 @@ export default async function CandidateEditorialDetail({params,searchParams}:{
    </div>
   </header>
   {err.error?<div className="ed-notice ed-notice--error" role="alert">{errors[err.error]??"Uložení se nezdařilo."}</div>:null}
+  {err.composed?<div className="ed-notice" role="status">✓ Archiv byl ověřen, sémantické bloky byly uloženy a redakční úkoly jsou připravené. Z této karty můžeš přiřadit práci nebo otevřít textové QA.</div>:null}
+  {err.assigned?<div className="ed-notice" role="status">✓ Přiřazení úkolu bylo uloženo a zaznamenáno do auditu.</div>:null}
   {err.saved?<div className="ed-notice" role="status">✓ Údaje byly uloženy: {labels[err.saved]??err.saved}.
    {err.closed==="1"?" Odpovídající úkol byl zároveň uzavřen.":""}</div>:null}
   {err.closeout==="pending"?<div className="ed-notice ed-notice--error" role="alert">
@@ -219,6 +236,54 @@ export default async function CandidateEditorialDetail({params,searchParams}:{
     {sections.map(section=><a key={section.id} href={"#"+section.id}
       data-ready={section.done}>{section.label}{section.done?" · vyplněno":" · čeká"}</a>)}
    </nav>
+  </section>
+  <section id="tasks" className="ed-card" aria-label="Redakční úkoly tohoto díla">
+   <div className="ed-card__head"><div className="ed-card__heading">
+    <span className="ed-card__number">↗</span><div>
+     <h2>Redakční úkoly</h2>
+     <p className="ed-card__lead">Úkoly zůstávají navázané na dílo. Textové QA se vztahuje vždy k aktuální revizi.</p>
+    </div></div></div>
+   <div className="ed-card__body">
+    {activeTasks.length?<div className="ed-task-grid">
+     {activeTasks.map(task=><article className="ed-task" key={task.id}>
+      <div className="ed-task__top"><div><h3>{taskTitles[task.kind]??task.kind}</h3>
+       <p className="ed-task__meta">Vlastník: {task.assigned_to?names.get(task.assigned_to)??"Přiřazený editor":"Nepřiřazeno"}</p>
+      </div><span className={"ed-status "+(task.status==="completed"?"ed-status--complete":"")}>
+       {task.status==="completed"?"Dokončeno":task.status==="claimed"?"Rozpracováno":
+        task.status==="returned"?"Vráceno":"Připraveno"}
+      </span></div>
+      <div className="ed-task__actions">
+       <Link className="ed-button ed-button--soft" href={
+        ["text_review","second_review","proofread","visual_review"].includes(task.kind)?
+         "/member/semantic/"+candidateId:
+         task.kind==="cover_art"?"#cover":task.kind==="collection_curation"?"#collection":
+         task.kind==="work_description"?"#description":"#author"
+       }>Otevřít práci ↗</Link>
+      </div>
+      {me.role==="admin"&&!["completed","superseded"].includes(task.status)?
+       <details className="ed-disclosure"><summary>Přiřadit nebo změnit vlastníka</summary>
+        <div className="ed-disclosure__body">
+         <form className="ed-form-grid" action={reassignCandidateTask}>
+          <input name="candidate_id" type="hidden" value={candidateId}/>
+          <input name="task_id" type="hidden" value={task.id}/>
+          <label>Editor
+           <select name="assignee_id" required defaultValue="">
+            <option value="" disabled>Vyber editora…</option>
+            {eligibleFor(task.kind).filter(p=>p.id!==task.assigned_to).map(p=>
+             <option key={p.id} value={p.id}>{p.display_name}</option>)}
+           </select>
+          </label>
+          <label>Důvod přiřazení
+           <textarea name="reason" minLength={20} maxLength={1000} rows={2} required
+            placeholder="Např. Předání textového QA pro redakční pilot tohoto titulu."/>
+          </label>
+          <button type="submit" className="ed-button ed-button--soft">Uložit přiřazení</button>
+         </form>
+        </div>
+       </details>:null}
+     </article>)}
+    </div>:<p>Zatím nejsou vytvořené redakční úkoly. Vzniknou automaticky s první sémantickou revizí.</p>}
+   </div>
   </section>
   <section id="publication-readiness" className="ed-card" aria-label="Stav přípravy k publikaci">
    <div className="ed-card__head"><div className="ed-card__heading">

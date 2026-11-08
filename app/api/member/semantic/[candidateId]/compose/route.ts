@@ -16,7 +16,7 @@ export async function POST(req:Request,{params}:{params:Promise<{candidateId:str
  db.from("candidate_semantic_revisions").select("revision_sha256").eq("candidate_id",candidateId).limit(1).maybeSingle()]);
  if(se||re||ee)return NextResponse.json({error:"semantic_registry_not_ready"},{status:503});
  if(!snapshot||snapshot.readback_status!=="sha256_verified"||review?.text_correspondence!=="confirmed"||review.image_disposition!=="exclude_all")return NextResponse.json({error:"semantic_evidence_not_ready"},{status:409});
- if(existing)return NextResponse.redirect(new URL("/member/semantic/"+candidateId,req.url),303);
+ if(existing)return NextResponse.redirect(new URL("/member/editorial-detail/"+candidateId+"?composed=1#tasks",req.url),303);
  const {data:file,error:fe}=await db.storage.from(snapshot.storage_bucket).download(snapshot.storage_path);
  if(fe||!file)return NextResponse.json({error:"semantic_archive_missing"},{status:409});
  const extracted=extractEpub(new Uint8Array(await file.arrayBuffer()));
@@ -25,5 +25,5 @@ export async function POST(req:Request,{params}:{params:Promise<{candidateId:str
  verifySemanticRevision(revision,extracted.text);
  const {error}=await db.from("candidate_semantic_revisions").insert({candidate_id:candidateId,snapshot_sha256:snapshot.sha256,revision_sha256:revision.revision_sha256,revision,source_text:extracted.text,component_id:extracted.component_id,source_manifest:{documents:extracted.documents,assets:extracted.assets,epub_sha256:extracted.epub_sha256},image_selection:"none",status:"draft",authored_by:actor.id});
  if(error)return NextResponse.json({error:"semantic_revision_insert_failed"},{status:409});
- return NextResponse.redirect(new URL("/member/semantic/"+candidateId,req.url),303);
+ return NextResponse.redirect(new URL("/member/editorial-detail/"+candidateId+"?composed=1#tasks",req.url),303);
 }

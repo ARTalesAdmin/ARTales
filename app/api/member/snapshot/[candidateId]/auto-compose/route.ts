@@ -35,7 +35,7 @@ export async function POST(req:Request,{params}:{params:Promise<{candidateId:str
  if(candidateResult.error||lockResult.error||receiptResult.error||existingResult.error||
   !candidateResult.data||!lockResult.data||!receiptResult.data)
   return NextResponse.json({error:"linked_evidence_unavailable"},{status:409});
- if(existingResult.data)return NextResponse.redirect(new URL("/member/semantic/"+candidateId,req.url),303);
+ if(existingResult.data)return NextResponse.redirect(new URL("/member/editorial-detail/"+candidateId+"?composed=1#tasks",req.url),303);
  const candidate=candidateResult.data,lock=lockResult.data,receipt=receiptResult.data;
  const [src,decision,file]=await Promise.all([
   db.from("candidate_legal_sources").select("id,source_kind,edition_title,source_url,download_url,author_died,translation_status,translator,translation_rights,original_rights,illustration_use,source_terms,language_code,identity_match,language_match,notes").eq("id",lock.source_id).eq("candidate_id",candidateId).maybeSingle(),
@@ -98,6 +98,13 @@ export async function POST(req:Request,{params}:{params:Promise<{candidateId:str
    assets:extract.assets,epub_sha256:extract.epub_sha256,
    automaticEditionEvidence:proof},image_selection:"none",status:"draft",authored_by:actor.id
  });
- if(composeError)return NextResponse.json({error:"semantic_revision_insert_failed"},{status:409});
- return NextResponse.redirect(new URL("/member/semantic/"+candidateId,req.url),303);
+ if(composeError){
+  // Diagnostic code only, not document content or private data.
+  console.error("artales_auto_compose_insert_failed",{
+   code:composeError.code,constraint:composeError.details?.slice(0,160)??null,
+   message:composeError.message.slice(0,200)
+  });
+  return NextResponse.json({error:"semantic_revision_insert_failed"},{status:409});
+ }
+ return NextResponse.redirect(new URL("/member/editorial-detail/"+candidateId+"?composed=1#tasks",req.url),303);
 }
