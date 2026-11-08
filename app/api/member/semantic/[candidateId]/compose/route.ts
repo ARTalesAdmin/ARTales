@@ -1,5 +1,6 @@
 import {NextResponse} from "next/server";
-import {requireAdmin} from "@/lib/guards";
+import {requireEditorOrAdmin} from "@/lib/guards";
+import {canProgressCandidate} from "@/lib/editorial/candidateAuthority";
 import {createClient} from "@/lib/supabase/server";
 import {SNAPSHOT_GENERAL_V1_ENABLED} from "@/lib/ingest/snapshotGeneralFlag";
 import {extractEpub} from "@/lib/ingest/epubSemanticExtractor";
@@ -9,7 +10,9 @@ export const runtime="nodejs"; export const dynamic="force-dynamic"; export cons
 export async function POST(req:Request,{params}:{params:Promise<{candidateId:string}>}){
  if(!SNAPSHOT_GENERAL_V1_ENABLED||!SEMANTIC_PIPELINE_ENABLED)return NextResponse.json({error:"pipeline_disabled"},{status:503});
  if(!["https://artales.net","https://www.artales.net"].includes(req.headers.get("origin")??""))return NextResponse.json({error:"invalid_origin"},{status:403});
- const {candidateId}=await params;const actor=await requireAdmin();const db=await createClient();
+ const {candidateId}=await params;const actor=await requireEditorOrAdmin();
+ if(!await canProgressCandidate(candidateId,actor))return NextResponse.json({error:"candidate_progress_forbidden"},{status:403});
+ const db=await createClient();
  const [{data:snapshot,error:se},{data:review,error:re},{data:existing,error:ee}]=await Promise.all([
  db.from("candidate_snapshots").select("sha256,storage_path,storage_bucket,readback_status").eq("candidate_id",candidateId).maybeSingle(),
  db.from("candidate_snapshot_reviews").select("text_correspondence,image_disposition").eq("candidate_id",candidateId).order("reviewed_at",{ascending:false}).order("id",{ascending:false}).limit(1).maybeSingle(),
