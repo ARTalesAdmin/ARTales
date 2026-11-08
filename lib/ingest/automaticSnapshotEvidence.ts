@@ -120,7 +120,7 @@ export function verifyAutomaticEdition(i:AutomaticEditionInput):AutomaticEdition
      !Number.isInteger(p.died)||p.source!==rdfUrl||
      deathTerm(p.died??null,i.year)!=="public_domain")
    refuse("text_creator_identity_role_or_death_unverified");
-  return {name:p.name,died:p.died!,role,source:rdfUrl};
+  return {name:p.name!,died:p.died!,role:role!,source:rdfUrl};
  });
  // Never let one cleared contributor mask another protected/unknown contributor.
  if(new Set(textCreators.map(creatorKey)).size!==textCreators.length)
