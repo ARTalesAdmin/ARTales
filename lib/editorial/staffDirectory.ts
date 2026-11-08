@@ -25,3 +25,12 @@ export async function getEditorialPeople(ids?:string[]):Promise<EditorialPerson[
  }
  return entries;
 }
+
+/** Internal capability lookup for assignment UI. RPC enforces rights separately. */
+export async function getEditorialCompetencies():Promise<{profile_id:string;kind:string}[]>{
+ await requireEditorOrAdmin();
+ const {data,error}=await createAdminClient().from("artales_editorial_capabilities")
+  .select("profile_id,kind").limit(500);
+ if(error)throw new Error("Nelze nacist redakcni kompetence.");
+ return data??[];
+}
