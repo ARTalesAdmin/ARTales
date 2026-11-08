@@ -1,6 +1,7 @@
 import Link from "next/link";
 import {SNAPSHOT_GENERAL_V1_ENABLED} from "@/lib/ingest/snapshotGeneralFlag";
 import {requireEditorOrAdmin} from "@/lib/guards";
+import {canProgressCandidate} from "@/lib/editorial/candidateAuthority";
 import {createClient} from "@/lib/supabase/server";
 import {getCandidateSnapshotState} from "@/lib/ingest/server/getCandidateSnapshotState";
 import {SnapshotActionPanel} from "@/components/snapshot/SnapshotActionPanel";
@@ -16,6 +17,7 @@ export default async function SnapshotCandidate({params,searchParams}:{params:Pr
  const {data:candidate}=await db.from("work_candidates").select("proposed_title,proposed_author_name")
   .eq("id",candidateId).maybeSingle();
  if(!candidate)notFound();
+ const canProgress=await canProgressCandidate(candidateId,profile);
  const state=await getCandidateSnapshotState(candidateId);
  const {data:receipt}=await db.from("candidate_snapshots").select("sha256,embedded_images,catalog_url")
   .eq("candidate_id",candidateId).maybeSingle();
@@ -27,7 +29,7 @@ export default async function SnapshotCandidate({params,searchParams}:{params:Pr
   {query.result==="archived"?<p role="status" className="ca-success">Snapshot byl bezpečně uložen a jeho SHA-256 ověřeno. Následuje kontrola obsahu edice.</p>:null}
   {query.result==="already_archived"?<p role="status" className="ca-success">Tento titul už má uložený Snapshot; žádný nový soubor nevznikl.</p>:null}
   <section className="ca-card"><h2>Archiv původního vydání</h2>
-   <SnapshotActionPanel candidateId={candidateId} state={state} canArchive={profile.role==="admin"}/>
+   <SnapshotActionPanel candidateId={candidateId} state={state} canArchive={canProgress}/>
   </section>
   {receipt?<section className="ca-card"><h2>Technické důkazy archivního EPUBu</h2>
    <p>Ověření skutečných bajtů originálu, SHA-256, pořadí dokumentů a seznamu obrazových součástí. Výsledek sám o sobě nepotvrzuje právní stav ani obsahovou shodu edice.</p>
@@ -36,7 +38,7 @@ export default async function SnapshotCandidate({params,searchParams}:{params:Pr
   {receipt?<section className="ca-card"><h2>Kontrola literární shody vydání</h2>
     <p>Originál SHA-256: <code>{receipt.sha256}</code>. Soukromě archivované ilustrace: {receipt.embedded_images}.</p>
     <p><a href={receipt.catalog_url} target="_blank" rel="noopener noreferrer">Záznam vydání v katalogu Gutenberg</a></p>
-    {profile.role==="admin"?<form className="ca-form" action={`/api/member/snapshot/${candidateId}/review`} method="post">
+    {canProgress?<form className="ca-form" action={`/api/member/snapshot/${candidateId}/review`} method="post">
       <input type="hidden" name="candidate_id" value={candidateId}/>
       <input type="hidden" name="snapshot_sha256" value={receipt.sha256}/>
       <label>Kontrola textu<select name="text_correspondence" defaultValue="needs_review">
@@ -53,7 +55,7 @@ export default async function SnapshotCandidate({params,searchParams}:{params:Pr
     {state.status==="verified_for_composition"?<p className="ca-success">Poslední kontrola potvrdila shodu textu pro kompozici bez publikace původních ilustrací.</p>:null}
     {state.status!=="verified_for_composition"?<p>Kompozice ještě není povolená. Je třeba potvrdit shodu textu a vyloučení neprověřených ilustrací.</p>:null}
   </section>:null}
-  {receipt&&profile.role==="admin"?<section className="ca-card">
+  {receipt&&canProgress?<section className="ca-card">
    <h2>Automaticky ověřit vydání a sestavit sémantické bloky</h2>
    <p>Systém porovná archiv s nezávisle načteným Gutenberg souborem,
    zkontroluje právní lock, rok úmrtí, překlad, textová omezení a všechny
