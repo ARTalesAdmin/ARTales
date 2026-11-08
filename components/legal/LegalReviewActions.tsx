@@ -1,6 +1,7 @@
 "use client";
 import {useState} from "react";
 import type {LegalReviewRun} from "@/lib/legal/reviewHistory";
+import {LEGAL_IMAGE_APPROVAL_ENABLED} from "@/lib/legal/featureFlag";
 type Decision="approved"|"needs_evidence"|"deferred"|"rejected";
 export function LegalReviewActions({candidateId,checks,locked}:{candidateId:string;checks:LegalReviewRun[];locked:boolean}){
  const [chosen,setChosen]=useState(String(checks[0]?.decisionNo??""));
@@ -10,12 +11,17 @@ export function LegalReviewActions({candidateId,checks,locked}:{candidateId:stri
  const [busy,setBusy]=useState(false);
  const [submitError,setSubmitError]=useState("");
  const selected=checks.find(c=>String(c.decisionNo)===chosen);
- const options:{value:Decision;label:string}[]=[{value:"rejected",label:"NE"},{value:"approved",label:"ANO bez ilustrací"},{value:"approved",label:"ANO s ilustracemi"}];
- const imageConflict=!!selected&&intent==="approved"&&includeImages&&selected.outcome!=="yes_with_illustrations";
+ const options:{value:Decision;label:string;disabled?:boolean}[]=[
+  {value:"rejected",label:"NE"},
+  {value:"approved",label:"ANO bez ilustrací"},
+  {value:"approved",label:"ANO s ilustracemi",disabled:!LEGAL_IMAGE_APPROVAL_ENABLED}
+ ];
+ const imageConflict=!!selected&&intent==="approved"&&includeImages&&
+  (!LEGAL_IMAGE_APPROVAL_ENABLED||selected.outcome!=="yes_with_illustrations");
  const blockers=selected?.approvalBlockers??[];
  const blockingMessage= !selected?"Nejprve vyber automatickou kontrolu.":
   blockers.length&&intent==="approved"?"K právnímu schválení chybí: "+blockers.join(", ")+".":
-  imageConflict?"Automatická kontrola dovoluje pouze text bez ilustrací. Rozhodnutí s ilustracemi není možné potvrdit, dokud není pro tuto konkrétní edici doložena a zapsána jejich použitelnost. Volbou ANO bez ilustrací schválíš pouze text.":
+  imageConflict?"Veřejné vydávání převzatých ilustrací zatím není v ARTales podporováno. Použij ANO bez ilustrací. Archiv originálního EPUBu včetně obrázků zůstává soukromý.":
   selected.outcome==="no"&&intent==="approved"?"Automatická kontrola neschválila použití textu. Je nutné doplnit a přezkoumat právní podklady.":"";
  const canConfirm=!!selected&&!!intent&&!busy&&!blockingMessage;
  async function submit(){
@@ -49,8 +55,9 @@ export function LegalReviewActions({candidateId,checks,locked}:{candidateId:stri
   <label>Posouzení <select value={chosen} onChange={e=>{setChosen(e.target.value);setIntent(null);setReason("");setSubmitError("")}}>
    {checks.map(c=><option key={c.decisionNo} value={c.decisionNo}>Kontrola #{c.decisionNo} · {new Date(c.recordedAt).toLocaleString("cs-CZ")} · {c.edition}</option>)}
   </select></label>
-  {selected?<p className="ca-hint">{selected.summary} · Automatický výsledek: {selected.outcome==="no"?"NE":selected.outcome==="yes_with_illustrations"?"ANO s ilustracemi":"ANO bez ilustrací"}</p>:null}
-  <div className="ca-actions">{options.map((o,i)=><button key={i} type="button" className={intent===o.value&&(o.value!=="approved"||includeImages===(i===2))?"ca-btn ca-primary":"ca-btn ca-secondary"} onClick={()=>{setIntent(o.value);setIncludeImages(i===2);setSubmitError("")}}>{o.label}</button>)}</div>
+  {selected?<p className="ca-hint">{selected.summary} · Automatické posouzení: {selected.outcome==="no"?"Text není způsobilý":selected.outcome==="yes_with_illustrations"?"Text způsobilý, ilustrace vyžadují samostatnou publikační cestu":"Text způsobilý bez veřejného použití ilustrací"}</p>:null}
+  <p className="ca-hint">Při schválení bez ilustrací se originální EPUB včetně obrázků archivuje soukromě. Obrázky se jen nepoužijí ve veřejném vydání.</p>
+  <div className="ca-actions">{options.map((o,i)=><button key={i} type="button" disabled={o.disabled} aria-disabled={o.disabled||undefined} title={o.disabled?"Zatím nedostupné: schválení obrázků pro veřejné vydání nemá dokončenou publikační cestu.":undefined} className={intent===o.value&&(o.value!=="approved"||includeImages===(i===2))?"ca-btn ca-primary":"ca-btn ca-secondary"} onClick={()=>{if(o.disabled)return;setIntent(o.value);setIncludeImages(i===2);setSubmitError("")}}>{o.label}{o.disabled?" · zatím nedostupné":""}</button>)}</div>
   {intent?<div className="ca-form">
     {blockingMessage?<p role="alert" className="ca-error">{blockingMessage}</p>:null}
     {submitError?<p role="alert" className="ca-error">{submitError}</p>:null}
