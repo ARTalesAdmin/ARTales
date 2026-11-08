@@ -107,8 +107,16 @@ BEGIN
   WHERE l.candidate_id=p_candidate_id AND d.verdict='approved'
   LIMIT 1;
  END IF;
- IF v_owner IS NOT NULL AND
-    artales_private.editorial_assignee_eligible(v_owner,p_kind)
+ -- Visual work defaults to an actual visual editor for an admin or
+ -- a contributor without the relevant capability; Ivana may own everything.
+ IF v_owner IS NOT NULL AND EXISTS (
+   SELECT 1 FROM public.profiles owner_profile WHERE owner_profile.id=v_owner
+     AND owner_profile.role::text='editor'
+ ) AND artales_private.editorial_assignee_eligible(v_owner,p_kind)
+ THEN RETURN v_owner; END IF;
+ IF v_owner IS NOT NULL AND p_kind NOT IN
+    ('cover_art','author_visual','collection_curation','visual_review')
+    AND artales_private.editorial_assignee_eligible(v_owner,p_kind)
  THEN RETURN v_owner; END IF;
  IF p_kind IN ('cover_art','author_visual','collection_curation','visual_review') THEN
   SELECT d.assigned_to INTO v_fallback
@@ -117,6 +125,10 @@ BEGIN
      artales_private.editorial_assignee_eligible(v_fallback,p_kind)
   THEN RETURN v_fallback; END IF;
  END IF;
+ -- Never leave a text task orphaned merely because the admin, rather
+ -- than an editor, took the source through legal review.
+ IF v_owner IS NOT NULL AND artales_private.editorial_assignee_eligible(v_owner,p_kind)
+ THEN RETURN v_owner; END IF;
  RETURN NULL;
 END $fn$;
 REVOKE ALL ON FUNCTION artales_private.initial_editorial_task_owner(uuid,text,uuid) FROM PUBLIC;
