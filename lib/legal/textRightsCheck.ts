@@ -7,9 +7,30 @@ export type TextRightsCheck={
  notice:string|null;
  translationCredit:boolean;
  explanation:string;
+ /** Historical imprint retained in the source, not a new rights authorization. */
+ historicalImprints?:string[];
 };
+export type HistoricalImprintContext={
+ /** A publication year from the previously approved, immutable legal audit. */
+ approvedOriginalPublicationYear:number|null;
+ currentYear:number;
+};
+function clearedHistoricalImprint(notice:string,position:number,ctx?:HistoricalImprintContext):boolean{
+ if(!ctx||position>12000)return false;
+ const m=/^(?:copyright\s*(?:©\s*|\(c\)\s*)?|©\s*)([12][0-9]{3})[.,;:]?$/i.exec(notice.trim());
+ if(!m||!Number.isInteger(ctx.approvedOriginalPublicationYear)||
+    !Number.isInteger(ctx.currentYear))return false;
+ const year=Number(m[1]),publication=ctx.approvedOriginalPublicationYear!;
+ // This exception only covers a standalone *historical title-page imprint*
+ // consistent with the exact approved source edition. It never clears modern
+ // restrictions, an unknown date, translations, or a different edition.
+ return publication>=1400&&publication<=ctx.currentYear-71&&
+   Math.abs(year-publication)<=3&&year<=ctx.currentYear-71;
+}
 /** The default Gutenberg legal/trademark wrapper is not a restriction on an author's text. */
-export function inspectGutenbergText(text:string,complete=true):Omit<TextRightsCheck,"sourceUrl">{
+export function inspectGutenbergText(
+ text:string,complete=true,context?:HistoricalImprintContext
+):Omit<TextRightsCheck,"sourceUrl">{
  const start=/\*{3}\s*START OF (?:THE|THIS) PROJECT GUTENBERG EBOOK[\s\S]*?\*{3}/i.exec(text);
  const bodyStart=start?.index===undefined?0:start.index+start[0].length;
  const bodyEnd=/\*{3}\s*END OF (?:THE|THIS) PROJECT GUTENBERG EBOOK/i.exec(text.slice(bodyStart));
@@ -17,13 +38,30 @@ export function inspectGutenbergText(text:string,complete=true):Omit<TextRightsC
  work=work.replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi," ").replace(/<style\b[^>]*>[\s\S]*?<\/style>/gi," ");
  work=work.replace(/<\/?(?:p|div|h\d|br|li|section|tr)\b[^>]*>/gi,"\n").replace(/<[^>]*>/g," ");
  work=work.replace(/&(?:nbsp|amp|lt|gt|quot);/gi," ");
- // Only a warning for an explicit restriction IN THE WORK, never a silent legal approval.
- const match=/(?:copyright\s*(?:©|\(c\)|\d{4})|©\s*\d{4}|all rights reserved|reprinted by permission|used by permission|reproduction prohibited|permission of the publisher)[^\n]{0,140}/i.exec(work);
+ // Detect all potential rights notices, not just the first. A historical
+ // year on the original title page is not by itself a CURRENT restriction once
+ // the exact edition and its creator terms have been separately approved.
+ // The source text stays immutable, and each tolerated imprint is audited.
+ const pattern=/(?:copyright\s*(?:©|\(c\)|\d{4})|©\s*\d{4}|all rights reserved|reprinted by permission|used by permission|reproduction prohibited|permission of the publisher)[^\n]{0,140}/gi;
+ const historicalImprints:string[]=[];
+ let restriction:string|null=null;
+ for(const candidate of work.matchAll(pattern)){
+  const phrase=candidate[0].trim();
+  if(clearedHistoricalImprint(phrase,candidate.index??work.length,context)){
+   historicalImprints.push(phrase.slice(0,170));
+  }else{
+   restriction=phrase.slice(0,170);
+   break;
+  }
+ }
  const translationCredit=/\b(?:translated by|translation by|translated from the|translation copyright)\b/i.test(work.slice(0,180000));
- if(match)return {status:"possible_restriction",scope:complete?"complete":"partial",notice:match[0].trim().slice(0,170),translationCredit,explanation:"V textu je možné zvláštní omezení — ověřit konkrétní pasáž."};
+ if(restriction)return {status:"possible_restriction",scope:complete?"complete":"partial",
+  notice:restriction,translationCredit,historicalImprints,
+  explanation:"V textu je možné zvláštní omezení — ověřit konkrétní pasáž."};
  return {
   status:complete?"no_explicit_notice":"not_checked",scope:complete?"complete":"partial",notice:null,
-  translationCredit,explanation:complete?"V přečteném textu nebylo nalezeno explicitní zvláštní omezení mimo standardní Gutenberg licenci.":"Text nebyl přečten celý; absence zvláštního omezení není potvrzena."
+  translationCredit,historicalImprints,
+  explanation:complete?"V přečteném textu nebylo nalezeno explicitní zvláštní omezení mimo standardní Gutenberg licenci.":"Text nebyl přečten celý; absence zvláštního omezení není potvrzena."
  };
 }
 export async function checkGutenbergText(book:GutenbergBook):Promise<TextRightsCheck>{
