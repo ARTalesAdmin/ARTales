@@ -1,4 +1,5 @@
 import {deathTerm} from "@/lib/legal/publicDomainCheck";
+import {contributorNameMatch} from "@/lib/legal/bibliographicContributorIdentity";
 import type {VerifiedRights} from "@/lib/legal/gutenbergRights";
 import type {TextRightsCheck} from "@/lib/legal/textRightsCheck";
 
@@ -63,6 +64,7 @@ export type AutomaticEditionEvidence={
  spineDocuments:number;textCharacters:number;privateImages:number;
  author:string;authorDied:number|null;publicDomainFrom:number;territory:"CZ/EU";
  textCreators:TextCreatorEvidence[];
+ contributorNameMatch:"exact"|"abbreviated_given_names"|"collective";
  rightsEvidenceSource:"live_gutenberg_rdf"|"approved_locked_gutenberg_rdf_evidence";
  rightsEvidenceUrl:string;textScan:"no_explicit_notice";images:"exclude_all";
  evaluatedAt:string;publicationAuthorized:false;historicalImprints:string[];
@@ -125,7 +127,13 @@ export function verifyAutomaticEdition(i:AutomaticEditionInput):AutomaticEdition
  // Never let one cleared contributor mask another protected/unknown contributor.
  if(new Set(textCreators.map(creatorKey)).size!==textCreators.length)
   refuse("duplicate_text_creator_evidence");
- const candidateCreator=textCreators.find(p=>samePerson(p.name,candidate.proposed_author_name));
+ const candidateMatches=textCreators.map(person=>({
+  person,match:contributorNameMatch(candidate.proposed_author_name,person.name)
+ })).filter(x=>x.match!==null);
+ // Multiple matches must never silently pick a different rights-holder.
+ if(candidateMatches.length>1)refuse("candidate_contributor_identity_ambiguous");
+ const candidateCreator=candidateMatches[0]?.person;
+ const candidateCreatorMatch=candidateMatches[0]?.match??null;
  const collectiveName=/^(various|various authors|multiple authors|anonymous|anonymni|ruzni autori)$/i
   .test(candidate.proposed_author_name.trim());
  if(!candidateCreator&&!(collectiveName&&textCreators.length>1))
@@ -166,7 +174,7 @@ export function verifyAutomaticEdition(i:AutomaticEditionInput):AutomaticEdition
   privateImages:i.imageCount,author:candidate.proposed_author_name,
   authorDied:candidateCreator?.died??null,
   publicDomainFrom:Math.max(...textCreators.map(p=>p.died))+71,
-  textCreators,territory:"CZ/EU",
+  textCreators,contributorNameMatch:candidateCreatorMatch??"collective",territory:"CZ/EU",
   rightsEvidenceSource,rightsEvidenceUrl:"https://www.gutenberg.org/ebooks/"+id+".rdf",
   textScan:"no_explicit_notice",images:"exclude_all",
   historicalImprints:i.textCheck.historicalImprints??[],
@@ -181,6 +189,7 @@ export function formatAutomaticEditionAudit(e:AutomaticEditionEvidence):string{
   p.role+" "+p.name+" († "+p.died+")").join("; ")+
   "; ochranné lhůty všech doložených osob uplynuly nejpozději 1. 1. "+e.publicDomainFrom+".",
  "Bibliografický důkaz "+e.rightsEvidenceUrl+" ("+e.rightsEvidenceSource+").",
+ "Podoba katalogového jména: "+e.contributorNameMatch+".",
  "Nezávislé bajtové porovnání: soukromý EPUB = čerstvě získaný mirror;",
  "SHA-256 "+e.editionSha256+"; "+e.byteCount+" bajtů.",
  e.spineDocuments+" dokumentů, "+e.textCharacters+" znaků, text SHA-256 "+e.sourceTextSha256+".",

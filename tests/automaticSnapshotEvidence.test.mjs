@@ -116,3 +116,41 @@ test("original single author with legacy missing role remains supported",()=>{
  const proof=verifyAutomaticEdition(example());
  assert.equal(proof.textCreators[0].role,"author");
 });
+
+test("Carmilla: a shortened public byline matches uniquely approved full Gutenberg name",()=>{
+ const d=example(),gutenbergId=10007;
+ const catalog="https://www.gutenberg.org/ebooks/"+gutenbergId;
+ d.candidate={proposed_title:"Carmilla",proposed_author_name:"Sheridan Le Fanu"};
+ d.lock={...d.lock,source_url:catalog,download_url:catalog+".epub.noimages"};
+ d.source={...d.source,edition_title:"Carmilla",source_url:catalog,
+  download_url:catalog+".epub.noimages",author_died:1873,
+  notes:JSON.stringify({schema:"artales.public-domain-check.v1",
+   gutenbergId,outcome:"yes_without_illustrations",
+   text:{status:"public_domain",people:[
+    {name:"Le Fanu, Joseph Sheridan",died:1873,role:"autor",source:catalog+".rdf"}
+   ]},translation:{status:"not_applicable"},illustrations:{status:"unknown"},
+   originalPublicationYear:1871})};
+ d.receipt={...d.receipt,gutenberg_id:gutenbergId,catalog_url:catalog,
+  locked_file_url:catalog+".epub.noimages"};
+ d.liveRdf={...d.liveRdf,people:[{name:"Le Fanu, Joseph Sheridan",died:1873}],
+  contributors:[{role:"dcterms:creator",name:"Le Fanu, Joseph Sheridan",died:1873}],
+  url:catalog+".rdf"};
+ const verified=verifyAutomaticEdition(d);
+ assert.equal(verified.contributorNameMatch,"abbreviated_given_names");
+ assert.equal(verified.authorDied,1873);
+ assert.equal(verified.publicDomainFrom,1944);
+ assert.equal(verified.images,"exclude_all");
+ assert.match(formatAutomaticEditionAudit(verified),/abbreviated_given_names/);
+ const wrong=structuredClone(d);
+ wrong.candidate.proposed_author_name="Sheridan Smith";
+ assert.throws(()=>verifyAutomaticEdition(wrong),/candidate_contributor_identity_unverified/);
+ const ambiguous=structuredClone(d);
+ const evidence=JSON.parse(ambiguous.source.notes);
+ evidence.text.people.push({name:"Le Fanu, Patrick Sheridan",died:1881,
+  role:"autor",source:catalog+".rdf"});
+ ambiguous.source.notes=JSON.stringify(evidence);
+ ambiguous.liveRdf.contributors.push({role:"dcterms:creator",
+  name:"Le Fanu, Patrick Sheridan",died:1881});
+ assert.throws(()=>verifyAutomaticEdition(ambiguous),
+  /candidate_contributor_identity_ambiguous/);
+});
