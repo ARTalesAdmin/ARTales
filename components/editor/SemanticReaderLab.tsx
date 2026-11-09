@@ -16,6 +16,7 @@ import SemanticReviewBar from "./SemanticReviewBar";
 import SemanticAiProposalReview from "./SemanticAiProposalReview";
 import GeneralQaDialog from "./GeneralQaDialog";
 import "./semantic-reader.css";
+import "./semantic-reader-theme.css";
 
 type Props={revision:SemanticRevision;original:string;profileReaderDefaults?:FixtureProfileReaderDefaults|null;
  candidateId:string;revisionSha:string;editionTitle:string;editionAuthor:string;
