@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import {readFileSync} from "node:fs";
-const file=(p:string)=>readFileSync(p,"utf8");
+const file=(p)=>readFileSync(p,"utf8");
 
 test("illustration approval cannot fail silently",()=>{
  const ui=file("components/legal/LegalReviewActions.tsx");
