@@ -56,6 +56,8 @@ on:
       - 'tests/editorialOwnershipV2.test.ts'
       - 'tests/semanticQaWorkflow.test.ts'
       - 'components/editor/semantic-reader.css'
+      - 'components/editor/semantic-reader-theme.css'
+      - 'tests/semanticReaderThemeContrast.test.mjs'
       - 'components/reader/SemanticPublicReader.tsx'
       - 'supabase/migrations/20261102172000_artales_semantic_editorial_pipeline.sql'
       - '.github/workflows/artales-semantic-integration.yml'
@@ -77,6 +79,8 @@ jobs:
         run: npx eslint lib/semantic lib/ingest/epubSemanticExtractor.ts components/editor/SemanticReaderLab.tsx components/editor/SemanticReaderNotesQa.tsx app/api/internal/editorial/ai-qa-jobs/route.ts app/member/admin/ai-usage/page.tsx components/editor/SemanticQaPanel.tsx 'app/member/semantic/[candidateId]/qa-actions.ts' 'app/member/semantic/[candidateId]/page.tsx' app/member/editorial-pipeline/actions.ts app/member/editorial-pipeline/page.tsx 'app/member/editorial-detail/[candidateId]/actions.ts' 'app/member/editorial-detail/[candidateId]/page.tsx' components/editor/CandidateCoverInput.tsx components/editor/CandidateBilingualAnnotationFields.tsx components/editor/BilingualProfileText.tsx components/member/MemberZoneNav.tsx components/member/MemberHelpButton.tsx app/member/editorial-help/actions.ts app/member/layout.tsx components/reader/ProtectedProseText.tsx 'app/reader/[slug]/page.tsx' 'app/api/member/semantic/[candidateId]/compose/route.ts'
       - name: Existing semantic regression
         run: npx tsx --test tests/semanticReaderV2.test.ts
+      - name: Original Reader palette and QA dark/light contrast regression
+        run: node --test tests/semanticReaderThemeContrast.test.mjs
       - name: PostgreSQL jsonb roundtrip and legacy revision integrity
         run: npx tsx --test tests/semanticJsonbRoundtrip.test.ts
       - name: Editable public-domain edition and pagination regression
