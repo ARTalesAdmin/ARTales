@@ -1,0 +1,239 @@
+/* Semantic QA palette bridge to the original public Reader.
+ * The source and composed pages must have an explicit foreground/background
+ * pair, independent of the surrounding member shell and its dark overrides.
+ * Keep the old public Reader unchanged. All selectors are scoped to QA.
+ */
+.semantic-reader {
+  --qa-surround: #f8f0e4;
+  --qa-surface: #faf7ef;
+  --qa-paper: #faf7ef;
+  --qa-ink: #302f2c;
+  --qa-muted: #6b6259;
+  --qa-border: #d9cfbf;
+  --qa-control: #faf7ef;
+  --qa-control-ink: #30302e;
+  --qa-accent: #b8893f;
+  --qa-selected: #ffe2a8;
+  --qa-changed: #e2f5f0;
+  --qa-finding: #fff1d5;
+  --qa-pending: #dff2fb;
+  --qa-accepted: #e6f7eb;
+  --qa-returned: #fbe9df;
+  color-scheme: light;
+  background: var(--qa-surround);
+  color: var(--qa-ink);
+}
+html[data-artales-theme="dark"] .semantic-reader {
+  /* Reader dark palette, rather than the global member panel palette. */
+  --qa-surround: #171817;
+  --qa-surface: #252420;
+  --qa-paper: #1d1c1a;
+  --qa-ink: #e0d8ca;
+  --qa-muted: #b8ad9d;
+  --qa-border: #51463a;
+  --qa-control: #24231f;
+  --qa-control-ink: #e5ddcf;
+  --qa-accent: #b58a4b;
+  --qa-selected: #59431e;
+  --qa-changed: #173e38;
+  --qa-finding: #54401d;
+  --qa-pending: #193e50;
+  --qa-accepted: #1d4432;
+  --qa-returned: #563020;
+  color-scheme: dark;
+}
+
+/* Both reading surfaces are first-class local theme islands.
+ * The member-shell CSS uses !important on generic section/article in dark
+ * mode, so foreground and background must override those rules together.
+ */
+.semantic-reader .semantic-reader__triptych > section,
+.semantic-reader .semantic-reader__source-sheet,
+.semantic-reader .semantic-reader__page,
+.semantic-reader .semantic-reader__front-page {
+  background: var(--qa-paper) !important;
+  color: var(--qa-ink) !important;
+  border-color: var(--qa-border) !important;
+}
+.semantic-reader .semantic-reader__triptych > section {
+  background: var(--qa-surface) !important;
+}
+.semantic-reader .semantic-reader__source-sheet,
+.semantic-reader .semantic-reader__source-region,
+.semantic-reader .semantic-reader__original,
+.semantic-reader .semantic-reader__page,
+.semantic-reader .semantic-reader__page p,
+.semantic-reader .semantic-reader__page blockquote,
+.semantic-reader .semantic-reader__page aside,
+.semantic-reader .semantic-reader__atom {
+  color: var(--qa-ink);
+}
+.semantic-reader .semantic-reader__triptych h2,
+.semantic-reader .semantic-reader__page h3,
+.semantic-reader .semantic-reader__page h4,
+.semantic-reader .semantic-reader__front-inner,
+.semantic-reader .semantic-reader__front-page h2,
+.semantic-reader .semantic-reader__front-author {
+  color: var(--qa-ink);
+}
+.semantic-reader .semantic-reader__page footer,
+.semantic-reader .semantic-reader__draft-note,
+.semantic-reader .semantic-reader__edition-note,
+.semantic-reader .semantic-reader__front-brand,
+.semantic-reader .semantic-reader__front-love {
+  color: var(--qa-muted);
+}
+.semantic-reader .semantic-reader__front-page {
+  background: linear-gradient(160deg,var(--qa-paper),var(--qa-surface)) !important;
+}
+.semantic-reader .semantic-reader__controls,
+.semantic-reader .semantic-reader__note-lab,
+.semantic-reader .semantic-reader__notes-panel,
+.semantic-reader .semantic-reader__search,
+.semantic-reader .semantic-reader__dialog,
+.semantic-reader .semantic-qa-overlay,
+.semantic-reader .semantic-reader__review-bar,
+.semantic-reader .semantic-reader__proposal-review {
+  background: var(--qa-surface);
+  color: var(--qa-ink);
+  border-color: var(--qa-border);
+}
+.semantic-reader .semantic-reader__controls :is(label,span),
+.semantic-reader .semantic-reader__note-lab,
+.semantic-reader .semantic-reader__notes-panel,
+.semantic-reader .semantic-reader__search,
+.semantic-reader .semantic-reader__dialog,
+.semantic-reader .semantic-qa-panel,
+.semantic-reader .semantic-reader__review-bar,
+.semantic-reader .semantic-reader__proposal-review {
+  color: var(--qa-ink);
+}
+.semantic-reader .semantic-reader__controls :is(input,select),
+.semantic-reader .semantic-reader__note-lab :is(input,textarea,select),
+.semantic-reader .semantic-reader__notes-panel :is(input,textarea,select),
+.semantic-reader .semantic-reader__search input,
+.semantic-reader .semantic-reader__dialog :is(input,textarea,select),
+.semantic-reader .semantic-qa-panel :is(input,textarea,select),
+.semantic-reader .semantic-reader__review-bar textarea {
+  background: var(--qa-control);
+  color: var(--qa-control-ink);
+  border-color: var(--qa-border);
+}
+.semantic-reader .semantic-reader__controls select option,
+.semantic-reader .semantic-reader__dialog select option,
+.semantic-reader .semantic-qa-panel select option {
+  background: var(--qa-control);
+  color: var(--qa-control-ink);
+}
+.semantic-reader .semantic-reader__fullscreen-button,
+.semantic-reader .semantic-reader__notes-trigger,
+.semantic-reader .semantic-reader__notes-panel button,
+.semantic-reader .semantic-reader__search button,
+.semantic-reader .semantic-reader__dialog button,
+.semantic-reader .semantic-reader__proposal-review button,
+.semantic-reader .semantic-reader__review-bar button {
+  background: var(--qa-control);
+  border-color: var(--qa-border);
+  color: var(--qa-control-ink);
+}
+.semantic-reader :is(button,input,select,textarea):focus-visible {
+  outline: 3px solid var(--qa-accent);
+  outline-offset: 2px;
+}
+.semantic-reader .semantic-reader__notes-panel :is(small,p,summary),
+.semantic-reader .semantic-reader__review-head small,
+.semantic-reader .semantic-reader__proposal-finding,
+.semantic-reader .semantic-reader__proposal-help,
+.semantic-reader .semantic-reader__proposal-final small,
+.semantic-reader .semantic-qa-panel__hint {
+  color: var(--qa-muted);
+}
+
+/* Review state colors are matched to each surface in either theme.
+ * Never use a dark-theme light foreground on a pale selected block. */
+.semantic-reader .semantic-reader__unit[data-review-signal="true"],
+.semantic-reader .semantic-reader__source-region[data-review-signal="true"],
+.semantic-reader .semantic-reader__unit[data-review-flag="open"] {
+  background: var(--qa-finding) !important;
+  color: var(--qa-ink) !important;
+}
+.semantic-reader .semantic-reader__unit[data-review-fixed="true"],
+.semantic-reader .semantic-reader__source-region[data-review-fixed="true"] {
+  background: var(--qa-changed) !important;
+  color: var(--qa-ink) !important;
+}
+.semantic-reader .semantic-reader__unit[data-review-state="pending"],
+.semantic-reader .semantic-reader__source-region[data-review-state="pending"] {
+  background: var(--qa-pending) !important;
+  color: var(--qa-ink) !important;
+}
+.semantic-reader .semantic-reader__unit[data-review-state="accepted"],
+.semantic-reader .semantic-reader__source-region[data-review-state="accepted"] {
+  background: var(--qa-accepted) !important;
+  color: var(--qa-ink) !important;
+}
+.semantic-reader .semantic-reader__unit[data-review-state="returned"],
+.semantic-reader .semantic-reader__source-region[data-review-state="returned"] {
+  background: var(--qa-returned) !important;
+  color: var(--qa-ink) !important;
+}
+.semantic-reader .semantic-reader__unit[data-selected="true"],
+.semantic-reader .semantic-reader__source-region[data-selected="true"],
+.semantic-reader .semantic-reader__unit[data-selected="true"][data-review-fixed="true"],
+.semantic-reader .semantic-reader__source-region[data-selected="true"][data-review-fixed="true"] {
+  background: var(--qa-selected) !important;
+  color: var(--qa-ink) !important;
+}
+.semantic-reader .semantic-reader__unit[data-search-current="true"] {
+  background: var(--qa-pending) !important;
+  color: var(--qa-ink) !important;
+}
+.semantic-reader .semantic-reader__unit[data-review-state] :is(p,blockquote,aside,span),
+.semantic-reader .semantic-reader__unit[data-selected="true"] :is(p,blockquote,aside,span),
+.semantic-reader .semantic-reader__unit[data-review-signal="true"] :is(p,blockquote,aside,span),
+.semantic-reader .semantic-reader__source-region[data-review-state],
+.semantic-reader .semantic-reader__source-region[data-selected="true"] {
+  color: var(--qa-ink);
+}
+
+/* QA cards can be light-tinted inside a dark overall theme only if their
+ * text remains paired; here we use the same theme family throughout. */
+.semantic-reader .semantic-reader__proposal-current,
+.semantic-reader .semantic-reader__review-excerpt,
+.semantic-reader .semantic-reader__review-reason,
+.semantic-reader .semantic-reader__proposal-finished,
+.semantic-reader .semantic-qa-panel__selection,
+.semantic-reader .semantic-qa-panel__flag,
+.semantic-reader .semantic-qa-panel__findings,
+.semantic-reader .semantic-qa-panel__advanced,
+.semantic-reader .semantic-qa-panel__review-list,
+.semantic-reader .semantic-reader__dialog-result,
+.semantic-reader .semantic-reader__dialog-budget,
+.semantic-reader .semantic-reader__review-return,
+.semantic-reader .semantic-qa-panel__batch,
+.semantic-reader .semantic-qa-panel__fast-rule,
+.semantic-reader .semantic-qa-panel__signals {
+  background: var(--qa-paper);
+  color: var(--qa-ink);
+  border-color: var(--qa-border);
+}
+.semantic-reader .semantic-reader__review-excerpt :is(p,small),
+.semantic-reader .semantic-reader__proposal-reason,
+.semantic-reader .semantic-reader__proposal-finding,
+.semantic-reader .semantic-reader__review-reason,
+.semantic-reader .semantic-reader__dialog-result label,
+.semantic-reader .semantic-qa-panel__flag p {
+  color: var(--qa-ink);
+}
+/* Maintain contrast when global member CSS targets all nested headings. */
+html[data-artales-theme="dark"] .artales-member-content
+  .semantic-reader :is(h2,h3,h4,strong) {
+  color: var(--qa-ink);
+}
+/* Preserve contrast even if the semantic editor is fullscreen outside
+ * of the member shell. */
+.semantic-reader:fullscreen,
+.semantic-reader.semantic-reader--fullscreen {
+  background: var(--qa-surround);
+  color: var(--qa-ink);
+}
