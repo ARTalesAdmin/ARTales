@@ -4,6 +4,8 @@ on:
     branches: [main]
     paths:
       - 'lib/ingest/automaticSnapshotEvidence.ts'
+      - 'lib/legal/textRightsCheck.ts'
+      - 'tests/legal-text-historical-imprints.test.ts'
       - 'lib/ingest/gutenbergMirrorWitness.ts'
       - 'lib/ingest/candidateUuid.ts'
       - 'app/api/member/snapshot/**'
@@ -24,7 +26,7 @@ jobs:
           node-version: '22'
           cache: npm
       - run: npm ci --no-audit --no-fund
-      - run: npx tsx --test tests/automaticSnapshotEvidence.test.mjs
+      - run: npx tsx --test tests/automaticSnapshotEvidence.test.mjs tests/legal-text-historical-imprints.test.ts
       - run: npx tsx --test tests/snapshotCandidateUuid.test.mjs
       - run: npx tsc --noEmit
       - run: npx eslint lib/ingest/candidateUuid.ts lib/ingest/automaticSnapshotEvidence.ts lib/ingest/gutenbergMirrorWitness.ts 'app/api/member/snapshot/[candidateId]/auto-compose/route.ts' 'app/member/snapshot/[candidateId]/page.tsx'
