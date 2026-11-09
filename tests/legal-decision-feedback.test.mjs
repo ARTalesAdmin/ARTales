@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import {readFileSync} from "node:fs";
-const file=(p:string)=>readFileSync(p,"utf8");
+const file=(p)=>readFileSync(p,"utf8");
 
 test("illustration approval cannot fail silently",()=>{
  const ui=file("components/legal/LegalReviewActions.tsx");
@@ -29,4 +29,16 @@ test("legal decision preserves server verification and explicit follow-up",()=>{
  assert.match(page,/Právní kontrola dokončena · pokračuj ke Snapshotu/);
  assert.match(page,/lockScreening\.bind/);
  assert.match(page,/latest\?\.verdict==="approved"/);
+});
+
+test("refresh retains effective latest automatic check even when chosen state was empty",()=>{
+ const ui=file("components/legal/LegalReviewActions.tsx");
+ const helper=file("lib/legal/reviewHistory.ts");
+ assert.match(helper,/export function selectLegalReviewRun/);
+ assert.match(helper,/chosen\?checks\.find\(c=>String\(c\.decisionNo\)===chosen\):checks\[0\]/);
+ assert.match(ui,/const selected=selectLegalReviewRun\(checks,chosen\)/);
+ assert.match(ui,/const effectiveChosen=String\(selected\?\.decisionNo\?\?""\)/);
+ assert.match(ui,/value=\{effectiveChosen\}/);
+ assert.match(ui,/form\.set\("decision_no",effectiveChosen\)/);
+ assert.match(ui,/automatickému právnímu checku #\$\{effectiveChosen\}/);
 });

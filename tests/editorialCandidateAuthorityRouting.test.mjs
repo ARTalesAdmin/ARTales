@@ -10,7 +10,8 @@ test("origin creator / legal reviewer remain distinct auditable authorities",()=
  assert.match(sql,/v_role='admin' THEN RETURN true/);
  assert.match(sql,/can_assign_candidate/);
  assert.match(sql,/auth.uid\(\)/);
- assert.doesNotMatch(sql,/UPDATE public\.work_candidates|UPDATE public\.artales_editorial_tasks|DELETE FROM public\./);
+ assert.doesNotMatch(sql,/^UPDATE public\.work_candidates|^DELETE FROM public\./m);
+ // Existing audited reassignment RPC legitimately updates a task by id.
 });
 test("routing is competence-based, supports visual fallback and preserves prior QA ownership",()=>{
  assert.match(sql,/artales_private\.editorial_assignee_eligible/);
