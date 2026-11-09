@@ -603,7 +603,7 @@ export default function SemanticReaderLab({
       onListExpanded={setNotesListExpanded} onDelete={deleteQaNote}/>}
     <div className={"semantic-reader__review-layout"+(reviewBarOpen?" semantic-reader__review-layout--active":"")}>
     <div className={"semantic-reader__triptych"+(focus?" semantic-reader__triptych--focus":"")}>
-      {!focus&&<section aria-label="Archivní Gutenberg"><h2>Gutenberg #389 · literární text</h2>
+      {!focus&&<section aria-label="Archivní Gutenberg"><h2>Archivní Gutenberg · původní text</h2>
         <div ref={sourceRef} className="semantic-reader__paired-scroll semantic-reader__source-sheet"
           onScroll={()=>synchronize("source")} data-qa-pane="source">
           {sourceRegions.map((part,i)=><div key={i}
