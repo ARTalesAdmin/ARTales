@@ -265,3 +265,18 @@ html[data-artales-theme="dark"] .artales-member-content
  .semantic-reader__page {
   color: var(--qa-ink) !important;
 }
+
+/* Specificity guard against html[dark] .artales-member-content section,
+ * whose !important dark card rule otherwise defeats a generic QA section. */
+html[data-artales-theme="dark"] .artales-member-content
+ .semantic-reader .semantic-reader__triptych > section {
+  background: var(--qa-surface) !important;
+  color: var(--qa-ink) !important;
+  border-color: var(--qa-border) !important;
+}
+/* The source pane is always paper, never the member card background. */
+html[data-artales-theme="dark"] .artales-member-content
+ .semantic-reader .semantic-reader__source-sheet {
+  background: var(--qa-paper) !important;
+  color: var(--qa-ink) !important;
+}
