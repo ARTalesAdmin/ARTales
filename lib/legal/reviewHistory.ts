@@ -3,6 +3,12 @@ export type LegalDecisionRow={decision_no:number;source_id:string|null;verdict:s
 export type LegalSourceRow={id:string;edition_title:string;source_url:string;download_url:string|null;identity_match:string;language_match:string;translation_status:string;translation_rights:string;original_rights:string;source_terms:string;evidence_url:string|null;notes:string;translator:string};
 export type LegalReviewRun={outcome:"no"|"yes_without_illustrations"|"yes_with_illustrations";decisionNo:number;sourceId:string;recordedAt:string;edition:string;summary:string;downloadUrl:string|null;sourceUrl:string;approvalBlockers:string[]};
 export type LegalHistoryEntry={decisionNo:number;recordedAt:string;label:string;automatic:boolean};
+/** The dropdown displays its first option even if client state is still empty
+ * after router.refresh() adds the first automatic check. Always derive the
+ * effective choice from current props before deciding whether to submit. */
+export function selectLegalReviewRun(checks:LegalReviewRun[],chosen:string):LegalReviewRun|undefined{
+ return checks.find(c=>String(c.decisionNo)===chosen)??checks[0];
+}
 export const isAutomaticScreen=(d:Pick<LegalDecisionRow,"rationale"|"verdict">)=>d.verdict==="needs_evidence"&&d.rationale.startsWith(AUTO_SCREEN_PREFIX);
 const statusLabel:Record<string,string>={
  likely_public_domain:"lhůta uplynula",protected:"ochrana trvá",needs_evidence:"údaje chybí",
