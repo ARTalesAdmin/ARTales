@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import {inspectGutenbergText} from "../lib/legal/textRightsCheck";
 const context={approvedOriginalPublicationYear:1871,currentYear:2026};
-const scan=(body:string,ctx=context)=>inspectGutenbergText(`*** START OF THE PROJECT GUTENBERG EBOOK TEST ***\n${body}\n*** END OF THE PROJECT GUTENBERG EBOOK TEST ***`,true,ctx);
+const scan=(body:string,ctx:{approvedOriginalPublicationYear:number|null;currentYear:number}=context)=>inspectGutenbergText(`*** START OF THE PROJECT GUTENBERG EBOOK TEST ***\n${body}\n*** END OF THE PROJECT GUTENBERG EBOOK TEST ***`,true,ctx);
 test("historical copyright on original title page is retained as evidence and does not block",()=>{
  const check=scan("Carmilla\nBy J. Sheridan Le Fanu\nCopyright 1872\n\nChapter I\nAn old literary narrative.");
  assert.equal(check.status,"no_explicit_notice");
