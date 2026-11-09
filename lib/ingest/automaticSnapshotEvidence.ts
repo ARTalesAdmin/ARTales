@@ -18,7 +18,7 @@ export type AutomaticEditionInput={
   locked_file_url:string;sha256:string;byte_count:number;embedded_images:number;readback_status:string};
  archivedSha256:string;archivedBytes:number;mirrorSha256:string;mirrorBytes:number;
  spineDocuments:number;textCharacters:number;sourceTextSha256:string;imageCount:number;
- textCheck:Pick<TextRightsCheck,"status"|"scope"|"translationCredit"|"notice">;
+ textCheck:Pick<TextRightsCheck,"status"|"scope"|"translationCredit"|"notice"|"historicalImprints">;
  liveRdf:VerifiedRights;verifiedAt:string;year:number;
 };
 export class AutomaticEditionHold extends Error{
@@ -65,7 +65,7 @@ export type AutomaticEditionEvidence={
  textCreators:TextCreatorEvidence[];
  rightsEvidenceSource:"live_gutenberg_rdf"|"approved_locked_gutenberg_rdf_evidence";
  rightsEvidenceUrl:string;textScan:"no_explicit_notice";images:"exclude_all";
- evaluatedAt:string;publicationAuthorized:false;
+ evaluatedAt:string;publicationAuthorized:false;historicalImprints:string[];
 };
 export function verifyAutomaticEdition(i:AutomaticEditionInput):AutomaticEditionEvidence{
  const {candidate,lock,source,decision,receipt}=i;
@@ -169,6 +169,7 @@ export function verifyAutomaticEdition(i:AutomaticEditionInput):AutomaticEdition
   textCreators,territory:"CZ/EU",
   rightsEvidenceSource,rightsEvidenceUrl:"https://www.gutenberg.org/ebooks/"+id+".rdf",
   textScan:"no_explicit_notice",images:"exclude_all",
+  historicalImprints:i.textCheck.historicalImprints??[],
   evaluatedAt:i.verifiedAt,publicationAuthorized:false
  };
 }
@@ -184,6 +185,10 @@ export function formatAutomaticEditionAudit(e:AutomaticEditionEvidence):string{
  "SHA-256 "+e.editionSha256+"; "+e.byteCount+" bajtů.",
  e.spineDocuments+" dokumentů, "+e.textCharacters+" znaků, text SHA-256 "+e.sourceTextSha256+".",
  "Kompletní sken textu bez zjištěného zvláštního omezení nebo překladu.",
+ e.historicalImprints.length
+  ?"Historická vydavatelská označení posouzena podle schváleného roku vydání: "+
+    e.historicalImprints.join("; ")+"."
+  :"Historická vydavatelská označení nebyla zjištěna.",
  "Všech "+e.privateImages+" obrazových součástí pouze v soukromém archivu, veřejně vyloučeny.",
  "Vznik kontroly "+e.evaluatedAt+". Editor kontroluje následný vizuální a obsahový výstup."
  ].join(" ");
