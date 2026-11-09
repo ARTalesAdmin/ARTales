@@ -56,7 +56,22 @@ export async function POST(req:Request,{params}:{params:Promise<{candidateId:str
  let mirrorBytes:Uint8Array;
  try{mirrorBytes=await fetchGutenbergMirrorForWitness(receipt.gutenberg_id);}
  catch{return NextResponse.json({error:"independent_mirror_unavailable__retry_later"},{status:503});}
- const textCheck=inspectGutenbergText(extract.text,true);
+ // The approved immutable legal audit is the only source of the publication
+ // date used to classify a standalone historical title-page copyright.
+ // Never infer it from the text being scanned or from the file name.
+ let approvedOriginalPublicationYear:number|null=null;
+ try{
+  const legalAudit=JSON.parse(src.data.notes??"{}") as {
+   schema?:string;gutenbergId?:number;originalPublicationYear?:number
+  };
+  if(legalAudit.schema==="artales.public-domain-check.v1"&&
+     legalAudit.gutenbergId===receipt.gutenberg_id&&
+     Number.isSafeInteger(legalAudit.originalPublicationYear))
+   approvedOriginalPublicationYear=legalAudit.originalPublicationYear!;
+ }catch{}
+ const textCheck=inspectGutenbergText(extract.text,true,{
+  approvedOriginalPublicationYear,currentYear:new Date().getUTCFullYear()
+ });
  const rdfBook: GutenbergBook={id:receipt.gutenberg_id,title:candidate.proposed_title,
   authors:[],translators:[],languages:[src.data.language_code],catalogUrl:receipt.catalog_url,
   files:[],readUrl:null,usCopyrightFlag:null};
