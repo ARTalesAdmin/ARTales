@@ -53,7 +53,7 @@ jobs:
       - name: Legal screen source contracts
         run: node --test tests/legal-screen-v1.contract.test.mjs
       - name: General legal-to-editorial pipeline regression
-        run: npx tsx --test tests/legal-decision-feedback.test.mjs tests/generalSnapshotAction.test.mjs tests/automaticSnapshotEvidence.test.mjs tests/editorialCandidateAuthorityRouting.test.mjs tests/composeTaskHandoff.test.mjs tests/legal-flow-selection.test.ts tests/legal-text-historical-imprints.test.ts
+        run: npx tsx --test tests/legal-decision-feedback.test.mjs tests/generalSnapshotAction.test.mjs tests/automaticSnapshotEvidence.test.mjs tests/editorialCandidateAuthorityRouting.test.mjs tests/composeTaskHandoff.test.mjs tests/legal-flow-selection.test.ts tests/legal-text-historical-imprints.test.ts tests/legal-bibliographic-contributor-identity.test.ts
       - name: Edition decision tests
         run: npx tsx --test tests/legal-edition-recommendation.test.ts tests/legal-gutenberg-catalog.test.ts tests/legal-gutenberg-opds.test.ts
       - name: Live Gutenberg #389 integration smoke
