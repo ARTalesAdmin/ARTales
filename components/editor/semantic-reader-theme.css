@@ -237,3 +237,31 @@ html[data-artales-theme="dark"] .artales-member-content
   background: var(--qa-surround);
   color: var(--qa-ink);
 }
+
+/* Source sub-sections and semantic chapters must not inherit the broad
+ * .artales-member-content section/article dark-card override. */
+html[data-artales-theme="dark"] .artales-member-content
+ .semantic-reader__page :is(section,article),
+html[data-artales-theme="dark"] .artales-member-content
+ .semantic-reader__source-sheet :is(section,article) {
+  background: transparent !important;
+  color: var(--qa-ink) !important;
+  border-color: transparent !important;
+  box-shadow: none;
+}
+/* A source excerpt uses the same independent paper ink as the full source,
+ * including the right-side one-at-a-time review workflow. */
+.semantic-reader .semantic-reader__review-excerpt :is(p,small,strong),
+.semantic-reader .semantic-reader__review-layout .semantic-reader__review-excerpt {
+  color: var(--qa-ink);
+  background: var(--qa-paper);
+}
+/* Explicitly opt selected excerpts out of inherited dark shell text overrides. */
+html[data-artales-theme="dark"] .artales-member-content
+ .semantic-reader__source-sheet,
+html[data-artales-theme="dark"] .artales-member-content
+ .semantic-reader__source-sheet .semantic-reader__source-region,
+html[data-artales-theme="dark"] .artales-member-content
+ .semantic-reader__page {
+  color: var(--qa-ink) !important;
+}
