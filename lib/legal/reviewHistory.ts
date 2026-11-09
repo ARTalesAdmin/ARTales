@@ -7,7 +7,7 @@ export type LegalHistoryEntry={decisionNo:number;recordedAt:string;label:string;
  * after router.refresh() adds the first automatic check. Always derive the
  * effective choice from current props before deciding whether to submit. */
 export function selectLegalReviewRun(checks:LegalReviewRun[],chosen:string):LegalReviewRun|undefined{
- return checks.find(c=>String(c.decisionNo)===chosen)??checks[0];
+ return chosen?checks.find(c=>String(c.decisionNo)===chosen):checks[0];
 }
 export const isAutomaticScreen=(d:Pick<LegalDecisionRow,"rationale"|"verdict">)=>d.verdict==="needs_evidence"&&d.rationale.startsWith(AUTO_SCREEN_PREFIX);
 const statusLabel:Record<string,string>={
