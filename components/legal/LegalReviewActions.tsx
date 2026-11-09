@@ -1,6 +1,6 @@
 "use client";
 import {useState} from "react";
-import type {LegalReviewRun} from "@/lib/legal/reviewHistory";
+import {selectLegalReviewRun,type LegalReviewRun} from "@/lib/legal/reviewHistory";
 import {LEGAL_IMAGE_APPROVAL_ENABLED} from "@/lib/legal/featureFlag";
 type Decision="approved"|"needs_evidence"|"deferred"|"rejected";
 export function LegalReviewActions({candidateId,checks,locked}:{candidateId:string;checks:LegalReviewRun[];locked:boolean}){
@@ -10,7 +10,8 @@ export function LegalReviewActions({candidateId,checks,locked}:{candidateId:stri
  const [includeImages,setIncludeImages]=useState(false);
  const [busy,setBusy]=useState(false);
  const [submitError,setSubmitError]=useState("");
- const selected=checks.find(c=>String(c.decisionNo)===chosen);
+ const selected=selectLegalReviewRun(checks,chosen);
+ const effectiveChosen=String(selected?.decisionNo??"");
  const options:{value:Decision;label:string;disabled?:boolean}[]=[
   {value:"rejected",label:"NE"},
   {value:"approved",label:"ANO bez ilustrací"},
@@ -30,10 +31,10 @@ export function LegalReviewActions({candidateId,checks,locked}:{candidateId:stri
   try{
    const form=new FormData();
    form.set("source_id",selected.sourceId);
-   form.set("decision_no",chosen);
+   form.set("decision_no",effectiveChosen);
    form.set("verdict",intent);
    form.set("include_illustrations",String(includeImages));
-   form.set("rationale",`Redakční rozhodnutí k automatickému právnímu checku #${chosen}: ${intent==="approved"?(includeImages?"ANO s ilustracemi":"ANO bez ilustrací"):"NE"}. ${reason.trim()||"Zjištěné osoby, datace a zdroje zůstávají součástí dohledatelného auditu."}`);
+   form.set("rationale",`Redakční rozhodnutí k automatickému právnímu checku #${effectiveChosen}: ${intent==="approved"?(includeImages?"ANO s ilustracemi":"ANO bez ilustrací"):"NE"}. ${reason.trim()||"Zjištěné osoby, datace a zdroje zůstávají součástí dohledatelného auditu."}`);
    const res=await fetch(`/member/legal/${candidateId}/decision`,{method:"POST",body:form});
    if(res.ok){window.location.assign(`/member/legal/${candidateId}?ok=1`);return}
    const payload=await res.json().catch(()=>({}));
@@ -52,7 +53,7 @@ export function LegalReviewActions({candidateId,checks,locked}:{candidateId:stri
  if(locked)return null;
  if(!checks.length)return <section className="ca-card"><h2>Rozhodnutí</h2><p>Nejprve spusť automatický právní check.</p></section>;
  return <section className="ca-card"><h2>Rozhodnutí a návaznost</h2>
-  <label>Posouzení <select value={chosen} onChange={e=>{setChosen(e.target.value);setIntent(null);setReason("");setSubmitError("")}}>
+  <label>Posouzení <select value={effectiveChosen} onChange={e=>{setChosen(e.target.value);setIntent(null);setReason("");setSubmitError("")}}>
    {checks.map(c=><option key={c.decisionNo} value={c.decisionNo}>Kontrola #{c.decisionNo} · {new Date(c.recordedAt).toLocaleString("cs-CZ")} · {c.edition}</option>)}
   </select></label>
   {selected?<p className="ca-hint">{selected.summary} · Automatické posouzení: {selected.outcome==="no"?"Text není způsobilý":selected.outcome==="yes_with_illustrations"?"Text způsobilý, ilustrace vyžadují samostatnou publikační cestu":"Text způsobilý bez veřejného použití ilustrací"}</p>:null}
