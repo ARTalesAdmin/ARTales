@@ -28,15 +28,15 @@ CREATE POLICY artales_risk_insert ON public.candidate_legal_risk_acceptances
    AND (SELECT artales_private.can_progress_candidate(candidate_id))
    AND EXISTS(
      SELECT 1 FROM public.candidate_legal_decisions d
-     WHERE d.candidate_id=candidate_id AND d.source_id=source_id
-       AND d.decision_no=screening_decision_no AND d.verdict='needs_evidence'
+     WHERE d.candidate_id=candidate_legal_risk_acceptances.candidate_id AND d.source_id=candidate_legal_risk_acceptances.source_id
+       AND d.decision_no=candidate_legal_risk_acceptances.screening_decision_no AND d.verdict='needs_evidence'
        AND d.decision_no=(
          SELECT max(d2.decision_no) FROM public.candidate_legal_decisions d2
-         WHERE d2.candidate_id=candidate_id
+         WHERE d2.candidate_id=candidate_legal_risk_acceptances.candidate_id
        )
    )
    AND NOT EXISTS(
-     SELECT 1 FROM public.candidate_legal_locks l WHERE l.candidate_id=candidate_id
+     SELECT 1 FROM public.candidate_legal_locks l WHERE l.candidate_id=candidate_legal_risk_acceptances.candidate_id
    )
  );
 -- Keep existing approved-source immutability and row-level checks.
@@ -114,13 +114,13 @@ BEGIN
        risk_consent:=false;
      END;
      IF NOT coalesce(risk_consent,false) OR
-       left(NEW.rationale,24)<>'ARTALES_RISK_ACCEPTED_V1:' OR
+       NEW.rationale NOT LIKE 'ARTALES_RISK_ACCEPTED_V1:%' OR
        s.source_kind<>'gutenberg' OR s.identity_match<>'confirmed' OR
        s.language_match<>'matches' OR s.text_format<>'epub' OR
        s.download_url IS NULL OR s.illustration_use<>'excluded' OR
        s.original_rights='restricted' OR s.translation_rights='restricted' OR
        s.source_terms='restricted' OR
-       audit->>'schema'<>'artales.public-domain-check.v1' OR
+       coalesce(audit->>'schema','')<>'artales.public-domain-check.v1' OR
        audit->'text'->>'status'='protected' OR
        audit->'translation'->>'status'='protected' OR
        audit->>'gutenbergUsStatus'='restricted' OR
