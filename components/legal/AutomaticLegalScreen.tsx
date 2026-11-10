@@ -55,16 +55,15 @@ export function AutomaticLegalScreen({candidateId}:{candidateId:string}){
  const facts=result?.componentFacts;
  return <section className="ca-card ca-legal-auto">
   <h2>Automatický právní screen</h2>
-  <p>Ověříme dílo, autora a uvedené překladatele. Ilustrace automaticky vyřadíme z veřejného vydání. Když je vše doložené, přejdeme rovnou k přípravě textu.</p>
+  <p>Ověříme dílo, autory a případné překladatele. Ilustrace budou vyloučeny.</p>
   <button type="button" className="ca-btn ca-primary" onClick={run} disabled={state==="running"}>{state==="running"?"Vyhledávám, prověřuji a zapisuji…":"Ověřit dílo a pokračovat"}</button>
   {state==="error"?<p role="alert" className="ca-error">{error}</p>:null}
   {result&&facts?<div className="ca-legal-result" aria-live="polite">
    <h3>{result.title} · {result.check?.outcome==="yes_without_illustrations"?"Text vhodný k pokračování":"Vyžaduje rozhodnutí"}</h3>
-   <p><strong>Zdroj:</strong> <a href={result.file.url} target="_blank" rel="noopener noreferrer">Gutenberg #{result.bookId} · {result.file.label}</a></p>
-   <p><strong>Výsledek:</strong> {result.check?.reason??result.recommendationReason??"Zkontrolovat nevyřešené složky."}</p>
+
    {result.riskAssessment?.eligible&&!stopped?<div className="ca-card" role="group" aria-label="Rozhodnutí o právní nejistotě">
     <h3>Některé údaje se nepodařilo ověřit</h3>
-    <p>Nebylo zjištěno výslovné omezení, ale následující údaje zůstávají nejisté. Můžeš pokračovat s jejich výslovným přijetím do auditu, nebo přípravu zastavit. Přijetí nejistoty samo o sobě není právní záruka.</p>
+    <p>Výslovné omezení nebylo zjištěno. Tyto údaje zůstaly neověřené:</p>
     <ul>{result.riskAssessment.uncertainties.map((x,i)=><li key={i}>{x}</li>)}</ul>
     <div className="ca-actions">
      <button type="button" className="ca-btn ca-primary" disabled={riskPending} onClick={()=>decideRisk("accept")}>
@@ -76,6 +75,9 @@ export function AutomaticLegalScreen({candidateId}:{candidateId:string}){
    </div>:null}
    {stopped?<p role="status">Příprava byla pozastavena. Nebyla schválena ani zahájena.</p>:null}
    {result.riskAssessment?.blocking.length?<p className="ca-error" role="alert">Zjištěné překážky: {result.riskAssessment.blocking.join("; ")}. Tyto překážky nelze přijmout jako pouhou nejistotu.</p>:null}
+   <details className="ca-card"><summary>Podrobnosti právního screeningu (volitelné)</summary>
+   <p><strong>Zdroj:</strong> <a href={result.file.url} target="_blank" rel="noopener noreferrer">Gutenberg #{result.bookId} · {result.file.label}</a></p>
+   <p><strong>Výsledek:</strong> {result.check?.reason??result.recommendationReason??"Neúplné podklady."}</p>
    {result.check?<p><strong>Úmrtí + 70 let:</strong> text {result.check.text.status}, překlad {result.check.translation.status}, ilustrace {result.check.illustrations.status}. První vydání {result.check.originalPublicationYear??"neznámé"}.</p>:null}
    <details><summary>Podklady a posouzení jednotlivých složek</summary><table className="ca-legal-table"><thead><tr><th>Složka</th><th>Výsledek</th><th>Důkaz / poznámka</th></tr></thead><tbody>
     <tr><th scope="row">Autor / původní dílo</th><td>{label(facts.author.status)}</td><td>{facts.author.people?.map(p=>p.name+(p.died?" († "+p.died+")":"")).join("; ")||"Chybí údaje"}</td></tr>
@@ -89,7 +91,7 @@ export function AutomaticLegalScreen({candidateId}:{candidateId:string}){
    {result.openLibrary?.matched?<p className="ca-hint">Open Library: první vydání {result.openLibrary.firstPublishYear??"nezjištěno"} · {result.openLibrary.sourceUrl?<a href={result.openLibrary.sourceUrl} target="_blank" rel="noopener noreferrer">Bibliografický zdroj</a>:"bez přímého odkazu"}</p>:null}
    <p className="ca-hint">Zapsáno {new Date(result.recordedAt).toLocaleString("cs-CZ")} · Audit #{result.decisionNo}. Právní schválení a uzamčení jsou následná oddělená rozhodnutí.</p>
    <button type="button" onClick={download} className="ca-btn ca-secondary">Stáhnout audit (JSON)</button>
-
+   </details>
   </div>:null}
  </section>;
 }
