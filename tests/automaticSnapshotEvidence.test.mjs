@@ -18,7 +18,7 @@ function example(){
   decision:{source_id:"src",decision_no:9,verdict:"approved",territory:"CZ/EU"},
   receipt:{source_id:"src",decision_no:9,gutenberg_id:id,catalog_url:url,locked_file_url:url+".epub.noimages",
    sha256:sha,byte_count:125934,embedded_images:1,readback_status:"sha256_verified"},
-  archivedSha256:sha,archivedBytes:125934,mirrorSha256:sha,mirrorBytes:125934,
+  archivedSha256:sha,archivedBytes:125934,
   spineDocuments:9,textCharacters:137553,sourceTextSha256:textSha,imageCount:1,
   textCheck:{status:"no_explicit_notice",scope:"complete",translationCredit:false,notice:null},
   liveRdf:{people:[{name:"Machen, Arthur",died:1947}],contributors:[],checked:true,usStatus:"public_domain",url:url+".rdf"},
@@ -38,11 +38,9 @@ test("historical approved RDF evidence remains distinguishable if live endpoint 
  assert.equal(verifyAutomaticEdition(d).rightsEvidenceSource,"approved_locked_gutenberg_rdf_evidence");
 });
 for(const [name,change] of [
- ["mirror differs",d=>{d.mirrorSha256="c".repeat(64);}],
  ["archive differs",d=>{d.archivedSha256="c".repeat(64);}],
  ["author death conflicts",d=>{d.source.author_died=1950;}],
  ["not yet public domain",d=>{d.source.author_died=1970;const z=JSON.parse(d.source.notes);z.text.people[0].died=1970;d.source.notes=JSON.stringify(z);}],
- ["translation discovered",d=>{d.textCheck.translationCredit=true;}],
  ["restriction discovered",d=>{d.textCheck.status="possible_restriction";}],
  ["image mismatch",d=>{d.imageCount=2;}],
  ["unknown translation",d=>{d.source.translation_status="unknown";}],
@@ -153,4 +151,102 @@ test("Carmilla: a shortened public byline matches uniquely approved full Gutenbe
   name:"Le Fanu, Patrick Sheridan",died:1881});
  assert.throws(()=>verifyAutomaticEdition(ambiguous),
   /candidate_contributor_identity_ambiguous/);
+});
+
+function translatedExample(){
+ const d=example(),id=2527,url="https://www.gutenberg.org/ebooks/2527";
+ d.candidate={proposed_title:"The Sorrows of Young Werther",proposed_author_name:"Johann Wolfgang von Goethe"};
+ d.lock={...d.lock,source_url:url,download_url:url+".epub.noimages"};
+ d.source={...d.source,edition_title:d.candidate.proposed_title,source_url:url,
+  download_url:url+".epub.noimages",author_died:1832,translator_died:1888,
+  translation_status:"translated",translation_rights:"public_domain",
+  translator:"Boylan, R. Dillon (Richard Dillon)",
+  notes:JSON.stringify({schema:"artales.public-domain-check.v1",gutenbergId:id,
+   outcome:"yes_without_illustrations",text:{status:"public_domain",people:[
+    {name:"Goethe, Johann Wolfgang von",died:1832,role:"autor",source:url+".rdf"}
+   ]},translation:{status:"public_domain",people:[
+    {name:"Boylan, R. Dillon (Richard Dillon)",died:1888,role:"překladatel",source:url+".rdf"}
+   ]},illustrations:{status:"unknown"}})};
+ d.receipt={...d.receipt,gutenberg_id:id,catalog_url:url,locked_file_url:url+".epub.noimages"};
+ d.textCheck={...d.textCheck,translationCredit:true};
+ d.liveRdf={checked:true,usStatus:"public_domain",url:url+".rdf",
+  people:[{name:"Goethe, Johann Wolfgang von",died:1832}],
+  contributors:[
+   {role:"dcterms:creator",name:"Goethe, Johann Wolfgang von",died:1832},
+   {role:"marcrel:trl",name:"Boylan, R. Dillon (Richard Dillon)",died:1888}
+  ]};
+ return d;
+}
+test("a separately cleared public-domain translation can be composed without images",()=>{
+ const result=verifyAutomaticEdition(translatedExample());
+ assert.equal(result.translation,"public_domain_translation");
+ assert.equal(result.translators.length,1);
+ assert.equal(result.publicDomainFrom,1959);
+ assert.equal(result.images,"exclude_all");
+ assert.equal(result.publicationAuthorized,false);
+});
+for(const [name,mutation] of [
+ ["unknown translator death",d=>{const n=JSON.parse(d.source.notes);n.translation.people[0].died=null;d.source.notes=JSON.stringify(n);}],
+ ["newer protected translator",d=>{const n=JSON.parse(d.source.notes);n.translation.people[0].died=1985;d.source.notes=JSON.stringify(n);}],
+ ["RDF translator conflict",d=>{d.liveRdf.contributors[1].died=1900;}],
+ ["RDF translator missing",d=>{d.liveRdf.contributors.pop();}],
+ ["recorded translator name conflict",d=>{d.source.translator="A different translator";}],
+ ["recorded translator death conflict",d=>{d.source.translator_died=1900;}],
+ ["missing locked translation people",d=>{const n=JSON.parse(d.source.notes);delete n.translation.people;d.source.notes=JSON.stringify(n);}],
+ ["unapproved translator rights",d=>{d.source.translation_rights="unknown";}],
+ ["modern rights notice",d=>{d.textCheck.notice="copyright 2024";}]
+]){
+ test("translation fails closed: "+name,()=>{
+  const d=translatedExample();mutation(d);
+  assert.throws(()=>verifyAutomaticEdition(d),AutomaticEditionHold);
+ });
+}
+test("an unexpected credited translator blocks an approved original",()=>{
+ const d=example();d.liveRdf.contributors.push({
+  role:"marcrel:trl",name:"Unapproved Translator",died:1900
+ });
+ assert.throws(()=>verifyAutomaticEdition(d),/live_rdf_translation_requires_separate_clearance/);
+});
+
+function uncertainHistoricalExample(){
+ const d=example();
+ const audit=JSON.parse(d.source.notes);
+ audit.outcome="no";
+ audit.text.status="unknown";
+ audit.text.people[0].died=null;
+ audit.sourceTextStatus="not_checked";
+ audit.originalPublicationYear=null;
+ d.source.notes=JSON.stringify(audit);
+ d.source.author_died=null;
+ d.source.original_rights="unknown";
+ d.source.source_terms="unknown";
+ d.decision.rationale="ARTALES_RISK_ACCEPTED_V1: recorded actor-bound consent";
+ d.riskAccepted=true;d.riskUncertainties=["Neznámé úmrtí autora"];
+ d.textCheck.status="not_checked";
+ d.textCheck.scope="partial";
+ d.liveRdf={...d.liveRdf,checked:false,people:[],contributors:[]};
+ return d;
+}
+test("risk accepted explicitly permits preparation with unresolved death date, never claims verified rights",()=>{
+ const d=uncertainHistoricalExample();
+ const e=verifyAutomaticEdition(d);
+ assert.equal(e.riskAccepted,true);
+ assert.deepEqual(e.riskUncertainties,["Neznámé úmrtí autora"]);
+ assert.equal(e.publicDomainFrom,null);
+ assert.equal(e.publicationAuthorized,false);
+ assert.match(formatAutomaticEditionAudit(e),/NEJISTOTA PŘIJATA/);
+});
+test("missing independent consent record never masquerades as approved rights",()=>{
+ const d=uncertainHistoricalExample();d.riskAccepted=false;
+ assert.throws(()=>verifyAutomaticEdition(d),AutomaticEditionHold);
+ const e=uncertainHistoricalExample();e.decision.rationale="Regular approval without risk marker";
+ assert.throws(()=>verifyAutomaticEdition(e),AutomaticEditionHold);
+});
+test("explicit rights restriction still blocks even with risk acceptance",()=>{
+ const d=uncertainHistoricalExample();d.source.source_terms="restricted";
+ assert.throws(()=>verifyAutomaticEdition(d),AutomaticEditionHold);
+ const e=uncertainHistoricalExample();e.textCheck.notice="Reprinted by permission";
+ assert.throws(()=>verifyAutomaticEdition(e),AutomaticEditionHold);
+ const f=uncertainHistoricalExample();f.liveRdf.checked=true;f.liveRdf.people=[{name:"Machen, Arthur",died:2000}];
+ assert.throws(()=>verifyAutomaticEdition(f),AutomaticEditionHold);
 });

@@ -11,11 +11,12 @@ test("legal detail renders the Snapshot action only on a locked source with enab
  assert.match(legal,/canArchive=\{canProgress\}/);
  assert.match(legal,/canProgressCandidate\(id,profile\)/);
 });
-test("the shared action is a consent-gated POST directly from Legal detail",()=>{
+test("the shared action starts a private-only POST with clear informed action text",()=>{
  assert.match(panel,/\(state\.status==="ready"\|\|state\.status==="recovery_ready"\)\&\&canArchive/);
  assert.match(panel,/action=\{\`\/api\/member\/snapshot\/\$\{candidateId\}\`\}/);
- assert.match(panel,/name="private_original_retention" value="archive_only" required/);
- assert.match(panel,/Vytvořit Snapshot/);
+ assert.match(panel,/name="private_original_retention" value="archive_only"/);
+ assert.match(panel,/ilustrace nebudou součástí veřejného vydání/);
+ assert.match(panel,/Pokračovat v přípravě/);
  assert.match(snapshot,/<SnapshotActionPanel candidateId=\{candidateId\}/);
 });
 test("unauthorized actors and unresolved claims cannot accidentally offer an archive button",()=>{

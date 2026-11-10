@@ -10,7 +10,6 @@ import {extractEpub} from "@/lib/ingest/epubSemanticExtractor";
 import {inspectGutenbergText} from "@/lib/legal/textRightsCheck";
 import {getGutenbergRights} from "@/lib/legal/gutenbergRights";
 import {verifyAutomaticEdition,formatAutomaticEditionAudit,AutomaticEditionHold} from "@/lib/ingest/automaticSnapshotEvidence";
-import {fetchGutenbergMirrorForWitness} from "@/lib/ingest/gutenbergMirrorWitness";
 import {composeSemanticRevision,verifySemanticRevision} from "@/lib/semantic/compose";
 import type {GutenbergBook} from "@/lib/legal/gutenbergCatalog";
 export const runtime="nodejs";
@@ -41,8 +40,8 @@ export async function POST(req:Request,{params}:{params:Promise<{candidateId:str
  if(existingResult.data)return NextResponse.redirect(new URL("/member/editorial-detail/"+candidateId+"?composed=1#tasks",req.url),303);
  const candidate=candidateResult.data,lock=lockResult.data,receipt=receiptResult.data;
  const [src,decision,file]=await Promise.all([
-  db.from("candidate_legal_sources").select("id,source_kind,edition_title,source_url,download_url,author_died,translation_status,translator,translation_rights,original_rights,illustration_use,source_terms,language_code,identity_match,language_match,notes").eq("id",lock.source_id).eq("candidate_id",candidateId).maybeSingle(),
-  db.from("candidate_legal_decisions").select("source_id,decision_no,verdict,territory").eq("candidate_id",candidateId).eq("decision_no",lock.decision_no).maybeSingle(),
+  db.from("candidate_legal_sources").select("id,source_kind,edition_title,source_url,download_url,author_died,translator_died,translation_status,translator,translation_rights,original_rights,illustration_use,source_terms,language_code,identity_match,language_match,notes").eq("id",lock.source_id).eq("candidate_id",candidateId).maybeSingle(),
+  db.from("candidate_legal_decisions").select("source_id,decision_no,verdict,territory,rationale,reviewed_by").eq("candidate_id",candidateId).eq("decision_no",lock.decision_no).maybeSingle(),
   db.storage.from(receipt.storage_bucket).download(receipt.storage_path)
  ]);
  if(src.error||decision.error||file.error||!src.data||!decision.data||!file.data)
@@ -53,9 +52,6 @@ export async function POST(req:Request,{params}:{params:Promise<{candidateId:str
   return NextResponse.json({error:"archive_sha_or_size_mismatch"},{status:409});
  let extract;
  try{extract=extractEpub(bytes);}catch{return NextResponse.json({error:"invalid_archived_epub"},{status:422});}
- let mirrorBytes:Uint8Array;
- try{mirrorBytes=await fetchGutenbergMirrorForWitness(receipt.gutenberg_id);}
- catch{return NextResponse.json({error:"independent_mirror_unavailable__retry_later"},{status:503});}
  // The approved immutable legal audit is the only source of the publication
  // date used to classify a standalone historical title-page copyright.
  // Never infer it from the text being scanned or from the file name.
@@ -76,12 +72,26 @@ export async function POST(req:Request,{params}:{params:Promise<{candidateId:str
   authors:[],translators:[],languages:[src.data.language_code],catalogUrl:receipt.catalog_url,
   files:[],readUrl:null,usCopyrightFlag:null};
  const liveRdf=await getGutenbergRights(rdfBook);
+ // A risk approval is valid only with its separately recorded, actor-bound,
+ // immutable acceptance. The rationale alone must never grant authority.
+ let riskAccepted=false,riskUncertainties:string[]=[];
+ if(decision.data.rationale?.startsWith("ARTALES_RISK_ACCEPTED_V1:")){
+  const {data:risk,error:riskError}=await db.from("candidate_legal_risk_acceptances")
+.select("screening_decision_no,uncertainties").eq("candidate_id",candidateId)
+   .eq("source_id",lock.source_id).eq("accepted_by",decision.data.reviewed_by)
+   .order("screening_decision_no",{ascending:false}).limit(1).maybeSingle();
+  if(riskError||!risk)return NextResponse.json({error:"legal_risk_acceptance_missing"},{status:409});
+  if(!Array.isArray(risk.uncertainties)||!risk.uncertainties.length||
+     !risk.uncertainties.every((x:unknown)=>typeof x==="string"&&x.length<250))
+   return NextResponse.json({error:"legal_risk_acceptance_incomplete"},{status:409});
+  riskUncertainties=risk.uncertainties;
+  riskAccepted=true;
+ }
  let proof;
  try{
   proof=verifyAutomaticEdition({
-   candidate,lock,source:src.data,decision:decision.data,receipt,
-   archivedSha256,archivedBytes:bytes.length,mirrorSha256:sha(mirrorBytes),
-   mirrorBytes:mirrorBytes.length,spineDocuments:extract.documents.length,
+   candidate,lock,source:src.data,decision:decision.data,receipt,riskAccepted,riskUncertainties,
+   archivedSha256,archivedBytes:bytes.length,spineDocuments:extract.documents.length,
    textCharacters:extract.text.length,sourceTextSha256:extract.text_sha256,
    imageCount:extract.assets.length,textCheck,liveRdf,
    verifiedAt:new Date().toISOString(),year:new Date().getUTCFullYear()

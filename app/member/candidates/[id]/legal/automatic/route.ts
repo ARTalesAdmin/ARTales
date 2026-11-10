@@ -9,6 +9,7 @@ import {checkGutenbergText} from "@/lib/legal/textRightsCheck";
 import {inspectGutenbergEpub} from "@/lib/legal/epubInspection";
 import {LEGAL_SCREEN_V1_ENABLED} from "@/lib/legal/featureFlag";
 import {assessPublicDomain,compactCheckEvidence} from "@/lib/legal/publicDomainCheck";
+import {assessGutenbergRisk} from "@/lib/legal/riskDecision";
 export const runtime="nodejs";
 export async function POST(_req:Request,{params}:{params:Promise<{id:string}>}){
  if(!LEGAL_SCREEN_V1_ENABLED)return NextResponse.json({error:"disabled"},{status:404});
@@ -26,9 +27,10 @@ export async function POST(_req:Request,{params}:{params:Promise<{id:string}>}){
   const found=await getMatchingGutenberg(c.proposed_title,c.proposed_author_name);
   if(!found.selected)return NextResponse.json({error:"no_verified_file",matches:found.matches.map(b=>({id:b.id,title:b.title,url:b.catalogUrl}))},{status:422});
   const book=found.selected;
-  const file=book.files.find(f=>f.format==="html")??book.files.find(f=>f.format==="plain_text")??book.files[0];
+  const file=book.files.find(f=>f.format==="epub")??book.files.find(f=>f.format==="html")??book.files.find(f=>f.format==="plain_text")??book.files[0];
+  const currentYear=new Date().getUTCFullYear();
   const year=Number((c.prescreen_metadata as {authorDied?:number}|null)?.authorDied);
-  const prescreenDeath=Number.isInteger(year)&&year>=1000&&year<=2026?year:null;
+  const prescreenDeath=Number.isInteger(year)&&year>=1000&&year<=currentYear?year:null;
   const rights=await getGutenbergRights(book);
   const openLibrary=rights.people.some(p=>p.died===null)||!rights.people.length?await getOpenLibraryHint(book.title,c.proposed_author_name):null;
   const people=rights.people.length?rights.people:book.authors;
@@ -39,17 +41,18 @@ export async function POST(_req:Request,{params}:{params:Promise<{id:string}>}){
   const illustrators=rolePeople(["ill","art"]);
   const enriched={...book,authors:mergedPeople,translators:translators.length?translators:book.translators};
   // Language equality is indicative only; translator credits take precedence.
-  const originalLanguageConfirmed=false; // Language alone cannot establish that a particular edition is not translated.
-  const facts=legalFacts(enriched,2026,prescreenDeath,{originalLanguageConfirmed,illustrators,usStatus:rights.usStatus});
+  const originalLanguageConfirmed=!enriched.translators.length; // No listed translator; explicit text credits still take precedence.
+  const facts=legalFacts(enriched,currentYear,prescreenDeath,{originalLanguageConfirmed,illustrators,usStatus:rights.usStatus});
   // US status is evidence only; retain CZ/EU source clearance as a distinct unresolved decision.
   const [textCheck,epub]=await Promise.all([checkGutenbergText(book),inspectGutenbergEpub(book)]);
   const rawFirstPublished=Number((c.prescreen_metadata as {firstPublished?:number}|null)?.firstPublished);
-  const firstPublication=openLibrary?.firstPublishYear??(Number.isInteger(rawFirstPublished)&&rawFirstPublished>=1400&&rawFirstPublished<=2026?rawFirstPublished:null);
-  const check=assessPublicDomain({book:enriched,rights,prescreenDeath,candidateAuthor:c.proposed_author_name,originalPublicationYear:firstPublication,textCheck,epub,year:2026});
-  const textRestriction=textCheck.status==="possible_restriction"||!!epub.notice;
+  const firstPublication=openLibrary?.firstPublishYear??(Number.isInteger(rawFirstPublished)&&rawFirstPublished>=1400&&rawFirstPublished<=currentYear?rawFirstPublished:null);
+  const check=assessPublicDomain({book:enriched,rights,prescreenDeath,candidateAuthor:c.proposed_author_name,originalPublicationYear:firstPublication,textCheck,epub,year:currentYear});
+  const textRestriction=textCheck.status==="possible_restriction"||!!epub.notice||rights.usStatus==="restricted";
   const translationUnresolved=enriched.translators.length>0?facts.translation.status!=="likely_public_domain":epub.translationCredit||textCheck.translationCredit;
-  const recommendation=facts.author.status==="protected"?"exclude":
-   facts.author.status!=="likely_public_domain"||textRestriction||translationUnresolved?"review":
+  const recommendation=check.text.status==="protected"||check.translation.status==="protected"?"exclude":
+   check.outcome==="no"?"review":
+   textRestriction||translationUnresolved?"review":
    "text_only";
   const recommendationReason=recommendation==="text_only"
    ?"Ochranná doba původního autora uplynula. Doporučen pouze původní text bez ilustrací; před uzamčením potvrdit shodu konkrétního souboru a nepřítomnost překladu."
@@ -61,14 +64,14 @@ export async function POST(_req:Request,{params}:{params:Promise<{id:string}>}){
   // Save the evidence and the preliminary verdict, not a final copyright approval.
   const payload={
    candidate_id:id,source_kind:"gutenberg",edition_title:book.title,
-   source_url:book.catalogUrl,download_url:file.url,
+   source_url:book.catalogUrl,download_url:file.url,edition_year:firstPublication,
    read_url:book.readUrl,translation_status:check.translation.people.length?"translated":check.translation.status==="not_applicable"?"original":"unknown",
    language_code:book.languages[0]??"",translator:enriched.translators.map(p=>p.name).join("; ").slice(0,300),
    author_died:mergedPeople.length===1?mergedPeople[0].died??prescreenDeath:null,
    translator_died:enriched.translators.length===1?enriched.translators[0].died:null,
-   text_format:file.format,identity_match:"confirmed",language_match:check.text.status==="public_domain"?"matches":"uncertain",
+   text_format:file.format,identity_match:"confirmed",language_match:book.languages.length>0?"matches":"uncertain",
    completeness:"unknown",text_quality:"unknown",original_rights:check.text.status==="public_domain"?"public_domain":"unknown",
-   translation_rights:check.translation.status==="not_applicable"?"not_applicable":check.translation.status==="public_domain"?"public_domain":"unknown",illustration_use:check.outcome==="yes_with_illustrations"?"public_domain":"excluded",source_terms:check.gutenbergUsStatus==="public_domain"&&check.sourceTextStatus!=="possible_restriction"?"cleared":"unknown",
+   translation_rights:check.translation.status==="not_applicable"?"not_applicable":check.translation.status==="public_domain"?"public_domain":"unknown",illustration_use:"excluded",source_terms:rights.usStatus!=="restricted"&&check.sourceTextStatus!=="possible_restriction"&&!epub.notice?"cleared":"unknown",
    evidence_url:book.catalogUrl,notes:compactCheckEvidence(check),
    created_by:profile.id,updated_by:profile.id
   };
@@ -80,15 +83,55 @@ export async function POST(_req:Request,{params}:{params:Promise<{id:string}>}){
    sourceId=inserted.data.id;
   }
   if(previous?.id){
-    const {data:approved}=await db.from("candidate_legal_decisions").select("decision_no").eq("source_id",previous.id).eq("verdict","approved").limit(1);
-    if(approved?.length)return NextResponse.json({error:"approved_source_immutable"},{status:409});
-    const updateFields={translation_status:payload.translation_status,translator:payload.translator,author_died:payload.author_died,translator_died:payload.translator_died,language_match:payload.language_match,original_rights:payload.original_rights,translation_rights:payload.translation_rights,illustration_use:payload.illustration_use,source_terms:payload.source_terms,evidence_url:payload.evidence_url,notes:payload.notes,updated_by:profile.id};
+    const {data:approved}=await db.from("candidate_legal_decisions").select("decision_no")
+      .eq("candidate_id",id).eq("source_id",previous.id).eq("verdict","approved")
+      .order("decision_no",{ascending:false}).limit(1);
+    if(approved?.length){
+      const existingLock=await db.from("candidate_legal_locks").insert({
+       candidate_id:id,source_id:previous.id,decision_no:approved[0].decision_no,
+       locked_by:profile.id,source_url:"https://placeholder.invalid",
+       download_url:"https://placeholder.invalid",source_facts:{},illustrations:[]
+      });
+      if(existingLock.error)return NextResponse.json({error:"automatic_lock_failed"},{status:409});
+      return NextResponse.json({autoApproved:true,autoLocked:true,recovered:true},
+       {headers:{"Cache-Control":"private, no-store"}});
+    }
+    const updateFields={edition_year:payload.edition_year,translation_status:payload.translation_status,translator:payload.translator,author_died:payload.author_died,translator_died:payload.translator_died,language_match:payload.language_match,original_rights:payload.original_rights,translation_rights:payload.translation_rights,illustration_use:payload.illustration_use,source_terms:payload.source_terms,evidence_url:payload.evidence_url,notes:payload.notes,updated_by:profile.id};
     const updated=await db.from("candidate_legal_sources").update(updateFields).eq("candidate_id",id).eq("id",previous.id);
     if(updated.error)return NextResponse.json({error:"cannot_update_source"},{status:500});
   }
   const rationale="Automaticky připravený komponentní právní screen: "+facts.reason+"; "+facts.author.status+"; "+facts.translation.status+"; kontrola textu: "+textCheck.status+"; "+(textCheck.notice??textCheck.explanation).slice(0,230)+ ". Výsledek datací: "+check.outcome+".";
   const decision=await db.from("candidate_legal_decisions").insert({candidate_id:id,source_id:sourceId,verdict:"needs_evidence",territory:"CZ/EU",rationale,reviewed_by:profile.id}).select("decision_no,recorded_at").single();
   if(decision.error)return NextResponse.json({error:"cannot_save_audit"},{status:500});
-  return NextResponse.json({sourceId,decisionNo:decision.data.decision_no,bookId:book.id,title:book.title,file,componentFacts:facts,check,recommendation,recommendationReason,textCheck,epub,rights,openLibrary,alternativeCount:found.matches.length-1,recordedAt:decision.data.recorded_at},{headers:{"Cache-Control":"private, no-store"}});
+  // The screening protocol advances only candidates that meet the recorded
+  // text-only criteria. No additional manual confirmation for that outcome.
+  // Unresolved cases keep a durable needs_evidence record, not an approval.
+  const riskAssessment=assessGutenbergRisk(payload);
+  let autoApproved=false,autoLocked=false;
+  if(!riskAssessment.eligible&&riskAssessment.blocking.length===0&&
+     check.outcome==="yes_without_illustrations"&&
+     payload.original_rights==="public_domain"&&
+     ["original","translated"].includes(payload.translation_status)&&
+     ["not_applicable","public_domain"].includes(payload.translation_rights)&&
+     payload.source_terms==="cleared"&&
+     payload.language_match==="matches"&&file.format==="epub"){
+   const approved=await db.from("candidate_legal_decisions").insert({
+    candidate_id:id,source_id:sourceId,verdict:"approved",territory:"CZ/EU",
+    rationale:"Automatické textové schválení podle zaznamenaných údajů Gutenbergu: identita díla, lhůty uvedených textových tvůrců a překladatelů, žádné zjištěné výslovné omezení; ilustrace vyloučeny. Původní audit #"+decision.data.decision_no+".",
+    reviewed_by:profile.id
+   }).select("decision_no").single();
+   if(approved.error)
+    return NextResponse.json({error:"automatic_approval_failed",decisionNo:decision.data.decision_no},{status:409});
+   autoApproved=true;
+   const legalLock=await db.from("candidate_legal_locks").insert({
+    candidate_id:id,source_id:sourceId,decision_no:approved.data.decision_no,
+    locked_by:profile.id,source_url:"https://placeholder.invalid",
+    download_url:"https://placeholder.invalid",source_facts:{},illustrations:[]
+   });
+   if(legalLock.error)
+    return NextResponse.json({error:"automatic_lock_failed",decisionNo:approved.data.decision_no},{status:409});
+   autoLocked=true;
+  }
+  return NextResponse.json({sourceId,decisionNo:decision.data.decision_no,bookId:book.id,title:book.title,file,componentFacts:facts,check,recommendation,recommendationReason,textCheck,epub,rights,openLibrary,alternativeCount:found.matches.length-1,recordedAt:decision.data.recorded_at,autoApproved,autoLocked,riskAssessment},{headers:{"Cache-Control":"private, no-store"}});
  }catch{return NextResponse.json({error:"catalog_unavailable"},{status:503})}
 }

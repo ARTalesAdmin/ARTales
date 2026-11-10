@@ -4,6 +4,9 @@ on:
     branches: [main]
     paths:
       - 'lib/ingest/automaticSnapshotEvidence.ts'
+      - 'lib/legal/riskDecision.ts'
+      - 'tests/legal-risk-decision.test.ts'
+      - 'supabase/migrations/20261110113500_artales_gutenberg_risk_acceptance.sql'
       - 'lib/legal/bibliographicContributorIdentity.ts'
       - 'tests/legal-bibliographic-contributor-identity.test.ts'
       - 'lib/legal/textRightsCheck.ts'
@@ -28,7 +31,7 @@ jobs:
           node-version: '22'
           cache: npm
       - run: npm ci --no-audit --no-fund
-      - run: npx tsx --test tests/automaticSnapshotEvidence.test.mjs tests/legal-text-historical-imprints.test.ts tests/legal-bibliographic-contributor-identity.test.ts
+      - run: npx tsx --test tests/automaticSnapshotEvidence.test.mjs tests/legal-text-historical-imprints.test.ts tests/legal-bibliographic-contributor-identity.test.ts tests/legal-risk-decision.test.ts
       - run: npx tsx --test tests/snapshotCandidateUuid.test.mjs
       - run: npx tsc --noEmit
       - run: npx eslint lib/ingest/candidateUuid.ts lib/ingest/automaticSnapshotEvidence.ts lib/ingest/gutenbergMirrorWitness.ts 'app/api/member/snapshot/[candidateId]/auto-compose/route.ts' 'app/member/snapshot/[candidateId]/page.tsx'

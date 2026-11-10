@@ -1,14 +1,21 @@
 "use client";
-import {useState} from "react";
+import {useCallback,useEffect,useRef,useState} from "react";
 import {useRouter} from "next/navigation";
 
 /** Runs an existing authenticated server operation and keeps failures in the
  * Snapshot workspace, rather than navigating users to a raw JSON response. */
-export function AutomaticSnapshotCompose({candidateId}:{candidateId:string}){
+export function AutomaticSnapshotCompose({candidateId,autoStart=false}:{candidateId:string;autoStart?:boolean}){
  const router=useRouter();
  const [pending,setPending]=useState(false);
  const [error,setError]=useState("");
+ const started=useRef(false);
  const labels:Record<string,string>={
+  legal_components_not_cleared_for_text_only:
+   "Schválený právní záznam neobsahuje všechny povinné složky textového vydání. Ověř práva původního textu i překladatelů, shodu jazyka a podmínky zdroje; ilustrace se pouze vylučují.",
+  translation_approval_evidence_incomplete:
+   "Překlad nebyl ověřen: schází úplná totožnost, práva nebo datace některého překladatele v uzamčeném právním auditu.",
+  live_rdf_translation_identity_conflict:
+   "Údaje o překladatelích v aktuálním katalogu neodpovídají schválenému právnímu auditu.",
   author_identity_or_death_term_unverified:
    "Rozpor v identitě nebo ochranné lhůtě doloženého tvůrce. Podklady z právní kontroly je nutné zkontrolovat.",
   text_creator_identity_role_or_death_unverified:
@@ -37,7 +44,7 @@ export function AutomaticSnapshotCompose({candidateId}:{candidateId:string}){
   semantic_revision_insert_failed:
    "Ověření doběhlo, ale nepodařilo se uložit sémantickou revizi. Zkontroluj stav díla před opakováním."
  };
- const run=async()=>{
+ const run=useCallback(async()=>{
   if(pending)return;
   setPending(true);setError("");
   try{
@@ -59,10 +66,13 @@ export function AutomaticSnapshotCompose({candidateId}:{candidateId:string}){
   }catch{
    setError("Spojení se nepodařilo dokončit. Zkontroluj stav Snapshotu před opakováním.");
   }finally{setPending(false);}
- };
+ },[candidateId,pending,router]);
+ useEffect(()=>{
+  if(autoStart&&!started.current){started.current=true;void run();}
+ },[autoStart,run]);
  return <div className="ca-form">
   <button type="button" className="ca-btn ca-primary" onClick={run} disabled={pending}>
-   {pending?"Ověřuji archiv a vytvářím bloky…":"Automaticky ověřit a zpracovat"}
+   {pending?"Připravuji textové bloky…":"Pokračovat do redakce"}
   </button>
   {error?<p role="alert" className="ca-error">{error}</p>:null}
   <p className="ca-hint">Úspěšné zpracování otevře redakční kartu s úkoly a odkazem na textové QA. Při chybě zůstaneš tady a uvidíš její příčinu.</p>

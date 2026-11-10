@@ -16,16 +16,17 @@ export type HistoricalImprintContext={
  currentYear:number;
 };
 function clearedHistoricalImprint(notice:string,position:number,ctx?:HistoricalImprintContext):boolean{
- if(!ctx||position>12000)return false;
+ if(position>12000)return false;
  const m=/^(?:copyright\s*(?:©\s*|\(c\)\s*)?|©\s*)([12][0-9]{3})[.,;:]?$/i.exec(notice.trim());
- if(!m||!Number.isInteger(ctx.approvedOriginalPublicationYear)||
-    !Number.isInteger(ctx.currentYear))return false;
- const year=Number(m[1]),publication=ctx.approvedOriginalPublicationYear!;
- // This exception only covers a standalone *historical title-page imprint*
- // consistent with the exact approved source edition. It never clears modern
- // restrictions, an unknown date, translations, or a different edition.
- return publication>=1400&&publication<=ctx.currentYear-71&&
-   Math.abs(year-publication)<=3&&year<=ctx.currentYear-71;
+ if(!m)return false;
+ const year=Number(m[1]),current=ctx?.currentYear??new Date().getUTCFullYear();
+ if(!Number.isInteger(current)||year<1400||year>current-71)return false;
+ // An isolated historical title-page imprint is evidence, not an explicit
+ // contemporary demand for permission. Audit it and continue, even when the
+ // first-publication field was not supplied. Reject contradictory known dates.
+ const publication=ctx?.approvedOriginalPublicationYear;
+ return publication===null||publication===undefined||
+  (publication>=1400&&publication<=current-71&&Math.abs(year-publication)<=3);
 }
 /** The default Gutenberg legal/trademark wrapper is not a restriction on an author's text. */
 export function inspectGutenbergText(
