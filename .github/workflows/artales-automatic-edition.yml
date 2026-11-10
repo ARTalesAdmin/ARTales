@@ -4,8 +4,11 @@ on:
     branches: [main]
     paths:
       - 'lib/ingest/automaticSnapshotEvidence.ts'
+      - 'lib/legal/riskDecision.ts'
+      - 'tests/legal-risk-decision.test.ts'
+      - 'ops/sql/20261110_artales_gutenberg_risk_acceptance.sql'
       - 'lib/legal/bibliographicContributorIdentity.ts'
-      - 'tests/legal-bibliographic-contributor-identity.test.ts'
+      - 'tests/legal-bibliographic-contributor-identity.test.ts tests/legal-risk-decision.test.ts'
       - 'lib/legal/textRightsCheck.ts'
       - 'tests/legal-text-historical-imprints.test.ts'
       - 'lib/ingest/gutenbergMirrorWitness.ts'
