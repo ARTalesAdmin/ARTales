@@ -62,7 +62,7 @@ export async function POST(_req:Request,{params}:{params:Promise<{id:string}>}){
   // Save the evidence and the preliminary verdict, not a final copyright approval.
   const payload={
    candidate_id:id,source_kind:"gutenberg",edition_title:book.title,
-   source_url:book.catalogUrl,download_url:file.url,
+   source_url:book.catalogUrl,download_url:file.url,edition_year:firstPublication,
    read_url:book.readUrl,translation_status:check.translation.people.length?"translated":check.translation.status==="not_applicable"?"original":"unknown",
    language_code:book.languages[0]??"",translator:enriched.translators.map(p=>p.name).join("; ").slice(0,300),
    author_died:mergedPeople.length===1?mergedPeople[0].died??prescreenDeath:null,
@@ -94,7 +94,7 @@ export async function POST(_req:Request,{params}:{params:Promise<{id:string}>}){
       return NextResponse.json({autoApproved:true,autoLocked:true,recovered:true},
        {headers:{"Cache-Control":"private, no-store"}});
     }
-    const updateFields={translation_status:payload.translation_status,translator:payload.translator,author_died:payload.author_died,translator_died:payload.translator_died,language_match:payload.language_match,original_rights:payload.original_rights,translation_rights:payload.translation_rights,illustration_use:payload.illustration_use,source_terms:payload.source_terms,evidence_url:payload.evidence_url,notes:payload.notes,updated_by:profile.id};
+    const updateFields={edition_year:payload.edition_year,translation_status:payload.translation_status,translator:payload.translator,author_died:payload.author_died,translator_died:payload.translator_died,language_match:payload.language_match,original_rights:payload.original_rights,translation_rights:payload.translation_rights,illustration_use:payload.illustration_use,source_terms:payload.source_terms,evidence_url:payload.evidence_url,notes:payload.notes,updated_by:profile.id};
     const updated=await db.from("candidate_legal_sources").update(updateFields).eq("candidate_id",id).eq("id",previous.id);
     if(updated.error)return NextResponse.json({error:"cannot_update_source"},{status:500});
   }
