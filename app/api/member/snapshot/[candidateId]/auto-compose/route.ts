@@ -41,7 +41,7 @@ export async function POST(req:Request,{params}:{params:Promise<{candidateId:str
  const candidate=candidateResult.data,lock=lockResult.data,receipt=receiptResult.data;
  const [src,decision,file]=await Promise.all([
   db.from("candidate_legal_sources").select("id,source_kind,edition_title,source_url,download_url,author_died,translator_died,translation_status,translator,translation_rights,original_rights,illustration_use,source_terms,language_code,identity_match,language_match,notes").eq("id",lock.source_id).eq("candidate_id",candidateId).maybeSingle(),
-  db.from("candidate_legal_decisions").select("source_id,decision_no,verdict,territory").eq("candidate_id",candidateId).eq("decision_no",lock.decision_no).maybeSingle(),
+  db.from("candidate_legal_decisions").select("source_id,decision_no,verdict,territory,rationale,reviewed_by").eq("candidate_id",candidateId).eq("decision_no",lock.decision_no).maybeSingle(),
   db.storage.from(receipt.storage_bucket).download(receipt.storage_path)
  ]);
  if(src.error||decision.error||file.error||!src.data||!decision.data||!file.data)
@@ -72,10 +72,21 @@ export async function POST(req:Request,{params}:{params:Promise<{candidateId:str
   authors:[],translators:[],languages:[src.data.language_code],catalogUrl:receipt.catalog_url,
   files:[],readUrl:null,usCopyrightFlag:null};
  const liveRdf=await getGutenbergRights(rdfBook);
+ // A risk approval is valid only with its separately recorded, actor-bound,
+ // immutable acceptance. The rationale alone must never grant authority.
+ let riskAccepted=false;
+ if(decision.data.rationale?.startsWith("ARTALES_RISK_ACCEPTED_V1:")){
+  const {data:risk,error:riskError}=await db.from("candidate_legal_risk_acceptances")
+   .select("screening_decision_no").eq("candidate_id",candidateId)
+   .eq("source_id",lock.source_id).eq("accepted_by",decision.data.reviewed_by)
+   .order("screening_decision_no",{ascending:false}).limit(1).maybeSingle();
+  if(riskError||!risk)return NextResponse.json({error:"legal_risk_acceptance_missing"},{status:409});
+  riskAccepted=true;
+ }
  let proof;
  try{
   proof=verifyAutomaticEdition({
-   candidate,lock,source:src.data,decision:decision.data,receipt,
+   candidate,lock,source:src.data,decision:decision.data,receipt,riskAccepted,
    archivedSha256,archivedBytes:bytes.length,spineDocuments:extract.documents.length,
    textCharacters:extract.text.length,sourceTextSha256:extract.text_sha256,
    imageCount:extract.assets.length,textCheck,liveRdf,
