@@ -11,7 +11,7 @@ export type AutomaticEditionInput={
  candidate:{proposed_title:string;proposed_author_name:string};
  lock:{source_id:string;decision_no:number;source_url:string;download_url:string;source_facts:unknown};
  source:{id:string;source_kind:string;edition_title:string;source_url:string;download_url:string|null;
-  author_died:number|null;translation_status:string;translator:string|null;translation_rights:string;
+  author_died:number|null;translator_died:number|null;translation_status:string;translator:string|null;translation_rights:string;
   original_rights:string;illustration_use:string;source_terms:string;language_code:string;
   identity_match:string;language_match:string;notes:string|null};
  decision:{source_id:string;decision_no:number;verdict:string;territory:string};
@@ -33,9 +33,10 @@ const samePerson=(a:string,b:string)=>JSON.stringify(normalized(a))===JSON.strin
 const shaValid=(s:string)=>/^[a-f0-9]{64}$/.test(s);
 type TextCreatorRole="author"|"editor";
 type TextCreatorEvidence={name:string;died:number;role:TextCreatorRole;source:string};
+type VerifiedTranslatorEvidence={name:string;died:number;role:"translator";source:string};
 type StoredEvidence={schema?:string;outcome?:string;gutenbergId?:number;
  text?:{status?:string;people?:Array<{name?:string;died?:number;role?:string;source?:string}>};
- translation?:{status?:string};illustrations?:{status?:string}};
+ translation?:{status?:string;people?:Array<{name?:string;died?:number;role?:string;source?:string}>};illustrations?:{status?:string}};
 const rdfRole=(role:string):TextCreatorRole|null=>{
  if(role==="dcterms:creator")return "author";
  if(role==="marcrel:edt")return "editor";
@@ -63,7 +64,8 @@ export type AutomaticEditionEvidence={
  mirrorUrl:string;editionSha256:string;sourceTextSha256:string;byteCount:number;
  spineDocuments:number;textCharacters:number;privateImages:number;
  author:string;authorDied:number|null;publicDomainFrom:number;territory:"CZ/EU";
- textCreators:TextCreatorEvidence[];
+ textCreators:TextCreatorEvidence[];translators:VerifiedTranslatorEvidence[];
+ translation:"original"|"public_domain_translation";
  contributorNameMatch:"exact"|"abbreviated_given_names"|"collective";
  rightsEvidenceSource:"live_gutenberg_rdf"|"approved_locked_gutenberg_rdf_evidence";
  rightsEvidenceUrl:string;textScan:"no_explicit_notice";images:"exclude_all";
@@ -80,11 +82,15 @@ export function verifyAutomaticEdition(i:AutomaticEditionInput):AutomaticEdition
   source.source_kind!=="gutenberg"||!source.download_url?.startsWith(url+".")||
   !samePerson(source.edition_title,candidate.proposed_title)||
   !Number.isInteger(i.year)||i.year<2020)refuse("edition_identity_mismatch");
+ const translated=source.translation_status==="translated";
+ const originalCleared=source.translation_status==="original"&&
+  (source.translator??"").trim()===""&&source.translation_rights==="not_applicable";
+ const translationCleared=translated&&(source.translator??"").trim()!==""&&
+  source.translation_rights==="public_domain";
  if(decision.verdict!=="approved"||decision.territory!=="CZ/EU"||
   source.identity_match!=="confirmed"||source.language_match!=="matches"||
   source.original_rights!=="public_domain"||source.source_terms!=="cleared"||
-  source.translation_status!=="original"||(source.translator??"").trim()!==""||
-  source.translation_rights!=="not_applicable"||source.illustration_use!=="excluded")
+  source.illustration_use!=="excluded"||!(originalCleared||translationCleared))
   refuse("legal_components_not_cleared_for_text_only");
  if(receipt.readback_status!=="sha256_verified"||!shaValid(receipt.sha256)||
   i.archivedSha256!==receipt.sha256||i.mirrorSha256!==receipt.sha256||
@@ -95,7 +101,7 @@ export function verifyAutomaticEdition(i:AutomaticEditionInput):AutomaticEdition
   i.imageCount!==receipt.embedded_images)
   refuse("epub_manifest_incomplete_or_mismatch");
  if(i.textCheck.status!=="no_explicit_notice"||i.textCheck.scope!=="complete"||
-  i.textCheck.translationCredit||i.textCheck.notice)
+  (i.textCheck.translationCredit&&!translated)||i.textCheck.notice)
   refuse("text_contains_unresolved_credits_or_rights");
  let prior:StoredEvidence;
  try{
@@ -107,7 +113,7 @@ export function verifyAutomaticEdition(i:AutomaticEditionInput):AutomaticEdition
   prior!.gutenbergId!==id||
   !["yes_without_illustrations","yes_with_illustrations"].includes(prior!.outcome??"")||
   prior!.text?.status!=="public_domain"||
-  prior!.translation?.status!=="not_applicable"||
+  prior!.translation?.status!==(translated?"public_domain":"not_applicable")||
   !Array.isArray(prior!.text?.people)||!prior!.text!.people!.length||
   prior!.text!.people!.length>12)
   refuse("approved_legal_audit_incomplete");
@@ -124,6 +130,32 @@ export function verifyAutomaticEdition(i:AutomaticEditionInput):AutomaticEdition
    refuse("text_creator_identity_role_or_death_unverified");
   return {name:p.name!,died:p.died!,role:role!,source:rdfUrl};
  });
+ // A translation is a separate copyrighted text contribution. Verify every
+ // translator against the already approved immutable RDF evidence. The text
+ // scanner may report "Translated by"; that is expected only for this branch.
+ const rawTranslators=prior!.translation?.people;
+ let translators:VerifiedTranslatorEvidence[]=[];
+ if(translated){
+  if(!Array.isArray(rawTranslators)||rawTranslators.length<1||rawTranslators.length>12)
+   refuse("translation_approval_evidence_incomplete");
+  translators=rawTranslators.map(p=>{
+   if((p.role!=="překladatel"&&p.role!=="translator")||
+      typeof p.name!=="string"||!p.name.trim()||
+      !Number.isInteger(p.died)||p.source!==rdfUrl||
+      deathTerm(p.died??null,i.year)!=="public_domain")
+    refuse("translation_approval_evidence_incomplete");
+   return {name:p.name!,died:p.died!,role:"translator" as const,source:rdfUrl};
+  });
+  const recordedNames=(source.translator??"").split(";").map(p=>p.trim()).filter(Boolean);
+  if(recordedNames.length!==translators.length||
+     recordedNames.some(name=>!translators.some(p=>samePerson(name,p.name)))||
+     new Set(translators.map(p=>normalized(p.name).join(":"))).size!==translators.length||
+     (source.translator_died!==null&&
+      (translators.length!==1||source.translator_died!==translators[0].died)))
+   refuse("translation_approval_evidence_incomplete");
+ }else if(Array.isArray(rawTranslators)&&rawTranslators.length){
+  refuse("translation_approval_evidence_incomplete");
+ }
  // Never let one cleared contributor mask another protected/unknown contributor.
  if(new Set(textCreators.map(creatorKey)).size!==textCreators.length)
   refuse("duplicate_text_creator_evidence");
@@ -145,10 +177,19 @@ export function verifyAutomaticEdition(i:AutomaticEditionInput):AutomaticEdition
   refuse("prescreen_death_conflicts_with_legal_evidence");
  if(i.liveRdf.checked&&i.liveRdf.usStatus==="restricted")
   refuse("gutenberg_live_rights_restriction");
- if(i.liveRdf.contributors.some(x=>/marcrel:trl$/.test(x.role)))
+ const liveTranslatorEntries=i.liveRdf.contributors.filter(p=>p.role==="marcrel:trl");
+ if(!translated&&liveTranslatorEntries.length)
   refuse("live_rdf_translation_requires_separate_clearance");
+ if(!i.liveRdf.checked&&liveTranslatorEntries.length)
+  refuse("live_rdf_translation_identity_conflict");
  let rightsEvidenceSource:AutomaticEditionEvidence["rightsEvidenceSource"]="approved_locked_gutenberg_rdf_evidence";
  if(i.liveRdf.checked){
+  if(translated){
+   const approved=translators.map(p=>normalized(p.name).join(":")+":"+p.died).sort();
+   const live=liveTranslatorEntries.map(p=>normalized(p.name).join(":")+":"+String(p.died)).sort();
+   if(JSON.stringify(approved)!==JSON.stringify(live))
+    refuse("live_rdf_translation_identity_conflict");
+  }
   const liveCreators:TextCreatorEvidence[]=i.liveRdf.contributors
    .flatMap(p=>{
     const role=rdfRole(p.role);
@@ -173,8 +214,9 @@ export function verifyAutomaticEdition(i:AutomaticEditionInput):AutomaticEdition
   byteCount:receipt.byte_count,spineDocuments:i.spineDocuments,textCharacters:i.textCharacters,
   privateImages:i.imageCount,author:candidate.proposed_author_name,
   authorDied:candidateCreator?.died??null,
-  publicDomainFrom:Math.max(...textCreators.map(p=>p.died))+71,
-  textCreators,contributorNameMatch:candidateCreatorMatch??"collective",territory:"CZ/EU",
+  publicDomainFrom:Math.max(...textCreators.map(p=>p.died),...translators.map(p=>p.died))+71,
+  textCreators,translators,translation:translated?"public_domain_translation":"original",
+  contributorNameMatch:candidateCreatorMatch??"collective",territory:"CZ/EU",
   rightsEvidenceSource,rightsEvidenceUrl:"https://www.gutenberg.org/ebooks/"+id+".rdf",
   textScan:"no_explicit_notice",images:"exclude_all",
   historicalImprints:i.textCheck.historicalImprints??[],
@@ -187,13 +229,17 @@ export function formatAutomaticEditionAudit(e:AutomaticEditionEvidence):string{
  "Schválený právní lock "+e.legalDecisionNo+"; "+e.territory+";",
  "ověření textových tvůrců: "+e.textCreators.map(p=>
   p.role+" "+p.name+" († "+p.died+")").join("; ")+
-  "; ochranné lhůty všech doložených osob uplynuly nejpozději 1. 1. "+e.publicDomainFrom+".",
+  "; ochranné lhůty textových tvůrců a překladatelů uplynuly nejpozději 1. 1. "+e.publicDomainFrom+".",
+ e.translation==="public_domain_translation"
+  ?"Překlad: "+e.translators.map(p=>p.name+" († "+p.died+")").join("; ")+
+   "; práva každého překladatele prověřena proti zamčenému RDF auditu."
+  :"Původní text bez zjištěného překladu.",
  "Bibliografický důkaz "+e.rightsEvidenceUrl+" ("+e.rightsEvidenceSource+").",
  "Podoba katalogového jména: "+e.contributorNameMatch+".",
  "Nezávislé bajtové porovnání: soukromý EPUB = čerstvě získaný mirror;",
  "SHA-256 "+e.editionSha256+"; "+e.byteCount+" bajtů.",
  e.spineDocuments+" dokumentů, "+e.textCharacters+" znaků, text SHA-256 "+e.sourceTextSha256+".",
- "Kompletní sken textu bez zjištěného zvláštního omezení nebo překladu.",
+ "Kompletní sken textu bez zjištěného zvláštního omezení; překlad vyžaduje doložené samostatné oprávnění.",
  e.historicalImprints.length
   ?"Historická vydavatelská označení posouzena podle schváleného roku vydání: "+
     e.historicalImprints.join("; ")+"."
