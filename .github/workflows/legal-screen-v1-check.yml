@@ -25,7 +25,7 @@ on:
       - 'app/member/legal/page.tsx'
       - 'components/legal/**'
       - 'lib/legal/**'
-      - 'ops/sql/20261110_artales_gutenberg_risk_acceptance.sql'
+      - 'supabase/migrations/20261110113500_artales_gutenberg_risk_acceptance.sql'
       - 'tests/candidateWorkflowStage.test.ts'
       - 'lib/editorial/candidateWorkflowStage.ts'
       - 'tests/legal-*.test.ts'
