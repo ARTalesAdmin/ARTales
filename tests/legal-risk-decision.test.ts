@@ -40,7 +40,7 @@ test("file identity and text-only exclusion remain mandatory",()=>{
 test("risk consent route remains permission-bound and linked to immutable DB acceptance",async()=>{
  const {readFileSync}=await import("node:fs");
  const route=readFileSync("app/member/candidates/[id]/legal/accept-risk/route.ts","utf8");
- const sql=readFileSync("ops/sql/20261110_artales_gutenberg_risk_acceptance.sql","utf8");
+ const sql=readFileSync("supabase/migrations/20261110113500_artales_gutenberg_risk_acceptance.sql","utf8");
  assert.match(route,/canProgressCandidate/);
  assert.match(route,/input\.confirm!==true/);
  assert.match(route,/candidate_legal_risk_acceptances/);
