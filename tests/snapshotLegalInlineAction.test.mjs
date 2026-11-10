@@ -5,10 +5,10 @@ const legal=readFileSync("app/member/candidates/[id]/legal/page.tsx","utf8");
 const panel=readFileSync("components/snapshot/SnapshotActionPanel.tsx","utf8");
 const snapshot=readFileSync("app/member/snapshot/[candidateId]/page.tsx","utf8");
 const state=readFileSync("lib/ingest/server/getCandidateSnapshotState.ts","utf8");
-test("legal detail renders the Snapshot action only on a locked source with enabled flag",()=>{
+test("legal detail shows one next-step link; archive POST remains on Snapshot",()=>{
  assert.match(legal,/lock&&SNAPSHOT_GENERAL_V1_ENABLED\?await getCandidateSnapshotState\(id\):null/);
- assert.match(legal,/snapshotState\?<><SnapshotActionPanel|snapshotState\?<\>/);
- assert.match(legal,/canArchive=\{canProgress\}/);
+ assert.match(legal,/href=\{"\/member\/snapshot\/"\+id\}/);
+ assert.match(snapshot,/canArchive=\{canProgress\}/);
  assert.match(legal,/canProgressCandidate\(id,profile\)/);
 });
 test("the shared action starts a private-only POST with clear informed action text",()=>{

@@ -28,20 +28,19 @@ export default async function SnapshotCandidate({params,searchParams}:{params:Pr
   <p className="ca-links"><Link href={`/member/legal/${candidateId}`}>← Právní screen</Link></p>
   {query.result==="archived"?<p role="status" className="ca-success">Snapshot byl bezpečně uložen a jeho SHA-256 ověřeno. Následuje kontrola obsahu edice.</p>:null}
   {query.result==="already_archived"?<p role="status" className="ca-success">Tento titul už má uložený Snapshot; žádný nový soubor nevznikl.</p>:null}
-  <section className="ca-card"><h2>Příprava textového vydání</h2>
+  {receipt&&canProgress?<section className="ca-card">
+   <p className="ca-eyebrow">Zdroj připraven</p>
+   <h2>Další krok: redakční příprava</h2>
+   <AutomaticSnapshotCompose candidateId={candidateId} autoStart={query.result==="archived"}/>
+  </section>:null}
+  {!receipt?<section className="ca-card"><h2>Příprava textového vydání</h2>
    <SnapshotActionPanel candidateId={candidateId} state={state} canArchive={canProgress}/>
-  </section>
-  {receipt&&profile.role==="admin"?<details className="ca-card"><summary>Technické důkazy (administrátor)</summary>
+  </section>:null}
+  {receipt&&profile.role==="admin"?<details className="ca-card"><summary>Archiv a technické důkazy (administrátor)</summary>
+   <SnapshotActionPanel candidateId={candidateId} state={state} canArchive={false}/>
    <p>SHA-256 původního archivu, integrita souboru a evidence obrazových součástí.</p>
    <a href={"/api/member/snapshot/"+candidateId+"/technical-evidence"} target="_blank" rel="noopener noreferrer">Zobrazit technický protokol (JSON)</a>
   </details>:null}
-  {receipt&&canProgress?<section className="ca-card">
-   <h2>Další krok: redakční příprava</h2>
-   <p>Systém naváže na poslední ověřený krok. Pokud již bloky existují, otevře
-   redakční kartu. Jinak ověří archiv a právní zdroj a vytvoří bloky a úkoly.
-   Při problému ukáže konkrétní důvod; nic automaticky nezveřejní.</p>
-   <AutomaticSnapshotCompose candidateId={candidateId} autoStart={query.result==="archived"}/>
-  </section>:null}
   {receipt&&canProgress&&profile.role==="admin"?<details className="ca-card"><summary>Záložní ruční kontrola vydání (administrátor)</summary><h2>Ruční kontrola literární shody</h2>
     <p>Ruční posouzení slouží pouze pro výjimečné případy, nemění uzamčený právní audit ani automatické kontroly.</p>
     <p>Originál SHA-256: <code>{receipt.sha256}</code>. Soukromě archivované ilustrace: {receipt.embedded_images}.</p>

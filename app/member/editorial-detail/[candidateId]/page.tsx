@@ -9,6 +9,7 @@ import {canAssignCandidate} from "@/lib/editorial/candidateAuthority";
 import {completeSemanticTask,publishSemanticCandidate} from "@/app/member/editorial-pipeline/actions";
 import {assessEditorialRelease} from "@/lib/editorial/releaseReadiness";
 import {slugify} from "@/lib/slug";
+import {uniqueExistingAuthor} from "@/lib/editorial/existingAuthorMatch";
 import CandidateCoverInput from "@/components/editor/CandidateCoverInput";
 import CandidateBilingualAnnotationFields from "@/components/editor/CandidateBilingualAnnotationFields";
 import "@/components/editor/editorial-workspace.css";
@@ -88,8 +89,10 @@ export default async function CandidateEditorialDetail({params,searchParams}:{
   cover_image_path:null,cover_image_alt:null,cover_image_caption:null};
  const authors=authorsRes.data??[];
  const collections=collectionsRes.data??[];
- const author=authors.find(a=>a.id===metadata.author_id);
- const recommendedAuthorId=metadata.author_id??(authors.some(a=>a.id===err.createdAuthorId)?err.createdAuthorId:"");
+ const existingAuthor=uniqueExistingAuthor(candidate.proposed_author_name,authors);
+ const resolvedAuthorId=metadata.author_id??existingAuthor?.id??null;
+ const author=authors.find(a=>a.id===resolvedAuthorId);
+ const recommendedAuthorId=metadata.author_id??existingAuthor?.id??(authors.some(a=>a.id===err.createdAuthorId)?err.createdAuthorId:"");
  const collection=collections.find(c=>c.id===metadata.collection_id);
  const recommendedCollectionId=metadata.collection_id??(collections.some(c=>c.id===err.createdCollectionId)?err.createdCollectionId:"");
  const byKind=(kind:string)=>tasks.find(t=>t.kind===kind);
@@ -331,6 +334,7 @@ export default async function CandidateEditorialDetail({params,searchParams}:{
       <div className="ed-card__statuses">{entryStatus(Boolean(author))}</div>
      </div>
      <div className="ed-card__body">
+      {existingAuthor&&!metadata.author_id?<p className="ed-quiet">Existující autor nalezen: <strong>{existingAuthor.name}</strong>. Není potřeba zakládat druhý profil. Propojíme jej při zahájení práce na autorovi.</p>:null}
       {canEditAuthor?<form className="ed-card__form" action={saveCandidateEditorialField}>
        <input type="hidden" name="candidate_id" value={candidateId}/>
        <input type="hidden" name="field" value="author"/>
@@ -343,7 +347,7 @@ export default async function CandidateEditorialDetail({params,searchParams}:{
        <button className="ed-button" type="submit">Uložit autora ↗</button>
       </form>:<p className="ed-quiet">Změny může ukládat pověřený editor tohoto úkolu.</p>}
       <div className="ed-inline-links">
-       {author?<Link className="ed-inline-link" href={"/member/authors/"+author.slug+"/edit"}>Upravit profil autora ↗</Link>:
+       {author?<Link className="ed-inline-link" href={"/member/authors/"+author.slug+"/edit"}>Upravit existující profil autora ↗</Link>:
        <Link className="ed-inline-link" href={"/member/authors/new?returnTo="+encodeURIComponent("/member/editorial-detail/"+candidateId)}>
         + Založit chybějícího autora</Link>}
       </div>
