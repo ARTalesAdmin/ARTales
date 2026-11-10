@@ -89,6 +89,33 @@ export async function POST(_req:Request,{params}:{params:Promise<{id:string}>}){
   const rationale="Automaticky připravený komponentní právní screen: "+facts.reason+"; "+facts.author.status+"; "+facts.translation.status+"; kontrola textu: "+textCheck.status+"; "+(textCheck.notice??textCheck.explanation).slice(0,230)+ ". Výsledek datací: "+check.outcome+".";
   const decision=await db.from("candidate_legal_decisions").insert({candidate_id:id,source_id:sourceId,verdict:"needs_evidence",territory:"CZ/EU",rationale,reviewed_by:profile.id}).select("decision_no,recorded_at").single();
   if(decision.error)return NextResponse.json({error:"cannot_save_audit"},{status:500});
-  return NextResponse.json({sourceId,decisionNo:decision.data.decision_no,bookId:book.id,title:book.title,file,componentFacts:facts,check,recommendation,recommendationReason,textCheck,epub,rights,openLibrary,alternativeCount:found.matches.length-1,recordedAt:decision.data.recorded_at},{headers:{"Cache-Control":"private, no-store"}});
+  // The screening protocol advances only candidates that meet the recorded
+  // text-only criteria. No additional manual confirmation for that outcome.
+  // Unresolved cases keep a durable needs_evidence record, not an approval.
+  let autoApproved=false,autoLocked=false;
+  if(check.outcome==="yes_without_illustrations"&&
+     payload.original_rights==="public_domain"&&
+     ["original","translated"].includes(payload.translation_status)&&
+     ["not_applicable","public_domain"].includes(payload.translation_rights)&&
+     payload.source_terms==="cleared"&&
+     payload.language_match==="matches"&&file.format==="epub"){
+   const approved=await db.from("candidate_legal_decisions").insert({
+    candidate_id:id,source_id:sourceId,verdict:"approved",territory:"CZ/EU",
+    rationale:"Automatické textové schválení podle zaznamenaných údajů Gutenbergu: identita díla, lhůty uvedených textových tvůrců a překladatelů, žádné zjištěné výslovné omezení; ilustrace vyloučeny. Původní audit #"+decision.data.decision_no+".",
+    reviewed_by:profile.id
+   }).select("decision_no").single();
+   if(approved.error)
+    return NextResponse.json({error:"automatic_approval_failed",decisionNo:decision.data.decision_no},{status:409});
+   autoApproved=true;
+   const legalLock=await db.from("candidate_legal_locks").insert({
+    candidate_id:id,source_id:sourceId,decision_no:approved.data.decision_no,
+    locked_by:profile.id,source_url:"https://placeholder.invalid",
+    download_url:"https://placeholder.invalid",source_facts:{},illustrations:[]
+   });
+   if(legalLock.error)
+    return NextResponse.json({error:"automatic_lock_failed",decisionNo:approved.data.decision_no},{status:409});
+   autoLocked=true;
+  }
+  return NextResponse.json({sourceId,decisionNo:decision.data.decision_no,bookId:book.id,title:book.title,file,componentFacts:facts,check,recommendation,recommendationReason,textCheck,epub,rights,openLibrary,alternativeCount:found.matches.length-1,recordedAt:decision.data.recorded_at,autoApproved,autoLocked},{headers:{"Cache-Control":"private, no-store"}});
  }catch{return NextResponse.json({error:"catalog_unavailable"},{status:503})}
 }
