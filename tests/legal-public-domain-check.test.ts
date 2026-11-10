@@ -26,10 +26,10 @@ test("historical edited collection Lang #540 is text-only eligible without image
  const a=assessPublicDomain({book:b,rights:rights540,prescreenDeath:1912,candidateAuthor:"Andrew Lang",originalPublicationYear:1890,textCheck:text,epub,year:2026});
  assert.equal(a.outcome,"yes_without_illustrations");
 });
-test("documented expired illustrator with image inventory permits images",()=>{
+test("even documented old illustrations stay excluded from the text-only workflow",()=>{
  const r=rights(1947);r.contributors.push({role:"marcrel:ill",name:"Historical Illustrator",died:1920});
  const a=assessPublicDomain({book:book(1947),rights:r,prescreenDeath:null,candidateAuthor:"Arthur Machen",originalPublicationYear:1894,textCheck:text,epub:{...epub,checked:true,imageCount:2},year:2026});
- assert.equal(a.outcome,"yes_with_illustrations");
+ assert.equal(a.outcome,"yes_without_illustrations");
 });
 test("express rights notice overrides expired author term",()=>{
  const a=assessPublicDomain({book:book(1947),rights:rights(1947),prescreenDeath:null,candidateAuthor:"Arthur Machen",originalPublicationYear:1894,textCheck:{...text,status:"possible_restriction",notice:"used by permission"},epub,year:2026});
