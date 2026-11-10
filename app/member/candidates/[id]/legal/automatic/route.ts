@@ -26,7 +26,7 @@ export async function POST(_req:Request,{params}:{params:Promise<{id:string}>}){
   const found=await getMatchingGutenberg(c.proposed_title,c.proposed_author_name);
   if(!found.selected)return NextResponse.json({error:"no_verified_file",matches:found.matches.map(b=>({id:b.id,title:b.title,url:b.catalogUrl}))},{status:422});
   const book=found.selected;
-  const file=book.files.find(f=>f.format==="html")??book.files.find(f=>f.format==="plain_text")??book.files[0];
+  const file=book.files.find(f=>f.format==="epub")??book.files.find(f=>f.format==="html")??book.files.find(f=>f.format==="plain_text")??book.files[0];
   const year=Number((c.prescreen_metadata as {authorDied?:number}|null)?.authorDied);
   const prescreenDeath=Number.isInteger(year)&&year>=1000&&year<=2026?year:null;
   const rights=await getGutenbergRights(book);
@@ -39,17 +39,17 @@ export async function POST(_req:Request,{params}:{params:Promise<{id:string}>}){
   const illustrators=rolePeople(["ill","art"]);
   const enriched={...book,authors:mergedPeople,translators:translators.length?translators:book.translators};
   // Language equality is indicative only; translator credits take precedence.
-  const originalLanguageConfirmed=false; // Language alone cannot establish that a particular edition is not translated.
+  const originalLanguageConfirmed=!enriched.translators.length; // No listed translator; explicit text credits still take precedence.
   const facts=legalFacts(enriched,2026,prescreenDeath,{originalLanguageConfirmed,illustrators,usStatus:rights.usStatus});
   // US status is evidence only; retain CZ/EU source clearance as a distinct unresolved decision.
   const [textCheck,epub]=await Promise.all([checkGutenbergText(book),inspectGutenbergEpub(book)]);
   const rawFirstPublished=Number((c.prescreen_metadata as {firstPublished?:number}|null)?.firstPublished);
   const firstPublication=openLibrary?.firstPublishYear??(Number.isInteger(rawFirstPublished)&&rawFirstPublished>=1400&&rawFirstPublished<=2026?rawFirstPublished:null);
   const check=assessPublicDomain({book:enriched,rights,prescreenDeath,candidateAuthor:c.proposed_author_name,originalPublicationYear:firstPublication,textCheck,epub,year:2026});
-  const textRestriction=textCheck.status==="possible_restriction"||!!epub.notice;
+  const textRestriction=textCheck.status==="possible_restriction"||!!epub.notice||rights.usStatus==="restricted";
   const translationUnresolved=enriched.translators.length>0?facts.translation.status!=="likely_public_domain":epub.translationCredit||textCheck.translationCredit;
-  const recommendation=facts.author.status==="protected"?"exclude":
-   facts.author.status!=="likely_public_domain"||textRestriction||translationUnresolved?"review":
+  const recommendation=check.outcome==="no"?"review":
+   textRestriction||translationUnresolved?"review":
    "text_only";
   const recommendationReason=recommendation==="text_only"
    ?"Ochranná doba původního autora uplynula. Doporučen pouze původní text bez ilustrací; před uzamčením potvrdit shodu konkrétního souboru a nepřítomnost překladu."
@@ -68,7 +68,7 @@ export async function POST(_req:Request,{params}:{params:Promise<{id:string}>}){
    translator_died:enriched.translators.length===1?enriched.translators[0].died:null,
    text_format:file.format,identity_match:"confirmed",language_match:check.text.status==="public_domain"?"matches":"uncertain",
    completeness:"unknown",text_quality:"unknown",original_rights:check.text.status==="public_domain"?"public_domain":"unknown",
-   translation_rights:check.translation.status==="not_applicable"?"not_applicable":check.translation.status==="public_domain"?"public_domain":"unknown",illustration_use:check.outcome==="yes_with_illustrations"?"public_domain":"excluded",source_terms:check.gutenbergUsStatus==="public_domain"&&check.sourceTextStatus!=="possible_restriction"?"cleared":"unknown",
+   translation_rights:check.translation.status==="not_applicable"?"not_applicable":check.translation.status==="public_domain"?"public_domain":"unknown",illustration_use:"excluded",source_terms:rights.usStatus!=="restricted"&&check.sourceTextStatus!=="possible_restriction"&&!epub.notice?"cleared":"unknown",
    evidence_url:book.catalogUrl,notes:compactCheckEvidence(check),
    created_by:profile.id,updated_by:profile.id
   };
