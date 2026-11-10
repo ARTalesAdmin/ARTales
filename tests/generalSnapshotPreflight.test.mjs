@@ -33,5 +33,5 @@ test("route may resume only original claim with an exact SHA-256 comparison",()=
  assert.match(route,/snapshot_recovery_existing_object_needs_readback/);
  assert.match(route,/upsert: false|archiveRawSource/);
  assert.match(state,/recoverableClaim:Boolean/);
- assert.match(panel,/Bezpečně dokončit Snapshot/);
+ assert.match(panel,/Dokončit přípravu/);
 });
