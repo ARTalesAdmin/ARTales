@@ -138,7 +138,7 @@ export function verifyAutomaticEdition(i:AutomaticEditionInput):AutomaticEdition
  if(translated){
   if(!Array.isArray(rawTranslators)||rawTranslators.length<1||rawTranslators.length>12)
    refuse("translation_approval_evidence_incomplete");
-  translators=rawTranslators.map(p=>{
+  translators=(rawTranslators??[]).map(p=>{
    if((p.role!=="překladatel"&&p.role!=="translator")||
       typeof p.name!=="string"||!p.name.trim()||
       !Number.isInteger(p.died)||p.source!==rdfUrl||
