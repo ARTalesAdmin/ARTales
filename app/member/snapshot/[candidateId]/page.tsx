@@ -28,15 +28,15 @@ export default async function SnapshotCandidate({params,searchParams}:{params:Pr
   <p className="ca-links"><Link href={`/member/legal/${candidateId}`}>← Právní screen</Link></p>
   {query.result==="archived"?<p role="status" className="ca-success">Snapshot byl bezpečně uložen a jeho SHA-256 ověřeno. Následuje kontrola obsahu edice.</p>:null}
   {query.result==="already_archived"?<p role="status" className="ca-success">Tento titul už má uložený Snapshot; žádný nový soubor nevznikl.</p>:null}
-  <section className="ca-card"><h2>Archiv původního vydání</h2>
+  <section className="ca-card"><h2>Příprava textového vydání</h2>
    <SnapshotActionPanel candidateId={candidateId} state={state} canArchive={canProgress}/>
   </section>
-  {receipt?<section className="ca-card"><h2>Technické důkazy archivního EPUBu</h2>
-   <p>Ověření skutečných bajtů originálu, SHA-256, pořadí dokumentů a seznamu obrazových součástí. Výsledek sám o sobě nepotvrzuje právní stav ani obsahovou shodu edice.</p>
-   <p><a href={"/api/member/snapshot/"+candidateId+"/technical-evidence"} target="_blank" rel="noopener noreferrer">Ověřit originál a zobrazit technický protokol (JSON)</a></p>
-  </section>:null}
+  {receipt&&profile.role==="admin"?<details className="ca-card"><summary>Technické důkazy (administrátor)</summary>
+   <p>SHA-256 původního archivu, integrita souboru a evidence obrazových součástí.</p>
+   <a href={"/api/member/snapshot/"+candidateId+"/technical-evidence"} target="_blank" rel="noopener noreferrer">Zobrazit technický protokol (JSON)</a>
+  </details>:null}
   {receipt&&canProgress?<section className="ca-card">
-   <h2>Pokračovat v automatickém zpracování</h2>
+   <h2>Další krok: redakční příprava</h2>
    <p>Systém naváže na poslední ověřený krok. Pokud již bloky existují, otevře
    redakční kartu. Jinak ověří archiv a právní zdroj a vytvoří bloky a úkoly.
    Při problému ukáže konkrétní důvod; nic automaticky nezveřejní.</p>
