@@ -207,3 +207,45 @@ test("an unexpected credited translator blocks an approved original",()=>{
  });
  assert.throws(()=>verifyAutomaticEdition(d),/live_rdf_translation_requires_separate_clearance/);
 });
+
+function uncertainHistoricalExample(){
+ const d=example();
+ const audit=JSON.parse(d.source.notes);
+ audit.outcome="no";
+ audit.text.status="unknown";
+ audit.text.people[0].died=null;
+ audit.sourceTextStatus="not_checked";
+ audit.originalPublicationYear=null;
+ d.source.notes=JSON.stringify(audit);
+ d.source.author_died=null;
+ d.source.original_rights="unknown";
+ d.source.source_terms="unknown";
+ d.decision.rationale="ARTALES_RISK_ACCEPTED_V1: recorded actor-bound consent";
+ d.riskAccepted=true;
+ d.textCheck.status="not_checked";
+ d.textCheck.scope="partial";
+ d.liveRdf={...d.liveRdf,checked:false,people:[],contributors:[]};
+ return d;
+}
+test("risk accepted explicitly permits preparation with unresolved death date, never claims verified rights",()=>{
+ const d=uncertainHistoricalExample();
+ const e=verifyAutomaticEdition(d);
+ assert.equal(e.riskAccepted,true);
+ assert.equal(e.publicDomainFrom,null);
+ assert.equal(e.publicationAuthorized,false);
+ assert.match(formatAutomaticEditionAudit(e),/NEJISTOTA PŘIJATA/);
+});
+test("missing independent consent record never masquerades as approved rights",()=>{
+ const d=uncertainHistoricalExample();d.riskAccepted=false;
+ assert.throws(()=>verifyAutomaticEdition(d),AutomaticEditionHold);
+ const e=uncertainHistoricalExample();e.decision.rationale="Regular approval without risk marker";
+ assert.throws(()=>verifyAutomaticEdition(e),AutomaticEditionHold);
+});
+test("explicit rights restriction still blocks even with risk acceptance",()=>{
+ const d=uncertainHistoricalExample();d.source.source_terms="restricted";
+ assert.throws(()=>verifyAutomaticEdition(d),AutomaticEditionHold);
+ const e=uncertainHistoricalExample();e.textCheck.notice="Reprinted by permission";
+ assert.throws(()=>verifyAutomaticEdition(e),AutomaticEditionHold);
+ const f=uncertainHistoricalExample();f.liveRdf.checked=true;f.liveRdf.people=[{name:"Machen, Arthur",died:2000}];
+ assert.throws(()=>verifyAutomaticEdition(f),AutomaticEditionHold);
+});
