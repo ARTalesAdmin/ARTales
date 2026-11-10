@@ -25,6 +25,9 @@ on:
       - 'app/member/legal/page.tsx'
       - 'components/legal/**'
       - 'lib/legal/**'
+      - 'ops/sql/20261110_artales_gutenberg_risk_acceptance.sql'
+      - 'tests/candidateWorkflowStage.test.ts'
+      - 'lib/editorial/candidateWorkflowStage.ts'
       - 'tests/legal-*.test.ts'
       - 'tests/legal-*.test.mjs'
       - 'lib/ingest/automaticSnapshotEvidence.ts'
@@ -53,7 +56,7 @@ jobs:
       - name: Legal screen source contracts
         run: node --test tests/legal-screen-v1.contract.test.mjs
       - name: General legal-to-editorial pipeline regression
-        run: npx tsx --test tests/legal-decision-feedback.test.mjs tests/generalSnapshotAction.test.mjs tests/automaticSnapshotEvidence.test.mjs tests/editorialCandidateAuthorityRouting.test.mjs tests/composeTaskHandoff.test.mjs tests/legal-flow-selection.test.ts tests/legal-text-historical-imprints.test.ts tests/legal-bibliographic-contributor-identity.test.ts
+        run: npx tsx --test tests/legal-decision-feedback.test.mjs tests/generalSnapshotAction.test.mjs tests/automaticSnapshotEvidence.test.mjs tests/editorialCandidateAuthorityRouting.test.mjs tests/composeTaskHandoff.test.mjs tests/legal-flow-selection.test.ts tests/legal-text-historical-imprints.test.ts tests/legal-bibliographic-contributor-identity.test.ts tests/legal-risk-decision.test.ts tests/candidateWorkflowStage.test.ts
       - name: Edition decision tests
         run: npx tsx --test tests/legal-edition-recommendation.test.ts tests/legal-gutenberg-catalog.test.ts tests/legal-gutenberg-opds.test.ts
       - name: Live Gutenberg #389 integration smoke
