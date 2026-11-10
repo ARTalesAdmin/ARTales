@@ -97,7 +97,7 @@ BEGIN
      AND s.evidence_url IS NOT NULL
      AND length(btrim(s.notes))>=20
      AND length(btrim(NEW.rationale))>=30;
-   IF NOT strict_complete THEN
+   IF strict_complete IS DISTINCT FROM TRUE THEN
      risk_consent:=false;
      BEGIN
        audit:=s.notes::jsonb;
@@ -115,9 +115,12 @@ BEGIN
      END;
      IF NOT coalesce(risk_consent,false) OR
        NEW.rationale NOT LIKE 'ARTALES_RISK_ACCEPTED_V1:%' OR
-       s.source_kind<>'gutenberg' OR s.identity_match<>'confirmed' OR
-       s.language_match<>'matches' OR s.text_format<>'epub' OR
-       s.download_url IS NULL OR s.illustration_use<>'excluded' OR
+       s.source_kind IS DISTINCT FROM 'gutenberg' OR
+       s.identity_match IS DISTINCT FROM 'confirmed' OR
+       s.language_match IS DISTINCT FROM 'matches' OR
+       s.text_format IS DISTINCT FROM 'epub' OR
+       s.download_url IS NULL OR
+       s.illustration_use IS DISTINCT FROM 'excluded' OR
        s.original_rights='restricted' OR s.translation_rights='restricted' OR
        s.source_terms='restricted' OR
        coalesce(audit->>'schema','')<>'artales.public-domain-check.v1' OR
@@ -126,6 +129,42 @@ BEGIN
        audit->>'gutenbergUsStatus'='restricted' OR
        audit->>'sourceTextStatus'='possible_restriction' OR
        (audit->>'sourceTextNotice') IS NOT NULL OR
+       EXISTS (
+         SELECT 1 FROM pg_catalog.jsonb_array_elements(
+           CASE WHEN pg_catalog.jsonb_typeof(audit->'text'->'people')='array'
+            THEN audit->'text'->'people' ELSE '[]'::jsonb END
+         ) AS person
+         WHERE (person->>'died')~'^[0-9]{4}
+       length(btrim(NEW.rationale))<30 THEN
+       RAISE EXCEPTION 'legal_approval_missing_evidence_or_rights' USING ERRCODE='23514';
+     END IF;
+   END IF;
+ END IF;
+ RETURN NEW;
+END $function$;
+COMMIT;
+
+           AND (person->>'died')::integer + 70 >=
+             EXTRACT(YEAR FROM pg_catalog.now())::integer
+       ) OR
+       EXISTS (
+         SELECT 1 FROM pg_catalog.jsonb_array_elements(
+           CASE WHEN pg_catalog.jsonb_typeof(audit->'translation'->'people')='array'
+            THEN audit->'translation'->'people' ELSE '[]'::jsonb END
+         ) AS person
+         WHERE (person->>'died')~'^[0-9]{4}
+       length(btrim(NEW.rationale))<30 THEN
+       RAISE EXCEPTION 'legal_approval_missing_evidence_or_rights' USING ERRCODE='23514';
+     END IF;
+   END IF;
+ END IF;
+ RETURN NEW;
+END $function$;
+COMMIT;
+
+           AND (person->>'died')::integer + 70 >=
+             EXTRACT(YEAR FROM pg_catalog.now())::integer
+       ) OR
        length(btrim(NEW.rationale))<30 THEN
        RAISE EXCEPTION 'legal_approval_missing_evidence_or_rights' USING ERRCODE='23514';
      END IF;
