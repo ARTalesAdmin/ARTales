@@ -38,7 +38,11 @@ export default async function LegalScreen({params,searchParams}:{params:Promise<
   <p className="ca-links"><Link href="/member/legal">← Přehled právních screenů</Link> · <Link href={`/member/candidates/${id}`}>Kandidát</Link></p>
   {q.ok?<p role="status" className="ca-success">Rozhodnutí bylo úspěšně uloženo do historie. {latest?.verdict==="approved"?"Další krok: uzamkni schválený zdroj pro Snapshot.":"Další postup závisí na výsledku právního posouzení."}</p>:null}
   {q.error?<p role="alert" className="ca-error">Akci nelze dokončit; zkontroluj podklady nebo právní stav.</p>:null}
-  {!lock&&canProgress?<AutomaticLegalScreen candidateId={id}/>:<p role="status" className="ca-success">Právní posouzení je uzamčeno. Zdroj i rozhodnutí jsou připraveny k předání.</p>}
+  {!lock&&canProgress?<AutomaticLegalScreen candidateId={id}/>:lock?<section className="ca-card">
+   <p className="ca-eyebrow">Právní check dokončen</p><h2>Další krok: příprava textu</h2>
+   <p>Zdroj je připraven pro redakční zpracování.</p>
+   <Link href={"/member/snapshot/"+id} className="ca-btn ca-primary">Pokračovat →</Link>
+  </section>:null}
   {!lock&&canProgress&&profile.role==="admin"?<details className="ca-card"><summary>Záložní ruční právní posouzení (administrátor)</summary><LegalReviewActions candidateId={id} checks={checks} locked={false}/></details>:null}
   {canProgress&&!lock&&latest?.verdict==="approved"&&latest.source_id?<section className="ca-card" id="legal-next-step" aria-label="Další krok po schválení"><h2>Právní kontrola dokončena · pokračuj ke Snapshotu</h2>
    <p>Rozhodnutí je uložené v historii. Nyní uzamkni schválený zdroj, aby Snapshot převzal přesně tuto edici. K samotné archivaci dojde až v dalším kroku.</p>
@@ -47,13 +51,11 @@ export default async function LegalScreen({params,searchParams}:{params:Promise<
     <button className="ca-btn ca-primary" type="submit">Uzamknout a připravit pro Snapshot</button>
    </form>
   </section>:null}
-  {lock?<section className="ca-card"><h2>Snapshot původní edice</h2>
-    {snapshotState?<>
-      <SnapshotActionPanel candidateId={id} state={snapshotState} canArchive={canProgress}/>
-      <p className="ca-links"><Link href={`/member/snapshot/${id}`}>Detail a evidence Snapshotu</Link></p>
-    </>:<p>Právní zdroj je uzamčen. Obecná archivace čeká na schválenou aktivaci.</p>}
-    <a className="ca-btn ca-secondary" href={`/member/candidates/${id}/legal/report`}>Stáhnout předávací protokol (JSON)</a>
-   </section>:null}
+  {lock&&profile.role==="admin"?<details className="ca-card">
+   <summary>Evidence a technické podklady (administrátor)</summary>
+   {snapshotState?<SnapshotActionPanel candidateId={id} state={snapshotState} canArchive={false}/>:null}
+   <a className="ca-btn ca-secondary" href={`/member/candidates/${id}/legal/report`}>Stáhnout audit (JSON)</a>
+  </details>:null}
   {history.length?<details className="ca-card"><summary>Historie posouzení a rozhodnutí ({history.length})</summary>
    {history.map(h=><div key={h.decisionNo} style={{paddingBlock:8,borderBottom:"1px solid var(--artales-border)"}}>
     <strong>#{h.decisionNo} · {h.label}</strong> · {new Date(h.recordedAt).toLocaleString("cs-CZ")} · <a href={`/member/legal/${id}/audit/${h.decisionNo}`}>Stáhnout JSON</a>
