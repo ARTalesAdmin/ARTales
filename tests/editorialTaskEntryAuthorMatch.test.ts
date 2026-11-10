@@ -1,0 +1,39 @@
+import test from "node:test";
+import assert from "node:assert/strict";
+import {readFileSync} from "node:fs";
+import {uniqueExistingAuthor,matchesExistingAuthor} from "../lib/editorial/existingAuthorMatch";
+
+const authors=[
+ {id:"1",name:"Joseph Sheridan Le Fanu",name_en:"Joseph Sheridan Le Fanu"},
+ {id:"2",name:"Arthur Machen",name_en:null},
+ {id:"3",name:"Andrew Lang",name_en:"Andrew Lang"}
+];
+
+test("Carmilla: link the existing full author, never create a second profile",()=>{
+ assert.equal(uniqueExistingAuthor("Sheridan Le Fanu",authors)?.id,"1");
+ assert.equal(uniqueExistingAuthor("Arthur Machen",authors)?.id,"2");
+ assert.equal(matchesExistingAuthor("Le Fanu","Joseph Sheridan Le Fanu"),false);
+ assert.equal(uniqueExistingAuthor("Unknown Editor",authors),null);
+});
+test("ambiguous bylines must not auto-link",()=>{
+ const expanded=[...authors,{id:"4",name:"Thomas Sheridan Le Fanu",name_en:null}];
+ assert.equal(uniqueExistingAuthor("Sheridan Le Fanu",expanded),null);
+});
+test("the assigned task opens through claim-first server action",()=>{
+ const action=readFileSync("app/member/editorial-pipeline/actions.ts","utf8");
+ const page=readFileSync("app/member/editorial-pipeline/page.tsx","utf8");
+ assert.match(action,/export async function openAssignedEditorialTask/);
+ assert.match(action,/artales_claim_editorial_task/);
+ assert.match(action,/artales_save_candidate_editorial_field/);
+ assert.match(action,/uniqueExistingAuthor/);
+ assert.match(action,/artales_complete_editorial_task/);
+ assert.match(page,/mode==="mine"\?<form action=\{openAssignedEditorialTask\}/);
+});
+test("canonical migration retains actor gate and only admits unique byline matches",()=>{
+ const sql=readFileSync("supabase/migrations/20261110130000_artales_unique_existing_author_byline.sql","utf8");
+ assert.match(sql,/artales_save_candidate_editorial_field/);
+ assert.match(sql,/not_claimed/);
+ assert.match(sql,/count\(\*\)/);
+ assert.match(sql,/author_name_mismatch/);
+ assert.doesNotMatch(sql,/UPDATE public\.authors/);
+});
