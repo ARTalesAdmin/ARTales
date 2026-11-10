@@ -28,7 +28,7 @@ export default async function CandidatesPage({searchParams}:{searchParams:Promis
  const locked=new Set((locks??[]).map(l=>l.candidate_id));
  const latestDecision=new Map<string,string>();
  for(const d of decisions??[])if(!latestDecision.has(d.candidate_id))latestDecision.set(d.candidate_id,d.verdict);
- const archiveByCandidate=new Map((snapshots??[]).map(s=>[s.candidate_id,s.readback_status==="sha256_verified"?"verified":"attention" as const]));
+ const archiveByCandidate=new Map<string,"verified"|"attention">((snapshots??[]).map(s=>[s.candidate_id,s.readback_status==="sha256_verified"?"verified":"attention"]));
  const revisionIds=new Set((revisions??[]).map(r=>r.candidate_id));
  const publicationIds=new Set((publications??[]).map(p=>p.candidate_id));
  const rows=(data??[]).map(c=>{
