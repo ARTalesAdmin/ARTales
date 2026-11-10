@@ -14,7 +14,8 @@ export type AutomaticEditionInput={
   author_died:number|null;translator_died:number|null;translation_status:string;translator:string|null;translation_rights:string;
   original_rights:string;illustration_use:string;source_terms:string;language_code:string;
   identity_match:string;language_match:string;notes:string|null};
- decision:{source_id:string;decision_no:number;verdict:string;territory:string};
+ decision:{source_id:string;decision_no:number;verdict:string;territory:string;rationale?:string};
+ riskAccepted?:boolean;
  receipt:{source_id:string;decision_no:number;gutenberg_id:number;catalog_url:string;
   locked_file_url:string;sha256:string;byte_count:number;embedded_images:number;readback_status:string};
  archivedSha256:string;archivedBytes:number;
@@ -32,8 +33,8 @@ const normalized=(s:string):string[]=>s.normalize("NFKD").toLowerCase()
 const samePerson=(a:string,b:string)=>JSON.stringify(normalized(a))===JSON.stringify(normalized(b));
 const shaValid=(s:string)=>/^[a-f0-9]{64}$/.test(s);
 type TextCreatorRole="author"|"editor";
-type TextCreatorEvidence={name:string;died:number;role:TextCreatorRole;source:string};
-type VerifiedTranslatorEvidence={name:string;died:number;role:"translator";source:string};
+type TextCreatorEvidence={name:string;died:number|null;role:TextCreatorRole;source:string};
+type VerifiedTranslatorEvidence={name:string;died:number|null;role:"translator";source:string};
 type StoredEvidence={schema?:string;outcome?:string;gutenbergId?:number;
  text?:{status?:string;people?:Array<{name?:string;died?:number;role?:string;source?:string}>};
  translation?:{status?:string;people?:Array<{name?:string;died?:number;role?:string;source?:string}>};illustrations?:{status?:string}};
@@ -63,7 +64,8 @@ export type AutomaticEditionEvidence={
  sourceId:string;legalDecisionNo:number;gutenbergId:number;catalogUrl:string;
  mirrorUrl:string;editionSha256:string;sourceTextSha256:string;byteCount:number;
  spineDocuments:number;textCharacters:number;privateImages:number;
- author:string;authorDied:number|null;publicDomainFrom:number;territory:"CZ/EU";
+ author:string;authorDied:number|null;publicDomainFrom:number|null;territory:"CZ/EU";
+ riskAccepted:boolean;
  textCreators:TextCreatorEvidence[];translators:VerifiedTranslatorEvidence[];
  translation:"original"|"public_domain_translation";
  contributorNameMatch:"exact"|"abbreviated_given_names"|"collective";
@@ -82,6 +84,8 @@ export function verifyAutomaticEdition(i:AutomaticEditionInput):AutomaticEdition
   source.source_kind!=="gutenberg"||!source.download_url?.startsWith(url+".")||
   !samePerson(source.edition_title,candidate.proposed_title)||
   !Number.isInteger(i.year)||i.year<2020)refuse("edition_identity_mismatch");
+ const riskAccepted=i.riskAccepted===true&&
+  decision.rationale?.startsWith("ARTALES_RISK_ACCEPTED_V1:")===true;
  const translated=source.translation_status==="translated";
  const originalCleared=source.translation_status==="original"&&
   (source.translator??"").trim()===""&&source.translation_rights==="not_applicable";
@@ -89,8 +93,11 @@ export function verifyAutomaticEdition(i:AutomaticEditionInput):AutomaticEdition
   source.translation_rights==="public_domain";
  if(decision.verdict!=="approved"||decision.territory!=="CZ/EU"||
   source.identity_match!=="confirmed"||source.language_match!=="matches"||
-  source.original_rights!=="public_domain"||source.source_terms!=="cleared"||
-  source.illustration_use!=="excluded"||!(originalCleared||translationCleared))
+  source.illustration_use!=="excluded"||
+  source.original_rights==="restricted"||source.translation_rights==="restricted"||
+  source.source_terms==="restricted"||
+  (!riskAccepted&&(source.original_rights!=="public_domain"||
+    source.source_terms!=="cleared"||!(originalCleared||translationCleared))))
   refuse("legal_components_not_cleared_for_text_only");
  // Archive integrity is an engineering check, not a second copyright gate.
  // Gutenberg mirrors can serve a different EPUB variant (e.g. with images).
@@ -113,9 +120,9 @@ export function verifyAutomaticEdition(i:AutomaticEditionInput):AutomaticEdition
  }catch{refuse("approved_legal_audit_missing");}
  if(prior!.schema!=="artales.public-domain-check.v1"||
   prior!.gutenbergId!==id||
-  !["yes_without_illustrations","yes_with_illustrations"].includes(prior!.outcome??"")||
-  prior!.text?.status!=="public_domain"||
-  prior!.translation?.status!==(translated?"public_domain":"not_applicable")||
+  (!riskAccepted&&!["yes_without_illustrations","yes_with_illustrations"].includes(prior!.outcome??""))||
+  !["public_domain",...(riskAccepted?["unknown"]:[])].includes(prior!.text?.status??"")||
+  ![translated?"public_domain":"not_applicable",...(riskAccepted?["unknown","not_applicable","public_domain"]:[])].includes(prior!.translation?.status??"")||
   !Array.isArray(prior!.text?.people)||!prior!.text!.people!.length||
   prior!.text!.people!.length>12)
   refuse("approved_legal_audit_incomplete");
@@ -127,10 +134,11 @@ export function verifyAutomaticEdition(i:AutomaticEditionInput):AutomaticEdition
  const textCreators:TextCreatorEvidence[]=rawPeople.map(p=>{
   const role=approvedRole(p.role,legacyAuthor);
   if(!role||typeof p.name!=="string"||!p.name.trim()||
-     !Number.isInteger(p.died)||![rdfUrl,url].includes(p.source??"")||
-     deathTerm(p.died??null,i.year)!=="public_domain")
+     ![rdfUrl,url].includes(p.source??"")||
+     (deathTerm(p.died??null,i.year)!=="public_domain"&&
+      !(riskAccepted&&deathTerm(p.died??null,i.year)==="unknown")))
    refuse("text_creator_identity_role_or_death_unverified");
-  return {name:p.name!,died:p.died!,role:role!,source:rdfUrl};
+  return {name:p.name!,died:p.died??null,role:role!,source:p.source!};
  });
  // A translation is a separate copyrighted text contribution. Verify every
  // translator against the already approved immutable RDF evidence. The text
@@ -138,18 +146,21 @@ export function verifyAutomaticEdition(i:AutomaticEditionInput):AutomaticEdition
  const rawTranslators=prior!.translation?.people;
  let translators:VerifiedTranslatorEvidence[]=[];
  if(translated){
-  if(!Array.isArray(rawTranslators)||rawTranslators.length<1||rawTranslators.length>12)
+  if((!riskAccepted&&(!Array.isArray(rawTranslators)||rawTranslators.length<1))||
+     (rawTranslators?.length??0)>12)
    refuse("translation_approval_evidence_incomplete");
   translators=(rawTranslators??[]).map(p=>{
    if((p.role!=="překladatel"&&p.role!=="translator")||
       typeof p.name!=="string"||!p.name.trim()||
-      !Number.isInteger(p.died)||![rdfUrl,url].includes(p.source??"")||
-      deathTerm(p.died??null,i.year)!=="public_domain")
+      ![rdfUrl,url].includes(p.source??"")||
+      (deathTerm(p.died??null,i.year)!=="public_domain"&&
+       !(riskAccepted&&deathTerm(p.died??null,i.year)==="unknown")))
     refuse("translation_approval_evidence_incomplete");
-   return {name:p.name!,died:p.died!,role:"translator" as const,source:rdfUrl};
+   return {name:p.name!,died:p.died??null,role:"translator" as const,source:p.source!};
   });
   const recordedNames=(source.translator??"").split(";").map(p=>p.trim()).filter(Boolean);
-  if(recordedNames.length!==translators.length||
+  if((!riskAccepted&&recordedNames.length!==translators.length)||
+     (translators.length>0&&recordedNames.length!==translators.length)||
      recordedNames.some(name=>!translators.some(p=>samePerson(name,p.name)))||
      new Set(translators.map(p=>normalized(p.name).join(":"))).size!==translators.length||
      (source.translator_died!==null&&
@@ -180,8 +191,10 @@ export function verifyAutomaticEdition(i:AutomaticEditionInput):AutomaticEdition
  if(i.liveRdf.checked&&i.liveRdf.usStatus==="restricted")
   refuse("gutenberg_live_rights_restriction");
  const liveTranslatorEntries=i.liveRdf.contributors.filter(p=>p.role==="marcrel:trl");
- if(!translated&&liveTranslatorEntries.length)
+ if(!translated&&liveTranslatorEntries.length&&!riskAccepted)
   refuse("live_rdf_translation_requires_separate_clearance");
+ if(riskAccepted&&liveTranslatorEntries.some(p=>deathTerm(p.died,i.year)==="protected"))
+  refuse("live_rdf_translation_protected");
  if(!i.liveRdf.checked&&liveTranslatorEntries.length)
   refuse("live_rdf_translation_identity_conflict");
  let rightsEvidenceSource:AutomaticEditionEvidence["rightsEvidenceSource"]=
@@ -191,8 +204,10 @@ export function verifyAutomaticEdition(i:AutomaticEditionInput):AutomaticEdition
   if(translated){
    const approved=translators.map(p=>normalized(p.name).join(":")+":"+p.died).sort();
    const live=liveTranslatorEntries.map(p=>normalized(p.name).join(":")+":"+String(p.died)).sort();
-   if(JSON.stringify(approved)!==JSON.stringify(live))
+   if(!riskAccepted&&JSON.stringify(approved)!==JSON.stringify(live))
     refuse("live_rdf_translation_identity_conflict");
+   if(riskAccepted&&liveTranslatorEntries.some(p=>deathTerm(p.died,i.year)==="protected"))
+    refuse("live_rdf_translation_protected");
   }
   const liveCreators:TextCreatorEvidence[]=i.liveRdf.contributors
    .flatMap(p=>{
@@ -205,8 +220,15 @@ export function verifyAutomaticEdition(i:AutomaticEditionInput):AutomaticEdition
     name:p.name,died:p.died??NaN,role:"author" as const,source:rdfUrl
    })));
   if(liveCreators.length){
-   if(!sameCreators(textCreators,liveCreators))
-    refuse("live_rdf_contradicts_locked_legal_evidence");
+   if(!sameCreators(textCreators,liveCreators)){
+    // Under explicit risk acceptance, a missing historical date is not
+    // a contradiction; a different named creator or protected date is.
+    const identitiesMatch=riskAccepted&&liveCreators.length===textCreators.length&&
+     textCreators.every(old=>liveCreators.some(now=>creatorKey(old)===creatorKey(now)&&
+      deathTerm(now.died,i.year)!=="protected"&&
+      (old.died===null||old.died===now.died)));
+    if(!identitiesMatch)refuse("live_rdf_contradicts_locked_legal_evidence");
+   }
    rightsEvidenceSource="live_gutenberg_rdf";
   }
  }
@@ -218,8 +240,10 @@ export function verifyAutomaticEdition(i:AutomaticEditionInput):AutomaticEdition
   byteCount:receipt.byte_count,spineDocuments:i.spineDocuments,textCharacters:i.textCharacters,
   privateImages:i.imageCount,author:candidate.proposed_author_name,
   authorDied:candidateCreator?.died??null,
-  publicDomainFrom:Math.max(...textCreators.map(p=>p.died),...translators.map(p=>p.died))+71,
+  publicDomainFrom:[...textCreators,...translators].every(p=>p.died!==null)
+   ?Math.max(...textCreators.map(p=>p.died!),...translators.map(p=>p.died!))+71:null,
   textCreators,translators,translation:translated?"public_domain_translation":"original",
+  riskAccepted,
   contributorNameMatch:candidateCreatorMatch??"collective",territory:"CZ/EU",
   rightsEvidenceSource,rightsEvidenceUrl:[...textCreators,...translators].some(p=>p.source===url)?url:rdfUrl,
   textScan:i.textCheck.status==="no_explicit_notice"?"no_explicit_notice":"not_checked",images:"exclude_all",
@@ -233,11 +257,14 @@ export function formatAutomaticEditionAudit(e:AutomaticEditionEvidence):string{
  "Schválený právní lock "+e.legalDecisionNo+"; "+e.territory+";",
  "ověření textových tvůrců: "+e.textCreators.map(p=>
   p.role+" "+p.name+" († "+p.died+")").join("; ")+
-  "; ochranné lhůty textových tvůrců a překladatelů uplynuly nejpozději 1. 1. "+e.publicDomainFrom+".",
+  (e.publicDomainFrom===null
+   ?"; nejméně jedna datace zůstává nejistá; editor tuto nejistotu výslovně přijal."
+   :"; doložené ochranné lhůty uplynuly nejpozději 1. 1. "+e.publicDomainFrom+"."),
  e.translation==="public_domain_translation"
   ?"Překlad: "+e.translators.map(p=>p.name+" († "+p.died+")").join("; ")+
    "; práva každého překladatele prověřena proti zamčenému RDF auditu."
   :"Původní text bez zjištěného překladu.",
+ e.riskAccepted?"NEJISTOTA PŘIJATA OPRÁVNĚNÝM EDITOREM. Některé údaje nebyly ověřeny; nejde o právní jistotu.":"Bez výslovně přijatého rizika.",
  "Bibliografický důkaz "+e.rightsEvidenceUrl+" ("+e.rightsEvidenceSource+").",
  "Podoba katalogového jména: "+e.contributorNameMatch+".",
  "Integrita soukromě archivovaného EPUBu potvrzena proti původnímu Snapshot receipt.",
