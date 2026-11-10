@@ -28,9 +28,9 @@ export async function POST(_req:Request,{params}:{params:Promise<{id:string}>}){
   if(!found.selected)return NextResponse.json({error:"no_verified_file",matches:found.matches.map(b=>({id:b.id,title:b.title,url:b.catalogUrl}))},{status:422});
   const book=found.selected;
   const file=book.files.find(f=>f.format==="epub")??book.files.find(f=>f.format==="html")??book.files.find(f=>f.format==="plain_text")??book.files[0];
+  const currentYear=new Date().getUTCFullYear();
   const year=Number((c.prescreen_metadata as {authorDied?:number}|null)?.authorDied);
   const prescreenDeath=Number.isInteger(year)&&year>=1000&&year<=currentYear?year:null;
-  const currentYear=new Date().getUTCFullYear();
   const rights=await getGutenbergRights(book);
   const openLibrary=rights.people.some(p=>p.died===null)||!rights.people.length?await getOpenLibraryHint(book.title,c.proposed_author_name):null;
   const people=rights.people.length?rights.people:book.authors;
