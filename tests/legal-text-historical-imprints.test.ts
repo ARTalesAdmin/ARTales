@@ -9,12 +9,13 @@ test("historical copyright on original title page is retained as evidence and do
  assert.deepEqual(check.historicalImprints,["Copyright 1872"]);
  assert.equal(check.translationCredit,false);
 });
-test("without approved original edition year the identical line is held",()=>{
+test("unverified first-publication date does not make a historical standalone imprint an explicit prohibition",()=>{
  const check=scan("Copyright 1872\nThe text",{
   approvedOriginalPublicationYear:null,currentYear:2026
  });
- assert.equal(check.status,"possible_restriction");
- assert.equal(check.notice,"Copyright 1872");
+ assert.equal(check.status,"no_explicit_notice");
+ assert.equal(check.notice,null);
+ assert.deepEqual(check.historicalImprints,["Copyright 1872"]);
 });
 test("recent copyright and reproduction prohibition remain blocking",()=>{
  for(const sample of [
