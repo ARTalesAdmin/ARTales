@@ -41,7 +41,7 @@ export async function POST(req:Request,{params}:{params:Promise<{candidateId:str
  if(existingResult.data)return NextResponse.redirect(new URL("/member/editorial-detail/"+candidateId+"?composed=1#tasks",req.url),303);
  const candidate=candidateResult.data,lock=lockResult.data,receipt=receiptResult.data;
  const [src,decision,file]=await Promise.all([
-  db.from("candidate_legal_sources").select("id,source_kind,edition_title,source_url,download_url,author_died,translation_status,translator,translation_rights,original_rights,illustration_use,source_terms,language_code,identity_match,language_match,notes").eq("id",lock.source_id).eq("candidate_id",candidateId).maybeSingle(),
+  db.from("candidate_legal_sources").select("id,source_kind,edition_title,source_url,download_url,author_died,translator_died,translation_status,translator,translation_rights,original_rights,illustration_use,source_terms,language_code,identity_match,language_match,notes").eq("id",lock.source_id).eq("candidate_id",candidateId).maybeSingle(),
   db.from("candidate_legal_decisions").select("source_id,decision_no,verdict,territory").eq("candidate_id",candidateId).eq("decision_no",lock.decision_no).maybeSingle(),
   db.storage.from(receipt.storage_bucket).download(receipt.storage_path)
  ]);
