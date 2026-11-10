@@ -40,7 +40,7 @@ export default async function SnapshotCandidate({params,searchParams}:{params:Pr
    <p>Systém naváže na poslední ověřený krok. Pokud již bloky existují, otevře
    redakční kartu. Jinak ověří archiv a právní zdroj a vytvoří bloky a úkoly.
    Při problému ukáže konkrétní důvod; nic automaticky nezveřejní.</p>
-   <AutomaticSnapshotCompose candidateId={candidateId}/>
+   <AutomaticSnapshotCompose candidateId={candidateId} autoStart={query.result==="archived"}/>
   </section>:null}
   {receipt&&canProgress&&profile.role==="admin"?<details className="ca-card"><summary>Záložní ruční kontrola vydání (administrátor)</summary><h2>Ruční kontrola literární shody</h2>
     <p>Ruční posouzení slouží pouze pro výjimečné případy, nemění uzamčený právní audit ani automatické kontroly.</p>
