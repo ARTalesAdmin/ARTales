@@ -19,6 +19,7 @@ export function AutomaticLegalScreen({candidateId}:{candidateId:string}){
     setError(data.error==="no_verified_file"?"Nebyla ověřena žádná přesná verze stejného díla. Nejde o právní zamítnutí; otevři pokročilé zdroje.":data.error==="already_locked"?"Výsledek je již uzamčen.":"Katalog nebo audit momentálně nelze dokončit. Neproběhlo právní schválení.");
     return;
    }
+   if(data.autoLocked){router.push(`/member/snapshot/${candidateId}`);router.refresh();return;}
    setResult(data as Result);setState("success");router.refresh();
   }catch{setState("error");setError("Požadavek se nepodařilo dokončit.");}
  }
@@ -30,11 +31,11 @@ export function AutomaticLegalScreen({candidateId}:{candidateId:string}){
  const facts=result?.componentFacts;
  return <section className="ca-card ca-legal-auto">
   <h2>Automatický právní screen</h2>
-  <p>Metadata Gutenbergu, autorské lhůty a upozornění v textu. Nejasné složky zůstávají oddělené od použitelného původního textu.</p>
-  <button type="button" className="ca-btn ca-primary" onClick={run} disabled={state==="running"}>{state==="running"?"Vyhledávám, prověřuji a zapisuji…":"Provést právní screen"}</button>
+  <p>Ověříme dílo, autora a uvedené překladatele. Ilustrace automaticky vyřadíme z veřejného vydání. Když je vše doložené, přejdeme rovnou k přípravě textu.</p>
+  <button type="button" className="ca-btn ca-primary" onClick={run} disabled={state==="running"}>{state==="running"?"Vyhledávám, prověřuji a zapisuji…":"Ověřit dílo a pokračovat"}</button>
   {state==="error"?<p role="alert" className="ca-error">{error}</p>:null}
   {result&&facts?<div className="ca-legal-result" aria-live="polite">
-   <h3>{result.title} · {result.check?.outcome==="yes_with_illustrations"?"ANO s ilustracemi":result.check?.outcome==="yes_without_illustrations"?"ANO bez ilustrací":"NE – ověřit překážku"}</h3>
+   <h3>{result.title} · {result.check?.outcome==="yes_without_illustrations"?"Text vhodný k pokračování":"Vyžaduje rozhodnutí"}</h3>
    <p><strong>Zdroj:</strong> <a href={result.file.url} target="_blank" rel="noopener noreferrer">Gutenberg #{result.bookId} · {result.file.label}</a></p>
    <p><strong>Další krok:</strong> {result.check?.reason??result.recommendationReason??"Zkontrolovat nevyřešené složky."}</p>
    {result.check?<p><strong>Úmrtí + 70 let:</strong> text {result.check.text.status}, překlad {result.check.translation.status}, ilustrace {result.check.illustrations.status}. První vydání {result.check.originalPublicationYear??"neznámé"}.</p>:null}
