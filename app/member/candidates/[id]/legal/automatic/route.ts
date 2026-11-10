@@ -68,7 +68,7 @@ export async function POST(_req:Request,{params}:{params:Promise<{id:string}>}){
    language_code:book.languages[0]??"",translator:enriched.translators.map(p=>p.name).join("; ").slice(0,300),
    author_died:mergedPeople.length===1?mergedPeople[0].died??prescreenDeath:null,
    translator_died:enriched.translators.length===1?enriched.translators[0].died:null,
-   text_format:file.format,identity_match:"confirmed",language_match:check.text.status==="public_domain"?"matches":"uncertain",
+   text_format:file.format,identity_match:"confirmed",language_match:book.languages.length>0?"matches":"uncertain",
    completeness:"unknown",text_quality:"unknown",original_rights:check.text.status==="public_domain"?"public_domain":"unknown",
    translation_rights:check.translation.status==="not_applicable"?"not_applicable":check.translation.status==="public_domain"?"public_domain":"unknown",illustration_use:"excluded",source_terms:rights.usStatus!=="restricted"&&check.sourceTextStatus!=="possible_restriction"&&!epub.notice?"cleared":"unknown",
    evidence_url:book.catalogUrl,notes:compactCheckEvidence(check),
