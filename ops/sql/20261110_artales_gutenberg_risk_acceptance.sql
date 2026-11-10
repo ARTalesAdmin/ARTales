@@ -133,8 +133,8 @@ BEGIN
          SELECT 1 FROM pg_catalog.jsonb_array_elements(
            CASE WHEN pg_catalog.jsonb_typeof(audit->'text'->'people')='array'
             THEN audit->'text'->'people' ELSE '[]'::jsonb END
-         ) AS person
-         WHERE (person->>'died')~'^[0-9]{4}
+         ) AS person(value)
+         WHERE (person.value->>'died')~'^[0-9]{4}
        length(btrim(NEW.rationale))<30 THEN
        RAISE EXCEPTION 'legal_approval_missing_evidence_or_rights' USING ERRCODE='23514';
      END IF;
@@ -144,15 +144,15 @@ BEGIN
 END $function$;
 COMMIT;
 
-           AND (person->>'died')::integer + 70 >=
+           AND (person.value->>'died')::integer + 70 >=
              EXTRACT(YEAR FROM pg_catalog.now())::integer
        ) OR
        EXISTS (
          SELECT 1 FROM pg_catalog.jsonb_array_elements(
            CASE WHEN pg_catalog.jsonb_typeof(audit->'translation'->'people')='array'
             THEN audit->'translation'->'people' ELSE '[]'::jsonb END
-         ) AS person
-         WHERE (person->>'died')~'^[0-9]{4}
+         ) AS person(value)
+         WHERE (person.value->>'died')~'^[0-9]{4}
        length(btrim(NEW.rationale))<30 THEN
        RAISE EXCEPTION 'legal_approval_missing_evidence_or_rights' USING ERRCODE='23514';
      END IF;
@@ -162,7 +162,7 @@ COMMIT;
 END $function$;
 COMMIT;
 
-           AND (person->>'died')::integer + 70 >=
+           AND (person.value->>'died')::integer + 70 >=
              EXTRACT(YEAR FROM pg_catalog.now())::integer
        ) OR
        length(btrim(NEW.rationale))<30 THEN
