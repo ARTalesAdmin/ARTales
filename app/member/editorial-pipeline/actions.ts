@@ -5,6 +5,7 @@ import {createClient} from "@/lib/supabase/server";
 import {requireAdmin,requireEditorOrAdmin} from "@/lib/guards";
 import {SEMANTIC_PIPELINE_ENABLED} from "@/lib/semantic/featureFlag";
 import {slugify} from "@/lib/slug";
+import {uniqueExistingAuthor} from "@/lib/editorial/existingAuthorMatch";
 import {notFound} from "next/navigation";
 const uuid=/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 export async function completeSemanticTask(form:FormData){
@@ -97,6 +98,37 @@ export async function openAssignedEditorialTask(form:FormData){
   const {data,error}=await db.rpc("artales_claim_editorial_task",{p_task_id:taskId});
   if(error||data?.result!=="claimed")
    redirect("/member/editorial-pipeline?error=unavailable");
+ }
+ // If an existing author is uniquely identifiable from the candidate byline,
+ // reuse that record; never create an author or assume a surname-only match.
+ if(task.kind==="author_bio"||task.kind==="author_visual"){
+  const [{data:candidate},{data:meta},{data:authorRows}]=await Promise.all([
+   db.from("work_candidates").select("proposed_author_name")
+    .eq("id",task.candidate_id).maybeSingle(),
+   db.from("artales_candidate_editorial_metadata").select("author_id")
+    .eq("candidate_id",task.candidate_id).maybeSingle(),
+   db.from("authors").select("id,name,name_en,bio_cs,bio_en").order("name").limit(500)
+  ]);
+  if(candidate&&!meta?.author_id&&authorRows){
+   const author=uniqueExistingAuthor(candidate.proposed_author_name,authorRows);
+   if(author){
+    const {data:linked,error:linkError}=await db.rpc("artales_save_candidate_editorial_field",{
+     p_candidate_id:task.candidate_id,p_field:"author",p_value:author.id,
+     p_alt:null,p_caption:null
+    });
+    if(linkError||linked?.result!=="saved")
+     redirect("/member/editorial-detail/"+task.candidate_id+"?error=author_link_failed#author");
+    if(task.kind==="author_bio"&&
+       [author.bio_cs,author.bio_en].every(v=>(v??"").trim().length>=200&&
+       (v??"").trim().length<=800)){
+     const {data:completed}=await db.rpc("artales_complete_editorial_task",{
+      p_task_id:taskId,
+      p_note:"Profil existujícího autora byl jednoznačně přiřazen a bilingvní biografie byla ověřena."
+     });
+     if(completed?.result==="completed")revalidatePath("/member/editorial-pipeline");
+    }
+   }
+  }
  }
  const sections:Record<string,string>={
   work_description:"description",author_bio:"author",author_visual:"author",
