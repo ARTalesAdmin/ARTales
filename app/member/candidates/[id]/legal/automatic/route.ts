@@ -48,7 +48,8 @@ export async function POST(_req:Request,{params}:{params:Promise<{id:string}>}){
   const check=assessPublicDomain({book:enriched,rights,prescreenDeath,candidateAuthor:c.proposed_author_name,originalPublicationYear:firstPublication,textCheck,epub,year:2026});
   const textRestriction=textCheck.status==="possible_restriction"||!!epub.notice||rights.usStatus==="restricted";
   const translationUnresolved=enriched.translators.length>0?facts.translation.status!=="likely_public_domain":epub.translationCredit||textCheck.translationCredit;
-  const recommendation=check.outcome==="no"?"review":
+  const recommendation=check.text.status==="protected"||check.translation.status==="protected"?"exclude":
+   check.outcome==="no"?"review":
    textRestriction||translationUnresolved?"review":
    "text_only";
   const recommendationReason=recommendation==="text_only"
