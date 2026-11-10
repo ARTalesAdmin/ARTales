@@ -105,8 +105,10 @@ export async function POST(_req:Request,{params}:{params:Promise<{id:string}>}){
   // The screening protocol advances only candidates that meet the recorded
   // text-only criteria. No additional manual confirmation for that outcome.
   // Unresolved cases keep a durable needs_evidence record, not an approval.
+  const riskAssessment=assessGutenbergRisk(payload);
   let autoApproved=false,autoLocked=false;
-  if(check.outcome==="yes_without_illustrations"&&
+  if(!riskAssessment.eligible&&riskAssessment.blocking.length===0&&
+     check.outcome==="yes_without_illustrations"&&
      payload.original_rights==="public_domain"&&
      ["original","translated"].includes(payload.translation_status)&&
      ["not_applicable","public_domain"].includes(payload.translation_rights)&&
@@ -129,7 +131,6 @@ export async function POST(_req:Request,{params}:{params:Promise<{id:string}>}){
     return NextResponse.json({error:"automatic_lock_failed",decisionNo:approved.data.decision_no},{status:409});
    autoLocked=true;
   }
-  const riskAssessment=assessGutenbergRisk(payload);
   return NextResponse.json({sourceId,decisionNo:decision.data.decision_no,bookId:book.id,title:book.title,file,componentFacts:facts,check,recommendation,recommendationReason,textCheck,epub,rights,openLibrary,alternativeCount:found.matches.length-1,recordedAt:decision.data.recorded_at,autoApproved,autoLocked,riskAssessment},{headers:{"Cache-Control":"private, no-store"}});
  }catch{return NextResponse.json({error:"catalog_unavailable"},{status:503})}
 }
