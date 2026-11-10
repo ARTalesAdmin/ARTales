@@ -4,7 +4,7 @@ import {requireEditorOrAdmin} from "@/lib/guards";
 import {createClient} from "@/lib/supabase/server";
 import {getEditorialPeople} from "@/lib/editorial/staffDirectory";
 import {
- claimSemanticTask,completeSemanticTask,requestSemanticSecondReview,
+ claimSemanticTask,openAssignedEditorialTask,completeSemanticTask,requestSemanticSecondReview,
  releaseEditorialTask,reassignEditorialTask
 } from "./actions";
 import {SEMANTIC_PIPELINE_ENABLED} from "@/lib/semantic/featureFlag";
@@ -125,12 +125,15 @@ export default async function EditorialPipeline({searchParams}:Props){
        "Výsledek kontroly zaznamenej po dokončení práce."}
     </p>
     <div className="ed-task__actions">
-     {canClaim?<form action={claimSemanticTask}>
+     {mode==="mine"?<form action={openAssignedEditorialTask}>
       <input type="hidden" name="task_id" value={t.id}/>
-      <button className="ed-button" type="submit">{mode==="available"?"Převzít úkol":"Začít pracovat"}</button>
-     </form>:null}
-     <Link className={"ed-button "+(canClaim?"ed-button--soft":"")}
-      href={taskHref(t)}>{actionName(t)}</Link>
+      <button className="ed-button" type="submit">
+       {canClaim?"Začít pracovat":actionName(t)}
+      </button>
+     </form>:canClaim?<form action={claimSemanticTask}>
+      <input type="hidden" name="task_id" value={t.id}/>
+      <button className="ed-button" type="submit">Převzít úkol</button>
+     </form>:<Link className="ed-button ed-button--soft" href={taskHref(t)}>{actionName(t)}</Link>}
     </div>
    </div>
    {mode==="mine"&&isClaimed&&["proofread","second_review","visual_review"].includes(t.kind)?
