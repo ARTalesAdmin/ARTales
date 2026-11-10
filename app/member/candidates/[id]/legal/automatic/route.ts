@@ -29,7 +29,8 @@ export async function POST(_req:Request,{params}:{params:Promise<{id:string}>}){
   const book=found.selected;
   const file=book.files.find(f=>f.format==="epub")??book.files.find(f=>f.format==="html")??book.files.find(f=>f.format==="plain_text")??book.files[0];
   const year=Number((c.prescreen_metadata as {authorDied?:number}|null)?.authorDied);
-  const prescreenDeath=Number.isInteger(year)&&year>=1000&&year<=2026?year:null;
+  const prescreenDeath=Number.isInteger(year)&&year>=1000&&year<=currentYear?year:null;
+  const currentYear=new Date().getUTCFullYear();
   const rights=await getGutenbergRights(book);
   const openLibrary=rights.people.some(p=>p.died===null)||!rights.people.length?await getOpenLibraryHint(book.title,c.proposed_author_name):null;
   const people=rights.people.length?rights.people:book.authors;
@@ -41,12 +42,12 @@ export async function POST(_req:Request,{params}:{params:Promise<{id:string}>}){
   const enriched={...book,authors:mergedPeople,translators:translators.length?translators:book.translators};
   // Language equality is indicative only; translator credits take precedence.
   const originalLanguageConfirmed=!enriched.translators.length; // No listed translator; explicit text credits still take precedence.
-  const facts=legalFacts(enriched,2026,prescreenDeath,{originalLanguageConfirmed,illustrators,usStatus:rights.usStatus});
+  const facts=legalFacts(enriched,currentYear,prescreenDeath,{originalLanguageConfirmed,illustrators,usStatus:rights.usStatus});
   // US status is evidence only; retain CZ/EU source clearance as a distinct unresolved decision.
   const [textCheck,epub]=await Promise.all([checkGutenbergText(book),inspectGutenbergEpub(book)]);
   const rawFirstPublished=Number((c.prescreen_metadata as {firstPublished?:number}|null)?.firstPublished);
-  const firstPublication=openLibrary?.firstPublishYear??(Number.isInteger(rawFirstPublished)&&rawFirstPublished>=1400&&rawFirstPublished<=2026?rawFirstPublished:null);
-  const check=assessPublicDomain({book:enriched,rights,prescreenDeath,candidateAuthor:c.proposed_author_name,originalPublicationYear:firstPublication,textCheck,epub,year:2026});
+  const firstPublication=openLibrary?.firstPublishYear??(Number.isInteger(rawFirstPublished)&&rawFirstPublished>=1400&&rawFirstPublished<=currentYear?rawFirstPublished:null);
+  const check=assessPublicDomain({book:enriched,rights,prescreenDeath,candidateAuthor:c.proposed_author_name,originalPublicationYear:firstPublication,textCheck,epub,year:currentYear});
   const textRestriction=textCheck.status==="possible_restriction"||!!epub.notice||rights.usStatus==="restricted";
   const translationUnresolved=enriched.translators.length>0?facts.translation.status!=="likely_public_domain":epub.translationCredit||textCheck.translationCredit;
   const recommendation=check.text.status==="protected"||check.translation.status==="protected"?"exclude":
