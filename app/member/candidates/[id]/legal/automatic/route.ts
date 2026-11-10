@@ -80,8 +80,19 @@ export async function POST(_req:Request,{params}:{params:Promise<{id:string}>}){
    sourceId=inserted.data.id;
   }
   if(previous?.id){
-    const {data:approved}=await db.from("candidate_legal_decisions").select("decision_no").eq("source_id",previous.id).eq("verdict","approved").limit(1);
-    if(approved?.length)return NextResponse.json({error:"approved_source_immutable"},{status:409});
+    const {data:approved}=await db.from("candidate_legal_decisions").select("decision_no")
+      .eq("candidate_id",id).eq("source_id",previous.id).eq("verdict","approved")
+      .order("decision_no",{ascending:false}).limit(1);
+    if(approved?.length){
+      const existingLock=await db.from("candidate_legal_locks").insert({
+       candidate_id:id,source_id:previous.id,decision_no:approved[0].decision_no,
+       locked_by:profile.id,source_url:"https://placeholder.invalid",
+       download_url:"https://placeholder.invalid",source_facts:{},illustrations:[]
+      });
+      if(existingLock.error)return NextResponse.json({error:"automatic_lock_failed"},{status:409});
+      return NextResponse.json({autoApproved:true,autoLocked:true,recovered:true},
+       {headers:{"Cache-Control":"private, no-store"}});
+    }
     const updateFields={translation_status:payload.translation_status,translator:payload.translator,author_died:payload.author_died,translator_died:payload.translator_died,language_match:payload.language_match,original_rights:payload.original_rights,translation_rights:payload.translation_rights,illustration_use:payload.illustration_use,source_terms:payload.source_terms,evidence_url:payload.evidence_url,notes:payload.notes,updated_by:profile.id};
     const updated=await db.from("candidate_legal_sources").update(updateFields).eq("candidate_id",id).eq("id",previous.id);
     if(updated.error)return NextResponse.json({error:"cannot_update_source"},{status:500});
