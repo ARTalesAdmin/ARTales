@@ -221,7 +221,7 @@ function uncertainHistoricalExample(){
  d.source.original_rights="unknown";
  d.source.source_terms="unknown";
  d.decision.rationale="ARTALES_RISK_ACCEPTED_V1: recorded actor-bound consent";
- d.riskAccepted=true;
+ d.riskAccepted=true;d.riskUncertainties=["Neznámé úmrtí autora"];
  d.textCheck.status="not_checked";
  d.textCheck.scope="partial";
  d.liveRdf={...d.liveRdf,checked:false,people:[],contributors:[]};
@@ -231,6 +231,7 @@ test("risk accepted explicitly permits preparation with unresolved death date, n
  const d=uncertainHistoricalExample();
  const e=verifyAutomaticEdition(d);
  assert.equal(e.riskAccepted,true);
+ assert.deepEqual(e.riskUncertainties,["Neznámé úmrtí autora"]);
  assert.equal(e.publicDomainFrom,null);
  assert.equal(e.publicationAuthorized,false);
  assert.match(formatAutomaticEditionAudit(e),/NEJISTOTA PŘIJATA/);
