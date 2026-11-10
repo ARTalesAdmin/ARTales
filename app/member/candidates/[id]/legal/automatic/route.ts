@@ -9,6 +9,7 @@ import {checkGutenbergText} from "@/lib/legal/textRightsCheck";
 import {inspectGutenbergEpub} from "@/lib/legal/epubInspection";
 import {LEGAL_SCREEN_V1_ENABLED} from "@/lib/legal/featureFlag";
 import {assessPublicDomain,compactCheckEvidence} from "@/lib/legal/publicDomainCheck";
+import {assessGutenbergRisk} from "@/lib/legal/riskDecision";
 export const runtime="nodejs";
 export async function POST(_req:Request,{params}:{params:Promise<{id:string}>}){
  if(!LEGAL_SCREEN_V1_ENABLED)return NextResponse.json({error:"disabled"},{status:404});
@@ -128,6 +129,7 @@ export async function POST(_req:Request,{params}:{params:Promise<{id:string}>}){
     return NextResponse.json({error:"automatic_lock_failed",decisionNo:approved.data.decision_no},{status:409});
    autoLocked=true;
   }
-  return NextResponse.json({sourceId,decisionNo:decision.data.decision_no,bookId:book.id,title:book.title,file,componentFacts:facts,check,recommendation,recommendationReason,textCheck,epub,rights,openLibrary,alternativeCount:found.matches.length-1,recordedAt:decision.data.recorded_at,autoApproved,autoLocked},{headers:{"Cache-Control":"private, no-store"}});
+  const riskAssessment=assessGutenbergRisk(payload);
+  return NextResponse.json({sourceId,decisionNo:decision.data.decision_no,bookId:book.id,title:book.title,file,componentFacts:facts,check,recommendation,recommendationReason,textCheck,epub,rights,openLibrary,alternativeCount:found.matches.length-1,recordedAt:decision.data.recorded_at,autoApproved,autoLocked,riskAssessment},{headers:{"Cache-Control":"private, no-store"}});
  }catch{return NextResponse.json({error:"catalog_unavailable"},{status:503})}
 }
