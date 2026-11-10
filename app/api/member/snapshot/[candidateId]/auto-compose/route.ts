@@ -74,19 +74,23 @@ export async function POST(req:Request,{params}:{params:Promise<{candidateId:str
  const liveRdf=await getGutenbergRights(rdfBook);
  // A risk approval is valid only with its separately recorded, actor-bound,
  // immutable acceptance. The rationale alone must never grant authority.
- let riskAccepted=false;
+ let riskAccepted=false,riskUncertainties:string[]=[];
  if(decision.data.rationale?.startsWith("ARTALES_RISK_ACCEPTED_V1:")){
   const {data:risk,error:riskError}=await db.from("candidate_legal_risk_acceptances")
-   .select("screening_decision_no").eq("candidate_id",candidateId)
+.select("screening_decision_no,uncertainties").eq("candidate_id",candidateId)
    .eq("source_id",lock.source_id).eq("accepted_by",decision.data.reviewed_by)
    .order("screening_decision_no",{ascending:false}).limit(1).maybeSingle();
   if(riskError||!risk)return NextResponse.json({error:"legal_risk_acceptance_missing"},{status:409});
+  if(!Array.isArray(risk.uncertainties)||!risk.uncertainties.length||
+     !risk.uncertainties.every((x:unknown)=>typeof x==="string"&&x.length<250))
+   return NextResponse.json({error:"legal_risk_acceptance_incomplete"},{status:409});
+  riskUncertainties=risk.uncertainties;
   riskAccepted=true;
  }
  let proof;
  try{
   proof=verifyAutomaticEdition({
-   candidate,lock,source:src.data,decision:decision.data,receipt,riskAccepted,
+   candidate,lock,source:src.data,decision:decision.data,receipt,riskAccepted,riskUncertainties,
    archivedSha256,archivedBytes:bytes.length,spineDocuments:extract.documents.length,
    textCharacters:extract.text.length,sourceTextSha256:extract.text_sha256,
    imageCount:extract.assets.length,textCheck,liveRdf,
