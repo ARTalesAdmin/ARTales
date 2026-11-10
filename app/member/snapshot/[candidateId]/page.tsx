@@ -35,10 +35,17 @@ export default async function SnapshotCandidate({params,searchParams}:{params:Pr
    <p>Ověření skutečných bajtů originálu, SHA-256, pořadí dokumentů a seznamu obrazových součástí. Výsledek sám o sobě nepotvrzuje právní stav ani obsahovou shodu edice.</p>
    <p><a href={"/api/member/snapshot/"+candidateId+"/technical-evidence"} target="_blank" rel="noopener noreferrer">Ověřit originál a zobrazit technický protokol (JSON)</a></p>
   </section>:null}
-  {receipt?<section className="ca-card"><h2>Kontrola literární shody vydání</h2>
+  {receipt&&canProgress?<section className="ca-card">
+   <h2>Pokračovat v automatickém zpracování</h2>
+   <p>Systém naváže na poslední ověřený krok. Pokud již bloky existují, otevře
+   redakční kartu. Jinak ověří archiv a právní zdroj a vytvoří bloky a úkoly.
+   Při problému ukáže konkrétní důvod; nic automaticky nezveřejní.</p>
+   <AutomaticSnapshotCompose candidateId={candidateId}/>
+  </section>:null}
+  {receipt&&canProgress&&profile.role==="admin"?<details className="ca-card"><summary>Záložní ruční kontrola vydání (administrátor)</summary><h2>Ruční kontrola literární shody</h2>
     <p>Originál SHA-256: <code>{receipt.sha256}</code>. Soukromě archivované ilustrace: {receipt.embedded_images}.</p>
     <p><a href={receipt.catalog_url} target="_blank" rel="noopener noreferrer">Záznam vydání v katalogu Gutenberg</a></p>
-    {canProgress?<form className="ca-form" action={`/api/member/snapshot/${candidateId}/review`} method="post">
+    {<form className="ca-form" action={`/api/member/snapshot/${candidateId}/review`} method="post">
       <input type="hidden" name="candidate_id" value={candidateId}/>
       <input type="hidden" name="snapshot_sha256" value={receipt.sha256}/>
       <label>Kontrola textu<select name="text_correspondence" defaultValue="needs_review">
@@ -50,18 +57,10 @@ export default async function SnapshotCandidate({params,searchParams}:{params:Pr
       <label>Důkazy shody konkrétní edice (min. 80 znaků)<textarea name="evidence_note" rows={5}
         minLength={80} maxLength={4000} required/></label>
       <button type="submit" className="ca-btn ca-primary">Uložit kontrolu vydání</button>
-    </form>:null}
+    </form>}
     {query.result==="reviewed"?<p role="status" className="ca-success">Záznam kontroly uložen. Aktuální stav se řídí posledním rozhodnutím.</p>:null}
     {state.status==="verified_for_composition"?<p className="ca-success">Poslední kontrola potvrdila shodu textu pro kompozici bez publikace původních ilustrací.</p>:null}
-    {state.status!=="verified_for_composition"?<p>Kompozice ještě není povolená. Je třeba potvrdit shodu textu a vyloučení neprověřených ilustrací.</p>:null}
-  </section>:null}
-  {receipt&&canProgress?<section className="ca-card">
-   <h2>Pokračovat v automatickém zpracování</h2>
-   <p>Systém naváže na poslední ověřený krok. Pokud již bloky existují, otevře
-   redakční kartu. Jinak ověří archiv a právní zdroj a vytvoří bloky a úkoly.
-   Při problému ukáže konkrétní důvod; nic automaticky nezveřejní.</p>
-   <AutomaticSnapshotCompose candidateId={candidateId}/>
-  </section>:null}
-
+    {state.status!=="verified_for_composition"?<p>Automatické ověření ještě nebylo dokončeno. Případné ruční potvrzení níže slouží pouze jako záloha a nenahrazuje právní důkazy.</p>:null}
+  </details>:null}
  </main>;
 }
