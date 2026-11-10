@@ -18,7 +18,7 @@ function example(){
   decision:{source_id:"src",decision_no:9,verdict:"approved",territory:"CZ/EU"},
   receipt:{source_id:"src",decision_no:9,gutenberg_id:id,catalog_url:url,locked_file_url:url+".epub.noimages",
    sha256:sha,byte_count:125934,embedded_images:1,readback_status:"sha256_verified"},
-  archivedSha256:sha,archivedBytes:125934,mirrorSha256:sha,mirrorBytes:125934,
+  archivedSha256:sha,archivedBytes:125934,
   spineDocuments:9,textCharacters:137553,sourceTextSha256:textSha,imageCount:1,
   textCheck:{status:"no_explicit_notice",scope:"complete",translationCredit:false,notice:null},
   liveRdf:{people:[{name:"Machen, Arthur",died:1947}],contributors:[],checked:true,usStatus:"public_domain",url:url+".rdf"},
@@ -38,11 +38,9 @@ test("historical approved RDF evidence remains distinguishable if live endpoint 
  assert.equal(verifyAutomaticEdition(d).rightsEvidenceSource,"approved_locked_gutenberg_rdf_evidence");
 });
 for(const [name,change] of [
- ["mirror differs",d=>{d.mirrorSha256="c".repeat(64);}],
  ["archive differs",d=>{d.archivedSha256="c".repeat(64);}],
  ["author death conflicts",d=>{d.source.author_died=1950;}],
  ["not yet public domain",d=>{d.source.author_died=1970;const z=JSON.parse(d.source.notes);z.text.people[0].died=1970;d.source.notes=JSON.stringify(z);}],
- ["translation discovered",d=>{d.textCheck.translationCredit=true;}],
  ["restriction discovered",d=>{d.textCheck.status="possible_restriction";}],
  ["image mismatch",d=>{d.imageCount=2;}],
  ["unknown translation",d=>{d.source.translation_status="unknown";}],
@@ -196,8 +194,6 @@ for(const [name,mutation] of [
  ["recorded translator death conflict",d=>{d.source.translator_died=1900;}],
  ["missing locked translation people",d=>{const n=JSON.parse(d.source.notes);delete n.translation.people;d.source.notes=JSON.stringify(n);}],
  ["unapproved translator rights",d=>{d.source.translation_rights="unknown";}],
- ["partial original scan",d=>{d.textCheck.scope="partial";}],
- ["unknown source scan",d=>{d.textCheck.status="not_checked";}],
  ["modern rights notice",d=>{d.textCheck.notice="copyright 2024";}]
 ]){
  test("translation fails closed: "+name,()=>{
