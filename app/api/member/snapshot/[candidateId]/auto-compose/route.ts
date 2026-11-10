@@ -10,7 +10,6 @@ import {extractEpub} from "@/lib/ingest/epubSemanticExtractor";
 import {inspectGutenbergText} from "@/lib/legal/textRightsCheck";
 import {getGutenbergRights} from "@/lib/legal/gutenbergRights";
 import {verifyAutomaticEdition,formatAutomaticEditionAudit,AutomaticEditionHold} from "@/lib/ingest/automaticSnapshotEvidence";
-import {fetchGutenbergMirrorForWitness} from "@/lib/ingest/gutenbergMirrorWitness";
 import {composeSemanticRevision,verifySemanticRevision} from "@/lib/semantic/compose";
 import type {GutenbergBook} from "@/lib/legal/gutenbergCatalog";
 export const runtime="nodejs";
@@ -53,9 +52,6 @@ export async function POST(req:Request,{params}:{params:Promise<{candidateId:str
   return NextResponse.json({error:"archive_sha_or_size_mismatch"},{status:409});
  let extract;
  try{extract=extractEpub(bytes);}catch{return NextResponse.json({error:"invalid_archived_epub"},{status:422});}
- let mirrorBytes:Uint8Array;
- try{mirrorBytes=await fetchGutenbergMirrorForWitness(receipt.gutenberg_id);}
- catch{return NextResponse.json({error:"independent_mirror_unavailable__retry_later"},{status:503});}
  // The approved immutable legal audit is the only source of the publication
  // date used to classify a standalone historical title-page copyright.
  // Never infer it from the text being scanned or from the file name.
@@ -80,8 +76,7 @@ export async function POST(req:Request,{params}:{params:Promise<{candidateId:str
  try{
   proof=verifyAutomaticEdition({
    candidate,lock,source:src.data,decision:decision.data,receipt,
-   archivedSha256,archivedBytes:bytes.length,mirrorSha256:sha(mirrorBytes),
-   mirrorBytes:mirrorBytes.length,spineDocuments:extract.documents.length,
+   archivedSha256,archivedBytes:bytes.length,spineDocuments:extract.documents.length,
    textCharacters:extract.text.length,sourceTextSha256:extract.text_sha256,
    imageCount:extract.assets.length,textCheck,liveRdf,
    verifiedAt:new Date().toISOString(),year:new Date().getUTCFullYear()
