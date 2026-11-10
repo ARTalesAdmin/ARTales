@@ -154,3 +154,60 @@ test("Carmilla: a shortened public byline matches uniquely approved full Gutenbe
  assert.throws(()=>verifyAutomaticEdition(ambiguous),
   /candidate_contributor_identity_ambiguous/);
 });
+
+function translatedExample(){
+ const d=example(),id=2527,url="https://www.gutenberg.org/ebooks/2527";
+ d.candidate={proposed_title:"The Sorrows of Young Werther",proposed_author_name:"Johann Wolfgang von Goethe"};
+ d.lock={...d.lock,source_url:url,download_url:url+".epub.noimages"};
+ d.source={...d.source,edition_title:d.candidate.proposed_title,source_url:url,
+  download_url:url+".epub.noimages",author_died:1832,translator_died:1888,
+  translation_status:"translated",translation_rights:"public_domain",
+  translator:"Boylan, R. Dillon (Richard Dillon)",
+  notes:JSON.stringify({schema:"artales.public-domain-check.v1",gutenbergId:id,
+   outcome:"yes_without_illustrations",text:{status:"public_domain",people:[
+    {name:"Goethe, Johann Wolfgang von",died:1832,role:"autor",source:url+".rdf"}
+   ]},translation:{status:"public_domain",people:[
+    {name:"Boylan, R. Dillon (Richard Dillon)",died:1888,role:"překladatel",source:url+".rdf"}
+   ]},illustrations:{status:"unknown"}})};
+ d.receipt={...d.receipt,gutenberg_id:id,catalog_url:url,locked_file_url:url+".epub.noimages"};
+ d.textCheck={...d.textCheck,translationCredit:true};
+ d.liveRdf={checked:true,usStatus:"public_domain",url:url+".rdf",
+  people:[{name:"Goethe, Johann Wolfgang von",died:1832}],
+  contributors:[
+   {role:"dcterms:creator",name:"Goethe, Johann Wolfgang von",died:1832},
+   {role:"marcrel:trl",name:"Boylan, R. Dillon (Richard Dillon)",died:1888}
+  ]};
+ return d;
+}
+test("a separately cleared public-domain translation can be composed without images",()=>{
+ const result=verifyAutomaticEdition(translatedExample());
+ assert.equal(result.translation,"public_domain_translation");
+ assert.equal(result.translators.length,1);
+ assert.equal(result.publicDomainFrom,1959);
+ assert.equal(result.images,"exclude_all");
+ assert.equal(result.publicationAuthorized,false);
+});
+for(const [name,mutation] of [
+ ["unknown translator death",d=>{const n=JSON.parse(d.source.notes);n.translation.people[0].died=null;d.source.notes=JSON.stringify(n);}],
+ ["newer protected translator",d=>{const n=JSON.parse(d.source.notes);n.translation.people[0].died=1985;d.source.notes=JSON.stringify(n);}],
+ ["RDF translator conflict",d=>{d.liveRdf.contributors[1].died=1900;}],
+ ["RDF translator missing",d=>{d.liveRdf.contributors.pop();}],
+ ["recorded translator name conflict",d=>{d.source.translator="A different translator";}],
+ ["recorded translator death conflict",d=>{d.source.translator_died=1900;}],
+ ["missing locked translation people",d=>{const n=JSON.parse(d.source.notes);delete n.translation.people;d.source.notes=JSON.stringify(n);}],
+ ["unapproved translator rights",d=>{d.source.translation_rights="unknown";}],
+ ["partial original scan",d=>{d.textCheck.scope="partial";}],
+ ["unknown source scan",d=>{d.textCheck.status="not_checked";}],
+ ["modern rights notice",d=>{d.textCheck.notice="copyright 2024";}]
+]){
+ test("translation fails closed: "+name,()=>{
+  const d=translatedExample();mutation(d);
+  assert.throws(()=>verifyAutomaticEdition(d),AutomaticEditionHold);
+ });
+}
+test("an unexpected credited translator blocks an approved original",()=>{
+ const d=example();d.liveRdf.contributors.push({
+  role:"marcrel:trl",name:"Unapproved Translator",died:1900
+ });
+ assert.throws(()=>verifyAutomaticEdition(d),/live_rdf_translation_requires_separate_clearance/);
+});
