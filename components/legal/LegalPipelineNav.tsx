@@ -5,6 +5,6 @@ export function LegalPipelineNav({step,admin=false,candidateId}:{step:Step;admin
   {admin?<Link href="/member/admin/prescreen/shadow">Prescreen</Link>:<span>Prescreen</span>}
   <span aria-hidden="true">›</span><Link href={candidateId?`/member/candidates/${candidateId}`:"/member/candidates"}>Kandidáti</Link>
   <span aria-hidden="true">›</span><Link aria-current={step==="legal"?"step":undefined} href={candidateId?`/member/legal/${candidateId}`:"/member/legal"}>Právní screen</Link>
-  <span aria-hidden="true">›</span><span className="ca-pipeline-next">Snapshot (další etapa)</span>
+  <span aria-hidden="true">›</span>{candidateId?<Link href={`/member/snapshot/${candidateId}`}>Příprava textu</Link>:<span className="ca-pipeline-next">Příprava textu</span>}
  </nav>;
 }
