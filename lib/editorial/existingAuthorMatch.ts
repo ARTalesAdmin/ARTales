@@ -9,7 +9,13 @@ export function matchesExistingAuthor(candidateByline:string,authorName:string):
  const byline=normalized(candidateByline),name=normalized(authorName);
  if(!byline||!name)return false;
  if(byline===name)return true;
- return byline.split(" ").length>=2&&name.endsWith(" "+byline);
+ const parts=byline.split(" ");
+ // Two-token surname particles are not enough to identify a person:
+ // "Le Fanu" alone must not match "Joseph Sheridan Le Fanu".
+ if(parts.length<2||(parts.length===2&&
+   ["le","la","de","da","di","van","von","del","du","des","der"].includes(parts[0])))
+  return false;
+ return name.endsWith(" "+byline);
 }
 export function uniqueExistingAuthor<T extends {id:string;name:string;name_en?:string|null}>(
  candidateByline:string,authors:readonly T[]
