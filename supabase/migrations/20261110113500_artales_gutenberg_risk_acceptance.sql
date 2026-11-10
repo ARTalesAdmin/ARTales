@@ -1,6 +1,5 @@
 -- Canonical migration for the audited Gutenberg uncertainty choice.
 -- Apply before deploying the corresponding ARTales application release.
-BEGIN;
 CREATE TABLE IF NOT EXISTS public.candidate_legal_risk_acceptances (
  candidate_id uuid NOT NULL REFERENCES public.work_candidates(id),
  source_id uuid NOT NULL REFERENCES public.candidate_legal_sources(id),
@@ -134,16 +133,7 @@ BEGIN
            CASE WHEN pg_catalog.jsonb_typeof(audit->'text'->'people')='array'
             THEN audit->'text'->'people' ELSE '[]'::jsonb END
          ) AS person(value)
-         WHERE (person.value->>'died')~'^[0-9]{4}
-       length(btrim(NEW.rationale))<30 THEN
-       RAISE EXCEPTION 'legal_approval_missing_evidence_or_rights' USING ERRCODE='23514';
-     END IF;
-   END IF;
- END IF;
- RETURN NEW;
-END $function$;
-COMMIT;
-
+         WHERE (person.value->>'died')~'^[0-9]{4}$'
            AND (person.value->>'died')::integer + 70 >=
              EXTRACT(YEAR FROM pg_catalog.now())::integer
        ) OR
@@ -152,16 +142,7 @@ COMMIT;
            CASE WHEN pg_catalog.jsonb_typeof(audit->'translation'->'people')='array'
             THEN audit->'translation'->'people' ELSE '[]'::jsonb END
          ) AS person(value)
-         WHERE (person.value->>'died')~'^[0-9]{4}
-       length(btrim(NEW.rationale))<30 THEN
-       RAISE EXCEPTION 'legal_approval_missing_evidence_or_rights' USING ERRCODE='23514';
-     END IF;
-   END IF;
- END IF;
- RETURN NEW;
-END $function$;
-COMMIT;
-
+         WHERE (person.value->>'died')~'^[0-9]{4}$'
            AND (person.value->>'died')::integer + 70 >=
              EXTRACT(YEAR FROM pg_catalog.now())::integer
        ) OR
