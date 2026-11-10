@@ -54,21 +54,17 @@ export function assessPublicDomain(input:{
  else {
   translation={status:"not_applicable",people:[],basis:historicFirstEdition?
    "Kontroluje se původní historické vydání (nikoli novější překlad nebo adaptace).":"V katalogu ani prověřené části textu nebyl uveden samostatný překladatel"};
-  inferences.push(historicFirstEdition?"Historická edice: zahrnuté starší překlady a převyprávění jsou předběžně posouzeny na úrovni vydání; novější přídavky je nutné vyřadit.":"Nezjištěný překladatel sám o sobě neprokazuje původnost; editor potvrzuje shodu původní edice.");
+  inferences.push("Překladatel nebyl v katalogu uveden; neznamená to samo o sobě prokázaný překlad ani další povinnou kontrolu.");
  }
  const illustrationEvidence=allIllustrators.length?component(allIllustrators,"Úmrtí ilustrátora + 70 let v ČR/EU",year):{status:"unknown" as TermStatus,people:[],basis:"Nedoložený ilustrátor; obrazové soubory nepřebírat"};
  const illustrations:ComponentEvidence=epub.checked&&epub.imageCount===0?{...illustrationEvidence,status:"not_applicable",basis:"V prověřeném EPUB nebyly nalezeny další obrázky"}:illustrationEvidence;
  const explicitRestriction=textCheck.status==="possible_restriction"||!!epub.notice||rights.usStatus==="restricted";
- const laterEdition=originalPublicationYear!==null&&primaries.some(p=>p.died!==null&&originalPublicationYear>p.died+70);
- if(laterEdition)inferences.push("Vydání může spadat pod zvláštní režim prvního zveřejnění po uplynutí práv – nutno prověřit.");
- const textBlocked=text.status==="protected"||translation.status==="protected"||explicitRestriction||laterEdition;
+ const textBlocked=text.status==="protected"||translation.status==="protected"||explicitRestriction;
  const textUnknown=text.status==="unknown"||translation.status==="unknown";
- const withImages=illustrations.status==="public_domain"&&epub.checked&&epub.imageCount!==null&&epub.imageCount>0;
- const outcome:LegalOutcome=textBlocked||textUnknown?"no":withImages?"yes_with_illustrations":"yes_without_illustrations";
+ const outcome:LegalOutcome=textBlocked||textUnknown?"no":"yes_without_illustrations";
  const reason=textBlocked?"Text, překlad nebo podmínky zdroje vykazují konkrétní překážku; zatím nepřevzít."
   :textUnknown?"Chybí rozhodující datum či identita autora nebo překladatele; text zatím nepotvrzovat."
-  :withImages?"Text i identifikovaní ilustrátoři splňují obvyklou ochrannou lhůtu."
-  :"Text splňuje předběžnou kontrolu datací; ilustrace nepřebírat bez samostatného doložení.";
+  :"Text splňuje předběžnou kontrolu datací; všechny ilustrace jsou vyloučeny z veřejného vydání.";
  return {schema:"artales.public-domain-check.v1",outcome,reason,text,translation,illustrations,
   originalPublicationYear,gutenbergId:book.id,gutenbergCatalogUrl:book.catalogUrl,gutenbergRdfUrl:rights.url,
   gutenbergUsStatus:rights.usStatus,sourceTextStatus:textCheck.status,sourceTextNotice:textCheck.notice??epub.notice,
