@@ -123,10 +123,16 @@ export function verifyAutomaticEdition(i:AutomaticEditionInput):AutomaticEdition
   (!riskAccepted&&!["yes_without_illustrations","yes_with_illustrations"].includes(prior!.outcome??""))||
   !["public_domain",...(riskAccepted?["unknown"]:[])].includes(prior!.text?.status??"")||
   ![translated?"public_domain":"not_applicable",...(riskAccepted?["unknown","not_applicable","public_domain"]:[])].includes(prior!.translation?.status??"")||
-  !Array.isArray(prior!.text?.people)||!prior!.text!.people!.length||
-  prior!.text!.people!.length>12)
+  (!riskAccepted&&(!Array.isArray(prior!.text?.people)||!prior!.text!.people!.length))||
+  (prior!.text?.people?.length??0)>12)
   refuse("approved_legal_audit_incomplete");
- const rawPeople=prior!.text!.people!;
+ // Explicitly accepted missing catalog biographies can fall back to the
+ // identified candidate byline, marked unknown rather than verified.
+ const rawPeople=(prior!.text?.people?.length?prior!.text.people:
+   (riskAccepted&&prior!.text?.status==="unknown"?[
+    {name:candidate.proposed_author_name,died:source.author_died,role:"author",source:url}
+   ]:[]));
+ if(!rawPeople.length)refuse("approved_legal_audit_incomplete");
  const rdfUrl="https://www.gutenberg.org/ebooks/"+id+".rdf";
  const legacyAuthor=rawPeople.length===1&&
   rawPeople[0].died===source.author_died&&
@@ -204,7 +210,12 @@ export function verifyAutomaticEdition(i:AutomaticEditionInput):AutomaticEdition
   if(translated){
    const approved=translators.map(p=>normalized(p.name).join(":")+":"+p.died).sort();
    const live=liveTranslatorEntries.map(p=>normalized(p.name).join(":")+":"+String(p.died)).sort();
-   if(!riskAccepted&&JSON.stringify(approved)!==JSON.stringify(live))
+   const namesAndDatesMatch=translators.length===liveTranslatorEntries.length&&
+    translators.every(old=>liveTranslatorEntries.some(now=>
+     samePerson(old.name,now.name)&&
+     deathTerm(now.died,i.year)!=="protected"&&
+     (now.died===null||old.died===null||now.died===old.died)));
+   if(!riskAccepted&&!namesAndDatesMatch)
     refuse("live_rdf_translation_identity_conflict");
    if(riskAccepted&&liveTranslatorEntries.some(p=>deathTerm(p.died,i.year)==="protected"))
     refuse("live_rdf_translation_protected");
@@ -223,10 +234,16 @@ export function verifyAutomaticEdition(i:AutomaticEditionInput):AutomaticEdition
    if(!sameCreators(textCreators,liveCreators)){
     // Under explicit risk acceptance, a missing historical date is not
     // a contradiction; a different named creator or protected date is.
-    const identitiesMatch=riskAccepted&&liveCreators.length===textCreators.length&&
+    const identitiesMatch=liveCreators.length===textCreators.length&&
      textCreators.every(old=>liveCreators.some(now=>creatorKey(old)===creatorKey(now)&&
       deathTerm(now.died,i.year)!=="protected"&&
-      (old.died===null||old.died===now.died)));
+      // A missing current catalog date cannot override a documented historical
+      // identity; a contradictory known year always fails.
+      (!Number.isInteger(now.died)||old.died===null||old.died===now.died)));
+    // The stored legal evidence still controls the original term. An unknown
+    // stored date requires an explicit, recorded risk acceptance.
+    const dateUncertaintyAllowed=riskAccepted||textCreators.every(p=>p.died!==null);
+    if(!dateUncertaintyAllowed)refuse("live_rdf_contradicts_locked_legal_evidence");
     if(!identitiesMatch)refuse("live_rdf_contradicts_locked_legal_evidence");
    }
    rightsEvidenceSource="live_gutenberg_rdf";
