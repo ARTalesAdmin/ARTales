@@ -2,13 +2,16 @@
 import {useState} from "react";
 import {useRouter} from "next/navigation";
 type Fact={status:string;people?:{name:string;died:number|null}[];archive?:string;publish?:string;reason?:string;url?:string;textMayProceed?:boolean};
-type Result={check?:{outcome:"no"|"yes_without_illustrations"|"yes_with_illustrations";reason:string;text:{status:string};translation:{status:string};illustrations:{status:string};originalPublicationYear:number|null};recommendation?:"text_only"|"review"|"exclude";recommendationReason?:string;sourceId:string;decisionNo:number;bookId:number;title:string;file:{url:string;label:string};recordedAt:string;textCheck:{status:string;scope:string;sourceUrl:string|null;notice:string|null;explanation:string};epub?:{checked:boolean;imageCount:number|null;textChecked:boolean;notice:string|null;translationCredit:boolean;reason:string};openLibrary?:{matched:boolean;firstPublishYear:number|null;sourceUrl:string|null};componentFacts:{author:Fact;translation:Fact;illustrations:Fact;source:Fact;verdict:string;reason:string;checkedAt:string}};
+type Result={check?:{outcome:"no"|"yes_without_illustrations"|"yes_with_illustrations";reason:string;text:{status:string};translation:{status:string};illustrations:{status:string};originalPublicationYear:number|null};recommendation?:"text_only"|"review"|"exclude";recommendationReason?:string;sourceId:string;decisionNo:number;bookId:number;title:string;file:{url:string;label:string};recordedAt:string;textCheck:{status:string;scope:string;sourceUrl:string|null;notice:string|null;explanation:string};epub?:{checked:boolean;imageCount:number|null;textChecked:boolean;notice:string|null;translationCredit:boolean;reason:string};openLibrary?:{matched:boolean;firstPublishYear:number|null;sourceUrl:string|null};componentFacts:{author:Fact;translation:Fact;illustrations:Fact;source:Fact;verdict:string;reason:string;checkedAt:string};autoLocked?:boolean;riskAssessment?:{eligible:boolean;uncertainties:string[];blocking:string[]}};
 const label=(s:string)=>({likely_public_domain:"Předběžně volné",protected:"Chráněné",needs_evidence:"Nutné ověřit",unverified:"Neověřeno",review_required:"K dořešení",text_candidate:"Původní text předběžně vhodný",not_applicable:"Bez zjištěného překladu",not_identified:"Nezjištěno",us_public_domain:"Public domain – USA",us_restricted:"Omezení – USA",escalate:"Ochranná doba / práva k dořešení"} as Record<string,string>)[s]??s;
 export function AutomaticLegalScreen({candidateId}:{candidateId:string}){
  const router=useRouter();
  const [state,setState]=useState<"idle"|"running"|"success"|"error">("idle");
  const [result,setResult]=useState<Result|null>(null);
  const [error,setError]=useState("");
+ const [riskPending,setRiskPending]=useState(false);
+ const [riskError,setRiskError]=useState("");
+ const [stopped,setStopped]=useState(false);
  async function run(){
   setState("running");setError("");
   try{
@@ -22,6 +25,27 @@ export function AutomaticLegalScreen({candidateId}:{candidateId:string}){
    if(data.autoLocked){router.push(`/member/snapshot/${candidateId}`);router.refresh();return;}
    setResult(data as Result);setState("success");router.refresh();
   }catch{setState("error");setError("Požadavek se nepodařilo dokončit.");}
+ }
+ async function decideRisk(choice:"accept"|"stop"){
+  if(!result||riskPending)return;
+  setRiskPending(true);setRiskError("");
+  try{
+   const response=await fetch(`/member/candidates/${candidateId}/legal/accept-risk`,{
+    method:"POST",credentials:"same-origin",
+    headers:{"Content-Type":"application/json"},
+    body:JSON.stringify({choice,sourceId:result.sourceId,decisionNo:result.decisionNo,confirm:choice==="accept"})
+   });
+   const data=await response.json();
+   if(!response.ok){
+    setRiskError(data.error==="risk_registry_unavailable"?
+      "Evidence přijetí rizik ještě není nasazena. Nic nebylo schváleno.":
+      "Rozhodnutí se nepodařilo bezpečně zapsat ("+(data.error??"chyba")+").");
+    return;
+   }
+   if(data.autoLocked){router.push(`/member/snapshot/${candidateId}`);router.refresh();return;}
+   if(data.stopped){setStopped(true);router.refresh();}
+  }catch{setRiskError("Spojení selhalo. Rozhodnutí nebylo uloženo.");}
+  finally{setRiskPending(false);}
  }
  function download(){
   if(!result)return;
@@ -37,7 +61,21 @@ export function AutomaticLegalScreen({candidateId}:{candidateId:string}){
   {result&&facts?<div className="ca-legal-result" aria-live="polite">
    <h3>{result.title} · {result.check?.outcome==="yes_without_illustrations"?"Text vhodný k pokračování":"Vyžaduje rozhodnutí"}</h3>
    <p><strong>Zdroj:</strong> <a href={result.file.url} target="_blank" rel="noopener noreferrer">Gutenberg #{result.bookId} · {result.file.label}</a></p>
-   <p><strong>Další krok:</strong> {result.check?.reason??result.recommendationReason??"Zkontrolovat nevyřešené složky."}</p>
+   <p><strong>Výsledek:</strong> {result.check?.reason??result.recommendationReason??"Zkontrolovat nevyřešené složky."}</p>
+   {result.riskAssessment?.eligible&&!stopped?<div className="ca-card" role="group" aria-label="Rozhodnutí o právní nejistotě">
+    <h3>Některé údaje se nepodařilo ověřit</h3>
+    <p>Nebylo zjištěno výslovné omezení, ale následující údaje zůstávají nejisté. Můžeš pokračovat s jejich výslovným přijetím do auditu, nebo přípravu zastavit. Přijetí nejistoty samo o sobě není právní záruka.</p>
+    <ul>{result.riskAssessment.uncertainties.map((x,i)=><li key={i}>{x}</li>)}</ul>
+    <div className="ca-actions">
+     <button type="button" className="ca-btn ca-primary" disabled={riskPending} onClick={()=>decideRisk("accept")}>
+      {riskPending?"Ukládám rozhodnutí…":"Přijmout nejistotu a pokračovat"}
+     </button>
+     <button type="button" className="ca-btn ca-secondary" disabled={riskPending} onClick={()=>decideRisk("stop")}>Zastavit přípravu</button>
+    </div>
+    {riskError?<p className="ca-error" role="alert">{riskError}</p>:null}
+   </div>:null}
+   {stopped?<p role="status">Příprava byla pozastavena. Nebyla schválena ani zahájena.</p>:null}
+   {result.riskAssessment?.blocking.length?<p className="ca-error" role="alert">Zjištěné překážky: {result.riskAssessment.blocking.join("; ")}. Tyto překážky nelze přijmout jako pouhou nejistotu.</p>:null}
    {result.check?<p><strong>Úmrtí + 70 let:</strong> text {result.check.text.status}, překlad {result.check.translation.status}, ilustrace {result.check.illustrations.status}. První vydání {result.check.originalPublicationYear??"neznámé"}.</p>:null}
    <details><summary>Podklady a posouzení jednotlivých složek</summary><table className="ca-legal-table"><thead><tr><th>Složka</th><th>Výsledek</th><th>Důkaz / poznámka</th></tr></thead><tbody>
     <tr><th scope="row">Autor / původní dílo</th><td>{label(facts.author.status)}</td><td>{facts.author.people?.map(p=>p.name+(p.died?" († "+p.died+")":"")).join("; ")||"Chybí údaje"}</td></tr>
