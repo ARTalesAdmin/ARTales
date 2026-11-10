@@ -86,8 +86,8 @@ export function compactCheckEvidence(check:PublicDomainCheck):string{
  // Preserve valid JSON and all decisions; reduce explanatory data only.
  return JSON.stringify({schema:check.schema,outcome:check.outcome,reason:check.reason,
   originalPublicationYear:check.originalPublicationYear,gutenbergId:check.gutenbergId,
-  text:{status:check.text.status,people:check.text.people.slice(0,4).map(p=>({name:p.name.slice(0,70),died:p.died}))},
-  translation:{status:check.translation.status,people:check.translation.people.slice(0,4).map(p=>({name:p.name.slice(0,70),died:p.died}))},
-  illustrations:{status:check.illustrations.status,people:check.illustrations.people.slice(0,4).map(p=>({name:p.name.slice(0,70),died:p.died}))},
+  text:{status:check.text.status,people:check.text.people.slice(0,8).map(p=>({name:p.name.slice(0,80),died:p.died,role:p.role,source:p.source}))},
+  translation:{status:check.translation.status,people:check.translation.people.slice(0,8).map(p=>({name:p.name.slice(0,80),died:p.died,role:p.role,source:p.source}))},
+  illustrations:{status:check.illustrations.status},
   gutenbergCatalogUrl:check.gutenbergCatalogUrl,sourceTextNotice:check.sourceTextNotice?.slice(0,100)??null});
 }
