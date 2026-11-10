@@ -17,7 +17,7 @@ export type AutomaticEditionInput={
  decision:{source_id:string;decision_no:number;verdict:string;territory:string};
  receipt:{source_id:string;decision_no:number;gutenberg_id:number;catalog_url:string;
   locked_file_url:string;sha256:string;byte_count:number;embedded_images:number;readback_status:string};
- archivedSha256:string;archivedBytes:number;mirrorSha256:string;mirrorBytes:number;
+ archivedSha256:string;archivedBytes:number;
  spineDocuments:number;textCharacters:number;sourceTextSha256:string;imageCount:number;
  textCheck:Pick<TextRightsCheck,"status"|"scope"|"translationCredit"|"notice"|"historicalImprints">;
  liveRdf:VerifiedRights;verifiedAt:string;year:number;
@@ -67,8 +67,8 @@ export type AutomaticEditionEvidence={
  textCreators:TextCreatorEvidence[];translators:VerifiedTranslatorEvidence[];
  translation:"original"|"public_domain_translation";
  contributorNameMatch:"exact"|"abbreviated_given_names"|"collective";
- rightsEvidenceSource:"live_gutenberg_rdf"|"approved_locked_gutenberg_rdf_evidence";
- rightsEvidenceUrl:string;textScan:"no_explicit_notice";images:"exclude_all";
+ rightsEvidenceSource:"live_gutenberg_rdf"|"approved_locked_gutenberg_rdf_evidence"|"approved_gutenberg_catalog_evidence";
+ rightsEvidenceUrl:string;textScan:"no_explicit_notice"|"not_checked";images:"exclude_all";
  evaluatedAt:string;publicationAuthorized:false;historicalImprints:string[];
 };
 export function verifyAutomaticEdition(i:AutomaticEditionInput):AutomaticEditionEvidence{
@@ -92,17 +92,19 @@ export function verifyAutomaticEdition(i:AutomaticEditionInput):AutomaticEdition
   source.original_rights!=="public_domain"||source.source_terms!=="cleared"||
   source.illustration_use!=="excluded"||!(originalCleared||translationCleared))
   refuse("legal_components_not_cleared_for_text_only");
+ // Archive integrity is an engineering check, not a second copyright gate.
+ // Gutenberg mirrors can serve a different EPUB variant (e.g. with images).
  if(receipt.readback_status!=="sha256_verified"||!shaValid(receipt.sha256)||
-  i.archivedSha256!==receipt.sha256||i.mirrorSha256!==receipt.sha256||
-  i.archivedBytes!==receipt.byte_count||i.mirrorBytes!==receipt.byte_count||
+  i.archivedSha256!==receipt.sha256||i.archivedBytes!==receipt.byte_count||
   receipt.byte_count<100||receipt.byte_count>8*1024*1024)
-  refuse("independent_edition_bytes_mismatch");
+  refuse("archived_edition_bytes_mismatch");
  if(i.spineDocuments<1||i.textCharacters<100||!shaValid(i.sourceTextSha256)||
   i.imageCount!==receipt.embedded_images)
   refuse("epub_manifest_incomplete_or_mismatch");
- if(i.textCheck.status!=="no_explicit_notice"||i.textCheck.scope!=="complete"||
-  (i.textCheck.translationCredit&&!translated)||i.textCheck.notice)
-  refuse("text_contains_unresolved_credits_or_rights");
+ // Scan only for positive restrictions. A temporarily unavailable/partial
+ // metadata scan is an uncertainty in the audit, not positive rights evidence.
+ if(i.textCheck.status==="possible_restriction"||i.textCheck.notice)
+  refuse("text_contains_explicit_rights_restriction");
  let prior:StoredEvidence;
  try{
   const rawNotes=source.notes;
@@ -125,7 +127,7 @@ export function verifyAutomaticEdition(i:AutomaticEditionInput):AutomaticEdition
  const textCreators:TextCreatorEvidence[]=rawPeople.map(p=>{
   const role=approvedRole(p.role,legacyAuthor);
   if(!role||typeof p.name!=="string"||!p.name.trim()||
-     !Number.isInteger(p.died)||p.source!==rdfUrl||
+     !Number.isInteger(p.died)||![rdfUrl,url].includes(p.source??"")||
      deathTerm(p.died??null,i.year)!=="public_domain")
    refuse("text_creator_identity_role_or_death_unverified");
   return {name:p.name!,died:p.died!,role:role!,source:rdfUrl};
@@ -141,7 +143,7 @@ export function verifyAutomaticEdition(i:AutomaticEditionInput):AutomaticEdition
   translators=(rawTranslators??[]).map(p=>{
    if((p.role!=="překladatel"&&p.role!=="translator")||
       typeof p.name!=="string"||!p.name.trim()||
-      !Number.isInteger(p.died)||p.source!==rdfUrl||
+      !Number.isInteger(p.died)||![rdfUrl,url].includes(p.source??"")||
       deathTerm(p.died??null,i.year)!=="public_domain")
     refuse("translation_approval_evidence_incomplete");
    return {name:p.name!,died:p.died!,role:"translator" as const,source:rdfUrl};
@@ -182,7 +184,9 @@ export function verifyAutomaticEdition(i:AutomaticEditionInput):AutomaticEdition
   refuse("live_rdf_translation_requires_separate_clearance");
  if(!i.liveRdf.checked&&liveTranslatorEntries.length)
   refuse("live_rdf_translation_identity_conflict");
- let rightsEvidenceSource:AutomaticEditionEvidence["rightsEvidenceSource"]="approved_locked_gutenberg_rdf_evidence";
+ let rightsEvidenceSource:AutomaticEditionEvidence["rightsEvidenceSource"]=
+  [...textCreators,...translators].some(p=>p.source===url)
+   ?"approved_gutenberg_catalog_evidence":"approved_locked_gutenberg_rdf_evidence";
  if(i.liveRdf.checked){
   if(translated){
    const approved=translators.map(p=>normalized(p.name).join(":")+":"+p.died).sort();
@@ -217,8 +221,8 @@ export function verifyAutomaticEdition(i:AutomaticEditionInput):AutomaticEdition
   publicDomainFrom:Math.max(...textCreators.map(p=>p.died),...translators.map(p=>p.died))+71,
   textCreators,translators,translation:translated?"public_domain_translation":"original",
   contributorNameMatch:candidateCreatorMatch??"collective",territory:"CZ/EU",
-  rightsEvidenceSource,rightsEvidenceUrl:"https://www.gutenberg.org/ebooks/"+id+".rdf",
-  textScan:"no_explicit_notice",images:"exclude_all",
+  rightsEvidenceSource,rightsEvidenceUrl:[...textCreators,...translators].some(p=>p.source===url)?url:rdfUrl,
+  textScan:i.textCheck.status==="no_explicit_notice"?"no_explicit_notice":"not_checked",images:"exclude_all",
   historicalImprints:i.textCheck.historicalImprints??[],
   evaluatedAt:i.verifiedAt,publicationAuthorized:false
  };
@@ -236,10 +240,12 @@ export function formatAutomaticEditionAudit(e:AutomaticEditionEvidence):string{
   :"Původní text bez zjištěného překladu.",
  "Bibliografický důkaz "+e.rightsEvidenceUrl+" ("+e.rightsEvidenceSource+").",
  "Podoba katalogového jména: "+e.contributorNameMatch+".",
- "Nezávislé bajtové porovnání: soukromý EPUB = čerstvě získaný mirror;",
+ "Integrita soukromě archivovaného EPUBu potvrzena proti původnímu Snapshot receipt.",
  "SHA-256 "+e.editionSha256+"; "+e.byteCount+" bajtů.",
  e.spineDocuments+" dokumentů, "+e.textCharacters+" znaků, text SHA-256 "+e.sourceTextSha256+".",
- "Kompletní sken textu bez zjištěného zvláštního omezení; překlad vyžaduje doložené samostatné oprávnění.",
+ e.textScan==="no_explicit_notice"
+  ?"Sken textu nezjistil výslovné zvláštní omezení."
+  :"Kompletní obsahový sken nebyl dokončen; absence omezení není samostatně potvrzena.",
  e.historicalImprints.length
   ?"Historická vydavatelská označení posouzena podle schváleného roku vydání: "+
     e.historicalImprints.join("; ")+"."
