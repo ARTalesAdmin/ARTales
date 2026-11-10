@@ -78,6 +78,37 @@ export async function claimSemanticTask(form:FormData){
  redirect("/member/editorial-pipeline?notice=claimed");
 }
 
+/** One obvious action from a task card: claim the assigned task (if needed)
+ * and open the correct work surface, without a misleading disabled form.
+ * The existing database RPC performs all ownership/capability checks.
+ */
+export async function openAssignedEditorialTask(form:FormData){
+ if(!SEMANTIC_PIPELINE_ENABLED)notFound();
+ const actor=await requireEditorOrAdmin();
+ const taskId=String(form.get("task_id")??"");
+ if(!uuid.test(taskId))redirect("/member/editorial-pipeline?error=invalid");
+ const db=await createClient();
+ const {data:task,error:lookupError}=await db.from("artales_editorial_tasks")
+  .select("candidate_id,kind,status,assigned_to").eq("id",taskId).maybeSingle();
+ if(lookupError||!task||task.assigned_to!==actor.id||
+   !["open","returned","claimed"].includes(task.status))
+  redirect("/member/editorial-pipeline?error=unavailable");
+ if(task.status!=="claimed"){
+  const {data,error}=await db.rpc("artales_claim_editorial_task",{p_task_id:taskId});
+  if(error||data?.result!=="claimed")
+   redirect("/member/editorial-pipeline?error=unavailable");
+ }
+ const sections:Record<string,string>={
+  work_description:"description",author_bio:"author",author_visual:"author",
+  cover_art:"cover",collection_curation:"collection"
+ };
+ revalidatePath("/member/editorial-pipeline");
+ revalidatePath("/member/editorial-detail/"+task.candidate_id);
+ const section=sections[task.kind];
+ redirect(section?"/member/editorial-detail/"+task.candidate_id+"#"+section:
+  "/member/semantic/"+task.candidate_id);
+}
+
 export async function requestSemanticSecondReview(form:FormData){
  if(!SEMANTIC_PIPELINE_ENABLED)notFound();
  await requireEditorOrAdmin();
