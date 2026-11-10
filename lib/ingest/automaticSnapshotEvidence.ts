@@ -15,7 +15,7 @@ export type AutomaticEditionInput={
   original_rights:string;illustration_use:string;source_terms:string;language_code:string;
   identity_match:string;language_match:string;notes:string|null};
  decision:{source_id:string;decision_no:number;verdict:string;territory:string;rationale?:string};
- riskAccepted?:boolean;
+ riskAccepted?:boolean;riskUncertainties?:string[];
  receipt:{source_id:string;decision_no:number;gutenberg_id:number;catalog_url:string;
   locked_file_url:string;sha256:string;byte_count:number;embedded_images:number;readback_status:string};
  archivedSha256:string;archivedBytes:number;
@@ -65,7 +65,7 @@ export type AutomaticEditionEvidence={
  mirrorUrl:string;editionSha256:string;sourceTextSha256:string;byteCount:number;
  spineDocuments:number;textCharacters:number;privateImages:number;
  author:string;authorDied:number|null;publicDomainFrom:number|null;territory:"CZ/EU";
- riskAccepted:boolean;
+ riskAccepted:boolean;riskUncertainties:string[];
  textCreators:TextCreatorEvidence[];translators:VerifiedTranslatorEvidence[];
  translation:"original"|"public_domain_translation";
  contributorNameMatch:"exact"|"abbreviated_given_names"|"collective";
@@ -243,7 +243,7 @@ export function verifyAutomaticEdition(i:AutomaticEditionInput):AutomaticEdition
   publicDomainFrom:[...textCreators,...translators].every(p=>p.died!==null)
    ?Math.max(...textCreators.map(p=>p.died!),...translators.map(p=>p.died!))+71:null,
   textCreators,translators,translation:translated?"public_domain_translation":"original",
-  riskAccepted,
+  riskAccepted,riskUncertainties:riskAccepted?(i.riskUncertainties??[]):[],
   contributorNameMatch:candidateCreatorMatch??"collective",territory:"CZ/EU",
   rightsEvidenceSource,rightsEvidenceUrl:[...textCreators,...translators].some(p=>p.source===url)?url:rdfUrl,
   textScan:i.textCheck.status==="no_explicit_notice"?"no_explicit_notice":"not_checked",images:"exclude_all",
@@ -264,7 +264,7 @@ export function formatAutomaticEditionAudit(e:AutomaticEditionEvidence):string{
   ?"Překlad: "+e.translators.map(p=>p.name+" († "+p.died+")").join("; ")+
    "; práva každého překladatele prověřena proti zamčenému RDF auditu."
   :"Původní text bez zjištěného překladu.",
- e.riskAccepted?"NEJISTOTA PŘIJATA OPRÁVNĚNÝM EDITOREM. Některé údaje nebyly ověřeny; nejde o právní jistotu.":"Bez výslovně přijatého rizika.",
+ e.riskAccepted?"NEJISTOTA PŘIJATA OPRÁVNĚNÝM EDITOREM. Nejistoty: "+e.riskUncertainties.join("; ")+". Nejde o právní jistotu.":"Bez výslovně přijatého rizika.",
  "Bibliografický důkaz "+e.rightsEvidenceUrl+" ("+e.rightsEvidenceSource+").",
  "Podoba katalogového jména: "+e.contributorNameMatch+".",
  "Integrita soukromě archivovaného EPUBu potvrzena proti původnímu Snapshot receipt.",
