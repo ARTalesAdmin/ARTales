@@ -35,6 +35,12 @@ BEGIN
       lower(btrim(coalesce(a.name_en,'')))=lower(btrim(c.proposed_author_name)) OR
       (pg_catalog.array_length(pg_catalog.regexp_split_to_array(
         btrim(c.proposed_author_name),'[[:space:]]+'),1)>=2 AND
+        NOT (
+         pg_catalog.array_length(pg_catalog.regexp_split_to_array(
+          btrim(c.proposed_author_name),'[[:space:]]+'),1)=2
+         AND pg_catalog.split_part(lower(btrim(c.proposed_author_name)),' ',1)
+            IN ('le','la','de','da','di','van','von','del','du','des','der')
+        ) AND
         (
          pg_catalog.right(lower(btrim(a.name)),pg_catalog.length(btrim(c.proposed_author_name))+1)
             =' '||lower(btrim(c.proposed_author_name)) OR
@@ -46,7 +52,13 @@ BEGIN
       WHERE lower(btrim(a2.name))=lower(btrim(c.proposed_author_name)) OR
        lower(btrim(coalesce(a2.name_en,'')))=lower(btrim(c.proposed_author_name)) OR
        (pg_catalog.array_length(pg_catalog.regexp_split_to_array(
-        btrim(c.proposed_author_name),'[[:space:]]+'),1)>=2 AND (
+        btrim(c.proposed_author_name),'[[:space:]]+'),1)>=2 AND
+        NOT (
+         pg_catalog.array_length(pg_catalog.regexp_split_to_array(
+          btrim(c.proposed_author_name),'[[:space:]]+'),1)=2
+         AND pg_catalog.split_part(lower(btrim(c.proposed_author_name)),' ',1)
+            IN ('le','la','de','da','di','van','von','del','du','des','der')
+        ) AND (
         pg_catalog.right(lower(btrim(a2.name)),pg_catalog.length(btrim(c.proposed_author_name))+1)
            =' '||lower(btrim(c.proposed_author_name)) OR
         pg_catalog.right(lower(btrim(coalesce(a2.name_en,''))),pg_catalog.length(btrim(c.proposed_author_name))+1)
