@@ -9,6 +9,12 @@ export function AutomaticSnapshotCompose({candidateId}:{candidateId:string}){
  const [pending,setPending]=useState(false);
  const [error,setError]=useState("");
  const labels:Record<string,string>={
+  legal_components_not_cleared_for_text_only:
+   "Schválený právní záznam neobsahuje všechny povinné složky textového vydání. Ověř práva původního textu i překladatelů, shodu jazyka a podmínky zdroje; ilustrace se pouze vylučují.",
+  translation_approval_evidence_incomplete:
+   "Překlad nebyl ověřen: schází úplná totožnost, práva nebo datace některého překladatele v uzamčeném právním auditu.",
+  live_rdf_translation_identity_conflict:
+   "Údaje o překladatelích v aktuálním katalogu neodpovídají schválenému právnímu auditu.",
   author_identity_or_death_term_unverified:
    "Rozpor v identitě nebo ochranné lhůtě doloženého tvůrce. Podklady z právní kontroly je nutné zkontrolovat.",
   text_creator_identity_role_or_death_unverified:
