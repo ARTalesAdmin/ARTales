@@ -52,6 +52,17 @@ export default function SemanticQaPanel(p:Props){
    if(result.ok){setComment("");p.onFindingAdded();router.refresh();}
   });
  };
+ const excludeBlock=(flagId:string)=>{
+  if(pending||!p.canCommitBatch||!p.databaseReady)return;
+  startTransition(async()=>{
+   const result=await commitSemanticQaBatch({
+    candidateId:p.candidateId,revisionSha:p.revisionSha,
+    repairs:[{flagId,action:"exclude_note"}]
+   });
+   setFeedback(result.message);
+   if(result.ok){setRepairs({});router.refresh();}
+  });
+ };
  const resolve=(id:string)=>{
   startTransition(async()=>{
    const result=await resolveSemanticQaFlag({
@@ -171,6 +182,13 @@ export default function SemanticQaPanel(p:Props){
    {selected.length>0?<ul className="semantic-qa-panel__selected-findings">
     {selected.slice(-3).map(f=><li key={f.id}>{f.comment.slice(0,120)}</li>)}
    </ul>:null}
+   {selected.some(f=>f.status==="open"&&["other","structure","text"].includes(f.kind))
+    &&p.canCommitBatch&&!p.readonly?
+    <button type="button" disabled={pending||!p.databaseReady}
+     onClick={()=>excludeBlock(selected.find(f=>f.status==="open"&&
+      ["other","structure","text"].includes(f.kind))!.id)}>
+     Vyřadit označený blok z vydání
+    </button>:null}
   </div>:null}
   {p.selectedAtomId&&p.databaseReady&&!p.readonly?
    <form onSubmit={e=>{e.preventDefault();submit(p.selectedAtomId!,kind,comment);}}
@@ -269,7 +287,7 @@ export default function SemanticQaPanel(p:Props){
             <option value="airy">Zvětšit mezery</option>
             <option value="center">Zarovnat na střed</option>
            </>:null}
-           {f.kind==="structure"||f.kind==="other"?<option value="exclude_note">Vyřadit ediční poznámku</option>:null}
+           {f.kind==="structure"||f.kind==="other"?<option value="exclude_note">Vyřadit blok z vydání</option>:null}
           </select>
          </label>:null}
          <label>Uzavřít bez opravy — zdůvodnění
