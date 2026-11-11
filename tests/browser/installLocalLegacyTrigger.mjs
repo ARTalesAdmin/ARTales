@@ -27,7 +27,7 @@ const oneTimeText=readFileSync(oneTime,"utf8");
 if(!oneTimeText.includes("One-time evidence-backed readback registration for #389")||
  !oneTimeText.includes("historical_snapshot_storage_evidence_mismatch")||
  !oneTimeText.includes("INSERT INTO public.candidate_snapshots")||
- /\\b(?:CREATE|ALTER|GRANT|REVOKE|DROP)\\s+(?:TABLE|FUNCTION|POLICY|TRIGGER|VIEW)\\b/i.test(oneTimeText)||
+ /\b(?:CREATE|ALTER|GRANT|REVOKE|DROP)\s+(?:TABLE|FUNCTION|POLICY|TRIGGER|VIEW)\b/i.test(oneTimeText)||
  existsSync(oneTimeOutside))
  throw Error("Unexpected #389 one-time migration; do not suppress new schema or security logic");
 renameSync(oneTime,oneTimeOutside);
