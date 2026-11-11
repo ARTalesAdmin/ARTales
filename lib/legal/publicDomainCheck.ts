@@ -14,6 +14,7 @@ export type PublicDomainCheck={
  originalPublicationYear:number|null;gutenbergId:number;gutenbergCatalogUrl:string;
  gutenbergRdfUrl:string;gutenbergUsStatus:string;sourceTextStatus:string;
  sourceTextNotice:string|null;sourceEpubImageCount:number|null;
+ sourceTextEvidence:{method:"epub_spine_complete";epubSha256:string;textSha256:string;spineDocuments:number;textCharacters:number;sourceUrl:string}|null;
  publicationNote:string;editionLanguage:string|null;inferences:string[];
 };
 const currentYear=new Date().getFullYear();
@@ -68,7 +69,8 @@ export function assessPublicDomain(input:{
  return {schema:"artales.public-domain-check.v1",outcome,reason,text,translation,illustrations,
   originalPublicationYear,gutenbergId:book.id,gutenbergCatalogUrl:book.catalogUrl,gutenbergRdfUrl:rights.url,
   gutenbergUsStatus:rights.usStatus,sourceTextStatus:textCheck.status,sourceTextNotice:textCheck.notice??epub.notice,
-  sourceEpubImageCount:epub.imageCount,editionLanguage:book.languages[0]??null,
+  sourceEpubImageCount:epub.imageCount,sourceTextEvidence:epub.fullTextEvidence??null,
+  editionLanguage:book.languages[0]??null,
   publicationNote:"Rok prvního vydání (pokud doložen), nikoli datum zveřejnění elektronické knihy Project Gutenberg.",
   inferences};
 }
@@ -80,6 +82,7 @@ export function compactCheckEvidence(check:PublicDomainCheck):string{
   gutenbergCatalogUrl:check.gutenbergCatalogUrl,gutenbergRdfUrl:check.gutenbergRdfUrl,
   gutenbergUsStatus:check.gutenbergUsStatus,sourceTextStatus:check.sourceTextStatus,
   sourceTextNotice:check.sourceTextNotice,sourceEpubImageCount:check.sourceEpubImageCount,
+  sourceTextEvidence:check.sourceTextEvidence,
   inferences:check.inferences};
  const data=JSON.stringify(c);
  if(data.length<=4800)return data;
@@ -89,5 +92,7 @@ export function compactCheckEvidence(check:PublicDomainCheck):string{
   text:{status:check.text.status,people:check.text.people.slice(0,8).map(p=>({name:p.name.slice(0,80),died:p.died,role:p.role,source:p.source}))},
   translation:{status:check.translation.status,people:check.translation.people.slice(0,8).map(p=>({name:p.name.slice(0,80),died:p.died,role:p.role,source:p.source}))},
   illustrations:{status:check.illustrations.status},
-  gutenbergCatalogUrl:check.gutenbergCatalogUrl,sourceTextNotice:check.sourceTextNotice?.slice(0,100)??null});
+  gutenbergCatalogUrl:check.gutenbergCatalogUrl,sourceTextStatus:check.sourceTextStatus,
+  gutenbergUsStatus:check.gutenbergUsStatus,sourceTextEvidence:check.sourceTextEvidence,
+  sourceTextNotice:check.sourceTextNotice?.slice(0,100)??null});
 }
