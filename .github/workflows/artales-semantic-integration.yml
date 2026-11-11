@@ -25,6 +25,8 @@ on:
       - 'app/member/editorial-help/**'
       - 'app/reader/[slug]/page.tsx'
       - 'tests/semanticQaBatch.test.ts'
+      - 'tests/semanticGutenbergApparatusGeneral.test.ts'
+      - 'supabase/migrations/20261111133000_artales_editorial_exclusion_and_author_guard.sql'
       - 'components/member/**'
       - 'lib/editorial/**'
       - 'supabase/migrations/20261110130000_artales_unique_existing_author_byline.sql'
@@ -87,6 +89,8 @@ jobs:
         run: npx tsx --test tests/semanticJsonbRoundtrip.test.ts
       - name: Editable public-domain edition and pagination regression
         run: npx tsx --test tests/semanticEditionLayout.test.ts
+      - name: General Gutenberg automatic omission and manual exclusion
+        run: npx tsx --test tests/semanticGutenbergApparatusGeneral.test.ts
       - name: Source-anchored QA feedback, typography and immutable re-review
         run: npx tsx --test tests/semanticQaWorkflow.test.ts
       - name: Voluntary task pool and governed owner transfer

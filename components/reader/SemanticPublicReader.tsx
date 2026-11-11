@@ -1,6 +1,7 @@
 import type {SemanticRevision,SemanticNode,SemanticAtom} from "@/lib/semantic/model";
 import ProtectedProseText from "@/components/reader/ProtectedProseText";
-import {selectEditorialEdition} from "@/lib/semantic/editionProjection";
+import {selectEditorialEdition,classifyGutenbergApparatus} from "@/lib/semantic/editionProjection";
+import {walkSemanticAtoms} from "@/lib/semantic/compose";
 export type ApprovedSemanticImage={anchor_atom_id:string;storage_path:string;caption:string;sha256:string};
 function safeUrl(path:string){
  if(!/^works\/[a-f0-9-]{36}\/inline\/[a-f0-9-]{36}\.(png|jpg|webp)$/.test(path))return null;
@@ -71,7 +72,11 @@ export default function SemanticPublicReader({revision,title,isPreview,visuals=[
      throw Error("Editorial boundary intersects an atom.");
    return start>=range.start&&end<=range.end?n:null;
  };
- const excluded=new Set(revision.editorial_exclusions??[]);
+ const excluded=new Set([
+  ...(revision.editorial_exclusions??[]),
+  ...classifyGutenbergApparatus(revision.source.normalized_text,
+   walkSemanticAtoms(revision.blocks),revision.editorial_exclusions??[]).automaticAtomIds
+ ]);
  const withoutExclusions=(n:SemanticNode):SemanticNode|null=>{
    if(n.kind==="chapter"||n.kind==="section")
     return {...n,children:n.children.map(withoutExclusions).filter((v):v is SemanticNode=>v!==null)};

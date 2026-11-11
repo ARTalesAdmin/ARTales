@@ -43,11 +43,10 @@ export async function prepareQaPresentationBatch(input:QaBatchInput,db:SupabaseC
    const atom=atomIndex.get(flag.target_atom_id);
    if(!atom)throw Error("Missing exact atom");
    if(repair.action==="exclude_note"){
-    // Only an editor-selected, explicitly recorded apparatus exclusion.
-    // AI is NOT allowed to recommend this action.
-    if(!["structure","other"].includes(flag.kind)||
-       !/^\\s*(?:NOTE[.\\u2014: -]|TRANSCRIBER)/im.test(atom.raw))
-     throw Error("A literary paragraph must not be excluded.");
+    // Human-confirmed, exact QA source atom; source bytes are never edited.
+    // No AI exclusion is accepted by this path.
+    if(!["structure","other","text"].includes(flag.kind)||atom.raw.trim().length<2)
+     throw Error("Vyber existující označený textový blok.");
     return {flagId:flag.id,atomId:atom.id,reason:flag.comment,
      kind:"exclude_from_edition" as const};
    }
