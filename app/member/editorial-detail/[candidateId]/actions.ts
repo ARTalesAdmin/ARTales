@@ -80,7 +80,7 @@ export async function saveCandidateCover(input:{
  const id=input.candidateId,back={ok:false,closed:false};
  if(!uuid.test(id)||typeof input.path!=="string"||typeof input.alt!=="string"||
     typeof input.caption!=="string"||
-    !new RegExp("^works/"+id+"/cover/[a-zA-Z0-9_.-]+\\\\.(?:jpg|png|webp)$").test(input.path)||
+    !new RegExp("^works/"+id+"/cover/[a-zA-Z0-9_.-]+[.](?:jpg|png|webp)$").test(input.path)||
     input.alt.trim().length<8||input.alt.trim().length>350||input.caption.trim().length>500)
   return {...back,message:"Doplň popis (8–350 znaků) a vyber nahranou obálku."};
  const db=await createClient();
@@ -132,7 +132,7 @@ export async function listCandidateCoverUploads(candidateId:string):
   limit:30,sortBy:{column:"created_at",order:"desc"}
  });
  if(error)return {ok:false,message:"Nahrané obálky nelze načíst.",paths:[]};
- const files=(data??[]).filter(x=>/^cover-[a-zA-Z0-9_.-]+\\.(?:jpg|png|webp)$/.test(x.name))
+ const files=(data??[]).filter(x=>/^cover-[a-zA-Z0-9_.-]+[.](?:jpg|png|webp)$/.test(x.name))
   .slice(0,12).map(x=>folder+"/"+x.name);
  return {ok:true,message:files.length?"Vyber již nahranou obálku.":"Žádné nahrané obálky nebyly nalezeny.",paths:files};
 }
