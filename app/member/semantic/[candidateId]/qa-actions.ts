@@ -96,15 +96,30 @@ export async function commitSemanticQaBatch(input:QaBatchInput):Promise<QaMutati
  const prepared=await prepareQaPresentationBatch(input,await createClient());
  if(!prepared.ok)return prepared;
  const db=await createClient();
- // Exclusion of nonliterary distribution apparatus is NOT AI-driven, and
- // retains the existing admin-only approval path.
+ // A manual exclusion always produces a source-preserving revision.
+ // Only the exact editor-owned QA flags, never AI, authorize removal.
  if(input.repairs.some(x=>x.action==="exclude_note")){
-  if(actor.role!=="admin")return {ok:false,message:"Vyřazení ediční poznámky vyžaduje garanta."};
-  const {data,error}=await db.rpc("artales_commit_semantic_qa_batch",{
-   p_candidate_id:input.candidateId,p_parent_sha:input.revisionSha,
-   p_revision:prepared.revision,p_flag_ids:input.repairs.map(x=>x.flagId)
+  if(input.repairs.some(x=>x.action!=="exclude_note"))
+   return {ok:false,message:"Vyřazení textu a úpravy sazby ulož odděleně."};
+  const {data:owner,error:ownerError}=await db.from("artales_editorial_tasks")
+   .select("id").eq("candidate_id",input.candidateId)
+   .eq("revision_sha256",input.revisionSha).eq("kind","text_review")
+   .eq("assigned_to",actor.id).eq("status","claimed").maybeSingle();
+  if(ownerError||!owner)return {ok:false,message:"Vyřazení může potvrdit pouze přiřazený QA editor."};
+  const roleKey=process.env.SUPABASE_SERVICE_ROLE_KEY;
+  const url=process.env.NEXT_PUBLIC_SUPABASE_URL;
+  if(!roleKey||!url)return {ok:false,message:"Zabezpečené ukládání není nakonfigurováno."};
+  const internal=createServiceClient(url,roleKey,{
+   auth:{persistSession:false,autoRefreshToken:false}
   });
-  if(error||data?.result!=="created")return {ok:false,message:"Ediční vyřazení nebylo schváleno."};
+  const {data,error}=await internal.rpc("artales_commit_editorial_exclusions",{
+   p_candidate_id:input.candidateId,p_parent_sha:input.revisionSha,
+   p_revision:prepared.revision,p_flag_ids:input.repairs.map(x=>x.flagId),
+   p_editor_id:actor.id
+  });
+  if(error||data?.result!=="created")
+   return {ok:false,message:"Vyřazení neprošlo kontrolou oprávnění a integrity ("+
+    (data?.result??error?.code??"chyba")+")."};
  }else{
   const {data:owner,error:ownerError}=await db.from("artales_editorial_tasks")
    .select("id").eq("candidate_id",input.candidateId)
@@ -129,7 +144,7 @@ export async function commitSemanticQaBatch(input:QaBatchInput):Promise<QaMutati
  revalidatePath("/member/semantic/"+input.candidateId);
  revalidatePath("/member/editorial-pipeline");
  revalidatePath("/member","layout");
- return {ok:true,message:"Bez změny jediného znaku byl uložen nový návrh sazby. Opravené bloky čekají na potvrzení."};
+ return {ok:true,message:"Nová redakční revize byla uložena bez změny originálu. Zkontroluj vyřazené bloky a dokonči QA."};
 }
 
 export async function decideSemanticChange(input:{
