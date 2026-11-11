@@ -18,6 +18,7 @@ on:
       - 'docs/handoffs/ARTALES_SNAPSHOT_389_PILOT_2026-10-27.md'
       - 'lib/legal/gutenbergCatalog.ts'
       - 'tests/lockedSnapshotSelection.test.ts'
+      - 'tests/editionTitleIdentity.test.ts'
       - 'tests/rawSourceSnapshot.test.mjs'
       - 'tests/verifiedLegalSnapshotHandoff.test.mjs'
       - 'tests/snapshot389Pilot.test.mjs'
@@ -47,7 +48,7 @@ jobs:
           node-version: '22'
           cache: npm
       - run: npm ci --no-audit --no-fund
-      - run: npx tsx --test tests/lockedSnapshotSelection.test.ts
+      - run: npx tsx --test tests/lockedSnapshotSelection.test.ts tests/editionTitleIdentity.test.ts
       - run: node --experimental-strip-types --test tests/rawSourceSnapshot.test.mjs
       - run: npx tsx --test tests/verifiedLegalSnapshotHandoff.test.mjs
       - run: npx tsx --test tests/snapshot389Pilot.test.mjs

@@ -67,6 +67,76 @@ export async function saveCandidateEditorialField(form:FormData){
  redirect("/member/editorial-detail/"+candidateId+"?saved="+encodeURIComponent(field));
 }
 
+export type CoverSaveResult={ok:boolean;message:string;closed:boolean};
+/** Non-redirecting single cover save. Keeps the uploaded image and entered
+ * description in the browser if the DB or task-completion gate refuses.
+ * The canonical authenticated RPC remains the authorization authority.
+ */
+export async function saveCandidateCover(input:{
+ candidateId:string;path:string;alt:string;caption:string
+}):Promise<CoverSaveResult>{
+ if(!SEMANTIC_PIPELINE_ENABLED)notFound();
+ const actor=await requireEditorOrAdmin();
+ const id=input.candidateId,back={ok:false,closed:false};
+ if(!uuid.test(id)||typeof input.path!=="string"||typeof input.alt!=="string"||
+    typeof input.caption!=="string"||
+    !new RegExp("^works/"+id+"/cover/[a-zA-Z0-9_.-]+[.](?:jpg|png|webp)$").test(input.path)||
+    input.alt.trim().length<8||input.alt.trim().length>350||input.caption.trim().length>500)
+  return {...back,message:"Doplň popis (8–350 znaků) a vyber nahranou obálku."};
+ const db=await createClient();
+ const {data,error}=await db.rpc("artales_save_candidate_editorial_field",{
+  p_candidate_id:id,p_field:"cover",p_value:input.path,
+  p_alt:input.alt.trim(),p_caption:input.caption.trim()||null
+ });
+ if(error||data?.result!=="saved"){
+  const code=typeof data?.result==="string"?data.result:error?.code??"save_failed";
+  return {...back,message:code==="not_claimed"?"Nejdřív převezmi úkol obálky.":
+   code==="cover_asset_missing"?"Obrázek je nahraný, ale databáze jej nevidí. Zachovej soubor a opakuj uložení.":
+   code==="cover_required"?"Cesta k obrázku nebo jeho popis nesplňuje pravidla.":
+   "Obálka se nepodařila propojit s dílem ("+code+"). Soubor zůstává nahraný."};
+ }
+ const {data:owned,error:lookupError}=await db.from("artales_editorial_tasks")
+  .select("id").eq("candidate_id",id).eq("kind","cover_art")
+  .eq("assigned_to",actor.id).eq("status","claimed");
+ let closed=false,closeoutFailed=Boolean(lookupError);
+ for(const task of owned??[]){
+  const {data:complete,error:completeError}=await db.rpc("artales_complete_editorial_task",{
+   p_task_id:task.id,p_note:"Obálka uložena v ARTales a úložiště ověřeno databázovou kontrolou."
+  });
+  if(completeError||complete?.result!=="completed")closeoutFailed=true;
+  else closed=true;
+ }
+ revalidatePath("/member/editorial-detail/"+id);
+ revalidatePath("/member/editorial-pipeline");
+ revalidatePath("/member","layout");
+ return {ok:true,closed,message:closeoutFailed?
+  "Obálka je bezpečně uložená, ale dokončení úkolu neprošlo. Soubor znovu nenahrávej.":
+  "Obálka byla uložená k dílu"+(closed?" a úkol je dokončen.":".")};
+}
+/** Recover previously uploaded candidate covers without writing Storage or DB.
+ * Only the assigned current cover editor (or admin) may discover candidates.
+ */
+export async function listCandidateCoverUploads(candidateId:string):
+ Promise<{ok:boolean;message:string;paths:string[]}>{
+ const actor=await requireEditorOrAdmin();
+ if(!uuid.test(candidateId))return {ok:false,message:"Neplatné dílo.",paths:[]};
+ const db=await createClient();
+ if(actor.role!=="admin"){
+  const {data:task,error}=await db.from("artales_editorial_tasks").select("id")
+   .eq("candidate_id",candidateId).eq("kind","cover_art")
+   .eq("assigned_to",actor.id).eq("status","claimed").limit(1).maybeSingle();
+  if(error||!task)return {ok:false,message:"Nejdřív převezmi úkol obálky.",paths:[]};
+ }
+ const folder="works/"+candidateId+"/cover";
+ const {data,error}=await db.storage.from("artales-images").list(folder,{
+  limit:30,sortBy:{column:"created_at",order:"desc"}
+ });
+ if(error)return {ok:false,message:"Nahrané obálky nelze načíst.",paths:[]};
+ const files=(data??[]).filter(x=>/^cover-[a-zA-Z0-9_.-]+[.](?:jpg|png|webp)$/.test(x.name))
+  .slice(0,12).map(x=>folder+"/"+x.name);
+ return {ok:true,message:files.length?"Vyber již nahranou obálku.":"Žádné nahrané obálky nebyly nalezeny.",paths:files};
+}
+
 /** Reassign from the permanent candidate work card. No access is gained by
  * rendering the form: the existing audited RPC enforces admin and capability. */
 export async function reassignCandidateTask(form:FormData){

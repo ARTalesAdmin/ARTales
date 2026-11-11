@@ -13,8 +13,10 @@ test("legal detail shows one next-step link; archive POST remains on Snapshot",(
 });
 test("the shared action starts a private-only POST with clear informed action text",()=>{
  assert.match(panel,/\(state\.status==="ready"\|\|state\.status==="recovery_ready"\)\&\&canArchive/);
- assert.match(panel,/action=\{\`\/api\/member\/snapshot\/\$\{candidateId\}\`\}/);
- assert.match(panel,/name="private_original_retention" value="archive_only"/);
+ assert.match(panel,/fetch\("\/api\/member\/snapshot\/"\+candidateId/);
+ assert.match(panel,/private_original_retention:"archive_only"/);
+ assert.match(panel,/role="alert"/);
+ assert.match(panel,/if\(busy\)return/);
  assert.match(panel,/ilustrace nebudou součástí veřejného vydání/);
  assert.match(panel,/Pokračovat v přípravě/);
  assert.match(snapshot,/<SnapshotActionPanel candidateId=\{candidateId\}/);

@@ -50,7 +50,8 @@ test("candidate detail has four distinct persistent forms and accessible progres
  assert.match(candidate,/name="field" value="author"/);
  assert.match(candidate,/name="field" value="collection"/);
  assert.match(candidate,/name="field" value="description"/);
- assert.match(candidate,/name="field" value="cover"/);
+ assert.match(candidate,/<CandidateCoverInput/);
+ assert.match(cover,/saveCandidateCover/);
  assert.match(candidate,/name="candidate_id"/);
  assert.match(candidate,/<progress value=\{completedCount\} max=\{4\}/);
  assert.match(candidate,/completeForm\("author_bio"/);
@@ -76,6 +77,7 @@ test("cover upload remains storage-backed with a clear save and no edits to lega
  assert.match(cover,/\.storage\.from\(ARTALES_IMAGES_BUCKET\)\.upload/);
  assert.match(cover,/ARTALES_IMAGE_MAX_UPLOAD_BYTES/);
  assert.match(cover,/ed-filebox/);
- assert.match(cover,/type="submit" disabled=\{busy\|\|!path/);
+ assert.match(cover,/type="button" onClick=\{\(\)=>void save\(\)\}/);
+ assert.match(cover,/listCandidateCoverUploads/);
  assert.doesNotMatch([candidate,inbox,qa,cover,css].join("\n"),/paginateReaderBlocks/);
 });

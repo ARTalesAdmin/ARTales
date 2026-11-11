@@ -419,14 +419,12 @@ export default async function CandidateEditorialDetail({params,searchParams}:{
       <div className="ed-card__statuses">{entryStatus(coverPresent)}{taskStatus("cover_art")}</div>
      </div>
      <div className="ed-card__body">
-      {canEditCover?<form className="ed-card__form" action={saveCandidateEditorialField}>
-       <input type="hidden" name="candidate_id" value={candidateId}/>
-       <input type="hidden" name="field" value="cover"/>
+      {canEditCover?<div className="ed-card__form">
        <CandidateCoverInput candidateId={candidateId}
         initialPath={metadata.cover_image_path??""}
         initialAlt={metadata.cover_image_alt??""}
         initialCaption={metadata.cover_image_caption??""}/>
-      </form>:<p className="ed-quiet">Obálku připravuje pověřený editor.</p>}
+      </div>:<p className="ed-quiet">Obálku připravuje pověřený editor.</p>}
      </div>
     </section>
    </div>

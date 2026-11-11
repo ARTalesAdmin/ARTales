@@ -58,6 +58,25 @@ test('The Red Fairy Book: validated collection editor is a legitimate locked ide
  assert.throws(()=>planLockedSnapshot(ed,{...catalogue,catalogUrl:'https://www.gutenberg.org/ebooks/999'}),/catalog_author_or_title_mismatch/);
 });
 
+test('approved source identity is reusable when candidate omits a bounded edition qualifier',()=>{
+ const cat='https://www.gutenberg.org/ebooks/74',title='The Adventures of Tom Sawyer, Complete';
+ const approved={
+  ...packet,
+  candidate:{...packet.candidate,proposed_title:'The Adventures of Tom Sawyer',proposed_author_name:'Mark Twain'},
+  source:{...packet.source,edition_title:title,source_url:cat,download_url:cat+'.epub.noimages'},
+  lock:{...packet.lock,source_url:cat,download_url:cat+'.epub.noimages',
+   source_facts:{...packet.lock.source_facts,edition:title}}
+ };
+ const verified={...book,id:74,title,authors:[{name:'Twain, Mark',died:1910}],
+  catalogUrl:cat,files:[{url:cat+'.epub.noimages',label:'EPUB',format:'epub'}]};
+ assert.equal(planLockedSnapshot(approved,verified).selection.catalog_url,cat);
+ for(const wrong of ['The Adventures of Huckleberry Finn','Adventures of Tom Sawyer: New Translation']){
+  assert.throws(()=>planLockedSnapshot({...approved,candidate:{...approved.candidate,proposed_title:wrong}},verified));
+ }
+ assert.throws(()=>planLockedSnapshot(approved,{...verified,id:75,catalogUrl:'https://www.gutenberg.org/ebooks/75'}));
+ assert.throws(()=>planLockedSnapshot(approved,{...verified,authors:[{name:'Other Author',died:1910}]}));
+ assert.throws(()=>planLockedSnapshot(approved,{...verified,title:'The Adventures of Tom Sawyer, Abridged'}));
+});
 test('decision must precede immutable legal lock',()=>{
  assert.throws(()=>planLockedSnapshot({...packet,approved:{...packet.approved,recorded_at:'2026-10-26T14:52:00.000Z'}},book));
  assert.throws(()=>planLockedSnapshot({...packet,approved:{...packet.approved,decision_no:8}},book));
