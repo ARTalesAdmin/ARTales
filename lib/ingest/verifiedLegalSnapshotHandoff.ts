@@ -2,6 +2,7 @@ import {createHash} from "node:crypto";
 import {chooseSnapshotFile, type LegalSnapshotLock, type SnapshotFileChoice} from "./lockedSnapshotSelection";
 import type {GutenbergBook} from "../legal/gutenbergCatalog";
 import {captureRawSource, type RawSourceCapture} from "./rawSourceSnapshot";
+import {matchesCandidateEditionTitle,sameLockedCatalogEdition} from "./editionTitleIdentity";
 
 /** Pure, server-side-only planning inputs. Caller must read these from current
  * authenticated Supabase records, never accept them from browser JSON. No DB,
@@ -50,7 +51,7 @@ export function planLockedSnapshot(packet:VerifiedLegalSnapshotPacket, book:Gute
  if(t>l || t<=0)throw Error("stale_legal_lock");
  if(source.source_kind!=="gutenberg"||source.source_url!==lock.source_url||
     source.download_url!==lock.download_url||source.identity_match!=="confirmed"||
-    source.language_match!=="matches"||canon(source.edition_title)!==canon(candidate.proposed_title)||
+    source.language_match!=="matches"||!matchesCandidateEditionTitle(candidate.proposed_title,source.edition_title)||
     source.text_format!==(lock.source_facts as {textFormat?:unknown})?.textFormat||
     source.language_code!==(lock.source_facts as {language?:unknown})?.language)throw Error("source_identity_mismatch");
  // A collection may credit the named person as editor, not as book author.
@@ -77,7 +78,7 @@ export function planLockedSnapshot(packet:VerifiedLegalSnapshotPacket, book:Gute
  }
  const catalogAuthorMatch=Boolean(book?.authors?.some(a=>
   words(candidate.proposed_author_name).every(t=>words(a.name).includes(t))));
- if(!book||canon(book.title)!==canon(candidate.proposed_title)||
+ if(!book||!sameLockedCatalogEdition(source.edition_title,book.title)||
     book.catalogUrl!==lock.source_url||
     (!catalogAuthorMatch&&!approvedEditorMatch))
   throw Error("catalog_author_or_title_mismatch");
