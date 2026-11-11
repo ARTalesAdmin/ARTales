@@ -109,23 +109,31 @@ export async function openAssignedEditorialTask(form:FormData){
     .eq("candidate_id",task.candidate_id).maybeSingle(),
    db.from("authors").select("id,name,name_en,bio_cs,bio_en").order("name").limit(500)
   ]);
-  if(candidate&&!meta?.author_id&&authorRows){
+  if(candidate&&authorRows){
+   // Both a newly found and an already-linked unique author are valid.
+   // The old guard skipped closeout whenever author_id was already stored,
+   // leaving a complete bilingual profile in the claimed task queue.
    const author=uniqueExistingAuthor(candidate.proposed_author_name,authorRows);
-   if(author){
-    const {data:linked,error:linkError}=await db.rpc("artales_save_candidate_editorial_field",{
-     p_candidate_id:task.candidate_id,p_field:"author",p_value:author.id,
-     p_alt:null,p_caption:null
-    });
-    if(linkError||linked?.result!=="saved")
-     redirect("/member/editorial-detail/"+task.candidate_id+"?error=author_link_failed#author");
+   if(author&&(!meta?.author_id||meta.author_id===author.id)){
+    if(!meta?.author_id){
+     const {data:linked,error:linkError}=await db.rpc("artales_save_candidate_editorial_field",{
+      p_candidate_id:task.candidate_id,p_field:"author",p_value:author.id,
+      p_alt:null,p_caption:null
+     });
+     if(linkError||linked?.result!=="saved")
+      redirect("/member/editorial-detail/"+task.candidate_id+"?error=author_link_failed#author");
+    }
     if(task.kind==="author_bio"&&
        [author.bio_cs,author.bio_en].every(v=>(v??"").trim().length>=200&&
        (v??"").trim().length<=800)){
-     const {data:completed}=await db.rpc("artales_complete_editorial_task",{
+     // The evidence trigger remains authoritative; no status is forced.
+     const {data:completed,error:closeoutError}=await db.rpc("artales_complete_editorial_task",{
       p_task_id:taskId,
       p_note:"Profil existujícího autora byl jednoznačně přiřazen a bilingvní biografie byla ověřena."
      });
-     if(completed?.result==="completed")revalidatePath("/member/editorial-pipeline");
+     if(closeoutError||completed?.result!=="completed")
+      redirect("/member/editorial-detail/"+task.candidate_id+"?error=evidence_missing#author");
+     revalidatePath("/member/editorial-pipeline");
     }
    }
   }
