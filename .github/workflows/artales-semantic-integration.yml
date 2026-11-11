@@ -31,6 +31,7 @@ on:
       - 'lib/editorial/**'
       - 'supabase/migrations/20261110130000_artales_unique_existing_author_byline.sql'
       - 'tests/editorialTaskEntryAuthorMatch.test.ts'
+      - 'tests/editorialCoverRecovery.test.ts'
       - 'app/member/admin/editorial-performance/**'
       - 'app/member/admin/dashboard/page.tsx'
       - 'ops/sql/20261106_artales_editorial_completion_bilingual_guard.sql'
@@ -103,6 +104,8 @@ jobs:
         run: npx tsx --test tests/editorialBilingualAnnotations.test.ts
       - name: Editorial workspace design and functionality safety
         run: npx tsx --test tests/editorialWorkspacePolish.test.ts
+      - name: Candidate cover save and existing upload recovery
+        run: npx tsx --test tests/editorialCoverRecovery.test.ts
       - name: Editorial candidate release evidence and legacy safety
         run: npx tsx --test tests/editorialCandidateRelease.test.ts
       - name: Editorial assignment and review workflow contract
