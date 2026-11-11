@@ -55,26 +55,26 @@ BEGIN
  IF pg_catalog.jsonb_typeof(v_prior)<>'array' OR
     pg_catalog.jsonb_typeof(v_new)<>'array' OR
     pg_catalog.jsonb_array_length(v_new)<>pg_catalog.jsonb_array_length(v_prior)+v_flags OR
-    (SELECT count(DISTINCT x) FROM pg_catalog.jsonb_array_elements_text(v_new) x)
+    (SELECT count(DISTINCT x.value) FROM pg_catalog.jsonb_array_elements_text(v_new) AS x(value))
      <>pg_catalog.jsonb_array_length(v_new)
  THEN RETURN pg_catalog.jsonb_build_object('result','invalid_exclusions');END IF;
- IF EXISTS(SELECT 1 FROM pg_catalog.jsonb_array_elements_text(v_prior) x WHERE NOT v_new ? x)
+ IF EXISTS(SELECT 1 FROM pg_catalog.jsonb_array_elements_text(v_prior) AS x(value) WHERE NOT v_new ? x.value)
  THEN RETURN pg_catalog.jsonb_build_object('result','prior_exclusions_removed');END IF;
  SELECT COALESCE(pg_catalog.jsonb_agg(f.target_atom_id ORDER BY f.target_atom_id),'[]'::jsonb)
  INTO v_expected FROM public.artales_semantic_qa_flags f
  WHERE f.candidate_id=p_candidate_id AND f.revision_sha256=p_parent_sha
   AND f.status='open' AND f.id=ANY(p_flag_ids);
- SELECT COALESCE(pg_catalog.jsonb_agg(item ORDER BY item),'[]'::jsonb) INTO v_delta
- FROM pg_catalog.jsonb_array_elements_text(v_new) item
- WHERE NOT v_prior ? item;
+ SELECT COALESCE(pg_catalog.jsonb_agg(item.value ORDER BY item.value),'[]'::jsonb) INTO v_delta
+ FROM pg_catalog.jsonb_array_elements_text(v_new) AS item(value)
+ WHERE NOT v_prior ? item.value;
  IF v_delta IS DISTINCT FROM v_expected
  THEN RETURN pg_catalog.jsonb_build_object('result','unattributed_exclusion');END IF;
  IF EXISTS(
-  SELECT 1 FROM pg_catalog.jsonb_array_elements_text(v_delta) ident
+  SELECT 1 FROM pg_catalog.jsonb_array_elements_text(v_delta) AS ident(value)
   WHERE NOT EXISTS(
    SELECT 1 FROM pg_catalog.jsonb_path_query(v_old.revision,'$.blocks.**') n
    WHERE n->>'kind' IN ('paragraph','quote','epigraph','footnote')
-    AND n->'atom'->>'id'=ident
+    AND n->'atom'->>'id'=ident.value
   )
  ) THEN RETURN pg_catalog.jsonb_build_object('result','non_text_target');END IF;
  -- All non-revision fields remain byte-for-byte canonical JSONB equal.
