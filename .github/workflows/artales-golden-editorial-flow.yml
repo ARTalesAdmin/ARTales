@@ -92,3 +92,33 @@ jobs:
           test "$PGDATABASE" = "postgres"
           command -v psql || (sudo apt-get update && sudo apt-get install -y postgresql-client)
           bash tests/db/snapshotGeneralIsolation.sh
+
+  golden-current-editorial-database:
+    name: Current cover and author RPC + trigger (ephemeral PostgreSQL 17)
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_PASSWORD: ci-root-only
+          POSTGRES_DB: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 12
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Execute currently deployed field and completion SQL (never production)
+        env:
+          PGHOST: '127.0.0.1'
+          PGPORT: '5432'
+          PGDATABASE: postgres
+        run: |
+          command -v psql || (sudo apt-get update && sudo apt-get install -y postgresql-client)
+          bash tests/golden/goldenEditorialDbIsolation.sh
