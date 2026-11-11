@@ -1,6 +1,6 @@
 import type {SemanticRevision,SemanticNode,SemanticAtom} from "@/lib/semantic/model";
 import ProtectedProseText from "@/components/reader/ProtectedProseText";
-import {selectEditorialEdition,classifyGutenbergApparatus} from "@/lib/semantic/editionProjection";
+import {selectEditorialEdition,classifyGutenbergApparatus,poemInsideEditorialEdition} from "@/lib/semantic/editionProjection";
 import {walkSemanticAtoms} from "@/lib/semantic/compose";
 export type ApprovedSemanticImage={anchor_atom_id:string;storage_path:string;caption:string;sha256:string};
 function safeUrl(path:string){
@@ -59,13 +59,7 @@ export default function SemanticPublicReader({revision,title,isPreview,visuals=[
      if(children.length)throw Error("Editorial boundary intersects a chapter heading.");
      return null;
    }
-   if(n.kind==="poem"){
-     const atoms=n.stanzas.flatMap(s=>s.lines.map(l=>l.atom));
-     if(!atoms.length)return null;
-     if(atoms[0].anchor.normalized_start>=range.start&&
-        atoms.at(-1)!.anchor.normalized_end<=range.end)return n;
-     return null;
-   }
+   if(n.kind==="poem")return poemInsideEditorialEdition(n,range)?n:null;
    if(!("atom" in n))return null;
    const start=n.atom.anchor.normalized_start,end=n.atom.anchor.normalized_end;
    if(start<range.end&&end>range.start&&(start<range.start||end>range.end))

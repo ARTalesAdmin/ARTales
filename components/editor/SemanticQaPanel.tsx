@@ -4,7 +4,8 @@ import {useRouter} from "next/navigation";
 import type {AiQaSuggestion} from "@/lib/semantic/aiQaProposalEngine";
 import {enqueueSemanticAiQaJob,lastSemanticAiQaJob,readSemanticAiQaJob,type QaJobStatus} from "@/app/member/semantic/[candidateId]/ai-job-actions";
 import {commitSemanticQaBatch,previewSemanticQaBatch,resolveSemanticQaFlag,
-  submitSemanticQaFlag,type EditorialBatchAction} from "@/app/member/semantic/[candidateId]/qa-actions";
+  submitSemanticQaFlag,confirmOmittedSemanticQaFlags,type EditorialBatchAction} from "@/app/member/semantic/[candidateId]/qa-actions";
+import type {OmittedQaAtom} from "@/lib/semantic/qaFindingProjection";
 import type {SemanticRevision,SemanticReviewIssue} from "@/lib/semantic/model";
 export type SemanticQaFlag={
  id:string;revision_sha256:string;target_atom_id:string;
@@ -12,7 +13,8 @@ export type SemanticQaFlag={
  status:"open"|"resolved";created_at:string;resolution_note:string|null;
 };
 type Props={candidateId:string;revisionSha:string;selectedAtomId:string|null;
- selectedText:string|null;flags:SemanticQaFlag[];onSelect:(atomId:string)=>void;
+ selectedText:string|null;flags:SemanticQaFlag[];omittedQaAtoms:Record<string,OmittedQaAtom>;
+ onSelect:(atomId:string)=>void;
  readonly?:boolean;databaseReady:boolean;onSaved:()=>void;onFindingAdded:()=>void;
  canCommitBatch:boolean;onPreview:(revision:SemanticRevision)=>void;
  onStartReview:()=>void;onOpenProposalReview:()=>void;aiJobPending:boolean;
@@ -36,6 +38,7 @@ export default function SemanticQaPanel(p:Props){
  const [repairs,setRepairs]=useState<Record<string,EditorialBatchAction|"">>({});
  const [pending,startTransition]=useTransition();
  const open=p.flags.filter(f=>f.status==="open");
+ const omittedOpen=open.filter(f=>Boolean(p.omittedQaAtoms[f.target_atom_id]));
  const selected=p.flags.filter(f=>f.target_atom_id===p.selectedAtomId);
  const visibleFindings=p.flags.filter(f=>(findingStatus==="all"||f.status===findingStatus)&&
   (!findingQuery.trim()||(`${f.comment} ${f.kind}`).toLocaleLowerCase("cs").includes(findingQuery.trim().toLocaleLowerCase("cs"))));
@@ -50,6 +53,16 @@ export default function SemanticQaPanel(p:Props){
    });
    setFeedback(result.message);
    if(result.ok){setComment("");p.onFindingAdded();router.refresh();}
+  });
+ };
+ const confirmOmitted=()=>{
+  if(pending||!p.databaseReady||!p.canCommitBatch||!omittedOpen.length)return;
+  startTransition(async()=>{
+   const result=await confirmOmittedSemanticQaFlags({
+    candidateId:p.candidateId,revisionSha:p.revisionSha,flagIds:omittedOpen.map(f=>f.id)
+   });
+   setFeedback(result.message);
+   router.refresh();
   });
  };
  const excludeBlock=(flagId:string)=>{
@@ -176,6 +189,17 @@ export default function SemanticQaPanel(p:Props){
   <div className="semantic-qa-panel__heading"><h2>QA nálezy</h2>
    <span>{open.length} otevřených · {p.flags.length-open.length} uzavřených</span></div>
   {!p.databaseReady?<p role="alert">Databázová QA evidence není dostupná. Opravy nelze bezpečně uložit.</p>:null}
+  {omittedOpen.length>0?<section className="semantic-qa-panel__next" aria-label="Nálezy již vynechané z vydání">
+   <h3>Části již vynechané z ARTales ({omittedOpen.length})</h3>
+   <p>Tyto části se podle stejné projekce jako v Readeru nevydávají. Přečti ukázky a potvrď jejich vynechání; originál zůstává zachován.</p>
+   {omittedOpen.map(f=><div key={f.id} className="semantic-qa-panel__flag">
+    <p><strong>{p.omittedQaAtoms[f.target_atom_id].excerpt||"Prázdný zdrojový blok"}</strong></p>
+    <small>{f.comment}</small>
+   </div>)}
+   {p.canCommitBatch&&!p.readonly?<button type="button" disabled={pending||!p.databaseReady}
+     onClick={confirmOmitted}>Potvrdit již vynechané bloky ({omittedOpen.length})</button>:
+    <p>Potvrdit může pouze editor s převzatým aktuálním QA úkolem.</p>}
+  </section>:null}
   {p.selectedAtomId?<div className="semantic-qa-panel__selection">
    <strong>Vybraný blok</strong><p>{p.selectedText?.slice(0,150)??p.selectedAtomId}</p>
    <small>{selected.length} nálezů pro tento blok</small>
@@ -183,7 +207,7 @@ export default function SemanticQaPanel(p:Props){
     {selected.slice(-3).map(f=><li key={f.id}>{f.comment.slice(0,120)}</li>)}
    </ul>:null}
    {selected.some(f=>f.status==="open"&&["other","structure","text"].includes(f.kind))
-    &&p.canCommitBatch&&!p.readonly?
+    &&open.length===1&&p.canCommitBatch&&!p.readonly?
     <button type="button" disabled={pending||!p.databaseReady}
      onClick={()=>excludeBlock(selected.find(f=>f.status==="open"&&
       ["other","structure","text"].includes(f.kind))!.id)}>
@@ -271,7 +295,8 @@ export default function SemanticQaPanel(p:Props){
       <div className="semantic-qa-panel__flag-top">
        <span><strong>{kinds.find(k=>k.value===f.kind)?.label??f.kind}</strong>
        {" · "}{f.status==="open"?"K opravě":"Vyřešeno"}</span>
-       <button type="button" onClick={()=>p.onSelect(f.target_atom_id)}>Najít v textu</button>
+       {p.omittedQaAtoms[f.target_atom_id]?<small>Již mimo vydání — ukázka je výše</small>:
+        <button type="button" onClick={()=>p.onSelect(f.target_atom_id)}>Najít v textu</button>}
       </div>
       <p>{f.comment}</p>
       {f.status==="resolved"?<small>{f.resolution_note}</small>:

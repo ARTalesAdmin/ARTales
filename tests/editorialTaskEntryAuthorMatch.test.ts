@@ -37,3 +37,23 @@ test("canonical migration retains actor gate and only admits unique byline match
  assert.match(sql,/author_name_mismatch/);
  assert.doesNotMatch(sql,/UPDATE public\.authors/);
 });
+
+test("already-linked author can finish the claimed biography task without relinking",()=>{
+ const action=readFileSync("app/member/editorial-pipeline/actions.ts","utf8");
+ assert.match(action,/if\(candidate&&authorRows\)/);
+ assert.match(action,/meta\.author_id===author\.id/);
+ assert.match(action,/if\(!meta\?\.author_id\)/);
+ assert.match(action,/task\.kind==="author_bio"/);
+ assert.match(action,/if\(closeoutError\|\|completed\?\.result!=="completed"\)/);
+ assert.match(action,/error=evidence_missing#author/);
+});
+
+
+test("already-linked valid author portrait can close its claimed visual task",()=>{
+ const action=readFileSync("app/member/editorial-pipeline/actions.ts","utf8");
+ assert.match(action,/portrait_image_path,portrait_image_alt/);
+ assert.match(action,/verifiedPortrait=Boolean\(author\.portrait_image_path/);
+ assert.match(action,/task\.kind==="author_visual"&&verifiedPortrait/);
+ assert.match(action,/artales_complete_editorial_task/);
+ assert.match(action,/if\(closeoutError\|\|completed\?\.result!=="completed"\)/);
+});

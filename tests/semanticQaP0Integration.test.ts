@@ -140,3 +140,16 @@ test("compact QA verdict dock keeps source and corrected panes readable",()=>{
  assert.match(review,/finishSemanticQaReview/);
  assert.doesNotMatch(panel,/semantic-qa-panel__next-note/);
 });
+
+test("omitted QA findings are confirmed only by the current editor and never remove original bytes",()=>{
+ const panel=file("components/editor/SemanticQaPanel.tsx");
+ const actions=file("app/member/semantic/[candidateId]/qa-actions.ts");
+ const visibility=file("lib/semantic/qaFindingProjection.ts");
+ assert.match(panel,/confirmOmittedSemanticQaFlags/);
+ assert.match(panel,/omittedQaAtoms/);
+ assert.match(actions,/\.eq\("kind","text_review"\)\.eq\("assigned_to",actor.id\)\.eq\("status","claimed"\)/);
+ assert.match(actions,/getOmittedQaAtoms\(current.revision as SemanticRevision\)/);
+ assert.match(actions,/další otevřené nálezy by zůstaly u staré revize/);
+ assert.match(visibility,/getSemanticPageUnits\(revision,range\)/);
+ assert.match(visibility,/classifyGutenbergApparatus/);
+});
