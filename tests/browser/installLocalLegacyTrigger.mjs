@@ -64,3 +64,27 @@ for(const [stamp,name] of operationalSources){
  console.log("GOLDEN_LOCAL_HISTORY: replay canonical ops/sql/"+name+
   (source===original?"":" (only one-time #389 human assignment backfill omitted)"));
 }
+
+const cap=resolve("supabase/migrations/20261108100000_golden_observed_editorial_capabilities.sql");
+if(existsSync(cap))throw Error("Refusing to replace observed capabilities schema");
+writeFileSync(cap,`
+-- GOLDEN ISOLATED ONLY: schema reconstructed by read-only inspection of live
+-- public.artales_editorial_capabilities because its DDL is missing from canonical migrations.
+-- Not a production migration; missing canonical DDL remains a tracked migration debt.
+CREATE TABLE public.artales_editorial_capabilities(
+ profile_id uuid NOT NULL REFERENCES public.profiles(id) ON DELETE RESTRICT,
+ kind text NOT NULL CHECK(kind IN
+ ('text_review','work_description','author_bio','cover_art','author_visual',
+  'collection_curation','second_review','visual_review','proofread')),
+ granted_at timestamptz NOT NULL DEFAULT now(),
+ PRIMARY KEY(profile_id,kind)
+);
+ALTER TABLE public.artales_editorial_capabilities ENABLE ROW LEVEL SECURITY;
+REVOKE ALL ON public.artales_editorial_capabilities FROM PUBLIC,anon,authenticated;
+GRANT SELECT ON public.artales_editorial_capabilities TO authenticated;
+CREATE POLICY artales_capability_owner_or_admin_read ON public.artales_editorial_capabilities
+ FOR SELECT TO authenticated USING(profile_id=(SELECT auth.uid()) OR
+ EXISTS(SELECT 1 FROM public.profiles p WHERE p.id=(SELECT auth.uid())
+  AND p.is_active AND p.role::text='admin'));
+`,{flag:"wx"});
+console.log("GOLDEN_LOCAL_HISTORY: added explicitly labeled live-schema reconstruction of missing capabilities table, without grants beyond SELECT");
