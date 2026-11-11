@@ -21,9 +21,9 @@ const book:GutenbergBook={
 };
 const rdf='<rdf:RDF xmlns:rdf="urn:rdf" xmlns:pgterms="urn:pgterms" xmlns:dcterms="urn:dcterms">'+
  '<dcterms:rights>Public domain in the USA.</dcterms:rights>'+
- '<pgterms:agent rdf:about="authors/1"><pgterms:name>Twain, Mark</pgterms:name>'+
- '<pgterms:deathdate>1910</pgterms:deathdate></pgterms:agent>'+
- '<dcterms:creator rdf:resource="authors/1"></dcterms:creator></rdf:RDF>';
+ '<dcterms:creator><pgterms:agent rdf:about="authors/1">'+
+ '<pgterms:name>Twain, Mark</pgterms:name><pgterms:deathdate>1910</pgterms:deathdate>'+
+ '</pgterms:agent></dcterms:creator></rdf:RDF>';
 const rights=parseGutenbergRdf(rdf,GOLDEN.gutenbergId);
 const packet={
  actor:{id:GOLDEN.actorId,role:"admin" as const,is_active:true},
