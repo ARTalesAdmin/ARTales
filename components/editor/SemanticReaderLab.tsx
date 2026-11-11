@@ -11,6 +11,7 @@ import {defaultReaderSettings, type ReaderDensityId} from "@/lib/reader/readerSe
 import type {SemanticRevision, SemanticNode, SemanticAtom, SemanticPoem, SemanticBlockPresentation, SemanticPageUnit} from "@/lib/semantic/model";
 import {getSemanticPageUnits, projectSemanticReader, verifyReaderProjection} from "@/lib/semantic/readerProjection";
 import {selectEditorialEdition} from "@/lib/semantic/editionProjection";
+import {getOmittedQaAtoms} from "@/lib/semantic/qaFindingProjection";
 import SemanticQaPanel,{type SemanticQaFlag} from "./SemanticQaPanel";
 import SemanticReviewBar from "./SemanticReviewBar";
 import SemanticAiProposalReview from "./SemanticAiProposalReview";
@@ -158,6 +159,7 @@ export default function SemanticReaderLab({
   const measureKey=[activeRevision.revision_ref,mode,scale,density,width,focus,fullscreen,edition.range.start,edition.range.end].join("|");
   const measured=metrics?.key===measureKey?metrics:null;
   const allUnits=useMemo(()=>getSemanticPageUnits(activeRevision,edition.range),[activeRevision,edition]);
+  const omittedQaAtoms=useMemo(()=>getOmittedQaAtoms(revision),[revision]);
   const sourceRegions=useMemo(()=>buildSemanticSourceRegions(original,allUnits,edition.range),[original,allUnits,edition]);
   // Colors reflect persisted review decisions, not whichever block the editor clicked.
   const currentReviewIssues=revision.review_issues.filter(issue=>issue.round===revision.round);
@@ -584,7 +586,7 @@ export default function SemanticReaderLab({
         aria-label="Zavřít panel nálezů">×</button>
       <SemanticQaPanel candidateId={candidateId} revisionSha={revisionSha}
         selectedAtomId={selectedAtomId} selectedText={selectedText??null}
-        flags={flags} databaseReady={qaDatabaseReady} onSelect={selectAtom}
+        flags={flags} omittedQaAtoms={omittedQaAtoms} databaseReady={qaDatabaseReady} onSelect={selectAtom}
         canCommitBatch={canCommitBatch} aiJobPending={aiJobPending}
         onStartReview={openReview}
         onOpenProposalReview={openProposalReview}

@@ -4,6 +4,7 @@ import {createHash} from "node:crypto";
 import {composeSemanticRevision,walkSemanticAtoms,recomposeSemanticBatch,verifySemanticRevision} from "../lib/semantic/compose";
 import {classifyGutenbergApparatus,selectEditorialEdition} from "../lib/semantic/editionProjection";
 import {getSemanticPageUnits} from "../lib/semantic/readerProjection";
+import {getOmittedQaAtoms} from "../lib/semantic/qaFindingProjection";
 const sha=(s:string)=>createHash("sha256").update(s).digest("hex");
 const source=[
  "Project Gutenberg eBook of a test title",
@@ -61,4 +62,15 @@ test("no Gutenberg markers means no speculative automatic omission",()=>{
  component_id:"epub:spine",original_byte_start:0,original_raw:source});
  const result=classifyGutenbergApparatus(source,walkSemanticAtoms(rev.blocks));
  assert.deepEqual(result.automaticAtomIds,[]);
+});
+
+test("QA can identify already-omitted apparatus and outside-range blocks without hiding literature",()=>{
+ const rev=make(),atoms=walkSemanticAtoms(rev.blocks);
+ const omitted=getOmittedQaAtoms(rev);
+ const find=(part:string)=>atoms.find(a=>a.raw.includes(part))!;
+ assert.equal(omitted[find("EARLY FILES").id]?.reason,"gutenberg_apparatus");
+ assert.equal(omitted[find("original cover art").id]?.reason,"gutenberg_apparatus");
+ assert.equal(omitted[find("Transcriber’s Notes").id]?.reason,"gutenberg_apparatus");
+ assert.equal(omitted[find("Project Gutenberg eBook of a test title").id]?.reason,"outside_edition");
+ assert.equal(omitted[find("Once upon a midnight").id],undefined);
 });

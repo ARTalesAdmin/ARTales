@@ -6,6 +6,7 @@ import {createClient as createServiceClient} from "@supabase/supabase-js";
 import {verifySemanticRevision,walkSemanticAtoms} from "@/lib/semantic/compose";
 import {prepareQaPresentationBatch,type QaBatchInput} from "@/lib/semantic/qaBatchPreparation";
 import type {SemanticRevision} from "@/lib/semantic/model";
+import {getOmittedQaAtoms} from "@/lib/semantic/qaFindingProjection";
 const uuid=/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const sha=/^[a-f0-9]{64}$/;
 const kinds=new Set(["text","typography","structure","image","other"]);
@@ -66,6 +67,68 @@ export async function resolveSemanticQaFlag(input:{
  return {ok:true,message:"Nález uzavřen s dohledatelným zdůvodněním."};
 }
 
+/** One editor confirmation can settle multiple already-omitted Gutenberg findings.
+ * We only resolve exact, still-open flags for the current owner/revision after
+ * independently recomputing the same edition projection used by the Reader.
+ * No literary source, revision or Storage object is modified.
+ */
+export async function confirmOmittedSemanticQaFlags(input:{
+ candidateId:string;revisionSha:string;flagIds:string[]
+}):Promise<QaMutationResult>{
+ const actor=await requireEditorOrAdmin();
+ if(!uuid.test(input.candidateId)||!sha.test(input.revisionSha)||
+   !Array.isArray(input.flagIds)||input.flagIds.length<1||input.flagIds.length>25||
+   input.flagIds.some(id=>!uuid.test(id))||
+   new Set(input.flagIds).size!==input.flagIds.length)
+  return {ok:false,message:"Neplatný výběr QA nálezů."};
+ const db=await createClient();
+ const [{data:current,error:revisionError},{data:owned,error:ownerError},
+  {data:flags,error:flagsError}]=await Promise.all([
+  db.from("candidate_semantic_revisions").select("revision,source_text,revision_sha256")
+   .eq("candidate_id",input.candidateId)
+   .order("created_at",{ascending:false}).order("id",{ascending:false}).limit(1).maybeSingle(),
+  db.from("artales_editorial_tasks").select("id")
+   .eq("candidate_id",input.candidateId).eq("revision_sha256",input.revisionSha)
+   .eq("kind","text_review").eq("assigned_to",actor.id).eq("status","claimed")
+   .limit(1).maybeSingle(),
+  db.from("artales_semantic_qa_flags").select("id,target_atom_id,status,revision_sha256")
+   .eq("candidate_id",input.candidateId).eq("revision_sha256",input.revisionSha)
+   .eq("status","open").in("id",input.flagIds)
+ ]);
+ if(revisionError||!current||current.revision_sha256!==input.revisionSha||
+    ownerError||!owned||flagsError||flags?.length!==input.flagIds.length)
+  return {ok:false,message:"Revize nebo převzaté QA již nejsou aktuální. Obnov stránku."};
+ let omitted:ReturnType<typeof getOmittedQaAtoms>;
+ try{
+  verifySemanticRevision(current.revision as SemanticRevision,current.source_text);
+  omitted=getOmittedQaAtoms(current.revision as SemanticRevision);
+ }catch{return {ok:false,message:"Integritu projekce nelze ověřit; nálezy zůstaly otevřené."};}
+ const selected=input.flagIds.map(id=>flags!.find(f=>f.id===id)!);
+ if(selected.some(f=>!f||!omitted[f.target_atom_id]))
+  return {ok:false,message:"Některé bloky jsou stále součástí ARTales. Ty musí editor nejprve opravit."};
+ let confirmed=0;
+ for(const flag of selected){
+  const kind=omitted[flag.target_atom_id].reason;
+  const evidence=kind==="gutenberg_apparatus"?
+   "Editor potvrdil automatické vynechání prokazatelného Gutenbergova aparátu z ARTales edice.":
+   kind==="outside_edition"?
+   "Editor potvrdil, že označený úsek leží mimo vymezený literární obsah ARTales edice.":
+   "Editor potvrdil dříve zapsané vyřazení bloku z ARTales edice.";
+  const {data,error}=await db.rpc("artales_resolve_semantic_qa_flag",{
+   p_flag_id:flag.id,p_resolution_note:evidence+" Archivní originál zůstává beze změny."
+  });
+  if(error||data?.result!=="resolved"){
+   revalidatePath("/member/semantic/"+input.candidateId);
+   return {ok:false,message:"Potvrzeno "+confirmed+"/"+selected.length+
+    " bloků. Další nález se nepodařilo uzavřít; obnov QA a zopakuj zbývající."};
+  }
+  confirmed++;
+ }
+ revalidatePath("/member/semantic/"+input.candidateId);
+ revalidatePath("/member/editorial-pipeline");
+ return {ok:true,message:"Potvrzeno "+confirmed+
+  " již vynechaných bloků. Literární text ani archiv nebyly změněny."};
+}
 
 export type {EditorialBatchAction,QaBatchInput} from "@/lib/semantic/qaBatchPreparation";
 export type QaBatchPreviewResult=QaMutationResult&{
@@ -96,6 +159,14 @@ export async function commitSemanticQaBatch(input:QaBatchInput):Promise<QaMutati
  const prepared=await prepareQaPresentationBatch(input,await createClient());
  if(!prepared.ok)return prepared;
  const db=await createClient();
+ // Never strand open flags on a superseded SHA: the finishing gate checks all
+ // candidate revisions, while a new QA session can only edit its current SHA.
+ const {data:openFlags,error:openError}=await db.from("artales_semantic_qa_flags")
+  .select("id").eq("candidate_id",input.candidateId).eq("status","open");
+ if(openError)return {ok:false,message:"Nelze ověřit úplnost otevřených QA nálezů."};
+ const included=new Set(input.repairs.map(r=>r.flagId));
+ if((openFlags??[]).some(f=>!included.has(f.id)))
+  return {ok:false,message:"Revizi zatím nelze vytvořit: další otevřené nálezy by zůstaly u staré revize. Nejdřív potvrď již vynechané části, ostatní nálezy vyřeš nebo je zahrň do stejné dávky."};
  // A manual exclusion always produces a source-preserving revision.
  // Only the exact editor-owned QA flags, never AI, authorize removal.
  if(input.repairs.some(x=>x.action==="exclude_note")){
@@ -179,8 +250,17 @@ export async function finishSemanticQaReview(input:{
  const {data,error}=await db.rpc("artales_finish_semantic_text_qa",{
   p_task_id:input.taskId,p_revision_sha:input.revisionSha
  });
- if(error||data?.result!=="completed")
-  return {ok:false,message:"QA zatím nelze přijmout. Ověř všechny otevřené nálezy a změněné bloky."};
+ if(error)return {ok:false,message:"Databáze odmítla uzavření QA. Úkol zůstává otevřený."};
+ if(data?.result!=="completed"){
+  const reasons:Record<string,string>={
+   not_current_owner:"QA může dokončit jen vlastník aktuálního převzatého úkolu.",
+   stale_revision:"Byla vytvořena nová revize. Otevři její aktuální QA úkol.",
+   ai_job_pending:"AI ještě zpracovává nálezy; vyčkej na dokončení úlohy.",
+   unresolved_flags:"Některé nálezy jsou stále otevřené, včetně nálezů starších revizí.",
+   changes_unreviewed:"Zkontroluj a přijmi všechny změněné bloky aktuální revize."
+  };
+  return {ok:false,message:reasons[data?.result]??"QA nelze dokončit; ověř aktuální stav úkolu."};
+ }
  revalidatePath("/member/semantic/"+input.candidateId);
  revalidatePath("/member/editorial-pipeline");
  revalidatePath("/member","layout");
