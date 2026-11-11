@@ -16,7 +16,7 @@ permissions:
   contents: read
 concurrency:
   group: artales-golden-browser-${{ github.ref }}
-  cancel-in-progress: false
+  cancel-in-progress: true
 jobs:
   browser-e2e:
     name: Browser + real local Auth/DB/Storage (no mocks)
