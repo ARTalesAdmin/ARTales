@@ -5,5 +5,5 @@ module.exports=defineConfig({
  testDir:"./tests/browser",testMatch:"**/*.spec.cjs",forbidOnly:true,
  timeout:240000,expect:{timeout:20000},
  retries:0,workers:1,reporter:[["line"]],
- use:{...devices["Desktop Chrome"],baseURL,trace:"retain-on-failure",screenshot:"only-on-failure"},
+ use:{...devices["Desktop Chrome"],channel:"chrome",baseURL,trace:"retain-on-failure",screenshot:"only-on-failure"},
 });
