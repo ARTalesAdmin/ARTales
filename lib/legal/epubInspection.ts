@@ -1,7 +1,16 @@
 import {inflateRawSync} from "node:zlib";
+import {extractEpub} from "../ingest/epubSemanticExtractor";
 import type {GutenbergBook} from "./gutenbergCatalog";
-import {inspectGutenbergText} from "./textRightsCheck";
-export type EpubInspection={checked:boolean;imageCount:number|null;textChecked:boolean;notice:string|null;translationCredit:boolean;sourceUrl:string|null;reason:string};
+import {inspectGutenbergText,type HistoricalImprintContext,type TextRightsCheck} from "./textRightsCheck";
+export type CompleteEpubTextEvidence={
+ method:"epub_spine_complete";epubSha256:string;textSha256:string;
+ spineDocuments:number;textCharacters:number;sourceUrl:string;
+};
+export type EpubInspection={
+ checked:boolean;imageCount:number|null;textChecked:boolean;notice:string|null;
+ translationCredit:boolean;sourceUrl:string|null;reason:string;
+ fullTextCheck?:TextRightsCheck;fullTextEvidence?:CompleteEpubTextEvidence;
+};
 const empty=(url:string|null,reason:string):EpubInspection=>({checked:false,imageCount:null,textChecked:false,notice:null,translationCredit:false,sourceUrl:url,reason});
 /** Bounded ZIP central directory walk. No extraction to filesystem, no remote redirects. */
 export function inspectEpubBytes(bytes:Uint8Array):Omit<EpubInspection,"sourceUrl">{
@@ -40,19 +49,73 @@ export function inspectEpubBytes(bytes:Uint8Array):Omit<EpubInspection,"sourceUr
  const checked=text.length>0?inspectGutenbergText(text,false):null;
  return {checked:true,imageCount:images,textChecked:!!checked,notice:checked?.notice??null,translationCredit:checked?.translationCredit??false,reason:"Kontrolovány dostupné textové soubory a obrazové položky v EPUB; nikoli úplnost či práva obrázků."};
 }
-export async function inspectGutenbergEpub(book:GutenbergBook):Promise<EpubInspection>{
+/** Uses the SAME bounded, CRC-verified EPUB/spine extractor as composition.
+ * A scan is complete only if every item in the publication spine is readable.
+ * This is read-only: no archive and no editorial content mutation.
+ */
+export function inspectCompleteEpubText(
+ bytes:Uint8Array,sourceUrl:string,context?:HistoricalImprintContext
+):EpubInspection{
+ try{
+  const extract=extractEpub(bytes);
+  const scanned=inspectGutenbergText(extract.text,true,context);
+  return {
+   checked:true,imageCount:extract.assets.length,textChecked:true,
+   notice:scanned.notice,translationCredit:scanned.translationCredit,sourceUrl,
+   reason:"Celý textový obsah EPUB (čtecí pořadí kapitol) byl prověřen.",
+   fullTextCheck:{...scanned,sourceUrl},
+   fullTextEvidence:{
+    method:"epub_spine_complete",epubSha256:extract.epub_sha256,
+    textSha256:extract.text_sha256,spineDocuments:extract.documents.length,
+    textCharacters:extract.text.length,sourceUrl
+   }
+  };
+ }catch{
+  // Some Gutenberg editions cannot yet be read by the strict production
+  // extractor. Never claim a complete check in that case. Keep any positive
+  // notice found in the older bounded preview and offer an alternative scan.
+  const partial=inspectEpubBytes(bytes);
+  return {...partial,sourceUrl,reason:"Úplné čtení EPUB nebylo možné. "+
+   partial.reason};
+ }
+}
+export async function inspectGutenbergEpub(
+ book:GutenbergBook,context?:HistoricalImprintContext
+):Promise<EpubInspection>{
  const file=book.files.find(f=>f.format==="epub");
  if(!file)return empty(null,"EPUB není u této edice dostupný.");
  let u:URL;
- try{u=new URL(file.url);if(u.protocol!=="https:"||!["gutenberg.org","www.gutenberg.org","m.gutenberg.org"].includes(u.hostname)||u.port||u.username||u.password)return empty(null,"Nepovolená URL EPUB.");}
- catch{return empty(null,"Neplatná URL EPUB.")}
  try{
-  const res=await fetch(u.toString(),{redirect:"error",signal:AbortSignal.timeout(9000),next:{revalidate:3600}});
-  if(!res.ok||!res.body||Number(res.headers.get("content-length")??0)>5_000_000)return empty(u.toString(),"EPUB není dostupný v povoleném limitu.");
-  const reader=res.body.getReader(),chunks:Uint8Array[]=[];let size=0;
-  for(;;){const {done,value}=await reader.read();if(done)break;size+=value.length;if(size>5_000_000){await reader.cancel();return empty(u.toString(),"EPUB je příliš velký.")}chunks.push(value)}
-  const data=Buffer.concat(chunks);
-  const inspection=inspectEpubBytes(data);
-  return {...inspection,sourceUrl:u.toString()};
- }catch{return empty(u.toString(),"EPUB nelze bezpečně načíst nebo analyzovat.")}
+  u=new URL(file.url);
+  if(u.protocol!=="https:"||
+     !["gutenberg.org","www.gutenberg.org","m.gutenberg.org"].includes(u.hostname)||
+     u.port||u.username||u.password)
+   return empty(null,"Nepovolená URL EPUB.");
+ }catch{return empty(null,"Neplatná URL EPUB.")}
+ try{
+  // The production extractor allows up to 16 MiB compressed. Limit transfer
+  // as well as decompression; do not follow redirects to arbitrary hosts.
+  const maxBytes=16*1024*1024;
+  const response=await fetch(u.toString(),{
+   redirect:"error",cache:"no-store",signal:AbortSignal.timeout(15000)
+  });
+  if(!response.ok||!response.body||
+     Number(response.headers.get("content-length")??0)>maxBytes)
+   return empty(u.toString(),"EPUB není dostupný v povoleném limitu.");
+  const reader=response.body.getReader(),chunks:Uint8Array[]=[];
+  let size=0;
+  for(;;){
+   const {done,value}=await reader.read();
+   if(done)break;
+   size+=value.byteLength;
+   if(size>maxBytes){
+    await reader.cancel();
+    return empty(u.toString(),"EPUB je příliš velký.");
+   }
+   chunks.push(value);
+  }
+  return inspectCompleteEpubText(Buffer.concat(chunks),u.toString(),context);
+ }catch{
+  return empty(u.toString(),"EPUB nelze bezpečně načíst nebo analyzovat.");
+ }
 }
