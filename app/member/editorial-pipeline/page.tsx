@@ -283,6 +283,8 @@ export default async function EditorialPipeline({searchParams}:Props){
     <span className="ed-count">{waitingHelp.length}</span></div>
    {help.map(h=><article key={h.id} className="ed-request">
     <h3>{h.subject}</h3>
+    <p className="ed-quiet">Nahlášeno {new Date(h.created_at).toLocaleString("cs-CZ",{timeZone:"Europe/Prague"})}
+     {" · "}{h.status==="open"?"Čeká na vyřešení":"Vyřešeno"}</p>
     <p>{h.details}</p>
     <Link className="ed-button ed-button--soft ed-button--compact" href={h.context_path}>Otevřít místo problému ↗</Link>
     {h.status==="open"&&isAdmin?<details className="ed-disclosure">
