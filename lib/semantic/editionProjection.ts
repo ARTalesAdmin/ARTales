@@ -61,20 +61,8 @@ export function selectEditorialEdition(source:string):EditionSelection{
 
 /** Review signal, not an auto-deletion. Edition-source note remains visible until
  * the editor explicitly excludes it in a new signed semantic revision. */
-export function detectEditionReviewSignals(source:string,atoms:ReadonlyArray<{
- id:string;raw:string;anchor:{normalized_start:number;normalized_end:number}
-}>,excluded:ReadonlyArray<string>=[]){
- const span=selectEditorialEdition(source).range;
- const endMarker=/\bTHE END\.?\s*$/gim;
- const matches=[...source.slice(span.start,span.end).matchAll(endMarker)];
- if(!matches.length)return [];
- const cutoff=span.start+matches.at(-1)!.index!+matches.at(-1)![0].length;
- return atoms.filter(a=>a.anchor.normalized_start>=cutoff&&
-   a.anchor.normalized_end<=span.end&&!excluded.includes(a.id)&&
-   /^\s*(?:NOTE[.\u2014: -]|TRANSCRIBER[\u2019'S ]+NOTE)/im.test(a.raw))
-   .map(a=>({atomId:a.id,sourceStart:a.anchor.normalized_start,
-    reason:"Sporná závěrečná ediční poznámka: editor určí, zda patří do vydání.",
-    kind:"source_ambiguity" as const}));
+export function detectEditionReviewSignals(source:string,atoms:ReadonlyArray<EditionAtom>,excluded:ReadonlyArray<string>=[]){
+ return classifyGutenbergApparatus(source,atoms,excluded).reviewSignals;
 }
 
 /** Exact, source-anchored electronic-edition boilerplate classifier.
