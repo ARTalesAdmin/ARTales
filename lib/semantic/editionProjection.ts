@@ -76,3 +76,45 @@ export function detectEditionReviewSignals(source:string,atoms:ReadonlyArray<{
     reason:"Sporná závěrečná ediční poznámka: editor určí, zda patří do vydání.",
     kind:"source_ambiguity" as const}));
 }
+
+/** Exact, source-anchored electronic-edition boilerplate classifier.
+ * Strong, bounded Gutenberg-specific patterns are omitted from the ARTales
+ * projection, never from source bytes. Ambiguous notes stay for human QA.
+ * The same function is used by composition, editor and published Reader.
+ */
+export type EditionAtom={id:string;raw:string;anchor:{normalized_start:number;normalized_end:number}};
+export function classifyGutenbergApparatus(
+ source:string,atoms:ReadonlyArray<EditionAtom>,excluded:ReadonlyArray<string>=[]
+):{automaticAtomIds:string[];reviewSignals:{atomId:string;sourceStart:number;reason:string;kind:"source_ambiguity"}[]}{
+ const selection=selectEditorialEdition(source);
+ if(selection.method==="source-unaltered")
+  return {automaticAtomIds:[],reviewSignals:[]};
+ const span=selection.range;
+ const available=atoms.filter(a=>a.anchor.normalized_start>=span.start&&
+  a.anchor.normalized_end<=span.end).sort((a,b)=>a.anchor.normalized_start-b.anchor.normalized_start);
+ const automatic=new Set<string>(),reviewSignals:ReturnType<typeof classifyGutenbergApparatus>["reviewSignals"]=[];
+ for(let i=0;i<available.length;i++){
+  const a=available[i],raw=a.raw.trim(),early=a.anchor.normalized_start-span.start<2400,
+    late=span.end-a.anchor.normalized_end<2600;
+  const next=available[i+1]?.raw.trim()??"";
+  const intro=early&&(
+   /^THIS (?:EBOOK|E-BOOK) WAS ONE OF PROJECT GUTENBERG['’]S EARLY FILES\b/i.test(raw)||
+   /^THIS (?:EBOOK|E-BOOK) IS AN (?:EARLY|OLD) PROJECT GUTENBERG\b/i.test(raw));
+  const distributionNotice=late&&(
+   /^NEW ORIGINAL COVER ART INCLUDED WITH THIS (?:EBOOK|E-BOOK)\b/i.test(raw)||
+   /^THE (?:COVER|COVER ART) (?:OF|FOR) THIS (?:EBOOK|E-BOOK)\b/i.test(raw)&&
+    /\b(?:GUTENBERG|PUBLIC DOMAIN)\b/i.test(raw));
+  const noteHeading=/^TRANSCRIBER['’]S?\s+NOTES?[:.]?$/i.test(raw);
+  const tiedHeading=late&&noteHeading&&(
+   /^NEW ORIGINAL COVER ART INCLUDED WITH THIS (?:EBOOK|E-BOOK)\b/i.test(next)||
+   /^PROJECT GUTENBERG\b/i.test(next));
+  if(intro||distributionNotice||tiedHeading){automatic.add(a.id);continue;}
+  if((late&&noteHeading)||late&&/^\s*(?:NOTE[.:\u2014-]|TRANSCRIBER['’]S?\s+NOTE)/i.test(raw)){
+   reviewSignals.push({atomId:a.id,sourceStart:a.anchor.normalized_start,
+    reason:"Nejednoznačná ediční poznámka: editor rozhodne, zda patří do ARTales.",
+    kind:"source_ambiguity"});
+  }
+ }
+ return {automaticAtomIds:[...automatic].filter(id=>!excluded.includes(id)),
+  reviewSignals:reviewSignals.filter(x=>!excluded.includes(x.atomId))};
+}
