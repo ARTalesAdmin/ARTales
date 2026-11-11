@@ -2,6 +2,8 @@
  * immutable semantic revision (including source byte anchors) stay intact.
  * Only bounded, identified distribution apparatus is omitted from ARTales.
  */
+import type {SemanticPoem} from "./model";
+
 export type EditionRange={start:number;end:number};
 export type EditionSelection={
  range:EditionRange;
@@ -105,4 +107,21 @@ export function classifyGutenbergApparatus(
  }
  return {automaticAtomIds:[...automatic].filter(id=>!excluded.includes(id)),
   reviewSignals:reviewSignals.filter(x=>!excluded.includes(x.atomId))};
+}
+
+
+/** The archive preserves a poem as one semantic unit. Never drop the whole poem
+ * because one verse resembles Gutenberg boilerplate, nor delete a verse that
+ * the edition-exclusion RPC does not currently allow an editor to exclude.
+ * Both the QA preview and published Reader use this exact boundary decision.
+ */
+export function poemInsideEditorialEdition(poem:SemanticPoem,range:EditionRange):boolean{
+ const verses=poem.stanzas.flatMap(st=>st.lines.map(line=>line.atom));
+ if(!verses.length)return false;
+ const start=verses[0].anchor.normalized_start;
+ const end=verses.at(-1)!.anchor.normalized_end;
+ const overlaps=start<range.end&&end>range.start;
+ if(overlaps&&(start<range.start||end>range.end))
+  throw Error("Editorial boundary intersects a poem; source selection requires review.");
+ return start>=range.start&&end<=range.end;
 }

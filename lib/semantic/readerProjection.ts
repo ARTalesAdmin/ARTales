@@ -2,7 +2,7 @@ import type { SemanticRevision, SemanticNode, SemanticPageUnit, SemanticPage, Re
 import { walkSemanticAtoms, verifySemanticRevision } from "./compose";
 
 import { projectSemanticProseText } from "./displayText";
-import { classifyGutenbergApparatus } from "./editionProjection";
+import { classifyGutenbergApparatus,poemInsideEditorialEdition } from "./editionProjection";
 
 export type SemanticReaderLayout = {
   mode: "paged" | "spread" | "scroll";
@@ -49,8 +49,12 @@ export function getSemanticPageUnits(revision: SemanticRevision, editionRange?:{
    source,walkSemanticAtoms(revision.blocks),revision.editorial_exclusions??[]
   ).automaticAtomIds);
   return all.filter(unit=>{
-    if(unit.source_atom_ids.some(id=>automatic.has(id)))return false;
     if(unit.kind==="title_page")return true;
+    // Public Reader preserves verse units in full; never hide all lines because
+    // a single verse atom happened to match an electronic-edition notice.
+    if(unit.kind==="poem"&&unit.node.kind==="poem")
+      return poemInsideEditorialEdition(unit.node,editionRange);
+    if(unit.source_atom_ids.some(id=>automatic.has(id)))return false;
     if(unit.source_atom_ids.some(id=>revision.editorial_exclusions?.includes(id)))return false;
     const atoms=unit.kind==="chapter_heading"||unit.kind==="section_heading"
       ? "heading" in unit.node?[unit.node.heading]:[]

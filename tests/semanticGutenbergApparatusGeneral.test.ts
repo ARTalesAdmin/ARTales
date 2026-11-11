@@ -1,8 +1,9 @@
 import {test} from "node:test";
 import {strict as assert} from "node:assert";
 import {createHash} from "node:crypto";
+import {readFileSync} from "node:fs";
 import {composeSemanticRevision,walkSemanticAtoms,recomposeSemanticBatch,verifySemanticRevision} from "../lib/semantic/compose";
-import {classifyGutenbergApparatus,selectEditorialEdition} from "../lib/semantic/editionProjection";
+import {classifyGutenbergApparatus,selectEditorialEdition,poemInsideEditorialEdition} from "../lib/semantic/editionProjection";
 import {getSemanticPageUnits} from "../lib/semantic/readerProjection";
 import {getOmittedQaAtoms} from "../lib/semantic/qaFindingProjection";
 const sha=(s:string)=>createHash("sha256").update(s).digest("hex");
@@ -73,4 +74,44 @@ test("QA can identify already-omitted apparatus and outside-range blocks without
  assert.equal(omitted[find("Transcriber’s Notes").id]?.reason,"gutenberg_apparatus");
  assert.equal(omitted[find("Project Gutenberg eBook of a test title").id]?.reason,"outside_edition");
  assert.equal(omitted[find("Once upon a midnight").id],undefined);
+});
+
+
+test("poem stays fully visible in QA and public edition even when one verse looks like boilerplate",()=>{
+ const intro="THIS EBOOK WAS ONE OF PROJECT GUTENBERG’S EARLY FILES.";
+ const lines=[intro,"Once upon a midnight dreary,","The poem and its lines remain intact."].join("\n");
+ const original=[
+  "Project Gutenberg electronic edition",
+  "*** START OF THE PROJECT GUTENBERG EBOOK SAMPLE ***",
+  lines,
+  "*** END OF THE PROJECT GUTENBERG EBOOK SAMPLE ***",
+  "Project Gutenberg license"
+ ].join("\n\n");
+ const start=original.indexOf(intro);
+ const revision=composeSemanticRevision({
+  work_id:"poetry-candidate",work_slug:"poetry-candidate",
+  snapshot_ref:"sha256:"+sha("poem-archive"),source_bytes_sha256:sha(original),
+  component_id:"epub:spine",original_byte_start:0,original_raw:original,
+  hints:[{kind:"poem",start,end:start+lines.length}]
+ });
+ verifySemanticRevision(revision,original);
+ const poem=revision.blocks.find(x=>x.kind==="poem");
+ assert(poem?.kind==="poem");
+ const allAtoms=walkSemanticAtoms(revision.blocks);
+ const introAtom=allAtoms.find(a=>a.raw.includes("EARLY FILES"));
+ assert(introAtom);
+ const automatic=classifyGutenbergApparatus(original,allAtoms).automaticAtomIds;
+ assert(automatic.includes(introAtom.id));
+ const edition=selectEditorialEdition(original).range;
+ const units=getSemanticPageUnits(revision,edition);
+ const projected=units.find(u=>u.kind==="poem");
+ assert(projected?.node.kind==="poem");
+ assert.deepEqual(projected.source_atom_ids,poem.stanzas.flatMap(s=>s.lines.map(l=>l.atom.id)));
+ assert.equal(getOmittedQaAtoms(revision)[introAtom.id],undefined);
+ assert.throws(()=>poemInsideEditorialEdition(poem,{start:start+8,end:edition.end}),
+  /boundary intersects a poem/);
+ // The published component uses this exact projection guard rather than
+ // a different independent verse-specific exclusion rule.
+ const publicReader=readFileSync(new URL("../components/reader/SemanticPublicReader.tsx",import.meta.url),"utf8");
+ assert.match(publicReader,/poemInsideEditorialEdition\(n,range\)/);
 });

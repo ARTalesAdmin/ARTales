@@ -107,7 +107,7 @@ export async function openAssignedEditorialTask(form:FormData){
     .eq("id",task.candidate_id).maybeSingle(),
    db.from("artales_candidate_editorial_metadata").select("author_id")
     .eq("candidate_id",task.candidate_id).maybeSingle(),
-   db.from("authors").select("id,name,name_en,bio_cs,bio_en").order("name").limit(500)
+   db.from("authors").select("id,name,name_en,bio_cs,bio_en,portrait_image_path,portrait_image_alt").order("name").limit(500)
   ]);
   if(candidate&&authorRows){
    // Both a newly found and an already-linked unique author are valid.
@@ -123,13 +123,19 @@ export async function openAssignedEditorialTask(form:FormData){
      if(linkError||linked?.result!=="saved")
       redirect("/member/editorial-detail/"+task.candidate_id+"?error=author_link_failed#author");
     }
-    if(task.kind==="author_bio"&&
-       [author.bio_cs,author.bio_en].every(v=>(v??"").trim().length>=200&&
-       (v??"").trim().length<=800)){
-     // The evidence trigger remains authoritative; no status is forced.
+    const verifiedBio=[author.bio_cs,author.bio_en].every(v=>
+      (v??"").trim().length>=200&&(v??"").trim().length<=800);
+    const verifiedPortrait=Boolean(author.portrait_image_path&&
+      (author.portrait_image_alt??"").trim().length>=8);
+    if((task.kind==="author_bio"&&verifiedBio)||
+       (task.kind==="author_visual"&&verifiedPortrait)){
+     // Only the assigned editor initiates closeout; the existing DB trigger
+     // checks real Storage evidence and refuses missing/mismatched assets.
+     const note=task.kind==="author_bio"
+      ?"Existující autor jednoznačně přiřazen a jeho dvojjazyčná biografie ověřena."
+      :"Existující autor jednoznačně přiřazen, portrét a alternativní text databázově ověřeny.";
      const {data:completed,error:closeoutError}=await db.rpc("artales_complete_editorial_task",{
-      p_task_id:taskId,
-      p_note:"Profil existujícího autora byl jednoznačně přiřazen a bilingvní biografie byla ověřena."
+      p_task_id:taskId,p_note:note
      });
      if(closeoutError||completed?.result!=="completed")
       redirect("/member/editorial-detail/"+task.candidate_id+"?error=evidence_missing#author");

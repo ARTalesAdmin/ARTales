@@ -47,3 +47,13 @@ test("already-linked author can finish the claimed biography task without relink
  assert.match(action,/if\(closeoutError\|\|completed\?\.result!=="completed"\)/);
  assert.match(action,/error=evidence_missing#author/);
 });
+
+
+test("already-linked valid author portrait can close its claimed visual task",()=>{
+ const action=readFileSync("app/member/editorial-pipeline/actions.ts","utf8");
+ assert.match(action,/portrait_image_path,portrait_image_alt/);
+ assert.match(action,/verifiedPortrait=Boolean\(author\.portrait_image_path/);
+ assert.match(action,/task\.kind==="author_visual"&&verifiedPortrait/);
+ assert.match(action,/artales_complete_editorial_task/);
+ assert.match(action,/if\(closeoutError\|\|completed\?\.result!=="completed"\)/);
+});
