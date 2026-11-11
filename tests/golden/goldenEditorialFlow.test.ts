@@ -19,14 +19,12 @@ const book:GutenbergBook={
  files:[{url:GOLDEN.epubUrl,label:"EPUB",format:"epub"}],
  readUrl:null,usCopyrightFlag:false
 };
-const rdf="<rdf:RDF xmlns:rdf='urn:rdf'><dcterms:rights>Public domain in the USA.</dcterms:rights>"+
- "<pgterms:agent rdf:about='authors/1'><pgterms:name>Twain, Mark</pgterms:name>"+
- "<pgterms:deathdate>1910</pgterms:deathdate></pgterms:agent></rdf:RDF>";
-const rights={
- people:[{name:GOLDEN.authorCatalog,died:GOLDEN.authorDied}],
- contributors:[{name:GOLDEN.authorCatalog,died:GOLDEN.authorDied,role:"dcterms:creator"}],
- checked:true,url:GOLDEN.catalogUrl+".rdf",usStatus:"public_domain" as const
-};
+const rdf='<rdf:RDF xmlns:rdf="urn:rdf" xmlns:pgterms="urn:pgterms" xmlns:dcterms="urn:dcterms">'+
+ '<dcterms:rights>Public domain in the USA.</dcterms:rights>'+
+ '<pgterms:agent rdf:about="authors/1"><pgterms:name>Twain, Mark</pgterms:name>'+
+ '<pgterms:deathdate>1910</pgterms:deathdate></pgterms:agent>'+
+ '<dcterms:creator rdf:resource="authors/1"></dcterms:creator></rdf:RDF>';
+const rights=parseGutenbergRdf(rdf,GOLDEN.gutenbergId);
 const packet={
  actor:{id:GOLDEN.actorId,role:"admin" as const,is_active:true},
  candidate:{id:GOLDEN.candidateId,proposed_title:GOLDEN.candidateTitle,proposed_author_name:GOLDEN.authorDisplay},
@@ -46,6 +44,9 @@ const packet={
 
 test("GOLDEN source -> legal facts -> locked edition -> verified local binary -> semantic QA -> Reader",()=>{
  const raw=createGoldenEpub();
+ assert.equal(rights.checked,true);
+ assert.equal(rights.usStatus,"public_domain");
+ assert.deepEqual(rights.people.map(p=>[p.name,p.died]),[[GOLDEN.authorCatalog,GOLDEN.authorDied]]);
  const check=inspectCompleteEpubText(raw,GOLDEN.epubUrl);
  assert.equal(check.fullTextCheck?.scope,"complete");
  assert.equal(check.fullTextCheck?.status,"no_explicit_notice");
