@@ -44,11 +44,24 @@ export async function POST(_req:Request,{params}:{params:Promise<{id:string}>}){
   const originalLanguageConfirmed=!enriched.translators.length; // No listed translator; explicit text credits still take precedence.
   const facts=legalFacts(enriched,currentYear,prescreenDeath,{originalLanguageConfirmed,illustrators,usStatus:rights.usStatus});
   // US status is evidence only; retain CZ/EU source clearance as a distinct unresolved decision.
-  const [textCheck,epub]=await Promise.all([checkGutenbergText(book),inspectGutenbergEpub(book)]);
+  const [htmlTextCheck,epub]=await Promise.all([
+   checkGutenbergText(book),inspectGutenbergEpub(book,{
+    approvedOriginalPublicationYear:null,currentYear
+   })
+  ]);
+  // The actual EPUB spine is authoritative for the chosen EPUB edition.
+  // HTML/TXT are fallback only when complete EPUB extraction was unavailable.
+  // Never lose a positive restriction seen in the partial EPUB inspection.
+  const textCheck=epub.fullTextCheck??(
+   epub.notice&&!htmlTextCheck.notice?
+    {...htmlTextCheck,status:"possible_restriction" as const,notice:epub.notice,
+     explanation:"V části EPUB bylo nalezeno výslovné upozornění."}:
+    {...htmlTextCheck,translationCredit:htmlTextCheck.translationCredit||epub.translationCredit}
+  );
   const rawFirstPublished=Number((c.prescreen_metadata as {firstPublished?:number}|null)?.firstPublished);
   const firstPublication=openLibrary?.firstPublishYear??(Number.isInteger(rawFirstPublished)&&rawFirstPublished>=1400&&rawFirstPublished<=currentYear?rawFirstPublished:null);
   const check=assessPublicDomain({book:enriched,rights,prescreenDeath,candidateAuthor:c.proposed_author_name,originalPublicationYear:firstPublication,textCheck,epub,year:currentYear});
-  const textRestriction=textCheck.status==="possible_restriction"||!!epub.notice||rights.usStatus==="restricted";
+  const textRestriction=textCheck.status==="possible_restriction"||rights.usStatus==="restricted";
   const translationUnresolved=enriched.translators.length>0?facts.translation.status!=="likely_public_domain":epub.translationCredit||textCheck.translationCredit;
   const recommendation=check.text.status==="protected"||check.translation.status==="protected"?"exclude":
    check.outcome==="no"?"review":
