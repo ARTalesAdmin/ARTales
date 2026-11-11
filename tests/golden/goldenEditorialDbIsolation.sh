@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 set -euo pipefail
-[[ "\${PGHOST:-}" == "127.0.0.1" && "\${PGDATABASE:-}" == "postgres" && "\${PGPORT:-}" == "5432" ]] || { echo "REFUSED non-local PostgreSQL" >&2; exit 2; }
+[[ "${PGHOST:-}" == "127.0.0.1" && "${PGDATABASE:-}" == "postgres" && "${PGPORT:-}" == "5432" ]] || { echo "REFUSED non-local PostgreSQL" >&2; exit 2; }
 root(){ PGPASSWORD=ci-root-only psql -X -qAt -v ON_ERROR_STOP=1 -U postgres "$@"; }
 actor(){
  local uid="$1" sql="$2"
