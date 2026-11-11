@@ -32,3 +32,35 @@ if(!oneTimeText.includes("One-time evidence-backed readback registration for #38
  throw Error("Unexpected #389 one-time migration; do not suppress new schema or security logic");
 renameSync(oneTime,oneTimeOutside);
 console.log("GOLDEN_LOCAL_HISTORY: excluded production-only #389 existing-data backfill from EMPTY local database (schema migrations remain active)");
+
+const operationalSources=[
+ ["20261103010000","20261103_artales_qa_batch_edition_rules_escalations.sql"],
+ ["20261103020000","20261103_artales_semantic_qa_block_workflow.sql"],
+ ["20261103030000","20261103_artales_editorial_assignments_v2.sql"],
+ ["20261104010000","20261104_artales_ai_qa_durable_jobs.sql"],
+ ["20261104020000","20261104_artales_qa_change_decisions_v4.sql"],
+ ["20261104030000","20261104_artales_qa_closeout_v4.sql"],
+ ["20261104040000","20261104_artales_safe_layout_commit_v4.sql"],
+ ["20261105010000","20261105_artales_candidate_editorial_metadata_gate.sql"],
+ ["20261105020000","20261105_artales_author_collection_bilingual_evidence.sql"],
+ ["20261105030000","20261105_artales_candidate_bilingual_descriptions.sql"],
+ ["20261106010000","20261106_artales_ai_gateway_usage.sql"],
+ ["20261106020000","20261106_artales_editorial_completion_bilingual_guard.sql"],
+];
+for(const [stamp,name] of operationalSources){
+ const original=readFileSync(resolve("ops/sql/"+name),"utf8");
+ if(!original.includes("BEGIN;")||!original.trimEnd().endsWith("COMMIT;"))
+  throw Error("Unrecognized historical manual SQL envelope: "+name);
+ let source=original;
+ if(name==="20261103_artales_editorial_assignments_v2.sql"){
+  const marker="-- Targeted conversion of existing #389 tasks, retaining task IDs and audit.";
+  if(!original.includes(marker)||!original.includes("389_semantic_revision_missing"))
+   throw Error("Refusing to alter historically unrecognized editorial #389 backfill");
+  source=original.slice(0,original.indexOf(marker)).trimEnd()+"\nCOMMIT;\n";
+ }
+ const transient=resolve("supabase/migrations/"+stamp+"_golden_"+name);
+ if(existsSync(transient))throw Error("Refusing existing migration overlay "+stamp);
+ writeFileSync(transient,source,{flag:"wx"});
+ console.log("GOLDEN_LOCAL_HISTORY: replay canonical ops/sql/"+name+
+  (source===original?"":" (only one-time #389 human assignment backfill omitted)"));
+}
