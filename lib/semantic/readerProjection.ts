@@ -2,6 +2,7 @@ import type { SemanticRevision, SemanticNode, SemanticPageUnit, SemanticPage, Re
 import { walkSemanticAtoms, verifySemanticRevision } from "./compose";
 
 import { projectSemanticProseText } from "./displayText";
+import { classifyGutenbergApparatus } from "./editionProjection";
 
 export type SemanticReaderLayout = {
   mode: "paged" | "spread" | "scroll";
@@ -43,7 +44,12 @@ export function getSemanticPageUnits(revision: SemanticRevision, editionRange?:{
   if(revision.title_page)all.unshift({id:revision.title_page.id,kind:"title_page",node:revision.title_page,
     chapter_id:null,source_atom_ids:[],estimated_height:0});
   if(!editionRange)return all;
+  const source=revision.source.normalized_text;
+  const automatic=new Set(classifyGutenbergApparatus(
+   source,walkSemanticAtoms(revision.blocks),revision.editorial_exclusions??[]
+  ).automaticAtomIds);
   return all.filter(unit=>{
+    if(unit.source_atom_ids.some(id=>automatic.has(id)))return false;
     if(unit.kind==="title_page")return true;
     if(unit.source_atom_ids.some(id=>revision.editorial_exclusions?.includes(id)))return false;
     const atoms=unit.kind==="chapter_heading"||unit.kind==="section_heading"
