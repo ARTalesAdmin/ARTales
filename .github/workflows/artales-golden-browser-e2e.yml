@@ -41,10 +41,12 @@ jobs:
         run: |
           command -v google-chrome
           npm install --no-save --no-package-lock @playwright/test@1.56.1
-      - name: Start disposable local Supabase, replay all checked-in migrations
+      - name: Start disposable local Supabase, replay verified historical chain
         run: |
           test ! -f .supabase/.branches/_current_branch
+          node tests/browser/installLocalLegacyTrigger.mjs
           npx supabase@2.81.3 start
+          rm supabase/migrations/20260926142756_golden_local_auth_trigger.sql
       - name: Start actual ARTales Next server against local-only Supabase
         run: |
           npx supabase@2.81.3 status -o env >/tmp/golden-local-supabase.env
@@ -80,3 +82,4 @@ jobs:
         run: |
           if test -f /tmp/golden-next.pid; then kill "$(cat /tmp/golden-next.pid)" || true; fi
           npx supabase@2.81.3 stop --no-backup || true
+          rm -f supabase/migrations/20260926142756_golden_local_auth_trigger.sql
