@@ -1,0 +1,56 @@
+name: ARTales golden editorial flow
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'tests/golden/**'
+      - 'lib/legal/**'
+      - 'lib/ingest/**'
+      - 'lib/semantic/**'
+      - 'components/editor/**'
+      - 'app/member/editorial-detail/**'
+      - 'app/member/editorial-pipeline/**'
+      - '.github/workflows/artales-golden-editorial-flow.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'tests/golden/**'
+      - 'lib/legal/**'
+      - 'lib/ingest/**'
+      - 'lib/semantic/**'
+      - 'components/editor/**'
+      - 'app/member/editorial-detail/**'
+      - 'app/member/editorial-pipeline/**'
+      - '.github/workflows/artales-golden-editorial-flow.yml'
+  workflow_dispatch:
+  schedule:
+    - cron: '17 5 * * *'
+permissions:
+  contents: read
+concurrency:
+  group: golden-${{ github.ref }}
+  cancel-in-progress: false
+jobs:
+  golden-pure-story:
+    name: Golden legal-to-Reader test (no database writes)
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    env:
+      NEXT_TELEMETRY_DISABLED: '1'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - name: Reset synthetic fixture in memory and run all boundaries
+        run: npx tsx --test tests/golden/goldenEditorialFlow.test.ts
+      - name: Existing title identity, cover, QA regression
+        run: npx tsx --test tests/editionTitleIdentity.test.ts tests/editorialCoverRecovery.test.ts tests/semanticGutenbergApparatusGeneral.test.ts
+      - name: Type-check
+        run: npx tsc --noEmit
+      - name: Lint new golden suite
+        run: npx eslint tests/golden/goldenBook.ts tests/golden/goldenEditorialFlow.test.ts
