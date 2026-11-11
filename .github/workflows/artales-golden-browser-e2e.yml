@@ -47,6 +47,7 @@ jobs:
           node tests/browser/installLocalLegacyTrigger.mjs
           npx supabase@2.81.3 start
           rm supabase/migrations/20260926142756_golden_local_auth_trigger.sql
+          mv tests/browser/.golden-only-snapshot389-backfill.sql supabase/migrations/20261028111000_artales_snapshot389_register.sql
       - name: Start actual ARTales Next server against local-only Supabase
         run: |
           npx supabase@2.81.3 status -o env >/tmp/golden-local-supabase.env
@@ -83,3 +84,4 @@ jobs:
           if test -f /tmp/golden-next.pid; then kill "$(cat /tmp/golden-next.pid)" || true; fi
           npx supabase@2.81.3 stop --no-backup || true
           rm -f supabase/migrations/20260926142756_golden_local_auth_trigger.sql
+          if test -f tests/browser/.golden-only-snapshot389-backfill.sql; then mv tests/browser/.golden-only-snapshot389-backfill.sql supabase/migrations/20261028111000_artales_snapshot389_register.sql; fi
