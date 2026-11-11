@@ -6,7 +6,7 @@ const field=read("components/editor/CandidateCoverInput.tsx");
 const actions=read("app/member/editorial-detail/[candidateId]/actions.ts");
 const page=read("app/member/editorial-detail/[candidateId]/page.tsx");
 test("uploaded cover survives save failure and is reusable without reupload",()=>{
- assert.match(field,/saveCandidateCover\\(\\{candidateId,path:pathToSave,alt,caption\\}\\)/);
+ assert.match(field,/saveCandidateCover\(\{candidateId,path:pathToSave,alt,caption\}\)/);
  assert.match(field,/setMessage\(result.message\)/);
  assert.match(field,/if\(result.ok\)router.refresh\(\)/);
  assert.match(field,/listCandidateCoverUploads\(candidateId\)/);
