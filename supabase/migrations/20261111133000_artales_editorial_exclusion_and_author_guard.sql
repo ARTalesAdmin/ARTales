@@ -135,3 +135,94 @@ GRANT EXECUTE ON FUNCTION public.artales_commit_editorial_exclusions(uuid,text,j
 
 -- Finish guards must recognize the same uniquely linked full-name author
 -- as artales_save_candidate_editorial_field, preserving bilingual/visual proofs.
+
+CREATE OR REPLACE FUNCTION public.artales_guard_editorial_task_evidence()
+ RETURNS trigger
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO ''
+AS $function$
+DECLARE m public.artales_candidate_editorial_metadata%ROWTYPE;v_valid boolean;
+BEGIN
+ IF NEW.status<>'completed' OR OLD.status='completed'
+  OR NEW.kind NOT IN ('collection_curation','cover_art','work_description','author_bio','author_visual')
+ THEN RETURN NEW; END IF;
+ SELECT * INTO m FROM public.artales_candidate_editorial_metadata
+ WHERE candidate_id=NEW.candidate_id;
+ IF NOT FOUND THEN RAISE EXCEPTION 'editorial_evidence_missing' USING errcode='23514'; END IF;
+ v_valid:=CASE NEW.kind
+  WHEN 'collection_curation' THEN m.collection_id IS NOT NULL
+   AND EXISTS(SELECT 1 FROM public.collections c WHERE c.id=m.collection_id
+    AND char_length(btrim(coalesce(c.description_cs,''))) BETWEEN 200 AND 800
+    AND char_length(btrim(coalesce(c.description_en,''))) BETWEEN 200 AND 800)
+  WHEN 'cover_art' THEN m.cover_image_path IS NOT NULL
+   AND length(btrim(coalesce(m.cover_image_alt,'')))>=8
+   AND EXISTS(SELECT 1 FROM storage.objects o
+    WHERE o.bucket_id='artales-images' AND o.name=m.cover_image_path)
+  WHEN 'work_description' THEN
+   char_length(btrim(coalesce(m.work_description_cs,''))) BETWEEN 200 AND 800
+   AND char_length(btrim(coalesce(m.work_description_en,''))) BETWEEN 200 AND 800
+  WHEN 'author_bio' THEN m.author_id IS NOT NULL
+   AND EXISTS(SELECT 1 FROM public.authors a JOIN public.work_candidates c ON c.id=m.candidate_id
+    WHERE a.id=m.author_id
+    AND (
+     lower(btrim(a.name))=lower(btrim(c.proposed_author_name)) OR
+     lower(btrim(coalesce(a.name_en,'')))=lower(btrim(c.proposed_author_name)) OR
+     (pg_catalog.array_length(pg_catalog.regexp_split_to_array(btrim(c.proposed_author_name),'[[:space:]]+'),1)>=2
+      AND NOT (
+       pg_catalog.array_length(pg_catalog.regexp_split_to_array(btrim(c.proposed_author_name),'[[:space:]]+'),1)=2
+       AND pg_catalog.split_part(lower(btrim(c.proposed_author_name)),' ',1)
+         IN ('le','la','de','da','di','van','von','del','du','des','der')
+      )
+      AND (pg_catalog.right(lower(btrim(a.name)),pg_catalog.length(btrim(c.proposed_author_name))+1)
+            =' '||lower(btrim(c.proposed_author_name))
+       OR pg_catalog.right(lower(btrim(coalesce(a.name_en,''))),pg_catalog.length(btrim(c.proposed_author_name))+1)
+            =' '||lower(btrim(c.proposed_author_name)))
+      AND (SELECT count(*) FROM public.authors a2
+       WHERE lower(btrim(a2.name))=lower(btrim(c.proposed_author_name))
+        OR lower(btrim(coalesce(a2.name_en,'')))=lower(btrim(c.proposed_author_name))
+        OR (pg_catalog.array_length(pg_catalog.regexp_split_to_array(btrim(c.proposed_author_name),'[[:space:]]+'),1)>=2
+         AND (pg_catalog.right(lower(btrim(a2.name)),pg_catalog.length(btrim(c.proposed_author_name))+1)
+               =' '||lower(btrim(c.proposed_author_name))
+          OR pg_catalog.right(lower(btrim(coalesce(a2.name_en,''))),pg_catalog.length(btrim(c.proposed_author_name))+1)
+               =' '||lower(btrim(c.proposed_author_name)))))=1
+     )
+    )
+    AND char_length(btrim(coalesce(a.bio_en,''))) BETWEEN 200 AND 800
+    AND char_length(btrim(coalesce(a.bio_cs,''))) BETWEEN 200 AND 800)
+  WHEN 'author_visual' THEN m.author_id IS NOT NULL
+   AND EXISTS(SELECT 1 FROM public.authors a JOIN public.work_candidates c ON c.id=m.candidate_id
+    WHERE a.id=m.author_id
+    AND (
+     lower(btrim(a.name))=lower(btrim(c.proposed_author_name)) OR
+     lower(btrim(coalesce(a.name_en,'')))=lower(btrim(c.proposed_author_name)) OR
+     (pg_catalog.array_length(pg_catalog.regexp_split_to_array(btrim(c.proposed_author_name),'[[:space:]]+'),1)>=2
+      AND NOT (
+       pg_catalog.array_length(pg_catalog.regexp_split_to_array(btrim(c.proposed_author_name),'[[:space:]]+'),1)=2
+       AND pg_catalog.split_part(lower(btrim(c.proposed_author_name)),' ',1)
+         IN ('le','la','de','da','di','van','von','del','du','des','der')
+      )
+      AND (pg_catalog.right(lower(btrim(a.name)),pg_catalog.length(btrim(c.proposed_author_name))+1)
+            =' '||lower(btrim(c.proposed_author_name))
+       OR pg_catalog.right(lower(btrim(coalesce(a.name_en,''))),pg_catalog.length(btrim(c.proposed_author_name))+1)
+            =' '||lower(btrim(c.proposed_author_name)))
+      AND (SELECT count(*) FROM public.authors a2
+       WHERE lower(btrim(a2.name))=lower(btrim(c.proposed_author_name))
+        OR lower(btrim(coalesce(a2.name_en,'')))=lower(btrim(c.proposed_author_name))
+        OR (pg_catalog.array_length(pg_catalog.regexp_split_to_array(btrim(c.proposed_author_name),'[[:space:]]+'),1)>=2
+         AND (pg_catalog.right(lower(btrim(a2.name)),pg_catalog.length(btrim(c.proposed_author_name))+1)
+               =' '||lower(btrim(c.proposed_author_name))
+          OR pg_catalog.right(lower(btrim(coalesce(a2.name_en,''))),pg_catalog.length(btrim(c.proposed_author_name))+1)
+               =' '||lower(btrim(c.proposed_author_name)))))=1
+     )
+    )
+    AND length(btrim(coalesce(a.portrait_image_alt,'')))>=8
+    AND a.portrait_image_path IS NOT NULL
+    AND EXISTS(SELECT 1 FROM storage.objects o
+     WHERE o.bucket_id='artales-images' AND o.name=a.portrait_image_path))
+  ELSE false END;
+ IF NOT coalesce(v_valid,false) THEN
+  RAISE EXCEPTION 'editorial_evidence_missing_for_%', NEW.kind USING errcode='23514';
+ END IF;
+ RETURN NEW;
+END $function$;
