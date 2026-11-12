@@ -1,0 +1,124 @@
+name: ARTales golden editorial flow
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'tests/golden/**'
+      - 'lib/legal/**'
+      - 'lib/ingest/**'
+      - 'lib/semantic/**'
+      - 'app/api/member/snapshot/**'
+      - 'app/api/member/semantic/**'
+      - 'app/member/candidates/**'
+      - 'app/member/semantic/**'
+      - 'supabase/migrations/**'
+      - 'tests/db/**'
+      - 'components/editor/**'
+      - 'app/member/editorial-detail/**'
+      - 'app/member/editorial-pipeline/**'
+      - '.github/workflows/artales-golden-editorial-flow.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'tests/golden/**'
+      - 'lib/legal/**'
+      - 'lib/ingest/**'
+      - 'lib/semantic/**'
+      - 'components/editor/**'
+      - 'app/member/editorial-detail/**'
+      - 'app/member/editorial-pipeline/**'
+      - '.github/workflows/artales-golden-editorial-flow.yml'
+  workflow_dispatch:
+  schedule:
+    - cron: '17 5 * * *'
+permissions:
+  contents: read
+concurrency:
+  group: golden-${{ github.ref }}
+  cancel-in-progress: false
+jobs:
+  golden-pure-story:
+    name: Golden legal-to-Reader test (no database writes)
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    env:
+      NEXT_TELEMETRY_DISABLED: '1'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - name: Reset synthetic fixture in memory and run all boundaries
+        run: npx tsx --test tests/golden/goldenEditorialFlow.test.ts
+      - name: Existing title identity, cover, QA regression
+        run: npx tsx --test tests/editionTitleIdentity.test.ts tests/editorialCoverRecovery.test.ts tests/semanticGutenbergApparatusGeneral.test.ts
+      - name: Type-check
+        run: npx tsc --noEmit
+      - name: Lint new golden suite
+        run: npx eslint tests/golden/goldenBook.ts tests/golden/goldenEditorialFlow.test.ts
+
+  golden-postgres-isolation:
+    name: Golden database chain (ephemeral PostgreSQL 17)
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_PASSWORD: ci-root-only
+          POSTGRES_DB: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 12
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Verify private local database, never production
+        env:
+          PGHOST: '127.0.0.1'
+          PGPORT: '5432'
+          PGDATABASE: postgres
+        run: |
+          test "$PGHOST" = "127.0.0.1"
+          test "$PGDATABASE" = "postgres"
+          command -v psql || (sudo apt-get update && sudo apt-get install -y postgresql-client)
+          bash tests/db/snapshotGeneralIsolation.sh
+
+  golden-current-editorial-database:
+    name: Current cover and author RPC + trigger (ephemeral PostgreSQL 17)
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_PASSWORD: ci-root-only
+          POSTGRES_DB: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 12
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Execute currently deployed field and completion SQL (never production)
+        env:
+          PGHOST: '127.0.0.1'
+          PGPORT: '5432'
+          PGDATABASE: postgres
+        run: |
+          command -v psql || (sudo apt-get update && sudo apt-get install -y postgresql-client)
+          bash tests/golden/goldenEditorialDbIsolation.sh
