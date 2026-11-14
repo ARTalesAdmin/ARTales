@@ -77,7 +77,6 @@ test("member work card remains readable after own tasks complete",()=>{
 
 test("source-only author-release contract agrees with producer and protects task evidence",()=>{
  const draft=file("ops/sql/20261114_artales_release_author_contract_SOURCE_ONLY.sql");
- const enqueue=file("supabase/migrations/20261102172000_artales_semantic_editorial_pipeline.sql");
  assert.match(draft,/SOURCE-ONLY DRAFT/);
  assert.match(draft,/v_author_match_count<>1/);
  assert.match(draft,/COALESCE\(v_author_identity_match,false\) IS DISTINCT FROM true/);
