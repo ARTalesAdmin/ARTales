@@ -74,3 +74,36 @@ test("member work card remains readable after own tasks complete",()=>{
  assert.match(page,/!tasks\.some\(t=>t\.assigned_to===me\.id\)/);
  assert.doesNotMatch(page,/!tasks\.some\(t=>t\.assigned_to===me\.id&&/);
 });
+
+test("source-only author-release contract agrees with producer and protects task evidence",()=>{
+ const draft=file("ops/sql/20261114_artales_release_author_contract_SOURCE_ONLY.sql");
+ assert.match(draft,/SOURCE-ONLY DRAFT/);
+ assert.match(draft,/v_author_match_count<>1/);
+ assert.match(draft,/COALESCE\(v_author_identity_match,false\) IS DISTINCT FROM true/);
+ assert.match(draft,/v_author\.created_at >/);
+ assert.match(draft,/SELECT min\(r\.created_at\)/);
+ assert.match(draft,/release_missing_author_task_without_existing_author_evidence/);
+ assert.match(draft,/\['author_bio','author_visual'\]/);
+ assert.match(draft,/IF EXISTS\(SELECT 1 FROM public\.artales_editorial_tasks t/);
+ assert.match(draft,/release_metadata_task_incomplete_/);
+ assert.match(draft,/release_current_text_qa_missing/);
+ assert.match(draft,/release_qa_unresolved/);
+ assert.match(draft,/release_locked_snapshot_evidence_invalid/);
+ assert.match(draft,/release_visual_assets_missing/);
+ assert.match(draft,/INSERT INTO public\.artales_semantic_publications/);
+ assert.doesNotMatch(draft,/UPDATE public\.authors|DELETE FROM public\.authors/);
+});
+
+test("release readiness requires a real author portrait even when visual task was deliberately omitted",()=>{
+ const x=base();
+ x.tasks=x.tasks.filter(t=>t.kind!=="author_visual"&&t.kind!=="author_bio");
+ x.author={bioCs:"a".repeat(240),bioEn:"b".repeat(240),portraitPath:null,portraitAlt:null};
+ const res=assessEditorialRelease(x);
+ assert.equal(res.ready,false);
+ assert.match(res.blockers.join(" "),/portrét autora/i);
+ x.author.portraitPath="authors/existing/portrait.jpg";
+ x.author.portraitAlt="Portrait of the author";
+ assert.equal(assessEditorialRelease(x).ready,true);
+ const source=file("lib/editorial/releaseReadiness.ts");
+ assert.match(source,/if\(!input\.author\?\.portraitPath/);
+});
