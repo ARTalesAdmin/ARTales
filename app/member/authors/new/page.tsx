@@ -2,6 +2,7 @@ import BilingualProfileText from "@/components/editor/BilingualProfileText"
 import Link from "next/link"
 import { getLanguageOptions } from "@/lib/dictionaries/language"
 import EditorialImageUploadField from "@/components/media/EditorialImageUploadField"
+import EditorialPendingButton from "@/components/editor/EditorialPendingButton";
 import { requireEditorOrAdmin } from "@/lib/guards"
 import { createAuthor } from "@/lib/actions/authors"
 import { getDefaultAuthorFormValues } from "@/lib/forms/authorForm"
@@ -39,7 +40,7 @@ function getErrorMessage(error?: string) {
 }
 
 export default async function NewAuthorPage({ searchParams }: PageProps) {
-  await requireEditorOrAdmin()
+  const editor=await requireEditorOrAdmin()
 
   const { error, returnTo } = await searchParams
   const safeReturnTo=safeAuthorReturnTo(returnTo)
@@ -251,6 +252,7 @@ export default async function NewAuthorPage({ searchParams }: PageProps) {
 
         <EditorialImageUploadField
           kind="author-portrait"
+          showAdvanced={editor.role==="admin"}
           title={(defaults.name_en || defaults.name_cs || "ARTales autor")}
           slugInputId="slug"
           titleInputId="name_en"
@@ -441,8 +443,7 @@ export default async function NewAuthorPage({ searchParams }: PageProps) {
         </section>
 
         <div style={{ display: "flex", gap: "12px", flexWrap: "wrap" }}>
-          <button
-            type="submit"
+          <EditorialPendingButton pendingLabel="Zpracovávám a ukládám…"
             style={{
               padding: "12px 18px",
               border: "1px solid #111",
@@ -454,7 +455,7 @@ export default async function NewAuthorPage({ searchParams }: PageProps) {
             }}
           >
             {candidateId?"Založit a propojit autora":"Uložit autora"}
-          </button>
+          </EditorialPendingButton>
 
           <Link
             href={cancelHref}

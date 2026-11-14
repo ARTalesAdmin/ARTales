@@ -33,6 +33,8 @@ on:
       - 'tests/editorialTaskEntryAuthorMatch.test.ts'
       - 'tests/editorialAuthorCreationHandoff.test.ts'
       - 'tests/editorialCoverRecovery.test.ts'
+      - 'tests/editorialUiProgressCompact.test.ts'
+      - 'components/editor/EditorialPendingButton.tsx'
       - 'app/member/admin/editorial-performance/**'
       - 'app/member/admin/dashboard/page.tsx'
       - 'ops/sql/20261106_artales_editorial_completion_bilingual_guard.sql'
@@ -111,6 +113,8 @@ jobs:
         run: npx tsx --test tests/editorialWorkspacePolish.test.ts
       - name: Candidate cover save and existing upload recovery
         run: npx tsx --test tests/editorialCoverRecovery.test.ts
+      - name: Progress state, compact visual fields and no redundant confirmation
+        run: npx tsx --test tests/editorialUiProgressCompact.test.ts
       - name: Editorial candidate release evidence and legacy safety
         run: npx tsx --test tests/editorialCandidateRelease.test.ts
       - name: Canonical publication gate and author handoff source-only contract

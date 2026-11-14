@@ -6,6 +6,7 @@ import { mapAuthorToFormValues } from "@/lib/forms/authorForm"
 import { updateAuthor } from "@/lib/actions/authors"
 import { getLanguageOptions } from "@/lib/dictionaries/language"
 import EditorialImageUploadField from "@/components/media/EditorialImageUploadField"
+import EditorialPendingButton from "@/components/editor/EditorialPendingButton";
 
 type PageProps = {
   params: Promise<{ slug: string }>
@@ -50,7 +51,7 @@ export default async function EditAuthorPage({
   params,
   searchParams,
 }: PageProps) {
-  await requireEditorOrAdmin()
+  const editor=await requireEditorOrAdmin()
 
   const { slug } = await params
   const { error, success, editorial_closeout } = await searchParams
@@ -277,6 +278,7 @@ export default async function EditAuthorPage({
 
         <EditorialImageUploadField
           kind="author-portrait"
+          showAdvanced={editor.role==="admin"}
           authorId={author.id}
           title={(values.name_en || values.name_cs || "ARTales autor")}
           slugInputId="slug"
@@ -455,8 +457,7 @@ export default async function EditAuthorPage({
         </section>
 
         <div style={{ display: "flex", gap: "12px", flexWrap: "wrap" }}>
-          <button
-            type="submit"
+          <EditorialPendingButton pendingLabel="Zpracovávám a ukládám…"
             style={{
               padding: "12px 18px",
               border: "1px solid #111",
@@ -468,7 +469,7 @@ export default async function EditAuthorPage({
             }}
           >
             Uložit změny
-          </button>
+          </EditorialPendingButton>
 
           <Link
             href={`/autor/${author.slug}`}

@@ -12,6 +12,7 @@ import {slugify} from "@/lib/slug";
 import {uniqueExistingAuthor} from "@/lib/editorial/existingAuthorMatch";
 import {readyAuthorTaskKinds} from "@/lib/editorial/authorTaskEvidence";
 import CandidateCoverInput from "@/components/editor/CandidateCoverInput";
+import EditorialPendingButton from "@/components/editor/EditorialPendingButton";
 import CandidateBilingualAnnotationFields from "@/components/editor/CandidateBilingualAnnotationFields";
 import "@/components/editor/editorial-workspace.css";
 
@@ -151,7 +152,7 @@ export default async function CandidateEditorialDetail({params,searchParams}:{
   return <div>
    {ready?<form action={completeSemanticTask}>
     <input type="hidden" name="task_id" value={task.id}/>
-    <button className="ed-button ed-button--soft ed-button--compact" type="submit">Dokončit ověřený úkol ✓</button>
+    <EditorialPendingButton className="ed-button ed-button--soft ed-button--compact" pendingLabel="Ověřuji úkol…">Dokončit ověřený úkol ✓</EditorialPendingButton>
    </form>:<p className="ed-quiet">Nejprve doplň a ulož potřebné údaje.</p>}
   </div>;
  };
@@ -292,7 +293,7 @@ export default async function CandidateEditorialDetail({params,searchParams}:{
            <textarea name="reason" minLength={me.role==="admin"?0:20} maxLength={1000} rows={2} required={me.role!=="admin"}
             placeholder="Např. Předání textového QA pro redakční pilot tohoto titulu."/>
           </label>
-          <button type="submit" className="ed-button ed-button--soft">Uložit přiřazení</button>
+          <EditorialPendingButton className="ed-button ed-button--soft" pendingLabel="Ukládám přiřazení…">Uložit přiřazení</EditorialPendingButton>
          </form>
         </div>
        </details>:null}
@@ -326,9 +327,7 @@ export default async function CandidateEditorialDetail({params,searchParams}:{
        <textarea name="reason" rows={3} minLength={30} maxLength={4000} required
         placeholder="Stručně potvrď kontrolu aktuální revize a připravenost díla."/>
       </label>
-      <button className="ed-button" type="submit" disabled={!releaseState.ready}>
-       Schválit a publikovat dílo
-      </button>
+      <EditorialPendingButton disabled={!releaseState.ready} pendingLabel="Ověřuji a publikuji dílo…">Schválit a publikovat dílo</EditorialPendingButton>
      </form>:<p className="ed-quiet">Zveřejnění potvrzuje pouze administrátor.</p>}
     <p className="ed-quiet">Dokončení posledního úkolu samo publikaci nespouští.</p>
    </div>
@@ -354,7 +353,7 @@ export default async function CandidateEditorialDetail({params,searchParams}:{
          {authors.map(a=><option key={a.id} value={a.id}>{a.name}</option>)}
         </select>
        </label>
-       <button className="ed-button" type="submit">Uložit autora ↗</button>
+       <EditorialPendingButton pendingLabel="Propojuji autora…">Uložit autora ↗</EditorialPendingButton>
       </form>:<p className="ed-quiet">Změny může ukládat pověřený editor tohoto úkolu.</p>}
       <div className="ed-inline-links">
        {author?<Link className="ed-inline-link" href={"/member/authors/"+author.slug+"/edit"}>Upravit existující profil autora ↗</Link>:
@@ -370,7 +369,7 @@ export default async function CandidateEditorialDetail({params,searchParams}:{
        </div>
        <div className="ed-related__item">
         <h3>Portrét</h3><div className="ed-card__statuses">{entryStatus(portraitPresent)}{taskStatus("author_visual")}</div>
-        <p>V profilu autora nahraj obrázek a doplň alternativní popis.</p>
+        <p>V profilu autora vyber portrét. Uložení a ověření proběhne automaticky.</p>
         {completeForm("author_visual",Boolean(author)&&portraitPresent)}
        </div>
       </div>
@@ -394,7 +393,7 @@ export default async function CandidateEditorialDetail({params,searchParams}:{
          {collections.map(c=><option key={c.id} value={c.id}>{c.title_en??c.title}</option>)}
         </select>
        </label>
-       <button className="ed-button" type="submit">Uložit kolekci ✓</button>
+       <EditorialPendingButton pendingLabel="Ukládám kolekci…">Uložit kolekci ✓</EditorialPendingButton>
        <small className="ed-help">Dokončení vyžaduje také český i anglický popis kolekce, každý 200–800 znaků.</small>
       </form>:<p className="ed-quiet">Kolekci vybírá pověřený editor.</p>}
       <div className="ed-inline-links">
@@ -425,13 +424,13 @@ export default async function CandidateEditorialDetail({params,searchParams}:{
      <div className="ed-card__head">
       <div className="ed-card__heading"><span className="ed-card__number">04</span>
        <div><h2 id="ed-cover-title">Obálka díla</h2>
-        <p className="ed-card__lead">Připrav veřejný vizuál a jeho přístupný popis.</p></div>
+        <p className="ed-card__lead">Vyber obrázek. Systém jej uloží a ověří.</p></div>
       </div>
       <div className="ed-card__statuses">{entryStatus(coverPresent)}{taskStatus("cover_art")}</div>
      </div>
      <div className="ed-card__body">
       {canEditCover?<div className="ed-card__form">
-       <CandidateCoverInput candidateId={candidateId} title={candidate.proposed_title}
+       <CandidateCoverInput candidateId={candidateId} title={candidate.proposed_title} showAdvanced={me.role==="admin"}
         initialPath={metadata.cover_image_path??""}
         initialAlt={metadata.cover_image_alt??""}
         initialCaption={metadata.cover_image_caption??""}/>

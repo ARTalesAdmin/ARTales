@@ -1,6 +1,7 @@
 import BilingualProfileText from "@/components/editor/BilingualProfileText";
 import Link from "next/link";
 import EditorialImageUploadField from "@/components/media/EditorialImageUploadField";
+import EditorialPendingButton from "@/components/editor/EditorialPendingButton";
 import { requireEditorOrAdmin } from "@/lib/guards";
 import { createCollection } from "@/lib/actions/collections";
 import { getDefaultCollectionFormValues } from "@/lib/forms/collectionForm";
@@ -25,7 +26,7 @@ function getErrorMessage(error?: string) {
 }
 
 export default async function NewCollectionPage({ searchParams }: PageProps) {
-  await requireEditorOrAdmin();
+  const editor=await requireEditorOrAdmin();
   const defaults = getDefaultCollectionFormValues();
   const { error,returnTo } = await searchParams;
   const safeReturnTo=returnTo&&/^\/member\/editorial-detail\/[0-9a-f-]{36}$/.test(returnTo)?returnTo:null;
@@ -37,12 +38,12 @@ export default async function NewCollectionPage({ searchParams }: PageProps) {
       <h1 style={{ fontSize: "40px", lineHeight: 1.1, marginTop: 0, marginBottom: "12px" }}>Nová kolekce</h1>
       <p style={{ maxWidth: "760px", marginBottom: "20px" }}>Kolekce jsou kurátorské literární galerie. Veřejně se zobrazují podle lokalizace, ale interně drží plnou bilingvní strukturu.</p>
       {errorMessage ? <p style={{ marginBottom: "18px", padding: "12px 14px", border: "1px solid #d99", background: "#fff7f7" }}>{errorMessage}</p> : null}
-      <CollectionForm defaults={defaults} action={createCollection} submitLabel="Vytvořit kolekci" returnTo={safeReturnTo??""} />
+      <CollectionForm defaults={defaults} action={createCollection} submitLabel="Vytvořit kolekci" returnTo={safeReturnTo??""} showAdvanced={editor.role==="admin"} />
     </main>
   )
 }
 
-function CollectionForm({ defaults, action, submitLabel,returnTo }: any) {
+function CollectionForm({ defaults, action, submitLabel,returnTo,showAdvanced }: any) {
   return (
     <form action={action} style={{ display: "grid", gap: "22px" }}>
       <input type="hidden" name="returnTo" value={returnTo??""} />
@@ -84,6 +85,7 @@ function CollectionForm({ defaults, action, submitLabel,returnTo }: any) {
 
         <EditorialImageUploadField
           kind="collection-cover"
+          showAdvanced={showAdvanced}
           title={defaults.title_cs || defaults.title_en || "ARTales kolekce"}
           slugInputId="slug"
           titleInputId="title_cs"
@@ -114,7 +116,7 @@ function CollectionForm({ defaults, action, submitLabel,returnTo }: any) {
       </section>
 
       <div style={{ display: "flex", gap: "12px", flexWrap: "wrap" }}>
-        <button type="submit" style={{ padding: "12px 18px", border: "1px solid #111", background: "#111", color: "#fff", cursor: "pointer", fontSize: "16px", fontWeight: 600 }}>{submitLabel}</button>
+        <EditorialPendingButton pendingLabel="Zpracovávám a ukládám…" style={{ padding: "12px 18px", border: "1px solid #111", background: "#111", color: "#fff", cursor: "pointer", fontSize: "16px", fontWeight: 600 }}>{submitLabel}</EditorialPendingButton>
         <Link href="/member/collections" style={{ padding: "12px 18px", border: "1px solid #ccc", textDecoration: "none", color: "#111" }}>Zrušit</Link>
       </div>
     </form>
