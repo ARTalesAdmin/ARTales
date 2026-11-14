@@ -8,7 +8,7 @@ const page=read("app/member/editorial-detail/[candidateId]/page.tsx");
 test("uploaded cover survives save failure and is reusable without reupload",()=>{
  assert.match(field,/saveCandidateCover\(\{candidateId,path:pathToSave,alt:accessibleAlt,caption\}\)/);
  assert.match(field,/setMessage\(result.message\)/);
- assert.match(field,/if\(result.ok\)router.refresh\(\)/);
+ assert.match(field,/if\(result.ok\)\{setVerifiedPath\(pathToSave\);router.refresh\(\);\}/);
  assert.match(field,/listCandidateCoverUploads\(candidateId\)/);
  assert.match(field,/type="radio"/);
  assert.match(field,/onChange=\{\(\)=>\{setPath\(p\)/);
@@ -48,5 +48,5 @@ test("cover file selection uploads, links, validates and auto-completes without 
  assert.match(field,/void save\(file\)/);
  assert.match(field,/const uploadFile=fileOverride\?\?pendingFile/);
  assert.match(field,/Obálka knihy /);
- assert.match(field,/if\(result.ok\)router.refresh\(\)/);
+ assert.match(field,/if\(result.ok\)\{setVerifiedPath\(pathToSave\);router.refresh\(\);\}/);
 });
