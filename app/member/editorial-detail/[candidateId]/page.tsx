@@ -323,8 +323,8 @@ export default async function CandidateEditorialDetail({params,searchParams}:{
       <input type="hidden" name="candidate_id" value={candidateId}/>
       <input type="hidden" name="revision_sha256" value={latest?.revision_sha256??""}/>
       <p><strong>Veřejná adresa:</strong> /work/{slugify(candidate.proposed_title)}</p>
-      <label>Potvrzení vydání
-       <textarea name="reason" rows={3} minLength={30} maxLength={4000} required
+      <label>Poznámka k vydání (volitelná)
+       <textarea name="reason" rows={3} maxLength={4000}
         placeholder="Stručně potvrď kontrolu aktuální revize a připravenost díla."/>
       </label>
       <EditorialPendingButton disabled={!releaseState.ready} pendingLabel="Ověřuji a publikuji dílo…">Schválit a publikovat dílo</EditorialPendingButton>
