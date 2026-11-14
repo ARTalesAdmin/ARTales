@@ -24,13 +24,14 @@ test("server persists cover through existing identity-bound field RPC, then vali
  assert.match(actions,/\.eq\("assigned_to",actor.id\)\.eq\("status","claimed"\)/);
 });
 
-test("cover upload and candidate link are a single editor confirmation with durable recovery",()=>{
+test("cover upload links automatically on file selection and retains durable retry path",()=>{
  assert.match(field,/const \[pendingFile,setPendingFile\]=useState<File\|null>\(null\)/);
- assert.match(field,/if\(pendingFile\)\{/);
- assert.match(field,/\.upload\(target,pendingFile/);
+ assert.match(field,/void save\(file\)/);
+ assert.match(field,/if\(uploadFile\)\{/);
+ assert.match(field,/\.upload\(target,uploadFile/);
  assert.match(field,/setPath\(target\)/);
  assert.match(field,/setPendingFile\(null\)/);
- assert.match(field,/Nahrát a dokončit obálku/);
+ assert.match(field,/Uložit vybranou obálku \/ opakovat propojení/);
  assert.match(field,/setPendingFile\(null\);if\(input\.current\)input\.current\.value=""/);
 });
 
