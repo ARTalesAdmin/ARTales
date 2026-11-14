@@ -31,6 +31,7 @@ on:
       - 'lib/editorial/**'
       - 'supabase/migrations/20261110130000_artales_unique_existing_author_byline.sql'
       - 'tests/editorialTaskEntryAuthorMatch.test.ts'
+      - 'tests/editorialAuthorCreationHandoff.test.ts'
       - 'tests/editorialCoverRecovery.test.ts'
       - 'app/member/admin/editorial-performance/**'
       - 'app/member/admin/dashboard/page.tsx'
@@ -102,6 +103,8 @@ jobs:
         run: npx tsx --test tests/editorialAuthorCollectionBilingual.test.ts
       - name: Assigned-task entry and existing-author regression
         run: npx tsx --test tests/editorialTaskEntryAuthorMatch.test.ts
+      - name: Candidate author creation and recoverable cover linkage
+        run: npx tsx --test tests/editorialAuthorCreationHandoff.test.ts
       - name: Required bilingual annotation UI and DB evidence
         run: npx tsx --test tests/editorialBilingualAnnotations.test.ts
       - name: Editorial workspace design and functionality safety
