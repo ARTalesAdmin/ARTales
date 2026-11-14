@@ -15,12 +15,11 @@ import {candidateIdFromAuthorReturnTo,safeAuthorReturnTo,newAuthorMatchesCandida
 import {matchesExistingAuthor} from "@/lib/editorial/existingAuthorMatch"
 
 function withReturnTo(basePath: string, returnTo?: string) {
-  if (!safeAuthorReturnTo(returnTo)) {
-    return basePath
-  }
+  const safeReturnTo=safeAuthorReturnTo(returnTo)
+  if (!safeReturnTo) return basePath
 
   const separator = basePath.includes("?") ? "&" : "?"
-  return `${basePath}${separator}returnTo=${encodeURIComponent(returnTo)}`
+  return `${basePath}${separator}returnTo=${encodeURIComponent(safeReturnTo)}`
 }
 
 function appendCreatedAuthorId(returnTo: string, authorId: string) {
