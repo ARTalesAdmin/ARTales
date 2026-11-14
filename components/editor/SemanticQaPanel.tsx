@@ -216,11 +216,19 @@ export default function SemanticQaPanel(p:Props){
     {selected.slice(-3).map(f=><li key={f.id}>{f.comment.slice(0,120)}</li>)}
    </ul>:null}
    {selected.some(f=>f.status==="open"&&["text","typography","structure","other"].includes(f.kind))
-    &&open.length===1&&p.canCommitBatch&&!p.readonly?
+    &&p.canCommitBatch&&!p.readonly?
     <button type="button" disabled={pending||!p.databaseReady}
-     onClick={()=>excludeBlock(selected.find(f=>f.status==="open"&&
-      ["text","typography","structure","other"].includes(f.kind))!.id)}>
-     Vyřadit označený blok z vydání
+     onClick={()=>{
+      const flag=selected.find(f=>f.status==="open"&&
+       ["text","typography","structure","other"].includes(f.kind));
+      if(!flag)return;
+      if(open.length===1)excludeBlock(flag.id);
+      else{
+       setRepairs(previous=>({...previous,[flag.id]:"exclude_note"}));
+       setFeedback("Blok je označen k vyřazení. Označ další a ulož společnou revizi.");
+      }
+     }}>
+     {open.length===1?"Vyřadit tento blok z edice":"Označit tento blok k vyřazení"}
     </button>:null}
   </div>:null}
   {p.selectedAtomId&&p.databaseReady&&!p.readonly?
