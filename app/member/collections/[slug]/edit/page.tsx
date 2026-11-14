@@ -1,6 +1,7 @@
 import BilingualProfileText from "@/components/editor/BilingualProfileText";
 import Link from "next/link";
 import EditorialImageUploadField from "@/components/media/EditorialImageUploadField";
+import EditorialPendingButton from "@/components/editor/EditorialPendingButton";
 import { notFound } from "next/navigation";
 import { requireEditorOrAdmin } from "@/lib/guards";
 import { getCollectionForEditBySlug, getCollectionWorkAssignments } from "@/lib/dbCollections";
@@ -46,7 +47,7 @@ function getWorksErrorMessage(error?: string) {
 }
 
 export default async function EditCollectionPage({ params, searchParams }: PageProps) {
-  await requireEditorOrAdmin();
+  const editor=await requireEditorOrAdmin();
   const { slug } = await params;
   const { error, success, works_error } = await searchParams;
   const collection = await getCollectionForEditBySlug(slug);
@@ -109,6 +110,7 @@ export default async function EditCollectionPage({ params, searchParams }: PageP
 
           <EditorialImageUploadField
             kind="collection-cover"
+            showAdvanced={editor.role==="admin"}
             title={defaults.title_cs || defaults.title_en || "ARTales kolekce"}
             slugInputId="slug"
             titleInputId="title_cs"
@@ -139,7 +141,7 @@ export default async function EditCollectionPage({ params, searchParams }: PageP
         </section>
 
         <div style={{ display: "flex", gap: "12px", flexWrap: "wrap" }}>
-          <button type="submit" style={{ padding: "12px 18px", border: "1px solid #111", background: "#111", color: "#fff", cursor: "pointer", fontSize: "16px", fontWeight: 600 }}>Uložit metadata kolekce</button>
+          <EditorialPendingButton pendingLabel="Zpracovávám a ukládám…" style={{ padding: "12px 18px", border: "1px solid #111", background: "#111", color: "#fff", cursor: "pointer", fontSize: "16px", fontWeight: 600 }}>Uložit metadata kolekce</EditorialPendingButton>
           <Link href={`/collections/${collection.slug}`} style={{ padding: "12px 18px", border: "1px solid #ccc", textDecoration: "none", color: "#111" }}>Veřejný detail</Link>
         </div>
       </form>
@@ -179,7 +181,7 @@ export default async function EditCollectionPage({ params, searchParams }: PageP
         </section>
 
         <div style={{ display: "flex", gap: "12px", flexWrap: "wrap" }}>
-          <button type="submit" style={{ padding: "12px 18px", border: "1px solid #111", background: "#111", color: "#fff", cursor: "pointer", fontSize: "16px", fontWeight: 600 }}>Uložit vazby děl</button>
+          <EditorialPendingButton pendingLabel="Zpracovávám a ukládám…" style={{ padding: "12px 18px", border: "1px solid #111", background: "#111", color: "#fff", cursor: "pointer", fontSize: "16px", fontWeight: 600 }}>Uložit vazby děl</EditorialPendingButton>
         </div>
       </form>
     </main>

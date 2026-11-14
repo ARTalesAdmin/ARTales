@@ -6,11 +6,12 @@ import {saveCandidateCover,listCandidateCoverUploads} from "@/app/member/editori
 import {ARTALES_IMAGES_BUCKET,ARTALES_IMAGE_MAX_UPLOAD_BYTES,
  isAllowedArtalesImageMimeType,getExtensionFromMimeType,getPublicStorageImageUrl} from "@/lib/storageImages";
 
-export default function CandidateCoverInput({candidateId,title,initialPath="",initialAlt="",initialCaption=""}:{
- candidateId:string;title:string;initialPath?:string;initialAlt?:string;initialCaption?:string
+export default function CandidateCoverInput({candidateId,title,initialPath="",initialAlt="",initialCaption="",showAdvanced=false}:{
+ candidateId:string;title:string;initialPath?:string;initialAlt?:string;initialCaption?:string;showAdvanced?:boolean
 }){
  const router=useRouter(),input=useRef<HTMLInputElement>(null);
  const [path,setPath]=useState(initialPath);
+ const [verifiedPath,setVerifiedPath]=useState(initialPath);
  const [pendingFile,setPendingFile]=useState<File|null>(null);
  const [alt,setAlt]=useState(initialAlt);
  const [caption,setCaption]=useState(initialCaption);
@@ -65,7 +66,7 @@ export default function CandidateCoverInput({candidateId,title,initialPath="",in
    }
    const result=await saveCandidateCover({candidateId,path:pathToSave,alt:accessibleAlt,caption});
    setProblem(!result.ok);setMessage(result.message);
-   if(result.ok)router.refresh();
+   if(result.ok){setVerifiedPath(pathToSave);router.refresh();}
   }catch{setProblem(true);setMessage("Spojení selhalo. Pokud již byl obrázek nahrán, lze jeho uložení zopakovat bez dalšího uploadu.");}
   finally{setBusy(false);}
  };
@@ -92,19 +93,24 @@ export default function CandidateCoverInput({candidateId,title,initialPath="",in
   </div>:null}
   {pendingFile?<p className="ed-filebox__path">Připravený obrázek: {pendingFile.name}</p>:
    path?<p className="ed-filebox__path">Vybraná obálka: {path.split("/").at(-1)}</p>:null}
-  <label className="ed-label">Alternativní popis obrázku
-   <input required minLength={8} maxLength={350} value={alt}
-    onChange={e=>setAlt(e.target.value)} placeholder={"Obálka knihy "+title}/>
-  </label>
-  <label className="ed-label">Popisek nebo kredit (nepovinný)
-   <input maxLength={500} value={caption}
-    onChange={e=>setCaption(e.target.value)} placeholder="Například autor ilustrace"/>
-  </label>
+  {showAdvanced?<details className="ed-disclosure">
+   <summary>Pokročilé údaje obrázku (volitelné)</summary>
+   <div className="ed-disclosure__body">
+    <label className="ed-label">Alternativní text
+     <input maxLength={350} value={alt}
+      onChange={e=>setAlt(e.target.value)} placeholder={"Obálka knihy "+title}/>
+    </label>
+    <label className="ed-label">Veřejný popisek (volitelný)
+     <input maxLength={500} value={caption}
+      onChange={e=>setCaption(e.target.value)}/>
+    </label>
+   </div>
+  </details>:null}
   {message?<p role={problem?"alert":"status"} className="ed-filebox__message">{message}</p>:null}
-  <button className="ed-button" type="button" onClick={()=>void save()}
+  {(problem||Boolean(path&&path!==verifiedPath))?<button className="ed-button" type="button" onClick={()=>void save()}
    disabled={busy||loadingExisting||(!path&&!pendingFile)}>
    {busy?"Ukládám…":"Uložit vybranou obálku / opakovat propojení ✓"}
-  </button>
-  <small className="ed-help">Výběr nového souboru automaticky spustí nahrání, propojení a validaci. Alt text se případně doplní z názvu knihy. U dříve nahraného obrázku potvrď výběr. Při chybě soubor znovu nenahrávej.</small>
+  </button>:null}
+  <small className="ed-help">Po výběru souboru proběhne uložení a ověření automaticky. Při chybě lze nahraný soubor použít znovu.</small>
  </div>;
 }

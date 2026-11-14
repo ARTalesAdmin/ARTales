@@ -39,6 +39,7 @@ type EditorialImageUploadFieldProps = {
   captionLabel: string
   captionPlaceholder: string
   defaultAltPrefix: string
+  showAdvanced?: boolean
 }
 
 function slugifyClient(value: string) {
@@ -103,6 +104,7 @@ export default function EditorialImageUploadField({
   captionLabel,
   captionPlaceholder,
   defaultAltPrefix,
+  showAdvanced=false,
 }: EditorialImageUploadFieldProps) {
   const inputRef = useRef<HTMLInputElement | null>(null)
   const uploadedPathsRef = useRef(new Set<string>())
@@ -226,6 +228,7 @@ export default function EditorialImageUploadField({
         ref={inputRef}
         type="file"
         accept="image/jpeg,image/png,image/webp"
+        disabled={isUploading}
         onChange={(event) => {
           void uploadImage(event.target.files?.[0] ?? null)
         }}
@@ -272,6 +275,7 @@ export default function EditorialImageUploadField({
             {imagePath ? (
               <button
                 type="button"
+                disabled={isUploading}
                 onClick={() => {
                   const removedPath = imagePath
                   setImagePath("")
@@ -297,13 +301,19 @@ export default function EditorialImageUploadField({
             ) : null}
           </div>
 
-          {error ? <p style={{ margin: 0, color: "#9f1239", fontSize: "14px" }}>{error}</p> : null}
-          {message ? <p style={{ margin: 0, color: "#166534", fontSize: "14px" }}>{message}</p> : null}
+          {isUploading?<p role="status" aria-live="polite" style={{margin:0,fontSize:14}}>
+           Zpracovávám a ověřuji uložení. Další kliknutí není potřeba.
+          </p>:null}
+          {error ? <p role="alert" style={{ margin: 0, color: "#9f1239", fontSize: "14px" }}>{error}</p> : null}
+          {message ? <p role="status" aria-live="polite" style={{ margin: 0, color: "#166534", fontSize: "14px" }}>{message}</p> : null}
 
           <p style={{ margin: 0, fontSize: "13px", opacity: 0.72 }}>
             {imagePath ? readyHint : emptyHint}
           </p>
 
+          {showAdvanced?<details>
+           <summary>Pokročilé údaje obrázku (volitelné)</summary>
+           <div style={{display:"grid",gap:14,marginTop:12}}>
           <div>
             <label htmlFor={altName} style={{ display: "block", marginBottom: "8px", fontWeight: 600 }}>
               {altLabel}
@@ -333,6 +343,13 @@ export default function EditorialImageUploadField({
               style={{ width: "100%", padding: "12px 14px", border: "1px solid #ccc", fontSize: "16px" }}
             />
           </div>
+           </div>
+          </details>:<>
+           <input type="hidden" name={altName}
+            value={altText.trim()||(imagePath?`${defaultAltPrefix} ${title}`.trim():"")}/>
+           <input type="hidden" name={captionName} value={caption}/>
+          </>}
+
         </div>
       </div>
     </section>

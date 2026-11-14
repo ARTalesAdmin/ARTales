@@ -1,5 +1,6 @@
 "use client";
 import {useState} from "react";
+import EditorialPendingButton from "@/components/editor/EditorialPendingButton";
 
 const min=200,max=800;
 function Count({length}:{length:number}){
@@ -37,9 +38,8 @@ export default function CandidateBilingualAnnotationFields({initialCs="",initial
    </div>
   </div>
   <small className="ed-help">Obě verze se ukládají společně. Úkol se dokončí až po validaci obou textů.</small>
-  <button className="ed-button" type="submit"
-   disabled={cs.trim().length<min||cs.trim().length>max||en.trim().length<min||en.trim().length>max}>
-   Uložit obě anotace ✓
-  </button>
+  <EditorialPendingButton
+   disabled={cs.trim().length<min||cs.trim().length>max||en.trim().length<min||en.trim().length>max}
+   pendingLabel="Zpracovávám anotace…">Uložit obě anotace ✓</EditorialPendingButton>
  </div>;
 }
