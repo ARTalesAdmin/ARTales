@@ -1,5 +1,6 @@
 import type {SemanticRevision,SemanticNode,SemanticAtom} from "@/lib/semantic/model";
 import ProtectedProseText from "@/components/reader/ProtectedProseText";
+import SemanticEditionTitlePage from "@/components/reader/SemanticEditionTitlePage";
 import {selectEditorialEdition,classifyGutenbergApparatus,poemInsideEditorialEdition} from "@/lib/semantic/editionProjection";
 import {walkSemanticAtoms} from "@/lib/semantic/compose";
 export type ApprovedSemanticImage={anchor_atom_id:string;storage_path:string;caption:string;sha256:string};
@@ -10,8 +11,8 @@ function safeUrl(path:string){
  return base.replace(/\/$/,"")+"/storage/v1/object/public/artales-images/"+
  path.split("/").map(encodeURIComponent).join("/");
 }
-export default function SemanticPublicReader({revision,title,isPreview,visuals=[],protectedTerms=[]}:{
- revision:SemanticRevision;title:string;isPreview:boolean;visuals?:ApprovedSemanticImage[];
+export default function SemanticPublicReader({revision,title,author,isPreview,visuals=[],protectedTerms=[]}:{
+ revision:SemanticRevision;title:string;author:string;isPreview:boolean;visuals?:ApprovedSemanticImage[];
  protectedTerms?:string[];
 }){
  const atom=(a:SemanticAtom)=><ProtectedProseText raw={a.raw} terms={protectedTerms}/>;
@@ -79,9 +80,11 @@ export default function SemanticPublicReader({revision,title,isPreview,visuals=[
  };
  const approvedBlocks=revision.blocks.map(within).filter((v):v is SemanticNode=>v!==null).map(withoutExclusions).filter((v):v is SemanticNode=>v!==null);
  const blocks=isPreview?approvedBlocks.slice(0,Math.min(4,approvedBlocks.length)):approvedBlocks;
- return <article style={{maxWidth:780,margin:"0 auto",padding:"36px 24px",fontFamily:"Georgia,serif",fontSize:"1.15rem",lineHeight:1.8}}>
-  <h1>{title}</h1>
-  {blocks.map(node)}
-  {isPreview?<p><em>Ukázka díla. Plný text je dostupný v režimu čtení.</em></p>:null}
- </article>;
+ return <>
+  <SemanticEditionTitlePage title={title} author={author} headingLevel={1} variant="public"/>
+  <article style={{maxWidth:780,margin:"0 auto",padding:"36px 24px",fontFamily:"Georgia,serif",fontSize:"1.15rem",lineHeight:1.8}}>
+   {blocks.map(node)}
+   {isPreview?<p><em>Ukázka díla. Plný text je dostupný v režimu čtení.</em></p>:null}
+  </article>
+ </>;
 }

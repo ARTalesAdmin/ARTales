@@ -182,16 +182,7 @@
 .semantic-reader__front-page{min-height:var(--reader-page-height,758px);
  display:flex;align-items:center;justify-content:center;border:1px solid #d7c3a4;
  background:linear-gradient(160deg,#fffcf5,#f3e8d3)}
-.semantic-reader__front-inner{text-align:center;display:flex;flex-direction:column;
- align-items:center;justify-content:center;gap:24px;min-height:430px;
- padding:20px;box-sizing:border-box;color:#3c3126}
-.semantic-reader__front-brand{font:500 19px Georgia,serif;letter-spacing:.27em;
- text-transform:uppercase;color:#8e6e41}
-.semantic-reader__front-page h2{font:500 clamp(1.5rem,3vw,2.6rem)/1.22 Georgia,serif;
- max-width:18ch;color:#2e261e;margin:20px 0 4px}
-.semantic-reader__front-author{font:18px Georgia,serif;margin:0}
-.semantic-reader__front-ornament{font-size:22px;color:#ae864b}
-.semantic-reader__front-love{font:italic 16px Georgia,serif;color:#7c6142}
+/* Shared title page markup is provided by SemanticEditionTitlePage. */
 @media(max-width:650px){.semantic-reader__controls{position:relative}
  .semantic-reader__page-navigation input{width:90px}
  .semantic-qa-overlay{inset:5px;width:auto;border-radius:10px}}
