@@ -47,3 +47,11 @@ test("release does not replace legacy reader or modify published work content",(
  assert.doesNotMatch(sql,/UPDATE public\.works|ALTER TABLE public\.works/);
  assert.doesNotMatch(save,/updateWork\(/);
 });
+
+test("author completion remains type-specific and guarded",()=>{
+ const save=read("app/member/editorial-detail/[candidateId]/actions.ts");
+ assert.match(save,/readyAuthorTaskKinds\(author\)/);
+ assert.match(save,/if\(!readyKinds\.has\(task\.kind\)\)continue/);
+ assert.match(save,/artales_complete_editorial_task/);
+ assert.match(save,/waitingQuery/);
+});

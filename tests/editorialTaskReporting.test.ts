@@ -61,7 +61,7 @@ test("single save of author biography/portrait closes only owner's claimed and v
  assert.match(authorAction,/\.eq\("status", "claimed"\)/);
  assert.match(authorAction,/\.in\("kind", kinds\)/);
  assert.match(authorAction,/artales_complete_editorial_task/);
- assert.match(authorAction,/bioReady/);
+ assert.match(authorAction,/readyAuthorTaskKinds\(values\)/);
  assert.match(authorAction,/closeoutFailed/);
  assert.match(authorEdit,/editorial_closeout === "pending"/);
  assert.match(actions,/field==="author"\?\["author_bio","author_visual"\]/);

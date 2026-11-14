@@ -6,6 +6,7 @@ import {requireEditorOrAdmin} from "@/lib/guards";
 import {createClient} from "@/lib/supabase/server";
 import {SEMANTIC_PIPELINE_ENABLED} from "@/lib/semantic/featureFlag";
 import {canAssignCandidate} from "@/lib/editorial/candidateAuthority";
+import {readyAuthorTaskKinds} from "@/lib/editorial/authorTaskEvidence";
 
 const uuid=/^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i;
 const fields=["author","collection","description","cover"] as const;
@@ -42,13 +43,29 @@ export async function saveCandidateEditorialField(form:FormData){
   field==="cover"?["cover_art"]:[];
  if(kinds.length){
   const actor=await requireEditorOrAdmin();
+  // A linked author may have a finished biography but no portrait (or vice versa).
+  // Never attempt to close a sibling task whose own prerequisites are missing.
+  let readyKinds=new Set(kinds);
+  if(field==="author"){
+   const [{data:linked,error:linkError},{data:author,error:authorError}]=await Promise.all([
+    db.from("artales_candidate_editorial_metadata").select("author_id")
+     .eq("candidate_id",candidateId).maybeSingle(),
+    db.from("authors").select("bio_cs,bio_en,portrait_image_path,portrait_image_alt")
+     .eq("id",value).maybeSingle()
+   ]);
+   if(linkError||!linked||linked.author_id!==value||authorError||!author)
+    redirect("/member/editorial-detail/"+candidateId+"?saved=author&closeout=pending");
+   readyKinds=new Set(readyAuthorTaskKinds(author));
+  }
   const {data:owned,error:lookupError}=await db.from("artales_editorial_tasks")
    .select("id,kind").eq("candidate_id",candidateId)
    .eq("assigned_to",actor.id).eq("status","claimed").in("kind",kinds);
   if(lookupError)redirect("/member/editorial-detail/"+candidateId+"?saved="+encodeURIComponent(field)+"&closeout=pending");
   let closed=0,failed=0;
+  const waiting=field==="author"?(owned??[]).find(task=>!readyKinds.has(task.kind))?.kind:null;
   for(const task of owned??[]){
-   // Every closeout is validated by the production evidence trigger, not JSX.
+   if(!readyKinds.has(task.kind))continue;
+   // The RPC/trigger independently validates identity, real Storage and ownership.
    const note="Redakční úkol "+task.kind+
     " dokončen automaticky po uložení podkladů a databázovém ověření editorovy práce.";
    const {data:completed,error:finishError}=await db.rpc("artales_complete_editorial_task",{
@@ -60,7 +77,9 @@ export async function saveCandidateEditorialField(form:FormData){
   revalidatePath("/member/editorial-detail/"+candidateId);
   revalidatePath("/member/editorial-pipeline");revalidatePath("/member","layout");
   if(failed>0)redirect("/member/editorial-detail/"+candidateId+"?saved="+encodeURIComponent(field)+"&closeout=pending");
-  if(closed>0)redirect("/member/editorial-detail/"+candidateId+"?saved="+encodeURIComponent(field)+"&closed=1");
+  const waitingQuery=waiting?"&waiting="+encodeURIComponent(waiting):"";
+  if(closed>0)redirect("/member/editorial-detail/"+candidateId+"?saved="+encodeURIComponent(field)+"&closed=1"+waitingQuery);
+  if(waiting)redirect("/member/editorial-detail/"+candidateId+"?saved=author"+waitingQuery);
  }
  revalidatePath("/member/editorial-detail/"+candidateId);
  revalidatePath("/member/editorial-pipeline");
