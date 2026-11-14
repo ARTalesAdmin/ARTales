@@ -2,6 +2,7 @@
 import {useEffect, useMemo, useRef, useState, type CSSProperties} from "react";
 import {projectSemanticProseText} from "@/lib/semantic/displayText";
 import ProtectedProseText from "@/components/reader/ProtectedProseText";
+import SemanticEditionTitlePage from "@/components/reader/SemanticEditionTitlePage";
 import {resolveQaProjectionMode, buildSemanticSourceRegions} from "@/lib/semantic/qaReaderModes";
 import {synchronizeSemanticPanes} from "@/lib/semantic/pairedSemanticScroll";
 import {createSessionReaderNote,locateSessionReaderNote,locateAndSortSessionNotes,selectActiveQaReadingUnit,type SessionReaderNote} from "@/lib/semantic/qaNoteSession";
@@ -84,10 +85,7 @@ function unitView(u:SemanticPageUnit,terms:readonly string[]=[]):React.ReactNode
   }
   if(u.kind==="title_page"&&u.node.kind==="title_page"){
     return <div className="semantic-reader__title-page">
-      <span className="semantic-reader__brand">{u.node.brand}</span>
-      <h2>{u.node.title}</h2><p>{u.node.authors.join(" · ")}</p>
-      {u.node.edition_note&&<small>{u.node.edition_note}</small>}
-      <small className="semantic-reader__draft-note">Návrh titulky · čeká na redakční revizi</small>
+      <SemanticEditionTitlePage title={u.node.title} author={u.node.authors.join(" · ")}/>
     </div>;
   }
   if((u.kind==="chapter_heading"||u.kind==="section_heading")&&
@@ -130,6 +128,8 @@ export default function SemanticReaderLab({
   const [preview,setPreview]=useState<{parentSha:string;draft:SemanticRevision}|null>(null);
   const previewRevision=preview?.parentSha===revisionSha?preview.draft:null;
   const activeRevision=previewRevision??revision;
+  // Keep one separately rendered title page even when the revision includes title metadata.
+  const hasRevisionTitlePage=Boolean(activeRevision.title_page);
   useEffect(()=>{
     if(reviewAfterRevision&&revisionSha!==reviewAfterRevision){
       // eslint-disable-next-line react-hooks/set-state-in-effect -- continue after server-updated immutable revision
@@ -526,12 +526,14 @@ export default function SemanticReaderLab({
           Obecná oprava
         </button>
         <label className="semantic-reader__page-navigation">Strana
-          <input type="range" min={0} max={pages.length} step={1} value={Math.min(pageNumber,pages.length)}
+          <input type="range" min={hasRevisionTitlePage?1:0} max={pages.length} step={1}
+            value={Math.max(hasRevisionTitlePage?1:0,Math.min(pageNumber,pages.length))}
             onChange={e=>jumpToPage(Number(e.target.value))}
             aria-label="Přejít na stránku"/>
-          <span>{pageNumber===0?"Titulka":pageNumber+" / "+pages.length}</span>
+          <span>{Math.max(hasRevisionTitlePage?1:0,pageNumber)===(hasRevisionTitlePage?1:0)
+            ?"Titulka":pageNumber+" / "+pages.length}</span>
         </label>
-        <span role="status">{integrity.ok?"QA: zachováno pořadí jednotek":"QA selhala"} · {pages.length+1} stránek
+        <span role="status">{integrity.ok?"QA: zachováno pořadí jednotek":"QA selhala"} · {pages.length+(hasRevisionTitlePage?0:1)} stránek
           {" · "}{measured?"měřeno prohlížečem":"předběžný odhad"}
         </span>
       </div>
@@ -640,15 +642,10 @@ export default function SemanticReaderLab({
             </div>
           </div>
           <div className={"semantic-reader__pages semantic-reader__pages--"+mode} data-qa-projection="visible">
-            <article className="semantic-reader__page semantic-reader__front-page" data-page-index="-1"
-              data-mode={mode}>
-              <div className="semantic-reader__front-inner">
-                <span className="semantic-reader__front-brand">ARTales</span>
-                <h2>{editionTitle}</h2><p className="semantic-reader__front-author">{editionAuthor}</p>
-                <div className="semantic-reader__front-ornament">✦</div>
-                <p className="semantic-reader__front-love">ARTales with Love</p>
-              </div>
-            </article>
+            {!hasRevisionTitlePage?<article className="semantic-reader__page semantic-reader__front-page"
+              data-page-index="-1" data-mode={mode}>
+              <SemanticEditionTitlePage title={editionTitle} author={editionAuthor}/>
+            </article>:null}
             {pages.map(page=><article className="semantic-reader__page" key={page.index}
               data-page-index={page.index} data-overflow={page.overflow} data-mode={mode}>
               {page.units.map(u=>{
@@ -681,7 +678,8 @@ export default function SemanticReaderLab({
                   </button>}
                   {unitView(u,protectedTerms)}</div>;
               })}
-              <footer>QA strana {page.index+2}
+              {page.units.some(u=>u.kind==="title_page")?null:<footer>
+                QA strana {page.index+(hasRevisionTitlePage?1:2)}
                 {page.overflow==="scroll_unit"?" · dlouhý celek, bez rozdělení":""}
               </footer>
             </article>)}
