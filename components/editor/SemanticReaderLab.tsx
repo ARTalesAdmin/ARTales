@@ -681,7 +681,7 @@ export default function SemanticReaderLab({
               {page.units.some(u=>u.kind==="title_page")?null:<footer>
                 QA strana {page.index+(hasRevisionTitlePage?1:2)}
                 {page.overflow==="scroll_unit"?" · dlouhý celek, bez rozdělení":""}
-              </footer>
+              </footer>}
             </article>)}
           </div>
         </div>
