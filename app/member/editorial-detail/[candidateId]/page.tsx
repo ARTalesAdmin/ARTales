@@ -10,6 +10,7 @@ import {completeSemanticTask,publishSemanticCandidate} from "@/app/member/editor
 import {assessEditorialRelease} from "@/lib/editorial/releaseReadiness";
 import {slugify} from "@/lib/slug";
 import {uniqueExistingAuthor} from "@/lib/editorial/existingAuthorMatch";
+import {readyAuthorTaskKinds} from "@/lib/editorial/authorTaskEvidence";
 import CandidateCoverInput from "@/components/editor/CandidateCoverInput";
 import CandidateBilingualAnnotationFields from "@/components/editor/CandidateBilingualAnnotationFields";
 import "@/components/editor/editorial-workspace.css";
@@ -33,7 +34,7 @@ function entryStatus(complete:boolean){
  </span>;
 }
 export default async function CandidateEditorialDetail({params,searchParams}:{
- params:Promise<{candidateId:string}>;searchParams:Promise<{error?:string;saved?:string;closed?:string;closeout?:string;assigned?:string;composed?:string;createdAuthorId?:string;createdCollectionId?:string}>
+ params:Promise<{candidateId:string}>;searchParams:Promise<{error?:string;saved?:string;closed?:string;closeout?:string;waiting?:string;assigned?:string;composed?:string;createdAuthorId?:string;createdCollectionId?:string}>
 }){
  if(!SEMANTIC_PIPELINE_ENABLED)notFound();
  const {candidateId}=await params;
@@ -112,10 +113,9 @@ export default async function CandidateEditorialDetail({params,searchParams}:{
  const canEditCollection=authorized("collection_curation");
  const canEditDescription=authorized("work_description");
  const canEditCover=authorized("cover_art");
- const bioPresent=[author?.bio_en,author?.bio_cs].every(v=>
-  (v??"").trim().length>=200&&(v??"").trim().length<=800);
- const portraitPresent=Boolean(author?.portrait_image_path&&
-  (author?.portrait_image_alt??"").trim().length>=8);
+ const authorEvidence=new Set(readyAuthorTaskKinds(author??{}));
+ const bioPresent=authorEvidence.has("author_bio");
+ const portraitPresent=authorEvidence.has("author_visual");
  const descriptionPresent=[metadata.work_description_cs,metadata.work_description_en].every(v=>
   (v??"").trim().length>=200&&(v??"").trim().length<=800);
  const coverPresent=Boolean(metadata.cover_image_path&&
@@ -227,6 +227,12 @@ export default async function CandidateEditorialDetail({params,searchParams}:{
   {err.assigned?<div className="ed-notice" role="status">✓ Přiřazení úkolu bylo uloženo a zaznamenáno do auditu.</div>:null}
   {err.saved?<div className="ed-notice" role="status">✓ Údaje byly uloženy: {labels[err.saved]??err.saved}.
    {err.closed==="1"?" Odpovídající úkol byl zároveň uzavřen.":""}</div>:null}
+  {err.waiting==="author_visual"?<div className="ed-notice" role="status">
+   Životopis je uložen; vizuální úkol čeká na portrét a jeho popis. Text autora není nutné znovu vyplňovat.
+  </div>:null}
+  {err.waiting==="author_bio"?<div className="ed-notice" role="status">
+   Vizuál autora je uložen; k uzavření textového úkolu je potřeba česká i anglická biografie (každá 200–800 znaků).
+  </div>:null}
   {err.closeout==="pending"?<div className="ed-notice ed-notice--error" role="alert">
    Údaje jsou uložené, ale úkol nebylo možné dokončit. Zkontroluj povinné podklady;
    úkol zůstává rozpracovaný.</div>:null}
