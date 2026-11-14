@@ -6,7 +6,7 @@ const field=read("components/editor/CandidateCoverInput.tsx");
 const actions=read("app/member/editorial-detail/[candidateId]/actions.ts");
 const page=read("app/member/editorial-detail/[candidateId]/page.tsx");
 test("uploaded cover survives save failure and is reusable without reupload",()=>{
- assert.match(field,/saveCandidateCover\(\{candidateId,path:pathToSave,alt,caption\}\)/);
+ assert.match(field,/saveCandidateCover\(\{candidateId,path:pathToSave,alt:accessibleAlt,caption\}\)/);
  assert.match(field,/setMessage\(result.message\)/);
  assert.match(field,/if\(result.ok\)router.refresh\(\)/);
  assert.match(field,/listCandidateCoverUploads\(candidateId\)/);
@@ -41,4 +41,11 @@ test("orphaned cover is automatically discoverable and exact linkage read back",
  assert.match(field,/V úložišti jsou obrázky, ale k dílu není přiřazená žádná obálka/);
  assert.match(actions,/stored\?\.cover_image_path!==input.path/);
  assert.match(actions,/readbackError/);
+});
+
+test("cover file selection uploads, links, validates and auto-completes without second click",()=>{
+ assert.match(field,/void save\(file\)/);
+ assert.match(field,/const uploadFile=fileOverride\?\?pendingFile/);
+ assert.match(field,/Obálka knihy /);
+ assert.match(field,/if\(result.ok\)router.refresh\(\)/);
 });

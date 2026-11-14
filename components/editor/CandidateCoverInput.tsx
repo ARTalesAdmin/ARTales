@@ -6,8 +6,8 @@ import {saveCandidateCover,listCandidateCoverUploads} from "@/app/member/editori
 import {ARTALES_IMAGES_BUCKET,ARTALES_IMAGE_MAX_UPLOAD_BYTES,
  isAllowedArtalesImageMimeType,getExtensionFromMimeType,getPublicStorageImageUrl} from "@/lib/storageImages";
 
-export default function CandidateCoverInput({candidateId,initialPath="",initialAlt="",initialCaption=""}:{
- candidateId:string;initialPath?:string;initialAlt?:string;initialCaption?:string
+export default function CandidateCoverInput({candidateId,title,initialPath="",initialAlt="",initialCaption=""}:{
+ candidateId:string;title:string;initialPath?:string;initialAlt?:string;initialCaption?:string
 }){
  const router=useRouter(),input=useRef<HTMLInputElement>(null);
  const [path,setPath]=useState(initialPath);
@@ -24,11 +24,11 @@ export default function CandidateCoverInput({candidateId,initialPath="",initialA
   if(!isAllowedArtalesImageMimeType(file.type)||file.size>ARTALES_IMAGE_MAX_UPLOAD_BYTES){
    setProblem(true);setMessage("Použij JPG, PNG nebo WebP do 5 MB.");return;
   }
-  // Nothing is uploaded until the editor also supplies a valid description.
-  // One button performs Storage upload, candidate link and task closeout.
+  // File selection triggers upload, metadata persistence and evidence closeout.
   setPendingFile(file);
   setProblem(false);
-  setMessage("Obrázek připraven. Doplň popis a potvrď uložení.");
+  setMessage("Nahrávám a ověřuji obálku…");
+  void save(file);
  };
  const recover=useCallback(async()=>{
   setLoadingExisting(true);setProblem(false);setMessage("");
@@ -42,16 +42,19 @@ export default function CandidateCoverInput({candidateId,initialPath="",initialA
  useEffect(()=>{
   if(!initialPath)void recover();
  },[initialPath,recover]);
- const save=async()=>{
-  if(busy||(!path&&!pendingFile)||alt.trim().length<8)return;
+ const save=async(fileOverride?:File)=>{
+  const uploadFile=fileOverride??pendingFile;
+  const accessibleAlt=alt.trim()||("Obálka knihy "+title);
+  if(busy||(!path&&!uploadFile)||accessibleAlt.length<8||accessibleAlt.length>350)return;
+  setAlt(accessibleAlt);
   setBusy(true);setProblem(false);setMessage("Nahrávám a propojuji obálku s dílem…");
   try{
    let pathToSave=path;
-   if(pendingFile){
-    const target=`works/${candidateId}/cover/cover-${crypto.randomUUID()}.${getExtensionFromMimeType(pendingFile.type)}`;
+   if(uploadFile){
+    const target=`works/${candidateId}/cover/cover-${crypto.randomUUID()}.${getExtensionFromMimeType(uploadFile.type)}`;
     const db=createClient();
-    const {error}=await db.storage.from(ARTALES_IMAGES_BUCKET).upload(target,pendingFile,{
-     cacheControl:"31536000",contentType:pendingFile.type,upsert:false
+    const {error}=await db.storage.from(ARTALES_IMAGES_BUCKET).upload(target,uploadFile,{
+     cacheControl:"31536000",contentType:uploadFile.type,upsert:false
     });
     if(error){setProblem(true);setMessage("Nahrání selhalo: "+error.message);return;}
     // Durable path is retained even if the later DB operation fails.
@@ -60,7 +63,7 @@ export default function CandidateCoverInput({candidateId,initialPath="",initialA
     setPendingFile(null);
     if(input.current)input.current.value="";
    }
-   const result=await saveCandidateCover({candidateId,path:pathToSave,alt,caption});
+   const result=await saveCandidateCover({candidateId,path:pathToSave,alt:accessibleAlt,caption});
    setProblem(!result.ok);setMessage(result.message);
    if(result.ok)router.refresh();
   }catch{setProblem(true);setMessage("Spojení selhalo. Pokud již byl obrázek nahrán, lze jeho uložení zopakovat bez dalšího uploadu.");}
@@ -68,7 +71,7 @@ export default function CandidateCoverInput({candidateId,initialPath="",initialA
  };
  return <div className="ed-filebox">
   <p className="ed-eyebrow">Soubor obálky</p>
-  <label className="ed-label">Nahrát nový obrázek
+  <label className="ed-label">Nahrát nový obrázek (automatické uložení)
    <input ref={input} type="file" accept="image/jpeg,image/png,image/webp"
     disabled={busy||loadingExisting} onChange={event=>selectFile(event.target.files?.[0])}/>
   </label>
@@ -91,7 +94,7 @@ export default function CandidateCoverInput({candidateId,initialPath="",initialA
    path?<p className="ed-filebox__path">Vybraná obálka: {path.split("/").at(-1)}</p>:null}
   <label className="ed-label">Alternativní popis obrázku
    <input required minLength={8} maxLength={350} value={alt}
-    onChange={e=>setAlt(e.target.value)} placeholder="Co je na obálce zobrazeno?"/>
+    onChange={e=>setAlt(e.target.value)} placeholder={"Obálka knihy "+title}/>
   </label>
   <label className="ed-label">Popisek nebo kredit (nepovinný)
    <input maxLength={500} value={caption}
@@ -99,9 +102,9 @@ export default function CandidateCoverInput({candidateId,initialPath="",initialA
   </label>
   {message?<p role={problem?"alert":"status"} className="ed-filebox__message">{message}</p>:null}
   <button className="ed-button" type="button" onClick={()=>void save()}
-   disabled={busy||loadingExisting||(!path&&!pendingFile)||alt.trim().length<8}>
-   {busy?"Ukládám…":"Nahrát a dokončit obálku ✓"}
+   disabled={busy||loadingExisting||(!path&&!pendingFile)}>
+   {busy?"Ukládám…":"Uložit vybranou obálku / opakovat propojení ✓"}
   </button>
-  <small className="ed-help">Jedno potvrzení nahraje obrázek a uloží jej k dílu. Pokud se propojení nezdaří, soubor zůstane v úložišti pro opakování bez nového nahrávání.</small>
+  <small className="ed-help">Výběr nového souboru automaticky spustí nahrání, propojení a validaci. Alt text se případně doplní z názvu knihy. U dříve nahraného obrázku potvrď výběr. Při chybě soubor znovu nenahrávej.</small>
  </div>;
 }

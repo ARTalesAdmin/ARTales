@@ -1,6 +1,7 @@
 "use client"
 
 import { useRef, useState } from "react"
+import { persistAuthorPortrait } from "@/lib/actions/authors"
 import { createClient as createBrowserSupabaseClient } from "@/lib/supabase/client"
 import StorageImageDisplay from "@/components/media/StorageImageDisplay"
 import {
@@ -16,6 +17,7 @@ type EditorialImageKind = "author-portrait" | "collection-cover"
 
 type EditorialImageUploadFieldProps = {
   kind: EditorialImageKind
+  authorId?: string
   title: string
   slugInputId: string
   titleInputId: string
@@ -79,6 +81,7 @@ function buildStoragePath({
 
 export default function EditorialImageUploadField({
   kind,
+  authorId,
   title,
   slugInputId,
   titleInputId,
@@ -178,9 +181,17 @@ export default function EditorialImageUploadField({
         await removeUnsavedUpload(previousPath)
       }
 
+      const accessibleAlt=altText.trim()||`${defaultAltPrefix} ${rawTitle || rawSlug}`.trim()
       setImagePath(storagePath)
-      setAltText((current) => current.trim() || `${defaultAltPrefix} ${rawTitle || rawSlug}`.trim())
-      setMessage("Obrázek byl nahrán. Ulož záznam, aby se změna propsala do databáze.")
+      setAltText(accessibleAlt)
+      if(kind==="author-portrait"&&authorId){
+        setMessage("Nahráno. Propojuji portrét s autorem a ověřuji úkol…")
+        const saved=await persistAuthorPortrait({authorId,path:storagePath,alt:accessibleAlt,caption})
+        if(saved.ok){
+          uploadedPathsRef.current.delete(storagePath)
+          setMessage(saved.message)
+        }else setError(saved.message+" Obrázek zůstává nahraný; neprováděj další upload.")
+      }else setMessage("Obrázek byl nahrán. Ulož záznam, aby se změna propsala do databáze.")
 
       if (inputRef.current) {
         inputRef.current.value = ""
