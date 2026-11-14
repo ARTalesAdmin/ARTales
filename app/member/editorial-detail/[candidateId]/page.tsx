@@ -34,7 +34,7 @@ function entryStatus(complete:boolean){
  </span>;
 }
 export default async function CandidateEditorialDetail({params,searchParams}:{
- params:Promise<{candidateId:string}>;searchParams:Promise<{error?:string;saved?:string;closed?:string;closeout?:string;waiting?:string;assigned?:string;composed?:string;createdAuthorId?:string;createdCollectionId?:string}>
+ params:Promise<{candidateId:string}>;searchParams:Promise<{error?:string;saved?:string;closed?:string;closeout?:string;waiting?:string;authorReused?:string;assigned?:string;composed?:string;createdAuthorId?:string;createdCollectionId?:string}>
 }){
  if(!SEMANTIC_PIPELINE_ENABLED)notFound();
  const {candidateId}=await params;
@@ -126,6 +126,9 @@ export default async function CandidateEditorialDetail({params,searchParams}:{
  const errors:Record<string,string>={
   save_failed:"Uložení se nezdařilo. Zkontroluj oprávnění a aktuální stav.",
   author_name_mismatch:"Vybraný autor neodpovídá autorovi podle námětu. Zkontroluj identitu autora.",
+  author_link_failed:"Profil autora existuje, ale nepodařilo se ho propojit s dílem. Vyber předvybraného autora v seznamu a potvrď uložení; nevytvářej nový profil.",
+  author_identity_check_failed:"Existující autory nelze spolehlivě ověřit; nový profil proto nebyl vytvořen.",
+  author_identity_ambiguous:"Nalezeno více odpovídajících autorů. Propojení vyžaduje ověření identity.",
   bilingual_description_required:"Vyplň českou i anglickou anotaci (každou 200–800 znaků).",
   bilingual_required:"Původní jednojazyčné uložení není povolené.",
   select_record:"Vyber existující záznam.",unknown_author:"Autor neexistuje.",
@@ -225,6 +228,7 @@ export default async function CandidateEditorialDetail({params,searchParams}:{
   {err.error?<div className="ed-notice ed-notice--error" role="alert">{errors[err.error]??"Uložení se nezdařilo."}</div>:null}
   {err.composed?<div className="ed-notice" role="status">✓ Archiv byl ověřen, sémantické bloky byly uloženy a redakční úkoly jsou připravené. Z této karty můžeš přiřadit práci nebo otevřít textové QA.</div>:null}
   {err.assigned?<div className="ed-notice" role="status">✓ Přiřazení úkolu bylo uloženo a zaznamenáno do auditu.</div>:null}
+  {err.authorReused?<div className="ed-notice" role="status">Existující autor je propojený; nové údaje z formuláře nebyly použity k přepsání jeho profilu.</div>:null}
   {err.saved?<div className="ed-notice" role="status">✓ Údaje byly uloženy: {labels[err.saved]??err.saved}.
    {err.closed==="1"?" Odpovídající úkol byl zároveň uzavřen.":""}</div>:null}
   {err.waiting==="author_visual"?<div className="ed-notice" role="status">
@@ -354,8 +358,9 @@ export default async function CandidateEditorialDetail({params,searchParams}:{
       </form>:<p className="ed-quiet">Změny může ukládat pověřený editor tohoto úkolu.</p>}
       <div className="ed-inline-links">
        {author?<Link className="ed-inline-link" href={"/member/authors/"+author.slug+"/edit"}>Upravit existující profil autora ↗</Link>:
-       <Link className="ed-inline-link" href={"/member/authors/new?returnTo="+encodeURIComponent("/member/editorial-detail/"+candidateId)}>
-        + Založit chybějícího autora</Link>}
+       canEditAuthor?<Link className="ed-inline-link" href={"/member/authors/new?returnTo="+encodeURIComponent("/member/editorial-detail/"+candidateId)}>
+        + Založit a propojit chybějícího autora</Link>:
+       <p className="ed-quiet">Nového autora může založit editor převzatého autorského úkolu.</p>}
       </div>
       <div className="ed-related">
        <div className="ed-related__item">

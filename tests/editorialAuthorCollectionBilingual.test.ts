@@ -23,9 +23,9 @@ test("new authors need independent bounded Czech and English biographies",()=>{
  assert.equal(validateAuthorFormValues(values,true),"bilingual_description_required");
  // Existing authors remain editable without retroactive invalidation.
  assert.equal(validateAuthorFormValues(values),null);
- assert.match(authorAction,/validateAuthorFormValues\(values,true\)/);
+ assert.match(authorAction,/validateAuthorFormValues\(values,!candidateId\)/);
  assert.match(authorNew,/BilingualProfileText/);
- assert.match(authorNew,/required=\{true\}/);
+ assert.match(authorNew,/required=\{!candidateId\}/);
 });
 test("new collections need independent bounded localized descriptions",()=>{
  const values=getDefaultCollectionFormValues();
@@ -70,4 +70,17 @@ test("bio and portrait have independent task readiness, while PostgreSQL remains
  assert.match(save,/artales_complete_editorial_task/);
  assert.match(candidate,/err\.waiting==="author_visual"/);
  assert.match(read("lib/actions/authors.ts"),/readyAuthorTaskKinds\(values\)/);
+});
+
+
+test("author profile may start as an internal draft only in verified editorial context",()=>{
+ const values=getDefaultAuthorFormValues();
+ values.name_en="Johann Wolfgang von Goethe";values.slug="johann-wolfgang-von-goethe";
+ assert.equal(validateAuthorFormValues(values),null);
+ assert.equal(validateAuthorFormValues(values,true),"bilingual_description_required");
+ assert.match(authorAction,/candidateIdFromAuthorReturnTo/);
+ assert.match(authorAction,/artales_save_candidate_editorial_field/);
+ assert.match(authorAction,/linkedId!==authorId/);
+ assert.match(authorNew,/required=\{!candidateId\}/);
+ assert.match(authorNew,/disabled=\{Boolean\(candidateId\)\}/);
 });

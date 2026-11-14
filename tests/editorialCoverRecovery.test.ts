@@ -33,3 +33,12 @@ test("cover upload and candidate link are a single editor confirmation with dura
  assert.match(field,/Nahrát a dokončit obálku/);
  assert.match(field,/setPendingFile\(null\);if\(input\.current\)input\.current\.value=""/);
 });
+
+
+test("orphaned cover is automatically discoverable and exact linkage read back",()=>{
+ assert.match(field,/useEffect\(\(\)=>\{/);
+ assert.match(field,/if\(!initialPath\)void recover\(\)/);
+ assert.match(field,/V úložišti jsou obrázky, ale k dílu není přiřazená žádná obálka/);
+ assert.match(actions,/stored\?\.cover_image_path!==input.path/);
+ assert.match(actions,/readbackError/);
+});

@@ -5,6 +5,9 @@ import EditorialImageUploadField from "@/components/media/EditorialImageUploadFi
 import { requireEditorOrAdmin } from "@/lib/guards"
 import { createAuthor } from "@/lib/actions/authors"
 import { getDefaultAuthorFormValues } from "@/lib/forms/authorForm"
+import {candidateIdFromAuthorReturnTo,safeAuthorReturnTo} from "@/lib/editorial/candidateAuthorCreation"
+import {createClient} from "@/lib/supabase/server"
+import {notFound} from "next/navigation"
 
 type PageProps = {
   searchParams: Promise<{ error?: string; returnTo?: string }>
@@ -38,12 +41,21 @@ function getErrorMessage(error?: string) {
 export default async function NewAuthorPage({ searchParams }: PageProps) {
   await requireEditorOrAdmin()
 
-  const defaults = getDefaultAuthorFormValues()
   const { error, returnTo } = await searchParams
-  const errorMessage = getErrorMessage(error)
-  const languageOptions = getLanguageOptions("internal")
-
-  const cancelHref = returnTo && returnTo.startsWith("/") ? returnTo : "/member"
+  const safeReturnTo=safeAuthorReturnTo(returnTo)
+  const candidateId=candidateIdFromAuthorReturnTo(safeReturnTo)
+  let proposedName:string|null=null
+  if(candidateId){
+    const db=await createClient()
+    const {data:candidate,error:readError}=await db.from("work_candidates")
+      .select("proposed_author_name").eq("id",candidateId).maybeSingle()
+    if(readError||!candidate)notFound()
+    proposedName=candidate.proposed_author_name
+  }
+  const defaults={...getDefaultAuthorFormValues(),name_en:proposedName??""}
+  const errorMessage=getErrorMessage(error)
+  const languageOptions=getLanguageOptions("internal")
+  const cancelHref=safeReturnTo??"/member"
 
   return (
     <main
@@ -84,8 +96,9 @@ export default async function NewAuthorPage({ searchParams }: PageProps) {
         </h1>
 
         <p style={{ maxWidth: "720px", marginBottom: "18px" }}>
-          Založ nového autora do databáze ARTales. Pokud už autor v systému
-          existuje, nezakládej duplicitní záznam a použij existujícího.
+          {candidateId
+            ?"Založ interní pracovní profil autora. Životopis i portrét mohou být doplněny a ověřeny samostatně; profil se propojí s tímto dílem."
+            :"Založ nového autora do databáze ARTales. Pokud už autor v systému existuje, nezakládej duplicitní záznam a použij existujícího."}
         </p>
       </section>
 
@@ -104,7 +117,7 @@ export default async function NewAuthorPage({ searchParams }: PageProps) {
       ) : null}
 
       <form action={createAuthor} style={{ display: "grid", gap: "22px" }}>
-        <input type="hidden" name="returnTo" value={returnTo ?? ""} />
+        <input type="hidden" name="returnTo" value={safeReturnTo??""} />
 
         <section
           style={{
@@ -226,7 +239,7 @@ export default async function NewAuthorPage({ searchParams }: PageProps) {
 
           <BilingualProfileText field="bio" label="Biografie autora"
            initialCs={defaults.bio_cs} initialEn={defaults.bio_en}
-           required={true} />
+           required={!candidateId} />
 
         </section>
 
@@ -418,6 +431,7 @@ export default async function NewAuthorPage({ searchParams }: PageProps) {
               name="is_public_visible"
               type="checkbox"
               defaultChecked={defaults.is_public_visible}
+              disabled={Boolean(candidateId)}
             />
             <span>Autor je veřejně viditelný</span>
           </label>
@@ -439,7 +453,7 @@ export default async function NewAuthorPage({ searchParams }: PageProps) {
               fontWeight: 600,
             }}
           >
-            Uložit autora
+            {candidateId?"Založit a propojit autora":"Uložit autora"}
           </button>
 
           <Link

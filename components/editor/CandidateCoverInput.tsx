@@ -1,5 +1,5 @@
 "use client";
-import {useRef,useState} from "react";
+import {useCallback,useEffect,useRef,useState} from "react";
 import {useRouter} from "next/navigation";
 import {createClient} from "@/lib/supabase/client";
 import {saveCandidateCover,listCandidateCoverUploads} from "@/app/member/editorial-detail/[candidateId]/actions";
@@ -30,7 +30,7 @@ export default function CandidateCoverInput({candidateId,initialPath="",initialA
   setProblem(false);
   setMessage("Obrázek připraven. Doplň popis a potvrď uložení.");
  };
- const recover=async()=>{
+ const recover=useCallback(async()=>{
   setLoadingExisting(true);setProblem(false);setMessage("");
   try{
    const data=await listCandidateCoverUploads(candidateId);
@@ -38,7 +38,10 @@ export default function CandidateCoverInput({candidateId,initialPath="",initialA
    setProblem(!data.ok);setMessage(data.message);
   }catch{setProblem(true);setMessage("Předchozí soubory se nepodařilo načíst.");}
   finally{setLoadingExisting(false);}
- };
+ },[candidateId]);
+ useEffect(()=>{
+  if(!initialPath)void recover();
+ },[initialPath,recover]);
  const save=async()=>{
   if(busy||(!path&&!pendingFile)||alt.trim().length<8)return;
   setBusy(true);setProblem(false);setMessage("Nahrávám a propojuji obálku s dílem…");
@@ -74,7 +77,8 @@ export default function CandidateCoverInput({candidateId,initialPath="",initialA
    {loadingExisting?"Hledám nahrané soubory…":"Použít již nahranou obálku"}
   </button>
   {existing.length>0?<div className="ed-filebox__existing" aria-label="Nahrané obálky">
-    <p>Vyber správný obrázek, není třeba ho nahrávat znovu:</p>
+    {!initialPath?<p role="status">V úložišti jsou obrázky, ale k dílu není přiřazená žádná obálka. Vyber správný obrázek a potvrď jeho uložení.</p>:
+    <p>Vyber správný obrázek, není třeba ho nahrávat znovu:</p>}
     {existing.map(p=><label key={p} style={{display:"block",marginBottom:8}}>
       <input type="radio" name="existingCoverPath" checked={path===p}
        onChange={()=>{setPath(p);setPendingFile(null);if(input.current)input.current.value="";setProblem(false);setMessage("Vybrána dříve nahraná obálka.");}}/>

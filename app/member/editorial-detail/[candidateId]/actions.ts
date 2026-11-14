@@ -114,6 +114,11 @@ export async function saveCandidateCover(input:{
    code==="cover_required"?"Cesta k obrázku nebo jeho popis nesplňuje pravidla.":
    "Obálka se nepodařila propojit s dílem ("+code+"). Soubor zůstává nahraný."};
  }
+ const {data:stored,error:readbackError}=await db.from("artales_candidate_editorial_metadata")
+  .select("cover_image_path,cover_image_alt").eq("candidate_id",id).maybeSingle();
+ if(readbackError||stored?.cover_image_path!==input.path||
+    stored?.cover_image_alt?.trim()!==input.alt.trim())
+  return {...back,message:"Soubor je nahraný, ale propojení s dílem nelze ověřit. Soubor znovu nenahrávej; zkus uložit stejný obrázek."};
  const {data:owned,error:lookupError}=await db.from("artales_editorial_tasks")
   .select("id").eq("candidate_id",id).eq("kind","cover_art")
   .eq("assigned_to",actor.id).eq("status","claimed");
