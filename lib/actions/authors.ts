@@ -92,7 +92,10 @@ export async function createAuthor(formData: FormData): Promise<void> {
       redirect(withReturnTo("/member/authors/new?error=save_failed",returnTo??undefined))
     }
     authorId=String(data.id)
-    if(!candidateId)redirect("/member/authors/"+payload.slug+"/edit?success=author_created")
+    if(!candidateId){
+      if(returnTo)redirect(appendCreatedAuthorId(returnTo,authorId))
+      redirect("/member/authors/"+payload.slug+"/edit?success=author_created")
+    }
   }
 
   if(!candidateId)return
