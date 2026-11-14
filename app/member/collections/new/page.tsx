@@ -38,12 +38,12 @@ export default async function NewCollectionPage({ searchParams }: PageProps) {
       <h1 style={{ fontSize: "40px", lineHeight: 1.1, marginTop: 0, marginBottom: "12px" }}>Nová kolekce</h1>
       <p style={{ maxWidth: "760px", marginBottom: "20px" }}>Kolekce jsou kurátorské literární galerie. Veřejně se zobrazují podle lokalizace, ale interně drží plnou bilingvní strukturu.</p>
       {errorMessage ? <p style={{ marginBottom: "18px", padding: "12px 14px", border: "1px solid #d99", background: "#fff7f7" }}>{errorMessage}</p> : null}
-      <CollectionForm defaults={defaults} action={createCollection} submitLabel="Vytvořit kolekci" returnTo={safeReturnTo??""} />
+      <CollectionForm defaults={defaults} action={createCollection} submitLabel="Vytvořit kolekci" returnTo={safeReturnTo??""} showAdvanced={editor.role==="admin"} />
     </main>
   )
 }
 
-function CollectionForm({ defaults, action, submitLabel,returnTo }: any) {
+function CollectionForm({ defaults, action, submitLabel,returnTo,showAdvanced }: any) {
   return (
     <form action={action} style={{ display: "grid", gap: "22px" }}>
       <input type="hidden" name="returnTo" value={returnTo??""} />
@@ -85,7 +85,7 @@ function CollectionForm({ defaults, action, submitLabel,returnTo }: any) {
 
         <EditorialImageUploadField
           kind="collection-cover"
-          showAdvanced={editor.role==="admin"}
+          showAdvanced={showAdvanced}
           title={defaults.title_cs || defaults.title_en || "ARTales kolekce"}
           slugInputId="slug"
           titleInputId="title_cs"
