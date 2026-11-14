@@ -45,7 +45,7 @@ export async function prepareQaPresentationBatch(input:QaBatchInput,db:SupabaseC
    if(repair.action==="exclude_note"){
     // Human-confirmed, exact QA source atom; source bytes are never edited.
     // No AI exclusion is accepted by this path.
-    if(!["structure","other","text"].includes(flag.kind)||atom.raw.trim().length<2)
+    if(!["text","typography","structure","other"].includes(flag.kind)||atom.raw.trim().length<2)
      throw Error("Vyber existující označený textový blok.");
     return {flagId:flag.id,atomId:atom.id,reason:flag.comment,
      kind:"exclude_from_edition" as const};

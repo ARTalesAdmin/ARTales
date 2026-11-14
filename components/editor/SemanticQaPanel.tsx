@@ -44,6 +44,10 @@ export default function SemanticQaPanel(p:Props){
   (!findingQuery.trim()||(`${f.comment} ${f.kind}`).toLocaleLowerCase("cs").includes(findingQuery.trim().toLocaleLowerCase("cs"))));
  const options=useMemo(()=>open.map(f=>({flag:f,action:repairs[f.id]??""})),[open,repairs]);
  const ready=options.filter(x=>x.action);
+ const exclusions=ready.filter(x=>x.action==="exclude_note");
+ const exclusionBatchInvalid=exclusions.length>0&&
+  (ready.length!==open.length||ready.length!==exclusions.length||
+   new Set(exclusions.map(x=>x.flag.target_atom_id)).size!==exclusions.length);
  const submit=(atomId:string,entryKind:string,entryComment:string)=>{
   if(pending)return;
   startTransition(async()=>{
@@ -161,6 +165,7 @@ export default function SemanticQaPanel(p:Props){
   });
  };
  const preview=()=>{
+  if(exclusions.length){setFeedback("Vyřazení se projeví až v nové revizi. Originál zůstane zachován.");return;}
   startTransition(async()=>{
    const result=await previewSemanticQaBatch({
     candidateId:p.candidateId,revisionSha:p.revisionSha,
@@ -171,6 +176,10 @@ export default function SemanticQaPanel(p:Props){
   });
  };
  const batch=()=>{
+  if(exclusionBatchInvalid){
+   setFeedback("Pro vyřazení vyber všechny zbývající otevřené nálezy různých bloků a bez sazebních oprav.");
+   return;
+  }
   startTransition(async()=>{
    const result=await commitSemanticQaBatch({
     candidateId:p.candidateId,revisionSha:p.revisionSha,
@@ -206,26 +215,34 @@ export default function SemanticQaPanel(p:Props){
    {selected.length>0?<ul className="semantic-qa-panel__selected-findings">
     {selected.slice(-3).map(f=><li key={f.id}>{f.comment.slice(0,120)}</li>)}
    </ul>:null}
-   {selected.some(f=>f.status==="open"&&["other","structure","text"].includes(f.kind))
-    &&open.length===1&&p.canCommitBatch&&!p.readonly?
+   {selected.some(f=>f.status==="open"&&["text","typography","structure","other"].includes(f.kind))
+    &&p.canCommitBatch&&!p.readonly?
     <button type="button" disabled={pending||!p.databaseReady}
-     onClick={()=>excludeBlock(selected.find(f=>f.status==="open"&&
-      ["other","structure","text"].includes(f.kind))!.id)}>
-     Vyřadit označený blok z vydání
+     onClick={()=>{
+      const flag=selected.find(f=>f.status==="open"&&
+       ["text","typography","structure","other"].includes(f.kind));
+      if(!flag)return;
+      if(open.length===1)excludeBlock(flag.id);
+      else{
+       setRepairs(previous=>({...previous,[flag.id]:"exclude_note"}));
+       setFeedback("Blok je označen k vyřazení. Označ další a ulož společnou revizi.");
+      }
+     }}>
+     {open.length===1?"Vyřadit tento blok z edice":"Označit tento blok k vyřazení"}
     </button>:null}
   </div>:null}
   {p.selectedAtomId&&p.databaseReady&&!p.readonly?
    <form onSubmit={e=>{e.preventDefault();submit(p.selectedAtomId!,kind,comment);}}
     className="semantic-qa-panel__form">
     <h3>{selected.length>0?"Přidat další poznámku":"Přidat nález"}</h3>
-    <label>Co je špatně?<textarea value={comment} minLength={15} maxLength={4000}
+    <label>Co je špatně?<textarea value={comment} minLength={3} maxLength={4000}
      rows={3} onChange={e=>setComment(e.target.value)}
      placeholder="Např. Jméno je rozdělené mezi dva řádky."/>
     </label>
     <label>Typ problému<select value={kind} onChange={e=>setKind(e.target.value)}>
      {kinds.map(k=><option key={k.value} value={k.value}>{k.label}</option>)}
     </select></label>
-    <button type="submit" disabled={pending||comment.trim().length<15}>
+    <button type="submit" disabled={pending||comment.trim().length<3}>
      Přidat nález</button>
    </form>:null}
   <section className="semantic-qa-panel__batch semantic-qa-panel__ai">
@@ -303,7 +320,7 @@ export default function SemanticQaPanel(p:Props){
        <details className="semantic-qa-panel__flag-tools">
         <summary>Upravit jednotlivý nález</summary>
         <div className="semantic-qa-panel__form">
-         {["typography","structure","other"].includes(f.kind)?<label>Ruční návrh sazby
+         {["text","typography","structure","other"].includes(f.kind)?<label>Redakční zásah
           <select value={repairs[f.id]??""}
            onChange={e=>setRepairs(v=>({...v,[f.id]:e.target.value as EditorialBatchAction|""}))}>
            <option value="">Ponechat AI</option>
@@ -312,7 +329,7 @@ export default function SemanticQaPanel(p:Props){
             <option value="airy">Zvětšit mezery</option>
             <option value="center">Zarovnat na střed</option>
            </>:null}
-           {f.kind==="structure"||f.kind==="other"?<option value="exclude_note">Vyřadit blok z vydání</option>:null}
+           <option value="exclude_note">Vyřadit celý blok z edice ARTales</option>
           </select>
          </label>:null}
          <label>Uzavřít bez opravy — zdůvodnění
@@ -326,20 +343,24 @@ export default function SemanticQaPanel(p:Props){
      </article>)}
    </div>
   </details>
-  {ready.length>0&&!aiSuggestions.length?<section className="semantic-qa-panel__batch">
+  {ready.length>0?<section className="semantic-qa-panel__batch">
    <p>Bezpečný okamžitý náhled změn formátování lze vykreslit ještě před uložením.
       Text, pořadí ani zdrojové kotvy se nemění.</p>
-   <button type="button" disabled={pending||!p.databaseReady} onClick={preview}>
+   <button type="button" disabled={pending||!p.databaseReady||exclusions.length>0} onClick={preview}>
     Zobrazit opravenou sazbu bez uložení
    </button>
    {p.canCommitBatch?<>
-   <p>Vybráno {ready.length} oprav. Uloží se najednou jako jediná neměnná revize,
-    vznikne právě jeden nový textový QA úkol pro stejného editora.</p>
-   <button type="button" disabled={pending||!p.databaseReady} onClick={batch}>
-    Provést {ready.length} oprav a vytvořit novou revizi
+   <p>Vybráno {ready.length} oprav. Vyřazení skryje celý blok jen v edici ARTales;
+    archivovaný originál se nemění. Rozhodnutí redaktora v QA je konečné
+    schválení vyřazení; nová revize pokračuje u stejného editora.</p>
+   {exclusionBatchInvalid?<p role="status">Vyřazení lze uložit jako jednu dávku
+    pouze pro všechny zbývající otevřené nálezy různých bloků. Ostatní nálezy
+    nejprve samostatně vyřeš.</p>:null}
+   <button type="button" disabled={pending||!p.databaseReady||exclusionBatchInvalid} onClick={batch}>
+    {exclusions.length?"Vyřadit "+exclusions.length+" bloků":"Provést "+ready.length+" oprav"} a vytvořit novou revizi
    </button></>:null}
   </section>:null}
-  {!p.canCommitBatch&&ready.length>0&&!aiSuggestions.length?<p>Opravu lze uložit pouze vlastníkovi právě převzatého QA úkolu;
+  {!p.canCommitBatch&&ready.length>0?<p>Opravu lze uložit pouze vlastníkovi právě převzatého QA úkolu;
     případně požádej garanta o přiřazení práce.</p>:null}
   <p role="status" aria-live="polite">{feedback}</p>
   <small>Semantické změny, které nelze provést bezpečným pravidlem,

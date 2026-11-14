@@ -18,8 +18,8 @@ export async function submitSemanticQaFlag(input:{
  const actor=await requireEditorOrAdmin();
  if(!uuid.test(input.candidateId)||!sha.test(input.revisionSha)||
    !kinds.has(input.kind)||input.atomId.length>160||
-   input.comment.trim().length<15||input.comment.trim().length>4000)
-  return {ok:false,message:"Neplatná kotva, druh nebo délka komentáře."};
+   input.comment.trim().length<3||input.comment.trim().length>4000)
+  return {ok:false,message:"Nález vyžaduje nejméně 3 a nejvýše 4000 znaků."};
  const db=await createClient();
  const {data,error}=await db.from("candidate_semantic_revisions")
   .select("revision,revision_sha256,source_text").eq("candidate_id",input.candidateId)

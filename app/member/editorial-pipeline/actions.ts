@@ -54,13 +54,15 @@ export async function publishSemanticCandidate(form:FormData){
    .select("work_description_en").eq("candidate_id",id).maybeSingle();
  const summary=metadata?.work_description_en??"";
  if(metadataError||!metadata)redirect("/member/editorial-detail/"+id+"?error=release_blocked");
- const reason=String(form.get("reason")??"");
+ const reason=String(form.get("reason")??"").trim();
+  // An optional note still leaves a durable audited approval receipt.
+  const auditReason=reason||"Vydání díla schválil administrátor ARTales bez doplňující poznámky.";
  if(!uuid.test(id)||!/^[a-f0-9]{64}$/.test(revision)||
     !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(slug)||summary.trim().length<200||
-    summary.trim().length>800||reason.trim().length<30||reason.trim().length>4000)redirect("/member/editorial-detail/"+id+"?error=invalid_release");
+    summary.trim().length>800||reason.length>4000)redirect("/member/editorial-detail/"+id+"?error=invalid_release");
  const {data,error}=await db.rpc("artales_publish_semantic_candidate",{
   p_candidate_id:id,p_revision_sha256:revision,p_work_slug:slug,
-  p_summary:summary,p_reason:reason
+  p_summary:summary,p_reason:auditReason
  });
  if(error||data?.result!=="published")redirect("/member/editorial-detail/"+id+"?error=release_blocked");
  revalidatePath("/gallery");revalidatePath("/member/editorial-pipeline");
