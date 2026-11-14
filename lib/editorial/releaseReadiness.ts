@@ -54,8 +54,11 @@ export function assessEditorialRelease(input:ReleaseReadinessInput){
   blockers.push("Dokončená obálka nemá platný soubor nebo popis.");
  if(!metadata?.authorId||!input.author||!completeBilingual(input.author.bioCs,input.author.bioEn))
   blockers.push("Profil autora není kompletní v obou jazycích.");
- if(task("author_visual")?.status==="completed"&&(!input.author?.portraitPath||(input.author.portraitAlt??"").trim().length<8))
-  blockers.push("Dokončený vizuál autora nemá platný portrét nebo popis.");
+ // The publication transaction always requires an actual author portrait,
+ // even when initial composition deliberately omitted the visual-author task.
+ // UI readiness is advisory; Storage existence is verified again by PostgreSQL.
+ if(!input.author?.portraitPath||(input.author.portraitAlt??"").trim().length<8)
+  blockers.push("Chybí portrét autora nebo jeho platný alternativní popis.");
  if(!metadata?.collectionId||!input.collection||
     !completeBilingual(input.collection.descriptionCs,input.collection.descriptionEn))
   blockers.push("Kolekce nemá kompletní dvojjazyčný popis.");
