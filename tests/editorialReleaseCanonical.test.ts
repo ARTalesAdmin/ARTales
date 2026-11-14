@@ -93,3 +93,17 @@ test("source-only author-release contract agrees with producer and protects task
  assert.match(draft,/INSERT INTO public\.artales_semantic_publications/);
  assert.doesNotMatch(draft,/UPDATE public\.authors|DELETE FROM public\.authors/);
 });
+
+test("release readiness requires a real author portrait even when visual task was deliberately omitted",()=>{
+ const x=base();
+ x.tasks=x.tasks.filter(t=>t.kind!=="author_visual"&&t.kind!=="author_bio");
+ x.author={bioCs:"a".repeat(240),bioEn:"b".repeat(240),portraitPath:null,portraitAlt:null};
+ const res=assessEditorialRelease(x);
+ assert.equal(res.ready,false);
+ assert.match(res.blockers.join(" "),/portrét autora/i);
+ x.author.portraitPath="authors/existing/portrait.jpg";
+ x.author.portraitAlt="Portrait of the author";
+ assert.equal(assessEditorialRelease(x).ready,true);
+ const source=file("lib/editorial/releaseReadiness.ts");
+ assert.match(source,/if\(!input\.author\?\.portraitPath/);
+});
