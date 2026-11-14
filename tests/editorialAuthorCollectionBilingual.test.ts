@@ -4,6 +4,7 @@ import {readFileSync} from "node:fs";
 import {validateAuthorFormValues,getDefaultAuthorFormValues} from "../lib/forms/authorForm";
 import {validateCollectionFormValues,getDefaultCollectionFormValues} from "../lib/forms/collectionForm";
 const read=(p:string)=>readFileSync(new URL("../"+p,import.meta.url),"utf8");
+import {readyAuthorTaskKinds} from "../lib/editorial/authorTaskEvidence";
 const authorAction=read("lib/actions/authors.ts");
 const collectionAction=read("lib/actions/collections.ts");
 const authorNew=read("app/member/authors/new/page.tsx");
@@ -45,7 +46,7 @@ test("candidate tasks require stored CS/EN evidence, never one fallback",()=>{
  assert.match(gate,/a\.bio_cs/);
  assert.match(gate,/a\.bio_en/);
  assert.match(gate,/BETWEEN 200 AND 800/);
- assert.match(candidate,/\[author\?\.bio_en,author\?\.bio_cs\]\.every/);
+ assert.match(candidate,/readyAuthorTaskKinds\(author\?\?\{\}\)/);
  assert.doesNotMatch(gate,/UPDATE public\.authors|UPDATE public\.collections/);
 });
 test("new collection roundtrips to exact candidate editor without requiring QA",()=>{
@@ -55,4 +56,18 @@ test("new collection roundtrips to exact candidate editor without requiring QA",
  assert.match(candidate,/err\.createdCollectionId/);
  assert.match(candidate,/\/member\/collections\/new\?returnTo=/);
  assert.match(candidate,/recommendedCollectionId/);
+});
+
+test("bio and portrait have independent task readiness, while PostgreSQL remains authoritative",()=>{
+ const bio={bio_cs:"A".repeat(200),bio_en:"B".repeat(800),portrait_image_path:null,portrait_image_alt:null};
+ assert.deepEqual(readyAuthorTaskKinds(bio),["author_bio"]);
+ assert.deepEqual(readyAuthorTaskKinds({...bio,bio_en:"B".repeat(199)}),[]);
+ assert.deepEqual(readyAuthorTaskKinds({...bio,portrait_image_path:"authors/joseph/portrait/image.png",portrait_image_alt:"Portrait"}),["author_bio","author_visual"]);
+ assert.deepEqual(readyAuthorTaskKinds({...bio,bio_cs:"",portrait_image_path:"authors/joseph/portrait/image.png",portrait_image_alt:"Portrait"}),["author_visual"]);
+ const save=read("app/member/editorial-detail/[candidateId]/actions.ts");
+ assert.match(save,/linked\.author_id!==value/);
+ assert.match(save,/if\(!readyKinds\.has\(task\.kind\)\)continue/);
+ assert.match(save,/artales_complete_editorial_task/);
+ assert.match(candidate,/err\.waiting==="author_visual"/);
+ assert.match(read("lib/actions/authors.ts"),/readyAuthorTaskKinds\(values\)/);
 });

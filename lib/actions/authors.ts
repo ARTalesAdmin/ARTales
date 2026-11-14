@@ -10,6 +10,7 @@ import {
   parseAuthorFormData,
   validateAuthorFormValues,
 } from "@/lib/forms/authorForm"
+import {readyAuthorTaskKinds} from "@/lib/editorial/authorTaskEvidence"
 
 function withReturnTo(basePath: string, returnTo?: string) {
   if (!returnTo || !returnTo.startsWith("/")) {
@@ -103,13 +104,7 @@ export async function updateAuthor(
   // A save of a valid bilingual biography or portrait is the editorial action.
   // The owner-bound completion RPC independently checks durable evidence.
   // Non-eligible edits remain allowed without closing anybody else's task.
-  const kinds: string[] = []
-  const bioReady = [values.bio_cs, values.bio_en].every(
-    value => value.trim().length >= 200 && value.trim().length <= 800
-  )
-  if (bioReady) kinds.push("author_bio")
-  if (values.portrait_image_path && values.portrait_image_alt.trim().length >= 8)
-    kinds.push("author_visual")
+  const kinds=readyAuthorTaskKinds(values)
   let closeoutFailed = false
   if (kinds.length > 0) {
     const {data: candidates, error: linkedError} = await supabase
