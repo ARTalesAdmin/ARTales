@@ -13,6 +13,7 @@ import {
 import {readyAuthorTaskKinds} from "@/lib/editorial/authorTaskEvidence"
 import {candidateIdFromAuthorReturnTo,safeAuthorReturnTo,newAuthorMatchesCandidateName} from "@/lib/editorial/candidateAuthorCreation"
 import {matchesExistingAuthor} from "@/lib/editorial/existingAuthorMatch"
+import {ARTALES_IMAGES_BUCKET} from "@/lib/storageImages"
 
 function withReturnTo(basePath: string, returnTo?: string) {
   const safeReturnTo=safeAuthorReturnTo(returnTo)
@@ -144,6 +145,64 @@ export async function createAuthor(formData: FormData): Promise<void> {
   if(failed)q.set("closeout","pending")
   if(reusedExisting)q.set("authorReused","1")
   redirect("/member/editorial-detail/"+candidateId+"?"+q.toString()+"#author")
+}
+
+
+/** Persist an existing author's portrait immediately after its upload.
+ * Completion is limited to this editor's currently claimed author_visual tasks.
+ */
+export async function persistAuthorPortrait(input:{
+ authorId:string;path:string;alt:string;caption:string;
+}):Promise<{ok:boolean;closed:number;message:string}>{
+ const actor=await requireEditorOrAdmin();
+ const fail=(message:string)=>({ok:false,closed:0,message});
+ if(!/^[a-f0-9-]{36}$/i.test(input.authorId)||
+    input.alt.trim().length<8||input.alt.trim().length>350||
+    input.caption.trim().length>500)
+  return fail("Neplatný autor nebo alternativní text portrétu.");
+ const db=await createClient();
+ const {data:author,error:authorError}=await db.from("authors")
+  .select("id,slug").eq("id",input.authorId).maybeSingle();
+ if(authorError||!author)return fail("Profil autora nebyl nalezen.");
+ const folder="authors/"+author.slug+"/portrait";
+ if(!input.path.startsWith(folder+"/")||
+    !/^portrait-[a-zA-Z0-9_.-]+[.](png|jpg|webp)$/.test(input.path.slice(folder.length+1)))
+  return fail("Cesta portrétu neodpovídá profilu autora.");
+ const fileName=input.path.slice(folder.length+1);
+ const {data:files,error:storageError}=await db.storage.from(ARTALES_IMAGES_BUCKET)
+  .list(folder,{limit:100});
+ if(storageError||!(files??[]).some(file=>file.name===fileName))
+  return fail("Nahraný portrét není ověřitelný v úložišti.");
+ const {data:saved,error:saveError}=await db.from("authors")
+  .update({portrait_image_path:input.path,portrait_image_alt:input.alt.trim(),
+   portrait_image_caption:input.caption.trim()||null,updated_by:actor.id})
+  .eq("id",author.id).select("id,portrait_image_path,portrait_image_alt").maybeSingle();
+ if(saveError||saved?.portrait_image_path!==input.path||
+    saved?.portrait_image_alt!==input.alt.trim())
+  return fail("Portrét je nahraný, ale uložení profilu se nepodařilo ověřit.");
+ const {data:candidates,error:linkError}=await db.from("artales_candidate_editorial_metadata")
+  .select("candidate_id").eq("author_id",author.id);
+ if(linkError)return fail("Portrét byl uložen, ale propojení s redakčními úkoly nešlo načíst.");
+ let closed=0,failed=0;
+ if(candidates?.length){
+  const {data:tasks,error:tasksError}=await db.from("artales_editorial_tasks")
+    .select("id,candidate_id").in("candidate_id",candidates.map(c=>c.candidate_id))
+    .eq("kind","author_visual").eq("assigned_to",actor.id).eq("status","claimed");
+  if(tasksError)failed++;
+  else for(const task of tasks??[]){
+    const {data:finished,error:finishError}=await db.rpc("artales_complete_editorial_task",{
+     p_task_id:task.id,p_note:"Portrét autora automaticky uložen po uploadu; ověřeno databázovou evidencí."
+    });
+    if(finishError||finished?.result!=="completed")failed++;
+    else{closed++;revalidatePath("/member/editorial-detail/"+task.candidate_id);}
+  }
+ }
+ revalidatePath("/member/authors/"+author.slug+"/edit");
+ revalidatePath("/member/editorial-pipeline");
+ revalidatePath("/member","layout");
+ return {ok:failed===0,closed,message:failed
+  ?"Portrét je propojen s autorem, ale dokončení některého úkolu bylo odmítnuto. Soubor nenahrávej znovu."
+  :"Portrét byl uložen a ověřen."+(closed?" Vizuální úkol je dokončen.":"")};
 }
 
 export async function updateAuthor(

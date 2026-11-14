@@ -277,6 +277,7 @@ export default async function EditAuthorPage({
 
         <EditorialImageUploadField
           kind="author-portrait"
+          authorId={author.id}
           title={(values.name_en || values.name_cs || "ARTales autor")}
           slugInputId="slug"
           titleInputId="name_en"

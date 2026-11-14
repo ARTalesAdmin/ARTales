@@ -431,7 +431,7 @@ export default async function CandidateEditorialDetail({params,searchParams}:{
      </div>
      <div className="ed-card__body">
       {canEditCover?<div className="ed-card__form">
-       <CandidateCoverInput candidateId={candidateId}
+       <CandidateCoverInput candidateId={candidateId} title={candidate.proposed_title}
         initialPath={metadata.cover_image_path??""}
         initialAlt={metadata.cover_image_alt??""}
         initialCaption={metadata.cover_image_caption??""}/>

@@ -84,3 +84,16 @@ test("author profile may start as an internal draft only in verified editorial c
  assert.match(authorNew,/required=\{!candidateId\}/);
  assert.match(authorNew,/disabled=\{Boolean\(candidateId\)\}/);
 });
+
+test("portrait upload persists metadata immediately then closes only owned visual work",()=>{
+ const uploader=read("components/media/EditorialImageUploadField.tsx");
+ const action=read("lib/actions/authors.ts");
+ const page=read("app/member/authors/[slug]/edit/page.tsx");
+ assert.match(uploader,/persistAuthorPortrait\(\{authorId,path:storagePath,alt:accessibleAlt,caption\}\)/);
+ assert.match(page,/authorId=\{author.id\}/);
+ assert.match(action,/export async function persistAuthorPortrait/);
+ assert.match(action,/file.name===fileName/);
+ assert.match(action,/portrait_image_path:input.path/);
+ assert.match(action,/\.eq\("kind","author_visual"\)\.eq\("assigned_to",actor.id\)\.eq\("status","claimed"\)/);
+ assert.match(action,/artales_complete_editorial_task/);
+});
