@@ -177,7 +177,9 @@ export default function EditorialImageUploadField({
 
       uploadedPathsRef.current.add(storagePath)
 
-      if (previousPath && previousPath !== storagePath) {
+      // Never delete the previous picture before the new author record
+      // was successfully persisted; it might still be the published asset.
+      if (previousPath && previousPath !== storagePath && !(kind==="author-portrait"&&authorId)) {
         await removeUnsavedUpload(previousPath)
       }
 
@@ -186,11 +188,15 @@ export default function EditorialImageUploadField({
       setAltText(accessibleAlt)
       if(kind==="author-portrait"&&authorId){
         setMessage("Nahráno. Propojuji portrét s autorem a ověřuji úkol…")
-        const saved=await persistAuthorPortrait({authorId,path:storagePath,alt:accessibleAlt,caption})
-        if(saved.ok){
-          uploadedPathsRef.current.delete(storagePath)
-          setMessage(saved.message)
-        }else setError(saved.message+" Obrázek zůstává nahraný; neprováděj další upload.")
+        try {
+          const saved=await persistAuthorPortrait({authorId,path:storagePath,alt:accessibleAlt,caption})
+          if(saved.ok){
+            uploadedPathsRef.current.delete(storagePath)
+            setMessage(saved.message)
+          }else setError(saved.message+" Obrázek zůstává nahraný; neprováděj další upload.")
+        } catch {
+          setError("Portrét se nahrál, ale propojení nebylo potvrzeno. Soubor nenahrávej znovu; ulož změny v profilu.")
+        }
       }else setMessage("Obrázek byl nahrán. Ulož záznam, aby se změna propsala do databáze.")
 
       if (inputRef.current) {
