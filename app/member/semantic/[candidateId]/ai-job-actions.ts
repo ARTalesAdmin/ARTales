@@ -27,7 +27,7 @@ export type QaJobStatus={
 const fail=(message:string):QaJobStatus=>({
  ok:false,jobId:null,status:"none",message,suggestions:[]
 });
-const parseRow=(row:{id:string;status:string;suggestions:unknown;error_code:string|null;applied_revision_sha256:string|null}):QaJobStatus=>{
+const parseRow=(row:{id:string;status:string;suggestions:unknown;error_code:string|null;applied_revision_sha256:string|null;revision_sha256:string}):QaJobStatus=>{
  const status=["queued","running","completed","failed"].includes(row.status)
   ?row.status as QaJobStatus["status"]:"failed";
  const suggested=Array.isArray(row.suggestions)?row.suggestions as AiQaSuggestion[]:[];
@@ -35,7 +35,7 @@ const parseRow=(row:{id:string;status:string;suggestions:unknown;error_code:stri
   suggestions:status==="completed"?suggested:[],
   message:status==="queued"?"Oprava čeká ve frontě ARTales AI; můžeš odejít a později se vrátit."
    :status==="running"?"AI připravuje sazební návrhy. Můžeš pokračovat v jiné práci."
-   :status==="completed"?(row.applied_revision_sha256?"Opravná revize byla uložena k redakční kontrole.":"Návrhy AI jsou bezpečně uložené. Nová sazební revize zatím nevznikla; nálezy můžeš zkontrolovat a opravit bez dalšího volání AI.")
+   :status==="completed"?(row.applied_revision_sha256===row.revision_sha256?"Rozhodnutí jsou uložená, bez nové revize. Otevřené nálezy zůstávají k další práci.":row.applied_revision_sha256?"Opravná revize byla uložena k redakční kontrole.":"Návrhy AI jsou bezpečně uložené. Nová sazební revize zatím nevznikla; nálezy můžeš zkontrolovat a opravit bez dalšího volání AI.")
    :"AI dávka nebyla dokončena ("+(row.error_code??"neznámá chyba")+")."
  };
 };
@@ -67,7 +67,7 @@ export async function readSemanticAiQaJob(input:{jobId:string}):Promise<QaJobSta
  if(!uuid.test(input.jobId))return fail("Neplatné ID AI úlohy.");
  const db=await createClient();
  const {data,error}=await db.from("artales_semantic_ai_qa_jobs")
-  .select("id,status,suggestions,error_code,created_by,applied_revision_sha256")
+  .select("id,status,suggestions,error_code,created_by,revision_sha256,applied_revision_sha256")
   .eq("id",input.jobId).maybeSingle();
  if(error||!data|| (actor.role!=="admin"&&data.created_by!==actor.id))
   return fail("Úloha není dostupná.");
@@ -84,7 +84,7 @@ export async function lastSemanticAiQaJob(input:{
   return fail("Neplatná identita díla nebo revize.");
  const db=await createClient();
  const {data,error}=await db.from("artales_semantic_ai_qa_jobs")
-  .select("id,status,suggestions,error_code,created_by,applied_revision_sha256")
+  .select("id,status,suggestions,error_code,created_by,revision_sha256,applied_revision_sha256")
   .eq("candidate_id",input.candidateId).eq("revision_sha256",input.revisionSha)
   .eq("created_by",actor.id).order("created_at",{ascending:false})
   .limit(1).maybeSingle();
