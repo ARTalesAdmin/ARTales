@@ -128,6 +128,9 @@ export type SemanticPageUnit = {
   chapter_id: string | null;
   source_atom_ids: string[];
   estimated_height: number;
+  /** Projection-only heading role for source releases that stored chapter
+   * numerals and titles as flat paragraphs. Never persisted in the revision. */
+  layout_role?: "chapter_number" | "chapter_title";
   /** Layout-only range within an immutable paragraph atom; never new source content. */
   fragment?: {
     original_unit_id: string;
