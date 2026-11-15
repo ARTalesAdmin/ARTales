@@ -187,6 +187,45 @@ export function chooseSemanticParagraphBreak(
   return chosen ?? null;
 }
 
+/** Hard constraints followed by soft preferences for the canonical page engine.
+ * All offsets refer to immutable UTF-16 source; never rewrite original atoms.
+ */
+export type SemanticBreakAssessment={
+ allowed:boolean;
+ reason:"protected"|"mid_word"|"surrogate"|"invalid"|"sentence"|"semicolon"|"comma"|"connector"|"word";
+ preference:number;
+};
+export function assessSemanticPageBreak(
+ raw:string,start:number,end:number,stop:number,
+ protectedRanges:readonly ProtectedTextSpan[]=[],
+):SemanticBreakAssessment{
+ const forbidden=(reason:SemanticBreakAssessment["reason"]):SemanticBreakAssessment=>({
+  allowed:false,reason,preference:0,
+ });
+ if(!Number.isInteger(end)||end<=start||end>=stop||start<0||stop>raw.length)
+  return forbidden("invalid");
+ if(!/\s/u.test(raw[end-1]))return forbidden("mid_word");
+ if(end<raw.length&&raw.charCodeAt(end-1)>=0xd800&&raw.charCodeAt(end-1)<=0xdbff)
+  return forbidden("surrogate");
+ let lo=0,hi=protectedRanges.length-1;
+ while(lo<=hi){
+  const mid=(lo+hi)>>>1,span=protectedRanges[mid];
+  if(end<=span.start)hi=mid-1;
+  else if(end>=span.end)lo=mid+1;
+  else return forbidden("protected");
+ }
+ const before=raw.slice(start,end).trimEnd();
+ const terminal=before.replace(/[”’"')\]]+$/u,"");
+ const hanging=/(?:^|\s)(?:a|an|the|of|to|and|or|but|with|in|on|at|for|by|from|as)\s*$/iu.test(before);
+ const penalty=hanging?-6:0;
+ if(/[.!?]$/u.test(terminal))return {allowed:true,reason:"sentence",preference:4+penalty};
+ if(/[;:]$/u.test(terminal))return {allowed:true,reason:"semicolon",preference:3+penalty};
+ if(/,$/u.test(terminal))return {allowed:true,reason:"comma",preference:2+penalty};
+ if(/^(?:and|but|however|yet|because|although|when|while)\b/iu.test(raw.slice(end,stop).trimStart()))
+  return {allowed:true,reason:"connector",preference:1+penalty};
+ return {allowed:true,reason:"word",preference:penalty};
+}
+
 /** Create one bounded fragment, preserving the root paragraph and its source anchor. */
 function makeFragment(unit:SemanticPageUnit,start:number,end:number,sourceHeight:number):SemanticPageUnit {
   if(!["paragraph","quote","epigraph","footnote"].includes(unit.kind) ||
@@ -342,10 +381,15 @@ export function* iterateSemanticPages(units:readonly SemanticPageUnit[],layout:S
     // Do not apply punctuation preference *inside* bisection: different
     // candidate scores make the length/height test non-monotonic.
     const raw=unit.node.atom.raw;
+    const breakPolicy=new Map<number,SemanticBreakAssessment>();
     const whitespace=[...raw.slice(from,until).matchAll(/\s+/g)]
      .map(m=>from+m.index!+m[0].length)
-     .filter(end=>end-from>=minHead&&until-end>=minTail &&
-       !spans!.some(span=>span.start<end&&end<span.end));
+     .filter(end=>{
+      if(end-from<minHead||until-end<minTail)return false;
+      const decision=assessSemanticPageBreak(raw,from,end,until,spans);
+      if(decision.allowed)breakPolicy.set(end,decision);
+      return decision.allowed;
+     });
     if(!whitespace.length)return null;
     let lo=0,hi=whitespace.length-1,bestIndex=-1;
     const measured=new Map<number,{cut:[SemanticPageUnit,SemanticPageUnit];height:number}>();
@@ -366,43 +410,22 @@ export function* iterateSemanticPages(units:readonly SemanticPageUnit[],layout:S
      else hi=mid-1;
     }
     if(bestIndex<0)return null;
-    // Soft punctuation preference must NEVER give up a full measured line.
-    // Choose within the same visual line as the furthest fitting boundary.
+    // Fill the last measured line FIRST. Natural punctuation is preferred
+    // only if it fits on that SAME line; never discard another full line
+    // just to end at a sentence boundary or semicolon.
     const best=check(bestIndex);
     const lastLineChars=Math.max(16,approxCharsPerLine);
-    const lowEnd=whitespace[bestIndex]-Math.ceil(lastLineChars*.85);
-    let selected=bestIndex,selectedScore=0;
-    for(let j=bestIndex;j>=0&&whitespace[j]>=lowEnd;j--){
-     const end=whitespace[j];
-     const before=raw.slice(from,end).trimEnd();
-     // Strip closing punctuation such as ” before examining the clause edge.
-     // The previous character-class regex silently failed for bare "kind,"
-     // and "sentence.", so punctuation was not preferred in real books.
-     const terminal=before.replace(/[”’"')\]]+$/u,"");
-     const punctuation=/[.!?]$/.test(terminal)?3:
-       /[;:]$/.test(terminal)?2:
-       /,$/.test(terminal)?1:0;
-     if(punctuation>selectedScore &&
-        Math.abs(check(j).height-best.height)<1.5 &&
-        check(j).height<=remaining-6){
-      selected=j;selectedScore=punctuation;
-      if(punctuation===3)break;
-     }
-    }
-    // Never finish a sheet with a hanging article, conjunction or
-    // preposition when a slightly earlier safe word boundary exists.
-    // Keep all source bytes and make a typographic choice only.
-    if(selectedScore===0){
-     const dangling=/(?:^|\s)(?:the|a|an|of|to|and|or|but|with|in|on|at|for|by|from|as)\s*$/iu;
-     const endText=()=>raw.slice(from,whitespace[selected]).trimEnd();
-     if(dangling.test(endText())){
-      for(let j=selected-1;j>=0&&whitespace[j]>=lowEnd;j--){
-       if(!dangling.test(raw.slice(from,whitespace[j]).trimEnd()) &&
-          Math.abs(check(j).height-best.height)<1.5){
-        selected=j;break;
-       }
-      }
-     }
+    const earliest=whitespace[bestIndex]-Math.ceil(lastLineChars*.8);
+    let selected=bestIndex;
+    let selectedScore=(breakPolicy.get(whitespace[selected])?.preference??0)*10;
+    for(let j=bestIndex-1;j>=0&&whitespace[j]>=earliest;j--){
+     const item=check(j);
+     if(item.height>remaining-6||Math.abs(item.height-best.height)>1.5)continue;
+     const decision=breakPolicy.get(whitespace[j]);
+     if(!decision)continue;
+     const sacrificed=(whitespace[bestIndex]-whitespace[j])/Math.max(1,lastLineChars);
+     const score=decision.preference*10-sacrificed*2;
+     if(score>selectedScore){selected=j;selectedScore=score;}
     }
     const chosen=check(selected);
     return [{...chosen.cut[0],estimated_height:chosen.height},chosen.cut[1]];
