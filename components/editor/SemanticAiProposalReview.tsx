@@ -221,8 +221,8 @@ export default function SemanticAiProposalReview(p:Props){
     {pending?"Ukládám…":"Uložit schválené změny společně"}
    </button>
    <small>Schválené vyřazení vzniká jen přes zabezpečenou redakční revizi.
-    Archivní originál se nemění. Smíšené dávky vyřazení a sazby je nutné
-    zpracovat odděleně; nic se neuzavře bez skutečné opravy.</small>
+    Archivní originál se nemění. Vyřazení, sazba a typografická pravidla se ukládají v jedné transakci.
+    Odmítnuté nálezy zůstávají otevřené; nic se neuzavře bez skutečné opravy.</small>
   </div>:null}
   {saved?<div className="semantic-reader__proposal-finished">
    <p>Rozhodnutí jsou uložená. Otevři aktuální revizi a zkontroluj změněné bloky.</p>
