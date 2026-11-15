@@ -317,3 +317,12 @@
 .artales-reader--semantic .semantic-reader__front-page .semantic-public-reader__page-content .semantic-reader__unit{
  height:100%;
 }
+
+/* A fragmented paragraph must keep the final visual line aligned with the
+ * continuation. The actual final fragment retains normal paragraph ending. */
+.artales-reader--semantic .semantic-public-reader__paper p.semantic-reader__fragment:not(.semantic-reader__fragment--final){
+ text-align-last:justify;
+}
+.artales-reader--semantic .semantic-public-reader__paper p.semantic-reader__fragment--final{
+ text-align-last:start;
+}
