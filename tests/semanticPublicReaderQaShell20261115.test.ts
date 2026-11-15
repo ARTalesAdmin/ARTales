@@ -32,7 +32,8 @@ test("public semantic Reader delegates original typography controls and preserve
  assert.match(client,/onDensityChange=\{density=>patch/);
  assert.match(client,/onWidthChange=\{width=>patch/);
  assert.match(client,/onLayoutModeChange=\{layoutMode=>/);
- assert.match(client,/onGoToPage=\{n=>goToIndex\(n-1\)\}/);\n assert.match(client,/notesEnabled=\{paginationSettled\}/);
+ assert.match(client,/onGoToPage=\{n=>goToIndex\(n-1\)\}/);
+ assert.match(client,/notesEnabled=\{paginationSettled\}/);
  assert.match(client,/loadReaderNotes/);
  assert.match(client,/saveReaderProgress/);
 });
