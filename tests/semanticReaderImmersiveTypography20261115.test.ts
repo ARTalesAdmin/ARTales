@@ -44,3 +44,18 @@ test("fullscreen and desktop/mobile use existing canonical Reader without affect
  assert.match(css,/scrollbar-width:thin/);
  assert.match(defaults,/layoutMode: "pagedFlow"/,"classic reader settings must remain unchanged");
 });
+
+test("immersive geometry keeps page-content in middle grid row and respects saved standard preference",()=>{
+ const css=read("components/reader/semantic-public-reader.css");
+ const client=read("components/reader/SemanticReaderClient.tsx");
+ const projection=read("lib/semantic/readerProjection.ts");
+ assert.match(client,/const \[immersive,setImmersive\]=useState\(true\)/);
+ assert.match(client,/immersivePreference!=="off"/);
+ assert.match(client,/artales-semantic-immersive/);
+ assert.match(css,/grid-template-rows:0px minmax\(0,1fr\) 0px/);
+ assert.match(css,/visibility:hidden!important/);
+ assert.doesNotMatch(css,/:is\(\.semantic-public-reader__paper-top,\.semantic-public-reader__paper-footer,[\s\S]*?display:none!important/);
+ assert.match(projection,/const terminal=before\.replace/);
+ assert.match(projection,/const best=check\(bestIndex\)/);
+ assert.match(projection,/const whitespace=\[/);
+});
