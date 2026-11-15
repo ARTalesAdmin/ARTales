@@ -2,7 +2,7 @@ import type { SemanticRevision, SemanticNode, SemanticPageUnit, SemanticPage, Re
 import { walkSemanticAtoms, verifySemanticRevision } from "./compose";
 
 import { projectSemanticProseText } from "./displayText";
-import {getProtectedTextSpans} from "./protectedSpans";
+import {getProtectedTextSpans,type ProtectedTextSpan} from "./protectedSpans";
 import { classifyGutenbergApparatus,poemInsideEditorialEdition } from "./editionProjection";
 
 export type SemanticReaderLayout = {
@@ -104,6 +104,7 @@ function estimateUnitHeight(unit: SemanticPageUnit, layout: SemanticReaderLayout
 export function chooseSemanticParagraphBreak(
   raw: string, start: number, requestedEnd: number, stop = raw.length,
   allowWordFallback = false,minTail = 30,protectedTerms:readonly string[]=[],
+  cachedProtectedSpans?:readonly ProtectedTextSpan[],
 ): number | null {
   if (!Number.isInteger(start) || !Number.isInteger(requestedEnd) ||
       !Number.isInteger(stop) || start < 0 || start >= stop ||
@@ -112,7 +113,7 @@ export function chooseSemanticParagraphBreak(
   const minLength = Math.max(1, Math.min(44, Math.floor(scan.length * 0.25)));
   // Detect protected spans once per candidate search, rather than running all
   // Unicode regular expressions for every whitespace candidate (quadratic).
-  const protectedRanges=getProtectedTextSpans(raw,protectedTerms);
+  const protectedRanges=cachedProtectedSpans??getProtectedTextSpans(raw,protectedTerms);
   const candidates: {end: number; score: number}[] = [];
   const add = (end: number, bonus: number) => {
     const count = end - start;
@@ -122,7 +123,15 @@ export function chooseSemanticParagraphBreak(
     // fragment/page edge. The following word must stay on the same page.
     if (/(?:^|\s)[aI]\s*$/u.test(raw.slice(start,end))) return;
     if (end <= start || end > requestedEnd) return;
-    if (protectedRanges.some(span=>span.start<end&&end<span.end)) return;
+    // Search sorted protected boundaries without scanning every span repeatedly.
+    let left=0,right=protectedRanges.length-1,inside=false;
+    while(left<=right){
+      const middle=(left+right)>>>1,span=protectedRanges[middle];
+      if(end<=span.start)right=middle-1;
+      else if(end>=span.end)left=middle+1;
+      else {inside=true;break;}
+    }
+    if(inside)return;
     // Filling the measured page wins; punctuation only breaks near ties.
     // A period is not a reason to discard the last fifth of a sheet.
     candidates.push({end, score: count / scan.length * 12 + bonus});
@@ -179,12 +188,13 @@ export function splitParagraphUnit(unit:SemanticPageUnit,maxChars:number,allowWo
   const from=unit.fragment?.start??0,until=unit.fragment?.end??raw.length;
   if(until-from<=maxChars)return [unit];
   const parts:SemanticPageUnit[]=[];
+  const spans=getProtectedTextSpans(raw,protectedTerms);
   let start=from;
   while(start<until){
     if(until-start<=maxChars){
       parts.push(makeFragment(unit,start,until,unit.estimated_height));break;
     }
-    const end=chooseSemanticParagraphBreak(raw,start,start+maxChars,until,allowWordFallback,30,protectedTerms);
+    const end=chooseSemanticParagraphBreak(raw,start,start+maxChars,until,allowWordFallback,30,protectedTerms,spans);
     if(end===null){
       if(!parts.length)return [unit];
       parts.push(makeFragment(unit,start,until,unit.estimated_height));
@@ -198,13 +208,13 @@ export function splitParagraphUnit(unit:SemanticPageUnit,maxChars:number,allowWo
 
 /** Cut only once at the page boundary; preserve the remainder as one unsplit unit. */
 function takePageFragment(unit:SemanticPageUnit,maxChars:number,allowWordFallback:boolean,minTail=30,
-  protectedTerms:readonly string[]=[]):
+  protectedTerms:readonly string[]=[],cachedProtectedSpans?:readonly ProtectedTextSpan[]):
   [SemanticPageUnit,SemanticPageUnit] | null {
   if(!["paragraph","quote","epigraph","footnote"].includes(unit.kind) ||
      !("atom" in unit.node))return null;
   const from=unit.fragment?.start??0,until=unit.fragment?.end??unit.node.atom.raw.length;
   const end=chooseSemanticParagraphBreak(unit.node.atom.raw,from,
-    Math.min(until-1,from+maxChars),until,allowWordFallback,minTail,protectedTerms);
+    Math.min(until-1,from+maxChars),until,allowWordFallback,minTail,protectedTerms,cachedProtectedSpans);
   if(end===null)return null;
   return [makeFragment(unit,from,end,unit.estimated_height),
     makeFragment(unit,end,until,unit.estimated_height)];
@@ -268,6 +278,7 @@ export function* iterateSemanticPages(units:readonly SemanticPageUnit[],layout:S
   };
   // The editor and public Reader use this exact same semantic split policy.
   // A browser can additionally supply true DOM heights for candidate fragments.
+  const spansByAtom=new Map<string,readonly ProtectedTextSpan[]>();
   const fitParagraph=(unit:SemanticPageUnit,remaining:number):
     [SemanticPageUnit,SemanticPageUnit]|null=>{
     if(!["paragraph","quote","epigraph","footnote"].includes(unit.kind) ||
@@ -275,6 +286,9 @@ export function* iterateSemanticPages(units:readonly SemanticPageUnit[],layout:S
        remaining<minimumBody)return null;
     const from=unit.fragment?.start??0;
     const until=unit.fragment?.end??unit.node.atom.raw.length;
+    const atomId=unit.node.atom.id;
+    let spans=spansByAtom.get(atomId);
+    if(!spans){spans=getProtectedTextSpans(unit.node.atom.raw,layout.protected_terms??[]);spansByAtom.set(atomId,spans);}
     const length=until-from;
     const approxCharsPerLine=Math.max(18,Math.floor(
       Math.max(160,layout.viewport_width)/(9.1*layout.font_scale)));
@@ -287,7 +301,7 @@ export function* iterateSemanticPages(units:readonly SemanticPageUnit[],layout:S
     let lastBoundary=-1;
     for(let attempt=0;attempt<10 && low<=high;attempt++){
       const middle=Math.floor((low+high)/2);
-      const cut=takePageFragment(unit,middle,true,minTail,layout.protected_terms??[]);
+      const cut=takePageFragment(unit,middle,true,minTail,layout.protected_terms??[],spans);
       if(!cut){low=middle+1;continue;}
       const boundary=cut[0].fragment?.end??-1;
       const h=measureFragment(cut[0]);
