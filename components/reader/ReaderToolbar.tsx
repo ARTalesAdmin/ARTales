@@ -45,6 +45,9 @@ type ReaderToolbarProps = {
   onNotesListExpandedChange: (expanded: boolean) => void;
   onDeleteNote: (note: ReaderNote) => void;
   onGoToPage: (page: number) => void;
+  /** Only supplied by the semantic Reader; classic Reader remains unchanged. */
+  fullscreenActive?: boolean;
+  onToggleFullscreen?: () => void;
 };
 
 export default function ReaderToolbar(props: ReaderToolbarProps) {
@@ -153,6 +156,14 @@ export default function ReaderToolbar(props: ReaderToolbarProps) {
             </button>
           )}
         </div>
+        {props.onToggleFullscreen ? <button type="button"
+          className="semantic-reader__fullscreen-toggle"
+          aria-label={props.fullscreenActive?"Ukončit čtení na celou obrazovku":"Číst na celou obrazovku"}
+          title={props.fullscreenActive?"Ukončit celou obrazovku":"Celá obrazovka"}
+          aria-pressed={Boolean(props.fullscreenActive)}
+          onClick={props.onToggleFullscreen}>
+          <span aria-hidden="true">{props.fullscreenActive?"↙":"⛶"}</span>
+        </button> : null}
         <div className="artales-reader-menu" ref={menuRef}>
           <button
             ref={menuTriggerRef}
