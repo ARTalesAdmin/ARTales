@@ -334,10 +334,10 @@ export function* iterateSemanticPages(units:readonly SemanticPageUnit[],layout:S
     const length=until-from;
     const approxCharsPerLine=Math.max(18,Math.floor(
       Math.max(160,layout.viewport_width)/(9.1*layout.font_scale)));
-    // No single-line tail or first-page orphan. The actual boundary also
-    // respects the persisted per-work no-break terms and named entities.
-    const minTail=Math.max(18,Math.min(approxCharsPerLine*2,Math.floor(length*.35)));
-    const minHead=Math.max(18,Math.min(approxCharsPerLine*2,Math.floor(length*.35)));
+    // An arbitrary two-line character budget can leave sizeable white
+    // gaps. Keep a modest tail/head guard, then fit by real DOM line height.
+    const minTail=Math.max(8,Math.min(Math.floor(approxCharsPerLine*.65),Math.floor(length*.2)));
+    const minHead=Math.max(8,Math.min(Math.floor(approxCharsPerLine*.65),Math.floor(length*.2)));
     // First find the furthest source word boundary that actually fits.
     // Do not apply punctuation preference *inside* bisection: different
     // candidate scores make the length/height test non-monotonic.
@@ -366,11 +366,11 @@ export function* iterateSemanticPages(units:readonly SemanticPageUnit[],layout:S
      else hi=mid-1;
     }
     if(bestIndex<0)return null;
-    // Prefer a sentence or semicolon within roughly one measured line of
-    // the best fit. Otherwise keep the maximally filled leaf.
+    // Soft punctuation preference must NEVER give up a full measured line.
+    // Choose within the same visual line as the furthest fitting boundary.
     const best=check(bestIndex);
     const lastLineChars=Math.max(16,approxCharsPerLine);
-    const lowEnd=whitespace[bestIndex]-Math.ceil(lastLineChars*1.1);
+    const lowEnd=whitespace[bestIndex]-Math.ceil(lastLineChars*.85);
     let selected=bestIndex,selectedScore=0;
     for(let j=bestIndex;j>=0&&whitespace[j]>=lowEnd;j--){
      const end=whitespace[j];
@@ -382,7 +382,9 @@ export function* iterateSemanticPages(units:readonly SemanticPageUnit[],layout:S
      const punctuation=/[.!?]$/.test(terminal)?3:
        /[;:]$/.test(terminal)?2:
        /,$/.test(terminal)?1:0;
-     if(punctuation>selectedScore&&check(j).height<=remaining-6){
+     if(punctuation>selectedScore &&
+        Math.abs(check(j).height-best.height)<1.5 &&
+        check(j).height<=remaining-6){
       selected=j;selectedScore=punctuation;
       if(punctuation===3)break;
      }
@@ -395,7 +397,8 @@ export function* iterateSemanticPages(units:readonly SemanticPageUnit[],layout:S
      const endText=()=>raw.slice(from,whitespace[selected]).trimEnd();
      if(dangling.test(endText())){
       for(let j=selected-1;j>=0&&whitespace[j]>=lowEnd;j--){
-       if(!dangling.test(raw.slice(from,whitespace[j]).trimEnd())){
+       if(!dangling.test(raw.slice(from,whitespace[j]).trimEnd()) &&
+          Math.abs(check(j).height-best.height)<1.5){
         selected=j;break;
        }
       }
