@@ -68,7 +68,7 @@ test("published semantic Reader measures real fragment DOM, keeps paper bounds, 
  assert.match(css,/overflow:hidden!important/);
  assert.match(css,/content-visibility:auto/);
  assert.match(css,/semantic-public-reader__paper--scroll-unit/);
- assert.match(projection,/if\(unit\.kind==="chapter_heading"&&pending\.length\)/);
+ assert.match(projection,/unit\.layout_role==="chapter_number"/);
  assert.match(projection,/fitParagraph/);
  assert.doesNotMatch(projection,/if\(unit\.fragment\?\.continuation_after\s*&&/);
  assert.match(projection,/measureFragment\(cut\[0\]\)/);
