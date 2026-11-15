@@ -29,6 +29,8 @@ export default function SemanticReaderClient({slug,title,locale,mode,revisionSha
  const [settings,setSettings]=useState<ReaderSettings>(defaultReaderSettings);
  const [hydrated,setHydrated]=useState(false);
  const [viewport,setViewport]=useState({width:1024,height:780});
+ const [immersive,setImmersive]=useState(false);
+ const readerRootRef=useRef<HTMLElement|null>(null);
  const [measurements,setMeasurements]=useState<Measurements|null>(null);
  const [measuredPages,setMeasuredPages]=useState<{key:string;pages:SemanticPage[];complete:boolean}|null>(null);
  const [pageIndex,setPageIndex]=useState(0);
@@ -46,8 +48,12 @@ export default function SemanticReaderClient({slug,title,locale,mode,revisionSha
  // Book geometry and margins come from the existing, proven Reader.
  // The semantic paginator uses the *content* area rather than viewport height.
  const singleWidth=settings.width==="narrow"?620:settings.width==="wide"?780:700;
+ // In immersive mode, fit the actual viewport height. Existing normal
+ // scrolling mode retains its established paper geometry.
+ const heightFit=immersive?Math.floor(Math.max(360,viewport.height-34)/1.414):Infinity;
  const pageWidth=Math.max(250,Math.floor(Math.min(
-  spread?Math.min(730,(viewport.width-72)/2):singleWidth,viewport.width-24)));
+  spread?Math.min(730,(viewport.width-44)/2):singleWidth,
+  viewport.width-24,heightFit)));
  const pageHeight=Math.round(pageWidth*1.414);
  const pageContentHeight=Math.max(300,pageHeight-210);
  const measureKey=[revisionSha,mode,pageWidth,pageHeight,settings.fontScale,
@@ -107,11 +113,29 @@ export default function SemanticReaderClient({slug,title,locale,mode,revisionSha
   return ()=>window.removeEventListener("resize",update);
  },[]);
  useEffect(()=>{
-  setSettings({...loadReaderSettings(),controlsCollapsed:true});
+  const saved=loadReaderSettings();
+  const semanticPreference=window.localStorage.getItem("artales-semantic-layout-mode");
+  const layoutMode=semanticPreference==="spread"||semanticPreference==="pagedFlow"
+   ?semanticPreference:window.innerWidth>=860?"spread":"pagedFlow";
+  setSettings({...saved,layoutMode,controlsCollapsed:true});
   setNotes(loadReaderNotes(slug,title));
   setHydrated(true);
  },[slug,title]);
  useEffect(()=>{if(hydrated)saveReaderSettings(settings)},[hydrated,settings]);
+ // Escape and the native fullscreen control restore the ordinary Reader.
+ // A CSS fallback remains usable if fullscreen permission is denied.
+ useEffect(()=>{
+  const onFullscreenChange=()=>{if(!document.fullscreenElement)setImmersive(false);};
+  const onEscape=(event:KeyboardEvent)=>{
+   if(event.key==="Escape"&&!document.fullscreenElement)setImmersive(false);
+  };
+  document.addEventListener("fullscreenchange",onFullscreenChange);
+  window.addEventListener("keydown",onEscape);
+  return ()=>{
+   document.removeEventListener("fullscreenchange",onFullscreenChange);
+   window.removeEventListener("keydown",onEscape);
+  };
+ },[]);
  const syncNotes=useCallback(async()=>{
   if(!hydrated||mode!=="full")return;
   const generation=++noteSyncGeneration.current;
@@ -417,10 +441,24 @@ export default function SemanticReaderClient({slug,title,locale,mode,revisionSha
   </article>;
  };
 
+ const toggleFullscreen=()=>{
+  if(immersive){
+   if(document.fullscreenElement)void document.exitFullscreen().catch(()=>setImmersive(false));
+   else setImmersive(false);
+  }else{
+   setImmersive(true);
+   const root=readerRootRef.current;
+   if(root?.requestFullscreen)void root.requestFullscreen().catch(()=>{
+    // Browser denied native fullscreen: scoped immersive CSS still works.
+   });
+  }
+ };
  const dictionary=getPublicDictionary(locale);
  const toggleControls=()=>setSettings(old=>({...old,controlsCollapsed:!old.controlsCollapsed}));
- return <main lang={locale}
-  className={"artales-reader artales-reader--semantic artales-reader--theme-"+settings.theme+
+ return <main lang={locale} ref={readerRootRef}
+  className={"artales-reader artales-reader--semantic"+
+   (immersive?" artales-reader--immersive":"")+
+   " artales-reader--theme-"+settings.theme+
    " artales-reader--width-"+settings.width+
    " artales-reader--density-"+settings.density+
    " artales-reader--layout-"+settings.layoutMode+
@@ -440,7 +478,11 @@ export default function SemanticReaderClient({slug,title,locale,mode,revisionSha
    onThemeChange={theme=>patch({theme})}
    onWidthChange={width=>patch({width})}
    onDensityChange={density=>patch({density})}
-   onLayoutModeChange={layoutMode=>patch({layoutMode})}
+   onLayoutModeChange={layoutMode=>{
+    window.localStorage.setItem("artales-semantic-layout-mode",layoutMode);
+    patch({layoutMode});
+   }}
+   fullscreenActive={immersive} onToggleFullscreen={toggleFullscreen}
    onToggleControls={toggleControls}
    onAddNote={addNote} onGoToNote={goToNote}
    onGoToPreviousNote={()=>{if(selectedNoteIndex>0)goToNote(notesSorted[selectedNoteIndex-1])}}
