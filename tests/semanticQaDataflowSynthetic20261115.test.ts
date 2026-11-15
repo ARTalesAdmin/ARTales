@@ -124,7 +124,7 @@ test("real UI and server actions share the exact mixed QA source-to-revision pat
  assert.match(sql,/applied_revision_sha256=coalesce\(v_new_sha,p_parent_sha\)/);
  assert.match(sql,/j\.applied_revision_sha256 IS NULL/);
  assert.match(page,/SemanticReaderLab revision=\{revision\}/);
- assert.match(page,/qaFlags=\{qaFlags\?\?\[\]\}/);
+ assert.match(page,/flags=\{qaFlags\?\?\[\]\}/);
  assert.match(lab,/getSemanticPageUnits\(activeRevision,edition\.range\)/);
  assert.match(lab,/getOmittedQaAtoms\(revision\)/);
  assert.match(publicReader,/getSemanticPageUnits\(revision,edition\.range\)/);
