@@ -41,7 +41,7 @@ export async function applyReviewedQaProposals(input:{
    .eq("candidate_id",input.candidateId).eq("revision_sha256",input.revisionSha)
    .eq("assigned_to",actor.id).eq("status","claimed").eq("kind","text_review")
    .maybeSingle(),
-  db.from("artales_semantic_qa_flags").select("id,status,kind,target_atom_id")
+  db.from("artales_semantic_qa_flags").select("id,status,kind,target_atom_id,comment")
    .eq("candidate_id",input.candidateId)
    .eq("revision_sha256",input.revisionSha)
  ]);
@@ -55,6 +55,28 @@ export async function applyReviewedQaProposals(input:{
  try{
   plan=planQaProposalReview(job.suggestions as AiQaSuggestion[],flags,input.decisions);
  }catch(e){return fail(e instanceof Error?e.message:"Nelze bezpečně ověřit rozhodnutí.");}
+ // A whole-block exclusion is an editor-approved structural change, not
+ // a harmless "manual review" acknowledgement. It must go through the
+ // existing service-only editorial_exclusions RPC as ONE source-safe revision.
+ // Fail before any other writes if a batch mixes incompatible actions.
+ if(plan.exclusions.length){
+  if(plan.layout.length||plan.protectedTerms.length||
+     plan.confirmedNoChange.length||plan.rejected.length)
+   return fail("Vyřazení textových bloků nelze uložit společně s jinými "+
+    "rozhodnutími nebo nevyřešenými nálezy. Nejdříve dokonči jednu "+
+    "úplnou dávku vyřazení; nic se nezměnilo.");
+  const result=await commitSemanticQaBatch({
+   candidateId:input.candidateId,revisionSha:input.revisionSha,
+   repairs:plan.exclusions.map(x=>({flagId:x.flagId,action:"exclude_note"}))
+  });
+  if(!result.ok)return fail("Vyřazení nebylo uloženo: "+result.message);
+  revalidatePath("/member/semantic/"+input.candidateId);
+  revalidatePath("/member/editorial-pipeline");
+  return {ok:true,revisionCreated:true,resolved:plan.exclusions.length,
+   remaining:0,message:"Editor schválil vyřazení přesně označených bloků. "+
+    "Vznikla nová neměnná redakční revize; archivní text je nedotčený. "+
+    "Otevři aktualizovanou QA a ověř výsledek."};
+ }
  const byFlag=new Map(flags.map(f=>[f.id,f]));
  const layoutTargets=plan.layout.map(x=>byFlag.get(x.flagId)?.target_atom_id);
  if(new Set(layoutTargets).size!==layoutTargets.length)
