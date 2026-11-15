@@ -329,3 +329,81 @@
 .artales-reader--semantic .semantic-public-reader__paper p.semantic-reader__fragment--final{
  text-align-last:start;
 }
+
+/* Existing semantic Reader, not a second route or a copied Reader.
+ * Native Fullscreen API + scoped fixed-layout fallback; toolbar reveals on
+ * pointer hover or keyboard focus, and stays reachable on touch screens. */
+.artales-reader--semantic .semantic-reader__fullscreen-toggle{
+ display:inline-grid;
+ place-items:center;
+ width:39px;height:36px;
+ border:1px solid var(--reader-control-border);
+ border-radius:9px;
+ background:var(--reader-control-bg);
+ color:var(--reader-control-text);
+ font-size:21px;
+ cursor:pointer;
+}
+.artales-reader--semantic .semantic-reader__fullscreen-toggle:focus-visible{
+ outline:2px solid var(--reader-accent);
+ outline-offset:2px;
+}
+.artales-reader--semantic.artales-reader--immersive{
+ position:fixed;
+ inset:0;
+ z-index:1000;
+ width:100vw;
+ height:100dvh;
+ min-height:0;
+ overflow-x:hidden;
+ overflow-y:auto;
+ overscroll-behavior:contain;
+ background:var(--reader-outer-bg);
+ scrollbar-width:thin;
+ scrollbar-color:color-mix(in srgb,var(--reader-accent) 35%,transparent) transparent;
+}
+.artales-reader--semantic.artales-reader--immersive::-webkit-scrollbar{
+ width:6px;
+}
+.artales-reader--semantic.artales-reader--immersive::-webkit-scrollbar-thumb{
+ border-radius:9px;
+ background:color-mix(in srgb,var(--reader-accent) 35%,transparent);
+}
+.artales-reader--semantic.artales-reader--immersive .artales-reader-toolbar{
+ position:fixed;
+ z-index:1050;
+ top:0;left:0;right:0;
+ opacity:.24;
+ transform:translateY(calc(-100% + 13px));
+ transition:opacity .18s ease,transform .18s ease;
+}
+.artales-reader--semantic.artales-reader--immersive .artales-reader-toolbar:hover,
+.artales-reader--semantic.artales-reader--immersive .artales-reader-toolbar:focus-within{
+ opacity:1;
+ transform:none;
+}
+.artales-reader--semantic.artales-reader--immersive .semantic-public-reader__stage{
+ padding:12px 10px 18px;
+}
+.artales-reader--semantic.artales-reader--immersive .semantic-public-reader__spread{
+ max-width:min(1500px,calc(100vw - 24px));
+}
+.artales-reader--semantic.artales-reader--immersive .semantic-public-reader__navigation{
+ margin-top:7px;
+}
+@media(hover:none){
+ .artales-reader--semantic.artales-reader--immersive .artales-reader-toolbar{
+  opacity:.94;transform:none;
+ }
+ .artales-reader--semantic.artales-reader--immersive .semantic-public-reader__stage{
+  padding-top:80px;
+ }
+}
+@media(max-width:859px){
+ .artales-reader--semantic.artales-reader--immersive .semantic-public-reader__stage{
+  padding-inline:4px;
+ }
+ .artales-reader--semantic.artales-reader--immersive .semantic-public-reader__flow{
+  gap:12px;
+ }
+}
