@@ -19,8 +19,8 @@ test("existing draft QA books get separate cover without embedded-page duplicati
  assert(!/semantic-reader__front-brand|semantic-reader__front-ornament|ARTales with Love/.test(qa));
 });
 test("published semantic Reader shares title page while legacy Reader stays untouched",()=>{
- assert(publicReader.includes('headingLevel={1} variant="public"'));
- assert(publicReader.includes('title={title} author={author}'));
+ assert(publicReader.includes('const cover:SemanticTitlePage='));
+ assert(publicReader.includes('authors:[author||revision.title_page?.authors.join(" · ")||"Autor neuveden"]'));
  assert(route.includes('author={work.author?.name??""}'));
  assert(route.includes("<ReaderClient"));
 });
