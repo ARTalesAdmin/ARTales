@@ -5,11 +5,13 @@ import * as mirrorModule from "../lib/ingest/snapshot389Mirror.ts";
 import * as parserModule from "../lib/ingest/epubSemanticExtractor.ts";
 import * as composeModule from "../lib/semantic/compose.ts";
 import * as editionModule from "../lib/semantic/editionProjection.ts";
+import * as structureModule from "../lib/semantic/sourceStructure.ts";
 import * as projectionModule from "../lib/semantic/readerProjection.ts";
 const {fetchSnapshot389FromMirror}=mirrorModule.default??mirrorModule;
 const {extractEpub}=parserModule.default??parserModule;
 const {composeSemanticRevision,verifySemanticRevision}=composeModule.default??composeModule;
 const {selectEditorialEdition}=editionModule.default??editionModule;
+const {assessSemanticSourceStructure}=structureModule.default??structureModule;
 const {getSemanticPageUnits,projectSemanticReader,verifyReaderProjection}=projectionModule.default??projectionModule;
 test("real archived Gutenberg #389 EPUB parses to complete semantic text and private visual manifest",
  {skip:process.env.ARTALES_SNAPSHOT_389_LIVE_MIRROR!=="1"},async()=>{
@@ -23,6 +25,27 @@ test("real archived Gutenberg #389 EPUB parses to complete semantic text and pri
  assert.match(extract.text,/Great God Pan|CHAPTER/i);
  assert.equal(extract.assets.length,1);
  assert(extract.assets.every(x=>x.publication_clearance==="excluded"));
+ const assessed=assessSemanticSourceStructure(extract.text,extract.structure_cues);
+ const expected=[
+  "I\\n\\nTHE EXPERIMENT","II\\n\\nMR. CLARKE’S MEMOIRS",
+  "III\\n\\nTHE CITY OF RESURRECTIONS","IV\\n\\nTHE DISCOVERY IN PAUL STREET",
+  "V\\n\\nTHE LETTER OF ADVICE","VI\\n\\nTHE SUICIDES",
+  "VII\\n\\nTHE ENCOUNTER IN SOHO","VIII\\n\\nTHE FRAGMENTS"
+ ];
+ const found=assessed.hints.filter(h=>h.kind==="chapter").map(h=>
+  extract.text.slice(h.start,h.end).trim());
+ assert.deepEqual(found,expected,"all original XHTML heading byte offsets must land exactly");
+ assert(!assessed.hints.some(h=>/THE END/i.test(extract.text.slice(h.start,h.end))));
+ const structured=composeSemanticRevision({
+  work_id:"98508359-bce1-4e73-b842-b69a9d1112d0",
+  work_slug:"candidate-98508359-bce1-4e73-b842-b69a9d1112d0",
+  snapshot_ref:"sha256:"+actual,
+  source_bytes_sha256:extract.text_sha256,component_id:extract.component_id,
+  original_byte_start:0,original_raw:extract.text,hints:assessed.hints
+ });
+ verifySemanticRevision(structured,extract.text);
+ assert.equal(structured.blocks.filter(node=>node.kind==="chapter").length,8);
+
  const revision=composeSemanticRevision({
   work_id:"98508359-bce1-4e73-b842-b69a9d1112d0",
   work_slug:"candidate-98508359-bce1-4e73-b842-b69a9d1112d0",
