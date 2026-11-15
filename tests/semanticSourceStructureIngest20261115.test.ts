@@ -38,7 +38,7 @@ test("unnumbered uppercase literary chapter is recognized independently of Roman
  assert.equal(revision.blocks.some(x=>x.kind==="chapter"),true);
 });
 test("first unnumbered Gutenberg literary title is a chapter with reviewable medium confidence",()=>{
- const text="THE GARDEN WITHOUT A NUMBER\\n\\nAn opening scene continues over several sentences in this ordinary paragraph.";
+ const text="THE GARDEN WITHOUT A NUMBER\n\nAn opening scene continues over several sentences in this ordinary paragraph.";
  const a=assessSemanticSourceStructure(text);
  assert.equal(a.hints.length,1);
  assert.equal(a.hints[0].kind,"chapter");
