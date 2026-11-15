@@ -4,6 +4,7 @@ import {unitView,type ApprovedSemanticImage} from "@/components/reader/SemanticP
 import ReaderToolbar from "@/components/reader/ReaderToolbar";
 import {getPublicDictionary} from "@/lib/i18n/public";
 import {paginateSemanticUnits} from "@/lib/semantic/readerProjection";
+import {projectSemanticProseText} from "@/lib/semantic/displayText";
 import type {SemanticPage,SemanticPageUnit} from "@/lib/semantic/model";
 import type {SupportedLocale} from "@/lib/i18n/config";
 import {clampReaderFontScale,defaultReaderSettings,type ReaderSettings} from "@/lib/reader/readerSettings";
@@ -19,7 +20,7 @@ type Props={
  revisionSha:string;units:SemanticPageUnit[];
  protectedTerms?:string[];visuals?:ApprovedSemanticImage[];
 };
-type Measurements={key:string;heights:Record<string,number>};
+type Measurements={key:string;heights:Record<string,number>;contentHeight:number};
 const countProgress=(index:number,count:number)=>count<=1?100:Math.max(0,Math.min(100,index/(count-1)*100));
 const pageStart=(index:number,spread:boolean)=>spread?index-index%2:index;
 
@@ -29,6 +30,7 @@ export default function SemanticReaderClient({slug,title,locale,mode,revisionSha
  const [hydrated,setHydrated]=useState(false);
  const [viewport,setViewport]=useState({width:1024,height:780});
  const [measurements,setMeasurements]=useState<Measurements|null>(null);
+ const [measuredPages,setMeasuredPages]=useState<{key:string;pages:SemanticPage[]}|null>(null);
  const [pageIndex,setPageIndex]=useState(0);
  const [notes,setNotes]=useState<ReaderNote[]>([]);
  const [notesSyncState,setNotesSyncState]=useState<"local"|"syncing"|"synced">("local");
@@ -47,14 +49,19 @@ export default function SemanticReaderClient({slug,title,locale,mode,revisionSha
  const pageHeight=Math.round(pageWidth*1.414);
  const pageContentHeight=Math.max(300,pageHeight-210);
  const measureKey=[revisionSha,mode,pageWidth,pageHeight,settings.fontScale,
-  settings.density,units.length].join("|");
+  settings.density,units.length,protectedTerms.join("\u0001")].join("|");
  const readyMeasurements=measurements?.key===measureKey?measurements.heights:undefined;
- const pages=useMemo(()=>paginateSemanticUnits(units,{
+ const actualCapacity=measurements?.key===measureKey?measurements.contentHeight:pageContentHeight;
+ // Before the browser has measured the actual font and page geometry, show
+ // a conservative projection. Replace it atomically after the DOM audit.
+ const fallbackPages=useMemo(()=>paginateSemanticUnits(units,{
   mode:"paged",viewport_width:Math.max(200,pageWidth-144),
-  viewport_height:pageContentHeight+100,
+  viewport_height:actualCapacity+100,
   font_scale:settings.fontScale,density:settings.density,
   measured_unit_heights:readyMeasurements,protected_terms:protectedTerms,
- }),[units,pageWidth,pageContentHeight,settings.fontScale,settings.density,readyMeasurements,protectedTerms]);
+ }),[units,pageWidth,actualCapacity,settings.fontScale,settings.density,readyMeasurements,protectedTerms]);
+ const paginationKey=[measureKey,actualCapacity,readyMeasurements?"measured":"estimate"].join("|");
+ const pages=measuredPages?.key===paginationKey?measuredPages.pages:fallbackPages;
  const total=Math.max(1,pages.length);
  const current=Math.max(0,Math.min(pageIndex,total-1));
  const visibleStart=pageStart(current,spread);
@@ -160,6 +167,8 @@ export default function SemanticReaderClient({slug,title,locale,mode,revisionSha
    if(!root)return;
    const elements=[...root.querySelectorAll<HTMLElement>("[data-semantic-measure-id]")];
    if(elements.length!==units.length)return;
+   const content=root.querySelector<HTMLElement>(".semantic-public-reader__page-content");
+   const contentHeight=content?.clientHeight??pageContentHeight;
    const heights:Record<string,number>={};
    for(const element of elements){
     const id=element.dataset.semanticMeasureId;
@@ -167,9 +176,10 @@ export default function SemanticReaderClient({slug,title,locale,mode,revisionSha
     heights[id]=Math.max(1,Math.round(element.getBoundingClientRect().height*2)/2);
    }
    setMeasurements(previous=>{
-    if(previous?.key===measureKey&&Object.keys(heights).length===Object.keys(previous.heights).length
-      &&Object.keys(heights).every(k=>previous.heights[k]===heights[k]))return previous;
-    return {key:measureKey,heights};
+    if(previous?.key===measureKey&&previous.contentHeight===contentHeight
+       &&Object.keys(heights).length===Object.keys(previous.heights).length
+       &&Object.keys(heights).every(k=>previous.heights[k]===heights[k]))return previous;
+    return {key:measureKey,heights,contentHeight};
    });
   };
   const frame=requestAnimationFrame(measure);
@@ -177,13 +187,87 @@ export default function SemanticReaderClient({slug,title,locale,mode,revisionSha
   if(measureRef.current)observer?.observe(measureRef.current);
   document.fonts?.ready.then(measure).catch(()=>{});
   return ()=>{cancelAnimationFrame(frame);observer?.disconnect()};
- },[measureKey,units]);
+ },[measureKey,units,pageContentHeight]);
+ // Measure every candidate split with the SAME browser-laid-out text as the
+ // book sheet. Character-count ratios cannot predict actual line wraps.
+ useEffect(()=>{
+  if(!readyMeasurements||!measureRef.current)return;
+  const frame=requestAnimationFrame(()=>{
+   const root=measureRef.current;
+   const content=root?.querySelector<HTMLElement>(".semantic-public-reader__page-content");
+   if(!content)return;
+   const original=new Map([...root!.querySelectorAll<HTMLElement>("[data-semantic-measure-id]")]
+    .map(el=>[el.dataset.semanticMeasureId??"",el] as const));
+   const cache=new Map<string,number>();
+   const fragmentHeight=(unit:SemanticPageUnit):number|null=>{
+    if(!unit.fragment||unit.node.kind!=="paragraph")return null;
+    const {start,end,original_unit_id}=unit.fragment;
+    const key=original_unit_id+":"+start+":"+end;
+    const cached=cache.get(key);
+    if(cached!==undefined)return cached;
+    const template=original.get(original_unit_id);
+    if(!template)return null;
+    const clone=template.cloneNode(true) as HTMLElement;
+    const paragraph=clone.querySelector("p");
+    if(!paragraph)return null;
+    // Range deletion retains inline formatting and protected no-break spans.
+    const text=projectSemanticProseText(unit.node.atom.raw);
+    const walker=document.createTreeWalker(paragraph,NodeFilter.SHOW_TEXT);
+    const nodes:Text[]=[];
+    let next:Node|null;
+    while((next=walker.nextNode()))nodes.push(next as Text);
+    const totalLength=nodes.reduce((n,node)=>n+(node.textContent?.length??0),0);
+    if(totalLength!==text.length)return null;
+    const at=(offset:number):[Text,number]=>{
+     let remaining=offset;
+     for(const node of nodes){
+      const length=node.textContent?.length??0;
+      if(remaining<=length)return [node,remaining];
+      remaining-=length;
+     }
+     const last=nodes.at(-1)!;
+     return [last,last.textContent?.length??0];
+    };
+    if(!nodes.length)return null;
+    const endAt=at(end),startAt=at(start);
+    const tail=document.createRange();
+    tail.setStart(endAt[0],endAt[1]);
+    tail.setEnd(nodes.at(-1)!,nodes.at(-1)!.textContent?.length??0);
+    tail.deleteContents();
+    const head=document.createRange();
+    head.setStart(nodes[0],0);
+    head.setEnd(startAt[0],startAt[1]);
+    head.deleteContents();
+    paragraph.classList.add("semantic-reader__fragment");
+    clone.removeAttribute("data-semantic-measure-id");
+    content.appendChild(clone);
+    const height=Math.ceil(clone.getBoundingClientRect().height*2)/2;
+    clone.remove();
+    cache.set(key,height);
+    return height;
+   };
+   const actual=paginateSemanticUnits(units,{
+    mode:"paged",viewport_width:Math.max(200,pageWidth-144),
+    viewport_height:actualCapacity+100,
+    font_scale:settings.fontScale,density:settings.density,
+    measured_unit_heights:readyMeasurements,protected_terms:protectedTerms,
+    measure_fragment_height:fragmentHeight,
+   });
+   setMeasuredPages(previous=>previous?.key===paginationKey &&
+    previous.pages.length===actual.length && previous.pages.every((page,i)=>
+      page.units.map(u=>u.id).join("|")===actual[i].units.map(u=>u.id).join("|"))
+       ?previous:{key:paginationKey,pages:actual});
+  });
+  return ()=>cancelAnimationFrame(frame);
+ },[paginationKey,readyMeasurements,units,pageWidth,actualCapacity,
+   settings.fontScale,settings.density,protectedTerms]);
 
  const patch=useCallback((next:Partial<ReaderSettings>)=>setSettings(old=>({...old,...next})),[]);
  const goToIndex=useCallback((index:number)=>{
   const safe=Math.max(0,Math.min(total-1,index));
   const target=pageStart(safe,spread);
   setPageIndex(target);
+  if(spread)window.scrollTo({top:0,behavior:"smooth"});
   if(!spread){
    const element=flowRef.current?.querySelector<HTMLElement>(
     '[data-semantic-page-index="'+target+'"]');
@@ -257,7 +341,8 @@ export default function SemanticReaderClient({slug,title,locale,mode,revisionSha
    className={"artales-reader__paper artales-reader__paper--paged semantic-reader__page"+
     " semantic-public-reader__paper"+side+
     (cover?" semantic-reader__front-page":"")+
-    (blank?" artales-reader__paper--blank semantic-public-reader__paper--blank":"")}
+    (blank?" artales-reader__paper--blank semantic-public-reader__paper--blank":"")+
+    (page?.overflow==="scroll_unit"?" semantic-public-reader__paper--scroll-unit":"")}
    style={pageStyle}>
    {!blank&&!cover?<div className="artales-reader__page-header semantic-public-reader__paper-top">
     <span>{title}</span><span>{index+1}</span>
@@ -346,6 +431,14 @@ export default function SemanticReaderClient({slug,title,locale,mode,revisionSha
       onClick={()=>goToIndex(visibleStart+2)}>›</button>
     </nav>:null}
    </div>
+   {spread?<nav className="semantic-public-reader__side-navigation" aria-label="Boční listování">
+    <button type="button" className="artales-reader-side-nav artales-reader-side-nav--previous"
+     disabled={visibleStart===0} onClick={()=>goToIndex(visibleStart-2)}
+     aria-label="Předchozí dvojstrana" title="Předchozí dvojstrana">‹</button>
+    <button type="button" className="artales-reader-side-nav artales-reader-side-nav--next"
+     disabled={visibleStart+2>=total} onClick={()=>goToIndex(visibleStart+2)}
+     aria-label="Další dvojstrana" title="Další dvojstrana">›</button>
+   </nav>:null}
   </section>
  </main>;
 }
