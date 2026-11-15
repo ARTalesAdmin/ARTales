@@ -40,7 +40,7 @@ test("fullscreen and desktop/mobile use existing canonical Reader without affect
  assert.match(client,/artales-semantic-layout-mode/);
  assert.match(client,/protectedTerms=EMPTY_PROTECTED_TERMS,visuals=EMPTY_VISUALS/);
  assert.match(toolbar,/onToggleFullscreen\?: \(\) => void/);
- assert.match(css,/artales-reader--immersive/);
+ assert.match(css,/artales-reader--semantic:fullscreen/);
  assert.match(css,/scrollbar-width:thin/);
  assert.match(defaults,/layoutMode: "pagedFlow"/,"classic reader settings must remain unchanged");
 });
