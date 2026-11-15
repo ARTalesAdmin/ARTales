@@ -128,7 +128,7 @@ export function extractEpub(input:Uint8Array):EpubExtract{
   const entry=byName.get(path);if(!entry)throw Error("epub_spine_file_missing");
   const parsed=xhtmlToSourceWithStructure(new TextDecoder("utf-8",{fatal:true}).decode(entry.bytes));
   if(parsed.text){
-   const offset=segments.length?segments.join("\\n\\n").length+2:0;
+   const offset=segments.length?segments.join("\n\n").length+2:0;
    structure_cues.push(...parsed.cues.map(c=>({...c,start:c.start+offset,end:c.end+offset})));
    segments.push(parsed.text);
    documents.push({path,sha256:entry.sha256,length:entry.bytes.length});
