@@ -57,28 +57,6 @@ export async function applyReviewedQaProposals(input:{
  try{
   plan=planQaProposalReview(job.suggestions as AiQaSuggestion[],flags,input.decisions);
  }catch(e){return fail(e instanceof Error?e.message:"Nelze bezpečně ověřit rozhodnutí.");}
- // A whole-block exclusion is an editor-approved structural change, not
- // a harmless "manual review" acknowledgement. It must go through the
- // existing service-only editorial_exclusions RPC as ONE source-safe revision.
- // Fail before any other writes if a batch mixes incompatible actions.
- if(plan.exclusions.length){
-  if(plan.layout.length||plan.protectedTerms.length||
-     plan.confirmedNoChange.length||plan.rejected.length)
-   return fail("Vyřazení textových bloků nelze uložit společně s jinými "+
-    "rozhodnutími nebo nevyřešenými nálezy. Nejdříve dokonči jednu "+
-    "úplnou dávku vyřazení; nic se nezměnilo.");
-  const result=await commitSemanticQaBatch({
-   candidateId:input.candidateId,revisionSha:input.revisionSha,
-   repairs:plan.exclusions.map(x=>({flagId:x.flagId,action:"exclude_note"}))
-  });
-  if(!result.ok)return fail("Vyřazení nebylo uloženo: "+result.message);
-  revalidatePath("/member/semantic/"+input.candidateId);
-  revalidatePath("/member/editorial-pipeline");
-  return {ok:true,revisionCreated:true,resolved:plan.exclusions.length,
-   remaining:0,message:"Editor schválil vyřazení přesně označených bloků. "+
-    "Vznikla nová neměnná redakční revize; archivní text je nedotčený. "+
-    "Otevři aktualizovanou QA a ověř výsledek."};
- }
  // The editor's full decision set is persisted in ONE server-side Postgres
  // transaction. Never resolve or persist rules before the immutable revision
  // has passed the same source/owner/revision checks as manual QA.
