@@ -45,16 +45,17 @@ test("fullscreen and desktop/mobile use existing canonical Reader without affect
  assert.match(defaults,/layoutMode: "pagedFlow"/,"classic reader settings must remain unchanged");
 });
 
-test("immersive geometry keeps page-content in middle grid row and respects saved standard preference",()=>{
+test("native fullscreen does not change page dimensions or hide the bottom of sheets",()=>{
  const css=read("components/reader/semantic-public-reader.css");
  const client=read("components/reader/SemanticReaderClient.tsx");
  const projection=read("lib/semantic/readerProjection.ts");
- assert.match(client,/const \[immersive,setImmersive\]=useState\(true\)/);
- assert.match(client,/immersivePreference!=="off"/);
- assert.match(client,/artales-semantic-immersive/);
- assert.match(css,/grid-template-rows:0px minmax\(0,1fr\) 0px/);
- assert.match(css,/visibility:hidden!important/);
- assert.doesNotMatch(css,/:is\(\.semantic-public-reader__paper-top,\.semantic-public-reader__paper-footer,[\s\S]*?display:none!important/);
+ assert.match(client,/const immersive=nativeFullscreen/);
+ assert.doesNotMatch(client,/artales-semantic-immersive/);
+ assert.match(client,/const pageHeight=Math\.round\(pageWidth\*1\.414\)/);
+ assert.match(css,/:fullscreen\{/);
+ assert.match(css,/overflow-x:hidden;overflow-y:auto/);
+ const fs=css.slice(css.indexOf("/* Browser fullscreen is orthogonal"));
+ assert.doesNotMatch(fs,/grid-template-rows:|overflow:hidden!important|\.semantic-public-reader__paper\{/);
  assert.match(projection,/const terminal=before\.replace/);
  assert.match(projection,/const best=check\(bestIndex\)/);
  assert.match(projection,/const whitespace=\[/);
