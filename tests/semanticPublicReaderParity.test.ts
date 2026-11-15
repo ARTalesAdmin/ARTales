@@ -7,7 +7,7 @@ import {getSemanticPageUnits,paginateSemanticUnits,projectSemanticReader,verifyR
 import {selectEditorialEdition} from "../lib/semantic/editionProjection";
 const read=(p:string)=>readFileSync(new URL("../"+p,import.meta.url),"utf8");
 const sha=(s:string)=>createHash("sha256").update(s).digest("hex");
-const source="The Project Gutenberg eBook of Test\n\nCHAPTER I.\n\nFirst paragraph of the story.\n\nSecond paragraph of the story.";
+const source="CHAPTER I.\n\nFirst paragraph of the story.\n\nSecond paragraph of the story.";
 const revision=composeSemanticRevision({
  work_id:"candidate:test",work_slug:"candidate-test",
  snapshot_ref:"sha256:"+sha("epub"),source_bytes_sha256:sha(source),
@@ -61,7 +61,8 @@ test("semantic page geometry is derived from the old book sheet and measured wit
  const qaCss=read("components/editor/semantic-reader.css");
  assert.match(client,/pageHeight=Math\.round\(pageWidth\*1\.414\)/);
  assert.match(client,/pageContentHeight=Math\.max\(300,pageHeight-210\)/);
- assert.match(client,/viewport_height:pageContentHeight\+100/);
+ assert.match(client,/viewport_height:actualCapacity\+100,content_height:actualCapacity/);
+ assert.match(client,/const contentRect=content\?\.getBoundingClientRect\(\)/);
  assert.match(client,/data-semantic-measure-id=\{unit\.id\}/);
  assert.match(client,/artales-reader__page-content semantic-public-reader__page-content/);
  assert.match(css,/grid-template-rows:32px minmax\(0,1fr\) 34px/);
