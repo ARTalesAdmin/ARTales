@@ -321,12 +321,15 @@ begin
       where d.value->>'flagId'=i.value->>'id' and d.value->>'action'='exclude_note');
   get diagnostics v_changed=row_count;
   if v_changed<>v_exclusions then raise exception 'exclusion_receipt_failed';end if;
-  update public.artales_semantic_ai_qa_jobs set applied_revision_sha256=v_new_sha,
-     updated_at=now() where id=p_job_id and status='completed'
-       and applied_revision_sha256 is null;
-  get diagnostics v_changed=row_count;
-  if v_changed<>1 then raise exception 'job_receipt_race';end if;
  end if;
+ -- Mark all-review/no-revision jobs as processed too. Otherwise after only
+ -- protected terms/no-change/rejects the same saved proposals show forever,
+ -- despite editor approval having been committed successfully.
+ update public.artales_semantic_ai_qa_jobs
+ set applied_revision_sha256=coalesce(v_new_sha,p_parent_sha),updated_at=now()
+ where id=p_job_id and status='completed' and applied_revision_sha256 is null;
+ get diagnostics v_changed=row_count;
+ if v_changed<>1 then raise exception 'job_receipt_race';end if;
  return pg_catalog.jsonb_build_object('result',
    case when v_new_sha is not null then 'created' else 'resolved_only' end,
    'revision_sha256',v_new_sha,'resolved',v_resolved,
