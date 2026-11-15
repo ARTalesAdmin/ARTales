@@ -3,9 +3,11 @@
 import {revalidatePath} from "next/cache";
 import {requireEditorOrAdmin} from "@/lib/guards";
 import {createClient} from "@/lib/supabase/server";
+import {createClient as createServiceClient} from "@supabase/supabase-js";
+import {prepareQaPresentationBatch} from "@/lib/semantic/qaBatchPreparation";
 import {planQaProposalReview,type QaProposalDecision} from "@/lib/semantic/qaProposalReview";
 import type {AiQaSuggestion} from "@/lib/semantic/aiQaProposalEngine";
-import {saveWorkTypographyRule,resolveSemanticQaFlag,commitSemanticQaBatch} from "./qa-actions";
+
 
 const uuid=/^[a-f0-9]{8}-[a-f0-9]{4}-[1-8][a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/i;
 const sha=/^[a-f0-9]{64}$/;
@@ -77,54 +79,59 @@ export async function applyReviewedQaProposals(input:{
     "Vznikla nová neměnná redakční revize; archivní text je nedotčený. "+
     "Otevři aktualizovanou QA a ověř výsledek."};
  }
+ // The editor's full decision set is persisted in ONE server-side Postgres
+ // transaction. Never resolve or persist rules before the immutable revision
+ // has passed the same source/owner/revision checks as manual QA.
  const byFlag=new Map(flags.map(f=>[f.id,f]));
- const layoutTargets=plan.layout.map(x=>byFlag.get(x.flagId)?.target_atom_id);
- if(new Set(layoutTargets).size!==layoutTargets.length)
-  return fail("Více přijatých sazebních návrhů mění stejný blok. Ponech jeden návrh "+
-   "k opravě a znovu zkontroluj společný náhled.");
- let resolved=0;
- // Apply safe work-wide protections first, idempotently. Never edit source bytes.
- for(const change of plan.protectedTerms){
-  const rule=await saveWorkTypographyRule({candidateId:input.candidateId,term:change.term});
-  if(!rule.ok)return fail("Ukládání bylo přerušeno: "+rule.message);
-  if(byFlag.get(change.flagId)?.status==="resolved")continue;
-  const closed=await resolveSemanticQaFlag({
-   candidateId:input.candidateId,flagId:change.flagId,
-   resolutionNote:"Editor přijal a ověřil ochranu výrazu „"+change.term+
-    "“ pro celé dílo. Zdrojový text ani obsahová struktura nebyly upraveny."
-  });
-  if(!closed.ok)return fail("Ochrana výrazu je uložená, ale nález zůstal otevřený: "+closed.message);
-  resolved++;
+ const repairs=[
+  ...plan.exclusions.map(x=>({flagId:x.flagId,action:"exclude_note" as const})),
+  ...plan.layout
+ ];
+ const changedAtomIds=repairs.map(x=>byFlag.get(x.flagId)?.target_atom_id);
+ if(changedAtomIds.some(x=>!x)||new Set(changedAtomIds).size!==changedAtomIds.length)
+  return fail("Více schválených zásahů mění tentýž blok. Uprav výběr.");
+ let revisionPayload=null;
+ if(repairs.length){
+  const prepared=await prepareQaPresentationBatch({
+   candidateId:input.candidateId,revisionSha:input.revisionSha,repairs
+  },db);
+  if(!prepared.ok)return fail("Nelze připravit smíšenou revizi: "+prepared.message);
+  revisionPayload=prepared.revision;
  }
- // Explicit editorial acknowledgement that no textual/layout change is warranted.
- // This is not an autonomous AI acceptance.
- for(const id of plan.confirmedNoChange){
-  if(byFlag.get(id)?.status==="resolved")continue;
-  const closed=await resolveSemanticQaFlag({
-   candidateId:input.candidateId,flagId:id,
-   resolutionNote:"Editor po vizuálním posouzení označil návrh jako prověřený bez potřeby "+
-    "další změny. Jde o výslovné redakční rozhodnutí, nikoli automatické schválení AI."
+ const actions=new Map<string,{action:string;term:string}>();
+ for(const x of plan.layout)actions.set(x.flagId,{action:x.action,term:""});
+ for(const x of plan.exclusions)actions.set(x.flagId,{action:"exclude_note",term:""});
+ for(const x of plan.protectedTerms)actions.set(x.flagId,{action:"protect_term",term:x.term});
+ for(const id of plan.confirmedNoChange)actions.set(id,{action:"confirm_no_change",term:""});
+ for(const id of plan.rejected)actions.set(id,{action:"reject",term:""});
+ const decisions=input.decisions.map(d=>({
+  flagId:d.flagId,...(actions.get(d.flagId)??{action:"invalid",term:""})
+ }));
+ if(decisions.some(d=>d.action==="invalid"))return fail("Některé rozhodnutí nelze přiřadit.");
+ const serviceKey=process.env.SUPABASE_SERVICE_ROLE_KEY;
+ const serviceUrl=process.env.NEXT_PUBLIC_SUPABASE_URL;
+ if(!serviceKey||!serviceUrl)return fail("Není dostupné zabezpečené ukládání QA.");
+ const internal=createServiceClient(serviceUrl,serviceKey,{
+  auth:{persistSession:false,autoRefreshToken:false}
+ });
+ const {data:committed,error:commitError}=await internal.rpc(
+  "artales_commit_editorial_review_batch",{
+   p_candidate_id:input.candidateId,p_parent_sha:input.revisionSha,
+   p_job_id:input.jobId,p_editor_id:actor.id,
+   p_revision:revisionPayload,p_decisions:decisions
   });
-  if(!closed.ok)return fail("Část rozhodnutí je uložena; některý nález čeká: "+closed.message);
-  resolved++;
- }
- if(plan.layout.length){
-  const result=await commitSemanticQaBatch({
-   candidateId:input.candidateId,revisionSha:input.revisionSha,
-   repairs:plan.layout
-  });
-  if(!result.ok)return {
-   ok:false,message:"Dosavadní rozhodnutí byla zaznamenána, ale novou revizi nelze vytvořit: "+
-    result.message,revisionCreated:false,resolved,remaining:plan.rejected.length+plan.layout.length
-  };
-  revalidatePath("/member/semantic/"+input.candidateId);
-  return {ok:true,revisionCreated:true,resolved,remaining:plan.rejected.length,
-   message:"Schválené sazební změny byly společně uloženy do nové revize. "+
-    "Nyní ověř změněné bloky a dokonči QA, až nezůstanou otevřené nálezy."};
- }
+ if(commitError||!["created","resolved_only"].includes(committed?.result))
+  return fail("Dávka nebyla zapsána; vše zůstává beze změny ("+
+   (committed?.result??commitError?.code??"chyba")+").");
  revalidatePath("/member/semantic/"+input.candidateId);
  revalidatePath("/member/editorial-pipeline");
- return {ok:true,revisionCreated:false,resolved,remaining:plan.rejected.length,
-  message:"Rozhodnutí byla uložena. Nebyla provedena žádná změna sazby, proto nevzniká "+
-   "umělá nová revize. Zbývající nálezy je potřeba posoudit."};
+ revalidatePath("/member","layout");
+ const created=committed.result==="created";
+ return {ok:true,revisionCreated:created,
+  resolved:committed.resolved??0,remaining:committed.remaining??plan.rejected.length,
+  message:created?
+   "Schválené vyřazení a sazba byly atomicky uloženy v jedné revizi. "+
+   "Neschválené nálezy pokračují u stejného editora; archiv je nedotčen.":
+   "Schválená pravidla a redakční rozhodnutí jsou zapsána. "+
+   "Neschválené nálezy zůstávají otevřené."};
 }
