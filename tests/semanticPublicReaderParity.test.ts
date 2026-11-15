@@ -59,9 +59,9 @@ test("semantic page geometry is derived from the old book sheet and measured wit
  const client=read("components/reader/SemanticReaderClient.tsx");
  const css=read("components/reader/semantic-public-reader.css");
  const qaCss=read("components/editor/semantic-reader.css");
- assert.match(client,/const pageHeight=immersive/);
+ assert.match(client,/const pageHeight=Math\.round\(pageWidth\*1\.414\)/);
  assert.match(client,/Math\.round\(pageWidth\*1\.414\)/);
- assert.match(client,/pageContentHeight=Math\.max\(220,pageHeight-\(immersive\?90:210\)\)/);
+ assert.match(client,/pageContentHeight=Math\.max\(300,pageHeight-210\)/);
  assert.match(client,/viewport_height:actualCapacity\+100,content_height:actualCapacity/);
  assert.match(client,/const contentRect=content\?\.getBoundingClientRect\(\)/);
  assert.match(client,/data-semantic-measure-id=\{unit\.id\}/);
