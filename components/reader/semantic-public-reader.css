@@ -386,9 +386,17 @@
  row-gap:0;
  padding:18px clamp(24px,4vw,54px) 20px;
 }
+/* Keep both chrome elements as zero-height grid children. Removing
+ * them with display:none shifts page content into the 0px first grid row,
+ * silently breaking all browser geometry and source pagination. */
 .artales-reader--semantic.artales-reader--immersive
- :is(.semantic-public-reader__paper-top,.semantic-public-reader__paper-footer,
- .semantic-public-reader__navigation){
+ :is(.semantic-public-reader__paper-top,.semantic-public-reader__paper-footer){
+ visibility:hidden!important;
+ min-height:0!important;height:0!important;
+ padding:0!important;border:0!important;
+ overflow:hidden!important;
+}
+.artales-reader--semantic.artales-reader--immersive .semantic-public-reader__navigation{
  display:none!important;
 }
 .artales-reader--semantic.artales-reader--immersive
