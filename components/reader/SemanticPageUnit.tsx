@@ -44,6 +44,13 @@ function nodeView(n:SemanticNode,terms:readonly string[]=[]):ReactNode {
 }
 /** The same markup is used both on the visible page and in the offscreen measuring page. */
 function coreUnitView(u:SemanticPageUnit,terms:readonly string[]=[]):ReactNode {
+  if(u.layout_role&&"atom" in u.node){
+    const name=u.layout_role==="chapter_number"?"semantic-reader__chapter-number":"semantic-reader__chapter-title";
+    return <div className={name} data-semantic-id={u.node.id}
+      data-source-atom={u.node.atom.id} style={presentationStyle(u.node.presentation)}>
+      {inline(u.node.atom,true,terms)}
+    </div>;
+  }
   if(u.fragment&&"atom" in u.node){
     const {start,end}=u.fragment;
     const original=u.node.atom;
