@@ -42,7 +42,7 @@ function paragraphs(source:string,start:number,end:number):Paragraph[]{
 }
 const roman=/^(?:I|II|III|IV|V|VI|VII|VIII|IX|X|XI|XII|XIII|XIV|XV|XVI|XVII|XVIII|XIX|XX)$/;
 const explicit=/^(?:CHAPTER|BOOK|PART)\s+(?:[IVXLCDM]+|\d+|ONE|TWO|THREE|FOUR|FIVE|SIX|SEVEN|EIGHT|NINE|TEN)(?:[.\s:—–-].*)?$/i;
-const notTitle=/^(?:CONTENTS|TABLE OF CONTENTS|INDEX|PREFACE|INTRODUCTION|ACKNOWLEDGEMENTS?|THE END|FINIS|COPYRIGHT|PROJECT GUTENBERG|TRANSCRIBER.S? NOTES?|NOTES?)$/i;
+const notTitle=/^(?:CONTENTS|TABLE OF CONTENTS|INDEX|PREFACE|INTRODUCTION|ACKNOWLEDGEMENTS?|THE END|FINIS|COPYRIGHT|PROJECT GUTENBERG|TRANSCRIBER.S? NOTES?|NOTES?)[.\s:!]*$/i;
 const uppercase=/^[\p{Lu}\p{M}\p{N}][\p{Lu}\p{M}\p{N}\p{P}\p{Zs}'’—–-]{5,100}$/u;
 function isStandaloneTitle(raw:string){
  const t=raw.trim();
@@ -79,6 +79,9 @@ export function assessSemanticSourceStructure(source:string,cues:readonly Struct
  for(const cue of [...cues].sort((a,b)=>a.start-b.start)){
   if(!Number.isSafeInteger(cue.start)||!Number.isSafeInteger(cue.end)||
     cue.start<start||cue.end>end||cue.end<=cue.start||!source.slice(cue.start,cue.end).trim())continue;
+  // A strong XHTML heading tag is not proof that electronic-edition
+  // apparatus like THE END, contents or copyright is a literary chapter.
+  if(notTitle.test(source.slice(cue.start,cue.end).trim()))continue;
   if(overlaps(cue.start,cue.end)){
    reviewSignals.push({start:cue.start,end:cue.end,kind:"conflicting_markup",
     reason:"Conflicting structural XHTML cues; editor must resolve source nesting."});
