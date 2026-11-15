@@ -33,7 +33,8 @@ export default function SemanticReaderClient({slug,title,locale,mode,revisionSha
  const [settings,setSettings]=useState<ReaderSettings>(defaultReaderSettings);
  const [hydrated,setHydrated]=useState(false);
  const [viewport,setViewport]=useState({width:1024,height:780});
- const [immersive,setImmersive]=useState(false);
+ const [immersive,setImmersive]=useState(true);
+ const [nativeFullscreen,setNativeFullscreen]=useState(false);
  const readerRootRef=useRef<HTMLElement|null>(null);
  const [measurements,setMeasurements]=useState<Measurements|null>(null);
  const [measuredPages,setMeasuredPages]=useState<{key:string;pages:SemanticPage[];complete:boolean}|null>(null);
@@ -52,14 +53,17 @@ export default function SemanticReaderClient({slug,title,locale,mode,revisionSha
  // Book geometry and margins come from the existing, proven Reader.
  // The semantic paginator uses the *content* area rather than viewport height.
  const singleWidth=settings.width==="narrow"?620:settings.width==="wide"?780:700;
- // In immersive mode, fit the actual viewport height. Existing normal
- // scrolling mode retains its established paper geometry.
- const heightFit=immersive?Math.floor(Math.max(360,viewport.height-34)/1.414):Infinity;
- const pageWidth=Math.max(250,Math.floor(Math.min(
-  spread?Math.min(730,(viewport.width-44)/2):singleWidth,
-  viewport.width-24,heightFit)));
- const pageHeight=Math.round(pageWidth*1.414);
- const pageContentHeight=Math.max(300,pageHeight-210);
+ // Immersive book sheets fill the area beneath the always visible Reader
+ // toolbar. Geometry follows the actual viewport rather than a forced
+ // A-series aspect ratio (which left large unused bands on desktop).
+ const pageWidth=immersive
+  ?Math.max(250,Math.floor(spread?(viewport.width-28)/2:Math.min(viewport.width-16,singleWidth)))
+  :Math.max(250,Math.floor(Math.min(
+    spread?Math.min(730,(viewport.width-44)/2):singleWidth,viewport.width-24)));
+ const pageHeight=immersive
+  ?Math.max(460,viewport.height-100)
+  :Math.round(pageWidth*1.414);
+ const pageContentHeight=Math.max(220,pageHeight-(immersive?90:210));
  const measureKey=[revisionSha,mode,pageWidth,pageHeight,settings.fontScale,
   settings.density,units.length,protectedTerms.join("\u0001")].join("|");
  const readyMeasurements=measurements?.key===measureKey?measurements.heights:undefined;
@@ -118,6 +122,8 @@ export default function SemanticReaderClient({slug,title,locale,mode,revisionSha
  },[]);
  useEffect(()=>{
   const saved=loadReaderSettings();
+  const immersivePreference=window.localStorage.getItem("artales-semantic-immersive");
+  setImmersive(immersivePreference!=="off");
   const semanticPreference=window.localStorage.getItem("artales-semantic-layout-mode");
   const layoutMode=semanticPreference==="spread"||semanticPreference==="pagedFlow"
    ?semanticPreference:window.innerWidth>=860?"spread":"pagedFlow";
@@ -132,19 +138,14 @@ export default function SemanticReaderClient({slug,title,locale,mode,revisionSha
   const legacyLayout=loadReaderSettings().layoutMode;
   saveReaderSettings({...settings,layoutMode:legacyLayout});
  },[hydrated,settings]);
- // Escape and the native fullscreen control restore the ordinary Reader.
- // A CSS fallback remains usable if fullscreen permission is denied.
+ // Browser fullscreen requires a user gesture, whereas the quiet immersive
+ // layout may load by default. Esc exits native fullscreen but preserves the
+ // chosen immersive Reader layout.
  useEffect(()=>{
-  const onFullscreenChange=()=>{if(!document.fullscreenElement)setImmersive(false);};
-  const onEscape=(event:KeyboardEvent)=>{
-   if(event.key==="Escape"&&!document.fullscreenElement)setImmersive(false);
-  };
+  const onFullscreenChange=()=>setNativeFullscreen(
+   document.fullscreenElement===readerRootRef.current);
   document.addEventListener("fullscreenchange",onFullscreenChange);
-  window.addEventListener("keydown",onEscape);
-  return ()=>{
-   document.removeEventListener("fullscreenchange",onFullscreenChange);
-   window.removeEventListener("keydown",onEscape);
-  };
+  return ()=>document.removeEventListener("fullscreenchange",onFullscreenChange);
  },[]);
  const syncNotes=useCallback(async()=>{
   if(!hydrated||mode!=="full")return;
@@ -458,16 +459,19 @@ export default function SemanticReaderClient({slug,title,locale,mode,revisionSha
  };
 
  const toggleFullscreen=()=>{
-  if(immersive){
-   if(document.fullscreenElement)void document.exitFullscreen().catch(()=>setImmersive(false));
-   else setImmersive(false);
-  }else{
-   setImmersive(true);
-   const root=readerRootRef.current;
-   if(root?.requestFullscreen)void root.requestFullscreen().catch(()=>{
-    // Browser denied native fullscreen: scoped immersive CSS still works.
-   });
+  if(document.fullscreenElement){
+   void document.exitFullscreen();
+   return;
   }
+  const root=readerRootRef.current;
+  if(root?.requestFullscreen)void root.requestFullscreen().catch(()=>{
+   // The default immersive layout still fills the web app viewport.
+  });
+ };
+ const setImmersivePreference=(next:boolean)=>{
+  setImmersive(next);
+  window.localStorage.setItem("artales-semantic-immersive",next?"on":"off");
+  if(!next&&document.fullscreenElement)void document.exitFullscreen();
  };
  const dictionary=getPublicDictionary(locale);
  const toggleControls=()=>setSettings(old=>({...old,controlsCollapsed:!old.controlsCollapsed}));
@@ -498,7 +502,8 @@ export default function SemanticReaderClient({slug,title,locale,mode,revisionSha
     window.localStorage.setItem("artales-semantic-layout-mode",layoutMode);
     patch({layoutMode});
    }}
-   fullscreenActive={immersive} onToggleFullscreen={toggleFullscreen}
+   fullscreenActive={nativeFullscreen} onToggleFullscreen={toggleFullscreen}
+   immersiveActive={immersive} onToggleImmersive={setImmersivePreference}
    onToggleControls={toggleControls}
    onAddNote={addNote} onGoToNote={goToNote}
    onGoToPreviousNote={()=>{if(selectedNoteIndex>0)goToNote(notesSorted[selectedNoteIndex-1])}}
