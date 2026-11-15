@@ -2,14 +2,16 @@ import {strict as assert} from "node:assert";
 import {test} from "node:test";
 import {readFileSync} from "node:fs";
 const read=(path:string)=>readFileSync(new URL("../"+path,import.meta.url),"utf8");
-test("public semantic Reader reuses QA visual frame and separate shared block projection",()=>{
+test("public semantic Reader uses established Reader shell and shared semantic projection",()=>{
  const client=read("components/reader/SemanticReaderClient.tsx");
  const qa=read("components/editor/SemanticReaderLab.tsx");
  const css=read("components/reader/semantic-public-reader.css");
  const shared=read("components/reader/SemanticPageUnit.tsx");
  assert.match(client,/semantic-reader--public/);
- assert.match(client,/semantic-reader__controls/);
- assert.match(client,/semantic-reader__triptych--focus/);
+ assert.match(client,/ReaderToolbar/);
+ assert.match(client,/import "\.\/reader\.css"/);
+ assert.match(client,/artales-reader--theme-/);
+ assert.match(client,/artales-reader__stage/);
  assert.match(client,/semantic-reader__pages--scroll/);
  assert.match(client,/semantic-reader__pages--spread/);
  assert.match(client,/semantic-reader__viewport/);
@@ -17,20 +19,20 @@ test("public semantic Reader reuses QA visual frame and separate shared block pr
  assert.match(client,/unitView\(unit,protectedTerms,visuals\)/);
  assert.match(qa,/unitView\(u,protectedTerms\)/);
  assert.match(shared,/function coreUnitView/);
- assert.match(css,/--qa-surround/);
- assert.match(css,/--qa-paper/);
- assert.match(css,/data-reader-theme="dark"/);
- assert.doesNotMatch(client,/ReaderToolbar|import "\.\/reader\.css"/);
+ assert.match(css,/var\(--reader-paper\)/);
+ assert.match(css,/font-size:calc\(18px \* var\(--reader-font-scale,1\)\)/);
+ assert.match(css,/var\(--reader-paper-text\)/);
+ assert.doesNotMatch(client,/semantic-reader__controls/);
  assert.doesNotMatch(client,/Archivní Gutenberg|SemanticQaPanel|Dokončit QA/);
 });
-test("public semantic Reader has functioning reader appearance, navigation and notes",()=>{
+test("public semantic Reader delegates original typography controls and preserves synced notes",()=>{
  const client=read("components/reader/SemanticReaderClient.tsx");
- assert.match(client,/value=\{settings\.theme\}/);
- assert.match(client,/value=\{settings\.fontScale\}/);
- assert.match(client,/value=\{settings\.density\}/);
- assert.match(client,/value=\{settings\.width\}/);
- assert.match(client,/value=\{settings\.layoutMode\}/);
- assert.match(client,/aria-label="Přejít na stránku"/);
+ assert.match(client,/onThemeChange=\{theme=>patch\(\{theme\}\)\}/);
+ assert.match(client,/onFontDelta=\{delta=>patch/);
+ assert.match(client,/onDensityChange=\{density=>patch/);
+ assert.match(client,/onWidthChange=\{width=>patch/);
+ assert.match(client,/onLayoutModeChange=\{layoutMode=>/);
+ assert.match(client,/onGoToPage=\{n=>goToIndex\(n-1\)\}/);
  assert.match(client,/loadReaderNotes/);
  assert.match(client,/saveReaderProgress/);
 });
