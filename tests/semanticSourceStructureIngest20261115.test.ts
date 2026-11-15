@@ -37,6 +37,15 @@ test("unnumbered uppercase literary chapter is recognized independently of Roman
  const revision=compose(source,a.hints);
  assert.equal(revision.blocks.some(x=>x.kind==="chapter"),true);
 });
+test("first unnumbered Gutenberg literary title is a chapter with reviewable medium confidence",()=>{
+ const text="THE GARDEN WITHOUT A NUMBER\\n\\nAn opening scene continues over several sentences in this ordinary paragraph.";
+ const a=assessSemanticSourceStructure(text);
+ assert.equal(a.hints.length,1);
+ assert.equal(a.hints[0].kind,"chapter");
+ assert.equal(a.hints[0].evidence?.confidence,"medium");
+ assert.equal(compose(text,a.hints).blocks[0].kind,"chapter");
+});
+
 test("XHTML heading hierarchy and poetry markup survive extraction as original source anchors",()=>{
  const html='<html><body><h1>THE GARDEN OF NAMES</h1>'+
  '<p>Some introductory narrative of the story is here.</p>'+
