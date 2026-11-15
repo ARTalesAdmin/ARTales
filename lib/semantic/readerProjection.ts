@@ -375,12 +375,30 @@ export function* iterateSemanticPages(units:readonly SemanticPageUnit[],layout:S
     for(let j=bestIndex;j>=0&&whitespace[j]>=lowEnd;j--){
      const end=whitespace[j];
      const before=raw.slice(from,end).trimEnd();
-     const punctuation=/[.!?][”’"')\\]]?$/.test(before)?3:
-       /[;:][”’"')\\]]?$/.test(before)?2:
-       /[,][”’"')\\]]?$/.test(before)?1:0;
+     // Strip closing punctuation such as ” before examining the clause edge.
+     // The previous character-class regex silently failed for bare "kind,"
+     // and "sentence.", so punctuation was not preferred in real books.
+     const terminal=before.replace(/[”’"')\]]+$/u,"");
+     const punctuation=/[.!?]$/.test(terminal)?3:
+       /[;:]$/.test(terminal)?2:
+       /,$/.test(terminal)?1:0;
      if(punctuation>selectedScore&&check(j).height<=remaining-6){
       selected=j;selectedScore=punctuation;
       if(punctuation===3)break;
+     }
+    }
+    // Never finish a sheet with a hanging article, conjunction or
+    // preposition when a slightly earlier safe word boundary exists.
+    // Keep all source bytes and make a typographic choice only.
+    if(selectedScore===0){
+     const dangling=/(?:^|\\s)(?:the|a|an|of|to|and|or|but|with|in|on|at|for|by|from|as)\\s*$/iu;
+     const endText=()=>raw.slice(from,whitespace[selected]).trimEnd();
+     if(dangling.test(endText())){
+      for(let j=selected-1;j>=0&&whitespace[j]>=lowEnd;j--){
+       if(!dangling.test(raw.slice(from,whitespace[j]).trimEnd())){
+        selected=j;break;
+       }
+      }
      }
     }
     const chosen=check(selected);
