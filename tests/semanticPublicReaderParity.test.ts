@@ -41,7 +41,7 @@ test("public route selects published semantic Reader but retains legacy reader f
  assert.match(publicClient,/semantic-reader__pages--spread/);
  assert.match(publicClient,/artales-reader--theme-/);
  assert.match(publicClient,/semantic-reader-theme\.css/);
- assert.match(publicClient,/paginateSemanticUnits/);
+ assert.match(publicClient,/iterateSemanticPages/);
  assert.match(publicClient,/unitView\(unit,protectedTerms,visuals\)/);
  assert.match(qa,/import \{unitView\} from "@\/components\/reader\/SemanticPageUnit"/);
  assert.doesNotMatch(publicClient,/Archivní Gutenberg|Předat nálezy|Dokončit QA|SemanticQaPanel/);
