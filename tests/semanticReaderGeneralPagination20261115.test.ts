@@ -7,7 +7,9 @@ function prose(id:string,raw:string,height:number,kind:"paragraph"|"quote"|"foot
  return {id,kind,chapter_id:null,source_atom_ids:[id],estimated_height:height,
   node:{id,kind,atom:{id,raw,
    marks:[],source_sha256:"synthetic",
-   anchor:{normalized_start:0,normalized_end:raw.length}}}} as SemanticPageUnit;
+   anchor:{normalized_start:0,normalized_end:raw.length,
+    snapshot_ref:"sha256:synthetic",component_id:"synthetic",
+    original_byte_start:0,original_byte_end:Buffer.byteLength(raw)}}}} as SemanticPageUnit;
 }
 const options={mode:"paged" as const,viewport_width:360,viewport_height:460,
  font_scale:1,density:"comfortable" as const,content_height:360};
