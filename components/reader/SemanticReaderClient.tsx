@@ -3,7 +3,7 @@ import {useCallback,useEffect,useMemo,useRef,useState,type CSSProperties} from "
 import {unitView,type ApprovedSemanticImage} from "@/components/reader/SemanticPageUnit";
 import ReaderToolbar from "@/components/reader/ReaderToolbar";
 import {getPublicDictionary} from "@/lib/i18n/public";
-import {iterateSemanticPages} from "@/lib/semantic/readerProjection";
+import {iterateSemanticPages,projectFlatChapterHeadings} from "@/lib/semantic/readerProjection";
 import {projectSemanticProseText} from "@/lib/semantic/displayText";
 import type {SemanticPage,SemanticPageUnit} from "@/lib/semantic/model";
 import type {SupportedLocale} from "@/lib/i18n/config";
@@ -30,6 +30,10 @@ const pageStart=(index:number,spread:boolean)=>spread?index-index%2:index;
 
 export default function SemanticReaderClient({slug,title,locale,mode,revisionSha,units,
  protectedTerms=EMPTY_PROTECTED_TERMS,visuals=EMPTY_VISUALS}:Props){
+ // Project inherited flat-book chapter semantics before BOTH DOM measurement
+ // and canonical pagination. Measuring plain p tags and rendering chapter
+ // headings produced a silent extra line and mobile overflow.
+ const semanticUnits=useMemo(()=>projectFlatChapterHeadings(units),[units]);
  const [settings,setSettings]=useState<ReaderSettings>(defaultReaderSettings);
  const [hydrated,setHydrated]=useState(false);
  const [viewport,setViewport]=useState({width:1024,height:780});
@@ -67,7 +71,7 @@ export default function SemanticReaderClient({slug,title,locale,mode,revisionSha
  const pageHeight=Math.round(pageWidth*1.414);
  const pageContentHeight=Math.max(300,pageHeight-210);
  const measureKey=[revisionSha,mode,pageWidth,pageHeight,settings.fontScale,
-  settings.density,units.length,protectedTerms.join("\u0001")].join("|");
+  settings.density,semanticUnits.length,protectedTerms.join("\u0001")].join("|");
  const readyMeasurements=measurements?.key===measureKey?measurements.heights:undefined;
  // The browser measures the real page-content rectangle. Leave only
  // a sub-line rounding guard; a former 38px reserve discarded a full line
@@ -80,14 +84,14 @@ export default function SemanticReaderClient({slug,title,locale,mode,revisionSha
  // Render the first leaf without a synchronous full-book fallback.
  // DOM measurement and all later pages use the same canonical iterator.
  const fallbackPages=useMemo(()=>{
-  const iterator=iterateSemanticPages(units,{
+  const iterator=iterateSemanticPages(semanticUnits,{
    mode:"paged",viewport_width:460,viewport_height:780,
    font_scale:1,density:"comfortable",protected_terms:protectedTerms,
   });
   const first=iterator.next();
   iterator.return(undefined);
   return first.done?[]:[first.value];
- },[units,protectedTerms]);
+ },[semanticUnits,protectedTerms]);
  const paginationKey=[measureKey,contentWidth,actualCapacity,readyMeasurements?"measured":"estimate"].join("|");
  const pages=measuredPages?.key===paginationKey?measuredPages.pages:measuredPages?.pages??fallbackPages;
  const paginationSettled=Boolean(measuredPages?.key===paginationKey&&measuredPages.complete);
@@ -227,7 +231,7 @@ export default function SemanticReaderClient({slug,title,locale,mode,revisionSha
    const root=measureRef.current;
    if(!root)return;
    const elements=[...root.querySelectorAll<HTMLElement>("[data-semantic-measure-id]")];
-   if(elements.length!==units.length)return;
+   if(elements.length!==semanticUnits.length)return;
    const content=root.querySelector<HTMLElement>(".semantic-public-reader__page-content");
    const contentRect=content?.getBoundingClientRect();
    const contentHeight=contentRect?.height??pageContentHeight;
@@ -251,7 +255,7 @@ export default function SemanticReaderClient({slug,title,locale,mode,revisionSha
   if(measureRef.current)observer?.observe(measureRef.current);
   document.fonts?.ready.then(measure).catch(()=>{});
   return ()=>{cancelAnimationFrame(frame);observer?.disconnect()};
- },[measureKey,units,pageContentHeight,pageWidth]);
+ },[measureKey,semanticUnits,pageContentHeight,pageWidth]);
  // One leaf per animation frame, canceling superseded reflow generations.
  useEffect(()=>{
   if(!readyMeasurements||!measureRef.current)return;
@@ -316,7 +320,7 @@ export default function SemanticReaderClient({slug,title,locale,mode,revisionSha
    cache.set(key,height);
    return height;
   };
-  const iterator=iterateSemanticPages(units,{
+  const iterator=iterateSemanticPages(semanticUnits,{
    mode:"paged",viewport_width:contentWidth,
    viewport_height:actualCapacity+100,content_height:actualCapacity,
    font_scale:settings.fontScale,density:settings.density,
@@ -353,7 +357,7 @@ export default function SemanticReaderClient({slug,title,locale,mode,revisionSha
    cancelAnimationFrame(frame);
    iterator.return(undefined);
   };
- },[paginationKey,readyMeasurements,units,contentWidth,actualCapacity,
+ },[paginationKey,readyMeasurements,semanticUnits,contentWidth,actualCapacity,
    settings.fontScale,settings.density,protectedTerms]);
 
  const patch=useCallback((next:Partial<ReaderSettings>)=>setSettings(old=>({...old,...next})),[]);
@@ -522,7 +526,7 @@ export default function SemanticReaderClient({slug,title,locale,mode,revisionSha
        <div className="artales-reader__page-header semantic-public-reader__paper-top"
         aria-hidden="true"><span>{title}</span><span>1</span></div>
        <div className="artales-reader__page-content semantic-public-reader__page-content">
-        {units.map(unit=><div className="semantic-reader__unit" data-semantic-measure-id={unit.id} key={unit.id}>
+        {semanticUnits.map(unit=><div className="semantic-reader__unit" data-semantic-measure-id={unit.id} key={unit.id}>
          {unitView(unit,protectedTerms,visuals)}
         </div>)}
        </div>
