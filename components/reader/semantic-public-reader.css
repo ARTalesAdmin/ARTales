@@ -41,10 +41,12 @@
  grid-template-rows:32px minmax(0,1fr) 34px;
  row-gap:clamp(10px,1.8vw,18px);
  box-sizing:border-box;
+ height:var(--reader-page-height);
  min-height:var(--reader-page-height);
+ max-height:var(--reader-page-height);
  width:100%;
  max-width:100%;
- overflow:visible!important;
+ overflow:hidden!important;
  padding:clamp(54px,5.6vw,78px) clamp(38px,7vw,88px)
   clamp(32px,4vw,48px);
  border:1px solid var(--reader-paper-border)!important;
@@ -60,8 +62,15 @@
  min-height:0;
  max-width:100%;
  align-self:stretch;
- overflow:visible!important;
+ overflow:hidden!important;
 }
+/* Rare unbreakable atoms stay accessible inside the sheet instead of bleeding
+ * into the neighboring leaf. The paginator reports these explicitly. */
+.artales-reader--semantic .semantic-public-reader__paper--scroll-unit .semantic-public-reader__page-content{
+ overflow-y:auto!important;
+ scrollbar-width:thin;
+}
+
 .artales-reader--semantic .semantic-public-reader__paper :is(p,blockquote,aside,span,h2,h3,h4){
  color:inherit;
 }
@@ -75,6 +84,8 @@
  text-align:justify;
  text-align-last:start;
  text-justify:inter-word;
+ text-wrap:pretty;
+ word-spacing:normal;
  hyphens:manual;
  -webkit-hyphens:manual;
  word-break:normal;
@@ -171,9 +182,17 @@
 }
 .artales-reader--semantic .semantic-public-reader__measurement .semantic-reader__measurement-page{
  box-shadow:none!important;
- height:auto!important;
- min-height:0!important;
+ height:var(--reader-page-height)!important;
+ min-height:var(--reader-page-height)!important;
+ max-height:var(--reader-page-height)!important;
  overflow:visible!important;
+}
+/* Side arrows are the existing fixed controls from the classic Reader. */
+.artales-reader--semantic .semantic-public-reader__side-navigation{
+ position:relative;z-index:21;
+}
+.artales-reader--semantic .semantic-public-reader__side-navigation .artales-reader-side-nav{
+ top:50%;z-index:22;
 }
 .artales-reader--semantic .semantic-reader__illustration{
  margin:1.75em auto;
