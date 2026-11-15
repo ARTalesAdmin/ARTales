@@ -110,6 +110,7 @@
  text-align:center;
 }
 .artales-reader--semantic .semantic-public-reader__paper .semantic-reader__heading h3{
+ white-space:pre-line;
  color:var(--reader-paper-text);
  font:500 1.8em/1.18 Georgia,"Times New Roman",serif;
  text-align:center;
