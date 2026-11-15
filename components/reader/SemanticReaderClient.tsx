@@ -3,7 +3,7 @@ import {useCallback,useEffect,useMemo,useRef,useState,type CSSProperties} from "
 import {unitView,type ApprovedSemanticImage} from "@/components/reader/SemanticPageUnit";
 import ReaderToolbar from "@/components/reader/ReaderToolbar";
 import {getPublicDictionary} from "@/lib/i18n/public";
-import {iterateSemanticPages,paginateSemanticUnits} from "@/lib/semantic/readerProjection";
+import {iterateSemanticPages} from "@/lib/semantic/readerProjection";
 import {projectSemanticProseText} from "@/lib/semantic/displayText";
 import type {SemanticPage,SemanticPageUnit} from "@/lib/semantic/model";
 import type {SupportedLocale} from "@/lib/i18n/config";
@@ -86,7 +86,8 @@ export default function SemanticReaderClient({slug,title,locale,mode,revisionSha
  },[paginationSettled,pages,current]);
 
  const visibleStart=pageStart(current,spread);
- const progress=countProgress(current,total);
+ const progress=paginationSettled?countProgress(current,total):
+  measuredPages?.complete?countProgress(current,measuredPages.pages.length):0;
  const notesSorted=useMemo(()=>[...notes].sort((a,b)=>
   (a.progressPercent-b.progressPercent)||a.createdAt.localeCompare(b.createdAt)),[notes]);
  const selectedNoteIndex=notesSorted.findIndex(n=>n.id===selectedNoteId);
@@ -355,6 +356,7 @@ export default function SemanticReaderClient({slug,title,locale,mode,revisionSha
   return ()=>window.removeEventListener("scroll",onScroll);
  },[spread,pages.length]);
  const addNote=useCallback((input:{title:string;body:string;color:ReaderNoteColor})=>{
+  if(!paginationSettled)return;
   const stamp=new Date().toISOString();
   const note:ReaderNote={
    id:crypto.randomUUID(),slug,title:input.title.trim(),body:input.body.trim(),
@@ -368,7 +370,7 @@ export default function SemanticReaderClient({slug,title,locale,mode,revisionSha
     if(!r.ok)setNotesSyncState("local");
    }).catch(()=>setNotesSyncState("local"));
   setSelectedNoteId(note.id);
- },[slug,progress,current,total,settings.layoutMode,notesSyncState]);
+ },[slug,progress,current,total,settings.layoutMode,notesSyncState,paginationSettled]);
  const goToNote=(note:ReaderNote)=>{
   setSelectedNoteId(note.id);
   goToIndex(Math.round(note.progressPercent/100*(total-1)));
@@ -431,7 +433,7 @@ export default function SemanticReaderClient({slug,title,locale,mode,revisionSha
    progressPercent={progress} pageIndex={current} pageCount={total}
    settings={{...settings,showAdvancedReaderControls:true}}
    labels={dictionary.reader} chromeLabels={dictionary.public}
-   notes={notesSorted} notesEnabled={true}
+   notes={notesSorted} notesEnabled={paginationSettled}
    selectedNoteId={selectedNoteId} selectedNoteIndex={selectedNoteIndex}
    isNotesListExpanded={notesExpanded} notesSyncState={notesSyncState}
    onFontDelta={delta=>patch({fontScale:clampReaderFontScale(settings.fontScale+delta)})}
