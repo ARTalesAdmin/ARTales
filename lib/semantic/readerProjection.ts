@@ -154,7 +154,7 @@ export function chooseSemanticParagraphBreak(
 /** Create one bounded fragment, preserving the root paragraph and its source anchor. */
 function makeFragment(unit:SemanticPageUnit,start:number,end:number,sourceHeight:number):SemanticPageUnit {
   if(!["paragraph","quote","epigraph","footnote"].includes(unit.kind) ||
-     !["paragraph","quote","epigraph","footnote"].includes(unit.node.kind))
+     !("atom" in unit.node))
     throw Error("Only source-anchored prose can fragment.");
   const root=unit.fragment?.original_unit_id??unit.id;
   const raw=unit.node.atom.raw;
@@ -173,7 +173,7 @@ function makeFragment(unit:SemanticPageUnit,start:number,end:number,sourceHeight
 export function splitParagraphUnit(unit:SemanticPageUnit,maxChars:number,allowWordFallback=false,
   protectedTerms:readonly string[]=[]):SemanticPageUnit[] {
   if(!["paragraph","quote","epigraph","footnote"].includes(unit.kind) ||
-     !["paragraph","quote","epigraph","footnote"].includes(unit.node.kind) ||
+     !("atom" in unit.node) ||
      !Number.isInteger(maxChars)||maxChars<12)return [unit];
   const raw=unit.node.atom.raw;
   const from=unit.fragment?.start??0,until=unit.fragment?.end??raw.length;
@@ -201,7 +201,7 @@ function takePageFragment(unit:SemanticPageUnit,maxChars:number,allowWordFallbac
   protectedTerms:readonly string[]=[]):
   [SemanticPageUnit,SemanticPageUnit] | null {
   if(!["paragraph","quote","epigraph","footnote"].includes(unit.kind) ||
-     !["paragraph","quote","epigraph","footnote"].includes(unit.node.kind))return null;
+     !("atom" in unit.node))return null;
   const from=unit.fragment?.start??0,until=unit.fragment?.end??unit.node.atom.raw.length;
   const end=chooseSemanticParagraphBreak(unit.node.atom.raw,from,
     Math.min(until-1,from+maxChars),until,allowWordFallback,minTail,protectedTerms);
@@ -271,7 +271,7 @@ export function* iterateSemanticPages(units:readonly SemanticPageUnit[],layout:S
   const fitParagraph=(unit:SemanticPageUnit,remaining:number):
     [SemanticPageUnit,SemanticPageUnit]|null=>{
     if(!["paragraph","quote","epigraph","footnote"].includes(unit.kind) ||
-       !["paragraph","quote","epigraph","footnote"].includes(unit.node.kind) ||
+       !("atom" in unit.node) ||
        remaining<minimumBody)return null;
     const from=unit.fragment?.start??0;
     const until=unit.fragment?.end??unit.node.atom.raw.length;
@@ -332,7 +332,7 @@ export function* iterateSemanticPages(units:readonly SemanticPageUnit[],layout:S
     // A paragraph may be longer than the whole page: split it into DOM-fitted
     // continuations, not a single overflowing element. Never rely on simple
     // character-height proportionality when browser measurements are supplied.
-    if(["paragraph","quote","epigraph","footnote"].includes(unit.kind)&&
+    if(["paragraph","quote","epigraph","footnote"].includes(unit.kind)&&"atom" in unit.node&&
        unit.estimated_height>capacity-weight-6){
       if(pending.length && capacity-weight<minimumBody){
         const leaf=flush();if(leaf)yield leaf;
@@ -386,7 +386,7 @@ export function verifyReaderProjection(revision:SemanticRevision,pages:SemanticP
       continue;
     }
     if(!["paragraph","quote","epigraph","footnote"].includes(base.kind) ||
-       !["paragraph","quote","epigraph","footnote"].includes(base.node.kind))
+       !("atom" in base.node))
       throw Error("Non-prose semantic split rejected.");
     let offset=0;
     for(const part of members){
