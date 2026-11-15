@@ -148,7 +148,8 @@ export default function SemanticReaderLab({
     mode,viewport_width:measured?.pageWidth??Math.max(220,fallbackWidth),
     viewport_height:measured?.viewportHeight??850,font_scale:scale,density:effectiveDensity,
     measured_unit_heights:measured?.heights,editionRange:edition.range,
-  }),[activeRevision,mode,scale,effectiveDensity,measured,fallbackWidth,edition.range]);
+    protected_terms:protectedTerms,
+  }),[activeRevision,mode,scale,effectiveDensity,measured,fallbackWidth,edition.range,protectedTerms]);
   const integrity=verifyReaderProjection(activeRevision,pages,edition.range);
   const locatedNotes=useMemo(()=>locateAndSortSessionNotes(activeRevision,pages,qaNotes),[activeRevision,pages,qaNotes]);
   const selectedNoteIndex=locatedNotes.findIndex(item=>item.saved.note.id===selectedNoteId);

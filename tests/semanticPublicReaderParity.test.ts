@@ -34,11 +34,12 @@ test("public route selects published semantic Reader but retains legacy reader f
  assert.match(route,/<ReaderClient/);
  assert.match(boundary,/sourceUnits\.slice\(0,12\)/);
  assert.match(boundary,/paginateSemanticUnits|SemanticReaderClient/);
- assert.doesNotMatch(publicClient,/ReaderToolbar|import "\.\/reader\.css"/);
- assert.match(publicClient,/semantic-reader__controls/);
- assert.match(publicClient,/semantic-reader__triptych--focus/);
+ assert.match(publicClient,/ReaderToolbar/);
+ assert.match(publicClient,/import "\.\/reader\.css"/);
+ assert.match(publicClient,/artales-reader__paper/);
+ assert.match(publicClient,/artales-reader__stage/);
  assert.match(publicClient,/semantic-reader__pages--spread/);
- assert.match(publicClient,/data-reader-theme=\{settings\.theme\}/);
+ assert.match(publicClient,/artales-reader--theme-/);
  assert.match(publicClient,/semantic-reader-theme\.css/);
  assert.match(publicClient,/paginateSemanticUnits/);
  assert.match(publicClient,/unitView\(unit,protectedTerms,visuals\)/);
@@ -52,4 +53,20 @@ test("cover stays a single independent unit and edition flags remain filtered",(
  const projection=read("lib/semantic/readerProjection.ts");
  assert.match(projection,/revision\.editorial_exclusions\?\.includes\(id\)/);
  assert.match(projection,/classifyGutenbergApparatus/);
+});
+
+test("semantic page geometry is derived from the old book sheet and measured with identical inner padding",()=>{
+ const client=read("components/reader/SemanticReaderClient.tsx");
+ const css=read("components/reader/semantic-public-reader.css");
+ const qaCss=read("components/editor/semantic-reader.css");
+ assert.match(client,/pageHeight=Math\.round\(pageWidth\*1\.414\)/);
+ assert.match(client,/pageContentHeight=Math\.max\(300,pageHeight-210\)/);
+ assert.match(client,/viewport_height:pageContentHeight\+100/);
+ assert.match(client,/data-semantic-measure-id=\{unit\.id\}/);
+ assert.match(client,/artales-reader__page-content semantic-public-reader__page-content/);
+ assert.match(css,/grid-template-rows:32px minmax\(0,1fr\) 34px/);
+ assert.match(css,/font-size:calc\(18px \* var\(--reader-font-scale,1\)\)/);
+ assert.match(qaCss,/font-size:calc\(18px \* var\(--reader-scale,1\)\)/);
+ assert.match(css,/hyphens:manual/);
+ assert.match(css,/word-break:normal/);
 });
