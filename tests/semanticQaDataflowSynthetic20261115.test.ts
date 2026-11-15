@@ -109,6 +109,8 @@ test("real UI and server actions share the exact mixed QA source-to-revision pat
  const finish=source("app/member/semantic/[candidateId]/qa-actions.ts");
  const sql=source("supabase/migrations/20261115154959_artales_mixed_ai_qa_commit.sql");
  assert.match(panel,/enqueueSemanticAiQaJob\(/);
+ assert.match(panel,/job\.appliedRevisionSha===p\.revisionSha/);
+ assert.match(panel,/job\.appliedRevisionSha\?\<p\>Nová opravná revize/);
  assert.match(jobs,/artales_enqueue_ai_qa_job/);
  assert.match(worker,/artales_claim_ai_qa_job/);
  assert.match(worker,/generateSemanticAiQaSuggestions\(input,db\)/);
