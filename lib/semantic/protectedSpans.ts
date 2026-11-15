@@ -18,10 +18,14 @@ export function getProtectedTextSpans(raw:string,terms:readonly string[]=[]):Pro
   const normalized=projectSemanticProseText(raw);
   const explicit=[...new Set(terms.map(x=>x.trim()).filter(x=>x.length>=2&&x.length<=80))]
     .sort((a,b)=>b.length-a.length).slice(0,60).map(literalPattern);
-  const pattern=[...explicit,...autoPatterns].join("|");
-  const regex=new RegExp("(?<![\\p{L}\\p{N}])(?:"+pattern+")(?![\\p{L}\\p{N}])","giu");
-  const matches=[...normalized.matchAll(regex)]
-    .map(m=>({start:m.index,end:m.index+m[0].length}));
+  // Keep editorial phrases case-insensitive but auto-detect capitalized
+  // proper names CASE-SENSITIVELY. A global 'i' flag causes \p{Lu} to
+  // match lowercase words and incorrectly protects prose such as "met Mr".
+  const bounded=(pattern:string)=>"(?<![\\p{L}\\p{N}])(?:"+pattern+")(?![\\p{L}\\p{N}])";
+  const matches=[
+    ...(explicit.length?[...normalized.matchAll(new RegExp(bounded(explicit.join("|")),"giu"))]:[]),
+    ...normalized.matchAll(new RegExp(bounded(autoPatterns.join("|")),"gu")),
+  ].map(m=>({start:m.index,end:m.index+m[0].length}));
   matches.sort((a,b)=>a.start-b.start||b.end-a.end);
   const merged:ProtectedTextSpan[]=[];
   for(const hit of matches){
