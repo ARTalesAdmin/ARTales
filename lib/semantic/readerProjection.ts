@@ -1,8 +1,8 @@
-import type { SemanticRevision, SemanticNode, SemanticPageUnit, SemanticPage, ReaderAnchorV2, SemanticAtom } from "./model";
+import type { SemanticRevision, SemanticNode, SemanticPageUnit, SemanticPage, ReaderAnchorV2 } from "./model";
 import { walkSemanticAtoms, verifySemanticRevision } from "./compose";
 
 import { projectSemanticProseText } from "./displayText";
-import {isProtectedTextBoundary} from "./protectedSpans";
+import {getProtectedTextSpans,type ProtectedTextSpan} from "./protectedSpans";
 import { classifyGutenbergApparatus,poemInsideEditorialEdition } from "./editionProjection";
 
 export type SemanticReaderLayout = {
@@ -14,6 +14,8 @@ export type SemanticReaderLayout = {
   density?: "comfortable" | "compact";
   /** Optional browser measurements on exact rendered page width/typeface. */
   measured_unit_heights?: Readonly<Record<string, number>>;
+  /** Measured inner paper content rectangle. Supplied by the public DOM Reader. */
+  content_height?: number;
   /** Exact browser measurement of the current paragraph fragment when available. */
   measure_fragment_height?: (fragment:SemanticPageUnit)=>number|null;
   /** Immutable editorial keep-together rules + universal typography. */
@@ -75,6 +77,30 @@ export function getSemanticPageUnits(revision: SemanticRevision, editionRange?:{
   });
 }
 
+/** Read-only recognition of chapter-number + uppercase-title pairs from legacy
+ * flat semantic revisions. Original source atoms, ordering and hashes remain
+ * unchanged. Recognize only an adjacent pair in the literary projection, not
+ * standalone Roman numerals in dialogue or table-of-contents lines. */
+export function projectFlatChapterHeadings(units:readonly SemanticPageUnit[]):SemanticPageUnit[]{
+ const result=[...units];
+ const numeral=/^(?:I|II|III|IV|V|VI|VII|VIII|IX|X|XI|XII|XIII|XIV|XV|XVI|XVII|XVIII|XIX|XX)$/;
+ const title=/^[\p{Lu}\p{M}\p{N}][\p{Lu}\p{M}\p{N}\p{P}\p{Zs}'’—–-]{3,110}$/u;
+ for(let i=0;i+2<result.length;i++){
+  const number=result[i],heading=result[i+1],firstBody=result[i+2];
+  if(number.kind!=="paragraph"||heading.kind!=="paragraph"||
+     !("atom" in number.node)||!("atom" in heading.node)||
+     !["paragraph","quote","epigraph"].includes(firstBody.kind))continue;
+  const n=number.node.atom.raw.trim(),h=heading.node.atom.raw.trim();
+  if(!numeral.test(n)||!title.test(h)||!/[\p{L}]/u.test(h))continue;
+  // Do not mistake a text block's ordinary uppercase emphasis for a
+  // chapter title; the preceding Roman numeral and next prose are required.
+  result[i]={...number,layout_role:"chapter_number"};
+  result[i+1]={...heading,layout_role:"chapter_title"};
+  i++;
+ }
+ return result;
+}
+
 /** First server-render fallback; hydrated preview replaces it with real DOM heights. */
 function estimateUnitHeight(unit: SemanticPageUnit, layout: SemanticReaderLayout): number {
   if(unit.kind==="title_page")return Math.max(350,Math.min(650,layout.viewport_height-220));
@@ -102,12 +128,16 @@ function estimateUnitHeight(unit: SemanticPageUnit, layout: SemanticReaderLayout
 export function chooseSemanticParagraphBreak(
   raw: string, start: number, requestedEnd: number, stop = raw.length,
   allowWordFallback = false,minTail = 30,protectedTerms:readonly string[]=[],
+  cachedProtectedSpans?:readonly ProtectedTextSpan[],
 ): number | null {
   if (!Number.isInteger(start) || !Number.isInteger(requestedEnd) ||
       !Number.isInteger(stop) || start < 0 || start >= stop ||
       stop > raw.length || requestedEnd <= start || requestedEnd >= stop) return null;
   const scan = raw.slice(start, Math.min(stop, requestedEnd));
-  const minLength = Math.max(12, Math.min(44, Math.floor(scan.length * 0.40)));
+  const minLength = Math.max(1, Math.min(44, Math.floor(scan.length * 0.25)));
+  // Detect protected spans once per candidate search, rather than running all
+  // Unicode regular expressions for every whitespace candidate (quadratic).
+  const protectedRanges=cachedProtectedSpans??getProtectedTextSpans(raw,protectedTerms);
   const candidates: {end: number; score: number}[] = [];
   const add = (end: number, bonus: number) => {
     const count = end - start;
@@ -117,21 +147,33 @@ export function chooseSemanticParagraphBreak(
     // fragment/page edge. The following word must stay on the same page.
     if (/(?:^|\s)[aI]\s*$/u.test(raw.slice(start,end))) return;
     if (end <= start || end > requestedEnd) return;
-    if (isProtectedTextBoundary(raw,end,protectedTerms)) return;
-    // A strong punctuation break may be preferable to a slightly fuller page.
-    candidates.push({end, score: count / scan.length * 8 + bonus});
+    // Search sorted protected boundaries without scanning every span repeatedly.
+    let left=0,right=protectedRanges.length-1,inside=false;
+    while(left<=right){
+      const middle=(left+right)>>>1,span=protectedRanges[middle];
+      if(end<=span.start)right=middle-1;
+      else if(end>=span.end)left=middle+1;
+      else {inside=true;break;}
+    }
+    if(inside)return;
+    // Prefer a natural clause/sentence ending when it is close to the
+    // measured sheet edge. An earlier full line is better than splitting
+    // "story of" / "revolving terms" purely to maximize ink density.
+    // Preference cannot discard over ~15% of usable text for punctuation.
+    const fullness=count/scan.length;
+    candidates.push({end, score:fullness*10+(fullness>=.85?bonus:0)});
   };
   for (const match of scan.matchAll(/[.!?;:][”’"')\]]*\s+/g)) {
     const token = match[0];
     add(start + match.index! + token.length,
-      /[.!?]/.test(token[0]) ? 2.4 : token[0] === ";" ? 2.1 : 1.35);
+      /[.!?]/.test(token[0]) ? 1.3 : token[0] === ";" ? 1.15 : 0.55);
   }
   for (const match of scan.matchAll(/[,][”’"')\]]*\s+/g)) {
-    add(start + match.index! + match[0].length, 0.85);
+    add(start + match.index! + match[0].length, 0.15);
   }
   // A long unpunctuated clause can break after a conjunction, never mid-word.
   for (const match of scan.matchAll(/\b(?:but|and|yet|because|although|however|when|while)\b\s+/gi)) {
-    add(start + match.index! + match[0].length, 0.35);
+    add(start + match.index! + match[0].length, 0.08);
   }
   if (allowWordFallback) {
     for (const match of scan.matchAll(/\s+/g)) {
@@ -147,7 +189,9 @@ export function chooseSemanticParagraphBreak(
 
 /** Create one bounded fragment, preserving the root paragraph and its source anchor. */
 function makeFragment(unit:SemanticPageUnit,start:number,end:number,sourceHeight:number):SemanticPageUnit {
-  if(unit.kind!=="paragraph" || unit.node.kind!=="paragraph")throw Error("Only paragraphs can fragment.");
+  if(!["paragraph","quote","epigraph","footnote"].includes(unit.kind) ||
+     !("atom" in unit.node))
+    throw Error("Only source-anchored prose can fragment.");
   const root=unit.fragment?.original_unit_id??unit.id;
   const raw=unit.node.atom.raw;
   const baseStart=unit.fragment?.start??0, baseEnd=unit.fragment?.end??raw.length;
@@ -164,18 +208,20 @@ function makeFragment(unit:SemanticPageUnit,start:number,end:number,sourceHeight
 
 export function splitParagraphUnit(unit:SemanticPageUnit,maxChars:number,allowWordFallback=false,
   protectedTerms:readonly string[]=[]):SemanticPageUnit[] {
-  if(unit.kind!=="paragraph"||unit.node.kind!=="paragraph"||
+  if(!["paragraph","quote","epigraph","footnote"].includes(unit.kind) ||
+     !("atom" in unit.node) ||
      !Number.isInteger(maxChars)||maxChars<12)return [unit];
   const raw=unit.node.atom.raw;
   const from=unit.fragment?.start??0,until=unit.fragment?.end??raw.length;
   if(until-from<=maxChars)return [unit];
   const parts:SemanticPageUnit[]=[];
+  const spans=getProtectedTextSpans(raw,protectedTerms);
   let start=from;
   while(start<until){
     if(until-start<=maxChars){
       parts.push(makeFragment(unit,start,until,unit.estimated_height));break;
     }
-    const end=chooseSemanticParagraphBreak(raw,start,start+maxChars,until,allowWordFallback,30,protectedTerms);
+    const end=chooseSemanticParagraphBreak(raw,start,start+maxChars,until,allowWordFallback,30,protectedTerms,spans);
     if(end===null){
       if(!parts.length)return [unit];
       parts.push(makeFragment(unit,start,until,unit.estimated_height));
@@ -189,12 +235,13 @@ export function splitParagraphUnit(unit:SemanticPageUnit,maxChars:number,allowWo
 
 /** Cut only once at the page boundary; preserve the remainder as one unsplit unit. */
 function takePageFragment(unit:SemanticPageUnit,maxChars:number,allowWordFallback:boolean,minTail=30,
-  protectedTerms:readonly string[]=[]):
+  protectedTerms:readonly string[]=[],cachedProtectedSpans?:readonly ProtectedTextSpan[]):
   [SemanticPageUnit,SemanticPageUnit] | null {
-  if(unit.kind!=="paragraph"||unit.node.kind!=="paragraph")return null;
+  if(!["paragraph","quote","epigraph","footnote"].includes(unit.kind) ||
+     !("atom" in unit.node))return null;
   const from=unit.fragment?.start??0,until=unit.fragment?.end??unit.node.atom.raw.length;
   const end=chooseSemanticParagraphBreak(unit.node.atom.raw,from,
-    Math.min(until-1,from+maxChars),until,allowWordFallback,minTail,protectedTerms);
+    Math.min(until-1,from+maxChars),until,allowWordFallback,minTail,protectedTerms,cachedProtectedSpans);
   if(end===null)return null;
   return [makeFragment(unit,from,end,unit.estimated_height),
     makeFragment(unit,end,until,unit.estimated_height)];
@@ -207,7 +254,9 @@ export function projectSemanticReader(revision: SemanticRevision, layout: Semant
  * already-verified and edition-filtered units in the public client. This
  * keeps preview payloads from exposing the whole copyrighted work.
  */
-export function paginateSemanticUnits(units:readonly SemanticPageUnit[],layout:SemanticReaderLayout):SemanticPage[] {
+/** One canonical page engine. Public DOM reflow consumes one leaf at a time
+ * across animation frames; QA can exhaust the same generator synchronously. */
+export function* iterateSemanticPages(units:readonly SemanticPageUnit[],layout:SemanticReaderLayout):Generator<SemanticPage> {
   if (!Number.isFinite(layout.viewport_width) || !Number.isFinite(layout.viewport_height) ||
     layout.viewport_width < 200 || layout.viewport_height < 320 ||
     layout.viewport_width > 10000 || layout.viewport_height > 10000 ||
@@ -217,33 +266,50 @@ export function paginateSemanticUnits(units:readonly SemanticPageUnit[],layout:S
   if (layout.density !== undefined && layout.density !== "comfortable" && layout.density !== "compact") {
     throw new Error("Invalid Reader line density.");
   }
-  const all = units.map(unit => {
+  const all = projectFlatChapterHeadings(units).map(unit => {
     const measured = layout.measured_unit_heights?.[unit.id];
     if (measured !== undefined && (!Number.isFinite(measured) || measured <= 0 || measured > 100000)) {
       throw new Error("Invalid browser-measured semantic unit height.");
     }
     return { ...unit, estimated_height: measured ?? estimateUnitHeight(unit, layout) };
   });
-  // viewport_height is the exact browser-measured inner paper area plus 100px
-  // for the shared page contract. This avoids using assumptions about CSS padding.
-  const capacity = Math.max(240, layout.viewport_height - 100);
-  const result: SemanticPage[] = [];
+  // Public Reader passes the actual inner content rectangle; QA retains its
+  // legacy viewport estimate until it can supply the same DOM geometry.
+  const capacity=layout.content_height??Math.max(240,layout.viewport_height-100);
+  if(!Number.isFinite(capacity)||capacity<80||capacity>10000)
+    throw new Error("Invalid measured page content height.");
+  let nextPageIndex=0;
   let pending: SemanticPageUnit[] = [];
   let weight = 0;
-  const flush = () => {
-    if (!pending.length) return;
-    result.push({
-      index: result.length, units: pending,
-      overflow: pending.some(unit => unit.estimated_height > capacity) ? "scroll_unit" : "none",
-      estimated_height: weight,
-    });
-    pending = []; weight = 0;
+  const flush = ():SemanticPage|null => {
+    if(!pending.length)return null;
+    // A fragment produced merely as a layout decision is not a new paragraph.
+    // Coalesce adjacent contiguous ranges on the same leaf before rendering.
+    const coalesced:SemanticPageUnit[]=[];
+    for(const unit of pending){
+      const prev=coalesced.at(-1),a=prev?.fragment,b=unit.fragment;
+      if(prev&&a&&b&&a.original_unit_id===b.original_unit_id&&a.end===b.start){
+        coalesced[coalesced.length-1]={
+          ...prev,
+          id:a.original_unit_id+":range:"+a.start+"-"+b.end,
+          fragment:{...a,end:b.end,normalized_end:b.normalized_end,
+            continuation_after:b.continuation_after},
+          estimated_height:prev.estimated_height+unit.estimated_height,
+        };
+      }else coalesced.push(unit);
+    }
+    const page:SemanticPage={
+      index:nextPageIndex++,units:coalesced,
+      overflow:pending.some(unit=>unit.estimated_height>capacity)?"scroll_unit":"none",
+      estimated_height:weight,
+    };
+    pending=[];weight=0;
+    return page;
   };
   if (layout.mode === "scroll") {
-    return [{
-      index: 0, units: all, overflow: "scroll_unit",
-      estimated_height: all.reduce((sum, unit) => sum + unit.estimated_height, 0),
-    }];
+    yield {index:0,units:all,overflow:"scroll_unit",
+      estimated_height:all.reduce((sum,unit)=>sum+unit.estimated_height,0)};
+    return;
   }
   const lineHeight=18*layout.font_scale*(layout.density==="compact"?1.48:1.62);
   const minimumBody=2.5*lineHeight;
@@ -254,39 +320,92 @@ export function paginateSemanticUnits(units:readonly SemanticPageUnit[],layout:S
   };
   // The editor and public Reader use this exact same semantic split policy.
   // A browser can additionally supply true DOM heights for candidate fragments.
+  const spansByAtom=new Map<string,readonly ProtectedTextSpan[]>();
   const fitParagraph=(unit:SemanticPageUnit,remaining:number):
     [SemanticPageUnit,SemanticPageUnit]|null=>{
-    if(unit.kind!=="paragraph"||unit.node.kind!=="paragraph"||remaining<minimumBody)return null;
+    if(!["paragraph","quote","epigraph","footnote"].includes(unit.kind) ||
+       !("atom" in unit.node) ||
+       remaining<minimumBody)return null;
     const from=unit.fragment?.start??0;
     const until=unit.fragment?.end??unit.node.atom.raw.length;
+    const atomId=unit.node.atom.id;
+    let spans=spansByAtom.get(atomId);
+    if(!spans){spans=getProtectedTextSpans(unit.node.atom.raw,layout.protected_terms??[]);spansByAtom.set(atomId,spans);}
     const length=until-from;
     const approxCharsPerLine=Math.max(18,Math.floor(
       Math.max(160,layout.viewport_width)/(9.1*layout.font_scale)));
-    // No single-line tail or first-page orphan. The actual boundary also
-    // respects the persisted per-work no-break terms and named entities.
-    const minTail=Math.max(18,Math.min(approxCharsPerLine*2,Math.floor(length*.35)));
-    const minHead=Math.max(18,Math.min(approxCharsPerLine*2,Math.floor(length*.35)));
-    let low=minHead,high=length-minTail;
-    let best:[SemanticPageUnit,SemanticPageUnit]|null=null;
-    let lastBoundary=-1;
-    for(let attempt=0;attempt<14 && low<=high;attempt++){
-      const middle=Math.floor((low+high)/2);
-      const cut=takePageFragment(unit,middle,true,minTail,layout.protected_terms??[]);
-      if(!cut){low=middle+1;continue;}
-      const boundary=cut[0].fragment?.end??-1;
-      const h=measureFragment(cut[0]);
-      if(h<=remaining-6){
-        best=[{...cut[0],estimated_height:h},cut[1]];
-        low=middle+1;
-      }else{
-        high=middle-1;
-      }
-      // Repeated punctuation preference can yield the same boundary; the
-      // bisection still converges by narrowing the requested character budget.
-      lastBoundary=boundary;
+    // Keep a modest tail/head guard for readability; fit is determined
+    // by actual DOM line height, not by a reserve of whole lines.
+    const minTail=Math.max(8,Math.min(Math.floor(approxCharsPerLine*.65),Math.floor(length*.2)));
+    const minHead=Math.max(8,Math.min(Math.floor(approxCharsPerLine*.65),Math.floor(length*.2)));
+    // First find the furthest source word boundary that actually fits.
+    // Do not apply punctuation preference *inside* bisection: different
+    // candidate scores make the length/height test non-monotonic.
+    const raw=unit.node.atom.raw;
+    const whitespace=[...raw.slice(from,until).matchAll(/\s+/g)]
+     .map(m=>from+m.index!+m[0].length)
+     .filter(end=>end-from>=minHead&&until-end>=minTail &&
+       !spans!.some(span=>span.start<end&&end<span.end));
+    if(!whitespace.length)return null;
+    let lo=0,hi=whitespace.length-1,bestIndex=-1;
+    const measured=new Map<number,{cut:[SemanticPageUnit,SemanticPageUnit];height:number}>();
+    const check=(index:number)=>{
+     const end=whitespace[index];
+     let item=measured.get(end);
+     if(!item){
+      const first=makeFragment(unit,from,end,unit.estimated_height);
+      const second=makeFragment(unit,end,until,unit.estimated_height);
+      item={cut:[first,second],height:measureFragment(first)};
+      measured.set(end,item);
+     }
+     return item;
+    };
+    while(lo<=hi){
+     const mid=(lo+hi)>>>1;
+     if(check(mid).height<=remaining-2){bestIndex=mid;lo=mid+1;}
+     else hi=mid-1;
     }
-    void lastBoundary;
-    return best;
+    if(bestIndex<0)return null;
+    // Soft punctuation preference must NEVER give up a full measured line.
+    // Choose within the same visual line as the furthest fitting boundary.
+    const best=check(bestIndex);
+    const lastLineChars=Math.max(16,approxCharsPerLine);
+    const lowEnd=whitespace[bestIndex]-Math.ceil(lastLineChars*.85);
+    let selected=bestIndex,selectedScore=0;
+    for(let j=bestIndex;j>=0&&whitespace[j]>=lowEnd;j--){
+     const end=whitespace[j];
+     const before=raw.slice(from,end).trimEnd();
+     // Strip closing punctuation such as ” before examining the clause edge.
+     // The previous character-class regex silently failed for bare "kind,"
+     // and "sentence.", so punctuation was not preferred in real books.
+     const terminal=before.replace(/[”’"')\]]+$/u,"");
+     const punctuation=/[.!?]$/.test(terminal)?3:
+       /[;:]$/.test(terminal)?2:
+       /,$/.test(terminal)?1:0;
+     if(punctuation>selectedScore &&
+        Math.abs(check(j).height-best.height)<1.5 &&
+        check(j).height<=remaining-2){
+      selected=j;selectedScore=punctuation;
+      if(punctuation===3)break;
+     }
+    }
+    // Never finish a sheet with a hanging article, conjunction or
+    // preposition when a slightly earlier safe word boundary exists.
+    // Keep all source bytes and make a typographic choice only.
+    if(selectedScore===0){
+     const dangling=/(?:^|\s)(?:the|a|an|of|to|and|or|but|with|in|on|at|for|by|from|as)\s*$/iu;
+     const endText=()=>raw.slice(from,whitespace[selected]).trimEnd();
+     if(dangling.test(endText())){
+      for(let j=selected-1;j>=0&&whitespace[j]>=lowEnd;j--){
+       if(!dangling.test(raw.slice(from,whitespace[j]).trimEnd()) &&
+          Math.abs(check(j).height-best.height)<1.5){
+        selected=j;break;
+       }
+      }
+     }
+    }
+    const chosen=check(selected);
+    return [{...chosen.cut[0],estimated_height:chosen.height},chosen.cut[1]];
   };
   const queue=[...all];
   for(let i=0;i<queue.length;i++){
@@ -296,30 +415,48 @@ export function paginateSemanticUnits(units:readonly SemanticPageUnit[],layout:S
       queue[i]=unit;
     }
     if(unit.kind==="title_page"){
-      flush();pending.push(unit);weight=unit.estimated_height;flush();continue;
+      const preceding=flush();if(preceding)yield preceding;
+      pending.push(unit);weight=unit.estimated_height;
+      const cover=flush();if(cover)yield cover;
+      continue;
     }
     // A new chapter always opens on a fresh leaf; a section heading must
     // remain with at least two-three lines of the following text.
-    if(unit.kind==="chapter_heading"&&pending.length)flush();
+    if((unit.kind==="chapter_heading"||unit.layout_role==="chapter_number")&&pending.length){
+      const leaf=flush();if(leaf)yield leaf;
+    }
+    // Number, title and opening prose stay together as a book heading group.
+    if(unit.layout_role==="chapter_number"){
+      const title=queue[i+1],body=queue[i+2];
+      if(title?.layout_role==="chapter_title"&&body){
+        const required=unit.estimated_height+title.estimated_height+
+          Math.min(body.estimated_height,minimumBody*2);
+        if(pending.length&&weight+required>capacity){
+          const leaf=flush();if(leaf)yield leaf;
+        }
+      }
+    }
     const next=queue[i+1];
     if(unit.kind==="section_heading"&&pending.length){
       const nextMinimum=next?Math.min(next.estimated_height,minimumBody+lineHeight):0;
-      if(weight+unit.estimated_height+nextMinimum>capacity)flush();
+      if(weight+unit.estimated_height+nextMinimum>capacity){
+        const leaf=flush();if(leaf)yield leaf;
+      }
     }
     // A paragraph may be longer than the whole page: split it into DOM-fitted
     // continuations, not a single overflowing element. Never rely on simple
     // character-height proportionality when browser measurements are supplied.
-    if(unit.kind==="paragraph"&&unit.node.kind==="paragraph"&&
-       unit.estimated_height>capacity-weight-6){
+    if(["paragraph","quote","epigraph","footnote"].includes(unit.kind)&&"atom" in unit.node&&
+       unit.estimated_height>capacity-weight-2){
       if(pending.length && capacity-weight<minimumBody){
-        flush();
+        const leaf=flush();if(leaf)yield leaf;
       }
       const cut=fitParagraph(unit,capacity-weight);
       if(cut){
         queue.splice(i,1,cut[0],cut[1]);
         unit=queue[i];
       }else if(pending.length){
-        flush();
+        const leaf=flush();if(leaf)yield leaf;
         const freshCut=fitParagraph(unit,capacity);
         if(freshCut){
           queue.splice(i,1,freshCut[0],freshCut[1]);
@@ -327,20 +464,29 @@ export function paginateSemanticUnits(units:readonly SemanticPageUnit[],layout:S
         }
       }
     }
-    if(pending.length && weight+unit.estimated_height>capacity)flush();
+    if(pending.length && weight+unit.estimated_height>capacity){
+      const leaf=flush();if(leaf)yield leaf;
+    }
     pending.push(unit);
     weight+=unit.estimated_height;
-    if(unit.estimated_height>capacity)flush(); // truly unbreakable atom, reported to UI
-    if(unit.fragment?.continuation_after &&
-       queue[i+1]?.fragment?.original_unit_id===unit.fragment.original_unit_id)flush();
+    if(unit.estimated_height>capacity){
+      const leaf=flush();if(leaf)yield leaf; // explicit special-object fallback
+    }
+    // A continuation is allowed to share this leaf with another paragraph
+    // fragment or the next block. NEVER flush solely because it is a fragment.
   }
-  flush();
-  return result;
+  const leaf=flush();if(leaf)yield leaf;
+}
+/** Eager wrapper for QA/tests; identical semantic algorithm, no parallel path. */
+export function paginateSemanticUnits(units:readonly SemanticPageUnit[],layout:SemanticReaderLayout):SemanticPage[]{
+  return [...iterateSemanticPages(units,layout)];
 }
 
-export function verifyReaderProjection(revision:SemanticRevision,pages:SemanticPage[],editionRange?:{start:number;end:number}){
-  verifySemanticRevision(revision);
-  const expected=getSemanticPageUnits(revision,editionRange);
+/** Content-integrity contract for any published/QA unit sequence.
+ * No content may disappear silently behind overflow clipping. */
+export function verifySemanticPageCoverage(
+ expected:readonly SemanticPageUnit[],pages:readonly SemanticPage[]
+){
   const actual=pages.flatMap(p=>p.units);
   let index=0;
   for(const base of expected){
@@ -355,7 +501,9 @@ export function verifyReaderProjection(revision:SemanticRevision,pages:SemanticP
         throw Error("Reader changed unit identity.");
       continue;
     }
-    if(base.kind!=="paragraph"||base.node.kind!=="paragraph")throw Error("Non-paragraph semantic split rejected.");
+    if(!["paragraph","quote","epigraph","footnote"].includes(base.kind) ||
+       !("atom" in base.node))
+      throw Error("Non-prose semantic split rejected.");
     let offset=0;
     for(const part of members){
       const fragment=part.fragment;
@@ -370,6 +518,10 @@ export function verifyReaderProjection(revision:SemanticRevision,pages:SemanticP
   }
   if(index!==actual.length)throw Error("Reader duplicated semantic units.");
   return {ok:true as const,pages:pages.length,units:actual.length};
+}
+export function verifyReaderProjection(revision:SemanticRevision,pages:SemanticPage[],editionRange?:{start:number;end:number}){
+  verifySemanticRevision(revision);
+  return verifySemanticPageCoverage(getSemanticPageUnits(revision,editionRange),pages);
 }
 export function locateReaderAnchor(revision:SemanticRevision,atomId:string,offset=0):ReaderAnchorV2{
   verifySemanticRevision(revision);

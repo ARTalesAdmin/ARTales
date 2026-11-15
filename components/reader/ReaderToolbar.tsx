@@ -45,6 +45,9 @@ type ReaderToolbarProps = {
   onNotesListExpandedChange: (expanded: boolean) => void;
   onDeleteNote: (note: ReaderNote) => void;
   onGoToPage: (page: number) => void;
+  /** Only supplied by the semantic Reader; classic Reader remains unchanged. */
+  fullscreenActive?: boolean;
+  onToggleFullscreen?: () => void;
 };
 
 export default function ReaderToolbar(props: ReaderToolbarProps) {
@@ -153,6 +156,14 @@ export default function ReaderToolbar(props: ReaderToolbarProps) {
             </button>
           )}
         </div>
+        {props.onToggleFullscreen ? <button type="button"
+          className="semantic-reader__fullscreen-toggle"
+          aria-label={props.fullscreenActive?"Ukončit čtení na celou obrazovku":"Číst na celou obrazovku"}
+          title={props.fullscreenActive?"Ukončit celou obrazovku":"Celá obrazovka"}
+          aria-pressed={Boolean(props.fullscreenActive)}
+          onClick={props.onToggleFullscreen}>
+          <span aria-hidden="true">{props.fullscreenActive?"↙":"⛶"}</span>
+        </button> : null}
         <div className="artales-reader-menu" ref={menuRef}>
           <button
             ref={menuTriggerRef}
@@ -205,6 +216,7 @@ export default function ReaderToolbar(props: ReaderToolbarProps) {
                 })}</ul> : <p className="artales-reader-notes__empty">{labels.noNotes}</p>}
               </section> : null}
               <section><h2>{chromeLabels.readerAppearanceSection}</h2>
+
                 <label>{labels.mode}<select value={settings.layoutMode} onChange={(e) => props.onLayoutModeChange(e.target.value as ReaderLayoutModeId)}><option value="pagedFlow">{chromeLabels.readerPagedFlow}</option><option value="spread">{chromeLabels.readerSpread}</option></select></label>
                 <label>{labels.theme}<select value={settings.theme} onChange={(e) => props.onThemeChange(e.target.value as ReaderThemeId)}><option value="light">{labels.themeLight}</option><option value="script">{labels.themeScript}</option><option value="dark">{labels.themeDark}</option></select></label>
                 {settings.showAdvancedReaderControls ? <>

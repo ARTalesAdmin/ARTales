@@ -11,6 +11,7 @@ import {inspectGutenbergText} from "@/lib/legal/textRightsCheck";
 import {getGutenbergRights} from "@/lib/legal/gutenbergRights";
 import {verifyAutomaticEdition,formatAutomaticEditionAudit,AutomaticEditionHold} from "@/lib/ingest/automaticSnapshotEvidence";
 import {composeSemanticRevision,verifySemanticRevision} from "@/lib/semantic/compose";
+import {assessSemanticSourceStructure} from "@/lib/semantic/sourceStructure";
 import type {GutenbergBook} from "@/lib/legal/gutenbergCatalog";
 export const runtime="nodejs";
 export const dynamic="force-dynamic";
@@ -113,10 +114,14 @@ export async function POST(req:Request,{params}:{params:Promise<{candidateId:str
   });
   if(e)return NextResponse.json({error:"automatic_evidence_insert_failed"},{status:409});
  }
+ // Structural hints are bounded to the exact archived text and recorded in the
+ // canonical sealed revision. Ambiguous clues are review-only, not a block.
+ const structure=assessSemanticSourceStructure(extract.text,extract.structure_cues);
  const revision=composeSemanticRevision({
   work_id:candidateId,work_slug:"candidate-"+candidateId,
   snapshot_ref:"sha256:"+receipt.sha256,source_bytes_sha256:extract.text_sha256,
-  component_id:extract.component_id,original_byte_start:0,original_raw:extract.text
+  component_id:extract.component_id,original_byte_start:0,original_raw:extract.text,
+  hints:structure.hints
  });
  verifySemanticRevision(revision,extract.text);
  const {error:composeError}=await db.from("candidate_semantic_revisions").insert({
@@ -124,7 +129,8 @@ export async function POST(req:Request,{params}:{params:Promise<{candidateId:str
   revision_sha256:revision.revision_sha256,revision,source_text:extract.text,
   component_id:extract.component_id,source_manifest:{documents:extract.documents,
    assets:extract.assets,epub_sha256:extract.epub_sha256,
-   automaticEditionEvidence:proof},image_selection:"none",status:"draft",authored_by:actor.id
+   automaticEditionEvidence:proof,
+   structureAssessment:{reviewSignals:structure.reviewSignals,structuralHintCount:structure.hints.length}},image_selection:"none",status:"draft",authored_by:actor.id
  });
  if(composeError){
   // Diagnostic code only, not document content or private data.

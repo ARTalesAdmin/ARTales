@@ -63,6 +63,10 @@ export type SemanticStanza = {
   id: string;
   lines: SemanticVerseLine[];
 };
+export type SemanticStructureEvidence={
+ method:"xhtml-heading"|"xhtml-poetry"|"deterministic-text";
+ confidence:"high"|"medium";
+};
 export type SemanticPoem = {
   kind: "poem";
   id: string;
@@ -70,12 +74,14 @@ export type SemanticPoem = {
   /** source-anchored exact poem span; not an extra text leaf */
   anchor: SourceAnchorV2;
   layout: "stanza_natural" | "stanza_airy";
+  structure_evidence?:SemanticStructureEvidence;
   presentation?: SemanticBlockPresentation;
 };
 export type SemanticSection = {
   kind: "chapter" | "section";
   id: string;
   heading: SemanticAtom;
+  structure_evidence?:SemanticStructureEvidence;
   children: SemanticNode[];
   presentation?: SemanticBlockPresentation;
 };
@@ -128,6 +134,9 @@ export type SemanticPageUnit = {
   chapter_id: string | null;
   source_atom_ids: string[];
   estimated_height: number;
+  /** Projection-only heading role for source releases that stored chapter
+   * numerals and titles as flat paragraphs. Never persisted in the revision. */
+  layout_role?: "chapter_number" | "chapter_title";
   /** Layout-only range within an immutable paragraph atom; never new source content. */
   fragment?: {
     original_unit_id: string;

@@ -54,6 +54,10 @@ test("published semantic Reader measures real fragment DOM, keeps paper bounds, 
  const css=read("components/reader/semantic-public-reader.css");
  const projection=read("lib/semantic/readerProjection.ts");
  assert.match(client,/measure_fragment_height:fragmentHeight/);
+ assert.match(client,/iterateSemanticPages/);
+ assert.match(client,/requestAnimationFrame\(step\)/);
+ assert.match(client,/complete:false/);
+ assert.match(client,/paginationSettled/);
  assert.match(client,/document\.createRange\(\)/);
  assert.match(client,/getBoundingClientRect\(\)\.height/);
  assert.match(client,/semantic-public-reader__side-navigation/);
@@ -62,10 +66,12 @@ test("published semantic Reader measures real fragment DOM, keeps paper bounds, 
  assert.match(client,/onGoToPage=\{n=>goToIndex\(n-1\)\}/);
  assert.match(css,/height:var\(--reader-page-height\)/);
  assert.match(css,/overflow:hidden!important/);
+ assert.match(css,/content-visibility:auto/);
  assert.match(css,/semantic-public-reader__paper--scroll-unit/);
- assert.match(projection,/if\(unit\.kind==="chapter_heading"&&pending\.length\)flush\(\)/);
+ assert.match(projection,/unit\.layout_role==="chapter_number"/);
  assert.match(projection,/fitParagraph/);
- assert.match(projection,/measureFragment\(cut\[0\]\)/);
+ assert.doesNotMatch(projection,/if\(unit\.fragment\?\.continuation_after\s*&&/);
+ assert.match(projection,/measureFragment\(first\)/);
  assert.match(projection,/protected_terms\?\?\[\]/);
  assert.doesNotMatch(projection,/const maxChars=Math\.max\(35/);
 });
