@@ -21,11 +21,15 @@ type Props={
  protectedTerms?:string[];visuals?:ApprovedSemanticImage[];
 };
 type Measurements={key:string;heights:Record<string,number>;contentHeight:number;contentWidth:number};
+// Stable defaults: allocating [] during each render cancels the in-flight
+// page stream on every partial update for works without editorial terms.
+const EMPTY_PROTECTED_TERMS:string[]=[];
+const EMPTY_VISUALS:ApprovedSemanticImage[]=[];
 const countProgress=(index:number,count:number)=>count<=1?100:Math.max(0,Math.min(100,index/(count-1)*100));
 const pageStart=(index:number,spread:boolean)=>spread?index-index%2:index;
 
 export default function SemanticReaderClient({slug,title,locale,mode,revisionSha,units,
- protectedTerms=[],visuals=[]}:Props){
+ protectedTerms=EMPTY_PROTECTED_TERMS,visuals=EMPTY_VISUALS}:Props){
  const [settings,setSettings]=useState<ReaderSettings>(defaultReaderSettings);
  const [hydrated,setHydrated]=useState(false);
  const [viewport,setViewport]=useState({width:1024,height:780});
