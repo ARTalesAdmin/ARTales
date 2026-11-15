@@ -27,10 +27,10 @@ test("real archived Gutenberg #389 EPUB parses to complete semantic text and pri
  assert(extract.assets.every(x=>x.publication_clearance==="excluded"));
  const assessed=assessSemanticSourceStructure(extract.text,extract.structure_cues);
  const expected=[
-  "I\\n\\nTHE EXPERIMENT","II\\n\\nMR. CLARKE’S MEMOIRS",
-  "III\\n\\nTHE CITY OF RESURRECTIONS","IV\\n\\nTHE DISCOVERY IN PAUL STREET",
-  "V\\n\\nTHE LETTER OF ADVICE","VI\\n\\nTHE SUICIDES",
-  "VII\\n\\nTHE ENCOUNTER IN SOHO","VIII\\n\\nTHE FRAGMENTS"
+  "I\n\nTHE EXPERIMENT","II\n\nMR. CLARKE’S MEMOIRS",
+  "III\n\nTHE CITY OF RESURRECTIONS","IV\n\nTHE DISCOVERY IN PAUL STREET",
+  "V\n\nTHE LETTER OF ADVICE","VI\n\nTHE SUICIDES",
+  "VII\n\nTHE ENCOUNTER IN SOHO","VIII\n\nTHE FRAGMENTS"
  ];
  const found=assessed.hints.filter(h=>h.kind==="chapter").map(h=>
   extract.text.slice(h.start,h.end).trim());
