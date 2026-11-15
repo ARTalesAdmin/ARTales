@@ -156,14 +156,17 @@ export function chooseSemanticParagraphBreak(
       else {inside=true;break;}
     }
     if(inside)return;
-    // Filling the measured page wins; punctuation only breaks near ties.
-    // A period is not a reason to discard the last fifth of a sheet.
-    candidates.push({end, score: count / scan.length * 12 + bonus});
+    // Prefer a natural clause/sentence ending when it is close to the
+    // measured sheet edge. An earlier full line is better than splitting
+    // "story of" / "revolving terms" purely to maximize ink density.
+    // Preference cannot discard over ~15% of usable text for punctuation.
+    const fullness=count/scan.length;
+    candidates.push({end, score:fullness*10+(fullness>=.85?bonus:0)});
   };
   for (const match of scan.matchAll(/[.!?;:][”’"')\]]*\s+/g)) {
     const token = match[0];
     add(start + match.index! + token.length,
-      /[.!?]/.test(token[0]) ? 0.5 : token[0] === ";" ? 0.4 : 0.25);
+      /[.!?]/.test(token[0]) ? 1.3 : token[0] === ";" ? 1.15 : 0.55);
   }
   for (const match of scan.matchAll(/[,][”’"')\]]*\s+/g)) {
     add(start + match.index! + match[0].length, 0.15);
