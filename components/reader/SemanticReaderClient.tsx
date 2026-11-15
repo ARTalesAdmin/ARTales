@@ -343,13 +343,16 @@ export default function SemanticReaderClient({slug,title,locale,mode,revisionSha
   const safe=Math.max(0,Math.min(total-1,index));
   const target=pageStart(safe,spread);
   setPageIndex(target);
-  if(spread)window.scrollTo({top:0,behavior:"smooth"});
+  if(spread){
+   const scrollTarget=immersive?readerRootRef.current:window;
+   scrollTarget?.scrollTo({top:0,behavior:"smooth"});
+  }
   if(!spread){
    const element=flowRef.current?.querySelector<HTMLElement>(
     '[data-semantic-page-index="'+target+'"]');
    element?.scrollIntoView({behavior:"smooth",block:"start"});
   }
- },[total,spread]);
+ },[total,spread,immersive]);
  useEffect(()=>{
   if(!spread)return;
   const keydown=(e:KeyboardEvent)=>{
@@ -376,9 +379,12 @@ export default function SemanticReaderClient({slug,title,locale,mode,revisionSha
    }
    setPageIndex(old=>old===idx?old:idx);
   };
-  window.addEventListener("scroll",onScroll,{passive:true});
-  return ()=>window.removeEventListener("scroll",onScroll);
- },[spread,pages.length]);
+  // Native fullscreen scrolls the Reader root, not the window. Listening
+  // only to window freezes the page indicator, progress and reading anchor.
+  const scrollTarget=immersive?readerRootRef.current:window;
+  scrollTarget?.addEventListener("scroll",onScroll,{passive:true});
+  return ()=>scrollTarget?.removeEventListener("scroll",onScroll);
+ },[spread,pages.length,immersive]);
  const addNote=useCallback((input:{title:string;body:string;color:ReaderNoteColor})=>{
   if(!paginationSettled)return;
   const stamp=new Date().toISOString();
