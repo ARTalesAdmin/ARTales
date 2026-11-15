@@ -56,7 +56,7 @@ test("source → 20 flags → AI choices → shared batch preview → Reader/QA 
  const mockDb={from:()=>query} as unknown as Parameters<typeof prepareQaPresentationBatch>[1];
  const prepared=await prepareQaPresentationBatch({candidateId,
   revisionSha:original.revision_sha256,repairs},mockDb);
- assert.equal(prepared.ok,true,prepared.message);
+ assert.equal(prepared.ok,true,prepared.ok?"prepared":prepared.message);
  if(!prepared.ok)return;
  const updated=prepared.revision;
  verifySemanticRevision(updated,raw);
