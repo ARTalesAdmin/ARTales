@@ -205,7 +205,7 @@ export default function SemanticReaderClient({slug,title,locale,mode,revisionSha
   if(measureRef.current)observer?.observe(measureRef.current);
   document.fonts?.ready.then(measure).catch(()=>{});
   return ()=>{cancelAnimationFrame(frame);observer?.disconnect()};
- },[measureKey,units,pageContentHeight]);
+ },[measureKey,units,pageContentHeight,pageWidth]);
  // One leaf per animation frame, canceling superseded reflow generations.
  useEffect(()=>{
   if(!readyMeasurements||!measureRef.current)return;
@@ -229,7 +229,9 @@ export default function SemanticReaderClient({slug,title,locale,mode,revisionSha
    const prose=clone.querySelector("p,blockquote,aside");
    if(!prose)return null;
    const projected=projectSemanticProseText(unit.node.atom.raw);
-   const walker=document.createTreeWalker(prose,NodeFilter.SHOW_TEXT);
+   const atom=prose.querySelector(".semantic-reader__atom");
+   if(!atom)return null;
+   const walker=document.createTreeWalker(atom,NodeFilter.SHOW_TEXT);
    const nodes:Text[]=[];
    let next:Node|null;
    while((next=walker.nextNode()))nodes.push(next as Text);
