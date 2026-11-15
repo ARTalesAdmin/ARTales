@@ -121,6 +121,26 @@
 .semantic-reader__fullscreen-button{border:1px solid #b4a897;background:#fffdf8;
   border-radius:8px;padding:8px 12px;cursor:pointer;font:13px system-ui}
 .semantic-reader__edition-note{font:13px system-ui;color:#61594e}
+/* Universal, immutable semantic typography, shared by QA and public Reader.
+ * The editor's inline presentation.align can explicitly override alignment.
+ * Normal words never break inside; protected names/phrases never split.
+ */
+.semantic-reader__page .semantic-reader__unit p,
+.semantic-reader__page .semantic-reader__unit blockquote{
+ text-align:justify;
+ text-align-last:left;
+ text-justify:inter-word;
+ word-spacing:normal;
+}
+.semantic-reader__page .semantic-reader__heading :is(h3,h4){
+ text-wrap:balance;
+ break-after:avoid;
+ font-weight:600;
+}
+@media(max-width:520px){
+ .semantic-reader__page .semantic-reader__unit p,
+ .semantic-reader__page .semantic-reader__unit blockquote{text-align:left}
+}
 /* Semantic QA typography: never algorithmically hyphenate source prose.
  * An explicit soft hyphen in source remains an intentional break opportunity.
  * Same class is rendered in measurement and visible page (no pagination drift). */

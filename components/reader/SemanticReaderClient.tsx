@@ -28,6 +28,8 @@ export default function SemanticReaderClient({slug,title,locale,mode,revisionSha
  const [measurements,setMeasurements]=useState<Measurements|null>(null);
  const [pageIndex,setPageIndex]=useState(0);
  const [notes,setNotes]=useState<ReaderNote[]>([]);
+ const [notesSyncState,setNotesSyncState]=useState<"local"|"syncing"|"synced">("local");
+ const noteSyncGeneration=useRef(0);
  const [selectedNoteId,setSelectedNoteId]=useState<string|null>(null);
  const [notesExpanded,setNotesExpanded]=useState(false);
  const [noteTitle,setNoteTitle]=useState("");
@@ -47,8 +49,8 @@ export default function SemanticReaderClient({slug,title,locale,mode,revisionSha
  const pages=useMemo(()=>paginateSemanticUnits(units,{
   mode:"paged",viewport_width:pageWidth,viewport_height:pageHeight,
   font_scale:settings.fontScale,density:settings.density,
-  measured_unit_heights:readyMeasurements,
- }),[units,pageWidth,pageHeight,settings.fontScale,settings.density,readyMeasurements]);
+  measured_unit_heights:readyMeasurements,protected_terms:protectedTerms,
+ }),[units,pageWidth,pageHeight,settings.fontScale,settings.density,readyMeasurements,protectedTerms]);
  const total=Math.max(1,pages.length);
  const current=Math.max(0,Math.min(pageIndex,total-1));
  const visibleStart=pageStart(current,spread);
@@ -75,6 +77,57 @@ export default function SemanticReaderClient({slug,title,locale,mode,revisionSha
   setHydrated(true);
  },[slug,title]);
  useEffect(()=>{if(hydrated)saveReaderSettings(settings)},[hydrated,settings]);
+ const syncNotes=useCallback(async()=>{
+  if(!hydrated||mode!=="full")return;
+  const generation=++noteSyncGeneration.current;
+  setNotesSyncState("syncing");
+  try{
+   const res=await fetch("/api/reader/notes?slug="+encodeURIComponent(slug),{credentials:"same-origin"});
+   if(!res.ok)throw new Error("notes_read_failed");
+   const body=await res.json() as {signedIn:boolean;notes?:Array<Record<string,unknown>>};
+   if(generation!==noteSyncGeneration.current)return;
+   if(!body.signedIn){setNotesSyncState("local");return;}
+   const unsynced=loadReaderNotes(slug,title).filter(n=>n.source!=="synced");
+   for(const note of unsynced){
+    const post=await fetch("/api/reader/notes",{method:"POST",headers:{"content-type":"application/json"},
+     credentials:"same-origin",body:JSON.stringify(note)});
+    if(!post.ok)throw new Error("notes_upload_failed");
+   }
+   const latest=await fetch("/api/reader/notes?slug="+encodeURIComponent(slug),{credentials:"same-origin"});
+   if(!latest.ok)throw new Error("notes_refresh_failed");
+   const refreshed=await latest.json() as {notes:Array<Record<string,unknown>>};
+   if(generation!==noteSyncGeneration.current)return;
+   const remote:ReaderNote[]=refreshed.notes.map(row=>({
+    id:String(row.id),slug:String(row.work_slug),userId:String(row.user_id),
+    title:row.title as string|null,body:row.body as string|null,
+    color:row.color as ReaderNoteColor,progressPercent:Number(row.progress_percent),
+    scrollY:Number(row.scroll_y),pageIndex:row.page_index==null?undefined:Number(row.page_index),
+    pageCount:row.page_count==null?undefined:Number(row.page_count),
+    layoutMode:row.layout_mode as ReaderNote["layoutMode"],
+    createdAt:String(row.created_at),updatedAt:String(row.updated_at),source:"synced"
+   }));
+   const merged=new Map(remote.map(note=>[note.id,note]));
+   loadReaderNotes(slug,title).filter(note=>note.source!=="synced").forEach(note=>{
+    if(!merged.has(note.id))merged.set(note.id,note);
+   });
+   const all=[...merged.values()].sort((a,b)=>b.updatedAt.localeCompare(a.updatedAt));
+   setNotes(all);saveReaderNotes(slug,all);setNotesSyncState("synced");
+  }catch{
+   if(generation===noteSyncGeneration.current)setNotesSyncState("local");
+  }
+ },[hydrated,mode,slug,title]);
+ useEffect(()=>{
+  void syncNotes();
+  const onOnline=()=>void syncNotes();
+  const onVisible=()=>{if(document.visibilityState==="visible"&&navigator.onLine)void syncNotes();};
+  window.addEventListener("online",onOnline);
+  document.addEventListener("visibilitychange",onVisible);
+  return()=>{
+   noteSyncGeneration.current++;
+   window.removeEventListener("online",onOnline);
+   document.removeEventListener("visibilitychange",onVisible);
+  };
+ },[syncNotes]);
  // Read the stable, user-owned progress only once. Page counts can change when
  // font/width changes, so restore by percentage rather than by stale page ID.
  useEffect(()=>{
@@ -169,8 +222,12 @@ export default function SemanticReaderClient({slug,title,locale,mode,revisionSha
    createdAt:stamp,updatedAt:stamp,source:"local",
   };
   setNotes(old=>{const next=[note,...old];saveReaderNotes(slug,next);return next});
+  if(notesSyncState==="synced")void fetch("/api/reader/notes",{method:"POST",credentials:"same-origin",
+   headers:{"content-type":"application/json"},body:JSON.stringify(note)}).then(r=>{
+    if(!r.ok)setNotesSyncState("local");
+   }).catch(()=>setNotesSyncState("local"));
   setSelectedNoteId(note.id);
- },[slug,progress,current,total,settings.layoutMode]);
+ },[slug,progress,current,total,settings.layoutMode,notesSyncState]);
  const goToNote=(note:ReaderNote)=>{
   setSelectedNoteId(note.id);
   goToIndex(Math.round(note.progressPercent/100*(total-1)));
@@ -179,6 +236,10 @@ export default function SemanticReaderClient({slug,title,locale,mode,revisionSha
   // Synced notes must not silently disappear only from local storage.
   if(note.source==="synced")return;
   setNotes(old=>{const next=old.filter(n=>n.id!==note.id);saveReaderNotes(slug,next);return next});
+  if(notesSyncState==="synced")void fetch("/api/reader/notes?id="+encodeURIComponent(note.id),{
+   method:"DELETE",credentials:"same-origin"}).then(r=>{
+    if(!r.ok)setNotesSyncState("local");
+   }).catch(()=>setNotesSyncState("local"));
   if(selectedNoteId===note.id)setSelectedNoteId(null);
  };
  const renderPaper=(page:SemanticPage|undefined,index:number,blank=false)=>{
@@ -241,7 +302,7 @@ export default function SemanticReaderClient({slug,title,locale,mode,revisionSha
     </label>
     <button type="button" className="semantic-reader__fullscreen-button"
       onClick={()=>setNotesExpanded(v=>!v)} aria-expanded={notesExpanded}>
-      Poznámky ({notes.length})
+      Poznámky ({notes.length}){notesSyncState==="syncing"?" · synchronizuji":notesSyncState==="synced"?" · synchronizováno":""}
     </button>
    </div>
    <progress className="semantic-public-reader__progress" value={progress} max={100} aria-label="Postup čtení"/>

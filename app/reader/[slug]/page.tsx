@@ -58,8 +58,9 @@ export default async function ReaderPage({
       // Never silently substitute legacy blocks for a corrupted semantic release.
       throw new Error("published_semantic_revision_invalid");
     }
-    const {data:rules}=await db.from("artales_work_typography_rules")
+    const {data:rules,error:ruleError}=await db.from("artales_work_typography_rules")
       .select("term").eq("candidate_id",semanticRelease.candidate_id);
+    if(ruleError)throw new Error("published_typography_rules_unavailable");
     return <SemanticPublicReader revision={revision} title={work.title} author={work.author?.name??""}
       slug={work.slug} locale={locale} isPreview={isPreview}
       protectedTerms={(rules??[]).map(x=>x.term)}

@@ -2,6 +2,7 @@ import type { SemanticRevision, SemanticNode, SemanticPageUnit, SemanticPage, Re
 import { walkSemanticAtoms, verifySemanticRevision } from "./compose";
 
 import { projectSemanticProseText } from "./displayText";
+import {isProtectedTextBoundary} from "./protectedSpans";
 import { classifyGutenbergApparatus,poemInsideEditorialEdition } from "./editionProjection";
 
 export type SemanticReaderLayout = {
@@ -13,6 +14,8 @@ export type SemanticReaderLayout = {
   density?: "comfortable" | "compact";
   /** Optional browser measurements on exact rendered page width/typeface. */
   measured_unit_heights?: Readonly<Record<string, number>>;
+  /** Immutable editorial keep-together rules + universal typography. */
+  protected_terms?:readonly string[];
   editionRange?:{start:number;end:number};
 };
 
@@ -96,7 +99,7 @@ function estimateUnitHeight(unit: SemanticPageUnit, layout: SemanticReaderLayout
  */
 export function chooseSemanticParagraphBreak(
   raw: string, start: number, requestedEnd: number, stop = raw.length,
-  allowWordFallback = false,minTail = 30,
+  allowWordFallback = false,minTail = 30,protectedTerms:readonly string[]=[],
 ): number | null {
   if (!Number.isInteger(start) || !Number.isInteger(requestedEnd) ||
       !Number.isInteger(stop) || start < 0 || start >= stop ||
@@ -112,6 +115,7 @@ export function chooseSemanticParagraphBreak(
     // fragment/page edge. The following word must stay on the same page.
     if (/(?:^|\s)[aI]\s*$/u.test(raw.slice(start,end))) return;
     if (end <= start || end > requestedEnd) return;
+    if (isProtectedTextBoundary(raw,end,protectedTerms)) return;
     // A strong punctuation break may be preferable to a slightly fuller page.
     candidates.push({end, score: count / scan.length * 8 + bonus});
   };
@@ -156,7 +160,8 @@ function makeFragment(unit:SemanticPageUnit,start:number,end:number,sourceHeight
     estimated_height:sourceHeight*(end-start)/(baseEnd-baseStart)};
 }
 
-export function splitParagraphUnit(unit:SemanticPageUnit,maxChars:number,allowWordFallback=false):SemanticPageUnit[] {
+export function splitParagraphUnit(unit:SemanticPageUnit,maxChars:number,allowWordFallback=false,
+  protectedTerms:readonly string[]=[]):SemanticPageUnit[] {
   if(unit.kind!=="paragraph"||unit.node.kind!=="paragraph"||
      !Number.isInteger(maxChars)||maxChars<12)return [unit];
   const raw=unit.node.atom.raw;
@@ -168,7 +173,7 @@ export function splitParagraphUnit(unit:SemanticPageUnit,maxChars:number,allowWo
     if(until-start<=maxChars){
       parts.push(makeFragment(unit,start,until,unit.estimated_height));break;
     }
-    const end=chooseSemanticParagraphBreak(raw,start,start+maxChars,until,allowWordFallback);
+    const end=chooseSemanticParagraphBreak(raw,start,start+maxChars,until,allowWordFallback,30,protectedTerms);
     if(end===null){
       if(!parts.length)return [unit];
       parts.push(makeFragment(unit,start,until,unit.estimated_height));
@@ -181,12 +186,13 @@ export function splitParagraphUnit(unit:SemanticPageUnit,maxChars:number,allowWo
 }
 
 /** Cut only once at the page boundary; preserve the remainder as one unsplit unit. */
-function takePageFragment(unit:SemanticPageUnit,maxChars:number,allowWordFallback:boolean,minTail=30):
+function takePageFragment(unit:SemanticPageUnit,maxChars:number,allowWordFallback:boolean,minTail=30,
+  protectedTerms:readonly string[]=[]):
   [SemanticPageUnit,SemanticPageUnit] | null {
   if(unit.kind!=="paragraph"||unit.node.kind!=="paragraph")return null;
   const from=unit.fragment?.start??0,until=unit.fragment?.end??unit.node.atom.raw.length;
   const end=chooseSemanticParagraphBreak(unit.node.atom.raw,from,
-    Math.min(until-1,from+maxChars),until,allowWordFallback,minTail);
+    Math.min(until-1,from+maxChars),until,allowWordFallback,minTail,protectedTerms);
   if(end===null)return null;
   return [makeFragment(unit,from,end,unit.estimated_height),
     makeFragment(unit,end,until,unit.estimated_height)];
@@ -259,7 +265,7 @@ export function paginateSemanticUnits(units:readonly SemanticPageUnit[],layout:S
       const minimumTail=Math.max(28,approxCharsPerLine*2);
       const maxAllowed=Math.min(maxChars,currentLen-minimumTail);
       const cut=maxAllowed>minimumTail
-        ?takePageFragment(unit,maxAllowed,true,minimumTail):null;
+        ?takePageFragment(unit,maxAllowed,true,minimumTail,layout.protected_terms??[]):null;
       if(cut){
         queue.splice(i,1,cut[0],cut[1]);
         unit=queue[i];
