@@ -342,3 +342,54 @@ revoke all on function public.artales_commit_editorial_review_batch(
  uuid,text,uuid,uuid,jsonb,jsonb) from public,anon,authenticated;
 grant execute on function public.artales_commit_editorial_review_batch(
  uuid,text,uuid,uuid,jsonb,jsonb) to service_role;
+
+-- An editor may start another AI batch after a previous review-only job was
+-- processed on the same source revision. Keep deduplication for unreviewed jobs.
+CREATE OR REPLACE FUNCTION public.artales_enqueue_ai_qa_job(p_candidate_id uuid, p_revision_sha256 text)
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO ''
+AS $function$
+DECLARE v_actor uuid:=auth.uid();v_role text;v_current text;v_flags uuid[];v_job uuid;
+BEGIN
+ SELECT role::text INTO v_role FROM public.profiles p WHERE p.id=v_actor
+  AND p.is_active AND p.role::text IN ('admin','editor') FOR UPDATE;
+ IF NOT FOUND THEN RAISE EXCEPTION 'editorial_access_denied' USING errcode='42501'; END IF;
+ IF p_revision_sha256 !~ '^[a-f0-9]{64}$' THEN
+  RETURN pg_catalog.jsonb_build_object('result','invalid_sha');END IF;
+ SELECT r.revision_sha256 INTO v_current FROM public.candidate_semantic_revisions r
+ WHERE r.candidate_id=p_candidate_id
+ ORDER BY r.created_at DESC,r.id DESC LIMIT 1;
+ IF v_current IS NULL OR v_current<>p_revision_sha256 THEN
+  RETURN pg_catalog.jsonb_build_object('result','stale_revision');END IF;
+ -- Even an admin may request AI repairs only for the QA task they claimed.
+ -- There is no implicit right to charge or mutate somebody else's session.
+ IF NOT EXISTS(
+  SELECT 1 FROM public.artales_editorial_tasks t WHERE t.candidate_id=p_candidate_id
+   AND t.revision_sha256=p_revision_sha256 AND t.kind='text_review'
+   AND t.assigned_to=v_actor AND t.status='claimed'
+ ) THEN RETURN pg_catalog.jsonb_build_object('result','not_assigned'); END IF;
+ SELECT pg_catalog.array_agg(f.id ORDER BY f.id) INTO v_flags
+ FROM public.artales_semantic_qa_flags f
+ WHERE f.candidate_id=p_candidate_id AND f.revision_sha256=p_revision_sha256
+  AND f.status='open';
+ IF pg_catalog.cardinality(v_flags) IS NULL OR pg_catalog.cardinality(v_flags) NOT BETWEEN 1 AND 25
+ THEN RETURN pg_catalog.jsonb_build_object('result','invalid_flag_count'); END IF;
+ SELECT j.id INTO v_job FROM public.artales_semantic_ai_qa_jobs j
+ WHERE j.created_by=v_actor AND j.candidate_id=p_candidate_id
+  AND j.revision_sha256=p_revision_sha256 AND j.flag_ids=v_flags
+  AND (j.status IN ('queued','running') OR
+   (j.status='completed' AND j.applied_revision_sha256 IS NULL AND j.created_at>now()-interval '10 minutes'))
+ ORDER BY j.created_at DESC LIMIT 1;
+ IF v_job IS NOT NULL THEN
+  RETURN pg_catalog.jsonb_build_object('result','existing','job_id',v_job);END IF;
+ IF (SELECT count(*) FROM public.artales_semantic_ai_qa_jobs j
+    WHERE j.created_by=v_actor AND j.created_at>now()-interval '1 hour')>=4 THEN
+  RETURN pg_catalog.jsonb_build_object('result','hourly_limit');END IF;
+ INSERT INTO public.artales_semantic_ai_qa_jobs(
+  candidate_id,revision_sha256,created_by,flag_ids)
+ VALUES(p_candidate_id,p_revision_sha256,v_actor,v_flags) RETURNING id INTO v_job;
+ RETURN pg_catalog.jsonb_build_object('result','queued','job_id',v_job);
+END $function$
+;
