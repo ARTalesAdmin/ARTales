@@ -30,7 +30,7 @@ export default function SemanticReaderClient({slug,title,locale,mode,revisionSha
  const [hydrated,setHydrated]=useState(false);
  const [viewport,setViewport]=useState({width:1024,height:780});
  const [measurements,setMeasurements]=useState<Measurements|null>(null);
- const [measuredPages,setMeasuredPages]=useState<{key:string;pages:SemanticPage[]}|null>(null);
+ const [measuredPages,setMeasuredPages]=useState<{key:string;pages:SemanticPage[];complete:boolean}|null>(null);
  const [pageIndex,setPageIndex]=useState(0);
  const [notes,setNotes]=useState<ReaderNote[]>([]);
  const [notesSyncState,setNotesSyncState]=useState<"local"|"syncing"|"synced">("local");
@@ -58,17 +58,20 @@ export default function SemanticReaderClient({slug,title,locale,mode,revisionSha
  // This is a conservative safety margin, not proof of final visual parity.
  const actualCapacity=Math.max(80,(measurements?.key===measureKey?measurements.contentHeight:pageContentHeight)-38);
  const contentWidth=measurements?.key===measureKey?measurements.contentWidth:Math.max(200,pageWidth-144);
- // Before the browser has measured the actual font and page geometry, show
- // a conservative projection. Replace it atomically after the DOM audit.
- const fallbackPages=useMemo(()=>paginateSemanticUnits(units,{
-  mode:"paged",viewport_width:contentWidth,
-  viewport_height:actualCapacity+100,content_height:actualCapacity,
-  font_scale:settings.fontScale,density:settings.density,
-  measured_unit_heights:readyMeasurements,protected_terms:protectedTerms,
- }),[units,contentWidth,actualCapacity,settings.fontScale,settings.density,readyMeasurements,protectedTerms]);
+ // Render the first leaf without a synchronous full-book fallback.
+ // DOM measurement and all later pages use the same canonical iterator.
+ const fallbackPages=useMemo(()=>{
+  const iterator=iterateSemanticPages(units,{
+   mode:"paged",viewport_width:460,viewport_height:780,
+   font_scale:1,density:"comfortable",protected_terms:protectedTerms,
+  });
+  const first=iterator.next();
+  iterator.return(undefined);
+  return first.done?[]:[first.value];
+ },[units,protectedTerms]);
  const paginationKey=[measureKey,contentWidth,actualCapacity,readyMeasurements?"measured":"estimate"].join("|");
- const pages=measuredPages?.key===paginationKey?measuredPages.pages:fallbackPages;
- const paginationSettled=Boolean(measuredPages?.key===paginationKey);
+ const pages=measuredPages?.key===paginationKey?measuredPages.pages:measuredPages?.pages??fallbackPages;
+ const paginationSettled=Boolean(measuredPages?.key===paginationKey&&measuredPages.complete);
  const total=Math.max(1,pages.length);
  const current=Math.max(0,Math.min(pageIndex,total-1));
  // The first source-bearing fragment is stable across page-count changes.
@@ -162,14 +165,14 @@ export default function SemanticReaderClient({slug,title,locale,mode,revisionSha
  // Read the stable, user-owned progress only once. Page counts can change when
  // font/width changes, so restore by percentage rather than by stale page ID.
  useEffect(()=>{
-  if(!hydrated||restoredRef.current||!total)return;
+  if(!hydrated||restoredRef.current||!total||!paginationSettled)return;
   const saved=mode==="full"?loadReaderProgress(slug):null;
   if(saved&&Number.isFinite(saved.progressPercent)){
    const next=Math.max(0,Math.min(total-1,Math.round(saved.progressPercent/100*(total-1))));
    setPageIndex(next);
   }
   restoredRef.current=true;
- },[hydrated,mode,slug,total]);
+ },[hydrated,mode,slug,total,paginationSettled]);
  useEffect(()=>{
   if(!hydrated||!restoredRef.current||mode!=="full"||!paginationSettled)return;
   saveReaderProgress({
@@ -292,9 +295,13 @@ export default function SemanticReaderClient({slug,title,locale,mode,revisionSha
      }));
      if(mapped>=0)setPageIndex(mapped);
     }
-    setMeasuredPages({key:paginationKey,pages:collected});
+    setMeasuredPages({key:paginationKey,pages:collected,complete:true});
     return;
    }
+   // Show the first pages immediately, then reveal bounded groups.
+   // Do not commit a React render for every page.
+   if(collected.length===4||collected.length%16===0)
+    setMeasuredPages({key:paginationKey,pages:[...collected],complete:false});
    frame=requestAnimationFrame(step);
   };
   frame=requestAnimationFrame(step);
@@ -416,6 +423,9 @@ export default function SemanticReaderClient({slug,title,locale,mode,revisionSha
    " artales-reader--density-"+settings.density+
    " artales-reader--layout-"+settings.layoutMode+
    " artales-reader--pagefit-"+settings.pageFit}>
+  {!paginationSettled?<div role="status" aria-live="polite" className="semantic-public-reader__reflow-status">
+   Přepočítávám sazbu…
+  </div>:null}
   <ReaderToolbar title={title} detailHref={"/work/"+slug}
    mode={mode} fullHref={"/reader/"+slug+"?mode=full"}
    progressPercent={progress} pageIndex={current} pageCount={total}
