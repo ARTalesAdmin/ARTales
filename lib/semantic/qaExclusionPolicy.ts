@@ -29,7 +29,8 @@ export function getExcludableAtomIds(revision:Pick<SemanticRevision,"blocks">):S
  const walk=(nodes:readonly SemanticNode[]):void=>{
   for(const node of nodes){
    if(node.kind==="chapter"||node.kind==="section")walk(node.children);
-   else if(["paragraph","quote","epigraph","footnote"].includes(node.kind))
+   else if("atom" in node &&
+      ["paragraph","quote","epigraph","footnote"].includes(node.kind))
     ids.add(node.atom.id);
   }
  };
