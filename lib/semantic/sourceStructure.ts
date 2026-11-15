@@ -106,7 +106,7 @@ export function assessSemanticSourceStructure(source:string,cues:readonly Struct
   }
   // Uppercase unnumbered chapter titles require actual surrounding literary
   // prose. Not every uppercase word, caption or contents entry is a heading.
-  if(i>0&&isStandaloneTitle(raw)&&isProseAfter(next)){
+  if(isStandaloneTitle(raw)&&isProseAfter(next)){
    chosen.push({kind:"chapter",start:p.start,end:p.end,
     evidence:{method:"deterministic-text",confidence:"medium"}});
    continue;
