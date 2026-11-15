@@ -58,10 +58,17 @@ export async function GET(request:NextRequest){
   if(!answer.ok)errorCode="validation_or_provider_failed";
   else{
    suggestions=answer.suggestions;
+   // A batch containing editor-requested exclusions must stay a proposal.
+   // Do not auto-commit other layout edits or work-level terms ahead of the
+   // editor's exact block-by-block review (the canonical exclusion RPC
+   // requires a complete, source-bound batch).
+   const requiresEditorialExclusion=answer.suggestions.some(
+    x=>x.editorialIntent==="exclude_from_edition");
    // A protected name/title is a rendering-only instruction for this work.
    // The editor authorized this through the assigned QA job; there is no
    // additional administrator approval and no mutation of source text.
-   const terms=answer.suggestions.filter(x=>x.action==="protect_term");
+   const terms=requiresEditorialExclusion?[]:
+    answer.suggestions.filter(x=>x.action==="protect_term");
    for(const item of terms){
     const {error:termError}=await db.from("artales_work_typography_rules").upsert({
       candidate_id:input.candidateId,term:item.term.trim(),created_by:job.created_by
@@ -75,7 +82,7 @@ export async function GET(request:NextRequest){
     .map(x=>({flagId:x.flagId,action:x.action as EditorialBatchAction}));
    // Whole-work discovery is a proposal, not authorization to change layout
    // on incidental ordinary findings bundled into the same queued snapshot.
-   if(repairs.length&&!answer.generalRequest){
+   if(repairs.length&&!answer.generalRequest&&!requiresEditorialExclusion){
     const prepared=await prepareQaPresentationBatch({
      candidateId:input.candidateId,revisionSha:input.revisionSha,repairs
     },db);
