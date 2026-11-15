@@ -59,8 +59,8 @@ test("worker does not auto-apply an exclusion or unrelated layout ahead of edito
  const engine=source("lib/semantic/aiQaProposalEngine.ts");
  assert.match(worker,/requiresEditorialExclusion/);
  assert.match(worker,/!requiresEditorialExclusion/);
- assert.match(review,/plan\.exclusions\.map\(x=>\(\{flagId:x.flagId,action:"exclude_note"\}\)\)/);
- assert.match(review,/if\(plan\.layout\.length\|\|plan\.protectedTerms\.length\|\|/);
+ assert.match(review,/plan\.exclusions\.map\(x=>\(\{flagId:x.flagId,action:"exclude_note" as const\}\)\)/);
+ assert.match(review,/artales_commit_editorial_review_batch/);
  assert.match(ui,/Schválit vyřazení/);
  assert.match(ui,/previewSemanticQaBatch/);
  assert.match(engine,/getExcludableAtomIds/);
