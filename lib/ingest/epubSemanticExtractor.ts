@@ -72,31 +72,31 @@ export function xhtmlToSourceText(source:string):string{
  */
 export function xhtmlToSourceWithStructure(source:string):{text:string;cues:StructureCue[]} {
  const text=xhtmlToSourceText(source),cues:StructureCue[]=[];
- const body=/<body\\b[^>]*>([\\s\\S]*?)<\\/body\\s*>/i.exec(source)?.[1]??"";
+ const body=/<body\b[^>]*>([\s\S]*?)<\/body\s*>/i.exec(source)?.[1]??"";
  type Candidate={markupStart:number;kind:StructureCue["kind"];method:StructureCue["evidence"];html:string};
  const candidates:Candidate[]=[];
- for(const m of body.matchAll(/<h([1-6])\\b[^>]*>([\\s\\S]*?)<\\/h\\1\\s*>/gi)){
+ for(const m of body.matchAll(/<h([1-6])\b[^>]*>([\s\S]*?)<\/h\1\s*>/gi)){
   candidates.push({markupStart:m.index!,kind:Number(m[1])<=2?"chapter":"section",
    method:"xhtml-heading",html:m[2]});
  }
- for(const m of body.matchAll(/<(div|pre|blockquote)\\b([^>]*\\bclass\\s*=\\s*["'][^"']*\\b(?:poem|poetry|verse)\\b[^"']*["'][^>]*)>([\\s\\S]*?)<\\/\\1\\s*>/gi)){
+ for(const m of body.matchAll(/<(div|pre|blockquote)\b([^>]*\bclass\s*=\s*["'][^"']*\b(?:poem|poetry|verse)\b[^"']*["'][^>]*)>([\s\S]*?)<\/\1\s*>/gi)){
   candidates.push({markupStart:m.index!,kind:"poem",method:"xhtml-poetry",html:m[3]});
  }
  let after=0;
  for(const candidate of candidates.sort((a,b)=>a.markupStart-b.markupStart)){
-  const html=candidate.html.replace(/<br\\s*\\/?\\s*>/gi,"\\n")
-   .replace(/<\\/(?:p|div|h[1-6]|li|blockquote|section|article|pre|tr)>/gi,"\\n\\n")
+  const html=candidate.html.replace(/<br\s*\/?\s*>/gi,"\n")
+   .replace(/<\/(?:p|div|h[1-6]|li|blockquote|section|article|pre|tr)>/gi,"\n\n")
    .replace(/<[^>]+>/g,"");
-  const wanted=unescapeEntities(html).replace(/\\r\\n?/g,"\\n")
-   .replace(/[\\t ]+\\n/g,"\\n").replace(/\\n{4,}/g,"\\n\\n\\n").trim();
+  const wanted=unescapeEntities(html).replace(/\r\n?/g,"\n")
+   .replace(/[\t ]+\n/g,"\n").replace(/\n{4,}/g,"\n\n\n").trim();
   if(!wanted||wanted.length>10000)continue;
   // Require whole source paragraph or complete line block. Never select a
   // substring from running prose as a heading just because words matched.
   let at=text.indexOf(wanted,after);
   while(at>=0){
    const end=at+wanted.length;
-   if((at===0||text.slice(Math.max(0,at-2),at)==="\\n\\n")&&
-      (end===text.length||text.slice(end,end+2)==="\\n\\n"))break;
+   if((at===0||text.slice(Math.max(0,at-2),at)==="\n\n")&&
+      (end===text.length||text.slice(end,end+2)==="\n\n"))break;
    at=text.indexOf(wanted,at+1);
   }
   if(at<0)continue;
