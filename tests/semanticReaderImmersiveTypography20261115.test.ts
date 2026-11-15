@@ -60,3 +60,20 @@ test("native fullscreen does not change page dimensions or hide the bottom of sh
  assert.match(projection,/const best=check\(bestIndex\)/);
  assert.match(projection,/const whitespace=\[/);
 });
+
+
+test("DOM geometry guard uses real available spread width and matching chapter projection",()=>{
+ const client=read("components/reader/SemanticReaderClient.tsx");
+ const classicCss=read("components/reader/reader.css");
+ const render=read("components/reader/SemanticPageUnit.tsx");
+ assert.match(classicCss,/padding-left: clamp\(12px, 2vw, 30px\)/);
+ assert.match(client,/spreadSidePadding=Math\.min\(30,Math\.max\(12,viewport\.width\*\.02\)\)/);
+ assert.match(client,/availableSpreadWidth=Math\.min\(1460,viewport\.width-44/);
+ assert.match(client,/projectFlatChapterHeadings\(units\)/);
+ assert.match(client,/semanticUnits\.map\(unit=>/);
+ assert.match(client,/iterateSemanticPages\(semanticUnits,/);
+ assert.match(render,/semantic-reader__chapter-title/);
+ assert.match(client,/semantic-reader__fragment--final/);
+ assert.match(client,/measuredCapacity-4/);
+ assert.match(read("lib/semantic/readerProjection.ts"),/height<=remaining-2/);
+});
