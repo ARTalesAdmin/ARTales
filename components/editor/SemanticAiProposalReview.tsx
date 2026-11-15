@@ -9,6 +9,7 @@ import {previewSemanticQaBatch} from "@/app/member/semantic/[candidateId]/qa-act
 import {applyReviewedQaProposals} from "@/app/member/semantic/[candidateId]/qa-proposal-actions";
 import type {SemanticRevision} from "@/lib/semantic/model";
 import {isSafeWorkTypographyTerm,type QaProposalDecision} from "@/lib/semantic/qaProposalReview";
+import {isExplicitWholeBlockExclusion} from "@/lib/semantic/qaExclusionPolicy";
 
 type Flag={id:string;target_atom_id:string;comment:string;kind:string;status:string};
 type Props={
@@ -46,6 +47,12 @@ export default function SemanticAiProposalReview(p:Props){
    !job.appliedRevisionSha?job.suggestions:[],[job]);
  const current=suggestions[index]??null;
  const flag=current?p.flags.find(f=>f.id===current.flagId):null;
+ const isExclusion=(suggestion:AiQaSuggestion):boolean=>
+  suggestion.action==="manual_review"&&
+  suggestion.editorialIntent==="exclude_from_edition"&&
+  p.flags.some(f=>f.id===suggestion.flagId&&f.status==="open"&&
+   isExplicitWholeBlockExclusion(f.comment));
+ const currentExclusion=Boolean(current&&isExclusion(current));
  const allDecided=suggestions.length>0&&suggestions.every(s=>choices[s.flagId]);
  const approvalCount=Object.values(choices).filter(c=>c==="approve").length;
  const proposedLayout=suggestions.filter(s=>(["compact","airy","center"].includes(s.action))&&
@@ -53,6 +60,11 @@ export default function SemanticAiProposalReview(p:Props){
    ["typography","structure"].includes(f.kind)))
   .map(s=>({flagId:s.flagId,action:s.action as "compact"|"airy"|"center"}));
  const approvedLayout=proposedLayout.filter(s=>choices[s.flagId]==="approve");
+ const proposedExclusions=suggestions.filter(isExclusion)
+  .map(s=>({flagId:s.flagId,action:"exclude_note" as const}));
+ const approvedExclusions=proposedExclusions.filter(s=>choices[s.flagId]==="approve");
+ const proposedEdits=[...proposedLayout,...proposedExclusions];
+ const approvedEdits=[...approvedLayout,...approvedExclusions];
  const showTarget=(proposal:AiQaSuggestion,atomId:string)=>{
   if(!atomId)return;
   p.onFind(atomId);
@@ -78,8 +90,8 @@ export default function SemanticAiProposalReview(p:Props){
   if(index<suggestions.length-1)jumpTo(index+1);
  };
  const preview=(approvedOnly:boolean)=>{
-  const repairs=approvedOnly?approvedLayout:proposedLayout;
-  if(!repairs.length){setMessage("Mezi návrhy nejsou žádné změny sazby k zobrazení.");return;}
+  const repairs=approvedOnly?approvedEdits:proposedEdits;
+  if(!repairs.length){setMessage("Mezi návrhy nejsou žádné změny edice k zobrazení.");return;}
   startTransition(async()=>{
    try{
     const result=await previewSemanticQaBatch({
@@ -150,14 +162,19 @@ export default function SemanticAiProposalReview(p:Props){
     <button type="button" onClick={()=>{if(target)findTarget(target);}}>
      Najít v textu</button>
    </div>
-   <p><strong>{current.action==="protect_term"&&!isSafeWorkTypographyTerm(current.term)
+   <p><strong>{currentExclusion?"Vyřadit blok z čtenářské edice":
+    current.action==="protect_term"&&!isSafeWorkTypographyTerm(current.term)
     ?"Ověřit poznámku beze změny textu":actionLabel[current.action]}</strong>
     {current.action==="protect_term"&&current.term?" · "+current.term:""}</p>
    <p className="semantic-reader__proposal-reason">{current.rationale}</p>
    {current.action==="compact"?<p className="semantic-reader__proposal-help">
     Tato oprava mění mezery a odsazení bloku. Není to automatická oprava
     dělení slova v řádku. Ověř výsledek v náhledu.</p>:null}
-   {current.action==="manual_review"?<p className="semantic-reader__proposal-help">
+   {currentExclusion?<p className="semantic-reader__proposal-help">
+    AI navrhuje vyřadit přesně označený blok pouze z nové čtenářské edice.
+    Před schválením zobraz náhled. Původní text i jeho archiv zůstanou zachovány.
+    U údajů o autorovi či překladateli ověř, že jsou správně uloženy v metadatech.
+   </p>:current.action==="manual_review"?<p className="semantic-reader__proposal-help">
     Jde o redakční posouzení. Přijetí znamená, že jsi nález ověřil a
     nevyžaduješ další zásah; nic se nepřepisuje.</p>:null}
    {current.action==="protect_term"&&!isSafeWorkTypographyTerm(current.term)?
@@ -183,8 +200,8 @@ export default function SemanticAiProposalReview(p:Props){
     <button type="button" className={choices[current.flagId]==="approve"?"is-selected":""}
      disabled={!canApprove}
      onClick={()=>decide("approve")} aria-pressed={choices[current.flagId]==="approve"}>
-     <span aria-hidden="true">✓</span> {current.action==="manual_review"?
-      "Prověřeno, bez další změny":"Přijmout"}</button>
+     <span aria-hidden="true">✓</span> {currentExclusion?"Schválit vyřazení":
+      current.action==="manual_review"?"Prověřeno, bez další změny":"Přijmout"}</button>
     <button type="button" className={choices[current.flagId]==="reject"?"is-rejected":""}
      onClick={()=>decide("reject")} aria-pressed={choices[current.flagId]==="reject"}>
      <span aria-hidden="true">✕</span> Ponechat k opravě</button>
@@ -193,9 +210,9 @@ export default function SemanticAiProposalReview(p:Props){
     Pokud změnu nechceš, nález zůstane otevřený.</p>
   </div>:null}
   {suggestions.length>0&&!saved?<div className="semantic-reader__proposal-final">
-   <button type="button" disabled={!proposedLayout.length||pending}
-    onClick={()=>preview(false)}>Zobrazit navrženou sazbu</button>
-   <button type="button" disabled={!approvedLayout.length||pending}
+   <button type="button" disabled={!proposedEdits.length||pending}
+    onClick={()=>preview(false)}>Zobrazit navržené změny edice</button>
+   <button type="button" disabled={!approvedEdits.length||pending}
     onClick={()=>preview(true)}>Náhled přijatých změn</button>
    <p>{approvalCount} přijato · {Object.values(choices).filter(c=>c==="reject").length} ponecháno ·
     {suggestions.length-Object.keys(choices).length} čeká na rozhodnutí</p>
@@ -203,8 +220,9 @@ export default function SemanticAiProposalReview(p:Props){
     disabled={!allDecided||pending||!job?.jobId} onClick={apply}>
     {pending?"Ukládám…":"Uložit schválené změny společně"}
    </button>
-   <small>Sazební změny vytvoří jednu novou neměnnou revizi.
-    Výrazy se ochrání v celém díle. Otevřené problémy se nepovažují za hotové.</small>
+   <small>Schválené vyřazení vzniká jen přes zabezpečenou redakční revizi.
+    Archivní originál se nemění. Smíšené dávky vyřazení a sazby je nutné
+    zpracovat odděleně; nic se neuzavře bez skutečné opravy.</small>
   </div>:null}
   {saved?<div className="semantic-reader__proposal-finished">
    <p>Rozhodnutí jsou uložená. Otevři aktuální revizi a zkontroluj změněné bloky.</p>
