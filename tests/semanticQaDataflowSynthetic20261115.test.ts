@@ -119,6 +119,8 @@ test("real UI and server actions share the exact mixed QA source-to-revision pat
  assert.match(review,/lastSemanticAiQaJob/);
  assert.match(review,/previewSemanticQaBatch\(/);
  assert.match(review,/applyReviewedQaProposals\(/);
+ assert.match(review,/unsupportedRemoval/);
+ assert.match(review,/disabled=\{!canApprove\}/);
  assert.match(server,/planQaProposalReview\(/);
  assert.match(server,/prepareQaPresentationBatch\(/);
  assert.match(server,/artales_commit_editorial_review_batch/);
