@@ -286,9 +286,13 @@ export function* iterateSemanticPages(units:readonly SemanticPageUnit[],layout:S
     for(const unit of pending){
       const prev=coalesced.at(-1),a=prev?.fragment,b=unit.fragment;
       if(prev&&a&&b&&a.original_unit_id===b.original_unit_id&&a.end===b.start){
-        const merged=makeFragment(prev,a.start,b.end,prev.estimated_height+unit.estimated_height);
-        coalesced[coalesced.length-1]={...merged,
-          estimated_height:prev.estimated_height+unit.estimated_height};
+        coalesced[coalesced.length-1]={
+          ...prev,
+          id:a.original_unit_id+":range:"+a.start+"-"+b.end,
+          fragment:{...a,end:b.end,normalized_end:b.normalized_end,
+            continuation_after:b.continuation_after},
+          estimated_height:prev.estimated_height+unit.estimated_height,
+        };
       }else coalesced.push(unit);
     }
     const page:SemanticPage={
