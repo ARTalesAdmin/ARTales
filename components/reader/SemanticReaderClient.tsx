@@ -298,6 +298,9 @@ export default function SemanticReaderClient({slug,title,locale,mode,revisionSha
    head.deleteContents();
    prose.classList.add("semantic-reader__fragment");
    if(start>0)prose.classList.add("semantic-reader__fragment--continued");
+   // The final fragment restores the paragraph bottom margin in the real
+   // page. Measure with exactly the same class or we undercount its height.
+   if(!unit.fragment.continuation_after)prose.classList.add("semantic-reader__fragment--final");
    if(unit.kind==="footnote"&&start>0)prose.querySelector("sup")?.remove();
    clone.removeAttribute("data-semantic-measure-id");
    content.appendChild(clone);
