@@ -3,7 +3,7 @@ import type {ArtalesAiUsage} from "@/lib/semantic/aiGatewayUsage";
 import type {SupabaseClient} from "@supabase/supabase-js";
 import {verifySemanticRevision,walkSemanticAtoms} from "@/lib/semantic/compose";
 import type {SemanticRevision} from "@/lib/semantic/model";
-import {getExcludableAtomIds,isExplicitWholeBlockExclusion} from "@/lib/semantic/qaExclusionPolicy";
+import {getExcludableAtomIds,isExplicitWholeBlockExclusion,requestsTextRemoval} from "@/lib/semantic/qaExclusionPolicy";
 
 /** Suggestions ONLY. No semantic revision, source text or QA status is changed here. */
 export type AiQaSuggestion={
@@ -88,7 +88,7 @@ export async function generateSemanticAiQaSuggestions(input:{
      revisionSha:input.revisionSha,requests,generalCandidates,generalCoverage,
      totalAtoms:atoms.length},
    schemaName:"artales_qa_suggestions",schema,
-   maxOutputTokens:isGeneral?4800:2200
+   maxOutputTokens:isGeneral?4800:Math.min(6400,Math.max(2200,flags.length*190))
   });
   const output=body.output as Array<{content?:Array<{type:string;text?:string}>}>|undefined;
   const raw=(output??[]).flatMap(o=>o.content??[])
@@ -112,12 +112,13 @@ export async function generateSemanticAiQaSuggestions(input:{
      rationale:"Editor výslovně požádal o vyřazení označeného textového bloku z čtenářské edice. "+
       "Zkontroluj přesný blok a schval vyřazení; archivní originál se nemění."};
    }
-   // Unsupported removal targets cannot be presented as a successful edit.
-   if(flag&&isExplicitWholeBlockExclusion(flag.comment)){
+   // Unsupported removal targets or partial deletion requests must remain
+   // an explicit manual-review proposal, NEVER a cosmetic fix or no-op.
+   if(flag&&requestsTextRemoval(flag.comment)){
     return {...suggestion,action:"manual_review" as const,
      editorialIntent:"none" as const,term:"",targetAtomIds:[],
-     rationale:"Označený objekt nelze bezpečně vyřadit touto operací. "+
-      "Nález ponech k ručnímu posouzení."};
+     rationale:"Požadovanou část textu nebo tento typ bloku nelze bezpečně vyřadit aktuální AI operací. "+
+      "Nález musí zůstat otevřený k ručnímu posouzení."};
    }
    return suggestion;
   });
