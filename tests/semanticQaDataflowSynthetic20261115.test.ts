@@ -139,6 +139,12 @@ test("unsuitable requests cannot silently pass as a completed edit",()=>{
   editorialIntent:"none",term:"",targetAtomIds:[],rationale:"No change."}];
  assert.throws(()=>planQaProposalReview(bad,flags,[{flagId:id(1),choice:"approve"}]),
   /vyřazení|beze změny/);
+ const partial=[{id:id(2),status:"open",kind:"text",comment:"Smazat jen první slovo."}];
+ const partialSuggestion:AiQaSuggestion[]=[{flagId:id(2),action:"manual_review",
+  editorialIntent:"none",term:"",targetAtomIds:[],rationale:"Unimplemented"}];
+ assert.throws(()=>planQaProposalReview(partialSuggestion,partial,[{flagId:id(2),choice:"approve"}]),
+  /části textu/);
+ assert.deepEqual(planQaProposalReview(partialSuggestion,partial,[{flagId:id(2),choice:"reject"}]).rejected,[id(2)]);
  const pending=planQaProposalReview(bad,flags,[{flagId:id(1),choice:"reject"}]);
  assert.deepEqual(pending.rejected,[id(1)]);
 });
