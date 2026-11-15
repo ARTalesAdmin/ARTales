@@ -38,6 +38,7 @@ export default function SemanticReaderClient({slug,title,locale,mode,revisionSha
  const [selectedNoteId,setSelectedNoteId]=useState<string|null>(null);
  const [notesExpanded,setNotesExpanded]=useState(false);
  const reflowGeneration=useRef(0);
+ const readingAnchor=useRef<{rootId:string;offset:number}|null>(null);
  const measureRef=useRef<HTMLDivElement|null>(null);
  const flowRef=useRef<HTMLDivElement|null>(null);
  const restoredRef=useRef(false);
@@ -67,6 +68,17 @@ export default function SemanticReaderClient({slug,title,locale,mode,revisionSha
  const paginationSettled=Boolean(measuredPages?.key===paginationKey);
  const total=Math.max(1,pages.length);
  const current=Math.max(0,Math.min(pageIndex,total-1));
+ // The first source-bearing fragment is stable across page-count changes.
+ // It lives only in memory; legacy progress and notes storage is untouched.
+ useEffect(()=>{
+  if(!paginationSettled)return;
+  const first=pages[current]?.units.find(u=>u.source_atom_ids.length>0);
+  if(first)readingAnchor.current={
+   rootId:first.fragment?.original_unit_id??first.id,
+   offset:first.fragment?.start??0,
+  };
+ },[paginationSettled,pages,current]);
+
  const visibleStart=pageStart(current,spread);
  const progress=countProgress(current,total);
  const notesSorted=useMemo(()=>[...notes].sort((a,b)=>
@@ -265,7 +277,19 @@ export default function SemanticReaderClient({slug,title,locale,mode,revisionSha
    if(generation!==reflowGeneration.current)return;
    const item=iterator.next();
    if(!item.done)collected.push(item.value);
-   if(item.done){setMeasuredPages({key:paginationKey,pages:collected});return;}
+   if(item.done){
+    const anchor=readingAnchor.current;
+    if(anchor){
+     const mapped=collected.findIndex(page=>page.units.some(unit=>{
+      const root=unit.fragment?.original_unit_id??unit.id;
+      return root===anchor.rootId&&(!unit.fragment||
+       (unit.fragment.start<=anchor.offset&&anchor.offset<unit.fragment.end));
+     }));
+     if(mapped>=0)setPageIndex(mapped);
+    }
+    setMeasuredPages({key:paginationKey,pages:collected});
+    return;
+   }
    frame=requestAnimationFrame(step);
   };
   frame=requestAnimationFrame(step);
