@@ -1,95 +1,165 @@
-/* Public semantic Reader: the ORIGINAL Reader toolbar and tokens, with
- * exactly the same immutable block/page markup and pagination as editorial QA.
- * No Gutenberg comparison panes, QA actions, or alternate text pipeline.
- */
-.artales-reader--semantic .semantic-public-reader{
- background:transparent;min-height:0;padding:0;color:var(--reader-paper-text);
- font-family:Georgia,serif;
+/* Published semantic edition: the same paper, typography, and palette as
+   the QA single-pane composer. No legacy ReaderClient shell or toolbar. */
+.semantic-reader.semantic-reader--public{
+  --qa-surround:#f8f0e4;--qa-surface:#faf7ef;--qa-paper:#faf7ef;
+  --qa-ink:#302f2c;--qa-muted:#6b6259;--qa-border:#d9cfbf;
+  --qa-control:#faf7ef;--qa-control-ink:#30302e;--qa-accent:#b8893f;
+  min-height:100vh;padding:12px clamp(10px,3vw,32px) 42px;
+  background:var(--qa-surround);color:var(--qa-ink);color-scheme:light;
 }
-.artales-reader--semantic .semantic-public-reader__viewport{position:relative}
-.artales-reader--semantic .semantic-public-reader__flow{
- display:flex;flex-direction:column;align-items:center;gap:18px;
+.semantic-reader.semantic-reader--public[data-reader-theme="script"]{
+  --qa-surround:#eadfc9;--qa-surface:#e8d9bf;--qa-paper:#f3e8d3;
+  --qa-ink:#33281d;--qa-muted:#735f4b;--qa-border:#bda98a;
+  --qa-control:#f3e8d3;--qa-control-ink:#33281d;--qa-accent:#a47b3f;
+  color-scheme:light;
 }
-.artales-reader--semantic .semantic-public-reader__spread{
- display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);
- gap:9px;align-items:stretch;justify-content:center;
- max-width:calc(100vw - 48px);margin:0 auto;
+.semantic-reader.semantic-reader--public[data-reader-theme="dark"]{
+  --qa-surround:#171817;--qa-surface:#252420;--qa-paper:#1d1c1a;
+  --qa-ink:#e0d8ca;--qa-muted:#b8ad9d;--qa-border:#51463a;
+  --qa-control:#24231f;--qa-control-ink:#e5ddcf;--qa-accent:#b58a4b;
+  color-scheme:dark;
 }
-.artales-reader--semantic .semantic-public-reader__paper{
- position:relative;box-sizing:border-box;
- margin:0 auto;overflow:visible;
- padding:clamp(20px,4.5vw,52px) clamp(18px,4vw,54px);
- background:var(--reader-paper)!important;
- color:var(--reader-paper-text)!important;
- border:1px solid var(--reader-paper-border)!important;
- border-radius:6px;box-shadow:var(--reader-paper-shadow);
- min-height:var(--reader-page-height,750px);
- font-size:calc(1rem * var(--reader-scale,1));
- line-height:var(--reader-line-height,1.65);
+.semantic-reader--public .semantic-public-reader__header{
+  display:block;position:sticky;top:0;z-index:35;
+  margin:0 auto 18px;max-width:1500px;
+  background:var(--qa-surround);border-bottom:1px solid var(--qa-border);
 }
-.artales-reader--semantic .semantic-public-reader__paper :is(h2,h3,h4,p,blockquote,aside,span){
- color:inherit;
+.semantic-reader--public .semantic-public-reader__heading{
+  display:flex;align-items:center;gap:1rem;flex-wrap:wrap;
+  justify-content:space-between;padding:12px 8px 8px;
+  font:14px/1.4 system-ui;color:var(--qa-ink);
 }
-.artales-reader--semantic .semantic-public-reader__paper :is(p,blockquote,aside){
- overflow-wrap:break-word;
+.semantic-reader--public .semantic-public-reader__heading a{
+  color:var(--qa-accent);text-decoration:none;font-weight:700;
 }
-.artales-reader--semantic .semantic-reader__front-page{
- display:flex;align-items:center;justify-content:center;
- background:var(--reader-paper)!important;
+.semantic-reader--public .semantic-public-reader__heading strong{
+  font:600 clamp(1.1rem,2vw,1.45rem)/1.25 Georgia,serif;
 }
-.artales-reader--semantic .semantic-public-reader [data-semantic-edition-title-page]{
- color:var(--reader-paper-text)!important;
- background:transparent;border:0;
- width:100%;min-height:min(65vh,640px);
+.semantic-reader--public .semantic-public-reader__heading span{color:var(--qa-muted)}
+.semantic-reader--public .semantic-reader__controls{
+  position:relative;top:auto;z-index:1;gap:12px;padding:10px 12px;
+  border:1px solid var(--qa-border);background:var(--qa-surface);
+  box-shadow:none;border-radius:8px;font:13px/1.5 system-ui;
 }
-.artales-reader--semantic .semantic-public-reader [data-semantic-edition-title-page] :is(p,h1,h2){
- color:inherit!important;
+.semantic-reader--public .semantic-reader__controls :is(input,select,button){
+  accent-color:var(--qa-accent);border-radius:5px;
+  border:1px solid var(--qa-border);background:var(--qa-control);
+  color:var(--qa-control-ink);
 }
-.artales-reader--semantic .semantic-public-reader__paper-top{
- display:flex;justify-content:space-between;
- gap:18px;color:var(--reader-paper-muted);
- border-bottom:1px solid var(--reader-paper-border);
- font:11px/1.4 system-ui;padding-bottom:10px;margin-bottom:22px;
+.semantic-reader--public .semantic-reader__controls input[type="range"]{width:100px}
+.semantic-reader--public .semantic-reader__controls select{padding:6px}
+.semantic-reader--public .semantic-reader__controls button{padding:7px 12px;cursor:pointer}
+.semantic-reader--public .semantic-public-reader__progress{
+  width:100%;height:4px;display:block;border:0;background:var(--qa-border);
+  accent-color:var(--qa-accent);
 }
-.artales-reader--semantic .semantic-public-reader__paper-footer{
- margin-top:28px;padding-top:12px;
- border-top:1px solid var(--reader-paper-border);
- font:11px/1.4 system-ui;text-align:center;color:var(--reader-paper-muted);
+.semantic-reader--public .semantic-reader__triptych{
+  max-width:1500px;margin:0 auto;
 }
-.artales-reader--semantic .semantic-public-reader__paper--blank{opacity:.45}
-.artales-reader--semantic .semantic-public-reader__navigation{
- display:flex;justify-content:center;align-items:center;
- gap:24px;margin:24px auto;
- color:var(--reader-toolbar-text);
+.semantic-reader--public .semantic-public-reader__reading-section{
+  border:0;padding:clamp(10px,2vw,24px);background:transparent!important;
 }
-.artales-reader--semantic .semantic-public-reader__navigation button{
- border:1px solid var(--reader-toolbar-border);
- background:var(--reader-control-bg);color:var(--reader-toolbar-text);
- border-radius:50%;font-size:34px;width:56px;height:56px;cursor:pointer;
+.semantic-reader--public .semantic-public-reader__viewport{
+  position:relative;min-width:0;margin:0 auto;max-width:100%;
+  border:0!important;background:transparent!important;padding:0!important;
+  overflow:visible;
 }
-.artales-reader--semantic .semantic-public-reader__navigation button:disabled{
- opacity:.3;cursor:default;
+.semantic-reader--public .semantic-public-reader__flow{
+  display:flex;flex-direction:column;align-items:center;gap:18px;
 }
-.artales-reader--semantic .semantic-reader__illustration{
- margin:2rem auto;max-width:100%;text-align:center;
+.semantic-reader--public .semantic-public-reader__spread{
+  display:grid;grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:12px;align-items:start;justify-content:center;max-width:100%;
 }
-.artales-reader--semantic .semantic-reader__illustration img{max-width:100%;height:auto}
-.artales-reader--semantic .semantic-reader__illustration figcaption{
- color:var(--reader-paper-muted);font:13px/1.4 system-ui;margin-top:8px;
+.semantic-reader--public .semantic-public-reader__paper{
+  position:relative;box-sizing:border-box;min-width:0;max-width:100%;
+  margin:0 auto;overflow:visible;
+  background:var(--qa-paper)!important;color:var(--qa-ink)!important;
+  border:1px solid var(--qa-border)!important;border-radius:6px;
+  min-height:var(--reader-page-height,760px);
+  padding:clamp(20px,4vw,50px) clamp(18px,3.5vw,50px);
+  box-shadow:0 8px 25px rgb(37 29 18 / 8%);
+  font-size:calc(1rem * var(--reader-scale,1));
+  line-height:var(--reader-line-height,1.65);
 }
-.artales-reader--semantic .semantic-public-reader__preview-note{
- padding:18px;margin:2rem 0;border-top:1px solid var(--reader-paper-border);
- font:14px/1.5 system-ui;
+.semantic-reader--public .semantic-public-reader__paper :is(h1,h2,h3,h4,p,blockquote,aside,span){color:inherit}
+.semantic-reader--public .semantic-public-reader__paper .semantic-reader__fragment{white-space:normal}
+.semantic-reader--public .semantic-reader__front-page{
+  display:flex;align-items:center;justify-content:center;
 }
-.artales-reader--semantic .semantic-public-reader__preview-note a{color:var(--reader-accent-strong)}
-.artales-reader--semantic .semantic-public-reader__measurement{
- position:absolute;top:0;left:-100000px;visibility:hidden;pointer-events:none;
- max-width:none;z-index:-1;
+.semantic-reader--public [data-semantic-edition-title-page]{
+  background:transparent!important;border:0;width:100%;
+  min-height:clamp(350px,65vh,640px);color:var(--qa-ink)!important;
 }
-.artales-reader--semantic .semantic-public-reader__measurement .semantic-reader__measurement-page{
- box-shadow:none;min-height:0!important;max-width:none;overflow:visible;
+.semantic-reader--public [data-semantic-edition-title-page] :is(h1,h2,p){
+  color:var(--qa-ink)!important;
 }
+.semantic-reader--public .semantic-public-reader__paper-top{
+  display:flex;justify-content:space-between;gap:15px;
+  border-bottom:1px solid var(--qa-border);color:var(--qa-muted)!important;
+  font:11px/1.4 system-ui;padding-bottom:10px;margin-bottom:22px;
+}
+.semantic-reader--public .semantic-public-reader__paper-footer{
+  border-top:1px solid var(--qa-border);color:var(--qa-muted)!important;
+  font:11px/1.4 system-ui;text-align:center;margin-top:20px;padding-top:8px;
+}
+.semantic-reader--public .semantic-public-reader__paper--blank{opacity:.35}
+.semantic-reader--public .semantic-public-reader__measurement{
+  position:absolute;top:0;left:-100000px;visibility:hidden;
+  pointer-events:none;max-width:none;z-index:-1;
+}
+.semantic-reader--public .semantic-reader__measurement-page{
+  box-shadow:none;min-height:0!important;max-width:none;overflow:visible;
+}
+.semantic-reader--public .semantic-public-reader__navigation{
+  display:flex;align-items:center;justify-content:center;
+  gap:24px;margin:20px auto;color:var(--qa-ink);
+}
+.semantic-reader--public .semantic-public-reader__navigation button,
+.semantic-reader--public .semantic-public-reader__notes button{
+  background:var(--qa-control);border:1px solid var(--qa-border);
+  color:var(--qa-control-ink);border-radius:8px;cursor:pointer;padding:8px 14px;
+}
+.semantic-reader--public .semantic-public-reader__navigation button{
+  font:32px/1 Georgia,serif;border-radius:50%;width:54px;height:54px;
+}
+.semantic-reader--public button:disabled{opacity:.4;cursor:default}
+.semantic-reader--public .semantic-public-reader__notes{
+  position:relative;max-width:1000px;margin:0 auto 18px;padding:16px;
+  border:1px solid var(--qa-border);border-radius:10px;
+  background:var(--qa-surface);color:var(--qa-ink);
+}
+.semantic-reader--public .semantic-public-reader__notes-head{
+  display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;
+}
+.semantic-reader--public .semantic-public-reader__notes form{
+  display:flex;gap:12px;align-items:end;flex-wrap:wrap;font:13px/1.5 system-ui;
+}
+.semantic-reader--public .semantic-public-reader__notes label{
+  display:flex;flex-direction:column;gap:5px;
+}
+.semantic-reader--public .semantic-public-reader__notes :is(input,textarea,select){
+  background:var(--qa-control);color:var(--qa-control-ink);
+  border:1px solid var(--qa-border);border-radius:5px;padding:7px;
+}
+.semantic-reader--public .semantic-public-reader__notes-items{max-height:240px;overflow:auto}
+.semantic-reader--public .semantic-public-reader__note{
+  margin-top:8px;padding:8px;border-top:1px solid var(--qa-border);
+}
+.semantic-reader--public .semantic-public-reader__note p{margin:4px 0;color:var(--qa-ink)}
+.semantic-reader--public .semantic-reader__illustration{
+  margin:1.5rem auto;max-width:100%;text-align:center;
+}
+.semantic-reader--public .semantic-reader__illustration img{max-width:100%;height:auto}
+.semantic-reader--public .semantic-reader__illustration figcaption{
+  color:var(--qa-muted);font:12px/1.4 system-ui;
+}
+.semantic-reader--public .semantic-public-reader__preview-note{
+  border-top:1px solid var(--qa-border);padding-top:12px;margin-top:16px;
+}
+.semantic-reader--public .semantic-public-reader__preview-note a{color:var(--qa-accent)}
 @media(max-width:850px){
- .artales-reader--semantic .semantic-public-reader__spread{display:block}
- .artales-reader--semantic .semantic-public-reader__paper{padding:24px 18px}
+  .semantic-reader--public .semantic-public-reader__spread{grid-template-columns:1fr}
+  .semantic-reader--public .semantic-public-reader__paper{padding:22px 16px}
+  .semantic-reader--public .semantic-reader__controls{gap:8px}
 }
