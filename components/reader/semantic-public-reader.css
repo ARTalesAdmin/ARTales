@@ -320,8 +320,11 @@
 
 /* A fragmented paragraph must keep the final visual line aligned with the
  * continuation. The actual final fragment retains normal paragraph ending. */
+/* Any final visual line of a page fragment aligns naturally, even when
+ * the semantic paragraph continues on the next leaf. Other lines stay justified.
+ * Prevents large gaps like "revolving                      terms." */
 .artales-reader--semantic .semantic-public-reader__paper p.semantic-reader__fragment:not(.semantic-reader__fragment--final){
- text-align-last:justify;
+ text-align-last:start;
 }
 .artales-reader--semantic .semantic-public-reader__paper p.semantic-reader__fragment--final{
  text-align-last:start;
