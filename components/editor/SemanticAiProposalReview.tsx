@@ -211,7 +211,7 @@ export default function SemanticAiProposalReview(p:Props){
   </div>:null}
   {suggestions.length>0&&!saved?<div className="semantic-reader__proposal-final">
    <button type="button" disabled={!proposedEdits.length||pending}
-    onClick={()=>preview(false)}>Zobrazit navržené změny edice</button>
+    onClick={()=>preview(false)}>Zobrazit navrženou sazbu / změny edice</button>
    <button type="button" disabled={!approvedEdits.length||pending}
     onClick={()=>preview(true)}>Náhled přijatých změn</button>
    <p>{approvalCount} přijato · {Object.values(choices).filter(c=>c==="reject").length} ponecháno ·
