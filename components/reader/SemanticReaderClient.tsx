@@ -53,17 +53,12 @@ export default function SemanticReaderClient({slug,title,locale,mode,revisionSha
  // Book geometry and margins come from the existing, proven Reader.
  // The semantic paginator uses the *content* area rather than viewport height.
  const singleWidth=settings.width==="narrow"?620:settings.width==="wide"?780:700;
- // Immersive book sheets fill the area beneath the always visible Reader
- // toolbar. Geometry follows the actual viewport rather than a forced
- // A-series aspect ratio (which left large unused bands on desktop).
- const pageWidth=immersive
-  ?Math.max(250,Math.floor(spread?(viewport.width-28)/2:Math.min(viewport.width-16,singleWidth)))
-  :Math.max(250,Math.floor(Math.min(
-    spread?Math.min(730,(viewport.width-44)/2):singleWidth,viewport.width-24)));
- const pageHeight=immersive
-  ?Math.max(320,viewport.height-100)
-  :Math.round(pageWidth*1.414);
- const pageContentHeight=Math.max(220,pageHeight-(immersive?90:210));
+ // Only the reading layout controls page geometry. Native fullscreen must
+ // never reflow or shrink sheets: it changes browser chrome, not the book.
+ const pageWidth=Math.max(250,Math.floor(Math.min(
+  spread?Math.min(730,(viewport.width-44)/2):singleWidth,viewport.width-24)));
+ const pageHeight=Math.round(pageWidth*1.414);
+ const pageContentHeight=Math.max(300,pageHeight-210);
  const measureKey=[revisionSha,mode,pageWidth,pageHeight,settings.fontScale,
   settings.density,units.length,protectedTerms.join("\u0001")].join("|");
  const readyMeasurements=measurements?.key===measureKey?measurements.heights:undefined;
