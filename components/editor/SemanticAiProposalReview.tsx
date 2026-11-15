@@ -9,7 +9,7 @@ import {previewSemanticQaBatch} from "@/app/member/semantic/[candidateId]/qa-act
 import {applyReviewedQaProposals} from "@/app/member/semantic/[candidateId]/qa-proposal-actions";
 import type {SemanticRevision} from "@/lib/semantic/model";
 import {isSafeWorkTypographyTerm,type QaProposalDecision} from "@/lib/semantic/qaProposalReview";
-import {isExplicitWholeBlockExclusion} from "@/lib/semantic/qaExclusionPolicy";
+import {isExplicitWholeBlockExclusion,requestsTextRemoval} from "@/lib/semantic/qaExclusionPolicy";
 
 type Flag={id:string;target_atom_id:string;comment:string;kind:string;status:string};
 type Props={
@@ -53,6 +53,7 @@ export default function SemanticAiProposalReview(p:Props){
   p.flags.some(f=>f.id===suggestion.flagId&&f.status==="open"&&
    isExplicitWholeBlockExclusion(f.comment));
  const currentExclusion=Boolean(current&&isExclusion(current));
+ const unsupportedRemoval=Boolean(flag&&requestsTextRemoval(flag.comment)&&!currentExclusion);
  const allDecided=suggestions.length>0&&suggestions.every(s=>choices[s.flagId]);
  const approvalCount=Object.values(choices).filter(c=>c==="approve").length;
  const proposedLayout=suggestions.filter(s=>(["compact","airy","center"].includes(s.action))&&
@@ -132,7 +133,7 @@ export default function SemanticAiProposalReview(p:Props){
  const target=targets[Math.min(targetIndex,targets.length-1)];
  const visited=visitedTargets[current?.flagId??""]??[];
  const requiresFullReview=current?.action==="manual_review"&&targets.length>1;
- const canApprove=!requiresFullReview||targets.every(id=>visited.includes(id));
+ const canApprove=!unsupportedRemoval&&(!requiresFullReview||targets.every(id=>visited.includes(id)));
  const firstUnvisitedIndex=requiresFullReview?targets.findIndex(id=>!visited.includes(id)):-1;
  const findTarget=(id:string)=>{
   if(!id||!current)return;
@@ -162,7 +163,7 @@ export default function SemanticAiProposalReview(p:Props){
     <button type="button" onClick={()=>{if(target)findTarget(target);}}>
      Najít v textu</button>
    </div>
-   <p><strong>{currentExclusion?"Vyřadit blok z čtenářské edice":
+   <p><strong>{unsupportedRemoval?"Tuto dílčí změnu nelze automaticky provést":currentExclusion?"Vyřadit blok z čtenářské edice":
     current.action==="protect_term"&&!isSafeWorkTypographyTerm(current.term)
     ?"Ověřit poznámku beze změny textu":actionLabel[current.action]}</strong>
     {current.action==="protect_term"&&current.term?" · "+current.term:""}</p>
@@ -170,7 +171,8 @@ export default function SemanticAiProposalReview(p:Props){
    {current.action==="compact"?<p className="semantic-reader__proposal-help">
     Tato oprava mění mezery a odsazení bloku. Není to automatická oprava
     dělení slova v řádku. Ověř výsledek v náhledu.</p>:null}
-   {currentExclusion?<p className="semantic-reader__proposal-help">
+   {unsupportedRemoval?<p className="semantic-reader__proposal-help">Požadovanou změnu části textu tato operace nepodporuje. Nález ponech otevřený k ruční opravě; systém jej neoznačí za vyřešený.</p>:
+    currentExclusion?<p className="semantic-reader__proposal-help">
     AI navrhuje vyřadit přesně označený blok pouze z nové čtenářské edice.
     Před schválením zobraz náhled. Původní text i jeho archiv zůstanou zachovány.
     U údajů o autorovi či překladateli ověř, že jsou správně uloženy v metadatech.
