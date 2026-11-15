@@ -32,8 +32,9 @@ test("flat published chapters I, II, III become source-preserving starts of new 
   assert(pages[idx].units.some(x=>x.layout_role==="chapter_title"),"chapter title grouped with numeral");
   assert(pages[idx].units.some(x=>x.kind==="paragraph"&&!x.layout_role),"opening body stays with chapter title");
  }
- assert.deepEqual(pages.flatMap(p=>p.units).map(u=>u.fragment?.original_unit_id??u.id)
-  .filter((x,i,a)=>i===0||x!==a[i-1]).filter(x=>!x.startsWith("body")),[]);
+ const seen=pages.flatMap(p=>p.units).map(u=>u.fragment?.original_unit_id??u.id);
+ for(const id of ["n1","t1","n2","t2","n3","t3"])
+  assert.equal(seen.filter(value=>value===id).length,1,"source identity appears exactly once");
 });
 test("no chapter inference for Roman numeral without following uppercase heading or TOC entry",()=>{
  const units=[paragraph("roman","I",25),body("after"),paragraph("toc","CHAPTER II. SOMETHING",28),body("body")];
