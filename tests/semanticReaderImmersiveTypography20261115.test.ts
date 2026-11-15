@@ -35,6 +35,9 @@ test("fullscreen and desktop/mobile use existing canonical Reader without affect
  assert.match(client,/window\.innerWidth>=860\?"spread":"pagedFlow"/);
  assert.match(client,/settings\.layoutMode==="spread"&&viewport\.width>=860/);
  assert.match(client,/immersive\?" artales-reader--immersive"/);
+ assert.match(client,/const scrollTarget=immersive\?readerRootRef\.current:window/);
+ assert.match(client,/saveReaderSettings\(\{\.\.\.settings,layoutMode:legacyLayout\}\)/);
+ assert.match(client,/artales-semantic-layout-mode/);
  assert.match(toolbar,/onToggleFullscreen\?: \(\) => void/);
  assert.match(css,/artales-reader--immersive/);
  assert.match(css,/scrollbar-width:thin/);
