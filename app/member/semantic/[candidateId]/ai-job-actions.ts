@@ -253,7 +253,7 @@ export async function lastGeneralSemanticQaJob(input:{
   return fail("Neplatná revize.");
  const db=await createClient();
  const {data:jobs,error}=await db.from("artales_semantic_ai_qa_jobs")
-  .select("id,status,suggestions,error_code,created_by,applied_revision_sha256,flag_ids")
+  .select("id,status,suggestions,error_code,created_by,applied_revision_sha256,revision_sha256,flag_ids")
   .eq("candidate_id",input.candidateId).eq("revision_sha256",input.revisionSha)
   .eq("created_by",actor.id).order("created_at",{ascending:false}).limit(12);
  if(error)return fail("Historii obecných oprav nelze načíst.");
