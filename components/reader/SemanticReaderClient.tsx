@@ -121,7 +121,13 @@ export default function SemanticReaderClient({slug,title,locale,mode,revisionSha
   setNotes(loadReaderNotes(slug,title));
   setHydrated(true);
  },[slug,title]);
- useEffect(()=>{if(hydrated)saveReaderSettings(settings)},[hydrated,settings]);
+ useEffect(()=>{
+  if(!hydrated)return;
+  // The semantic Reader stores its layout preference separately. Do not
+  // change the classic Reader's layout through shared reader settings.
+  const legacyLayout=loadReaderSettings().layoutMode;
+  saveReaderSettings({...settings,layoutMode:legacyLayout});
+ },[hydrated,settings]);
  // Escape and the native fullscreen control restore the ordinary Reader.
  // A CSS fallback remains usable if fullscreen permission is denied.
  useEffect(()=>{
