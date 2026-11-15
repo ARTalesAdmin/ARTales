@@ -334,8 +334,8 @@ export function* iterateSemanticPages(units:readonly SemanticPageUnit[],layout:S
     const length=until-from;
     const approxCharsPerLine=Math.max(18,Math.floor(
       Math.max(160,layout.viewport_width)/(9.1*layout.font_scale)));
-    // An arbitrary two-line character budget can leave sizeable white
-    // gaps. Keep a modest tail/head guard, then fit by real DOM line height.
+    // Keep a modest tail/head guard for readability; fit is determined
+    // by actual DOM line height, not by a reserve of whole lines.
     const minTail=Math.max(8,Math.min(Math.floor(approxCharsPerLine*.65),Math.floor(length*.2)));
     const minHead=Math.max(8,Math.min(Math.floor(approxCharsPerLine*.65),Math.floor(length*.2)));
     // First find the furthest source word boundary that actually fits.
@@ -362,7 +362,7 @@ export function* iterateSemanticPages(units:readonly SemanticPageUnit[],layout:S
     };
     while(lo<=hi){
      const mid=(lo+hi)>>>1;
-     if(check(mid).height<=remaining-6){bestIndex=mid;lo=mid+1;}
+     if(check(mid).height<=remaining-2){bestIndex=mid;lo=mid+1;}
      else hi=mid-1;
     }
     if(bestIndex<0)return null;
@@ -384,7 +384,7 @@ export function* iterateSemanticPages(units:readonly SemanticPageUnit[],layout:S
        /,$/.test(terminal)?1:0;
      if(punctuation>selectedScore &&
         Math.abs(check(j).height-best.height)<1.5 &&
-        check(j).height<=remaining-6){
+        check(j).height<=remaining-2){
       selected=j;selectedScore=punctuation;
       if(punctuation===3)break;
      }
@@ -447,7 +447,7 @@ export function* iterateSemanticPages(units:readonly SemanticPageUnit[],layout:S
     // continuations, not a single overflowing element. Never rely on simple
     // character-height proportionality when browser measurements are supplied.
     if(["paragraph","quote","epigraph","footnote"].includes(unit.kind)&&"atom" in unit.node&&
-       unit.estimated_height>capacity-weight-6){
+       unit.estimated_height>capacity-weight-2){
       if(pending.length && capacity-weight<minimumBody){
         const leaf=flush();if(leaf)yield leaf;
       }
