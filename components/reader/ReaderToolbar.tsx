@@ -48,6 +48,8 @@ type ReaderToolbarProps = {
   /** Only supplied by the semantic Reader; classic Reader remains unchanged. */
   fullscreenActive?: boolean;
   onToggleFullscreen?: () => void;
+  immersiveActive?: boolean;
+  onToggleImmersive?: (active:boolean) => void;
 };
 
 export default function ReaderToolbar(props: ReaderToolbarProps) {
@@ -216,6 +218,14 @@ export default function ReaderToolbar(props: ReaderToolbarProps) {
                 })}</ul> : <p className="artales-reader-notes__empty">{labels.noNotes}</p>}
               </section> : null}
               <section><h2>{chromeLabels.readerAppearanceSection}</h2>
+                {props.onToggleImmersive?<label className="semantic-reader__immersive-preference">
+                 <span>Režim čtení</span>
+                 <select aria-label="Režim čtení" value={props.immersiveActive?"immersive":"standard"}
+                  onChange={e=>props.onToggleImmersive?.(e.target.value==="immersive")}>
+                  <option value="immersive">Pohlcující — výchozí</option>
+                  <option value="standard">Klasické zobrazení</option>
+                 </select>
+                </label>:null}
                 <label>{labels.mode}<select value={settings.layoutMode} onChange={(e) => props.onLayoutModeChange(e.target.value as ReaderLayoutModeId)}><option value="pagedFlow">{chromeLabels.readerPagedFlow}</option><option value="spread">{chromeLabels.readerSpread}</option></select></label>
                 <label>{labels.theme}<select value={settings.theme} onChange={(e) => props.onThemeChange(e.target.value as ReaderThemeId)}><option value="light">{labels.themeLight}</option><option value="script">{labels.themeScript}</option><option value="dark">{labels.themeDark}</option></select></label>
                 {settings.showAdvancedReaderControls ? <>
