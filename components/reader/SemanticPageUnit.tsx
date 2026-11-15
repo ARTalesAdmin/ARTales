@@ -44,18 +44,29 @@ function nodeView(n:SemanticNode,terms:readonly string[]=[]):ReactNode {
 }
 /** The same markup is used both on the visible page and in the offscreen measuring page. */
 function coreUnitView(u:SemanticPageUnit,terms:readonly string[]=[]):ReactNode {
-  if(u.fragment&&u.node.kind==="paragraph"){
+  if(u.fragment&&"atom" in u.node){
     const {start,end}=u.fragment;
     const original=u.node.atom;
-    // Fragment layout only: the original atom ID and source anchor remain authoritative.
-    return <p data-semantic-id={u.node.id} data-source-atom={original.id}
-      data-fragment-start={start} data-fragment-end={end}
-      className={"semantic-reader__fragment"+(u.fragment.continuation_before?" semantic-reader__fragment--continued":"")}
-      style={presentationStyle(u.node.presentation)}>
-      <span className="semantic-reader__atom" data-atom-id={original.id}>
-        <ProtectedProseText raw={original.raw.slice(start,end)} terms={terms}/>
-      </span>
-    </p>;
+    // This is a layout-only range; the exact source atom remains immutable.
+    const body=<span className="semantic-reader__atom" data-atom-id={original.id}>
+      <ProtectedProseText raw={original.raw.slice(start,end)} terms={terms}/>
+    </span>;
+    const cls="semantic-reader__fragment"+
+      (u.fragment.continuation_before?" semantic-reader__fragment--continued":"");
+    const props={
+      "data-semantic-id":u.node.id,
+      "data-source-atom":original.id,
+      "data-fragment-start":start,
+      "data-fragment-end":end,
+      className:cls,
+      style:presentationStyle(u.node.presentation),
+    };
+    if(u.kind==="quote"||u.kind==="epigraph")return <blockquote {...props}>{body}</blockquote>;
+    if(u.kind==="footnote")return <aside {...props} role="note">
+      {!u.fragment.continuation_before?<sup>{u.node.footnote_label??"*"}</sup>:null}
+      {body}
+    </aside>;
+    return <p {...props}>{body}</p>;
   }
   if(u.kind==="title_page"&&u.node.kind==="title_page"){
     return <div className="semantic-reader__title-page">
