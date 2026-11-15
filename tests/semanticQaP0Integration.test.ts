@@ -89,7 +89,7 @@ test("general QA uses the identity-bound durable queue and safely scoped model d
  assert.match(engine,/generalCandidates/);
  assert.match(engine,/targetAtomIds/);
  assert.match(engine,/new Set\(suggestion.targetAtomIds\)/);
- assert.match(engine,/maxOutputTokens:isGeneral\?4800:2200/);
+ assert.match(engine,/maxOutputTokens:isGeneral\?4800:Math\.min\(6400,Math\.max\(2200,flags\.length\*190\)\)/);
  assert.match(gateway,/max_output_tokens: input.maxOutputTokens\?\?2200/);
  assert.match(dialog,/exampleAtomId:includeExample\?p.exampleAtomId:null/);
  assert.match(dialog,/readSemanticAiQaJob/);
