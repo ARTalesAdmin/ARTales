@@ -338,27 +338,53 @@ export function* iterateSemanticPages(units:readonly SemanticPageUnit[],layout:S
     // respects the persisted per-work no-break terms and named entities.
     const minTail=Math.max(18,Math.min(approxCharsPerLine*2,Math.floor(length*.35)));
     const minHead=Math.max(18,Math.min(approxCharsPerLine*2,Math.floor(length*.35)));
-    let low=minHead,high=length-minTail;
-    let best:[SemanticPageUnit,SemanticPageUnit]|null=null;
-    let lastBoundary=-1;
-    for(let attempt=0;attempt<10 && low<=high;attempt++){
-      const middle=Math.floor((low+high)/2);
-      const cut=takePageFragment(unit,middle,true,minTail,layout.protected_terms??[],spans);
-      if(!cut){low=middle+1;continue;}
-      const boundary=cut[0].fragment?.end??-1;
-      const h=measureFragment(cut[0]);
-      if(h<=remaining-6){
-        best=[{...cut[0],estimated_height:h},cut[1]];
-        low=middle+1;
-      }else{
-        high=middle-1;
-      }
-      // Repeated punctuation preference can yield the same boundary; the
-      // bisection still converges by narrowing the requested character budget.
-      lastBoundary=boundary;
+    // First find the furthest source word boundary that actually fits.
+    // Do not apply punctuation preference *inside* bisection: different
+    // candidate scores make the length/height test non-monotonic.
+    const raw=unit.node.atom.raw;
+    const whitespace=[...raw.slice(from,until).matchAll(/\\s+/g)]
+     .map(m=>from+m.index!+m[0].length)
+     .filter(end=>end-from>=minHead&&until-end>=minTail &&
+       !spans!.some(span=>span.start<end&&end<span.end));
+    if(!whitespace.length)return null;
+    let lo=0,hi=whitespace.length-1,bestIndex=-1;
+    const measured=new Map<number,{cut:[SemanticPageUnit,SemanticPageUnit];height:number}>();
+    const check=(index:number)=>{
+     const end=whitespace[index];
+     let item=measured.get(end);
+     if(!item){
+      const first=makeFragment(unit,from,end,unit.estimated_height);
+      const second=makeFragment(unit,end,until,unit.estimated_height);
+      item={cut:[first,second],height:measureFragment(first)};
+      measured.set(end,item);
+     }
+     return item;
+    };
+    while(lo<=hi){
+     const mid=(lo+hi)>>>1;
+     if(check(mid).height<=remaining-6){bestIndex=mid;lo=mid+1;}
+     else hi=mid-1;
     }
-    void lastBoundary;
-    return best;
+    if(bestIndex<0)return null;
+    // Prefer a sentence or semicolon within roughly one measured line of
+    // the best fit. Otherwise keep the maximally filled leaf.
+    const best=check(bestIndex);
+    const lastLineChars=Math.max(16,approxCharsPerLine);
+    const lowEnd=whitespace[bestIndex]-Math.ceil(lastLineChars*1.1);
+    let selected=bestIndex,selectedScore=0;
+    for(let j=bestIndex;j>=0&&whitespace[j]>=lowEnd;j--){
+     const end=whitespace[j];
+     const before=raw.slice(from,end).trimEnd();
+     const punctuation=/[.!?][”’"')\\]]?$/.test(before)?3:
+       /[;:][”’"')\\]]?$/.test(before)?2:
+       /[,][”’"')\\]]?$/.test(before)?1:0;
+     if(punctuation>selectedScore&&check(j).height<=remaining-6){
+      selected=j;selectedScore=punctuation;
+      if(punctuation===3)break;
+     }
+    }
+    const chosen=check(selected);
+    return [{...chosen.cut[0],estimated_height:chosen.height},chosen.cut[1]];
   };
   const queue=[...all];
   for(let i=0;i<queue.length;i++){
