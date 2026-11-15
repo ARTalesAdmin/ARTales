@@ -77,6 +77,7 @@
 .artales-reader--semantic .semantic-public-reader__paper .semantic-reader__unit{
  max-width:100%;
  position:relative;
+ display:flow-root;
 }
 .artales-reader--semantic .semantic-public-reader__paper .semantic-reader__unit p{
  font:inherit;
@@ -130,6 +131,12 @@
 .artales-reader--semantic .semantic-public-reader__paper .semantic-reader__fragment{
  margin-top:0!important;
  margin-bottom:0!important;
+}
+.artales-reader--semantic .semantic-public-reader__paper p.semantic-reader__fragment--final{
+ margin-bottom:var(--reader-paragraph-gap,1em)!important;
+}
+.artales-reader--semantic .semantic-public-reader__paper blockquote.semantic-reader__fragment--final{
+ margin-bottom:1.5em!important;
 }
 /* Same visible paper chrome and spacing as the legacy Reader. */
 .artales-reader--semantic .semantic-public-reader__paper-top{
