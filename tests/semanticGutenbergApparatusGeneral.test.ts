@@ -110,8 +110,11 @@ test("poem stays fully visible in QA and public edition even when one verse look
  assert.equal(getOmittedQaAtoms(revision)[introAtom.id],undefined);
  assert.throws(()=>poemInsideEditorialEdition(poem,{start:start+8,end:edition.end}),
   /boundary intersects a poem/);
- // The published component uses this exact projection guard rather than
- // a different independent verse-specific exclusion rule.
+ // Public Reader now uses the same canonical getSemanticPageUnits projection
+ // as QA, whose verse guard is poemInsideEditorialEdition. No independent
+ // public filtering path may bypass this safety rule.
  const publicReader=readFileSync(new URL("../components/reader/SemanticPublicReader.tsx",import.meta.url),"utf8");
- assert.match(publicReader,/poemInsideEditorialEdition\(n,range\)/);
+ const projection=readFileSync(new URL("../lib/semantic/readerProjection.ts",import.meta.url),"utf8");
+ assert.match(publicReader,/getSemanticPageUnits\(revision,edition\.range\)/);
+ assert.match(projection,/poemInsideEditorialEdition\(unit\.node,editionRange\)/);
 });
