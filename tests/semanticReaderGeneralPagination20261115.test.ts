@@ -25,7 +25,7 @@ function assertContinuity(pages:ReturnType<typeof paginateSemanticUnits>,raw:str
    assert.equal(fragment.fragment.start,offset,"fragment gap or overlap");
    offset=fragment.fragment.end;
    assert(offset<=raw.length);
-   assert(!(/^[\\uDC00-\\uDFFF]/u.test(raw.slice(offset))),"surrogate pair split");
+   assert(!(/^[\uDC00-\uDFFF]/u.test(raw.slice(offset))),"surrogate pair split");
   }else{
    assert.equal(offset,0);
    offset=raw.length;
