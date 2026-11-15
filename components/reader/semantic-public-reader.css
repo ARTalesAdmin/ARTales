@@ -272,3 +272,48 @@
  border:1px solid var(--reader-paper-border);
  font:12px/1.4 system-ui,sans-serif;
 }
+
+/* Projection-only chapter typography: the original paragraph atoms remain
+ * immutable, while their source-evidenced roles control page layout. */
+.artales-reader--semantic .semantic-public-reader__paper .semantic-reader__chapter-number{
+ text-align:center;
+ margin:0 0 .55em;
+ font:500 1.08em/1.5 Georgia,"Times New Roman",serif;
+}
+.artales-reader--semantic .semantic-public-reader__paper .semantic-reader__chapter-title{
+ text-align:center;
+ margin:0 0 1.45em;
+ font:500 1.20em/1.3 Georgia,"Times New Roman",serif;
+ text-wrap:balance;
+}
+.artales-reader--semantic .semantic-public-reader__paper .semantic-reader__unit p{
+ text-wrap:wrap;
+}
+/* The cover must fit the measured inner paper, rather than adding its own
+ * viewport-based minimum size and an unwanted nested scroll bar. */
+.artales-reader--semantic .semantic-reader__front-page .semantic-reader__title-page{
+ height:100%;
+ min-height:0!important;
+ max-height:100%;
+ box-sizing:border-box;
+ padding:0!important;
+ gap:0!important;
+ overflow:hidden;
+}
+.artales-reader--semantic .semantic-reader__front-page [data-semantic-edition-title-page]{
+ height:100%;
+ min-height:0!important;
+ max-height:100%;
+ box-sizing:border-box;
+ padding:0!important;
+ margin:0!important;
+ border:0!important;
+ overflow:visible;
+ background:transparent!important;
+}
+.artales-reader--semantic .semantic-reader__front-page .semantic-public-reader__page-content{
+ overflow:hidden!important;
+}
+.artales-reader--semantic .semantic-reader__front-page .semantic-public-reader__page-content .semantic-reader__unit{
+ height:100%;
+}
