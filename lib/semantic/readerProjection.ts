@@ -482,9 +482,11 @@ export function paginateSemanticUnits(units:readonly SemanticPageUnit[],layout:S
   return [...iterateSemanticPages(units,layout)];
 }
 
-export function verifyReaderProjection(revision:SemanticRevision,pages:SemanticPage[],editionRange?:{start:number;end:number}){
-  verifySemanticRevision(revision);
-  const expected=getSemanticPageUnits(revision,editionRange);
+/** Content-integrity contract for any published/QA unit sequence.
+ * No content may disappear silently behind overflow clipping. */
+export function verifySemanticPageCoverage(
+ expected:readonly SemanticPageUnit[],pages:readonly SemanticPage[]
+){
   const actual=pages.flatMap(p=>p.units);
   let index=0;
   for(const base of expected){
@@ -516,6 +518,10 @@ export function verifyReaderProjection(revision:SemanticRevision,pages:SemanticP
   }
   if(index!==actual.length)throw Error("Reader duplicated semantic units.");
   return {ok:true as const,pages:pages.length,units:actual.length};
+}
+export function verifyReaderProjection(revision:SemanticRevision,pages:SemanticPage[],editionRange?:{start:number;end:number}){
+  verifySemanticRevision(revision);
+  return verifySemanticPageCoverage(getSemanticPageUnits(revision,editionRange),pages);
 }
 export function locateReaderAnchor(revision:SemanticRevision,atomId:string,offset=0):ReaderAnchorV2{
   verifySemanticRevision(revision);
