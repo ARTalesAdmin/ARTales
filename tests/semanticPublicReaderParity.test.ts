@@ -34,7 +34,12 @@ test("public route selects published semantic Reader but retains legacy reader f
  assert.match(route,/<ReaderClient/);
  assert.match(boundary,/sourceUnits\.slice\(0,12\)/);
  assert.match(boundary,/paginateSemanticUnits|SemanticReaderClient/);
- assert.match(publicClient,/ReaderToolbar/);
+ assert.doesNotMatch(publicClient,/ReaderToolbar|import "\.\/reader\.css"/);
+ assert.match(publicClient,/semantic-reader__controls/);
+ assert.match(publicClient,/semantic-reader__triptych--focus/);
+ assert.match(publicClient,/semantic-reader__pages--spread/);
+ assert.match(publicClient,/data-reader-theme=\{settings\.theme\}/);
+ assert.match(publicClient,/semantic-reader-theme\.css/);
  assert.match(publicClient,/paginateSemanticUnits/);
  assert.match(publicClient,/unitView\(unit,protectedTerms,visuals\)/);
  assert.match(qa,/import \{unitView\} from "@\/components\/reader\/SemanticPageUnit"/);

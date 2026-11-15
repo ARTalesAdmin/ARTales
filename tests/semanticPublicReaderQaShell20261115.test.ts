@@ -1,0 +1,45 @@
+import {strict as assert} from "node:assert";
+import {test} from "node:test";
+import {readFileSync} from "node:fs";
+const read=(path:string)=>readFileSync(new URL("../"+path,import.meta.url),"utf8");
+test("public semantic Reader reuses QA visual frame and separate shared block projection",()=>{
+ const client=read("components/reader/SemanticReaderClient.tsx");
+ const qa=read("components/editor/SemanticReaderLab.tsx");
+ const css=read("components/reader/semantic-public-reader.css");
+ const shared=read("components/reader/SemanticPageUnit.tsx");
+ assert.match(client,/semantic-reader--public/);
+ assert.match(client,/semantic-reader__controls/);
+ assert.match(client,/semantic-reader__triptych--focus/);
+ assert.match(client,/semantic-reader__pages--scroll/);
+ assert.match(client,/semantic-reader__pages--spread/);
+ assert.match(client,/semantic-reader__viewport/);
+ assert.match(client,/paginateSemanticUnits\(units/);
+ assert.match(client,/unitView\(unit,protectedTerms,visuals\)/);
+ assert.match(qa,/unitView\(u,protectedTerms\)/);
+ assert.match(shared,/function coreUnitView/);
+ assert.match(css,/--qa-surround/);
+ assert.match(css,/--qa-paper/);
+ assert.match(css,/data-reader-theme="dark"/);
+ assert.doesNotMatch(client,/ReaderToolbar|import "\.\/reader\.css"/);
+ assert.doesNotMatch(client,/Archivní Gutenberg|SemanticQaPanel|Dokončit QA/);
+});
+test("public semantic Reader has functioning reader appearance, navigation and notes",()=>{
+ const client=read("components/reader/SemanticReaderClient.tsx");
+ assert.match(client,/value=\{settings\.theme\}/);
+ assert.match(client,/value=\{settings\.fontScale\}/);
+ assert.match(client,/value=\{settings\.density\}/);
+ assert.match(client,/value=\{settings\.width\}/);
+ assert.match(client,/value=\{settings\.layoutMode\}/);
+ assert.match(client,/aria-label="Přejít na stránku"/);
+ assert.match(client,/loadReaderNotes/);
+ assert.match(client,/saveReaderProgress/);
+});
+test("canonical release records initial published content change for future books",()=>{
+ const sql=read("supabase/migrations/20261115084500_artales_semantic_publication_date_and_author_name.sql");
+ assert.match(sql,/published_by,published_at,content_changed_at/);
+ assert.match(sql,/v_actor,v_actor,v_actor,now\(\),now\(\)/);
+ assert.match(sql,/content_changed_at=published_at/);
+ assert.match(sql,/name_cs='Arthur Machen'/);
+ assert.match(sql,/name_cs='Arthur machen'/);
+ assert.doesNotMatch(sql,/UPDATE public\.candidate_semantic_revisions|UPDATE public\.artales_semantic_publications/);
+});

@@ -1,16 +1,14 @@
 "use client";
 import {useCallback,useEffect,useMemo,useRef,useState,type CSSProperties} from "react";
-import ReaderToolbar from "@/components/reader/ReaderToolbar";
 import {unitView,type ApprovedSemanticImage} from "@/components/reader/SemanticPageUnit";
 import {paginateSemanticUnits} from "@/lib/semantic/readerProjection";
 import type {SemanticPage,SemanticPageUnit} from "@/lib/semantic/model";
 import type {SupportedLocale} from "@/lib/i18n/config";
-import {getPublicDictionary} from "@/lib/i18n/public";
 import {clampReaderFontScale,defaultReaderSettings,type ReaderSettings} from "@/lib/reader/readerSettings";
 import {loadReaderSettings,saveReaderSettings,loadReaderProgress,saveReaderProgress,
  loadReaderNotes,saveReaderNotes,type ReaderNote,type ReaderNoteColor} from "@/lib/reader/readerStorage";
-import "./reader.css";
 import "../editor/semantic-reader.css";
+import "../editor/semantic-reader-theme.css";
 import "./semantic-public-reader.css";
 
 type Props={
@@ -32,11 +30,12 @@ export default function SemanticReaderClient({slug,title,locale,mode,revisionSha
  const [notes,setNotes]=useState<ReaderNote[]>([]);
  const [selectedNoteId,setSelectedNoteId]=useState<string|null>(null);
  const [notesExpanded,setNotesExpanded]=useState(false);
+ const [noteTitle,setNoteTitle]=useState("");
+ const [noteBody,setNoteBody]=useState("");
+ const [noteColor,setNoteColor]=useState<ReaderNoteColor>("gold");
  const measureRef=useRef<HTMLDivElement|null>(null);
  const flowRef=useRef<HTMLDivElement|null>(null);
  const restoredRef=useRef(false);
- const dict=getPublicDictionary(locale);
- const labels=dict.reader;
  const spread=settings.layoutMode==="spread"&&viewport.width>=860;
  const targetWidth=settings.width==="narrow"?620:settings.width==="wide"?940:760;
  const pageWidth=Math.max(240,Math.min(targetWidth,
@@ -121,10 +120,6 @@ export default function SemanticReaderClient({slug,title,locale,mode,revisionSha
   return ()=>{cancelAnimationFrame(frame);observer?.disconnect()};
  },[measureKey,units]);
 
- // The toolbar's menu and progress are the existing public Reader controls.
- const toggleControls=useCallback(()=>setSettings(old=>({
-  ...old,controlsCollapsed:!old.controlsCollapsed
- })),[]);
  const patch=useCallback((next:Partial<ReaderSettings>)=>setSettings(old=>({...old,...next})),[]);
  const goToIndex=useCallback((index:number)=>{
   const safe=Math.max(0,Math.min(total-1,index));
@@ -207,38 +202,79 @@ export default function SemanticReaderClient({slug,title,locale,mode,revisionSha
    </>}
   </article>;
  };
- return <main className={"artales-reader artales-reader--semantic artales-reader--theme-"+
-   settings.theme+" artales-reader--width-"+settings.width+
-   " artales-reader--density-"+settings.density+
-   " artales-reader--layout-"+settings.layoutMode+
-   " artales-reader--pagefit-"+settings.pageFit}>
-  <ReaderToolbar title={title} detailHref={"/work/"+slug}
-   mode={mode} fullHref={"/reader/"+slug+"?mode=full"}
-   progressPercent={progress} pageIndex={current} pageCount={total}
-   settings={{...settings,showAdvancedReaderControls:true}}
-   labels={labels} chromeLabels={dict.public}
-   notes={notesSorted} notesEnabled={true}
-   selectedNoteId={selectedNoteId} selectedNoteIndex={selectedNoteIndex}
-   isNotesListExpanded={notesExpanded} notesSyncState="local"
-   onFontDelta={delta=>patch({fontScale:clampReaderFontScale(settings.fontScale+delta)})}
-   onThemeChange={theme=>patch({theme})}
-   onWidthChange={width=>patch({width})}
-   onDensityChange={density=>patch({density})}
-   onLayoutModeChange={layoutMode=>{patch({layoutMode});setPageIndex(0)}}
-   onToggleControls={toggleControls}
-   onAddNote={addNote} onGoToNote={goToNote}
-   onGoToPreviousNote={()=>{if(selectedNoteIndex>0)goToNote(notesSorted[selectedNoteIndex-1])}}
-   onGoToNextNote={()=>{if(selectedNoteIndex>=0&&selectedNoteIndex<notesSorted.length-1)goToNote(notesSorted[selectedNoteIndex+1])}}
-   onNotesListExpandedChange={setNotesExpanded}
-   onDeleteNote={deleteNote}
-   onGoToPage={n=>goToIndex(n-1)}/>
-  <section className="artales-reader__stage">
-   <div className="semantic-reader semantic-public-reader" style={{
-    ["--reader-scale" as string]:String(settings.fontScale),
-    ["--reader-line-height" as string]:settings.density==="compact"?"1.4":"1.65",
-    ["--reader-paragraph-gap" as string]:settings.density==="compact"?"0.65em":"1em",
-   }}>
-    <div className="semantic-reader__viewport semantic-public-reader__viewport">
+ return <main lang={locale} className="semantic-reader semantic-reader--public"
+  data-reader-theme={settings.theme} data-reader-mode={spread?"spread":"scroll"}>
+  <header className="semantic-public-reader__header">
+   <div className="semantic-public-reader__heading">
+    <a href={"/work/"+slug}>← ARTales</a><strong>{title}</strong>
+    <span>Čtečka ARTales{mode==="preview"?" · ukázka":""}</span>
+   </div>
+   <div className="semantic-reader__controls" aria-label="Nastavení čtení">
+    <label>Čtení <select aria-label="Rozvržení" value={settings.layoutMode}
+      onChange={e=>{patch({layoutMode:e.target.value as ReaderSettings["layoutMode"]});setPageIndex(0)}}>
+      <option value="pagedFlow">Plynulé stránky</option>
+      <option value="spread" disabled={viewport.width<860}>Dvoustrana</option>
+     </select></label>
+    <label>Motiv <select aria-label="Barevný motiv" value={settings.theme}
+      onChange={e=>patch({theme:e.target.value as ReaderSettings["theme"]})}>
+      <option value="light">Světlý</option><option value="script">Knižní</option>
+      <option value="dark">Tmavý</option>
+     </select></label>
+    <label>Velikost <input type="range" aria-label="Velikost písma"
+      min="0.85" max="1.3" step="0.05" value={settings.fontScale}
+      onChange={e=>patch({fontScale:clampReaderFontScale(Number(e.target.value))})}/>
+      <span>{Math.round(settings.fontScale*100)} %</span>
+    </label>
+    <label>Řádkování <select aria-label="Hustota řádkování" value={settings.density}
+      onChange={e=>patch({density:e.target.value as ReaderSettings["density"]})}>
+      <option value="comfortable">Normální</option><option value="compact">Zhuštěné</option>
+     </select></label>
+    <label>Šířka <select aria-label="Šířka sazby" value={settings.width}
+      onChange={e=>patch({width:e.target.value as ReaderSettings["width"]})}>
+      <option value="narrow">Úzká</option><option value="normal">Běžná</option>
+      <option value="wide">Široká</option>
+     </select></label>
+    <label className="semantic-reader__page-navigation">Strana
+      <input type="range" aria-label="Přejít na stránku" min={1} max={total}
+       value={visibleStart+1} onChange={e=>goToIndex(Number(e.target.value)-1)}/>
+      <span>{visibleStart+1} / {total}</span>
+    </label>
+    <button type="button" className="semantic-reader__fullscreen-button"
+      onClick={()=>setNotesExpanded(v=>!v)} aria-expanded={notesExpanded}>
+      Poznámky ({notes.length})
+    </button>
+   </div>
+   <progress className="semantic-public-reader__progress" value={progress} max={100} aria-label="Postup čtení"/>
+  </header>
+  {notesExpanded?<aside className="semantic-public-reader__notes" aria-label="Čtenářské poznámky">
+   <div className="semantic-public-reader__notes-head"><strong>Moje poznámky</strong>
+    <button type="button" onClick={()=>setNotesExpanded(false)}>Zavřít</button>
+   </div>
+   <form onSubmit={e=>{e.preventDefault();if(!noteTitle.trim()&&!noteBody.trim())return;
+    addNote({title:noteTitle,body:noteBody,color:noteColor});setNoteTitle("");setNoteBody("");}}>
+    <label>Název <input value={noteTitle} maxLength={160} onChange={e=>setNoteTitle(e.target.value)}/></label>
+    <label>Poznámka <textarea rows={2} value={noteBody} maxLength={4000}
+     onChange={e=>setNoteBody(e.target.value)}/></label>
+    <label>Barva <select value={noteColor} onChange={e=>setNoteColor(e.target.value as ReaderNoteColor)}>
+      <option value="gold">Zlatá</option><option value="blue">Modrá</option>
+      <option value="green">Zelená</option><option value="rose">Růžová</option><option value="violet">Fialová</option>
+     </select></label>
+    <button type="submit">Uložit na stránce {visibleStart+1}</button>
+   </form>
+   <div className="semantic-public-reader__notes-items">
+    {!notesSorted.length?<p>Dosud žádné poznámky.</p>:notesSorted.map(note=>
+     <div key={note.id} className="semantic-public-reader__note" data-selected={note.id===selectedNoteId}>
+      <button type="button" onClick={()=>goToNote(note)}>
+       {note.title||"Poznámka"} · {Math.round(note.progressPercent)} %
+      </button>
+      {note.body?<p>{note.body}</p>:null}
+      {note.source!=="synced"?<button type="button" onClick={()=>deleteNote(note)} aria-label="Smazat poznámku">Smazat</button>:null}
+     </div>)}
+   </div>
+  </aside>:null}
+  <div className="semantic-reader__triptych semantic-reader__triptych--focus">
+   <section aria-label="Sémantická edice ARTales" className="semantic-public-reader__reading-section">
+    <div className="semantic-reader__viewport semantic-public-reader__viewport" data-focused="true">
      <div className="semantic-reader__measurement semantic-public-reader__measurement"
       aria-hidden="true" ref={measureRef} style={{width:pageWidth}}>
       <div className="semantic-reader__page semantic-reader__measurement-page" style={pageStyle}>
@@ -247,21 +283,20 @@ export default function SemanticReaderClient({slug,title,locale,mode,revisionSha
        </div>)}
       </div>
      </div>
-     {!spread?<div className="semantic-public-reader__flow" ref={flowRef}>
+     {!spread?<div className="semantic-reader__pages semantic-reader__pages--scroll semantic-public-reader__flow" ref={flowRef}>
       {pages.map((page,index)=>renderPaper(page,index))}
-     </div>:<div className="semantic-public-reader__spread" aria-label="Dvoustránkové čtení">
+     </div>:<div className="semantic-reader__pages semantic-reader__pages--spread semantic-public-reader__spread"
+      aria-label="Dvoustránkové čtení">
       {renderPaper(pages[visibleStart],visibleStart)}
       {pages[visibleStart+1]?renderPaper(pages[visibleStart+1],visibleStart+1):renderPaper(undefined,visibleStart+1,true)}
      </div>}
     </div>
-   </div>
-   {spread?<div className="semantic-public-reader__navigation">
-    <button type="button" disabled={visibleStart===0}
-     onClick={()=>goToIndex(visibleStart-2)} aria-label="Předchozí dvojstrana">‹</button>
-    <span>{visibleStart+1}–{Math.min(total,visibleStart+2)} / {total}</span>
-    <button type="button" disabled={visibleStart+2>=total}
-     onClick={()=>goToIndex(visibleStart+2)} aria-label="Další dvojstrana">›</button>
-   </div>:null}
-  </section>
+    {spread?<nav className="semantic-public-reader__navigation" aria-label="Listování">
+     <button type="button" disabled={visibleStart===0} onClick={()=>goToIndex(visibleStart-2)}>‹</button>
+     <span>{visibleStart+1}–{Math.min(total,visibleStart+2)} / {total}</span>
+     <button type="button" disabled={visibleStart+2>=total} onClick={()=>goToIndex(visibleStart+2)}>›</button>
+    </nav>:null}
+   </section>
+  </div>
  </main>;
 }
