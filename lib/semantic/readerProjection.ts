@@ -342,7 +342,7 @@ export function* iterateSemanticPages(units:readonly SemanticPageUnit[],layout:S
     // Do not apply punctuation preference *inside* bisection: different
     // candidate scores make the length/height test non-monotonic.
     const raw=unit.node.atom.raw;
-    const whitespace=[...raw.slice(from,until).matchAll(/\\s+/g)]
+    const whitespace=[...raw.slice(from,until).matchAll(/\s+/g)]
      .map(m=>from+m.index!+m[0].length)
      .filter(end=>end-from>=minHead&&until-end>=minTail &&
        !spans!.some(span=>span.start<end&&end<span.end));
