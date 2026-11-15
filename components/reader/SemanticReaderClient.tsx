@@ -55,8 +55,15 @@ export default function SemanticReaderClient({slug,title,locale,mode,revisionSha
  const singleWidth=settings.width==="narrow"?620:settings.width==="wide"?780:700;
  // Only the reading layout controls page geometry. Native fullscreen must
  // never reflow or shrink sheets: it changes browser chrome, not the book.
+ // The spread's CSS stage has clamp(12px,2vw,30px) side padding.
+ // Respect its *actual available* width when sizing the offscreen sheet;
+ // otherwise the measuring page is wider than the visible page, which
+ // shifts line wraps and silently clips one or more lines.
+ const spreadSidePadding=Math.min(30,Math.max(12,viewport.width*.02));
+ const availableSpreadWidth=Math.min(1460,viewport.width-44,
+  viewport.width-2*spreadSidePadding);
  const pageWidth=Math.max(250,Math.floor(Math.min(
-  spread?Math.min(730,(viewport.width-44)/2):singleWidth,viewport.width-24)));
+  spread?Math.min(730,availableSpreadWidth/2):singleWidth,viewport.width-24)));
  const pageHeight=Math.round(pageWidth*1.414);
  const pageContentHeight=Math.max(300,pageHeight-210);
  const measureKey=[revisionSha,mode,pageWidth,pageHeight,settings.fontScale,
