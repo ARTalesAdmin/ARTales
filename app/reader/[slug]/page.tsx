@@ -60,7 +60,8 @@ export default async function ReaderPage({
     }
     const {data:rules}=await db.from("artales_work_typography_rules")
       .select("term").eq("candidate_id",semanticRelease.candidate_id);
-    return <SemanticPublicReader revision={revision} title={work.title} author={work.author?.name??""} isPreview={isPreview}
+    return <SemanticPublicReader revision={revision} title={work.title} author={work.author?.name??""}
+      slug={work.slug} locale={locale} isPreview={isPreview}
       protectedTerms={(rules??[]).map(x=>x.term)}
       visuals={semanticRelease.visual_manifest??[]}/>;
   }

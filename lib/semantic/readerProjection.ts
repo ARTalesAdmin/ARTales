@@ -193,6 +193,13 @@ function takePageFragment(unit:SemanticPageUnit,maxChars:number,allowWordFallbac
 }
 export function projectSemanticReader(revision: SemanticRevision, layout: SemanticReaderLayout): SemanticPage[] {
   verifySemanticRevision(revision);
+  return paginateSemanticUnits(getSemanticPageUnits(revision,layout.editionRange),layout);
+}
+/** The SAME pagination engine used by editorial QA, safely receiving only
+ * already-verified and edition-filtered units in the public client. This
+ * keeps preview payloads from exposing the whole copyrighted work.
+ */
+export function paginateSemanticUnits(units:readonly SemanticPageUnit[],layout:SemanticReaderLayout):SemanticPage[] {
   if (!Number.isFinite(layout.viewport_width) || !Number.isFinite(layout.viewport_height) ||
     layout.viewport_width < 200 || layout.viewport_height < 320 ||
     layout.viewport_width > 10000 || layout.viewport_height > 10000 ||
@@ -202,7 +209,7 @@ export function projectSemanticReader(revision: SemanticRevision, layout: Semant
   if (layout.density !== undefined && layout.density !== "comfortable" && layout.density !== "compact") {
     throw new Error("Invalid Reader line density.");
   }
-  const all = getSemanticPageUnits(revision,layout.editionRange).map(unit => {
+  const all = units.map(unit => {
     const measured = layout.measured_unit_heights?.[unit.id];
     if (measured !== undefined && (!Number.isFinite(measured) || measured <= 0 || measured > 100000)) {
       throw new Error("Invalid browser-measured semantic unit height.");

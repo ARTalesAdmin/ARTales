@@ -1,0 +1,95 @@
+/* Public semantic Reader: the ORIGINAL Reader toolbar and tokens, with
+ * exactly the same immutable block/page markup and pagination as editorial QA.
+ * No Gutenberg comparison panes, QA actions, or alternate text pipeline.
+ */
+.artales-reader--semantic .semantic-public-reader{
+ background:transparent;min-height:0;padding:0;color:var(--reader-paper-text);
+ font-family:Georgia,serif;
+}
+.artales-reader--semantic .semantic-public-reader__viewport{position:relative}
+.artales-reader--semantic .semantic-public-reader__flow{
+ display:flex;flex-direction:column;align-items:center;gap:18px;
+}
+.artales-reader--semantic .semantic-public-reader__spread{
+ display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);
+ gap:9px;align-items:stretch;justify-content:center;
+ max-width:calc(100vw - 48px);margin:0 auto;
+}
+.artales-reader--semantic .semantic-public-reader__paper{
+ position:relative;box-sizing:border-box;
+ margin:0 auto;overflow:visible;
+ padding:clamp(20px,4.5vw,52px) clamp(18px,4vw,54px);
+ background:var(--reader-paper)!important;
+ color:var(--reader-paper-text)!important;
+ border:1px solid var(--reader-paper-border)!important;
+ border-radius:6px;box-shadow:var(--reader-paper-shadow);
+ min-height:var(--reader-page-height,750px);
+ font-size:calc(1rem * var(--reader-scale,1));
+ line-height:var(--reader-line-height,1.65);
+}
+.artales-reader--semantic .semantic-public-reader__paper :is(h2,h3,h4,p,blockquote,aside,span){
+ color:inherit;
+}
+.artales-reader--semantic .semantic-public-reader__paper :is(p,blockquote,aside){
+ overflow-wrap:break-word;
+}
+.artales-reader--semantic .semantic-reader__front-page{
+ display:flex;align-items:center;justify-content:center;
+ background:var(--reader-paper)!important;
+}
+.artales-reader--semantic .semantic-public-reader [data-semantic-edition-title-page]{
+ color:var(--reader-paper-text)!important;
+ background:transparent;border:0;
+ width:100%;min-height:min(65vh,640px);
+}
+.artales-reader--semantic .semantic-public-reader [data-semantic-edition-title-page] :is(p,h1,h2){
+ color:inherit!important;
+}
+.artales-reader--semantic .semantic-public-reader__paper-top{
+ display:flex;justify-content:space-between;
+ gap:18px;color:var(--reader-paper-muted);
+ border-bottom:1px solid var(--reader-paper-border);
+ font:11px/1.4 system-ui;padding-bottom:10px;margin-bottom:22px;
+}
+.artales-reader--semantic .semantic-public-reader__paper-footer{
+ margin-top:28px;padding-top:12px;
+ border-top:1px solid var(--reader-paper-border);
+ font:11px/1.4 system-ui;text-align:center;color:var(--reader-paper-muted);
+}
+.artales-reader--semantic .semantic-public-reader__paper--blank{opacity:.45}
+.artales-reader--semantic .semantic-public-reader__navigation{
+ display:flex;justify-content:center;align-items:center;
+ gap:24px;margin:24px auto;
+ color:var(--reader-toolbar-text);
+}
+.artales-reader--semantic .semantic-public-reader__navigation button{
+ border:1px solid var(--reader-toolbar-border);
+ background:var(--reader-control-bg);color:var(--reader-toolbar-text);
+ border-radius:50%;font-size:34px;width:56px;height:56px;cursor:pointer;
+}
+.artales-reader--semantic .semantic-public-reader__navigation button:disabled{
+ opacity:.3;cursor:default;
+}
+.artales-reader--semantic .semantic-reader__illustration{
+ margin:2rem auto;max-width:100%;text-align:center;
+}
+.artales-reader--semantic .semantic-reader__illustration img{max-width:100%;height:auto}
+.artales-reader--semantic .semantic-reader__illustration figcaption{
+ color:var(--reader-paper-muted);font:13px/1.4 system-ui;margin-top:8px;
+}
+.artales-reader--semantic .semantic-public-reader__preview-note{
+ padding:18px;margin:2rem 0;border-top:1px solid var(--reader-paper-border);
+ font:14px/1.5 system-ui;
+}
+.artales-reader--semantic .semantic-public-reader__preview-note a{color:var(--reader-accent-strong)}
+.artales-reader--semantic .semantic-public-reader__measurement{
+ position:absolute;top:0;left:-100000px;visibility:hidden;pointer-events:none;
+ max-width:none;z-index:-1;
+}
+.artales-reader--semantic .semantic-public-reader__measurement .semantic-reader__measurement-page{
+ box-shadow:none;min-height:0!important;max-width:none;overflow:visible;
+}
+@media(max-width:850px){
+ .artales-reader--semantic .semantic-public-reader__spread{display:block}
+ .artales-reader--semantic .semantic-public-reader__paper{padding:24px 18px}
+}
