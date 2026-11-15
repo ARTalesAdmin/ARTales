@@ -1,4 +1,4 @@
-import type { SemanticRevision, SemanticNode, SemanticPageUnit, SemanticPage, ReaderAnchorV2, SemanticAtom } from "./model";
+import type { SemanticRevision, SemanticNode, SemanticPageUnit, SemanticPage, ReaderAnchorV2 } from "./model";
 import { walkSemanticAtoms, verifySemanticRevision } from "./compose";
 
 import { projectSemanticProseText } from "./displayText";
