@@ -258,3 +258,17 @@
   text-align:left;
  }
 }
+
+/* Browser-native offscreen layout skipping. All source DOM stays available,
+ * including search, scroll navigation, and future pages. */
+.artales-reader--semantic .semantic-public-reader__flow .semantic-public-reader__paper{
+ content-visibility:auto;
+ contain-intrinsic-size:auto var(--reader-page-height);
+}
+.artales-reader--semantic .semantic-public-reader__reflow-status{
+ position:fixed;right:12px;bottom:12px;z-index:100;
+ padding:6px 11px;border-radius:6px;
+ background:var(--reader-paper);color:var(--reader-paper-text);
+ border:1px solid var(--reader-paper-border);
+ font:12px/1.4 system-ui,sans-serif;
+}
