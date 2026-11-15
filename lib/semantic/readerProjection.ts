@@ -391,7 +391,7 @@ export function* iterateSemanticPages(units:readonly SemanticPageUnit[],layout:S
     // preposition when a slightly earlier safe word boundary exists.
     // Keep all source bytes and make a typographic choice only.
     if(selectedScore===0){
-     const dangling=/(?:^|\\s)(?:the|a|an|of|to|and|or|but|with|in|on|at|for|by|from|as)\\s*$/iu;
+     const dangling=/(?:^|\s)(?:the|a|an|of|to|and|or|but|with|in|on|at|for|by|from|as)\s*$/iu;
      const endText=()=>raw.slice(from,whitespace[selected]).trimEnd();
      if(dangling.test(endText())){
       for(let j=selected-1;j>=0&&whitespace[j]>=lowEnd;j--){
