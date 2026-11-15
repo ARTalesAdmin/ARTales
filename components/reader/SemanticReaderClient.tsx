@@ -70,8 +70,13 @@ export default function SemanticReaderClient({slug,title,locale,mode,revisionSha
  // Reserve a bounded CSS/layout rounding margin until the browser geometry
  // integration passes the strict all-pages overflow gate at every viewport.
  // This is a conservative safety margin, not proof of final visual parity.
- const actualCapacity=Math.max(80,(measurements?.key===measureKey?measurements.contentHeight:pageContentHeight)-38);
- const contentWidth=measurements?.key===measureKey?measurements.contentWidth:Math.max(200,pageWidth-144);
+ const measuredCapacity=measurements?.key===measureKey?measurements.contentHeight:pageContentHeight;
+ // The measured grid can temporarily report zero before the first browser
+ // layout pass. Never feed transient dimensions below the canonical engine's
+ // validated viewport minimum; the next ResizeObserver event remeasures.
+ const actualCapacity=Math.max(220,Number.isFinite(measuredCapacity)?measuredCapacity-38:pageContentHeight-38);
+ const measuredWidth=measurements?.key===measureKey?measurements.contentWidth:pageWidth-144;
+ const contentWidth=Math.max(200,Number.isFinite(measuredWidth)?measuredWidth:pageWidth-144);
  // Render the first leaf without a synchronous full-book fallback.
  // DOM measurement and all later pages use the same canonical iterator.
  const fallbackPages=useMemo(()=>{
