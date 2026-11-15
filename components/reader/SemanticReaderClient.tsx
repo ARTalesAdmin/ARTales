@@ -53,7 +53,10 @@ export default function SemanticReaderClient({slug,title,locale,mode,revisionSha
  const measureKey=[revisionSha,mode,pageWidth,pageHeight,settings.fontScale,
   settings.density,units.length,protectedTerms.join("\u0001")].join("|");
  const readyMeasurements=measurements?.key===measureKey?measurements.heights:undefined;
- const actualCapacity=measurements?.key===measureKey?measurements.contentHeight:pageContentHeight;
+ // Reserve a bounded CSS/layout rounding margin until the browser geometry
+ // integration passes the strict all-pages overflow gate at every viewport.
+ // This is a conservative safety margin, not proof of final visual parity.
+ const actualCapacity=Math.max(80,(measurements?.key===measureKey?measurements.contentHeight:pageContentHeight)-38);
  const contentWidth=measurements?.key===measureKey?measurements.contentWidth:Math.max(200,pageWidth-144);
  // Before the browser has measured the actual font and page geometry, show
  // a conservative projection. Replace it atomically after the DOM audit.
