@@ -77,6 +77,30 @@ export function getSemanticPageUnits(revision: SemanticRevision, editionRange?:{
   });
 }
 
+/** Read-only recognition of chapter-number + uppercase-title pairs from legacy
+ * flat semantic revisions. Original source atoms, ordering and hashes remain
+ * unchanged. Recognize only an adjacent pair in the literary projection, not
+ * standalone Roman numerals in dialogue or table-of-contents lines. */
+export function projectFlatChapterHeadings(units:readonly SemanticPageUnit[]):SemanticPageUnit[]{
+ const result=[...units];
+ const numeral=/^(?:I|II|III|IV|V|VI|VII|VIII|IX|X|XI|XII|XIII|XIV|XV|XVI|XVII|XVIII|XIX|XX)$/;
+ const title=/^[\p{Lu}\p{M}\p{N}][\p{Lu}\p{M}\p{N}\p{P}\p{Zs}'’—–-]{3,110}$/u;
+ for(let i=0;i+2<result.length;i++){
+  const number=result[i],heading=result[i+1],firstBody=result[i+2];
+  if(number.kind!=="paragraph"||heading.kind!=="paragraph"||
+     !("atom" in number.node)||!("atom" in heading.node)||
+     !["paragraph","quote","epigraph"].includes(firstBody.kind))continue;
+  const n=number.node.atom.raw.trim(),h=heading.node.atom.raw.trim();
+  if(!numeral.test(n)||!title.test(h)||!/[\p{L}]/u.test(h))continue;
+  // Do not mistake a text block's ordinary uppercase emphasis for a
+  // chapter title; the preceding Roman numeral and next prose are required.
+  result[i]={...number,layout_role:"chapter_number"};
+  result[i+1]={...heading,layout_role:"chapter_title"};
+  i++;
+ }
+ return result;
+}
+
 /** First server-render fallback; hydrated preview replaces it with real DOM heights. */
 function estimateUnitHeight(unit: SemanticPageUnit, layout: SemanticReaderLayout): number {
   if(unit.kind==="title_page")return Math.max(350,Math.min(650,layout.viewport_height-220));
@@ -239,7 +263,7 @@ export function* iterateSemanticPages(units:readonly SemanticPageUnit[],layout:S
   if (layout.density !== undefined && layout.density !== "comfortable" && layout.density !== "compact") {
     throw new Error("Invalid Reader line density.");
   }
-  const all = units.map(unit => {
+  const all = projectFlatChapterHeadings(units).map(unit => {
     const measured = layout.measured_unit_heights?.[unit.id];
     if (measured !== undefined && (!Number.isFinite(measured) || measured <= 0 || measured > 100000)) {
       throw new Error("Invalid browser-measured semantic unit height.");
@@ -256,8 +280,19 @@ export function* iterateSemanticPages(units:readonly SemanticPageUnit[],layout:S
   let weight = 0;
   const flush = ():SemanticPage|null => {
     if(!pending.length)return null;
+    // A fragment produced merely as a layout decision is not a new paragraph.
+    // Coalesce adjacent contiguous ranges on the same leaf before rendering.
+    const coalesced:SemanticPageUnit[]=[];
+    for(const unit of pending){
+      const prev=coalesced.at(-1),a=prev?.fragment,b=unit.fragment;
+      if(prev&&a&&b&&a.original_unit_id===b.original_unit_id&&a.end===b.start){
+        const merged=makeFragment(prev,a.start,b.end,prev.estimated_height+unit.estimated_height);
+        coalesced[coalesced.length-1]={...merged,
+          estimated_height:prev.estimated_height+unit.estimated_height};
+      }else coalesced.push(unit);
+    }
     const page:SemanticPage={
-      index:nextPageIndex++,units:pending,
+      index:nextPageIndex++,units:coalesced,
       overflow:pending.some(unit=>unit.estimated_height>capacity)?"scroll_unit":"none",
       estimated_height:weight,
     };
@@ -333,8 +368,19 @@ export function* iterateSemanticPages(units:readonly SemanticPageUnit[],layout:S
     }
     // A new chapter always opens on a fresh leaf; a section heading must
     // remain with at least two-three lines of the following text.
-    if(unit.kind==="chapter_heading"&&pending.length){
+    if((unit.kind==="chapter_heading"||unit.layout_role==="chapter_number")&&pending.length){
       const leaf=flush();if(leaf)yield leaf;
+    }
+    // Number, title and opening prose stay together as a book heading group.
+    if(unit.layout_role==="chapter_number"){
+      const title=queue[i+1],body=queue[i+2];
+      if(title?.layout_role==="chapter_title"&&body){
+        const required=unit.estimated_height+title.estimated_height+
+          Math.min(body.estimated_height,minimumBody*2);
+        if(pending.length&&weight+required>capacity){
+          const leaf=flush();if(leaf)yield leaf;
+        }
+      }
     }
     const next=queue[i+1];
     if(unit.kind==="section_heading"&&pending.length){
