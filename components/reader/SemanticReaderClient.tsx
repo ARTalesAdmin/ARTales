@@ -33,8 +33,8 @@ export default function SemanticReaderClient({slug,title,locale,mode,revisionSha
  const [settings,setSettings]=useState<ReaderSettings>(defaultReaderSettings);
  const [hydrated,setHydrated]=useState(false);
  const [viewport,setViewport]=useState({width:1024,height:780});
- const [immersive,setImmersive]=useState(true);
  const [nativeFullscreen,setNativeFullscreen]=useState(false);
+ const immersive=nativeFullscreen;
  const readerRootRef=useRef<HTMLElement|null>(null);
  const [measurements,setMeasurements]=useState<Measurements|null>(null);
  const [measuredPages,setMeasuredPages]=useState<{key:string;pages:SemanticPage[];complete:boolean}|null>(null);
@@ -61,7 +61,7 @@ export default function SemanticReaderClient({slug,title,locale,mode,revisionSha
   :Math.max(250,Math.floor(Math.min(
     spread?Math.min(730,(viewport.width-44)/2):singleWidth,viewport.width-24)));
  const pageHeight=immersive
-  ?Math.max(460,viewport.height-100)
+  ?Math.max(320,viewport.height-100)
   :Math.round(pageWidth*1.414);
  const pageContentHeight=Math.max(220,pageHeight-(immersive?90:210));
  const measureKey=[revisionSha,mode,pageWidth,pageHeight,settings.fontScale,
@@ -127,8 +127,7 @@ export default function SemanticReaderClient({slug,title,locale,mode,revisionSha
  },[]);
  useEffect(()=>{
   const saved=loadReaderSettings();
-  const immersivePreference=window.localStorage.getItem("artales-semantic-immersive");
-  setImmersive(immersivePreference!=="off");
+  // Fullscreen is independent from the saved page/spread reading mode.
   const semanticPreference=window.localStorage.getItem("artales-semantic-layout-mode");
   const layoutMode=semanticPreference==="spread"||semanticPreference==="pagedFlow"
    ?semanticPreference:window.innerWidth>=860?"spread":"pagedFlow";
@@ -469,14 +468,7 @@ export default function SemanticReaderClient({slug,title,locale,mode,revisionSha
    return;
   }
   const root=readerRootRef.current;
-  if(root?.requestFullscreen)void root.requestFullscreen().catch(()=>{
-   // The default immersive layout still fills the web app viewport.
-  });
- };
- const setImmersivePreference=(next:boolean)=>{
-  setImmersive(next);
-  window.localStorage.setItem("artales-semantic-immersive",next?"on":"off");
-  if(!next&&document.fullscreenElement)void document.exitFullscreen();
+  if(root?.requestFullscreen)void root.requestFullscreen().catch(()=>{});
  };
  const dictionary=getPublicDictionary(locale);
  const toggleControls=()=>setSettings(old=>({...old,controlsCollapsed:!old.controlsCollapsed}));
@@ -508,7 +500,6 @@ export default function SemanticReaderClient({slug,title,locale,mode,revisionSha
     patch({layoutMode});
    }}
    fullscreenActive={nativeFullscreen} onToggleFullscreen={toggleFullscreen}
-   immersiveActive={immersive} onToggleImmersive={setImmersivePreference}
    onToggleControls={toggleControls}
    onAddNote={addNote} onGoToNote={goToNote}
    onGoToPreviousNote={()=>{if(selectedNoteIndex>0)goToNote(notesSorted[selectedNoteIndex-1])}}
