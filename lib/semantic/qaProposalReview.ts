@@ -1,5 +1,5 @@
 import type {AiQaSuggestion} from "./aiQaProposalEngine";
-import {isExplicitWholeBlockExclusion} from "./qaExclusionPolicy";
+import {isExplicitWholeBlockExclusion,requestsTextRemoval} from "./qaExclusionPolicy";
 
 /** Choices are local editorial decisions. No AI output is trusted as authority. */
 export type QaProposalDecision={flagId:string;choice:"approve"|"reject"};
@@ -39,6 +39,9 @@ export function planQaProposalReview(
    throw new Error("Nález není ve správné revizi nebo chybí rozhodnutí.");
   if(decision==="reject"){result.rejected.push(flag.id);continue;}
   const requestedExclusion=isExplicitWholeBlockExclusion(flag.comment??"");
+  if(!requestedExclusion&&requestsTextRemoval(flag.comment??""))
+   throw new Error("Nález požaduje úpravu části textu, kterou tato AI dávka neumí provést. "+
+    "Ponech nález otevřený, neoznačuj jej za opravený.");
   if(requestedExclusion){
    // Never treat "Smazat" as "reviewed, no change", even when AI
    // returned a normal manual_review label. The extra intent must be in
