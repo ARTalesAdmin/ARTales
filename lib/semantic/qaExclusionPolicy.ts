@@ -4,6 +4,17 @@ import type {SemanticNode,SemanticRevision} from "./model";
  * authorize a source-preserving exclusion proposal. Partial text rewrites,
  * negations and general "fix my prose" requests remain manual-review items.
  */
+/** Removal intent need not be supported by the current full-block editor.
+ * A partial deletion request must remain open rather than closing as "reviewed".
+ */
+export function requestsTextRemoval(comment:string):boolean{
+ const value=(comment??"").trim().toLocaleLowerCase("cs");
+ if(!value||value.startsWith("obecné zadání "))return false;
+ if(/\b(?:nemazat|nesmazat|nevymazat|neodstraňovat|ponechat|zachovat|keep|retain)\b|do not delete|don't delete|not remove/iu.test(value))
+  return false;
+ return /\b(?:smazat|smaž|vymazat|vymaž|odstranit|odstraň|vyřadit|vyřaď|vypustit|vypusť|delete|remove|exclude|omit)\b/iu.test(value);
+}
+
 export function isExplicitWholeBlockExclusion(comment:string):boolean{
  const value=(comment??"").trim().toLocaleLowerCase("cs");
  if(!value||value.startsWith("obecné zadání "))return false;
