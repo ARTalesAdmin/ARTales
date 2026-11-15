@@ -108,8 +108,8 @@ export default function SemanticQaPanel(p:Props){
       setAiFeedback(result.message);
       setAiError(result.status==="failed");
       if(result.status==="completed"){
-       if(result.appliedRevisionSha)router.refresh();
-       else acceptAiSuggestions(result.suggestions);
+       if(result.appliedRevisionSha&&result.appliedRevisionSha!==p.revisionSha)router.refresh();
+       else if(!result.appliedRevisionSha)acceptAiSuggestions(result.suggestions);
       }
     }});
    return ()=>{active=false;};
@@ -124,8 +124,8 @@ export default function SemanticQaPanel(p:Props){
      if(!active||!result.ok)return;
      setJob(result);
      if(result.status==="completed"){
-      if(result.appliedRevisionSha)router.refresh();
-      else {
+      if(result.appliedRevisionSha&&result.appliedRevisionSha!==p.revisionSha)router.refresh();
+      else if(!result.appliedRevisionSha) {
        acceptAiSuggestions(result.suggestions);
        if(result.suggestions.some(s=>s.action==="protect_term"))router.refresh();
       }
@@ -141,6 +141,7 @@ export default function SemanticQaPanel(p:Props){
  const requestAi=()=>{
   if(pending)return;
   setAiFeedback("Zařazuji úlohu do fronty ARTales AI…");
+  setAiSuggestions([]);
   setAiError(false);
   startTransition(async()=>{
    try {
@@ -152,8 +153,8 @@ export default function SemanticQaPanel(p:Props){
     if(queued.ok){
      setJob(queued);
      if(queued.status==="completed"){
-      if(queued.appliedRevisionSha)router.refresh();
-      else acceptAiSuggestions(queued.suggestions);
+      if(queued.appliedRevisionSha&&queued.appliedRevisionSha!==p.revisionSha)router.refresh();
+      else if(!queued.appliedRevisionSha)acceptAiSuggestions(queued.suggestions);
      }
     }
    }catch{
@@ -262,7 +263,8 @@ export default function SemanticQaPanel(p:Props){
      {job.status==="completed"?<progress max={100} value={100} aria-label="Opravná dávka dokončena"/>:
       job.status==="queued"||job.status==="running"?
       <progress aria-label="Zpracovávání oprav v AI frontě"/>:null}
-     {job.appliedRevisionSha?<p>Nová opravná revize {job.appliedRevisionSha.slice(0,12)} byla uložena.
+     {job.appliedRevisionSha===p.revisionSha?<p>Rozhodnutí jsou uložená. Nová textová revize nebyla potřeba; zbývající nálezy můžeš znovu odeslat.</p>:
+     job.appliedRevisionSha?<p>Nová opravná revize {job.appliedRevisionSha.slice(0,12)} byla uložena.
        Otevřené QA ji zobrazí k opakované kontrole v této seanci.</p>:null}
      {job.status==="queued"||job.status==="running"?
       <p>Úloha je trvale evidovaná. Můžeš počkat zde, nebo okno zavřít.
