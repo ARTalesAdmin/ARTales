@@ -71,7 +71,7 @@ test("published semantic Reader measures real fragment DOM, keeps paper bounds, 
  assert.match(projection,/unit\.layout_role==="chapter_number"/);
  assert.match(projection,/fitParagraph/);
  assert.doesNotMatch(projection,/if\(unit\.fragment\?\.continuation_after\s*&&/);
- assert.match(projection,/measureFragment\(cut\[0\]\)/);
+ assert.match(projection,/measureFragment\(first\)/);
  assert.match(projection,/protected_terms\?\?\[\]/);
  assert.doesNotMatch(projection,/const maxChars=Math\.max\(35/);
 });
