@@ -331,11 +331,10 @@
  text-align-last:start;
 }
 
-/* Immersive is the default *web-app layout*, not browser Fullscreen API.
- * The latter must always be explicitly triggered by a user gesture.
- * Keep the title/progress toolbar, two book faces, and side arrows; remove
- * decorative stage margins, page folios and duplicate bottom navigation.
- */
+/* Browser fullscreen is orthogonal to page/spread layout. The paper's
+ * dimensions, rows, padding and actual DOM measurements NEVER change
+ * on fullscreen entry. If a sheet is taller than the screen, the host
+ * scrolls vertically rather than clipping its lower part. */
 .artales-reader--semantic .semantic-reader__fullscreen-toggle{
  display:inline-grid;place-items:center;width:38px;height:36px;
  border:1px solid var(--reader-control-border);border-radius:9px;
@@ -345,76 +344,23 @@
 .artales-reader--semantic .semantic-reader__fullscreen-toggle:focus-visible{
  outline:2px solid var(--reader-accent);outline-offset:2px;
 }
-.artales-reader--semantic.artales-reader--immersive{
- position:fixed;inset:0;z-index:1000;
- display:flex;flex-direction:column;
- width:100%;height:100dvh;min-height:0;
- overflow-x:hidden;overflow-y:auto;overscroll-behavior:contain;
- background:var(--reader-outer-bg);
+.artales-reader--semantic:fullscreen{
+ width:100%;height:100%;min-height:0;max-height:100%;
+ overflow-x:hidden;overflow-y:auto;
+ overscroll-behavior:contain;
  scrollbar-width:thin;
  scrollbar-color:color-mix(in srgb,var(--reader-accent) 30%,transparent) transparent;
+ background:var(--reader-outer-bg);
 }
-.artales-reader--semantic.artales-reader--immersive::-webkit-scrollbar{width:5px}
-.artales-reader--semantic.artales-reader--immersive::-webkit-scrollbar-thumb{
- background:color-mix(in srgb,var(--reader-accent) 30%,transparent);border-radius:10px;
+.artales-reader--semantic:fullscreen::-webkit-scrollbar{width:5px}
+.artales-reader--semantic:fullscreen::-webkit-scrollbar-thumb{
+ background:color-mix(in srgb,var(--reader-accent) 30%,transparent);
+ border-radius:10px;
 }
-.artales-reader--semantic.artales-reader--immersive .artales-reader-toolbar{
- position:sticky;top:0;left:auto;right:auto;
- z-index:1050;opacity:1;transform:none;
- flex:0 0 auto;
- padding:8px clamp(12px,2.5vw,34px);
- gap:5px;
+.artales-reader--semantic:fullscreen .artales-reader-toolbar{
+ position:sticky;top:0;z-index:1050;
 }
-.artales-reader--semantic.artales-reader--immersive .semantic-public-reader__stage{
- flex:1 0 auto;
- display:flex;flex-direction:column;justify-content:center;
- min-height:0!important;
- padding:0 8px!important;
+.artales-reader--semantic:fullscreen .semantic-public-reader__stage{
+ min-height:0;
 }
-.artales-reader--semantic.artales-reader--immersive .semantic-reader--public,
-.artales-reader--semantic.artales-reader--immersive .semantic-public-reader__viewport{
- width:100%;
-}
-.artales-reader--semantic.artales-reader--immersive .semantic-public-reader__spread{
- max-width:calc(100vw - 16px);
- width:100%;
-}
-.artales-reader--semantic.artales-reader--immersive .semantic-public-reader__paper{
- border-radius:3px;
- box-shadow:0 5px 18px rgba(47,42,35,.10);
- grid-template-rows:0px minmax(0,1fr) 0px;
- row-gap:0;
- padding:18px clamp(24px,4vw,54px) 20px;
-}
-/* Keep both chrome elements as zero-height grid children. Removing
- * them with display:none shifts page content into the 0px first grid row,
- * silently breaking all browser geometry and source pagination. */
-.artales-reader--semantic.artales-reader--immersive
- :is(.semantic-public-reader__paper-top,.semantic-public-reader__paper-footer){
- visibility:hidden!important;
- min-height:0!important;height:0!important;
- padding:0!important;border:0!important;
- overflow:hidden!important;
-}
-.artales-reader--semantic.artales-reader--immersive .semantic-public-reader__navigation{
- display:none!important;
-}
-.artales-reader--semantic.artales-reader--immersive
- .semantic-public-reader__side-navigation .artales-reader-side-nav{
- opacity:.68;
-}
-.artales-reader--semantic.artales-reader--immersive
- .semantic-public-reader__side-navigation .artales-reader-side-nav:hover{
- opacity:1;
-}
-@media(max-width:859px){
- .artales-reader--semantic.artales-reader--immersive .semantic-public-reader__stage{
-  padding:0 4px 10px!important;
- }
- .artales-reader--semantic.artales-reader--immersive .semantic-public-reader__flow{
-  gap:10px;
- }
- .artales-reader--semantic.artales-reader--immersive .semantic-public-reader__paper{
-  padding:18px 20px 20px;
- }
-}
+/* Do not touch .semantic-public-reader__paper or its grid children. */
