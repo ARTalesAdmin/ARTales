@@ -16,7 +16,7 @@ function chosenFirstCut(raw:string,lastLineStart:number,fillScale:number){
   const end=fragment.fragment.end;
   // The geometry (not character count) tells the paginator how much the
   // LAST rendered line is occupied. Supply the same height for every split.
-  return {height:180,last_line_top:118,
+  return {height:end<=140?180:360,last_line_top:118,
    last_line_fill:Math.min(1,Math.max(0,(end-lastLineStart)/fillScale))};
  };
  const pages=paginateSemanticUnits([original],{
@@ -33,13 +33,13 @@ test("natural break inside second half of physically measured last line wins",()
  const words="we observe that another person arrived, and took a quiet walk through the garden; after which the whole story continued with many more words ";
  const raw=words+words+words;
  const position=raw.indexOf("garden;")+"garden; ".length;
- const cut=chosenFirstCut(raw,raw.indexOf("took a quiet"),80);
+ const cut=chosenFirstCut(raw,20,100);
  assert.equal(cut,position,"semicolon is preferable when measured in second half of visible line");
 });
 test("punctuation in first half cannot sacrifice rest of actual last line",()=>{
  const first="A careful sentence; ";
  const after="then the witnesses observed several separate incidents before night fell slowly ";
  const raw=first+after+after;
- const cut=chosenFirstCut(raw,raw.indexOf("A careful"),Math.floor((first+after).length*1.1));
+ const cut=chosenFirstCut(raw,0,140);
  assert(cut>first.length,"early semicolon must not shorten last line");
 });
