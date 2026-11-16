@@ -21,7 +21,8 @@ function chosenFirstCut(raw:string,lastLineStart:number,fillScale:number){
  };
  const pages=paginateSemanticUnits([original],{
   mode:"paged",viewport_width:430,viewport_height:500,font_scale:1,
-  content_height:280,density:"comfortable",measure_fragment_geometry:measure,
+  content_height:280,density:"comfortable",measured_unit_heights:{source:2000},
+  measure_fragment_geometry:measure,
   measure_fragment_height:f=>measure(f)?.height??null});
  assert.equal(verifySemanticPageCoverage([original],pages).ok,true);
  const first=pages[0].units[0].fragment;
