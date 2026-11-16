@@ -38,8 +38,8 @@
 }
 .artales-reader--semantic .semantic-public-reader__paper{
  display:grid;
- grid-template-rows:32px minmax(0,1fr) 34px;
- row-gap:clamp(10px,1.8vw,18px);
+ grid-template-rows:26px minmax(0,1fr) 24px;
+ row-gap:8px;
  box-sizing:border-box;
  height:var(--reader-page-height);
  min-height:var(--reader-page-height);
@@ -47,8 +47,8 @@
  width:100%;
  max-width:100%;
  overflow:hidden!important;
- padding:clamp(54px,5.6vw,78px) clamp(38px,7vw,88px)
-  clamp(32px,4vw,48px);
+ padding:var(--reader-paper-pad-top,54px) var(--reader-paper-pad-inline,48px)
+  var(--reader-paper-pad-bottom,28px);
  border:1px solid var(--reader-paper-border)!important;
  color:var(--reader-paper-text)!important;
  background:var(--reader-paper)!important;
@@ -147,8 +147,8 @@
  display:flex;
  align-items:center;
  justify-content:space-between;
- min-height:32px;
- padding-bottom:8px;
+ min-height:26px;
+ padding-bottom:4px;
  border-bottom:1px solid color-mix(in srgb,var(--reader-paper-border) 54%,transparent);
 }
 .artales-reader--semantic .semantic-public-reader__paper-footer{
@@ -157,8 +157,8 @@
  display:flex;
  align-items:center;
  justify-content:center;
- min-height:34px;
- padding-top:9px;
+ min-height:24px;
+ padding-top:5px;
  border-top:1px solid color-mix(in srgb,var(--reader-paper-border) 72%,transparent);
 }
 .artales-reader--semantic .semantic-public-reader__cover-chrome{
