@@ -262,13 +262,12 @@ export default function SemanticReaderClient({slug,title,locale,mode,revisionSha
   if(!content)return;
   const original=new Map([...root.querySelectorAll<HTMLElement>("[data-semantic-measure-id]")]
     .map(el=>[el.dataset.semanticMeasureId??"",el] as const));
-  const cache=new Map<string,number>();
-  const fragmentHeight=(unit:SemanticPageUnit):number|null=>{
+  const cache=new Map<string,{height:number;last_line_top:number;last_line_fill:number}|null>();
+  const fragmentGeometry=(unit:SemanticPageUnit)=>{
    if(!unit.fragment||!("atom" in unit.node))return null;
    const {start,end,original_unit_id}=unit.fragment;
    const key=original_unit_id+":"+start+":"+end;
-   const cached=cache.get(key);
-   if(cached!==undefined)return cached;
+   if(cache.has(key))return cache.get(key)??null;
    const template=original.get(original_unit_id);
    if(!template)return null;
    const clone=template.cloneNode(true) as HTMLElement;
@@ -309,17 +308,38 @@ export default function SemanticReaderClient({slug,title,locale,mode,revisionSha
    if(unit.kind==="footnote"&&start>0)prose.querySelector("sup")?.remove();
    clone.removeAttribute("data-semantic-measure-id");
    content.appendChild(clone);
-   const height=Math.ceil(clone.getBoundingClientRect().height*2)/2;
+   const measuredBox=clone.getBoundingClientRect();
+   const height=Math.ceil(measuredBox.height*2)/2;
+   const proseBox=prose.getBoundingClientRect();
+   let lastTop=-Infinity,lastRight=proseBox.left;
+   const textWalker=document.createTreeWalker(prose,NodeFilter.SHOW_TEXT);
+   let textNode:Node|null;
+   while((textNode=textWalker.nextNode())){
+    if(!textNode.textContent?.trim())continue;
+    const range=document.createRange();range.selectNodeContents(textNode);
+    for(const rect of range.getClientRects()){
+     if(rect.width<0.1||rect.height<0.1)continue;
+     if(rect.top>lastTop+1.5){lastTop=rect.top;lastRight=rect.right;}
+     else if(Math.abs(rect.top-lastTop)<=1.5)lastRight=Math.max(lastRight,rect.right);
+    }
+   }
    clone.remove();
-   cache.set(key,height);
-   return height;
+   if(!Number.isFinite(lastTop)||!Number.isFinite(proseBox.width)||proseBox.width<=0){
+    cache.set(key,null);return null;
+   }
+   const value={height,last_line_top:lastTop-measuredBox.top,
+    last_line_fill:Math.max(0,Math.min(1,(lastRight-proseBox.left)/proseBox.width))};
+   cache.set(key,value);return value;
   };
+  const fragmentHeight=(unit:SemanticPageUnit):number|null=>
+   fragmentGeometry(unit)?.height??null;
   const iterator=iterateSemanticPages(semanticUnits,{
    mode:"paged",viewport_width:contentWidth,
    viewport_height:actualCapacity+100,content_height:actualCapacity,
    font_scale:settings.fontScale,density:settings.density,
    measured_unit_heights:readyMeasurements,protected_terms:protectedTerms,
    measure_fragment_height:fragmentHeight,
+   measure_fragment_geometry:fragmentGeometry,
   });
   const collected:SemanticPage[]=[];
   const step=()=>{
