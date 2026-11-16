@@ -432,7 +432,9 @@ export function* iterateSemanticPages(units:readonly SemanticPageUnit[],layout:S
     const best=check(bestIndex);
     let selected=bestIndex;
     const bestPreference=breakPolicy.get(whitespace[selected])?.preference??0;
-    let selectedScore=bestPreference>0?bestPreference*100+(best.lineFill??1)*10:0;
+    // Filling the final rendered line comes FIRST. Natural punctuation is
+    // a limited bonus, not permission to leave half a line empty.
+    let selectedScore=(best.lineFill??1)*100+Math.max(0,bestPreference)*4;
     for(let j=bestIndex-1;j>=0;j--){
      const item=check(j);
      if(item.height>remaining-6)continue;
@@ -446,10 +448,12 @@ export function* iterateSemanticPages(units:readonly SemanticPageUnit[],layout:S
       if(Math.abs(item.height-best.height)>1.5)break;
       lineFill=1-(whitespace[bestIndex]-whitespace[j])/Math.max(16,approxCharsPerLine);
      }
-     if(lineFill<0.5)continue;
+     // A visually short line is worse than a word-boundary near the edge.
+     // At >=78% a sentence/semicolon may be worth a small remaining gap.
+     if(lineFill<0.85)continue;
      const preference=breakPolicy.get(whitespace[j])?.preference??0;
      if(preference<=0)continue;
-     const score=preference*100+lineFill*10;
+     const score=lineFill*100+preference*4;
      if(score>selectedScore){selected=j;selectedScore=score;}
     }
     const chosen=check(selected);
