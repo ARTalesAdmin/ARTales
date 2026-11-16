@@ -34,6 +34,7 @@ export default function SemanticReaderClient({slug,title,locale,mode,revisionSha
  const [settings,setSettings]=useState<ReaderSettings>(defaultReaderSettings);
  const [hydrated,setHydrated]=useState(false);
  const [viewport,setViewport]=useState({width:1024,height:780});
+ const [toolbarHeight,setToolbarHeight]=useState(90);
  const [nativeFullscreen,setNativeFullscreen]=useState(false);
  const immersive=nativeFullscreen;
  const readerRootRef=useRef<HTMLElement|null>(null);
@@ -56,16 +57,22 @@ export default function SemanticReaderClient({slug,title,locale,mode,revisionSha
  // Book geometry and margins come from the existing, proven Reader.
  // The semantic paginator uses the *content* area rather than viewport height.
  const singleWidth=settings.width==="narrow"?620:settings.width==="wide"?780:700;
- // Only the reading layout controls page geometry. Native fullscreen must
- // never reflow or shrink sheets: it changes browser chrome, not the book.
- // Match the visible spread's stage padding when measuring offscreen.
+ // Fit the spread to real viewport width AND height, reserving space for
+ // measured toolbar, stage and page navigation. Font stays unscaled.
  const spreadSidePadding=Math.min(30,Math.max(12,viewport.width*.02));
  const availableSpreadWidth=Math.min(1460,viewport.width-44,
   viewport.width-2*spreadSidePadding);
+ const availableSpreadHeight=Math.max(354,viewport.height-toolbarHeight-106);
  const pageWidth=Math.max(250,Math.floor(Math.min(
-  spread?Math.min(730,availableSpreadWidth/2):singleWidth,viewport.width-24)));
+  spread?Math.min(730,availableSpreadWidth/2,
+   availableSpreadHeight/1.414):singleWidth,viewport.width-24)));
  const pageHeight=Math.round(pageWidth*1.414);
- const pageContentHeight=Math.max(300,pageHeight-210);
+ // Compact page margins are proportional to the physical sheet, never
+ // viewport width; identical CSS variables style the visible and hidden leaf.
+ const paperPadInline=Math.round(Math.max(22,Math.min(72,pageWidth*.105)));
+ const paperPadTop=Math.round(Math.max(24,Math.min(58,pageHeight*.07)));
+ const paperPadBottom=Math.round(Math.max(14,Math.min(22,pageHeight*.032)));
+ const pageContentHeight=Math.max(180,pageHeight-paperPadTop-paperPadBottom-64);
  const measureKey=[revisionSha,mode,pageWidth,pageHeight,settings.fontScale,
   settings.density,semanticUnits.length,protectedTerms.join("\u0001")].join("|");
  const readyMeasurements=measurements?.key===measureKey?measurements.heights:undefined;
@@ -76,10 +83,10 @@ export default function SemanticReaderClient({slug,title,locale,mode,revisionSha
  // The measured grid can temporarily report zero before the first browser
  // layout pass. Never feed transient dimensions below the canonical engine's
  // validated viewport minimum; the next ResizeObserver event remeasures.
- const actualCapacity=Math.max(220,Number.isFinite(measuredCapacity)?
+ const actualCapacity=Math.max(180,Number.isFinite(measuredCapacity)?
   measuredCapacity-38-capacityPenalty:pageContentHeight-38-capacityPenalty);
- const measuredWidth=measurements?.key===measureKey?measurements.contentWidth:pageWidth-144;
- const contentWidth=Math.max(200,Number.isFinite(measuredWidth)?measuredWidth:pageWidth-144);
+ const measuredWidth=measurements?.key===measureKey?measurements.contentWidth:pageWidth-paperPadInline*2;
+ const contentWidth=Math.max(200,Number.isFinite(measuredWidth)?measuredWidth:pageWidth-paperPadInline*2);
  // Render the first leaf without a synchronous full-book fallback.
  // DOM measurement and all later pages use the same canonical iterator.
  const fallbackPages=useMemo(()=>{
@@ -121,12 +128,27 @@ export default function SemanticReaderClient({slug,title,locale,mode,revisionSha
   ["--reader-paragraph-gap" as string]:settings.density==="compact"?"0.85em":"1em",
   ["--reader-page-height" as string]:pageHeight+"px",
   ["--reader-content-capacity" as string]:pageContentHeight+"px",
+  ["--reader-paper-pad-top" as string]:paperPadTop+"px",
+  ["--reader-paper-pad-bottom" as string]:paperPadBottom+"px",
+  ["--reader-paper-pad-inline" as string]:paperPadInline+"px",
  } as CSSProperties;
 
  useEffect(()=>{
   const update=()=>setViewport({width:window.innerWidth,height:window.innerHeight});
   update();window.addEventListener("resize",update);
   return ()=>window.removeEventListener("resize",update);
+ },[]);
+ useEffect(()=>{
+  const toolbar=readerRootRef.current?.querySelector<HTMLElement>(".artales-reader-toolbar");
+  if(!toolbar)return;
+  const update=()=>setToolbarHeight(previous=>{
+   const height=Math.ceil(toolbar.getBoundingClientRect().height);
+   return height>0&&height!==previous?height:previous;
+  });
+  update();
+  const observer=new ResizeObserver(update);
+  observer.observe(toolbar);
+  return ()=>observer.disconnect();
  },[]);
  useEffect(()=>{
   const saved=loadReaderSettings();
@@ -237,7 +259,7 @@ export default function SemanticReaderClient({slug,title,locale,mode,revisionSha
    const content=root.querySelector<HTMLElement>(".semantic-public-reader__page-content");
    const contentRect=content?.getBoundingClientRect();
    const contentHeight=contentRect?.height??pageContentHeight;
-   const contentWidth=contentRect?.width??Math.max(200,pageWidth-144);
+   const contentWidth=contentRect?.width??Math.max(200,pageWidth-paperPadInline*2);
    const heights:Record<string,number>={};
    for(const element of elements){
     const id=element.dataset.semanticMeasureId;
@@ -257,7 +279,7 @@ export default function SemanticReaderClient({slug,title,locale,mode,revisionSha
   if(measureRef.current)observer?.observe(measureRef.current);
   document.fonts?.ready.then(measure).catch(()=>{});
   return ()=>{cancelAnimationFrame(frame);observer?.disconnect()};
- },[measureKey,semanticUnits,pageContentHeight,pageWidth]);
+ },[measureKey,semanticUnits,pageContentHeight,pageWidth,paperPadInline]);
  // One leaf per animation frame, canceling superseded reflow generations.
  useEffect(()=>{
   if(!readyMeasurements||!measureRef.current)return;
@@ -341,7 +363,7 @@ export default function SemanticReaderClient({slug,title,locale,mode,revisionSha
    fragmentGeometry(unit)?.height??null;
   const iterator=iterateSemanticPages(semanticUnits,{
    mode:"paged",viewport_width:contentWidth,
-   viewport_height:actualCapacity+100,content_height:actualCapacity,
+   viewport_height:Math.max(320,actualCapacity+100),content_height:actualCapacity,
    font_scale:settings.fontScale,density:settings.density,
    measured_unit_heights:readyMeasurements,protected_terms:protectedTerms,
    measure_fragment_height:fragmentHeight,
