@@ -39,6 +39,8 @@ export default function SemanticReaderClient({slug,title,locale,mode,revisionSha
  const readerRootRef=useRef<HTMLElement|null>(null);
  const [measurements,setMeasurements]=useState<Measurements|null>(null);
  const [measuredPages,setMeasuredPages]=useState<{key:string;pages:SemanticPage[];complete:boolean}|null>(null);
+ const [capacityPenalty,setCapacityPenalty]=useState(0);
+ const [scrollFallbackPages,setScrollFallbackPages]=useState<number[]>([]);
  const [pageIndex,setPageIndex]=useState(0);
  const [notes,setNotes]=useState<ReaderNote[]>([]);
  const [notesSyncState,setNotesSyncState]=useState<"local"|"syncing"|"synced">("local");
@@ -74,7 +76,8 @@ export default function SemanticReaderClient({slug,title,locale,mode,revisionSha
  // The measured grid can temporarily report zero before the first browser
  // layout pass. Never feed transient dimensions below the canonical engine's
  // validated viewport minimum; the next ResizeObserver event remeasures.
- const actualCapacity=Math.max(220,Number.isFinite(measuredCapacity)?measuredCapacity-38:pageContentHeight-38);
+ const actualCapacity=Math.max(220,Number.isFinite(measuredCapacity)?
+  measuredCapacity-38-capacityPenalty:pageContentHeight-38-capacityPenalty);
  const measuredWidth=measurements?.key===measureKey?measurements.contentWidth:pageWidth-144;
  const contentWidth=Math.max(200,Number.isFinite(measuredWidth)?measuredWidth:pageWidth-144);
  // Render the first leaf without a synchronous full-book fallback.
@@ -374,6 +377,53 @@ export default function SemanticReaderClient({slug,title,locale,mode,revisionSha
  },[paginationKey,readyMeasurements,semanticUnits,contentWidth,actualCapacity,
    settings.fontScale,settings.density,protectedTerms]);
 
+ // Guard against any final browser layout discrepancy (fonts, image boxes,
+ // CSS rounding). If the visible rendered ink crosses the content boundary,
+ // reserve more height and recompute. If that still fails, expose scrolling,
+ // NEVER silently clip a line behind overflow:hidden.
+ useEffect(()=>{
+  if(!paginationSettled||!readerRootRef.current)return;
+  const frame=requestAnimationFrame(()=>{
+   const root=readerRootRef.current;
+   if(!root)return;
+   let greatestOverflow=0;
+   const affected:number[]=[];
+   const papers=root.querySelectorAll<HTMLElement>(
+    ".semantic-public-reader__paper[data-semantic-page-index]");
+   for(const paper of papers){
+    if(paper.classList.contains("semantic-reader__front-page")||
+       paper.classList.contains("semantic-public-reader__paper--scroll-unit"))continue;
+    const area=paper.querySelector<HTMLElement>(".semantic-public-reader__page-content");
+    if(!area)continue;
+    const rect=area.getBoundingClientRect();
+    // Skip virtualized and offscreen pages; they are verified when visited.
+    if(rect.bottom<0||rect.top>window.innerHeight)continue;
+    let inkBottom=-Infinity;
+    const walker=document.createTreeWalker(area,NodeFilter.SHOW_TEXT);
+    let node:Node|null;
+    while((node=walker.nextNode())){
+     if(!node.textContent?.trim())continue;
+     const range=document.createRange();
+     range.selectNodeContents(node);
+     for(const box of range.getClientRects())
+      if(box.height>.5&&box.width>.5)inkBottom=Math.max(inkBottom,box.bottom);
+    }
+    for(const media of area.querySelectorAll<HTMLElement>("figure,img,pre,svg"))
+     inkBottom=Math.max(inkBottom,media.getBoundingClientRect().bottom);
+    const overflow=inkBottom-rect.bottom;
+    if(overflow>2){
+     greatestOverflow=Math.max(greatestOverflow,overflow);
+     affected.push(Number(paper.dataset.semanticPageIndex));
+    }
+   }
+   if(!affected.length)return;
+   if(capacityPenalty<96)
+    setCapacityPenalty(old=>Math.min(96,old+Math.max(16,Math.ceil(greatestOverflow+12))));
+   else setScrollFallbackPages(old=>[...new Set([...old,...affected])]);
+  });
+  return ()=>cancelAnimationFrame(frame);
+ },[paginationSettled,paginationKey,pageIndex,spread,capacityPenalty]);
+ useEffect(()=>{setCapacityPenalty(0);setScrollFallbackPages([]);},[measureKey]);
  const patch=useCallback((next:Partial<ReaderSettings>)=>setSettings(old=>({...old,...next})),[]);
  const goToIndex=useCallback((index:number)=>{
   const safe=Math.max(0,Math.min(total-1,index));
@@ -461,7 +511,8 @@ export default function SemanticReaderClient({slug,title,locale,mode,revisionSha
     " semantic-public-reader__paper"+side+
     (cover?" semantic-reader__front-page":"")+
     (blank?" artales-reader__paper--blank semantic-public-reader__paper--blank":"")+
-    (page?.overflow==="scroll_unit"?" semantic-public-reader__paper--scroll-unit":"")}
+    (page?.overflow==="scroll_unit"||scrollFallbackPages.includes(index)?
+      " semantic-public-reader__paper--scroll-unit":"")}
    style={pageStyle}>
    {!blank&&!cover?<div className="artales-reader__page-header semantic-public-reader__paper-top">
     <span>{title}</span><span>{index+1}</span>
