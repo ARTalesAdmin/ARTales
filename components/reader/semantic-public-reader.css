@@ -253,10 +253,13 @@
   padding:32px 24px;
  }
 }
+/* Keep normal prose justified on narrow readers too. Only the final
+ * visual line remains naturally aligned; never stretch a short tail. */
 @media(max-width:520px){
  .artales-reader--semantic .semantic-public-reader__paper .semantic-reader__unit p,
  .artales-reader--semantic .semantic-public-reader__paper .semantic-reader__unit blockquote{
-  text-align:left;
+  text-align:justify;
+  text-align-last:start;
  }
 }
 
