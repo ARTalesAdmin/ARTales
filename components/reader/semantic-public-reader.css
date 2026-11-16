@@ -12,6 +12,17 @@
 .artales-reader--semantic .semantic-public-reader__stage{
  position:relative;
 }
+/* A complete spread must fit below the measured toolbar and ABOVE the bottom
+ * browser edge. The general Reader's generous stage margins belong to the
+ * scrolling layout; they cannot consume the available paged viewport. */
+.artales-reader--semantic.artales-reader--layout-spread .semantic-public-reader__stage{
+ padding-top:10px;
+ padding-bottom:12px;
+}
+.artales-reader--semantic .semantic-public-reader__navigation{
+ margin-top:8px;
+ padding:6px;
+}
 .artales-reader--semantic .semantic-public-reader__viewport{
  position:relative;
  border:0!important;
