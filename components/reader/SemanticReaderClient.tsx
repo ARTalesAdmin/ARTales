@@ -634,7 +634,8 @@ export default function SemanticReaderClient({slug,title,locale,mode,revisionSha
       semantic-reader__pages--scroll semantic-public-reader__flow" ref={flowRef}>
       {pages.map((page,index)=>renderPaper(page,index))}
      </div>:<div className="artales-reader__spread semantic-reader__pages
-      semantic-reader__pages--spread semantic-public-reader__spread" aria-label="Dvoustránkové čtení">
+      semantic-reader__pages--spread semantic-public-reader__spread" aria-label="Dvoustránkové čtení"
+      style={{width:(pageWidth*2)+"px"}}>
       {renderPaper(pages[visibleStart],visibleStart)}
       {pages[visibleStart+1]?renderPaper(pages[visibleStart+1],visibleStart+1):
        renderPaper(undefined,visibleStart+1,true)}
