@@ -63,10 +63,14 @@ export default function SemanticReaderClient({slug,title,locale,mode,revisionSha
  const availableSpreadWidth=Math.min(1460,viewport.width-44,
   viewport.width-2*spreadSidePadding);
  const availableSpreadHeight=Math.max(354,viewport.height-toolbarHeight-106);
+ // A short browser viewport cannot display two portrait leaves at readable
+ // width. Keep the text legible by letting the *sheet* become more square on
+ // shorter screens; do not shrink glyphs with CSS transforms.
  const pageWidth=Math.max(250,Math.floor(Math.min(
   spread?Math.min(730,availableSpreadWidth/2,
-   availableSpreadHeight/1.414):singleWidth,viewport.width-24)));
- const pageHeight=Math.round(pageWidth*1.414);
+   availableSpreadHeight/1.08):singleWidth,viewport.width-24)));
+ const pageHeight=spread?Math.min(Math.round(pageWidth*1.414),
+  Math.floor(availableSpreadHeight)):Math.round(pageWidth*1.414);
  // Compact page margins are proportional to the physical sheet, never
  // viewport width; identical CSS variables style the visible and hidden leaf.
  const paperPadInline=Math.round(Math.max(22,Math.min(72,pageWidth*.105)));
