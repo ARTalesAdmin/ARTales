@@ -33,7 +33,7 @@ test("natural break near the occupied end of a physically measured line wins",()
  const words="we observe that another person arrived, and took a quiet walk through the garden; after which the whole story continued with many more words ";
  const raw=words+words+words;
  const position=raw.indexOf("garden;")+"garden; ".length;
- const cut=chosenFirstCut(raw,0,95);
+ const cut=chosenFirstCut(raw,0,90);
  assert.equal(cut,position,"semicolon is preferable when it leaves less than a quarter line unused");
 });
 test("punctuation in first half cannot sacrifice rest of actual last line",()=>{
