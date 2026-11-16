@@ -5,6 +5,11 @@ import { projectSemanticProseText } from "./displayText";
 import {getProtectedTextSpans,type ProtectedTextSpan} from "./protectedSpans";
 import { classifyGutenbergApparatus,poemInsideEditorialEdition } from "./editionProjection";
 
+export type SemanticFragmentGeometry={
+  height:number;
+  last_line_top:number;
+  last_line_fill:number;
+};
 export type SemanticReaderLayout = {
   mode: "paged" | "spread" | "scroll";
   /** Width of ONE rendered page, not the width of a spread or browser window. */
@@ -18,6 +23,8 @@ export type SemanticReaderLayout = {
   content_height?: number;
   /** Exact browser measurement of the current paragraph fragment when available. */
   measure_fragment_height?: (fragment:SemanticPageUnit)=>number|null;
+  /** Actual browser line geometry; the last-line fill is a fraction of page width. */
+  measure_fragment_geometry?: (fragment:SemanticPageUnit)=>SemanticFragmentGeometry|null;
   /** Immutable editorial keep-together rules + universal typography. */
   protected_terms?:readonly string[];
   editionRange?:{start:number;end:number};
@@ -392,14 +399,23 @@ export function* iterateSemanticPages(units:readonly SemanticPageUnit[],layout:S
      });
     if(!whitespace.length)return null;
     let lo=0,hi=whitespace.length-1,bestIndex=-1;
-    const measured=new Map<number,{cut:[SemanticPageUnit,SemanticPageUnit];height:number}>();
+    const measured=new Map<number,{cut:[SemanticPageUnit,SemanticPageUnit];height:number;
+      lineTop:number|null;lineFill:number|null}>();
     const check=(index:number)=>{
      const end=whitespace[index];
      let item=measured.get(end);
      if(!item){
       const first=makeFragment(unit,from,end,unit.estimated_height);
       const second=makeFragment(unit,end,until,unit.estimated_height);
-      item={cut:[first,second],height:measureFragment(first)};
+      const geometry=layout.measure_fragment_geometry?.(first);
+      const valid=geometry&&Number.isFinite(geometry.height)&&geometry.height>0&&
+        Number.isFinite(geometry.last_line_top)&&geometry.last_line_top>=0&&
+        Number.isFinite(geometry.last_line_fill)&&geometry.last_line_fill>=0&&
+        geometry.last_line_fill<=1;
+      item={cut:[first,second],
+        height:valid?geometry.height:measureFragment(first),
+        lineTop:valid?geometry.last_line_top:null,
+        lineFill:valid?geometry.last_line_fill:null};
       measured.set(end,item);
      }
      return item;
@@ -410,21 +426,30 @@ export function* iterateSemanticPages(units:readonly SemanticPageUnit[],layout:S
      else hi=mid-1;
     }
     if(bestIndex<0)return null;
-    // Fill the last measured line FIRST. Natural punctuation is preferred
-    // only if it fits on that SAME line; never discard another full line
-    // just to end at a sentence boundary or semicolon.
+    // A natural punctuation break may replace the furthest legal word
+    // boundary only when it is in the SECOND HALF of the SAME DOM line.
+    // Source text and protected spans are never modified.
     const best=check(bestIndex);
-    const lastLineChars=Math.max(16,approxCharsPerLine);
-    const earliest=whitespace[bestIndex]-Math.ceil(lastLineChars*.8);
     let selected=bestIndex;
-    let selectedScore=(breakPolicy.get(whitespace[selected])?.preference??0)*10;
-    for(let j=bestIndex-1;j>=0&&whitespace[j]>=earliest;j--){
+    const bestPreference=breakPolicy.get(whitespace[selected])?.preference??0;
+    let selectedScore=bestPreference>0?bestPreference*100+(best.lineFill??1)*10:0;
+    for(let j=bestIndex-1;j>=0;j--){
      const item=check(j);
-     if(item.height>remaining-6||Math.abs(item.height-best.height)>1.5)continue;
-     const decision=breakPolicy.get(whitespace[j]);
-     if(!decision)continue;
-     const sacrificed=(whitespace[bestIndex]-whitespace[j])/Math.max(1,lastLineChars);
-     const score=decision.preference*10-sacrificed*2;
+     if(item.height>remaining-6)continue;
+     let lineFill:number;
+     if(best.lineTop!==null&&item.lineTop!==null){
+      if(item.lineTop<best.lineTop-1.5)break;
+      if(Math.abs(item.lineTop-best.lineTop)>1.5)continue;
+      lineFill=item.lineFill??0;
+     }else{
+      // Only QA/unit-test consumers lack DOM line geometry.
+      if(Math.abs(item.height-best.height)>1.5)break;
+      lineFill=1-(whitespace[bestIndex]-whitespace[j])/Math.max(16,approxCharsPerLine);
+     }
+     if(lineFill<0.5)continue;
+     const preference=breakPolicy.get(whitespace[j])?.preference??0;
+     if(preference<=0)continue;
+     const score=preference*100+lineFill*10;
      if(score>selectedScore){selected=j;selectedScore=score;}
     }
     const chosen=check(selected);
