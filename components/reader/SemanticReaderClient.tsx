@@ -88,7 +88,7 @@ export default function SemanticReaderClient({slug,title,locale,mode,revisionSha
  // layout pass. Never feed transient dimensions below the canonical engine's
  // validated viewport minimum; the next ResizeObserver event remeasures.
  const actualCapacity=Math.max(180,Number.isFinite(measuredCapacity)?
-  measuredCapacity-38-capacityPenalty:pageContentHeight-38-capacityPenalty);
+  measuredCapacity-20-capacityPenalty:pageContentHeight-20-capacityPenalty);
  const measuredWidth=measurements?.key===measureKey?measurements.contentWidth:pageWidth-paperPadInline*2;
  const contentWidth=Math.max(200,Number.isFinite(measuredWidth)?measuredWidth:pageWidth-paperPadInline*2);
  // Render the first leaf without a synchronous full-book fallback.
