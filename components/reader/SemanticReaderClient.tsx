@@ -223,7 +223,10 @@ export default function SemanticReaderClient({slug,title,locale,mode,revisionSha
    scrollY:current,layoutMode:settings.layoutMode,updatedAt:new Date().toISOString(),
   });
  },[hydrated,mode,slug,current,total,progress,settings.layoutMode,paginationSettled]);
- useEffect(()=>{setPageIndex(old=>Math.min(old,total-1))},[total]);
+ // Partial repagination publishes four-page slices: never clamp the saved
+ // reader position to a temporary partial page count.
+ useEffect(()=>{if(paginationSettled)setPageIndex(old=>Math.min(old,total-1))},
+  [total,paginationSettled]);
  // The exact same semantic markup is measured before repagination as in QA.
  useEffect(()=>{
   const measure=()=>{
@@ -428,6 +431,11 @@ export default function SemanticReaderClient({slug,title,locale,mode,revisionSha
  const goToIndex=useCallback((index:number)=>{
   const safe=Math.max(0,Math.min(total-1,index));
   const target=pageStart(safe,spread);
+  const first=pages[target]?.units.find(u=>u.source_atom_ids.length>0);
+  if(first)readingAnchor.current={
+   rootId:first.fragment?.original_unit_id??first.id,
+   offset:first.fragment?.start??0,
+  };
   setPageIndex(target);
   if(spread){
    const scrollTarget=immersive?readerRootRef.current:window;
@@ -438,7 +446,7 @@ export default function SemanticReaderClient({slug,title,locale,mode,revisionSha
     '[data-semantic-page-index="'+target+'"]');
    element?.scrollIntoView({behavior:"smooth",block:"start"});
   }
- },[total,spread,immersive]);
+ },[total,spread,immersive,pages]);
  useEffect(()=>{
   if(!spread)return;
   const keydown=(e:KeyboardEvent)=>{
