@@ -505,6 +505,9 @@ export function* iterateSemanticPages(units:readonly SemanticPageUnit[],layout:S
   const queue=[...all];
   for(let i=0;i<queue.length;i++){
     let unit=queue[i];
+    // fitParagraph chooses a physical PAGE boundary, not a discretionary
+    // split inside the same page. Never rejoin the chosen tail on this leaf.
+    let fittedPageBoundary=false;
     if(unit.fragment){
       unit={...unit,estimated_height:measureFragment(unit)};
       queue[i]=unit;
@@ -550,12 +553,14 @@ export function* iterateSemanticPages(units:readonly SemanticPageUnit[],layout:S
       if(cut){
         queue.splice(i,1,cut[0],cut[1]);
         unit=queue[i];
+        fittedPageBoundary=true;
       }else if(pending.length){
         const leaf=flush();if(leaf)yield leaf;
         const freshCut=fitParagraph(unit,capacity);
         if(freshCut){
           queue.splice(i,1,freshCut[0],freshCut[1]);
           unit=queue[i];
+          fittedPageBoundary=true;
         }
       }
     }
@@ -564,11 +569,18 @@ export function* iterateSemanticPages(units:readonly SemanticPageUnit[],layout:S
     }
     pending.push(unit);
     weight+=unit.estimated_height;
+    if(fittedPageBoundary){
+      // The next piece of this very paragraph must start on the next leaf.
+      // Otherwise an extra fit on the same leaf can undo the measured break,
+      // then flush() coalesces the fragments into the observed orphan line.
+      const leaf=flush();if(leaf)yield leaf;
+      continue;
+    }
     if(unit.estimated_height>capacity){
       const leaf=flush();if(leaf)yield leaf; // explicit special-object fallback
     }
-    // A continuation is allowed to share this leaf with another paragraph
-    // fragment or the next block. NEVER flush solely because it is a fragment.
+    // An existing continuation may share the leaf when it fits naturally.
+    // Only an explicit fitParagraph page cut forces the page boundary.
   }
   const leaf=flush();if(leaf)yield leaf;
 }
