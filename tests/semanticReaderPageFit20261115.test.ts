@@ -160,5 +160,12 @@ test("every DOM-fitted paragraph cut becomes an actual physical page boundary",(
   assert.equal(page.units.length,1,
    "A measured page cut was followed by another same-page paragraph fragment");
   assert(page.estimated_height<=170,"Measured page overflow");
+  const fragment=page.units[0];
+  assert(fragment.fragment,"Expected a source-anchored page fragment");
+  const sourceLength=fragment.fragment.end-fragment.fragment.start;
+  const lineCount=Math.max(1,Math.ceil(sourceLength/48));
+  const measuredFullHeight=12+lineCount*27;
+  assert.equal(page.estimated_height,measuredFullHeight,
+   "A physical page break was bypassed and multiple fragment heights were coalesced");
  }
 });
