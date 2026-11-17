@@ -69,15 +69,15 @@ export default function SemanticReaderClient({slug,title,locale,mode,revisionSha
  const measureKey=[revisionSha,mode,pageWidth,pageHeight,settings.fontScale,
   settings.density,semanticUnits.length,protectedTerms.join("\u0001")].join("|");
  const readyMeasurements=measurements?.key===measureKey?measurements.heights:undefined;
- // Reserve a bounded CSS/layout rounding margin until the browser geometry
- // integration passes the strict all-pages overflow gate at every viewport.
- // This is a conservative safety margin, not proof of final visual parity.
+ // Leave a small rounding buffer after measuring the actual content rect.
+ // The existing ink-overflow check increases capacityPenalty and repaginates
+ // if the real browser needs more space; never silently clip text.
  const measuredCapacity=measurements?.key===measureKey?measurements.contentHeight:pageContentHeight;
  // The measured grid can temporarily report zero before the first browser
  // layout pass. Never feed transient dimensions below the canonical engine's
  // validated viewport minimum; the next ResizeObserver event remeasures.
  const actualCapacity=Math.max(220,Number.isFinite(measuredCapacity)?
-  measuredCapacity-38-capacityPenalty:pageContentHeight-38-capacityPenalty);
+  measuredCapacity-12-capacityPenalty:pageContentHeight-12-capacityPenalty);
  const measuredWidth=measurements?.key===measureKey?measurements.contentWidth:pageWidth-144;
  const contentWidth=Math.max(200,Number.isFinite(measuredWidth)?measuredWidth:pageWidth-144);
  // Render the first leaf without a synchronous full-book fallback.
