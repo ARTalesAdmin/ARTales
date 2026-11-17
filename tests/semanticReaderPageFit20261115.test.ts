@@ -185,7 +185,10 @@ test("page-end typography prioritizes natural row fill and never stretches trail
  assert.match(projection,/Math\.min\(4,Math\.max\(0,policy\.preference\)\)\*\.012/);
  assert.match(projection,/if\(fullest\.lineTop!==null&&fullest\.lineFill!==null\)/);
  assert.match(css,/semantic-reader__fragment--justify-last/);
- assert.match(markup,/semantic-reader__fragment--justify-last/);
+ assert.doesNotMatch(markup,/semantic-reader__fragment--justify-last/);
+ const client=read("components/reader/SemanticReaderClient.tsx");
+ assert.match(client,/measureSemanticDomLastRow\(paragraph\)/);
+ assert.match(client,/paragraph.classList.add\("semantic-reader__fragment--justify-last"\)/);
  assert.match(css,/text-align-last:start/);
 });
 
@@ -247,4 +250,14 @@ test("actual DOM word-range detector counts the words on last rows",()=>{
  assert.equal(semanticWordRanges("").length,0);
  assert.deepEqual(semanticWordRanges("  a\tword\nnext ").map(x=>
   "  a\tword\nnext ".slice(x.start,x.end)),["a","word","next"]);
+});
+
+test("short trailing row selects fullest legal candidate on the preceding physical line",()=>{
+ const measured=[
+  {lineTop:29,lineFill:.99},
+  {lineTop:59,lineFill:.72},
+  {lineTop:59,lineFill:.91},
+  {lineTop:88,lineFill:.17},
+ ];
+ assert.equal(rebalanceShortSemanticPageTail(3,29,index=>measured[index]),2);
 });
