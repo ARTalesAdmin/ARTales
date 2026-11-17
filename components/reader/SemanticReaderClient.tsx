@@ -5,7 +5,7 @@ import ReaderToolbar from "@/components/reader/ReaderToolbar";
 import {getPublicDictionary} from "@/lib/i18n/public";
 import {iterateSemanticPages,projectFlatChapterHeadings,shouldJustifySemanticPageEnd} from "@/lib/semantic/readerProjection";
 import {segmentSemanticProse} from "@/lib/semantic/protectedSpans";
-import {measureSemanticDomLastRow} from "@/lib/semantic/domLineGeometry";
+import {measureSemanticDomLastRow,measureSemanticDomRows} from "@/lib/semantic/domLineGeometry";
 import type {SemanticPage,SemanticPageUnit} from "@/lib/semantic/model";
 import type {SupportedLocale} from "@/lib/i18n/config";
 import {clampReaderFontScale,defaultReaderSettings,type ReaderSettings} from "@/lib/reader/readerSettings";
@@ -311,6 +311,41 @@ export default function SemanticReaderClient({slug,title,locale,mode,revisionSha
     last_line_fill:row.fill,last_line_words:row.words};
    cache.set(key,value);return value;
   };
+  // Measure each uncut remaining paragraph as Chromium actually wraps it,
+  // before constructing any page fragment. A fragment's artificial final
+  // line cannot influence this row map.
+  const paragraphRows=(unit:SemanticPageUnit)=>{
+   if(!("atom" in unit.node)||!["paragraph","quote","epigraph","footnote"].includes(unit.kind))return null;
+   const from=unit.fragment?.start??0;
+   const until=unit.fragment?.end??unit.node.atom.raw.length;
+   const template=original.get(unit.fragment?.original_unit_id??unit.id);
+   if(!template)return null;
+   const clone=template.cloneNode(true) as HTMLElement;
+   const prose=clone.querySelector<HTMLElement>("p,blockquote,aside");
+   const atom=prose?.querySelector<HTMLElement>(".semantic-reader__atom");
+   if(!prose||!atom)return null;
+   const children:Node[]=[];
+   for(const segment of segmentSemanticProse(unit.node.atom.raw.slice(from,until),protectedTerms)){
+    if(segment.protected){
+     const span=document.createElement("span");
+     span.style.whiteSpace="nowrap";
+     span.textContent=segment.text;
+     children.push(span);
+    }else children.push(document.createTextNode(segment.text));
+   }
+   atom.replaceChildren(...children);
+   prose.classList.add("semantic-reader__fragment");
+   if(from>0)prose.classList.add("semantic-reader__fragment--continued");
+   // The trailing line must be measured without justification, exactly
+   // as a natural line. The visible page independently applies its final CSS.
+   prose.style.textAlign="start";
+   prose.style.textAlignLast="start";
+   clone.removeAttribute("data-semantic-measure-id");
+   content.appendChild(clone);
+   const rows=measureSemanticDomRows(prose,from,atom);
+   clone.remove();
+   return rows.length?rows:null;
+  };
   const fragmentHeight=(unit:SemanticPageUnit):number|null=>
    fragmentGeometry(unit)?.height??null;
   const iterator=iterateSemanticPages(semanticUnits,{
@@ -320,6 +355,7 @@ export default function SemanticReaderClient({slug,title,locale,mode,revisionSha
    measured_unit_heights:readyMeasurements,protected_terms:protectedTerms,
    measure_fragment_height:fragmentHeight,
    measure_fragment_geometry:fragmentGeometry,
+   measure_paragraph_rows:paragraphRows,
   });
   const collected:SemanticPage[]=[];
   const step=()=>{
