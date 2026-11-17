@@ -105,9 +105,17 @@ JS=r"""() => {
  }
  const sample=measureRows(unit).slice(0,12);
  const legalEnds=new Set([...raw.matchAll(/\\s+/g)].map(m=>m.index+m[0].length));
- const rowDebug=sample.map(row=>({end:row.sourceEnd,legal:legalEnds.has(row.sourceEnd),
-  at:JSON.stringify(raw.slice(row.sourceEnd-8,row.sourceEnd+12)),
-  bottom:row.bottom,fill:row.fill}));
+ const rowDebug=sample.map(row=>{
+  let end=row.sourceEnd;
+  while(end<raw.length&&/\\s/u.test(raw[end]))end++;
+  return {sourceEnd:row.sourceEnd,end,legal:legalEnds.has(end),
+   decision:engine.assessSemanticPageBreak(raw,0,end,raw.length,[]).reason,
+   at:JSON.stringify(raw.slice(end-8,end+12)),
+   bottom:row.bottom,fill:row.fill};
+ });
+ const testFit=engine.fittingSemanticPageRows(measureRows(unit),raw,0,raw.length,180,
+  new Set([...raw.matchAll(/\\s+/g)].map(m=>m.index+m[0].length)),8,8);
+ const fitDebug={validRows:testFit.length,first:testFit.slice(0,3)};
  const capacities=[180,225,270,315,360,400,445,480,510,540,570,600,630];
  const output=[];
  for(const height of capacities){
@@ -129,7 +137,7 @@ JS=r"""() => {
   }));
   output.push({height,pages:pages.length,coverage:coverage.ok,records});
  }
- return {output,sourceLength:raw.length,rowDebug};
+ return {output,sourceLength:raw.length,rowDebug,fitDebug};
 }""";
 
 with sync_playwright() as pw:
@@ -154,7 +162,7 @@ for item in result["output"]:
    if fragment["last"]=="nonsense;" and fragment["fill"] is not None and fragment["fill"]<.43:
     bad.append(f"Isolated nonsense at height {item['height']}px: {fragment}")
 print("CHROMIUM_FIXTURE_RESULTS="+json.dumps({
- "sourceLength":result["sourceLength"],"rows":result["rowDebug"],
+ "sourceLength":result["sourceLength"],"rows":result["rowDebug"],"fit":result["fitDebug"],
  "pagesByHeight":[{"height":p["height"],"pageCount":p["pages"],"coverage":p["coverage"]}
                   for p in result["output"]],
  "bad":bad},ensure_ascii=False))
