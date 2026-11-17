@@ -67,7 +67,7 @@ JS=r"""() => {
  const output=[];
  for(const height of capacities){
   const pages=[...engine.iterateSemanticPages([unit],{
-   mode:"paged",viewport_width:470,viewport_height:height+100,
+   mode:"paged",viewport_width:470,viewport_height:Math.max(340,height+100),
    content_height:height,font_scale:1,density:"comfortable",
    measured_unit_heights:{[id]:2000},measure_fragment_geometry:geometry,
    measure_fragment_height:f=>geometry(f)?.height??null,protected_terms:[]
