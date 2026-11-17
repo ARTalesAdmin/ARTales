@@ -4,7 +4,7 @@ import {unitView,type ApprovedSemanticImage} from "@/components/reader/SemanticP
 import ReaderToolbar from "@/components/reader/ReaderToolbar";
 import {getPublicDictionary} from "@/lib/i18n/public";
 import {iterateSemanticPages,projectFlatChapterHeadings} from "@/lib/semantic/readerProjection";
-import {segmentSemanticProse} from "@/lib/semantic/protectedSpans";
+import {segmentSemanticProse,semanticWordRanges} from "@/lib/semantic/protectedSpans";
 import type {SemanticPage,SemanticPageUnit} from "@/lib/semantic/model";
 import type {SupportedLocale} from "@/lib/i18n/config";
 import {clampReaderFontScale,defaultReaderSettings,type ReaderSettings} from "@/lib/reader/readerSettings";
@@ -326,12 +326,12 @@ export default function SemanticReaderClient({slug,title,locale,mode,revisionSha
    while((textNode=wordWalker.nextNode()))wordNodes.push(textNode as Text);
    for(let i=wordNodes.length-1;i>=0&&!reachedPreviousRow;i--){
     const node=wordNodes[i],source=node.textContent??"";
-    const words=[...source.matchAll(/\\S+/gu)];
+    const words=semanticWordRanges(source);
     for(let j=words.length-1;j>=0;j--){
      const match=words[j];
      const range=document.createRange();
-     range.setStart(node,match.index!);
-     range.setEnd(node,match.index!+match[0].length);
+     range.setStart(node,match.start);
+     range.setEnd(node,match.end);
      const rects=[...range.getClientRects()];
      if(rects.some(rect=>Math.abs(rect.top-lastTop)<=1.5))lastLineWords++;
      else if(rects.some(rect=>rect.top<lastTop-1.5)){
