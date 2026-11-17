@@ -116,13 +116,15 @@ JS=r"""() => {
  const testFit=engine.fittingSemanticPageRows(measureRows(unit),raw,0,raw.length,180,
   new Set([...raw.matchAll(/\s+/g)].map(m=>m.index+m[0].length)),8,8);
  const fitDebug={validRows:testFit.length,first:testFit.slice(0,3)};
+ const fullRows=measureRows(unit);
+ const naturalHeight=(fullRows.at(-1)?.bottom??0)+10;
  const capacities=[180,225,270,315,360,400,445,480,510,540,570,600,630];
  const output=[];
  for(const height of capacities){
   const pages=[...engine.iterateSemanticPages([unit],{
    mode:"paged",viewport_width:470,viewport_height:Math.max(340,height+100),
    content_height:height,font_scale:1,density:"comfortable",
-   measured_unit_heights:{[id]:2000},measure_fragment_geometry:geometry,
+   measured_unit_heights:{[id]:naturalHeight},measure_fragment_geometry:geometry,
    measure_fragment_height:f=>geometry(f)?.height??null,
    measure_paragraph_rows:measureRows,protected_terms:[]
   })];
@@ -135,9 +137,10 @@ JS=r"""() => {
     fill:g?.last_line_fill??null,wordCount:g?.last_line_words??null,last,
     reason:u.fragment?.page_end_reason??null};
   }));
-  output.push({height,pages:pages.length,coverage:coverage.ok,records});
+  output.push({height,pages:pages.length,coverage:coverage.ok,
+   overflow:pages.some(p=>p.overflow!=="none"||p.estimated_height>height+1),records});
  }
- return {output,sourceLength:raw.length,rowDebug,fitDebug};
+ return {output,sourceLength:raw.length,naturalHeight,rowDebug,fitDebug};
 }""";
 
 with sync_playwright() as pw:
@@ -157,13 +160,16 @@ bad=[]
 for item in result["output"]:
  if not item["coverage"]:
   bad.append(f"Source coverage failed for {item['height']}px")
+ if item["overflow"]:
+  bad.append(f"Physical page overflow at {item['height']}px")
  for page in item["records"][:-1]:
   for fragment in page:
    if fragment["last"]=="nonsense;" and fragment["fill"] is not None and fragment["fill"]<.43:
     bad.append(f"Isolated nonsense at height {item['height']}px: {fragment}")
 print("CHROMIUM_FIXTURE_RESULTS="+json.dumps({
- "sourceLength":result["sourceLength"],"rows":result["rowDebug"],"fit":result["fitDebug"],
- "pagesByHeight":[{"height":p["height"],"pageCount":p["pages"],"coverage":p["coverage"]}
+ "sourceLength":result["sourceLength"],"naturalHeight":result["naturalHeight"],
+ "rows":result["rowDebug"],"fit":result["fitDebug"],
+ "pagesByHeight":[{"height":p["height"],"pageCount":p["pages"],"coverage":p["coverage"],"overflow":p["overflow"]}
                   for p in result["output"]],
  "bad":bad},ensure_ascii=False))
 if all(item["pages"]<=1 for item in result["output"][:5]):
