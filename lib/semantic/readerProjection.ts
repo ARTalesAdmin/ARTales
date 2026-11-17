@@ -308,7 +308,7 @@ export function fittingSemanticPageRows(
   // The source cursor must advance beyond all trailing whitespace, so the
   // next fragment begins with exactly the next original nonspace character.
   let end=row.sourceEnd;
-  while(end<until&&/\\s/u.test(raw[end]))end++;
+  while(end<until&&/\s/u.test(raw[end]))end++;
   if(end-from<minHead||until-end<minTail||!legalEnds.has(end))continue;
   result.push({...row,end});
  }
