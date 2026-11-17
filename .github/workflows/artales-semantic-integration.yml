@@ -161,7 +161,7 @@ jobs:
       - name: Install TS fixture bundler
         run: npm ci --no-audit --no-fund
       - name: Bundle actual canonical pagination engine for browser
-        run: npx esbuild tests/chromium_reader_entry.ts --bundle --platform=browser --format=iife --global-name=ARTalesPageEngine --external:node:crypto --outfile=reader-chromium-artifacts/paginator-bundle.js
+        run: npx esbuild tests/chromium_reader_entry.ts --bundle --platform=browser --format=iife --global-name=ARTalesPageEngine --alias:node:crypto=./tests/chromium_node_crypto_stub.ts --outfile=reader-chromium-artifacts/paginator-bundle.js
       - name: Chromium layout regression on actual Pan paragraph
         run: python tests/chromium_reader_fixture.py
       - name: Check public Reader with actual Chromium DOM geometry
