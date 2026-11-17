@@ -149,6 +149,8 @@ export type SemanticPageUnit = {
     continuation_after: boolean;
     /** DOM-measured page-end styling only; never part of the sealed source. */
     justify_last_line?: boolean;
+    page_end_fill?: number; // natural fill, 0..1; diagnostic only
+    page_end_reason?: "latest_row"|"short_tail_rebalanced"|"geometry_unavailable";
   };
 };
 export type SemanticPage = {

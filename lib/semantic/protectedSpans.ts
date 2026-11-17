@@ -35,6 +35,23 @@ export function getProtectedTextSpans(raw:string,terms:readonly string[]=[]):Pro
   }
   return merged;
 }
+/** Single segmentation policy for both React output and Chromium measurement.
+ * Protection changes only wrapping; the concatenated text remains source-identical.
+ */
+export type SemanticProseSegment={text:string;protected:boolean};
+export function segmentSemanticProse(raw:string,terms:readonly string[]=[]):SemanticProseSegment[]{
+ const text=projectSemanticProseText(raw);
+ const spans=getProtectedTextSpans(raw,terms);
+ const output:SemanticProseSegment[]=[];
+ let cursor=0;
+ for(const span of spans){
+  if(span.start>cursor)output.push({text:text.slice(cursor,span.start),protected:false});
+  output.push({text:text.slice(span.start,span.end),protected:true});
+  cursor=span.end;
+ }
+ if(cursor<text.length)output.push({text:text.slice(cursor),protected:false});
+ return output;
+}
 export function isProtectedTextBoundary(raw:string,offset:number,terms:readonly string[]=[]):boolean{
   return getProtectedTextSpans(raw,terms).some(span=>span.start<offset&&offset<span.end);
 }

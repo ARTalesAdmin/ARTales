@@ -5,15 +5,17 @@ import type {SemanticNode,SemanticAtom,SemanticPoem,SemanticBlockPresentation,Se
 
 // Source-preserving rendering shared between editorial QA and the published Reader.
 // Never change this markup in just one reader surface.
+function atomStyle(atom:SemanticAtom):CSSProperties{
+ return {fontStyle:atom.marks.some(x=>x.kind==="italic")?"italic":undefined,
+  fontWeight:atom.marks.some(x=>x.kind==="bold")?700:undefined,
+  marginInlineStart:atom.marks.some(x=>x.kind==="indent")?"1.3em":undefined};
+}
 function inline(atom:SemanticAtom, prose=false,protectedTerms:readonly string[]=[]) {
-  const italic=atom.marks.some(x=>x.kind==="italic");
-  const bold=atom.marks.some(x=>x.kind==="bold");
-  return <span data-atom-id={atom.id} data-source-start={atom.anchor.normalized_start}
-    data-source-end={atom.anchor.normalized_end} className="semantic-reader__atom"
-    style={{fontStyle:italic?"italic":undefined,fontWeight:bold?700:undefined,
-      marginInlineStart:atom.marks.some(x=>x.kind==="indent")?"1.3em":undefined}}>
-    {prose?<ProtectedProseText raw={atom.raw} terms={protectedTerms}/>:atom.raw}
-  </span>;
+ return <span data-atom-id={atom.id} data-source-start={atom.anchor.normalized_start}
+  data-source-end={atom.anchor.normalized_end} className="semantic-reader__atom"
+  style={atomStyle(atom)}>
+  {prose?<ProtectedProseText raw={atom.raw} terms={protectedTerms}/>:atom.raw}
+ </span>;
 }
 function presentationStyle(p?:SemanticBlockPresentation):CSSProperties|undefined {
   if(!p)return undefined;
@@ -55,17 +57,22 @@ function coreUnitView(u:SemanticPageUnit,terms:readonly string[]=[]):ReactNode {
     const {start,end}=u.fragment;
     const original=u.node.atom;
     // This is a layout-only range; the exact source atom remains immutable.
-    const body=<span className="semantic-reader__atom" data-atom-id={original.id}>
+    const body=<span className="semantic-reader__atom" data-atom-id={original.id}
+      style={atomStyle(original)}>
       <ProtectedProseText raw={original.raw.slice(start,end)} terms={terms}/>
     </span>;
     const cls="semantic-reader__fragment"+
       (u.fragment.continuation_before?" semantic-reader__fragment--continued":"")+
-      (!u.fragment.continuation_after?" semantic-reader__fragment--final":"");
+      (!u.fragment.continuation_after?" semantic-reader__fragment--final":"")+
+      (u.fragment.continuation_after&&u.fragment.justify_last_line?
+        " semantic-reader__fragment--justify-last":"");
     const props={
       "data-semantic-id":u.node.id,
       "data-source-atom":original.id,
       "data-fragment-start":start,
       "data-fragment-end":end,
+      "data-page-end-fill":u.fragment.page_end_fill,
+      "data-page-end-reason":u.fragment.page_end_reason,
       className:cls,
       style:presentationStyle(u.node.presentation),
     };
