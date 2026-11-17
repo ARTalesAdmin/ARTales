@@ -38,6 +38,13 @@ export function getProtectedTextSpans(raw:string,terms:readonly string[]=[]):Pro
 /** Single segmentation policy for both React output and Chromium measurement.
  * Protection changes only wrapping; the concatenated text remains source-identical.
  */
+/** Used by Chromium DOM measurement: UTF-16 offsets into each actual text node.
+ * Avoid duplicate regexes in measurement and tests. */
+export function semanticWordRanges(text:string):Array<{start:number;end:number}>{
+ return [...text.matchAll(/\S+/gu)].map(match=>({
+  start:match.index!,end:match.index!+match[0].length,
+ }));
+}
 export type SemanticProseSegment={text:string;protected:boolean};
 export function segmentSemanticProse(raw:string,terms:readonly string[]=[]):SemanticProseSegment[]{
  const text=projectSemanticProseText(raw);
