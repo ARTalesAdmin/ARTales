@@ -278,7 +278,7 @@ export default function SemanticReaderClient({slug,title,locale,mode,revisionSha
    const template=original.get(original_unit_id);
    if(!template)return null;
    const clone=template.cloneNode(true) as HTMLElement;
-   const prose=clone.querySelector("p,blockquote,aside");
+   const prose=clone.querySelector<HTMLElement>("p,blockquote,aside");
    if(!prose)return null;
    // Measure the exact same fragment DOM as SemanticPageUnit/ProtectedProseText.
    // Cloning the uncut paragraph and deleting Ranges leaves different protection
