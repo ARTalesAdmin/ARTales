@@ -1,7 +1,7 @@
 import {strict as assert} from "node:assert";
 import {test} from "node:test";
 import {readFileSync} from "node:fs";
-import {paginateSemanticUnits} from "../lib/semantic/readerProjection";
+import {paginateSemanticUnits,semanticPageEndFillThreshold,verifySemanticPageCoverage} from "../lib/semantic/readerProjection";
 import type {SemanticPageUnit} from "../lib/semantic/model";
 const read=(path:string)=>readFileSync(new URL("../"+path,import.meta.url),"utf8");
 
@@ -74,4 +74,34 @@ test("published semantic Reader measures real fragment DOM, keeps paper bounds, 
  assert.match(projection,/measureFragment\(first\)/);
  assert.match(projection,/protected_terms\?\?\[\]/);
  assert.doesNotMatch(projection,/const maxChars=Math\.max\(35/);
+});
+
+test("page-end punctuation requires 60 percent for semicolon, 80 percent for comma",()=>{
+ assert.equal(semanticPageEndFillThreshold("sentence"),.6);
+ assert.equal(semanticPageEndFillThreshold("semicolon"),.6);
+ assert.equal(semanticPageEndFillThreshold("comma"),.8);
+ assert.equal(semanticPageEndFillThreshold("word"),.85);
+});
+
+test("page-end changes preserve all source ranges across long multi-page prose",()=>{
+ const raw=Array.from({length:100},(_,i)=>
+  "At the river, sentence "+i+" ended; another thought continued. ").join("");
+ const source=paragraph("preserved",raw,6000);
+ const pages=paginateSemanticUnits([source],{
+  mode:"paged",viewport_width:420,viewport_height:440,content_height:300,
+  font_scale:1,density:"comfortable",
+  measure_fragment_geometry:unit=>{
+   if(!unit.fragment)return null;
+   const length=unit.fragment.end-unit.fragment.start;
+   const lines=Math.max(1,Math.ceil(length/48));
+   return {height:10+lines*26,last_line_top:(lines-1)*26,
+    last_line_fill:((length-1)%48+1)/48};
+  },
+ });
+ assert(pages.length>5);
+ assert.equal(verifySemanticPageCoverage([source],pages).ok,true);
+ assert(pages.every(p=>p.overflow==="none"));
+ assert(pages.flatMap(p=>p.units).filter(u=>u.fragment).every(u=>
+  typeof u.fragment?.justify_last_line==="boolean"||
+  u.fragment?.justify_last_line===undefined));
 });
