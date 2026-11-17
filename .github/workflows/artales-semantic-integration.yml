@@ -1,7 +1,7 @@
 name: ARTales semantic editorial integration
 on:
   push:
-    branches: [fix/reader-80pct-height-fill-punctuation-20261117]
+    branches: [fix/reader-capacity-measured-no-global-penalty-20261117]
     paths:
       - 'lib/semantic/**'
       - 'tests/semanticReaderPageFit20261115.test.ts'

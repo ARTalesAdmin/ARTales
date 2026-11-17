@@ -356,3 +356,11 @@ test("period or semicolon only cuts current last row at natural 80 percent fill"
  assert.equal(chooseSemanticFittingRowCut({...row,punctuationCuts:[{sourceEnd:comma.indexOf(",")+1,fill:.95}]},
   comma,0,comma.length,new Set([afterComma]),[]).reason,"latest_row");
 });
+
+test("public Reader never shrinks every sheet for one overflow",()=>{
+ const reader=read("components/reader/SemanticReaderClient.tsx");
+ assert.doesNotMatch(reader,/capacityPenalty|setCapacityPenalty/);
+ assert.match(reader,/measuredCapacity:pageContentHeight/);
+ assert.match(reader,/setScrollFallbackPages\(old=>/);
+ assert.match(reader,/semanticInkOverflowPx/);
+});

@@ -303,7 +303,7 @@ export function fittingSemanticPageRows(
      row.bottom<row.top||!Number.isFinite(row.fill)||
      row.fill<0||row.fill>1) return []; // untrusted/stale DOM geometry
   previousEnd=row.sourceEnd;previousTop=row.top;
-  if(row.bottom>remaining-6)break;
+  if(row.bottom>remaining)break;
   // The source cursor must advance beyond all trailing whitespace, so the
   // next fragment begins with exactly the next original nonspace character.
   let end=row.sourceEnd;
@@ -535,7 +535,7 @@ export function* iterateSemanticPages(units:readonly SemanticPageUnit[],layout:S
       const geometry=layout.measure_fragment_geometry?.(first);
       const measuredHeight=geometry&&Number.isFinite(geometry.height)&&geometry.height>0?
        geometry.height:measureFragment(first);
-      if(measuredHeight>remaining-6)continue;
+      if(measuredHeight>remaining)continue;
       const fill=geometry&&Number.isFinite(geometry.last_line_fill)?
        geometry.last_line_fill:selected.fill;
       const words=geometry?.last_line_words??row.words;
@@ -574,7 +574,7 @@ export function* iterateSemanticPages(units:readonly SemanticPageUnit[],layout:S
     };
     while(lo<=hi){
      const mid=(lo+hi)>>>1;
-     if(check(mid).height<=remaining-6){bestIndex=mid;lo=mid+1;}
+     if(check(mid).height<=remaining){bestIndex=mid;lo=mid+1;}
      else hi=mid-1;
     }
     if(bestIndex<0)return null;
@@ -648,9 +648,24 @@ export function* iterateSemanticPages(units:readonly SemanticPageUnit[],layout:S
     // A paragraph may be longer than the whole page: split it into DOM-fitted
     // continuations, not a single overflowing element. Never rely on simple
     // character-height proportionality when browser measurements are supplied.
+    // A final CSS margin has no ink. If the entire source paragraph's
+    // measured glyph rows fit, preserve all its text and trim only the
+    // margin spilling off the physical sheet edge.
     if(["paragraph","quote","epigraph","footnote"].includes(unit.kind)&&"atom" in unit.node&&
-       unit.estimated_height>capacity-weight-6){
-      if(pending.length && capacity-weight<lineHeight+6){
+       unit.estimated_height>capacity-weight&&layout.measure_paragraph_rows){
+      const available=capacity-weight;
+      const rows=layout.measure_paragraph_rows(unit);
+      const lastInk=rows?.at(-1)?.bottom;
+      if(lastInk!==undefined&&Number.isFinite(lastInk)&&lastInk<=available){
+       const fitted={...unit,estimated_height:Math.min(unit.estimated_height,available)};
+       pending.push(fitted);weight+=fitted.estimated_height;
+       const leaf=flush();if(leaf)yield leaf;
+       continue;
+      }
+    }
+    if(["paragraph","quote","epigraph","footnote"].includes(unit.kind)&&"atom" in unit.node&&
+       unit.estimated_height>capacity-weight){
+      if(pending.length && capacity-weight<lineHeight){
         const leaf=flush();if(leaf)yield leaf;
       }
       const cut=fitParagraph(unit,capacity-weight);
