@@ -1,7 +1,7 @@
 import {strict as assert} from "node:assert";
 import {test} from "node:test";
 import {readFileSync} from "node:fs";
-import {paginateSemanticUnits,semanticPageEndFillThreshold,verifySemanticPageCoverage,rebalanceShortSemanticPageTail,shouldJustifySemanticPageEnd,fittingSemanticPageRows} from "../lib/semantic/readerProjection";
+import {paginateSemanticUnits,semanticPageEndFillThreshold,verifySemanticPageCoverage,rebalanceShortSemanticPageTail,shouldJustifySemanticPageEnd,fittingSemanticPageRows,chooseSemanticFittingRowCut} from "../lib/semantic/readerProjection";
 import {segmentSemanticProse,semanticWordRanges} from "../lib/semantic/protectedSpans";
 import {projectSemanticProseText} from "../lib/semantic/displayText";
 import type {SemanticPageUnit} from "../lib/semantic/model";
@@ -78,11 +78,11 @@ test("published semantic Reader measures real fragment DOM, keeps paper bounds, 
  assert.doesNotMatch(projection,/const maxChars=Math\.max\(35/);
 });
 
-test("page-end punctuation requires 60 percent for semicolon, 80 percent for comma",()=>{
- assert.equal(semanticPageEndFillThreshold("sentence"),.6);
- assert.equal(semanticPageEndFillThreshold("semicolon"),.6);
- assert.equal(semanticPageEndFillThreshold("comma"),.8);
- assert.equal(semanticPageEndFillThreshold("word"),.85);
+test("period and semicolon are the only 80 percent discretionary page endings",()=>{
+ assert.equal(semanticPageEndFillThreshold("sentence"),.8);
+ assert.equal(semanticPageEndFillThreshold("semicolon"),.8);
+ assert.equal(semanticPageEndFillThreshold("comma"),Infinity);
+ assert.equal(semanticPageEndFillThreshold("word"),Infinity);
 });
 
 test("page-end changes preserve all source ranges across long multi-page prose",()=>{
@@ -175,21 +175,18 @@ test("every DOM-fitted paragraph cut becomes an actual physical page boundary",(
  }
 });
 
-test("page-end typography prioritizes natural row fill and never stretches trailing words",()=>{
+test("natural row width controls page ending; visible Reader enforces bounded 83 percent justification",()=>{
  const projection=read("lib/semantic/readerProjection.ts");
- const css=read("components/reader/semantic-public-reader.css");
- const markup=read("components/reader/SemanticPageUnit.tsx");
- // Punctuation cannot make a much shorter row win against an existing
- // fuller fitting row. Nor may the measured last line be forcibly justified.
- assert.match(projection,/fullest\.lineFill-item\.lineFill>\.05/);
- assert.match(projection,/Math\.min\(4,Math\.max\(0,policy\.preference\)\)\*\.012/);
- assert.match(projection,/if\(fullest\.lineTop!==null&&fullest\.lineFill!==null\)/);
- assert.match(css,/semantic-reader__fragment--justify-last/);
- assert.doesNotMatch(markup,/semantic-reader__fragment--justify-last/);
  const client=read("components/reader/SemanticReaderClient.tsx");
+ const css=read("components/reader/semantic-public-reader.css");
+ assert.match(projection,/chooseSemanticFittingRowCut/);
+ assert.match(projection,/shouldJustifySemanticPageEnd/);
  assert.match(client,/measureSemanticDomLastRow\(paragraph\)/);
  assert.match(client,/paragraph.classList.add\("semantic-reader__fragment--justify-last"\)/);
  assert.match(css,/text-align-last:start/);
+ assert.equal(shouldJustifySemanticPageEnd(.95,7,470,true),true);
+ assert.equal(shouldJustifySemanticPageEnd(.82,7,470,true),false);
+ assert.equal(shouldJustifySemanticPageEnd(.95,3,470,true),false);
 });
 
 test("source-identical segments preserve length and protected phrases across fragment breaks",()=>{
@@ -339,4 +336,22 @@ test("physical row selector does not silently split within protected terms or le
  assert(actual.length>=1);
  const rejected=fittingSemanticPageRows(rows,raw,0,raw.length,25,new Set(white),8,7);
  assert.equal(rejected.length,0);
+});
+
+test("period or semicolon only cuts current last row at natural 80 percent fill",()=>{
+ const raw="Reading is a pleasure; and another sentence continues across the rest of the line.";
+ const afterSemicolon=raw.indexOf(";")+2;
+ const atSemicolon=raw.indexOf(";")+1;
+ const row={sourceEnd:raw.indexOf(" line.")+6,end:raw.indexOf(" line.")+6,
+  top:22,bottom:48,fill:.99,words:11,
+  punctuationCuts:[{sourceEnd:atSemicolon,fill:.81}]};
+ const chosen=chooseSemanticFittingRowCut(row,raw,0,raw.length,new Set([afterSemicolon]),[]);
+ assert.equal(chosen.end,afterSemicolon);
+ assert.equal(chosen.reason,"punctuation_80");
+ assert.equal(chooseSemanticFittingRowCut({...row,punctuationCuts:[{sourceEnd:atSemicolon,fill:.79}]},
+  raw,0,raw.length,new Set([afterSemicolon]),[]).reason,"latest_row");
+ const comma=raw.replace("; ",", ");
+ const afterComma=comma.indexOf(",")+2;
+ assert.equal(chooseSemanticFittingRowCut({...row,punctuationCuts:[{sourceEnd:comma.indexOf(",")+1,fill:.95}]},
+  comma,0,comma.length,new Set([afterComma]),[]).reason,"latest_row");
 });
