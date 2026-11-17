@@ -72,7 +72,7 @@ JS=r"""() => {
   "world of matter";
  measureRoot.append(verify);
  const actualRow=engine.measureSemanticDomLastRow(verify);
- const actualWords=verify.textContent.trim().match(/\\S+/gu)?.length??0;
+ const actualWords=verify.textContent.trim().match(/\S+/gu)?.length??0;
  if(!actualRow||actualRow.words<1||actualRow.words>=actualWords||
     actualRow.fill<=0||actualRow.fill>1){
   throw Error("Measured last DOM row is not a valid physical line: "+JSON.stringify(actualRow));
