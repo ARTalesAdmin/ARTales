@@ -134,3 +134,31 @@ test("no guessed rebalancing without DOM geometry or a full preceding line",()=>
  const sparse=[{lineTop:60,lineFill:.48},{lineTop:86,lineFill:.2}];
  assert.equal(rebalanceShortSemanticPageTail(1,26,i=>sparse[i]),1);
 });
+
+test("every DOM-fitted paragraph cut becomes an actual physical page boundary",()=>{
+ const raw=Array.from({length:95},(_,i)=>
+  "Clarke observed an ordinary event "+i+"; yet the investigation continued. ").join("");
+ const source=paragraph("boundary",raw,9000);
+ const layout={
+  mode:"paged" as const,viewport_width:420,viewport_height:440,
+  content_height:170,font_scale:1,density:"comfortable" as const,
+  measured_unit_heights:{boundary:9000},
+  measure_fragment_geometry:(fragment:SemanticPageUnit)=>{
+   if(!fragment.fragment)return null;
+   const length=fragment.fragment.end-fragment.fragment.start;
+   const lines=Math.max(1,Math.ceil(length/48));
+   return {height:12+lines*27,last_line_top:(lines-1)*27,
+    last_line_fill:Math.min(1,(length%48||48)/48)};
+  }
+ };
+ const pages=paginateSemanticUnits([source],layout);
+ assert(pages.length>10);
+ assert.equal(verifySemanticPageCoverage([source],pages).ok,true);
+ // The paginator must NEVER cut the paragraph twice on the same page
+ // and rejoin them during flush(), overriding the selected typography.
+ for(const page of pages){
+  assert.equal(page.units.length,1,
+   "A measured page cut was followed by another same-page paragraph fragment");
+  assert(page.estimated_height<=170,"Measured page overflow");
+ }
+});
