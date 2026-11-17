@@ -63,6 +63,21 @@ JS=r"""() => {
     last_line_words:words};
   p.remove();return value;
  }
+ // Verify the EXACT DOM measurement helper returns natural word fill.
+ // The test intentionally includes multiple physical rows and inline spans.
+ const verify=document.createElement("p");
+ verify.className="fixture-prose";
+ verify.textContent="A long demonstration paragraph that consumes enough horizontal space to wrap across lines naturally. "+
+  "This passage then continues with more words to reach the next rendered physical row; "+
+  "world of matter";
+ measureRoot.append(verify);
+ const actualRow=engine.measureSemanticDomLastRow(verify);
+ const actualWords=verify.textContent.trim().match(/\\S+/gu)?.length??0;
+ if(!actualRow||actualRow.words<1||actualRow.words>=actualWords||
+    actualRow.fill<=0||actualRow.fill>1){
+  throw Error("Measured last DOM row is not a valid physical line: "+JSON.stringify(actualRow));
+ }
+ verify.remove();
  const capacities=[180,225,270,315,360,400,445,480,510,540,570,600,630];
  const output=[];
  for(const height of capacities){
