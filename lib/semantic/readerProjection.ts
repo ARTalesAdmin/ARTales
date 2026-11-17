@@ -339,7 +339,8 @@ export function* iterateSemanticPages(units:readonly SemanticPageUnit[],layout:S
           ...prev,
           id:a.original_unit_id+":range:"+a.start+"-"+b.end,
           fragment:{...a,end:b.end,normalized_end:b.normalized_end,
-            continuation_after:b.continuation_after},
+            continuation_after:b.continuation_after,
+            justify_last_line:b.justify_last_line},
           estimated_height:prev.estimated_height+unit.estimated_height,
         };
       }else coalesced.push(unit);
@@ -426,13 +427,21 @@ export function* iterateSemanticPages(units:readonly SemanticPageUnit[],layout:S
      else hi=mid-1;
     }
     if(bestIndex<0)return null;
-    // A natural punctuation break may replace the furthest legal word
-    // boundary only when it is in the SECOND HALF of the SAME DOM line.
-    // Source text and protected spans are never modified.
+    // Only reward punctuation near the physical end of the SAME browser line.
+    // Commas need 80% fill; sentence endings and semicolons need 60%.
+    // A short comma cannot outweigh a well-filled ordinary word boundary.
     const best=check(bestIndex);
     let selected=bestIndex;
-    const bestPreference=breakPolicy.get(whitespace[selected])?.preference??0;
-    let selectedScore=bestPreference>0?bestPreference*100+(best.lineFill??1)*10:0;
+    const fillThreshold=(reason:SemanticBreakAssessment["reason"])=>(
+      reason==="sentence"||reason==="semicolon"?.6:
+      reason==="comma"?.8:.85
+    );
+    const score=(index:number,fill:number)=>{
+      const policy=breakPolicy.get(whitespace[index]);
+      if(!policy||policy.preference<=0||fill<fillThreshold(policy.reason))return 0;
+      return policy.preference*100+fill*10;
+    };
+    let selectedScore=score(bestIndex,best.lineFill??1);
     for(let j=bestIndex-1;j>=0;j--){
      const item=check(j);
      if(item.height>remaining-6)continue;
@@ -446,14 +455,33 @@ export function* iterateSemanticPages(units:readonly SemanticPageUnit[],layout:S
       if(Math.abs(item.height-best.height)>1.5)break;
       lineFill=1-(whitespace[bestIndex]-whitespace[j])/Math.max(16,approxCharsPerLine);
      }
-     if(lineFill<0.5)continue;
-     const preference=breakPolicy.get(whitespace[j])?.preference??0;
-     if(preference<=0)continue;
-     const score=preference*100+lineFill*10;
-     if(score>selectedScore){selected=j;selectedScore=score;}
+     const candidateScore=score(j,lineFill);
+     if(candidateScore>selectedScore){selected=j;selectedScore=candidateScore;}
+    }
+    // A near-empty orphan line at the bottom of an otherwise full page is
+    // worse than one additional comfortable line of bottom whitespace.
+    // This only applies with measured DOM line boxes, never by character guess.
+    const chosenBeforeOrphan=check(selected);
+    if(selected===bestIndex&&best.lineTop!==null&&best.lineFill!==null&&
+       best.lineFill<.35&&best.lineTop>=lineHeight*2){
+     for(let j=bestIndex-1;j>=0;j--){
+      const item=check(j);
+      if(item.lineTop===null||item.lineFill===null)break;
+      const difference=best.lineTop-item.lineTop;
+      if(difference>lineHeight*1.65)break;
+      if(difference>=lineHeight*.65&&item.lineFill>=.8){
+       selected=j;break;
+      }
+     }
     }
     const chosen=check(selected);
-    return [{...chosen.cut[0],estimated_height:chosen.height},chosen.cut[1]];
+    const reason=breakPolicy.get(whitespace[selected])?.reason;
+    const justify=chosen.lineFill!==null&&chosen.lineFill>=.8&&
+      reason!=="sentence"&&reason!=="semicolon";
+    const first=chosen.cut[0];
+    return [{...first,estimated_height:chosen.height,
+      fragment:first.fragment?{...first.fragment,justify_last_line:justify}:undefined},
+      chosen.cut[1]];
   };
   const queue=[...all];
   for(let i=0;i<queue.length;i++){
