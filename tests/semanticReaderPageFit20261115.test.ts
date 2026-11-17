@@ -298,7 +298,7 @@ test("rows-first pagination cuts only after whole browser rows and preserves sou
   measure_fragment_geometry:measurement,
   measure_fragment_height:f=>measurement(f)?.height??null,
  });
- assert(pages.length>5);
+ assert(pages.length>5,JSON.stringify({pages:pages.length,measures:wholeRowMeasures,candidates,indices:pages.map(p=>p.units.map(u=>u.fragment&&[u.fragment.start,u.fragment.end]))}));
  assert(wholeRowMeasures>=pages.length-1);
  assert(candidates<wholeRowMeasures*9,"Should verify row candidates, not bisect every word");
  assert.equal(verifySemanticPageCoverage([source],pages).ok,true);
