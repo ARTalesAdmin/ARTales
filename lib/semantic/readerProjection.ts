@@ -9,6 +9,8 @@ export type SemanticFragmentGeometry={
   height:number;
   last_line_top:number;
   last_line_fill:number;
+  /** Count visible words on the physical trailing row (not the whole paragraph). */
+  last_line_words?:number;
 };
 export type SemanticReaderLayout = {
   mode: "paged" | "spread" | "scroll";
@@ -436,7 +438,7 @@ export function* iterateSemanticPages(units:readonly SemanticPageUnit[],layout:S
     if(!whitespace.length)return null;
     let lo=0,hi=whitespace.length-1,bestIndex=-1;
     const measured=new Map<number,{cut:[SemanticPageUnit,SemanticPageUnit];height:number;
-      lineTop:number|null;lineFill:number|null}>();
+      lineTop:number|null;lineFill:number|null;lineWords:number|null}>();
     const check=(index:number)=>{
      const end=whitespace[index];
      let item=measured.get(end);
@@ -451,7 +453,8 @@ export function* iterateSemanticPages(units:readonly SemanticPageUnit[],layout:S
       item={cut:[first,second],
         height:valid?geometry.height:measureFragment(first),
         lineTop:valid?geometry.last_line_top:null,
-        lineFill:valid?geometry.last_line_fill:null};
+        lineFill:valid?geometry.last_line_fill:null,
+        lineWords:valid&&Number.isInteger(geometry.last_line_words)?geometry.last_line_words!:null};
       measured.set(end,item);
      }
      return item;
@@ -494,9 +497,21 @@ export function* iterateSemanticPages(units:readonly SemanticPageUnit[],layout:S
      }
     }
     const chosen=check(selected);
-    // The actual final visual line always retains its natural spacing.
-    // Other paragraph lines are already justified by the established CSS.
-    return [{...chosen.cut[0],estimated_height:chosen.height},chosen.cut[1]];
+    const fill=chosen.lineFill;
+    const words=chosen.lineWords;
+    // Last-line justification is opt-in ONLY when Chromium measured enough
+    // real words to distribute the remaining space without grotesque gaps.
+    // This is independent from punctuation. Actual paragraph endings stay left.
+    const extras=words!==null&&words>1&&fill!==null?
+      (1-fill)*layout.viewport_width/(words-1):Infinity;
+    const justify=Boolean(chosen.cut[0].fragment?.continuation_after&&
+      fill!==null&&fill>=.83&&words!==null&&words>=4&&extras<=7);
+    const reason=chosen.lineTop===null?"geometry_unavailable":
+      selected===bestIndex?"latest_row":"short_tail_rebalanced";
+    const first=chosen.cut[0];
+    return [{...first,estimated_height:chosen.height,
+      fragment:first.fragment?{...first.fragment,justify_last_line:justify,
+        page_end_fill:fill??undefined,page_end_reason:reason}:undefined},chosen.cut[1]];
   };
   const queue=[...all];
   for(let i=0;i<queue.length;i++){
