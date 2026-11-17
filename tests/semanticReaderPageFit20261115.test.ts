@@ -1,7 +1,7 @@
 import {strict as assert} from "node:assert";
 import {test} from "node:test";
 import {readFileSync} from "node:fs";
-import {paginateSemanticUnits,semanticPageEndFillThreshold,verifySemanticPageCoverage,rebalanceShortSemanticPageTail,shouldJustifySemanticPageEnd} from "../lib/semantic/readerProjection";
+import {paginateSemanticUnits,semanticPageEndFillThreshold,verifySemanticPageCoverage,rebalanceShortSemanticPageTail,shouldJustifySemanticPageEnd,fittingSemanticPageRows} from "../lib/semantic/readerProjection";
 import {segmentSemanticProse,semanticWordRanges} from "../lib/semantic/protectedSpans";
 import {projectSemanticProseText} from "../lib/semantic/displayText";
 import type {SemanticPageUnit} from "../lib/semantic/model";
@@ -260,4 +260,63 @@ test("short trailing row selects fullest legal candidate on the preceding physic
   {lineTop:88,lineFill:.17},
  ];
  assert.equal(rebalanceShortSemanticPageTail(3,29,index=>measured[index]),2);
+});
+
+test("rows-first pagination cuts only after whole browser rows and preserves source",()=>{
+ const raw=Array.from({length:100},(_,i)=>"Sentence "+i+" was read aloud; other words followed. ").join("");
+ const source=paragraph("rows-first",raw,9000);
+ let wholeRowMeasures=0;
+ let candidates=0;
+ const rows=(unit:SemanticPageUnit)=>{
+  wholeRowMeasures++;
+  const start=unit.fragment?.start??0;
+  const stop=unit.fragment?.end??raw.length;
+  const output:Array<{sourceEnd:number;top:number;bottom:number;fill:number;words:number}>=[];
+  let top=0;
+  // Model immutable source rows, never a guess based on split candidates.
+  const text=raw.slice(start,stop);
+  for(const match of text.matchAll(/.{1,70}(?:\s+|$)/g)){
+   top+=27;
+   output.push({sourceEnd:start+match.index!+match[0].trimEnd().length,
+     top:top-24,bottom:top,fill:.9,words:8});
+  }
+  return output;
+ };
+ const pageHeight=170;
+ const measurement=(f:SemanticPageUnit)=>{
+  if(!f.fragment)return null;
+  candidates++;
+  const length=f.fragment.end-f.fragment.start;
+  const lines=Math.ceil(length/70);
+  return {height:lines*27,last_line_top:(lines-1)*27,
+   last_line_fill:.9,last_line_words:8};
+ };
+ const pages=paginateSemanticUnits([source],{
+  mode:"paged",viewport_width:470,viewport_height:440,content_height:pageHeight,
+  font_scale:1,density:"comfortable",measured_unit_heights:{"rows-first":9000},
+  measure_paragraph_rows:rows,
+  measure_fragment_geometry:measurement,
+  measure_fragment_height:f=>measurement(f)?.height??null,
+ });
+ assert(pages.length>5);
+ assert(wholeRowMeasures>=pages.length-1);
+ assert(candidates<wholeRowMeasures*9,"Should verify row candidates, not bisect every word");
+ assert.equal(verifySemanticPageCoverage([source],pages).ok,true);
+ assert(pages.every(page=>page.estimated_height<=pageHeight));
+});
+
+test("physical row selector does not silently split within protected terms or leave tiny tails",()=>{
+ const raw="The long opening continues along the road; and the final passage follows.";
+ const white=[...raw.matchAll(/\s+/g)].map(m=>m.index!+m[0].length);
+ const rows=[
+  {sourceEnd:17,top:0,bottom:24,fill:.94,words:3},
+  {sourceEnd:51,top:28,bottom:52,fill:.91,words:7},
+  {sourceEnd:61,top:56,bottom:80,fill:.12,words:1},
+ ];
+ const actual=fittingSemanticPageRows(rows,raw,0,raw.length,100,new Set(white),8,7);
+ assert(actual.every(row=>white.includes(row.end)));
+ assert(actual.every(row=>row.bottom<=94));
+ assert(actual.length>=1);
+ const rejected=fittingSemanticPageRows(rows,raw,0,raw.length,25,new Set(white),8,7);
+ assert.equal(rejected.length,0);
 });
