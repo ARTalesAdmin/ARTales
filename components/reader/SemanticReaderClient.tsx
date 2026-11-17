@@ -360,18 +360,23 @@ export default function SemanticReaderClient({slug,title,locale,mode,revisionSha
  useLayoutEffect(()=>{
   if(!paginationSettled||!readerRootRef.current)return;
   const root=readerRootRef.current;
-  const visible=root.querySelectorAll<HTMLElement>(
-   ".semantic-public-reader__paper:not(.semantic-reader__measurement-page) "+
-   "p.semantic-reader__fragment:not(.semantic-reader__fragment--final)");
-  for(const paragraph of visible){
-   paragraph.classList.remove("semantic-reader__fragment--justify-last");
-   const row=measureSemanticDomLastRow(paragraph);
-   if(row&&shouldJustifySemanticPageEnd(
-    row.fill,row.words,paragraph.getBoundingClientRect().width,true)){
-    paragraph.classList.add("semantic-reader__fragment--justify-last");
+  const papers=root.querySelectorAll<HTMLElement>(
+   ".semantic-public-reader__paper[data-semantic-page-index]");
+  for(const paper of papers){
+   const paperRect=paper.getBoundingClientRect();
+   if(paperRect.bottom<0||paperRect.top>window.innerHeight)continue;
+   const fragments=paper.querySelectorAll<HTMLElement>(
+    "p.semantic-reader__fragment:not(.semantic-reader__fragment--final)");
+   for(const paragraph of fragments){
+    paragraph.classList.remove("semantic-reader__fragment--justify-last");
+    const row=measureSemanticDomLastRow(paragraph);
+    if(row&&shouldJustifySemanticPageEnd(
+     row.fill,row.words,paragraph.getBoundingClientRect().width,true)){
+     paragraph.classList.add("semantic-reader__fragment--justify-last");
+    }
+    paragraph.dataset.visiblePageEndFill=row?row.fill.toFixed(3):"unavailable";
+    paragraph.dataset.visiblePageEndWords=row?String(row.words):"unavailable";
    }
-   paragraph.dataset.visiblePageEndFill=row?row.fill.toFixed(3):"unavailable";
-   paragraph.dataset.visiblePageEndWords=row?String(row.words):"unavailable";
   }
  },[paginationSettled,pages,visibleStart,settings.fontScale,settings.density]);
 
