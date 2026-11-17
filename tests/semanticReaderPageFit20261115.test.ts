@@ -2,7 +2,7 @@ import {strict as assert} from "node:assert";
 import {test} from "node:test";
 import {readFileSync} from "node:fs";
 import {paginateSemanticUnits,semanticPageEndFillThreshold,verifySemanticPageCoverage,rebalanceShortSemanticPageTail,shouldJustifySemanticPageEnd} from "../lib/semantic/readerProjection";
-import {segmentSemanticProse} from "../lib/semantic/protectedSpans";
+import {segmentSemanticProse,semanticWordRanges} from "../lib/semantic/protectedSpans";
 import {projectSemanticProseText} from "../lib/semantic/displayText";
 import type {SemanticPageUnit} from "../lib/semantic/model";
 const read=(path:string)=>readFileSync(new URL("../"+path,import.meta.url),"utf8");
@@ -236,4 +236,15 @@ test("real paginator selects previous filled row before an isolated nonsense-sem
  assert(first,"First page must finish with a fragment");
  assert(first.end<=wordStart,"The last line must not be an isolated 'nonsense;'");
  assert(first.page_end_fill!==undefined&&first.page_end_fill>=.8);
+});
+
+test("actual DOM word-range detector counts the words on last rows",()=>{
+ const line="You may think this all strange nonsense;";
+ const ranges=semanticWordRanges(line);
+ assert.equal(ranges.length,7);
+ assert.deepEqual(ranges.map(x=>line.slice(x.start,x.end)),
+  ["You","may","think","this","all","strange","nonsense;"]);
+ assert.equal(semanticWordRanges("").length,0);
+ assert.deepEqual(semanticWordRanges("  a\tword\nnext ").map(x=>
+  "  a\tword\nnext ".slice(x.start,x.end)),["a","word","next"]);
 });
