@@ -84,6 +84,25 @@ JS=r"""() => {
   throw Error("Unsafe continuation line was allowed to stretch");
  }
  verify.remove();
+ // Same paragraph is laid out once as an uncut remainder before
+ // choosing any page fragment. This is the production rows-first path.
+ function measureRows(unit){
+  const from=unit.fragment?.start??0;
+  const until=unit.fragment?.end??raw.length;
+  const p=document.createElement("p");p.className="fixture-prose";
+  p.style.textAlign="start";p.style.textAlignLast="start";
+  const content=document.createElement("span");
+  content.className="semantic-reader__atom";
+  for(const part of engine.segmentSemanticProse(raw.slice(from,until),[])){
+   if(!part.protected){content.append(document.createTextNode(part.text));continue;}
+   const span=document.createElement("span");
+   span.style.whiteSpace="nowrap";span.textContent=part.text;content.append(span);
+  }
+  p.append(content);measureRoot.append(p);
+  const result=engine.measureSemanticDomRows(p,from,content);
+  p.remove();
+  return result;
+ }
  const capacities=[180,225,270,315,360,400,445,480,510,540,570,600,630];
  const output=[];
  for(const height of capacities){
@@ -91,7 +110,8 @@ JS=r"""() => {
    mode:"paged",viewport_width:470,viewport_height:Math.max(340,height+100),
    content_height:height,font_scale:1,density:"comfortable",
    measured_unit_heights:{[id]:2000},measure_fragment_geometry:geometry,
-   measure_fragment_height:f=>geometry(f)?.height??null,protected_terms:[]
+   measure_fragment_height:f=>geometry(f)?.height??null,
+   measure_paragraph_rows:measureRows,protected_terms:[]
   })];
   const coverage=engine.verifySemanticPageCoverage([unit],pages);
   const records=pages.map(page=>page.units.map(u=>{
