@@ -356,3 +356,43 @@ test("period or semicolon only cuts current last row at natural 80 percent fill"
  assert.equal(chooseSemanticFittingRowCut({...row,punctuationCuts:[{sourceEnd:comma.indexOf(",")+1,fill:.95}]},
   comma,0,comma.length,new Set([afterComma]),[]).reason,"latest_row");
 });
+
+test("public canonical Reader must not reduce every page when one sheet overflows",()=>{
+ const reader=read("components/reader/SemanticReaderClient.tsx");
+ const css=read("components/reader/semantic-public-reader.css");
+ assert.doesNotMatch(reader,/capacityPenalty|setCapacityPenalty/);
+ assert.match(reader,/measuredCapacity:pageContentHeight/);
+ assert.match(reader,/setScrollFallbackPages\(old=>/);
+ assert.match(css,/\.semantic-reader__unit:last-child > :is\(p,blockquote,aside\)/);
+});
+
+test("actual line-box bottom determines the last accepted row with only a 2px tolerance",()=>{
+ const raw="Alpha beta gamma delta epsilon zeta eta theta iota kappa lambda mu nu xi omicron.";
+ const ends=[...raw.matchAll(/\s+/g)].map(m=>m.index!+m[0].length);
+ const lines=[
+  {sourceEnd:ends[2]-1,top:0,bottom:29,fill:.97,words:3},
+  {sourceEnd:ends[5]-1,top:29,bottom:58,fill:.96,words:3},
+  {sourceEnd:ends[8]-1,top:58,bottom:87,fill:.94,words:3},
+ ];
+ const fitting=fittingSemanticPageRows(lines,raw,0,raw.length,89,new Set(ends),1,1);
+ assert.equal(fitting.length,3,"the 87px row fits inside 89px with 2px safety");
+ assert.equal(fitting.at(-1)?.bottom,87);
+ assert.equal(fittingSemanticPageRows(lines,raw,0,raw.length,88,new Set(ends),1,1).length,2);
+});
+
+test("when all paragraph lines fit only bottom margin is removed at page edge",()=>{
+ const raw="The entire short paragraph is visible on the page.";
+ const u=paragraph("margin-end",raw,108); // measured text 2 lines + CSS gap
+ const pages=paginateSemanticUnits([u],{
+  mode:"paged",viewport_width:470,viewport_height:420,content_height:83,
+  font_scale:1,density:"comfortable",measured_unit_heights:{"margin-end":108},
+  measure_paragraph_rows:()=>[
+   {sourceEnd:28,top:0,bottom:29,fill:.93,words:5},
+   {sourceEnd:raw.length,top:29,bottom:65,fill:.63,words:5},
+  ],
+ });
+ assert.equal(pages.length,1);
+ assert.equal(pages[0].units.length,1);
+ assert.equal(pages[0].units[0].fragment,undefined);
+ assert(pages[0].estimated_height<=83);
+});

@@ -29,6 +29,7 @@ export function measureSemanticDomRows(
  const box=paragraph.getBoundingClientRect();
  if(!Number.isFinite(box.width)||box.width<=0)return [];
  const walker=document.createTreeWalker(textRoot,NodeFilter.SHOW_TEXT);
+ const computedLineHeight=Number.parseFloat(getComputedStyle(paragraph).lineHeight);
  let node:Node|null;
  let sourceCursor=sourceStart;
  const rows:Array<{top:number;bottom:number;right:number;words:number;sourceEnd:number;
@@ -68,9 +69,13 @@ export function measureSemanticDomRows(
   }
   sourceCursor+=text.length;
  }
- return rows.sort((a,b)=>a.top-b.top).map(row=>({
+ return rows.sort((a,b)=>a.top-b.top).map((row,index)=>({
   top:row.top-box.top,
-  bottom:row.bottom-box.top,
+  // Use the line BOX, not merely the glyph ink. Candidate fragments are
+  // independently checked against their rendered CSS height before acceptance.
+  bottom:Number.isFinite(computedLineHeight)&&computedLineHeight>0?
+   Math.max(row.bottom-box.top,Math.min(box.height,(index+1)*computedLineHeight)):
+   row.bottom-box.top,
   fill:Math.max(0,Math.min(1,(row.right-box.left)/box.width)),
   words:row.words,
   sourceEnd:row.sourceEnd,

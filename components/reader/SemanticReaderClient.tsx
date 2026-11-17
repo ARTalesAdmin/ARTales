@@ -40,7 +40,6 @@ export default function SemanticReaderClient({slug,title,locale,mode,revisionSha
  const readerRootRef=useRef<HTMLElement|null>(null);
  const [measurements,setMeasurements]=useState<Measurements|null>(null);
  const [measuredPages,setMeasuredPages]=useState<{key:string;pages:SemanticPage[];complete:boolean}|null>(null);
- const [capacityPenalty,setCapacityPenalty]=useState(0);
  const [scrollFallbackPages,setScrollFallbackPages]=useState<number[]>([]);
  const [pageIndex,setPageIndex]=useState(0);
  const [notes,setNotes]=useState<ReaderNote[]>([]);
@@ -70,15 +69,14 @@ export default function SemanticReaderClient({slug,title,locale,mode,revisionSha
  const measureKey=[revisionSha,mode,pageWidth,pageHeight,settings.fontScale,
   settings.density,semanticUnits.length,protectedTerms.join("\u0001")].join("|");
  const readyMeasurements=measurements?.key===measureKey?measurements.heights:undefined;
- // Leave a small rounding buffer after measuring the actual content rect.
- // The existing ink-overflow check increases capacityPenalty and repaginates
- // if the real browser needs more space; never silently clip text.
+ // Trust the measured content rect. Do not subtract book-wide height based on
+ // an unrelated page's overflow. The engine applies a 2px per-line safety.
  const measuredCapacity=measurements?.key===measureKey?measurements.contentHeight:pageContentHeight;
  // The measured grid can temporarily report zero before the first browser
  // layout pass. Never feed transient dimensions below the canonical engine's
  // validated viewport minimum; the next ResizeObserver event remeasures.
- const actualCapacity=Math.max(220,Number.isFinite(measuredCapacity)?
-  measuredCapacity-12-capacityPenalty:pageContentHeight-12-capacityPenalty);
+ const actualCapacity=Math.max(80,Number.isFinite(measuredCapacity)?
+  measuredCapacity:pageContentHeight);
  const measuredWidth=measurements?.key===measureKey?measurements.contentWidth:pageWidth-144;
  const contentWidth=Math.max(200,Number.isFinite(measuredWidth)?measuredWidth:pageWidth-144);
  // Render the first leaf without a synchronous full-book fallback.
@@ -342,7 +340,9 @@ export default function SemanticReaderClient({slug,title,locale,mode,revisionSha
    prose.style.textAlignLast="start";
    clone.removeAttribute("data-semantic-measure-id");
    content.appendChild(clone);
-   const rows=measureSemanticDomRows(prose,from,atom);
+   const top=prose.getBoundingClientRect().top-clone.getBoundingClientRect().top;
+   const rows=measureSemanticDomRows(prose,from,atom).map(row=>({...row,
+    top:row.top+top,bottom:row.bottom+top}));
    clone.remove();
    return rows.length?rows:null;
   };
@@ -350,7 +350,7 @@ export default function SemanticReaderClient({slug,title,locale,mode,revisionSha
    fragmentGeometry(unit)?.height??null;
   const iterator=iterateSemanticPages(semanticUnits,{
    mode:"paged",viewport_width:contentWidth,
-   viewport_height:actualCapacity+100,content_height:actualCapacity,
+   viewport_height:Math.max(320,actualCapacity+100),content_height:actualCapacity,
    font_scale:settings.fontScale,density:settings.density,
    measured_unit_heights:readyMeasurements,protected_terms:protectedTerms,
    measure_fragment_height:fragmentHeight,
@@ -426,7 +426,6 @@ export default function SemanticReaderClient({slug,title,locale,mode,revisionSha
   const frame=requestAnimationFrame(()=>{
    const root=readerRootRef.current;
    if(!root)return;
-   let greatestOverflow=0;
    const affected:number[]=[];
    const papers=root.querySelectorAll<HTMLElement>(
     ".semantic-public-reader__paper[data-semantic-page-index]");
@@ -451,19 +450,19 @@ export default function SemanticReaderClient({slug,title,locale,mode,revisionSha
     for(const media of area.querySelectorAll<HTMLElement>("figure,img,pre,svg"))
      inkBottom=Math.max(inkBottom,media.getBoundingClientRect().bottom);
     const overflow=inkBottom-rect.bottom;
+    paper.dataset.semanticInkOverflowPx=Number.isFinite(overflow)?overflow.toFixed(2):"unavailable";
     if(overflow>2){
-     greatestOverflow=Math.max(greatestOverflow,overflow);
      affected.push(Number(paper.dataset.semanticPageIndex));
     }
    }
    if(!affected.length)return;
-   if(capacityPenalty<96)
-    setCapacityPenalty(old=>Math.min(96,old+Math.max(16,Math.ceil(greatestOverflow+12))));
-   else setScrollFallbackPages(old=>[...new Set([...old,...affected])]);
+   // Failure containment only: keep the affected page readable by scrolling.
+   // It is NEVER an input into pagination capacity on the other pages.
+   setScrollFallbackPages(old=>[...new Set([...old,...affected])]);
   });
   return ()=>cancelAnimationFrame(frame);
- },[paginationSettled,paginationKey,pageIndex,spread,capacityPenalty]);
- useEffect(()=>{setCapacityPenalty(0);setScrollFallbackPages([]);},[measureKey]);
+ },[paginationSettled,paginationKey,pageIndex,spread]);
+ useEffect(()=>{setScrollFallbackPages([]);},[measureKey]);
  const patch=useCallback((next:Partial<ReaderSettings>)=>setSettings(old=>({...old,...next})),[]);
  const goToIndex=useCallback((index:number)=>{
   const safe=Math.max(0,Math.min(total-1,index));

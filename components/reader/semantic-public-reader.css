@@ -138,6 +138,11 @@
 .artales-reader--semantic .semantic-public-reader__paper p.semantic-reader__fragment--final{
  margin-bottom:var(--reader-paragraph-gap,1em)!important;
 }
+/* End-of-leaf prose does not need the separator margin after its last row.
+ * Margins between paragraphs remain intact. */
+.artales-reader--semantic .semantic-public-reader__page-content > .semantic-reader__unit:last-child > :is(p,blockquote,aside){
+ margin-bottom:0!important;
+}
 .artales-reader--semantic .semantic-public-reader__paper blockquote.semantic-reader__fragment--final{
  margin-bottom:1.5em!important;
 }

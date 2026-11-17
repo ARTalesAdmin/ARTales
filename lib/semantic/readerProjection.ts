@@ -5,6 +5,8 @@ import { projectSemanticProseText } from "./displayText";
 import {getProtectedTextSpans,type ProtectedTextSpan} from "./protectedSpans";
 import { classifyGutenbergApparatus,poemInsideEditorialEdition } from "./editionProjection";
 
+export const SEMANTIC_READER_PAGE_SAFETY_PX=2;
+
 export type SemanticFragmentGeometry={
   height:number;
   last_line_top:number;
@@ -303,7 +305,7 @@ export function fittingSemanticPageRows(
      row.bottom<row.top||!Number.isFinite(row.fill)||
      row.fill<0||row.fill>1) return []; // untrusted/stale DOM geometry
   previousEnd=row.sourceEnd;previousTop=row.top;
-  if(row.bottom>remaining-6)break;
+  if(row.bottom>remaining-SEMANTIC_READER_PAGE_SAFETY_PX)break;
   // The source cursor must advance beyond all trailing whitespace, so the
   // next fragment begins with exactly the next original nonspace character.
   let end=row.sourceEnd;
@@ -488,7 +490,8 @@ export function* iterateSemanticPages(units:readonly SemanticPageUnit[],layout:S
     [SemanticPageUnit,SemanticPageUnit]|null=>{
     if(!["paragraph","quote","epigraph","footnote"].includes(unit.kind) ||
        !("atom" in unit.node) ||
-       remaining<lineHeight+6)return null;
+       remaining<=SEMANTIC_READER_PAGE_SAFETY_PX ||
+       (!layout.measure_paragraph_rows&&remaining<lineHeight+SEMANTIC_READER_PAGE_SAFETY_PX))return null;
     const from=unit.fragment?.start??0;
     const until=unit.fragment?.end??unit.node.atom.raw.length;
     const atomId=unit.node.atom.id;
@@ -535,7 +538,7 @@ export function* iterateSemanticPages(units:readonly SemanticPageUnit[],layout:S
       const geometry=layout.measure_fragment_geometry?.(first);
       const measuredHeight=geometry&&Number.isFinite(geometry.height)&&geometry.height>0?
        geometry.height:measureFragment(first);
-      if(measuredHeight>remaining-6)continue;
+      if(measuredHeight>remaining-SEMANTIC_READER_PAGE_SAFETY_PX)continue;
       const fill=geometry&&Number.isFinite(geometry.last_line_fill)?
        geometry.last_line_fill:selected.fill;
       const words=geometry?.last_line_words??row.words;
@@ -574,7 +577,7 @@ export function* iterateSemanticPages(units:readonly SemanticPageUnit[],layout:S
     };
     while(lo<=hi){
      const mid=(lo+hi)>>>1;
-     if(check(mid).height<=remaining-6){bestIndex=mid;lo=mid+1;}
+     if(check(mid).height<=remaining-SEMANTIC_READER_PAGE_SAFETY_PX){bestIndex=mid;lo=mid+1;}
      else hi=mid-1;
     }
     if(bestIndex<0)return null;
@@ -645,14 +648,29 @@ export function* iterateSemanticPages(units:readonly SemanticPageUnit[],layout:S
         const leaf=flush();if(leaf)yield leaf;
       }
     }
+    // The bottom paragraph margin is inter-paragraph spacing, not visible ink.
+    // If every measured line fits at the page foot, retain the ENTIRE paragraph
+    // and drop only the trailing margin on this leaf (CSS :last-child).
+    if(["paragraph","quote","epigraph","footnote"].includes(unit.kind)&&
+       "atom" in unit.node&&
+       unit.estimated_height>capacity-weight-SEMANTIC_READER_PAGE_SAFETY_PX&&
+       layout.measure_paragraph_rows){
+      const remaining=capacity-weight;
+      const rows=layout.measure_paragraph_rows(unit);
+      const finalLine=rows?.at(-1);
+      if(finalLine&&finalLine.bottom+SEMANTIC_READER_PAGE_SAFETY_PX<=remaining){
+       const measuredInkHeight=finalLine.bottom+SEMANTIC_READER_PAGE_SAFETY_PX;
+       pending.push({...unit,estimated_height:measuredInkHeight});
+       weight+=measuredInkHeight;
+       const leaf=flush();if(leaf)yield leaf;
+       continue;
+      }
+    }
     // A paragraph may be longer than the whole page: split it into DOM-fitted
     // continuations, not a single overflowing element. Never rely on simple
     // character-height proportionality when browser measurements are supplied.
     if(["paragraph","quote","epigraph","footnote"].includes(unit.kind)&&"atom" in unit.node&&
-       unit.estimated_height>capacity-weight-6){
-      if(pending.length && capacity-weight<lineHeight+6){
-        const leaf=flush();if(leaf)yield leaf;
-      }
+       unit.estimated_height>capacity-weight-SEMANTIC_READER_PAGE_SAFETY_PX){
       const cut=fitParagraph(unit,capacity-weight);
       if(cut){
         queue.splice(i,1,cut[0],cut[1]);
