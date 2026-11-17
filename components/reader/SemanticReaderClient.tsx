@@ -5,7 +5,7 @@ import ReaderToolbar from "@/components/reader/ReaderToolbar";
 import {getPublicDictionary} from "@/lib/i18n/public";
 import {iterateSemanticPages,projectFlatChapterHeadings,shouldJustifySemanticPageEnd} from "@/lib/semantic/readerProjection";
 import {segmentSemanticProse} from "@/lib/semantic/protectedSpans";
-import {measureSemanticDomLastRow,measureSemanticDomRows} from "@/lib/semantic/domLineGeometry";
+import {measureSemanticDomLastRow,measureSemanticDomRows,syncSemanticMeasurementPaperWidth} from "@/lib/semantic/domLineGeometry";
 import type {SemanticPage,SemanticPageUnit} from "@/lib/semantic/model";
 import type {SupportedLocale} from "@/lib/i18n/config";
 import {clampReaderFontScale,defaultReaderSettings,type ReaderSettings} from "@/lib/reader/readerSettings";
@@ -231,6 +231,13 @@ export default function SemanticReaderClient({slug,title,locale,mode,revisionSha
   const measure=()=>{
    const root=measureRef.current;
    if(!root)return;
+   // The visible grid's tracks (and parent padding) may be NARROWER than
+   // pageWidth computed from window.innerWidth. Measure at exactly the
+   // rendered paper width, including responsive/grid constraints.
+   const visiblePaper=readerRootRef.current?.querySelector<HTMLElement>(
+    ".semantic-public-reader__spread > .semantic-public-reader__paper, "+
+    ".semantic-public-reader__flow > .semantic-public-reader__paper")??null;
+   syncSemanticMeasurementPaperWidth(root,visiblePaper);
    const elements=[...root.querySelectorAll<HTMLElement>("[data-semantic-measure-id]")];
    if(elements.length!==semanticUnits.length)return;
    const content=root.querySelector<HTMLElement>(".semantic-public-reader__page-content");
@@ -254,8 +261,13 @@ export default function SemanticReaderClient({slug,title,locale,mode,revisionSha
   const frame=requestAnimationFrame(measure);
   const observer=typeof ResizeObserver!=="undefined"?new ResizeObserver(measure):null;
   if(measureRef.current)observer?.observe(measureRef.current);
+  const stage=readerRootRef.current?.querySelector<HTMLElement>(
+   ".semantic-public-reader__spread, .semantic-public-reader__flow");
+  if(stage)observer?.observe(stage);
+  window.addEventListener("resize",measure);
   document.fonts?.ready.then(measure).catch(()=>{});
-  return ()=>{cancelAnimationFrame(frame);observer?.disconnect()};
+  return ()=>{cancelAnimationFrame(frame);observer?.disconnect();
+   window.removeEventListener("resize",measure)};
  },[measureKey,semanticUnits,pageContentHeight,pageWidth]);
  // One leaf per animation frame, canceling superseded reflow generations.
  useEffect(()=>{
@@ -456,13 +468,24 @@ export default function SemanticReaderClient({slug,title,locale,mode,revisionSha
     }
    }
    if(!affected.length)return;
+   // A temporarily inconsistent measurement must never create a scrollbar.
+   // The width-sync effect will repaginate from matching DOM geometry.
+   const measuredPaper=measureRef.current?.querySelector<HTMLElement>(
+    ".semantic-reader__measurement-page");
+   const currentPaper=root.querySelector<HTMLElement>(
+    ".semantic-public-reader__spread .semantic-public-reader__paper, "+
+    ".semantic-public-reader__flow .semantic-public-reader__paper");
+   if(measuredPaper&&currentPaper&&Math.abs(
+    measuredPaper.getBoundingClientRect().width-currentPaper.getBoundingClientRect().width
+   )>.5)return;
    // Failure containment only: keep the affected page readable by scrolling.
    // It is NEVER an input into pagination capacity on the other pages.
    setScrollFallbackPages(old=>[...new Set([...old,...affected])]);
   });
   return ()=>cancelAnimationFrame(frame);
  },[paginationSettled,paginationKey,pageIndex,spread]);
- useEffect(()=>{setScrollFallbackPages([]);},[measureKey]);
+ // Old scroll recovery must not survive a new width-accurate pagination.
+ useEffect(()=>{setScrollFallbackPages(old=>old.length?[]:old);},[paginationKey]);
  const patch=useCallback((next:Partial<ReaderSettings>)=>setSettings(old=>({...old,...next})),[]);
  const goToIndex=useCallback((index:number)=>{
   const safe=Math.max(0,Math.min(total-1,index));

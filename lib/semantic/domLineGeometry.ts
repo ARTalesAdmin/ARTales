@@ -23,6 +23,20 @@ export type SemanticDomLastRow={
  fill:number;
 };
 
+/** Keep the offscreen measuring paper at exactly the physical width of the
+ * visible paper. A CSS grid may shrink a nominally fixed-width page; basing
+ * pagination on its unshrunk width causes different line wraps and overflow. */
+export function syncSemanticMeasurementPaperWidth(
+ measurementRoot:HTMLElement,visiblePaper:HTMLElement|null,
+):number|null{
+ const width=visiblePaper?.getBoundingClientRect().width;
+ if(width===undefined||!Number.isFinite(width)||width<200)return null;
+ const measured=measurementRoot.getBoundingClientRect().width;
+ if(!Number.isFinite(measured)||Math.abs(measured-width)>.25)
+  measurementRoot.style.width=width+"px";
+ return width;
+}
+
 export function measureSemanticDomRows(
  paragraph:HTMLElement,sourceStart=0,textRoot:Node=paragraph,
 ):SemanticDomRow[]{
