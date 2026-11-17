@@ -432,10 +432,11 @@ export function* iterateSemanticPages(units:readonly SemanticPageUnit[],layout:S
     // A short comma cannot outweigh a well-filled ordinary word boundary.
     const best=check(bestIndex);
     let selected=bestIndex;
-    const fillThreshold=(reason:SemanticBreakAssessment["reason"])=>(
-      reason==="sentence"||reason==="semicolon"?.6:
-      reason==="comma"?.8:.85
-    );
+    const fillThreshold=(reason:SemanticBreakAssessment["reason"])=>{
+      if(reason==="sentence"||reason==="semicolon")return .6;
+      if(reason==="comma")return .8;
+      return .85;
+    };
     const score=(index:number,fill:number)=>{
       const policy=breakPolicy.get(whitespace[index]);
       if(!policy||policy.preference<=0||fill<fillThreshold(policy.reason))return 0;
@@ -461,7 +462,6 @@ export function* iterateSemanticPages(units:readonly SemanticPageUnit[],layout:S
     // A near-empty orphan line at the bottom of an otherwise full page is
     // worse than one additional comfortable line of bottom whitespace.
     // This only applies with measured DOM line boxes, never by character guess.
-    const chosenBeforeOrphan=check(selected);
     if(selected===bestIndex&&best.lineTop!==null&&best.lineFill!==null&&
        best.lineFill<.35&&best.lineTop>=lineHeight*2){
      for(let j=bestIndex-1;j>=0;j--){
