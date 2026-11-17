@@ -69,10 +69,22 @@ def main():
         response=page.goto(URL,wait_until="domcontentloaded",timeout=45000)
         if response and response.status>=400:
             raise RuntimeError(f"Reader HTTP {response.status}: {URL}")
-        page.wait_for_selector(".semantic-public-reader__spread .semantic-public-reader__paper",
-                               timeout=45000)
-        page.wait_for_function("!document.querySelector('.semantic-public-reader__reflow-status')",
-                                timeout=55000)
+        try:
+            page.wait_for_selector(".semantic-public-reader__spread .semantic-public-reader__paper",
+                                   timeout=18000)
+            page.wait_for_function("!document.querySelector('.semantic-public-reader__reflow-status')",
+                                   timeout=40000)
+        except Exception as exc:
+            page.screenshot(path=str(OUT/"reader-unavailable.png"),full_page=True)
+            html=page.content()
+            (OUT/"unavailable.json").write_text(json.dumps({
+                "url":page.url,"http_status":response.status if response else None,
+                "title":page.title(),"body_excerpt":page.locator("body").inner_text()[:1800],
+                "has_spread":page.locator(".semantic-public-reader__spread").count(),
+                "html_length":len(html),"error":str(exc)
+            },ensure_ascii=False,indent=2))
+            print("Reader unavailable: "+(OUT/"unavailable.json").read_text())
+            raise RuntimeError("Public Reader DOM not reachable by CI Chromium; see artifacts") from exc
         for spread in range(9):
             data=inspect(page)
             if spread in (0,1,2):
