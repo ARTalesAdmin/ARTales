@@ -233,6 +233,14 @@ export function assessSemanticPageBreak(
  return {allowed:true,reason:"word",preference:penalty};
 }
 
+/** Minimum naturally rendered last-line width before punctuation gets a bonus.
+ *  The boundary is layout-only; it never changes source atom offsets. */
+export function semanticPageEndFillThreshold(reason:SemanticBreakAssessment["reason"]):number{
+ if(reason==="sentence"||reason==="semicolon")return .6;
+ if(reason==="comma")return .8;
+ return .85;
+}
+
 /** Create one bounded fragment, preserving the root paragraph and its source anchor. */
 function makeFragment(unit:SemanticPageUnit,start:number,end:number,sourceHeight:number):SemanticPageUnit {
   if(!["paragraph","quote","epigraph","footnote"].includes(unit.kind) ||
@@ -432,11 +440,7 @@ export function* iterateSemanticPages(units:readonly SemanticPageUnit[],layout:S
     // A short comma cannot outweigh a well-filled ordinary word boundary.
     const best=check(bestIndex);
     let selected=bestIndex;
-    const fillThreshold=(reason:SemanticBreakAssessment["reason"])=>{
-      if(reason==="sentence"||reason==="semicolon")return .6;
-      if(reason==="comma")return .8;
-      return .85;
-    };
+    const fillThreshold=semanticPageEndFillThreshold;
     const score=(index:number,fill:number)=>{
       const policy=breakPolicy.get(whitespace[index]);
       if(!policy||policy.preference<=0||fill<fillThreshold(policy.reason))return 0;
