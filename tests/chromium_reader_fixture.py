@@ -104,17 +104,17 @@ JS=r"""() => {
   return result;
  }
  const sample=measureRows(unit).slice(0,12);
- const legalEnds=new Set([...raw.matchAll(/\\s+/g)].map(m=>m.index+m[0].length));
+ const legalEnds=new Set([...raw.matchAll(/\s+/g)].map(m=>m.index+m[0].length));
  const rowDebug=sample.map(row=>{
   let end=row.sourceEnd;
-  while(end<raw.length&&/\\s/u.test(raw[end]))end++;
+  while(end<raw.length&&/\s/u.test(raw[end]))end++;
   return {sourceEnd:row.sourceEnd,end,legal:legalEnds.has(end),
    decision:engine.assessSemanticPageBreak(raw,0,end,raw.length,[]).reason,
    at:JSON.stringify(raw.slice(end-8,end+12)),
    bottom:row.bottom,fill:row.fill};
  });
  const testFit=engine.fittingSemanticPageRows(measureRows(unit),raw,0,raw.length,180,
-  new Set([...raw.matchAll(/\\s+/g)].map(m=>m.index+m[0].length)),8,8);
+  new Set([...raw.matchAll(/\s+/g)].map(m=>m.index+m[0].length)),8,8);
  const fitDebug={validRows:testFit.length,first:testFit.slice(0,3)};
  const capacities=[180,225,270,315,360,400,445,480,510,540,570,600,630];
  const output=[];
