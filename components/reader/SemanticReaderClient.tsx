@@ -1,10 +1,11 @@
 "use client";
-import {useCallback,useEffect,useMemo,useRef,useState,type CSSProperties} from "react";
+import {useCallback,useEffect,useLayoutEffect,useMemo,useRef,useState,type CSSProperties} from "react";
 import {unitView,type ApprovedSemanticImage} from "@/components/reader/SemanticPageUnit";
 import ReaderToolbar from "@/components/reader/ReaderToolbar";
 import {getPublicDictionary} from "@/lib/i18n/public";
-import {iterateSemanticPages,projectFlatChapterHeadings} from "@/lib/semantic/readerProjection";
-import {segmentSemanticProse,semanticWordRanges} from "@/lib/semantic/protectedSpans";
+import {iterateSemanticPages,projectFlatChapterHeadings,shouldJustifySemanticPageEnd} from "@/lib/semantic/readerProjection";
+import {segmentSemanticProse} from "@/lib/semantic/protectedSpans";
+import {measureSemanticDomLastRow} from "@/lib/semantic/domLineGeometry";
 import type {SemanticPage,SemanticPageUnit} from "@/lib/semantic/model";
 import type {SupportedLocale} from "@/lib/i18n/config";
 import {clampReaderFontScale,defaultReaderSettings,type ReaderSettings} from "@/lib/reader/readerSettings";
@@ -303,49 +304,11 @@ export default function SemanticReaderClient({slug,title,locale,mode,revisionSha
    content.appendChild(clone);
    const measuredBox=clone.getBoundingClientRect();
    const height=Math.ceil(measuredBox.height*2)/2;
-   const proseBox=prose.getBoundingClientRect();
-   let lastTop=-Infinity,lastRight=proseBox.left;
-   const textWalker=document.createTreeWalker(prose,NodeFilter.SHOW_TEXT);
-   let textNode:Node|null;
-   while((textNode=textWalker.nextNode())){
-    if(!textNode.textContent?.trim())continue;
-    const range=document.createRange();range.selectNodeContents(textNode);
-    for(const rect of range.getClientRects()){
-     if(rect.width<0.1||rect.height<0.1)continue;
-     if(rect.top>lastTop+1.5){lastTop=rect.top;lastRight=rect.right;}
-     else if(Math.abs(rect.top-lastTop)<=1.5)lastRight=Math.max(lastRight,rect.right);
-    }
-   }
-   // The last row must be counted from visible DOM word boxes, not raw
-   // character counts: protected names are atomic and font marks change width.
-   // Traverse backwards and stop when encountering a preceding physical row.
-   let lastLineWords=0;
-   let reachedPreviousRow=false;
-   const wordNodes:Text[]=[];
-   const wordWalker=document.createTreeWalker(prose,NodeFilter.SHOW_TEXT);
-   while((textNode=wordWalker.nextNode()))wordNodes.push(textNode as Text);
-   for(let i=wordNodes.length-1;i>=0&&!reachedPreviousRow;i--){
-    const node=wordNodes[i],source=node.textContent??"";
-    const words=semanticWordRanges(source);
-    for(let j=words.length-1;j>=0;j--){
-     const match=words[j];
-     const range=document.createRange();
-     range.setStart(node,match.start);
-     range.setEnd(node,match.end);
-     const rects=[...range.getClientRects()];
-     if(rects.some(rect=>Math.abs(rect.top-lastTop)<=1.5))lastLineWords++;
-     else if(rects.some(rect=>rect.top<lastTop-1.5)){
-      reachedPreviousRow=true;break;
-     }
-    }
-   }
+   const row=measureSemanticDomLastRow(prose);
    clone.remove();
-   if(!Number.isFinite(lastTop)||!Number.isFinite(proseBox.width)||proseBox.width<=0){
-    cache.set(key,null);return null;
-   }
-   const value={height,last_line_top:lastTop-measuredBox.top,
-    last_line_fill:Math.max(0,Math.min(1,(lastRight-proseBox.left)/proseBox.width)),
-    last_line_words:lastLineWords};
+   if(!row){cache.set(key,null);return null;}
+   const value={height,last_line_top:row.top-measuredBox.top,
+    last_line_fill:row.fill,last_line_words:row.words};
    cache.set(key,value);return value;
   };
   const fragmentHeight=(unit:SemanticPageUnit):number|null=>
@@ -390,6 +353,27 @@ export default function SemanticReaderClient({slug,title,locale,mode,revisionSha
   };
  },[paginationKey,readyMeasurements,semanticUnits,contentWidth,actualCapacity,
    settings.fontScale,settings.density,protectedTerms]);
+
+ // Apply last-row justification ONLY after measuring the ACTUAL visible paper.
+ // Offscreen pagination geometry is not authoritative for final word spacing:
+ // flex/grid width differences and font reflow can shift words between rows.
+ useLayoutEffect(()=>{
+  if(!paginationSettled||!readerRootRef.current)return;
+  const root=readerRootRef.current;
+  const visible=root.querySelectorAll<HTMLElement>(
+   ".semantic-public-reader__paper:not(.semantic-reader__measurement-page) "+
+   "p.semantic-reader__fragment:not(.semantic-reader__fragment--final)");
+  for(const paragraph of visible){
+   paragraph.classList.remove("semantic-reader__fragment--justify-last");
+   const row=measureSemanticDomLastRow(paragraph);
+   if(row&&shouldJustifySemanticPageEnd(
+    row.fill,row.words,paragraph.getBoundingClientRect().width,true)){
+    paragraph.classList.add("semantic-reader__fragment--justify-last");
+   }
+   paragraph.dataset.visiblePageEndFill=row?row.fill.toFixed(3):"unavailable";
+   paragraph.dataset.visiblePageEndWords=row?String(row.words):"unavailable";
+  }
+ },[paginationSettled,pages,visibleStart,settings.fontScale,settings.density]);
 
  // Guard against any final browser layout discrepancy (fonts, image boxes,
  // CSS rounding). If the visible rendered ink crosses the content boundary,
