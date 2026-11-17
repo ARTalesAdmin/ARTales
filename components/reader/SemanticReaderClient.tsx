@@ -4,7 +4,7 @@ import {unitView,type ApprovedSemanticImage} from "@/components/reader/SemanticP
 import ReaderToolbar from "@/components/reader/ReaderToolbar";
 import {getPublicDictionary} from "@/lib/i18n/public";
 import {iterateSemanticPages,projectFlatChapterHeadings} from "@/lib/semantic/readerProjection";
-import {projectSemanticProseText} from "@/lib/semantic/displayText";
+import {segmentSemanticProse} from "@/lib/semantic/protectedSpans";
 import type {SemanticPage,SemanticPageUnit} from "@/lib/semantic/model";
 import type {SupportedLocale} from "@/lib/i18n/config";
 import {clampReaderFontScale,defaultReaderSettings,type ReaderSettings} from "@/lib/reader/readerSettings";
@@ -279,35 +279,22 @@ export default function SemanticReaderClient({slug,title,locale,mode,revisionSha
    const clone=template.cloneNode(true) as HTMLElement;
    const prose=clone.querySelector("p,blockquote,aside");
    if(!prose)return null;
-   const projected=projectSemanticProseText(unit.node.atom.raw);
-   const atom=prose.querySelector(".semantic-reader__atom");
+   // Measure the exact same fragment DOM as SemanticPageUnit/ProtectedProseText.
+   // Cloning the uncut paragraph and deleting Ranges leaves different protection
+   // wrappers, so the measured lines can disagree with the published page.
+   const atom=prose.querySelector<HTMLElement>(".semantic-reader__atom");
    if(!atom)return null;
-   const walker=document.createTreeWalker(atom,NodeFilter.SHOW_TEXT);
-   const nodes:Text[]=[];
-   let next:Node|null;
-   while((next=walker.nextNode()))nodes.push(next as Text);
-   if(!nodes.length||nodes.reduce((n,node)=>n+(node.textContent?.length??0),0)!==projected.length)
-     return null;
-   const at=(offset:number):[Text,number]=>{
-    let remaining=offset;
-    for(const node of nodes){
-     const length=node.textContent?.length??0;
-     if(remaining<=length)return [node,remaining];
-     remaining-=length;
-    }
-    const last=nodes.at(-1)!;
-    return [last,last.textContent?.length??0];
-   };
-   const tail=document.createRange();
-   const endAt=at(end);
-   tail.setStart(endAt[0],endAt[1]);
-   tail.setEnd(nodes.at(-1)!,nodes.at(-1)!.textContent?.length??0);
-   tail.deleteContents();
-   const head=document.createRange();
-   const startAt=at(start);
-   head.setStart(nodes[0],0);
-   head.setEnd(startAt[0],startAt[1]);
-   head.deleteContents();
+   const segments=segmentSemanticProse(unit.node.atom.raw.slice(start,end),protectedTerms);
+   const children:Node[]=[];
+   for(const segment of segments){
+    if(!segment.protected){children.push(document.createTextNode(segment.text));continue;}
+    const protectedNode=document.createElement("span");
+    protectedNode.style.whiteSpace="nowrap";
+    protectedNode.dataset.workProtectedTerm=segment.text;
+    protectedNode.textContent=segment.text;
+    children.push(protectedNode);
+   }
+   atom.replaceChildren(...children);
    prose.classList.add("semantic-reader__fragment");
    if(start>0)prose.classList.add("semantic-reader__fragment--continued");
    if(!unit.fragment.continuation_after)prose.classList.add("semantic-reader__fragment--final");
