@@ -256,15 +256,20 @@ export function rebalanceShortSemanticPageTail(
  const chosen=measure(selectedIndex);
  if(chosen.lineTop===null||chosen.lineFill===null||
     chosen.lineFill>=.43||chosen.lineTop<lineHeight*1.8)return selectedIndex;
+ // Seek the fullest legal cut on the preceding rendered row.
+ // Returning the first barely qualifying word causes premature breaks.
+ let best=-1,bestFill=.62;
  for(let j=selectedIndex-1;j>=0;j--){
   const earlier=measure(j);
   if(earlier.lineTop===null||earlier.lineFill===null)continue;
   const rowDelta=chosen.lineTop-earlier.lineTop;
   if(rowDelta>lineHeight*2.1)break;
   if(rowDelta>=lineHeight*.65&&rowDelta<=lineHeight*1.65&&
-     earlier.lineFill>=.62)return j;
+     earlier.lineFill>bestFill){
+   best=j;bestFill=earlier.lineFill;
+  }
  }
- return selectedIndex;
+ return best>=0?best:selectedIndex;
 }
 
 /** Browser-measured continuation only; never justify a sparse final row.
