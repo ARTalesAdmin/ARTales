@@ -1,10 +1,12 @@
 name: ARTales semantic editorial integration
 on:
   push:
-    branches: [fix/reader-word-count-measurement-20261117]
+    branches: [fix/reader-chromium-parity-20261117]
     paths:
       - 'lib/semantic/**'
       - 'tests/semanticReaderPageFit20261115.test.ts'
+      - 'tests/chromium_reader_layout.py'
+      - 'components/reader/**'
       - '.github/workflows/artales-semantic-integration.yml'
   pull_request:
     branches: [main]
@@ -141,3 +143,29 @@ jobs:
         run: npx tsx --test tests/semanticAiQueue.test.ts tests/semanticQaP0Integration.test.ts tests/semanticProtectedTermsVisualParity.test.ts
       - name: Vercel Gateway token and privacy contract
         run: npx tsx --test tests/artalesAiGatewayUsage.test.ts
+
+  chromium-reader-layout:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install pinned Playwright and Chromium
+        run: |
+          python -m pip install playwright==1.56.0
+          python -m playwright install --with-deps chromium
+      - name: Check public Reader with actual Chromium DOM geometry
+        env:
+          ARTALES_READER_URL: https://artales.net/reader/the-great-god-pan?mode=full
+          ARTALES_READER_MODE: diagnostic
+        run: python tests/chromium_reader_layout.py
+      - name: Preserve public-page screenshots and metrics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: artales-chromium-reader-layout
+          path: reader-chromium-artifacts/
+          if-no-files-found: warn
