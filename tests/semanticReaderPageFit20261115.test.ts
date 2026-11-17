@@ -1,7 +1,7 @@
 import {strict as assert} from "node:assert";
 import {test} from "node:test";
 import {readFileSync} from "node:fs";
-import {paginateSemanticUnits,semanticPageEndFillThreshold,verifySemanticPageCoverage} from "../lib/semantic/readerProjection";
+import {paginateSemanticUnits,semanticPageEndFillThreshold,verifySemanticPageCoverage,rebalanceShortSemanticPageTail} from "../lib/semantic/readerProjection";
 import type {SemanticPageUnit} from "../lib/semantic/model";
 const read=(path:string)=>readFileSync(new URL("../"+path,import.meta.url),"utf8");
 
@@ -104,4 +104,33 @@ test("page-end changes preserve all source ranges across long multi-page prose",
  assert(pages.flatMap(p=>p.units).filter(u=>u.fragment).every(u=>
   typeof u.fragment?.justify_last_line==="boolean"||
   u.fragment?.justify_last_line===undefined));
+});
+
+test("short punctuation-selected bottom line moves to the preceding full line",()=>{
+ // Selected index 3 models a semicolon chosen after punctuation scoring,
+ // not the longest candidate. The old bestIndex-only guard missed this case.
+ const measurements=[
+  {lineTop:52,lineFill:.96},
+  {lineTop:78,lineFill:.72},
+  {lineTop:78,lineFill:.88},
+  {lineTop:104,lineFill:.21},
+  {lineTop:104,lineFill:.25},
+ ];
+ assert.equal(rebalanceShortSemanticPageTail(3,26,i=>measurements[i]),2);
+ // The same rule must not remove a genuine well-filled final line.
+ assert.equal(rebalanceShortSemanticPageTail(2,26,i=>measurements[i]),2);
+});
+test("short trailing word moves back when previous line is sufficiently full",()=>{
+ const items=[
+  {lineTop:50,lineFill:.90},
+  {lineTop:76,lineFill:.67},
+  {lineTop:102,lineFill:.18},
+ ];
+ assert.equal(rebalanceShortSemanticPageTail(2,26,i=>items[i]),1);
+});
+test("no guessed rebalancing without DOM geometry or a full preceding line",()=>{
+ const missing=[{lineTop:null,lineFill:null},{lineTop:null,lineFill:null}];
+ assert.equal(rebalanceShortSemanticPageTail(1,26,i=>missing[i]),1);
+ const sparse=[{lineTop:60,lineFill:.48},{lineTop:86,lineFill:.2}];
+ assert.equal(rebalanceShortSemanticPageTail(1,26,i=>sparse[i]),1);
 });
