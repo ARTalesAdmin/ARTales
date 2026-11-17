@@ -391,7 +391,10 @@ export function* iterateSemanticPages(units:readonly SemanticPageUnit[],layout:S
     return;
   }
   const lineHeight=18*layout.font_scale*(layout.density==="compact"?1.48:1.62);
-  const minimumBody=2.5*lineHeight;
+  // Two measured lines suffice for a continuation. The former 2.5-line
+  // guard rejected usable bottom space while the previous leaf still had
+  // room for two complete rows. Chapter-start grouping remains separate.
+  const minimumBody=2*lineHeight;
   const measureFragment=(fragment:SemanticPageUnit):number=>{
     const exact=layout.measure_fragment_height?.(fragment);
     return exact!==null&&exact!==undefined&&Number.isFinite(exact)&&exact>0
