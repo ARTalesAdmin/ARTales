@@ -63,7 +63,7 @@ JS=r"""() => {
     last_line_words:words};
   p.remove();return value;
  }
- const capacities=[180,225,270,315,360,400,445];
+ const capacities=[180,225,270,315,360,400,445,480,510,540,570,600,630];
  const output=[];
  for(const height of capacities){
   const pages=[...engine.iterateSemanticPages([unit],{
