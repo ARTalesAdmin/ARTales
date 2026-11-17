@@ -1,7 +1,9 @@
 import {strict as assert} from "node:assert";
 import {test} from "node:test";
 import {readFileSync} from "node:fs";
-import {paginateSemanticUnits,semanticPageEndFillThreshold,verifySemanticPageCoverage,rebalanceShortSemanticPageTail} from "../lib/semantic/readerProjection";
+import {paginateSemanticUnits,semanticPageEndFillThreshold,verifySemanticPageCoverage,rebalanceShortSemanticPageTail,shouldJustifySemanticPageEnd} from "../lib/semantic/readerProjection";
+import {segmentSemanticProse} from "../lib/semantic/protectedSpans";
+import {projectSemanticProseText} from "../lib/semantic/displayText";
 import type {SemanticPageUnit} from "../lib/semantic/model";
 const read=(path:string)=>readFileSync(new URL("../"+path,import.meta.url),"utf8");
 
@@ -182,7 +184,56 @@ test("page-end typography prioritizes natural row fill and never stretches trail
  assert.match(projection,/fullest\.lineFill-item\.lineFill>\.05/);
  assert.match(projection,/Math\.min\(4,Math\.max\(0,policy\.preference\)\)\*\.012/);
  assert.match(projection,/if\(fullest\.lineTop!==null&&fullest\.lineFill!==null\)/);
- assert.doesNotMatch(css,/text-align-last:justify/);
- assert.doesNotMatch(markup,/semantic-reader__fragment--justify-last/);
+ assert.match(css,/semantic-reader__fragment--justify-last/);
+ assert.match(markup,/semantic-reader__fragment--justify-last/);
  assert.match(css,/text-align-last:start/);
+});
+
+test("source-identical segments preserve length and protected phrases across fragment breaks",()=>{
+ const raw="Dr. Raymond met Mr. Clarke; I had seen the valley.";
+ for(const piece of [raw,raw.slice(0,20),raw.slice(20)]){
+  const segments=segmentSemanticProse(piece,["Dr. Raymond"]);
+  assert.equal(segments.map(part=>part.text).join(""),projectSemanticProseText(piece));
+ }
+ assert(segmentSemanticProse(raw,["Dr. Raymond"]).some(s=>s.protected&&s.text==="Dr. Raymond"));
+});
+
+test("continuation justification is gated by measured word spacing, never by punctuation",()=>{
+ assert.equal(shouldJustifySemanticPageEnd(.95,7,470,true),true);
+ assert.equal(shouldJustifySemanticPageEnd(.88,7,470,true),false);
+ assert.equal(shouldJustifySemanticPageEnd(.24,3,470,true),false);
+ assert.equal(shouldJustifySemanticPageEnd(.95,7,470,false),false);
+ assert.equal(shouldJustifySemanticPageEnd(null,7,470,true),false);
+});
+
+test("real paginator selects previous filled row before an isolated nonsense-semicolon",()=>{
+ const raw="Look about you, Clarke. You see the mountain and the hill, and the woods. "+
+  "I do know, Clarke, that you and I shall see it lifted this very night "+
+  "from before another's eyes. You may think this all strange nonsense; "+
+  "it may be strange, but it is true, and the ancients knew what lifting the veil means.";
+ const wordStart=raw.indexOf("nonsense;");
+ const afterWord=wordStart+"nonsense; ".length;
+ assert(wordStart>0&&afterWord<raw.length);
+ const source=paragraph("nonsense-case",raw,1000);
+ const geometry=(unit:SemanticPageUnit)=>{
+  if(!unit.fragment)return null;
+  const {start,end}=unit.fragment;
+  if(start>0)return {height:80,last_line_top:50,last_line_fill:.92,last_line_words:9};
+  if(end<=wordStart)return {height:110,last_line_top:75,last_line_fill:.91,last_line_words:9};
+  if(end<=afterWord)return {height:137,last_line_top:104,last_line_fill:.16,last_line_words:1};
+  return {height:175,last_line_top:133,last_line_fill:.63,last_line_words:6};
+ };
+ const pages=paginateSemanticUnits([source],{
+  mode:"paged",viewport_width:470,viewport_height:440,content_height:160,
+  font_scale:1,density:"comfortable",
+  measured_unit_heights:{"nonsense-case":1000},
+  measure_fragment_geometry:geometry,
+  measure_fragment_height:part=>geometry(part)?.height??null,
+ });
+ assert(pages.length>=2);
+ assert.equal(verifySemanticPageCoverage([source],pages).ok,true);
+ const first=pages[0].units.at(-1)?.fragment;
+ assert(first,"First page must finish with a fragment");
+ assert(first.end<=wordStart,"The last line must not be an isolated 'nonsense;'");
+ assert(first.page_end_fill!==undefined&&first.page_end_fill>=.8);
 });
