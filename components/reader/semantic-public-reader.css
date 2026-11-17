@@ -85,7 +85,9 @@
  text-align:justify;
  text-align-last:start;
  text-justify:inter-word;
- text-wrap:pretty;
+ /* Stable browser word-wrap: 'pretty' can reflow earlier lines when a
+  * candidate fragment ends, invalidating full-paragraph row positions. */
+ text-wrap:wrap;
  word-spacing:normal;
  hyphens:manual;
  -webkit-hyphens:manual;
