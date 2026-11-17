@@ -77,6 +77,12 @@ JS=r"""() => {
     actualRow.fill<=0||actualRow.fill>1){
   throw Error("Measured last DOM row is not a valid physical line: "+JSON.stringify(actualRow));
  }
+ // A last row with too few words must never receive forced justification,
+ // regardless of page or chapter; this specifically guards 'world of matter'.
+ if(engine.shouldJustifySemanticPageEnd(.93,3,470,true)||
+    engine.shouldJustifySemanticPageEnd(.32,7,470,true)){
+  throw Error("Unsafe continuation line was allowed to stretch");
+ }
  verify.remove();
  const capacities=[180,225,270,315,360,400,445,480,510,540,570,600,630];
  const output=[];
