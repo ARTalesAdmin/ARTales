@@ -333,6 +333,12 @@
 .artales-reader--semantic .semantic-public-reader__paper p.semantic-reader__fragment--final{
  text-align-last:start;
 }
+/* A page-ending fragment is still the same paragraph. Justify its trailing
+ * line only when Chromium measured at least 80% natural fill; short lines
+ * and actual paragraph endings keep their left alignment. */
+.artales-reader--semantic .semantic-public-reader__paper p.semantic-reader__fragment.semantic-reader__fragment--justify-last:not(.semantic-reader__fragment--final){
+ text-align-last:justify;
+}
 
 /* Browser fullscreen is orthogonal to page/spread layout. The paper's
  * dimensions, rows, padding and actual DOM measurements NEVER change
