@@ -5,7 +5,7 @@ on:
     paths:
       - 'lib/semantic/**'
       - 'tests/semanticReaderPageFit20261115.test.ts'
-      - 'tests/chromium_reader_layout.py'
+      - 'tests/chromium_reader_*'
       - 'components/reader/**'
       - '.github/workflows/artales-semantic-integration.yml'
   pull_request:
