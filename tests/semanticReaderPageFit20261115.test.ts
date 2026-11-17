@@ -307,7 +307,7 @@ test("rows-first pagination cuts only after whole browser rows and preserves sou
    last_line_fill:.9,last_line_words:8};
  };
  const probeRows=rows(source);
- const boundarySet=new Set([...raw.matchAll(/\\s+/g)].map(m=>m.index!+m[0].length));
+ const boundarySet=new Set([...raw.matchAll(/\s+/g)].map(m=>m.index!+m[0].length));
  const probed=fittingSemanticPageRows(probeRows,raw,0,raw.length,pageHeight,boundarySet,8,8);
  assert(probed.length>0,JSON.stringify({probeRows:probeRows.slice(0,6),probed,
   legal:[...boundarySet].slice(0,25)}));
