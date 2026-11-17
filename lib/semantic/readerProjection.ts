@@ -241,6 +241,30 @@ export function semanticPageEndFillThreshold(reason:SemanticBreakAssessment["rea
  return .85;
 }
 
+/** Choose a clean page end AFTER punctuation preference has selected a cut.
+ * Geometry is measured by Chromium from the unchanged source rendering.
+ * Only collapse an almost-empty final visual line if the preceding physical
+ * line itself makes a reasonably full page edge. Never guess from characters.
+ */
+export function rebalanceShortSemanticPageTail(
+ selectedIndex:number,lineHeight:number,
+ measure:(index:number)=>{lineTop:number|null;lineFill:number|null},
+):number{
+ if(selectedIndex<=0||!Number.isFinite(lineHeight)||lineHeight<=0)return selectedIndex;
+ const chosen=measure(selectedIndex);
+ if(chosen.lineTop===null||chosen.lineFill===null||
+    chosen.lineFill>=.43||chosen.lineTop<lineHeight*1.8)return selectedIndex;
+ for(let j=selectedIndex-1;j>=0;j--){
+  const earlier=measure(j);
+  if(earlier.lineTop===null||earlier.lineFill===null)continue;
+  const rowDelta=chosen.lineTop-earlier.lineTop;
+  if(rowDelta>lineHeight*2.1)break;
+  if(rowDelta>=lineHeight*.65&&rowDelta<=lineHeight*1.65&&
+     earlier.lineFill>=.62)return j;
+ }
+ return selectedIndex;
+}
+
 /** Create one bounded fragment, preserving the root paragraph and its source anchor. */
 function makeFragment(unit:SemanticPageUnit,start:number,end:number,sourceHeight:number):SemanticPageUnit {
   if(!["paragraph","quote","epigraph","footnote"].includes(unit.kind) ||
@@ -463,21 +487,12 @@ export function* iterateSemanticPages(units:readonly SemanticPageUnit[],layout:S
      const candidateScore=score(j,lineFill);
      if(candidateScore>selectedScore){selected=j;selectedScore=candidateScore;}
     }
-    // A near-empty orphan line at the bottom of an otherwise full page is
-    // worse than one additional comfortable line of bottom whitespace.
-    // This only applies with measured DOM line boxes, never by character guess.
-    if(selected===bestIndex&&best.lineTop!==null&&best.lineFill!==null&&
-       best.lineFill<.35&&best.lineTop>=lineHeight*2){
-     for(let j=bestIndex-1;j>=0;j--){
-      const item=check(j);
-      if(item.lineTop===null||item.lineFill===null)break;
-      const difference=best.lineTop-item.lineTop;
-      if(difference>lineHeight*1.65)break;
-      if(difference>=lineHeight*.65&&item.lineFill>=.8){
-       selected=j;break;
-      }
-     }
-    }
+    // Tidy the ACTUALLY selected boundary, including punctuation-selected
+    // cuts. The former bestIndex-only branch missed short semicolon tails.
+    selected=rebalanceShortSemanticPageTail(selected,lineHeight,index=>{
+     const item=check(index);
+     return {lineTop:item.lineTop,lineFill:item.lineFill};
+    });
     const chosen=check(selected);
     const reason=breakPolicy.get(whitespace[selected])?.reason;
     const justify=chosen.lineFill!==null&&chosen.lineFill>=.8&&
