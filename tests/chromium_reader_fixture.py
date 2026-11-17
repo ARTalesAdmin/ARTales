@@ -84,6 +84,20 @@ JS=r"""() => {
   throw Error("Unsafe continuation line was allowed to stretch");
  }
  verify.remove();
+ // Assert the actual Chromium line detector exposes the semicolon position
+ // as a source offset; a synthetic fill score would not test this contract.
+ const punctuationSource="The story continues along the old village road; and then turns.";
+ const punctParagraph=document.createElement("p");
+ punctParagraph.className="fixture-prose";
+ punctParagraph.textContent=punctuationSource;
+ measureRoot.append(punctParagraph);
+ const measuredPunct=engine.measureSemanticDomRows(punctParagraph,0,punctParagraph);
+ punctParagraph.remove();
+ const semicolonEnd=punctuationSource.indexOf(";")+1;
+ if(!measuredPunct.some(row=>row.punctuationCuts?.some(mark=>mark.sourceEnd===semicolonEnd&&
+      mark.fill>0&&mark.fill<=1))){
+  throw Error("Chromium punctuation position missing from physical row geometry");
+ }
  // Same paragraph is laid out once as an uncut remainder before
  // choosing any page fragment. This is the production rows-first path.
  function measureRows(unit){
