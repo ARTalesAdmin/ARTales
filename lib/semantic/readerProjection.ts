@@ -459,48 +459,41 @@ export function* iterateSemanticPages(units:readonly SemanticPageUnit[],layout:S
      else hi=mid-1;
     }
     if(bestIndex<0)return null;
-    // Only reward punctuation near the physical end of the SAME browser line.
-    // Commas need 80% fill; sentence endings and semicolons need 60%.
-    // A short comma cannot outweigh a well-filled ordinary word boundary.
-    const best=check(bestIndex);
-    let selected=bestIndex;
-    const fillThreshold=semanticPageEndFillThreshold;
-    const score=(index:number,fill:number)=>{
-      const policy=breakPolicy.get(whitespace[index]);
-      if(!policy||policy.preference<=0||fill<fillThreshold(policy.reason))return 0;
-      return policy.preference*100+fill*10;
-    };
-    let selectedScore=score(bestIndex,best.lineFill??1);
-    for(let j=bestIndex-1;j>=0;j--){
-     const item=check(j);
-     if(item.height>remaining-6)continue;
-     let lineFill:number;
-     if(best.lineTop!==null&&item.lineTop!==null){
-      if(item.lineTop<best.lineTop-1.5)break;
-      if(Math.abs(item.lineTop-best.lineTop)>1.5)continue;
-      lineFill=item.lineFill??0;
-     }else{
-      // Only QA/unit-test consumers lack DOM line geometry.
-      if(Math.abs(item.height-best.height)>1.5)break;
-      lineFill=1-(whitespace[bestIndex]-whitespace[j])/Math.max(16,approxCharsPerLine);
-     }
-     const candidateScore=score(j,lineFill);
-     if(candidateScore>selectedScore){selected=j;selectedScore=candidateScore;}
-    }
-    // Tidy the ACTUALLY selected boundary, including punctuation-selected
-    // cuts. The former bestIndex-only branch missed short semicolon tails.
-    selected=rebalanceShortSemanticPageTail(selected,lineHeight,index=>{
+    // Fill first, punctuation second. DOM heights and natural (unjustified)
+    // ink width decide the physical line. A semicolon must never move a
+    // page-end backwards by a quarter of a line just for its punctuation.
+    // First remove a truly tiny orphan row, if the preceding row is full.
+    const rowEnd=rebalanceShortSemanticPageTail(bestIndex,lineHeight,index=>{
      const item=check(index);
      return {lineTop:item.lineTop,lineFill:item.lineFill};
     });
+    const fullest=check(rowEnd);
+    let selected=rowEnd;
+    // If the browser cannot measure real line widths, retain the furthest
+    // fitting word boundary: NO guessed 100% fill, punctuation bonus, or
+    // manual justification.
+    if(fullest.lineTop!==null&&fullest.lineFill!==null){
+     let bestScore=fullest.lineFill;
+     for(let j=rowEnd-1;j>=0;j--){
+      const item=check(j);
+      if(item.lineTop===null||item.lineFill===null)continue;
+      if(item.lineTop<fullest.lineTop-1.5)break;
+      if(Math.abs(item.lineTop-fullest.lineTop)>1.5)continue;
+      const policy=breakPolicy.get(whitespace[j]);
+      if(!policy||policy.preference<=0||
+         item.lineFill<semanticPageEndFillThreshold(policy.reason))continue;
+      // Punctuation is a small tie-breaker ONLY within 5 percentage points
+      // of the fullest admissible point on this same physical line.
+      if(fullest.lineFill-item.lineFill>.05)continue;
+      const bonus=Math.min(4,Math.max(0,policy.preference))*.012;
+      const score=item.lineFill+bonus;
+      if(score>bestScore){selected=j;bestScore=score;}
+     }
+    }
     const chosen=check(selected);
-    const reason=breakPolicy.get(whitespace[selected])?.reason;
-    const justify=chosen.lineFill!==null&&chosen.lineFill>=.8&&
-      reason!=="sentence"&&reason!=="semicolon";
-    const first=chosen.cut[0];
-    return [{...first,estimated_height:chosen.height,
-      fragment:first.fragment?{...first.fragment,justify_last_line:justify}:undefined},
-      chosen.cut[1]];
+    // The actual final visual line always retains its natural spacing.
+    // Other paragraph lines are already justified by the established CSS.
+    return [{...chosen.cut[0],estimated_height:chosen.height},chosen.cut[1]];
   };
   const queue=[...all];
   for(let i=0;i<queue.length;i++){
