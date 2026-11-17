@@ -268,7 +268,7 @@ export default function SemanticReaderClient({slug,title,locale,mode,revisionSha
   if(!content)return;
   const original=new Map([...root.querySelectorAll<HTMLElement>("[data-semantic-measure-id]")]
     .map(el=>[el.dataset.semanticMeasureId??"",el] as const));
-  const cache=new Map<string,{height:number;last_line_top:number;last_line_fill:number}|null>();
+  const cache=new Map<string,{height:number;last_line_top:number;last_line_fill:number;last_line_words:number}|null>();
   const fragmentGeometry=(unit:SemanticPageUnit)=>{
    if(!unit.fragment||!("atom" in unit.node))return null;
    const {start,end,original_unit_id}=unit.fragment;
@@ -316,12 +316,36 @@ export default function SemanticReaderClient({slug,title,locale,mode,revisionSha
      else if(Math.abs(rect.top-lastTop)<=1.5)lastRight=Math.max(lastRight,rect.right);
     }
    }
+   // The last row must be counted from visible DOM word boxes, not raw
+   // character counts: protected names are atomic and font marks change width.
+   // Traverse backwards and stop when encountering a preceding physical row.
+   let lastLineWords=0;
+   let reachedPreviousRow=false;
+   const wordNodes:Text[]=[];
+   const wordWalker=document.createTreeWalker(prose,NodeFilter.SHOW_TEXT);
+   while((textNode=wordWalker.nextNode()))wordNodes.push(textNode as Text);
+   for(let i=wordNodes.length-1;i>=0&&!reachedPreviousRow;i--){
+    const node=wordNodes[i],source=node.textContent??"";
+    const words=[...source.matchAll(/\\S+/gu)];
+    for(let j=words.length-1;j>=0;j--){
+     const match=words[j];
+     const range=document.createRange();
+     range.setStart(node,match.index!);
+     range.setEnd(node,match.index!+match[0].length);
+     const rects=[...range.getClientRects()];
+     if(rects.some(rect=>Math.abs(rect.top-lastTop)<=1.5))lastLineWords++;
+     else if(rects.some(rect=>rect.top<lastTop-1.5)){
+      reachedPreviousRow=true;break;
+     }
+    }
+   }
    clone.remove();
    if(!Number.isFinite(lastTop)||!Number.isFinite(proseBox.width)||proseBox.width<=0){
     cache.set(key,null);return null;
    }
    const value={height,last_line_top:lastTop-measuredBox.top,
-    last_line_fill:Math.max(0,Math.min(1,(lastRight-proseBox.left)/proseBox.width))};
+    last_line_fill:Math.max(0,Math.min(1,(lastRight-proseBox.left)/proseBox.width)),
+    last_line_words:lastLineWords};
    cache.set(key,value);return value;
   };
   const fragmentHeight=(unit:SemanticPageUnit):number|null=>
