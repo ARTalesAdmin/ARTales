@@ -20,6 +20,7 @@ export type SemanticMeasuredParagraphRow={
   bottom:number;
   fill:number;
   words:number;
+  punctuationCuts?:readonly {sourceEnd:number;fill:number}[];
 };
 export type SemanticReaderLayout = {
   mode: "paged" | "spread" | "scroll";
@@ -250,9 +251,7 @@ export function assessSemanticPageBreak(
 /** Minimum naturally rendered last-line width before punctuation gets a bonus.
  *  The boundary is layout-only; it never changes source atom offsets. */
 export function semanticPageEndFillThreshold(reason:SemanticBreakAssessment["reason"]):number{
- if(reason==="sentence"||reason==="semicolon")return .6;
- if(reason==="comma")return .8;
- return .85;
+ return reason==="sentence"||reason==="semicolon"?.8:Infinity;
 }
 
 /** Choose a clean page end AFTER punctuation preference has selected a cut.
@@ -313,6 +312,28 @@ export function fittingSemanticPageRows(
   result.push({...row,end});
  }
  return result;
+}
+
+/** Choose a discretionary punctuation cut in the LAST height-fitting row.
+ * The punctuation itself must be measured at >=80% of the actual line width.
+ * Earlier rows, commas, dashes and punctuation in protected spans cannot win. */
+export function chooseSemanticFittingRowCut(
+ row:SemanticMeasuredParagraphRow & {end:number},raw:string,from:number,until:number,
+ legalEnds:ReadonlySet<number>,protectedRanges:readonly ProtectedTextSpan[],
+):{end:number;fill:number;reason:"latest_row"|"punctuation_80"}{
+ let chosen:{end:number;fill:number;reason:"latest_row"|"punctuation_80"}={
+  end:row.end,fill:row.fill,reason:"latest_row"};
+ for(const mark of row.punctuationCuts??[]){
+  if(mark.fill<.8||mark.fill>1||mark.sourceEnd<=from||mark.sourceEnd>row.sourceEnd)continue;
+  let end=mark.sourceEnd;
+  while(end<until&&/\s/u.test(raw[end]))end++;
+  if(end>=row.end||!legalEnds.has(end))continue;
+  const policy=assessSemanticPageBreak(raw,from,end,until,protectedRanges);
+  if(!policy.allowed||!(policy.reason==="sentence"||policy.reason==="semicolon"))continue;
+  if(chosen.reason==="latest_row"||end>chosen.end)
+   chosen={end,fill:mark.fill,reason:"punctuation_80"};
+ }
+ return chosen;
 }
 
 /** Browser-measured continuation only; never justify a sparse final row.
@@ -467,7 +488,7 @@ export function* iterateSemanticPages(units:readonly SemanticPageUnit[],layout:S
     [SemanticPageUnit,SemanticPageUnit]|null=>{
     if(!["paragraph","quote","epigraph","footnote"].includes(unit.kind) ||
        !("atom" in unit.node) ||
-       remaining<minimumBody)return null;
+       remaining<lineHeight+6)return null;
     const from=unit.fragment?.start??0;
     const until=unit.fragment?.end??unit.node.atom.raw.length;
     const atomId=unit.node.atom.id;
@@ -478,8 +499,9 @@ export function* iterateSemanticPages(units:readonly SemanticPageUnit[],layout:S
       Math.max(160,layout.viewport_width)/(9.1*layout.font_scale)));
     // An arbitrary two-line character budget can leave sizeable white
     // gaps. Keep a modest tail/head guard, then fit by real DOM line height.
-    const minTail=Math.max(8,Math.min(Math.floor(approxCharsPerLine*.65),Math.floor(length*.2)));
-    const minHead=Math.max(8,Math.min(Math.floor(approxCharsPerLine*.65),Math.floor(length*.2)));
+    const domRowsAvailable=Boolean(layout.measure_paragraph_rows);
+    const minTail=domRowsAvailable?1:Math.max(8,Math.min(Math.floor(approxCharsPerLine*.65),Math.floor(length*.2)));
+    const minHead=domRowsAvailable?1:Math.max(8,Math.min(Math.floor(approxCharsPerLine*.65),Math.floor(length*.2)));
     // First find the furthest source word boundary that actually fits.
     // Do not apply punctuation preference *inside* bisection: different
     // candidate scores make the length/height test non-monotonic.
@@ -503,34 +525,25 @@ export function* iterateSemanticPages(units:readonly SemanticPageUnit[],layout:S
      const fitting=fittingSemanticPageRows(physicalRows,raw,from,until,remaining,
       new Set(whitespace),minHead,minTail);
      if(!fitting.length)return null;
-     let preferred=fitting.length-1;
-     const last=fitting[preferred],previous=fitting[preferred-1];
-     if(last.fill<.43&&previous&&previous.fill>=.62&&
-        last.top>previous.top&&last.top-previous.top<=lineHeight*1.8){
-      preferred--;
-     }
-     // Confirm the final cut in the EXACT fragment markup and back off
-     // only if font rounding makes it taller than the measured whole row.
-     for(let j=preferred;j>=0;j--){
+     // A complete row that fits is never discarded due to sparse ink.
+     for(let j=fitting.length-1;j>=0;j--){
       const row=fitting[j];
-      const first=makeFragment(unit,from,row.end,unit.estimated_height);
-      const second=makeFragment(unit,row.end,until,unit.estimated_height);
+      const selected=chooseSemanticFittingRowCut(row,raw,from,until,
+       new Set(whitespace),spans);
+      const first=makeFragment(unit,from,selected.end,unit.estimated_height);
+      const second=makeFragment(unit,selected.end,until,unit.estimated_height);
       const geometry=layout.measure_fragment_geometry?.(first);
       const measuredHeight=geometry&&Number.isFinite(geometry.height)&&geometry.height>0?
        geometry.height:measureFragment(first);
       if(measuredHeight>remaining-6)continue;
       const fill=geometry&&Number.isFinite(geometry.last_line_fill)?
-       geometry.last_line_fill:row.fill;
-      // A major disagreement means a measurement/rendering mismatch, not a
-      // reason to stretch an arbitrary short row. Keep its natural alignment.
-      const consistent=Math.abs(fill-row.fill)<=.08;
+       geometry.last_line_fill:selected.fill;
       const words=geometry?.last_line_words??row.words;
-      const justify=consistent&&shouldJustifySemanticPageEnd(
-       fill,words,layout.viewport_width,Boolean(first.fragment?.continuation_after));
-      const reason=j===fitting.length-1?"latest_row":"short_tail_rebalanced";
       return [{...first,estimated_height:measuredHeight,
-       fragment:first.fragment?{...first.fragment,justify_last_line:justify,
-        page_end_fill:fill,page_end_reason:reason}:undefined},second];
+       fragment:first.fragment?{...first.fragment,
+        justify_last_line:shouldJustifySemanticPageEnd(fill,words,layout.viewport_width,true),
+        page_end_fill:fill,page_end_reason:selected.reason==="punctuation_80"?
+         "short_tail_rebalanced":"latest_row"}:undefined},second];
      }
      return null;
     }
@@ -565,45 +578,27 @@ export function* iterateSemanticPages(units:readonly SemanticPageUnit[],layout:S
      else hi=mid-1;
     }
     if(bestIndex<0)return null;
-    // Fill first, punctuation second. DOM heights and natural (unjustified)
-    // ink width decide the physical line. A semicolon must never move a
-    // page-end backwards by a quarter of a line just for its punctuation.
-    // First remove a truly tiny orphan row, if the preceding row is full.
-    const rowEnd=rebalanceShortSemanticPageTail(bestIndex,lineHeight,index=>{
-     const item=check(index);
-     return {lineTop:item.lineTop,lineFill:item.lineFill};
-    });
-    const fullest=check(rowEnd);
-    let selected=rowEnd;
-    // If the browser cannot measure real line widths, retain the furthest
-    // fitting word boundary: NO guessed 100% fill, punctuation bonus, or
-    // manual justification.
+    // QA/SSR fallback: last height-fitting word takes priority.
+    // Only a measured period/semicolon >=80% of this same row can cut earlier.
+    const fullest=check(bestIndex);
+    let selected=bestIndex;
     if(fullest.lineTop!==null&&fullest.lineFill!==null){
-     let bestScore=fullest.lineFill;
-     for(let j=rowEnd-1;j>=0;j--){
+     for(let j=bestIndex-1;j>=0;j--){
       const item=check(j);
       if(item.lineTop===null||item.lineFill===null)continue;
       if(item.lineTop<fullest.lineTop-1.5)break;
-      if(Math.abs(item.lineTop-fullest.lineTop)>1.5)continue;
       const policy=breakPolicy.get(whitespace[j]);
-      if(!policy||policy.preference<=0||
-         item.lineFill<semanticPageEndFillThreshold(policy.reason))continue;
-      // Punctuation is a small tie-breaker ONLY within 5 percentage points
-      // of the fullest admissible point on this same physical line.
-      if(fullest.lineFill-item.lineFill>.05)continue;
-      const bonus=Math.min(4,Math.max(0,policy.preference))*.012;
-      const score=item.lineFill+bonus;
-      if(score>bestScore){selected=j;bestScore=score;}
+      if(Math.abs(item.lineTop-fullest.lineTop)<=1.5&&
+         item.lineFill>=.8&&policy&&
+         (policy.reason==="sentence"||policy.reason==="semicolon")){
+       selected=j;break;
+      }
      }
     }
     const chosen=check(selected);
     const fill=chosen.lineFill;
     const words=chosen.lineWords;
-    // Last-line justification is opt-in ONLY when Chromium measured enough
-    // real words to distribute the remaining space without grotesque gaps.
-    // This is independent from punctuation. Actual paragraph endings stay left.
-    const justify=shouldJustifySemanticPageEnd(fill,words,layout.viewport_width,
-      Boolean(chosen.cut[0].fragment?.continuation_after));
+    const justify=shouldJustifySemanticPageEnd(fill,words,layout.viewport_width,true);
     const reason=chosen.lineTop===null?"geometry_unavailable":
       selected===bestIndex?"latest_row":"short_tail_rebalanced";
     const first=chosen.cut[0];
@@ -655,7 +650,7 @@ export function* iterateSemanticPages(units:readonly SemanticPageUnit[],layout:S
     // character-height proportionality when browser measurements are supplied.
     if(["paragraph","quote","epigraph","footnote"].includes(unit.kind)&&"atom" in unit.node&&
        unit.estimated_height>capacity-weight-6){
-      if(pending.length && capacity-weight<minimumBody){
+      if(pending.length && capacity-weight<lineHeight+6){
         const leaf=flush();if(leaf)yield leaf;
       }
       const cut=fitParagraph(unit,capacity-weight);

@@ -401,10 +401,11 @@ export default function SemanticReaderClient({slug,title,locale,mode,revisionSha
   for(const paper of papers){
    const paperRect=paper.getBoundingClientRect();
    if(paperRect.bottom<0||paperRect.top>window.innerHeight)continue;
-   const fragments=paper.querySelectorAll<HTMLElement>(
-    "p.semantic-reader__fragment:not(.semantic-reader__fragment--final)");
-   for(const paragraph of fragments){
+   const paragraphs=paper.querySelectorAll<HTMLElement>(".semantic-reader__unit p");
+   for(const paragraph of paragraphs){
     paragraph.classList.remove("semantic-reader__fragment--justify-last");
+    // Keep intentional left/centered editorial presentation untouched.
+    if(getComputedStyle(paragraph).textAlign!=="justify")continue;
     const row=measureSemanticDomLastRow(paragraph);
     if(row&&shouldJustifySemanticPageEnd(
      row.fill,row.words,paragraph.getBoundingClientRect().width,true)){

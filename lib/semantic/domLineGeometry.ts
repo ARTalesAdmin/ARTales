@@ -12,6 +12,8 @@ export type SemanticDomRow={
  fill:number;
  words:number;
  sourceEnd:number;
+ /** Natural x positions of sentence markers in this physical row. */
+ punctuationCuts?:ReadonlyArray<{sourceEnd:number;fill:number}>;
 };
 
 export type SemanticDomLastRow={
@@ -29,7 +31,8 @@ export function measureSemanticDomRows(
  const walker=document.createTreeWalker(textRoot,NodeFilter.SHOW_TEXT);
  let node:Node|null;
  let sourceCursor=sourceStart;
- const rows:Array<{top:number;bottom:number;right:number;words:number;sourceEnd:number}>=[];
+ const rows:Array<{top:number;bottom:number;right:number;words:number;sourceEnd:number;
+  punctuationCuts:Array<{sourceEnd:number;fill:number}>}>=[];
  while((node=walker.nextNode())){
   const text=node.textContent??"";
   for(const word of semanticWordRanges(text)){
@@ -42,7 +45,7 @@ export function measureSemanticDomRows(
     let row=rows.find(item=>Math.abs(item.top-rect.top)<=1.5);
     if(!row){
      row={top:rect.top,bottom:rect.bottom,right:rect.right,words:0,
-      sourceEnd:sourceCursor+word.end};
+      sourceEnd:sourceCursor+word.end,punctuationCuts:[]};
      rows.push(row);
     }
     row.bottom=Math.max(row.bottom,rect.bottom);
@@ -50,6 +53,18 @@ export function measureSemanticDomRows(
     row.sourceEnd=Math.max(row.sourceEnd,sourceCursor+word.end);
     row.words++;
    }
+  }
+  // A punctuation cut is permitted only at a measured source-word boundary.
+  // The ink width includes any following closing quotation mark.
+  for(const mark of text.matchAll(/[.;][”’"')\]]*/gu)){
+   const end=mark.index!+mark[0].length;
+   const range=document.createRange();
+   range.setStart(node,mark.index!);range.setEnd(node,end);
+   const rect=[...range.getClientRects()].filter(r=>r.width>.2).at(-1);
+   if(!rect)continue;
+   const row=rows.find(item=>Math.abs(item.top-rect.top)<=1.5);
+   if(row)row.punctuationCuts.push({sourceEnd:sourceCursor+end,
+    fill:Math.max(0,Math.min(1,(rect.right-box.left)/box.width))});
   }
   sourceCursor+=text.length;
  }
@@ -59,6 +74,7 @@ export function measureSemanticDomRows(
   fill:Math.max(0,Math.min(1,(row.right-box.left)/box.width)),
   words:row.words,
   sourceEnd:row.sourceEnd,
+  punctuationCuts:row.punctuationCuts,
  }));
 }
 

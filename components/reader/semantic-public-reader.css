@@ -338,7 +338,7 @@
 /* The break selector enables this only for >=80% natural fill AND a bounded
  * per-space expansion (measured in Chromium). Sparse final rows stay left.
  * All preceding paragraph lines retain the normal justified layout. */
-.artales-reader--semantic .semantic-public-reader__paper p.semantic-reader__fragment--justify-last:not(.semantic-reader__fragment--final){
+.artales-reader--semantic .semantic-public-reader__paper .semantic-reader__unit p.semantic-reader__fragment--justify-last{
  text-align-last:justify;
 }
 
