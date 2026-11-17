@@ -206,7 +206,7 @@ test("continuation justification is gated by measured word spacing, never by pun
  assert.equal(shouldJustifySemanticPageEnd(null,7,470,true),false);
 });
 
-test("real paginator selects previous filled row before an isolated nonsense-semicolon",()=>{
+test("real paginator retains all height-fitting text instead of discarding sparse last row",()=>{
  const raw="Look about you, Clarke. You see the mountain and the hill, and the woods. "+
   "I do know, Clarke, that you and I shall see it lifted this very night "+
   "from before another's eyes. You may think this all strange nonsense; "+
@@ -234,8 +234,9 @@ test("real paginator selects previous filled row before an isolated nonsense-sem
  assert.equal(verifySemanticPageCoverage([source],pages).ok,true);
  const first=pages[0].units.at(-1)?.fragment;
  assert(first,"First page must finish with a fragment");
- assert(first.end<=wordStart,"The last line must not be an isolated 'nonsense;'");
- assert(first.page_end_fill!==undefined&&first.page_end_fill>=.8);
+ assert(first.end>=afterWord,"The last height-fitting word must not be discarded");
+ assert(first.page_end_fill!==undefined&&first.page_end_fill<.8);
+ assert.equal(first.justify_last_line,false);
 });
 
 test("actual DOM word-range detector counts the words on last rows",()=>{
