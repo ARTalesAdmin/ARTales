@@ -60,7 +60,9 @@ function coreUnitView(u:SemanticPageUnit,terms:readonly string[]=[]):ReactNode {
     </span>;
     const cls="semantic-reader__fragment"+
       (u.fragment.continuation_before?" semantic-reader__fragment--continued":"")+
-      (!u.fragment.continuation_after?" semantic-reader__fragment--final":"");
+      (!u.fragment.continuation_after?" semantic-reader__fragment--final":"")+
+      (u.fragment.continuation_after&&u.fragment.justify_last_line?
+        " semantic-reader__fragment--justify-last":"");
     const props={
       "data-semantic-id":u.node.id,
       "data-source-atom":original.id,
