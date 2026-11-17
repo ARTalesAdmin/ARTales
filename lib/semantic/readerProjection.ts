@@ -267,6 +267,16 @@ export function rebalanceShortSemanticPageTail(
  return selectedIndex;
 }
 
+/** Browser-measured continuation only; never justify a sparse final row.
+ * Cap the resulting additional inter-word spacing at 7 CSS pixels.
+ */
+export function shouldJustifySemanticPageEnd(fill:number|null,words:number|null,
+ width:number,continues:boolean):boolean{
+ if(!continues||fill===null||words===null||!Number.isFinite(fill)||
+    !Number.isFinite(width)||width<=0||fill<.83||fill>1||words<4)return false;
+ return (1-fill)*width/(words-1)<=7;
+}
+
 /** Create one bounded fragment, preserving the root paragraph and its source anchor. */
 function makeFragment(unit:SemanticPageUnit,start:number,end:number,sourceHeight:number):SemanticPageUnit {
   if(!["paragraph","quote","epigraph","footnote"].includes(unit.kind) ||
@@ -502,10 +512,8 @@ export function* iterateSemanticPages(units:readonly SemanticPageUnit[],layout:S
     // Last-line justification is opt-in ONLY when Chromium measured enough
     // real words to distribute the remaining space without grotesque gaps.
     // This is independent from punctuation. Actual paragraph endings stay left.
-    const extras=words!==null&&words>1&&fill!==null?
-      (1-fill)*layout.viewport_width/(words-1):Infinity;
-    const justify=Boolean(chosen.cut[0].fragment?.continuation_after&&
-      fill!==null&&fill>=.83&&words!==null&&words>=4&&extras<=7);
+    const justify=shouldJustifySemanticPageEnd(fill,words,layout.viewport_width,
+      Boolean(chosen.cut[0].fragment?.continuation_after));
     const reason=chosen.lineTop===null?"geometry_unavailable":
       selected===bestIndex?"latest_row":"short_tail_rebalanced";
     const first=chosen.cut[0];
