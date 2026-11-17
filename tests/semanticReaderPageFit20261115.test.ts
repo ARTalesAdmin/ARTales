@@ -139,17 +139,20 @@ test("every DOM-fitted paragraph cut becomes an actual physical page boundary",(
  const raw=Array.from({length:95},(_,i)=>
   "Clarke observed an ordinary event "+i+"; yet the investigation continued. ").join("");
  const source=paragraph("boundary",raw,9000);
+ const measure=(fragment:SemanticPageUnit)=>{
+  if(!fragment.fragment)return null;
+  const length=fragment.fragment.end-fragment.fragment.start;
+  const lines=Math.max(1,Math.ceil(length/48));
+  return {height:12+lines*27,last_line_top:(lines-1)*27,
+   last_line_fill:Math.min(1,(length%48||48)/48)};
+ };
  const layout={
   mode:"paged" as const,viewport_width:420,viewport_height:440,
   content_height:170,font_scale:1,density:"comfortable" as const,
   measured_unit_heights:{boundary:9000},
-  measure_fragment_geometry:(fragment:SemanticPageUnit)=>{
-   if(!fragment.fragment)return null;
-   const length=fragment.fragment.end-fragment.fragment.start;
-   const lines=Math.max(1,Math.ceil(length/48));
-   return {height:12+lines*27,last_line_top:(lines-1)*27,
-    last_line_fill:Math.min(1,(length%48||48)/48)};
-  }
+  // Match the public client: geometry AND fragment height are supplied.
+  measure_fragment_geometry:measure,
+  measure_fragment_height:(fragment:SemanticPageUnit)=>measure(fragment)?.height??null,
  };
  const pages=paginateSemanticUnits([source],layout);
  assert(pages.length>10);
