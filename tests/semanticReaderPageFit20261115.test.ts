@@ -275,10 +275,25 @@ test("rows-first pagination cuts only after whole browser rows and preserves sou
   let top=0;
   // Model immutable source rows, never a guess based on split candidates.
   const text=raw.slice(start,stop);
-  for(const match of text.matchAll(/.{1,70}(?:\s+|$)/g)){
-   top+=27;
-   output.push({sourceEnd:start+match.index!+match[0].trimEnd().length,
-     top:top-24,bottom:top,fill:.9,words:8});
+  let lineLength=0,lastWordEnd=0;
+  for(const match of text.matchAll(/\S+/g)){
+   if(lineLength>0&&match.index!+match[0].length-lastWordEnd>70){
+    top+=27;
+    output.push({sourceEnd:start+lastWordEnd,
+      top:top-24,bottom:top,fill:.9,words:8});
+    lineLength=0;
+   }
+   lineLength+=match[0].length+1;
+   lastWordEnd=match.index!+match[0].length;
+   if(lineLength>=64){
+    top+=27;
+    output.push({sourceEnd:start+lastWordEnd,
+      top:top-24,bottom:top,fill:.9,words:8});
+    lineLength=0;
+   }
+  }
+  if(lineLength){
+   top+=27;output.push({sourceEnd:start+lastWordEnd,top:top-24,bottom:top,fill:.9,words:8});
   }
   return output;
  };
