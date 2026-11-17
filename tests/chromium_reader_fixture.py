@@ -10,6 +10,35 @@ OUT.mkdir(exist_ok=True)
 JS=r"""() => {
  const engine=window.ARTalesPageEngine;
  if(!engine?.iterateSemanticPages)throw Error("Bundled paginator unavailable");
+ // Regression: two-column CSS grid can compress a nominal 470px paper to 455px.
+ // Offscreen measurements MUST use the rendered grid track and wrap identically.
+ const parityHost=document.createElement("div");
+ parityHost.style.cssText="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));width:910px;";
+ const parityPaper=document.createElement("div");
+ parityPaper.style.cssText="width:470px;max-width:100%;box-sizing:border-box;";
+ parityHost.append(parityPaper);document.body.append(parityHost);
+ const parityMeasure=document.createElement("div");
+ parityMeasure.style.cssText="position:absolute;left:-10000px;width:470px;";
+ document.body.append(parityMeasure);
+ const width=engine.syncSemanticMeasurementPaperWidth(parityMeasure,parityPaper);
+ if(width===null||Math.abs(width-455)>.5||
+   Math.abs(parityMeasure.getBoundingClientRect().width-width)>.5)
+  throw Error("Offscreen paper does not match the physical grid track: "+width);
+ const sentence="A long opening paragraph continues through the town, speaking of stories, "+
+  "winds, names, people, places and the long journey across the world. ".repeat(6);
+ const visibleText=document.createElement("p");
+ visibleText.className="fixture-prose";
+ visibleText.style.width="100%";
+ visibleText.textContent=sentence;
+ const hiddenText=visibleText.cloneNode(true);
+ parityPaper.append(visibleText);parityMeasure.append(hiddenText);
+ const actual=engine.measureSemanticDomRows(visibleText,0,visibleText);
+ const predicted=engine.measureSemanticDomRows(hiddenText,0,hiddenText);
+ if(actual.length!==predicted.length||
+   actual.some((row,i)=>row.sourceEnd!==predicted[i].sourceEnd||
+    Math.abs(row.bottom-predicted[i].bottom)>.5))
+  throw Error("Measured line breaks disagree with the visible two-column paper");
+ parityHost.remove();parityMeasure.remove();
  const raw="“Look about you, Clarke. You see the mountain, and hill following after\n"
  +"hill, as wave on wave, you see the woods and orchard, the fields of ripe corn,\n"
  +"and the meadows reaching to the reed-beds by the river. You see me standing\n"
