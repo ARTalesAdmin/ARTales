@@ -12,6 +12,15 @@ export type SemanticFragmentGeometry={
   /** Count visible words on the physical trailing row (not the whole paragraph). */
   last_line_words?:number;
 };
+/** The actual, naturally wrapped browser lines of ONE uncut remaining atom.
+ * sourceEnd is the exclusive UTF-16 end of ink on the row. */
+export type SemanticMeasuredParagraphRow={
+  sourceEnd:number;
+  top:number;
+  bottom:number;
+  fill:number;
+  words:number;
+};
 export type SemanticReaderLayout = {
   mode: "paged" | "spread" | "scroll";
   /** Width of ONE rendered page, not the width of a spread or browser window. */
@@ -27,6 +36,9 @@ export type SemanticReaderLayout = {
   measure_fragment_height?: (fragment:SemanticPageUnit)=>number|null;
   /** Actual browser line geometry; the last-line fill is a fraction of page width. */
   measure_fragment_geometry?: (fragment:SemanticPageUnit)=>SemanticFragmentGeometry|null;
+  /** One full, unsplit paragraph measurement BEFORE selecting page fragments.
+   * A null result uses the legacy QA/SSR fitter, never guessed row offsets. */
+  measure_paragraph_rows?: (unit:SemanticPageUnit)=>readonly SemanticMeasuredParagraphRow[]|null;
   /** Immutable editorial keep-together rules + universal typography. */
   protected_terms?:readonly string[];
   editionRange?:{start:number;end:number};
@@ -272,6 +284,37 @@ export function rebalanceShortSemanticPageTail(
  return best>=0?best:selectedIndex;
 }
 
+/** Select from physical Chromium rows BEFORE constructing any fragments.
+ * A row is eligible only at a legal source word boundary with enough text on
+ * both sides, and only when its real ink fits on this page.
+ * The selector returns every eligible row, last first, for a bounded geometry
+ * verification; never fabricate a break from a character-count estimate.
+ */
+export function fittingSemanticPageRows(
+ rows:readonly SemanticMeasuredParagraphRow[],
+ raw:string,from:number,until:number,remaining:number,
+ legalEnds:ReadonlySet<number>,minHead:number,minTail:number,
+):Array<SemanticMeasuredParagraphRow & {end:number}>{
+ const result:Array<SemanticMeasuredParagraphRow & {end:number}>=[];
+ let previousEnd=from,previousTop=-Infinity;
+ for(const row of rows){
+  if(!Number.isInteger(row.sourceEnd)||row.sourceEnd<=previousEnd||
+     row.sourceEnd>until||!Number.isFinite(row.top)||
+     !Number.isFinite(row.bottom)||row.top<previousTop||
+     row.bottom<row.top||!Number.isFinite(row.fill)||
+     row.fill<0||row.fill>1) return []; // untrusted/stale DOM geometry
+  previousEnd=row.sourceEnd;previousTop=row.top;
+  if(row.bottom>remaining-6)break;
+  // The source cursor must advance beyond all trailing whitespace, so the
+  // next fragment begins with exactly the next original nonspace character.
+  let end=row.sourceEnd;
+  while(end<until&&/\\s/u.test(raw[end]))end++;
+  if(end-from<minHead||until-end<minTail||!legalEnds.has(end))continue;
+  result.push({...row,end});
+ }
+ return result;
+}
+
 /** Browser-measured continuation only; never justify a sparse final row.
  * Cap the resulting additional inter-word spacing at 7 CSS pixels.
  */
@@ -451,6 +494,48 @@ export function* iterateSemanticPages(units:readonly SemanticPageUnit[],layout:S
       return decision.allowed;
      });
     if(!whitespace.length)return null;
+    // Public DOM path: measure full, naturally wrapped physical rows first,
+    // choose the page boundary second, then make exactly the final two
+    // fragments. This prevents the candidate's artificial paragraph end from
+    // changing where Chromium wraps the LAST line.
+    const physicalRows=layout.measure_paragraph_rows?.(unit);
+    if(physicalRows!==null&&physicalRows!==undefined){
+     const fitting=fittingSemanticPageRows(physicalRows,raw,from,until,remaining,
+      new Set(whitespace),minHead,minTail);
+     if(!fitting.length)return null;
+     let preferred=fitting.length-1;
+     const last=fitting[preferred],previous=fitting[preferred-1];
+     if(last.fill<.43&&previous&&previous.fill>=.62&&
+        last.top>previous.top&&last.top-previous.top<=lineHeight*1.8){
+      preferred--;
+     }
+     // Confirm the final cut in the EXACT fragment markup and back off
+     // only if font rounding makes it taller than the measured whole row.
+     for(let j=preferred;j>=0;j--){
+      const row=fitting[j];
+      const first=makeFragment(unit,from,row.end,unit.estimated_height);
+      const second=makeFragment(unit,row.end,until,unit.estimated_height);
+      const geometry=layout.measure_fragment_geometry?.(first);
+      const measuredHeight=geometry&&Number.isFinite(geometry.height)&&geometry.height>0?
+       geometry.height:measureFragment(first);
+      if(measuredHeight>remaining-6)continue;
+      const fill=geometry&&Number.isFinite(geometry.last_line_fill)?
+       geometry.last_line_fill:row.fill;
+      // A major disagreement means a measurement/rendering mismatch, not a
+      // reason to stretch an arbitrary short row. Keep its natural alignment.
+      const consistent=Math.abs(fill-row.fill)<=.08;
+      const words=geometry?.last_line_words??row.words;
+      const justify=consistent&&shouldJustifySemanticPageEnd(
+       fill,words,layout.viewport_width,Boolean(first.fragment?.continuation_after));
+      const reason=j===fitting.length-1?"latest_row":"short_tail_rebalanced";
+      return [{...first,estimated_height:measuredHeight,
+       fragment:first.fragment?{...first.fragment,justify_last_line:justify,
+        page_end_fill:fill,page_end_reason:reason}:undefined},second];
+     }
+     return null;
+    }
+    // Exact DOM is not available to QA/SSR: retain the existing measured
+    // fragment fallback rather than a second independent page engine.
     let lo=0,hi=whitespace.length-1,bestIndex=-1;
     const measured=new Map<number,{cut:[SemanticPageUnit,SemanticPageUnit];height:number;
       lineTop:number|null;lineFill:number|null;lineWords:number|null}>();
