@@ -172,3 +172,17 @@ test("every DOM-fitted paragraph cut becomes an actual physical page boundary",(
    "A physical page break was bypassed and multiple fragment heights were coalesced");
  }
 });
+
+test("page-end typography prioritizes natural row fill and never stretches trailing words",()=>{
+ const projection=read("lib/semantic/readerProjection.ts");
+ const css=read("components/reader/semantic-public-reader.css");
+ const markup=read("components/reader/SemanticPageUnit.tsx");
+ // Punctuation cannot make a much shorter row win against an existing
+ // fuller fitting row. Nor may the measured last line be forcibly justified.
+ assert.match(projection,/fullest\.lineFill-item\.lineFill>\.05/);
+ assert.match(projection,/Math\.min\(4,Math\.max\(0,policy\.preference\)\)\*\.012/);
+ assert.match(projection,/if\(fullest\.lineTop!==null&&fullest\.lineFill!==null\)/);
+ assert.doesNotMatch(css,/text-align-last:justify/);
+ assert.doesNotMatch(markup,/semantic-reader__fragment--justify-last/);
+ assert.match(css,/text-align-last:start/);
+});
