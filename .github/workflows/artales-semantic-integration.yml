@@ -145,7 +145,8 @@ jobs:
         run: npx tsx --test tests/artalesAiGatewayUsage.test.ts
 
   chromium-reader-layout:
-    runs-on: ubuntu-latest
+    # Playwright 1.56.0 supports Ubuntu 24.04; ubuntu-latest is 26.04 here.
+    runs-on: ubuntu-24.04
     permissions:
       contents: read
     steps:
