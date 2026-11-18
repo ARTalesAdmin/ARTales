@@ -183,7 +183,61 @@ JS=r"""() => {
   output.push({height,pages:pages.length,coverage:coverage.ok,
    overflow:pages.some(p=>p.overflow!=="none"||p.estimated_height>height+1),records});
  }
- return {output,sourceLength:raw.length,naturalHeight,rowDebug,fitDebug};
+ // Whole-leaf regression: different paragraphs share a page. Their margins
+ // must be measured together, not summed from isolated fragment heights.
+ const prefixText="An old book opens with a description of the evening sky and a long walk. "+
+  "The characters arrive at a house beyond the river.";
+ const prefixId="fixture-prefix";
+ const prefix={id:prefixId,kind:"paragraph",chapter_id:null,source_atom_ids:[prefixId],
+  estimated_height:110,node:{id:prefixId,kind:"paragraph",atom:{id:prefixId,raw:prefixText,
+   marks:[],anchor:{normalized_start:0,normalized_end:prefixText.length}}}};
+ let aggregateMeasurements=0;
+ function combinedHeight(units){
+  aggregateMeasurements++;
+  const probe=document.createElement("div");
+  probe.style.cssText="position:absolute;left:-10000px;top:0;width:470px;";
+  for(const unit of units){
+   const block=document.createElement("div");
+   block.style.display="flow-root";
+   const p=document.createElement("p");
+   p.className="fixture-prose";
+   p.style.width="100%";
+   p.style.marginBottom="24px";
+   const src=unit.node.atom.raw;
+   const from=unit.fragment?.start??0,end=unit.fragment?.end??src.length;
+   for(const part of engine.segmentSemanticProse(src.slice(from,end),[])){
+    if(part.protected){
+     const span=document.createElement("span");
+     span.style.whiteSpace="nowrap";span.textContent=part.text;p.append(span);
+    }else p.append(document.createTextNode(part.text));
+   }
+   block.append(p);probe.append(block);
+  }
+  document.body.append(probe);
+  const last=probe.querySelector("div:last-child p");
+  if(last)last.style.marginBottom="0px";
+  const height=Math.ceil(probe.getBoundingClientRect().height*2)/2;
+  probe.remove();return height;
+ }
+ const aggregate=[];
+ for(const height of [220,315,420,520]){
+  const composed=[...engine.iterateSemanticPages([prefix,unit],{
+   mode:"paged",viewport_width:470,viewport_height:Math.max(340,height+100),
+   content_height:height,font_scale:1,density:"comfortable",
+   measured_unit_heights:{[prefixId]:110,[id]:naturalHeight},
+   measure_fragment_geometry:geometry,
+   measure_fragment_height:f=>geometry(f)?.height??null,
+   measure_paragraph_rows:u=>u.id===prefixId?null:measureRows(u),
+   measure_page_height:combinedHeight,protected_terms:[]
+  })];
+  const verified=engine.verifySemanticPageCoverage([prefix,unit],composed).ok;
+  const heights=composed.map(page=>combinedHeight(page.units));
+  aggregate.push({height,pages:composed.length,verified,
+   maxMeasured:Math.max(...heights),noScroll:composed.every(page=>page.overflow==="none"),
+   physicallyFits:heights.every(h=>h<=height-2)});
+ }
+ if(aggregateMeasurements<8)throw Error("Whole-page DOM measurement callback unused");
+ return {output,aggregate,sourceLength:raw.length,naturalHeight,rowDebug,fitDebug};
 }""";
 
 with sync_playwright() as pw:
@@ -200,6 +254,9 @@ with sync_playwright() as pw:
  browser.close()
 (OUT/"fixture-results.json").write_text(json.dumps(result,indent=2,ensure_ascii=False))
 bad=[]
+for item in result["aggregate"]:
+ if not item["verified"] or not item["noScroll"] or not item["physicallyFits"]:
+  bad.append(f"Whole-leaf fit failed: {item}")
 for item in result["output"]:
  if not item["coverage"]:
   bad.append(f"Source coverage failed for {item['height']}px")
@@ -211,6 +268,7 @@ for item in result["output"]:
     bad.append(f"Isolated nonsense at height {item['height']}px: {fragment}")
 print("CHROMIUM_FIXTURE_RESULTS="+json.dumps({
  "sourceLength":result["sourceLength"],"naturalHeight":result["naturalHeight"],
+ "aggregate":result["aggregate"],
  "rows":result["rowDebug"],"fit":result["fitDebug"],
  "pagesByHeight":[{"height":p["height"],"pageCount":p["pages"],"coverage":p["coverage"],"overflow":p["overflow"]}
                   for p in result["output"]],
