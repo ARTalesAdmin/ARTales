@@ -622,9 +622,7 @@ export function* iterateSemanticPages(units:readonly SemanticPageUnit[],layout:S
   const queue=[...all];
   for(let i=0;i<queue.length;i++){
     let unit=queue[i];
-    // fitParagraph chooses a physical PAGE boundary, not a discretionary
-    // split inside the same page. Never rejoin the chosen tail on this leaf.
-    let fittedPageBoundary=false;
+    // A selected split belongs to the leaf on which it was measured.
     if(unit.fragment){
       unit={...unit,estimated_height:measureFragment(unit)};
       queue[i]=unit;
@@ -658,66 +656,66 @@ export function* iterateSemanticPages(units:readonly SemanticPageUnit[],layout:S
         const leaf=flush();if(leaf)yield leaf;
       }
     }
-    // Accept only the complete browser-composed page, never a sum of isolated
-    // paragraph heights. This includes actual margins at the chosen leaf edge.
-    const wholeCandidate=measureWholePage([...pending,unit]);
-    if(wholeCandidate!==null&&wholeCandidate<=capacity-SEMANTIC_READER_PAGE_SAFETY_PX){
-      pending.push(unit);weight=wholeCandidate;continue;
+    // True composed page height decides whether the next atom fits. Never
+    // flush just because an isolated-height estimate disagrees with this height.
+    const measuredCandidate=measureWholePage([...pending,unit]);
+    const fitsWhole=measuredCandidate!==null?
+      measuredCandidate<=capacity-SEMANTIC_READER_PAGE_SAFETY_PX:
+      weight+unit.estimated_height<=capacity-SEMANTIC_READER_PAGE_SAFETY_PX;
+    if(fitsWhole){
+      pending.push(unit);weight=measuredCandidate??weight+unit.estimated_height;
+      continue;
     }
-    // The bottom paragraph margin is inter-paragraph spacing, not visible ink.
-    // If every measured line fits at the page foot, retain the ENTIRE paragraph
-    // and drop only the trailing margin on this leaf (CSS :last-child).
-    if(["paragraph","quote","epigraph","footnote"].includes(unit.kind)&&
-       "atom" in unit.node&&
-       unit.estimated_height>capacity-weight-SEMANTIC_READER_PAGE_SAFETY_PX&&
-       layout.measure_paragraph_rows){
-      const remaining=capacity-weight;
-      const rows=layout.measure_paragraph_rows(unit);
-      const finalLine=rows?.at(-1);
-      if(finalLine&&finalLine.bottom+SEMANTIC_READER_PAGE_SAFETY_PX<=remaining){
-       const measuredInkHeight=finalLine.bottom+SEMANTIC_READER_PAGE_SAFETY_PX;
-       pending.push({...unit,estimated_height:measuredInkHeight});
-       weight+=measuredInkHeight;
-       const leaf=flush();if(leaf)yield leaf;
-       continue;
+
+    const splittable=["paragraph","quote","epigraph","footnote"].includes(unit.kind)&&
+      !unit.layout_role&&"atom" in unit.node;
+    const validCut=(candidate:[SemanticPageUnit,SemanticPageUnit]):boolean=>{
+      const height=measureWholePage([...pending,candidate[0]]);
+      return height!==null?
+        height<=capacity-SEMANTIC_READER_PAGE_SAFETY_PX:
+        weight+candidate[0].estimated_height<=capacity-SEMANTIC_READER_PAGE_SAFETY_PX;
+    };
+    // Attempt an actual next physical row BEFORE finishing this leaf,
+    // regardless of the original isolated unit's estimated height.
+    let cut=splittable?fitParagraph(unit,capacity-weight):null;
+    if(cut&&!validCut(cut))cut=null;
+    if(!cut&&pending.length){
+      const prior=flush();if(prior)yield prior;
+      // Re-evaluate the uncut original on the NEW page; never reuse a tiny
+      // fragment chosen for the previous page's remaining pixels.
+      const fresh=measureWholePage([unit]);
+      const fitsFresh=fresh!==null?
+        fresh<=capacity-SEMANTIC_READER_PAGE_SAFETY_PX:
+        unit.estimated_height<=capacity-SEMANTIC_READER_PAGE_SAFETY_PX;
+      if(fitsFresh){
+        pending.push(unit);weight=fresh??unit.estimated_height;continue;
       }
+      cut=splittable?fitParagraph(unit,capacity):null;
+      if(cut&&!validCut(cut))cut=null;
     }
-    // A paragraph may be longer than the whole page: split it into DOM-fitted
-    // continuations, not a single overflowing element. Never rely on simple
-    // character-height proportionality when browser measurements are supplied.
-    if(["paragraph","quote","epigraph","footnote"].includes(unit.kind)&&"atom" in unit.node&&
-       unit.estimated_height>capacity-weight-SEMANTIC_READER_PAGE_SAFETY_PX){
-      const cut=fitParagraph(unit,capacity-weight);
-      if(cut){
-        queue.splice(i,1,cut[0],cut[1]);
-        unit=queue[i];
-        fittedPageBoundary=true;
-      }else if(pending.length){
-        const leaf=flush();if(leaf)yield leaf;
-        const freshCut=fitParagraph(unit,capacity);
-        if(freshCut){
-          queue.splice(i,1,freshCut[0],freshCut[1]);
-          unit=queue[i];
-          fittedPageBoundary=true;
-        }
-      }
-    }
-    const candidateHeight=measureWholePage([...pending,unit]);
-    if(pending.length&&(candidateHeight??weight+unit.estimated_height)>
-       capacity-SEMANTIC_READER_PAGE_SAFETY_PX){
-      const leaf=flush();if(leaf)yield leaf;
-    }
-    pending.push(unit);
-    weight=measureWholePage(pending)??weight+unit.estimated_height;
-    if(fittedPageBoundary){
-      // The next piece of this very paragraph must start on the next leaf.
-      // Otherwise an extra fit on the same leaf can undo the measured break,
-      // then flush() coalesces the fragments into the observed orphan line.
+    if(cut){
+      queue.splice(i,1,cut[0],cut[1]);
+      pending.push(cut[0]);
+      weight=measureWholePage(pending)??weight+cut[0].estimated_height;
       const leaf=flush();if(leaf)yield leaf;
       continue;
     }
-    if(unit.estimated_height>capacity){
-      const leaf=flush();if(leaf)yield leaf; // explicit special-object fallback
+
+    // Legacy QA/SSR with row metrics but no whole-page DOM measurement:
+    // allow the text's ink to fit without a trailing separator margin.
+    if(measuredCandidate===null&&splittable&&layout.measure_paragraph_rows){
+      const last=layout.measure_paragraph_rows(unit)?.at(-1);
+      if(last&&last.bottom+SEMANTIC_READER_PAGE_SAFETY_PX<=capacity-weight){
+        const inkHeight=last.bottom+SEMANTIC_READER_PAGE_SAFETY_PX;
+        pending.push({...unit,estimated_height:inkHeight});weight+=inkHeight;
+        continue;
+      }
+    }
+    // Truly indivisible exceptional content retains overflow recovery.
+    pending.push(unit);
+    weight=measureWholePage(pending)??weight+unit.estimated_height;
+    if(weight>capacity-SEMANTIC_READER_PAGE_SAFETY_PX){
+      const leaf=flush();if(leaf)yield leaf;
     }
     // An existing continuation may share the leaf when it fits naturally.
     // Only an explicit fitParagraph page cut forces the page boundary.
