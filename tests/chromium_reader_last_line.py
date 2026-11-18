@@ -1,7 +1,7 @@
 """Render actual Reader CSS and invoke the production last-line helper in Chromium."""
 import json
 from pathlib import Path
-from playwright.sync_playwright import sync_playwright
+from playwright.sync_api import sync_playwright
 
 JS=r"""() => {
  const impl=window.ARTalesPageEngine;
