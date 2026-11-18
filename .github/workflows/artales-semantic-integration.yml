@@ -1,7 +1,7 @@
 name: ARTales semantic editorial integration
 on:
   push:
-    branches: [fix/reader-natural-page-fill-and-chapter-20261118]
+    branches: [fix/reader-prose-last-line-justify-20261118]
     paths:
       - 'lib/semantic/**'
       - 'tests/semanticReaderPageFit20261115.test.ts'
@@ -164,6 +164,8 @@ jobs:
         run: npx esbuild tests/chromium_reader_entry.ts --bundle --platform=browser --format=iife --global-name=ARTalesPageEngine --alias:node:crypto=./tests/chromium_node_crypto_stub.ts --outfile=reader-chromium-artifacts/paginator-bundle.js
       - name: Chromium layout regression on actual Pan paragraph
         run: python tests/chromium_reader_fixture.py
+      - name: Chromium visible last-line justification with production CSS
+        run: python tests/chromium_reader_last_line.py
       - name: Check authenticated public Reader (diagnostic, login currently blocks)
         continue-on-error: true
         env:

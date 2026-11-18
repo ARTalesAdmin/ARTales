@@ -329,21 +329,18 @@
  height:100%;
 }
 
-/* A fragmented paragraph must keep the final visual line aligned with the
- * continuation. The actual final fragment retains normal paragraph ending. */
-/* Any final visual line of a page fragment aligns naturally, even when
- * the semantic paragraph continues on the next leaf. Other lines stay justified.
- * Prevents large gaps like "revolving                      terms." */
+/* All ordinary prose lines stay justified; the true LAST line of any
+ * paragraph stays natural unless the visible measured width and bounded
+ * per-word gap permit safe justification, including completed paragraphs. */
 .artales-reader--semantic .semantic-public-reader__paper p.semantic-reader__fragment:not(.semantic-reader__fragment--final){
  text-align-last:start;
 }
 .artales-reader--semantic .semantic-public-reader__paper p.semantic-reader__fragment--final{
  text-align-last:start;
 }
-/* The break selector enables this only for >=80% natural fill AND a bounded
- * per-space expansion (measured in Chromium). Sparse final rows stay left.
- * All preceding paragraph lines retain the normal justified layout. */
-.artales-reader--semantic .semantic-public-reader__paper .semantic-reader__unit :is(p,blockquote,aside).semantic-reader__fragment--justify-last{
+/* Shared gate: >=83% natural fill, >=4 words and <=7px extra space.
+ * Short endings and editorial alignment intentionally remain natural. */
+.artales-reader--semantic .semantic-public-reader__paper .semantic-reader__unit :is(p,blockquote,aside).semantic-reader__prose--justify-last{
  text-align-last:justify;
 }
 

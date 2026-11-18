@@ -181,8 +181,8 @@ test("natural row width controls page ending; visible Reader enforces bounded 83
  const css=read("components/reader/semantic-public-reader.css");
  assert.match(projection,/chooseSemanticFittingRowCut/);
  assert.match(projection,/shouldJustifySemanticPageEnd/);
- assert.match(client,/measureSemanticDomLastRow\(paragraph\)/);
- assert.match(client,/paragraph.classList.add\("semantic-reader__fragment--justify-last"\)/);
+ assert.match(client,/applySemanticProseLastRowJustification\(paragraph\)/);
+ assert.match(read("lib/semantic/domLineGeometry.ts"),/shouldJustifySemanticPageEnd/);
  assert.match(css,/text-align-last:start/);
  assert.equal(shouldJustifySemanticPageEnd(.95,7,470,true),true);
  assert.equal(shouldJustifySemanticPageEnd(.82,7,470,true),false);
@@ -489,9 +489,15 @@ test("chapter break is intentional but preceding long prose fills its own last p
  assert(pre.estimated_height>80,"Do not cut the pre-chapter prose mid-page");
 });
 
-test("last-row justification never stretches the true end of a paragraph",()=>{
+test("last line of complete prose uses same bounded gate as a continuation",()=>{
  const client=read("components/reader/SemanticReaderClient.tsx");
- assert.match(client,/paragraph\.classList\.contains\("semantic-reader__fragment--final"\)/);
- assert.match(client,/paragraph\.classList\.contains\("semantic-reader__fragment"\)/);
- assert.match(client,/getComputedStyle\(paragraph\)\.textAlign!=="justify"/);
+ const geometry=read("lib/semantic/domLineGeometry.ts");
+ const css=read("components/reader/semantic-public-reader.css");
+ assert.match(client,/applySemanticProseLastRowJustification\(paragraph\)/);
+ assert.doesNotMatch(client,/paragraph\.classList\.contains\("semantic-reader__fragment--final"\)/);
+ assert.match(geometry,/getComputedStyle\(element\)\.textAlign!=="justify"/);
+ assert.match(css,/semantic-reader__prose--justify-last\{\s*text-align-last:justify/);
+ assert.equal(shouldJustifySemanticPageEnd(.97,7,470,true),true);
+ assert.equal(shouldJustifySemanticPageEnd(.65,7,470,true),false);
+ assert.equal(shouldJustifySemanticPageEnd(.97,3,470,true),false);
 });

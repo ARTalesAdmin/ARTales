@@ -340,12 +340,12 @@ export function chooseSemanticFittingRowCut(
  return chosen;
 }
 
-/** Browser-measured continuation only; never justify a sparse final row.
+/** A naturally full final prose line may be justified, whether the source paragraph is complete or continues on another page.
  * Cap the resulting additional inter-word spacing at 7 CSS pixels.
  */
 export function shouldJustifySemanticPageEnd(fill:number|null,words:number|null,
- width:number,continues:boolean):boolean{
- if(!continues||fill===null||words===null||!Number.isFinite(fill)||
+ width:number,eligible:boolean):boolean{
+ if(!eligible||fill===null||words===null||!Number.isFinite(fill)||
     !Number.isFinite(width)||width<=0||fill<.83||fill>1||words<4)return false;
  return (1-fill)*width/(words-1)<=7;
 }

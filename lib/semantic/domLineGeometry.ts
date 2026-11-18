@@ -1,4 +1,5 @@
 import {semanticWordRanges} from "./protectedSpans";
+import {shouldJustifySemanticPageEnd} from "./readerProjection";
 
 /** Physical words/rows measured from one rendered DOM paragraph.
  * sourceEnd is the UTF-16 offset immediately after the final ink-bearing word
@@ -106,4 +107,27 @@ export function measureSemanticDomLastRow(element:HTMLElement):SemanticDomLastRo
  return {top:box.top+last.top,
   right:box.left+last.fill*box.width,
   words:last.words,fill:last.fill};
+}
+
+
+/** Apply the one bounded visible last-line rule to any standard prose
+ * paragraph, regardless of whether it is a page fragment.
+ * Editorial left/center/right alignment and all source text stay unchanged.
+ */
+export function applySemanticProseLastRowJustification(element:HTMLElement):boolean{
+ const marker="semantic-reader__prose--justify-last";
+ element.classList.remove(marker);
+ if(getComputedStyle(element).textAlign!=="justify"){
+  element.dataset.visiblePageEndFill="editorial";
+  element.dataset.visiblePageEndWords="editorial";
+  return false;
+ }
+ const natural=measureSemanticDomLastRow(element);
+ const width=element.getBoundingClientRect().width;
+ const allow=Boolean(natural&&shouldJustifySemanticPageEnd(
+  natural.fill,natural.words,width,true));
+ if(allow)element.classList.add(marker);
+ element.dataset.visiblePageEndFill=natural?natural.fill.toFixed(3):"unavailable";
+ element.dataset.visiblePageEndWords=natural?String(natural.words):"unavailable";
+ return allow;
 }

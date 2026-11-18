@@ -3,9 +3,9 @@ import {useCallback,useEffect,useLayoutEffect,useMemo,useRef,useState,type CSSPr
 import {unitView,type ApprovedSemanticImage} from "@/components/reader/SemanticPageUnit";
 import ReaderToolbar from "@/components/reader/ReaderToolbar";
 import {getPublicDictionary} from "@/lib/i18n/public";
-import {iterateSemanticPages,projectFlatChapterHeadings,shouldJustifySemanticPageEnd} from "@/lib/semantic/readerProjection";
+import {iterateSemanticPages,projectFlatChapterHeadings} from "@/lib/semantic/readerProjection";
 import {segmentSemanticProse} from "@/lib/semantic/protectedSpans";
-import {measureSemanticDomLastRow,measureSemanticDomRows,syncSemanticMeasurementPaperWidth} from "@/lib/semantic/domLineGeometry";
+import {applySemanticProseLastRowJustification,measureSemanticDomLastRow,measureSemanticDomRows,syncSemanticMeasurementPaperWidth} from "@/lib/semantic/domLineGeometry";
 import type {SemanticPage,SemanticPageUnit} from "@/lib/semantic/model";
 import type {SupportedLocale} from "@/lib/i18n/config";
 import {clampReaderFontScale,defaultReaderSettings,type ReaderSettings} from "@/lib/reader/readerSettings";
@@ -478,21 +478,9 @@ export default function SemanticReaderClient({slug,title,locale,mode,revisionSha
    if(paperRect.bottom<0||paperRect.top>window.innerHeight)continue;
    const paragraphs=paper.querySelectorAll<HTMLElement>(
     ".semantic-reader__unit p, .semantic-reader__unit blockquote, .semantic-reader__unit aside[role='note']");
-   for(const paragraph of paragraphs){
-    paragraph.classList.remove("semantic-reader__fragment--justify-last");
-    // Never stretch a real paragraph's last line. Only the artificial
-    // boundary of a paragraph that continues onto the NEXT page may qualify.
-    if(!paragraph.classList.contains("semantic-reader__fragment")||
-       paragraph.classList.contains("semantic-reader__fragment--final")||
-       getComputedStyle(paragraph).textAlign!=="justify")continue;
-    const row=measureSemanticDomLastRow(paragraph);
-    if(row&&shouldJustifySemanticPageEnd(
-     row.fill,row.words,paragraph.getBoundingClientRect().width,true)){
-     paragraph.classList.add("semantic-reader__fragment--justify-last");
-    }
-    paragraph.dataset.visiblePageEndFill=row?row.fill.toFixed(3):"unavailable";
-    paragraph.dataset.visiblePageEndWords=row?String(row.words):"unavailable";
-   }
+   // The same rule applies to complete prose and page continuations.
+   for(const paragraph of paragraphs)
+    applySemanticProseLastRowJustification(paragraph);
   }
  },[paginationSettled,pages,visibleStart,settings.fontScale,settings.density]);
 
