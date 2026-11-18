@@ -1,11 +1,14 @@
 name: ARTales semantic editorial integration
 on:
   push:
-    branches: [fix/reader-prose-last-line-justify-20261118]
+    branches: [main]
     paths:
       - 'lib/semantic/**'
-      - 'tests/semanticReaderPageFit20261115.test.ts'
+      - 'tests/semantic*.test.ts'
       - 'tests/chromium_reader_*'
+      - 'tests/epubSemantic389.test.mjs'
+      - 'lib/ingest/epubSemanticExtractor.ts'
+      - 'app/api/member/snapshot/[candidateId]/auto-compose/route.ts'
       - 'components/reader/**'
       - '.github/workflows/artales-semantic-integration.yml'
   pull_request:
@@ -16,6 +19,7 @@ on:
       - 'components/reader/SemanticPageUnit.tsx'
       - 'components/reader/semantic-public-reader.css'
       - 'tests/semanticReaderPageFit20261115.test.ts'
+      - 'tests/chromium_reader_*'
       - 'app/api/internal/editorial/ai-qa-jobs/**'
       - 'app/member/admin/ai-usage/**'
       - 'ops/sql/20261104_artales_ai_qa_durable_jobs.sql'
@@ -103,6 +107,8 @@ jobs:
         run: npx tsx --test tests/semanticReaderV2.test.ts
       - name: Published Reader pagination coverage and page-boundary regression
         run: npx tsx --test tests/semanticReaderPageFit20261115.test.ts
+      - name: General source, protected-span, chapter, responsive and page-coverage regression
+        run: npx tsx --test tests/semanticBreakPolicy20261115.test.ts tests/semanticReaderCoverageSafety20261115.test.ts tests/semanticReaderFlatChapter20261115.test.ts tests/semanticReaderGeneralPagination20261115.test.ts tests/semanticReaderImmersiveTypography20261115.test.ts tests/semanticReaderRealLineBreak20261116.test.ts tests/semanticSourceStructureIngest20261115.test.ts tests/semanticPublicReaderParity.test.ts tests/semanticPublicReaderQaShell20261115.test.ts
       - name: Original Reader palette and QA dark/light contrast regression
         run: node --test tests/semanticReaderThemeContrast.test.mjs
       - name: PostgreSQL jsonb roundtrip and legacy revision integrity
@@ -166,12 +172,8 @@ jobs:
         run: python tests/chromium_reader_fixture.py
       - name: Chromium visible last-line justification with production CSS
         run: python tests/chromium_reader_last_line.py
-      - name: Check authenticated public Reader (diagnostic, login currently blocks)
-        continue-on-error: true
-        env:
-          ARTALES_READER_URL: https://artales.net/reader/the-great-god-pan?mode=full
-          ARTALES_READER_MODE: diagnostic
-        run: python tests/chromium_reader_layout.py
+      # Signed-in public Reader E2E is manual until a scoped test identity is available.
+      # A login redirect must never be represented as a passing automated check.
       - name: Preserve public-page screenshots and metrics
         if: always()
         uses: actions/upload-artifact@v4
