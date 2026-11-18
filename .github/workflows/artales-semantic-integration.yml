@@ -1,7 +1,7 @@
 name: ARTales semantic editorial integration
 on:
   push:
-    branches: [fix/reader-whole-page-fit-no-scroll-20261118]
+    branches: [fix/reader-natural-page-fill-and-chapter-20261118]
     paths:
       - 'lib/semantic/**'
       - 'tests/semanticReaderPageFit20261115.test.ts'
