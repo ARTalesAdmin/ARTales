@@ -365,6 +365,20 @@ export default function SemanticReaderClient({slug,title,locale,mode,revisionSha
     if(!source)return null;
     const clone=source.cloneNode(true) as HTMLElement;
     clone.removeAttribute("data-semantic-measure-id");
+    // Flat chapter number/title nodes use special projected display styles,
+    // so their aggregate page probe must clone those elements too.
+    if(unit.layout_role&&"atom" in unit.node){
+     const old=clone.querySelector<HTMLElement>("p");
+     if(!old)return null;
+     const heading=document.createElement("div");
+     heading.className=unit.layout_role==="chapter_number"?
+      "semantic-reader__chapter-number":"semantic-reader__chapter-title";
+     heading.dataset.semanticId=unit.node.id;
+     heading.dataset.sourceAtom=unit.node.atom.id;
+     heading.style.cssText=old.style.cssText;
+     while(old.firstChild)heading.appendChild(old.firstChild);
+     old.replaceWith(heading);
+    }
     if(unit.fragment&&"atom" in unit.node){
      const prose=clone.querySelector<HTMLElement>("p,blockquote,aside");
      const atom=prose?.querySelector<HTMLElement>(".semantic-reader__atom");
@@ -466,8 +480,11 @@ export default function SemanticReaderClient({slug,title,locale,mode,revisionSha
     ".semantic-reader__unit p, .semantic-reader__unit blockquote, .semantic-reader__unit aside[role='note']");
    for(const paragraph of paragraphs){
     paragraph.classList.remove("semantic-reader__fragment--justify-last");
-    // Keep intentional left/centered editorial presentation untouched.
-    if(getComputedStyle(paragraph).textAlign!=="justify")continue;
+    // Never stretch a real paragraph's last line. Only the artificial
+    // boundary of a paragraph that continues onto the NEXT page may qualify.
+    if(!paragraph.classList.contains("semantic-reader__fragment")||
+       paragraph.classList.contains("semantic-reader__fragment--final")||
+       getComputedStyle(paragraph).textAlign!=="justify")continue;
     const row=measureSemanticDomLastRow(paragraph);
     if(row&&shouldJustifySemanticPageEnd(
      row.fill,row.words,paragraph.getBoundingClientRect().width,true)){
