@@ -358,6 +358,54 @@ export default function SemanticReaderClient({slug,title,locale,mode,revisionSha
    clone.remove();
    return rows.length?rows:null;
   };
+   // Clone entire page content with the same public Reader CSS and wrappers.
+   // Measuring isolated paragraphs cannot predict margins between fragments.
+   const pageClone=(unit:SemanticPageUnit):HTMLElement|null=>{
+    const source=original.get(unit.fragment?.original_unit_id??unit.id);
+    if(!source)return null;
+    const clone=source.cloneNode(true) as HTMLElement;
+    clone.removeAttribute("data-semantic-measure-id");
+    if(unit.fragment&&"atom" in unit.node){
+     const prose=clone.querySelector<HTMLElement>("p,blockquote,aside");
+     const atom=prose?.querySelector<HTMLElement>(".semantic-reader__atom");
+     if(!prose||!atom)return null;
+     const children:Node[]=[];
+     for(const segment of segmentSemanticProse(
+      unit.node.atom.raw.slice(unit.fragment.start,unit.fragment.end),protectedTerms)){
+      if(segment.protected){
+       const span=document.createElement("span");
+       span.style.whiteSpace="nowrap";
+       span.dataset.workProtectedTerm=segment.text;
+       span.textContent=segment.text;
+       children.push(span);
+      }else children.push(document.createTextNode(segment.text));
+     }
+     atom.replaceChildren(...children);
+     prose.classList.add("semantic-reader__fragment");
+     if(unit.fragment.start>0)prose.classList.add("semantic-reader__fragment--continued");
+     if(!unit.fragment.continuation_after)prose.classList.add("semantic-reader__fragment--final");
+     if(unit.kind==="footnote"&&unit.fragment.start>0)prose.querySelector("sup")?.remove();
+    }
+    return clone;
+   };
+   const measureWholePage=(units:readonly SemanticPageUnit[]):number|null=>{
+    const width=content.getBoundingClientRect().width;
+    if(!Number.isFinite(width)||width<180)return null;
+    const probe=document.createElement("div");
+    probe.className="semantic-public-reader__page-content";
+    probe.style.cssText="position:absolute;left:0;top:0;height:auto;min-height:0;max-width:none;";
+    probe.style.width=width+"px";
+    probe.style.setProperty("overflow","visible","important");
+    for(const unit of units){
+     const clone=pageClone(unit);
+     if(!clone){probe.remove();return null;}
+     probe.appendChild(clone);
+    }
+    content.appendChild(probe);
+    const height=probe.getBoundingClientRect().height;
+    probe.remove();
+    return Number.isFinite(height)&&height>=0?Math.ceil(height*2)/2:null;
+   };
   const fragmentHeight=(unit:SemanticPageUnit):number|null=>
    fragmentGeometry(unit)?.height??null;
   const iterator=iterateSemanticPages(semanticUnits,{
@@ -368,6 +416,7 @@ export default function SemanticReaderClient({slug,title,locale,mode,revisionSha
    measure_fragment_height:fragmentHeight,
    measure_fragment_geometry:fragmentGeometry,
    measure_paragraph_rows:paragraphRows,
+   measure_page_height:measureWholePage,
   });
   const collected:SemanticPage[]=[];
   const step=()=>{
@@ -413,7 +462,8 @@ export default function SemanticReaderClient({slug,title,locale,mode,revisionSha
   for(const paper of papers){
    const paperRect=paper.getBoundingClientRect();
    if(paperRect.bottom<0||paperRect.top>window.innerHeight)continue;
-   const paragraphs=paper.querySelectorAll<HTMLElement>(".semantic-reader__unit p");
+   const paragraphs=paper.querySelectorAll<HTMLElement>(
+    ".semantic-reader__unit p, .semantic-reader__unit blockquote, .semantic-reader__unit aside[role='note']");
    for(const paragraph of paragraphs){
     paragraph.classList.remove("semantic-reader__fragment--justify-last");
     // Keep intentional left/centered editorial presentation untouched.

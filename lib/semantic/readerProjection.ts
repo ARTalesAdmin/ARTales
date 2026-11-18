@@ -42,6 +42,8 @@ export type SemanticReaderLayout = {
   /** One full, unsplit paragraph measurement BEFORE selecting page fragments.
    * A null result uses the legacy QA/SSR fitter, never guessed row offsets. */
   measure_paragraph_rows?: (unit:SemanticPageUnit)=>readonly SemanticMeasuredParagraphRow[]|null;
+  /** Browser-measured height of all units on the same composed page. */
+  measure_page_height?: (units:readonly SemanticPageUnit[])=>number|null;
   /** Immutable editorial keep-together rules + universal typography. */
   protected_terms?:readonly string[];
   editionRange?:{start:number;end:number};
@@ -478,6 +480,10 @@ export function* iterateSemanticPages(units:readonly SemanticPageUnit[],layout:S
   // guard rejected usable bottom space while the previous leaf still had
   // room for two complete rows. Chapter-start grouping remains separate.
   const minimumBody=2*lineHeight;
+  const measureWholePage=(candidate:readonly SemanticPageUnit[]):number|null=>{
+    const measured=layout.measure_page_height?.(candidate);
+    return measured!==null&&measured!==undefined&&Number.isFinite(measured)&&measured>=0?measured:null;
+  };
   const measureFragment=(fragment:SemanticPageUnit):number=>{
     const exact=layout.measure_fragment_height?.(fragment);
     return exact!==null&&exact!==undefined&&Number.isFinite(exact)&&exact>0
@@ -538,11 +544,15 @@ export function* iterateSemanticPages(units:readonly SemanticPageUnit[],layout:S
       const geometry=layout.measure_fragment_geometry?.(first);
       const measuredHeight=geometry&&Number.isFinite(geometry.height)&&geometry.height>0?
        geometry.height:measureFragment(first);
-      if(measuredHeight>remaining-SEMANTIC_READER_PAGE_SAFETY_PX)continue;
+      const fullHeight=measureWholePage([...pending,first]);
+      if(fullHeight!==null?
+         fullHeight>capacity-SEMANTIC_READER_PAGE_SAFETY_PX:
+         measuredHeight>remaining-SEMANTIC_READER_PAGE_SAFETY_PX)continue;
       const fill=geometry&&Number.isFinite(geometry.last_line_fill)?
        geometry.last_line_fill:selected.fill;
       const words=geometry?.last_line_words??row.words;
-      return [{...first,estimated_height:measuredHeight,
+      return [{...first,estimated_height:fullHeight!==null?
+        Math.max(.5,fullHeight-weight):measuredHeight,
        fragment:first.fragment?{...first.fragment,
         justify_last_line:shouldJustifySemanticPageEnd(fill,words,layout.viewport_width,true),
         page_end_fill:fill,page_end_reason:selected.reason==="punctuation_80"?
@@ -648,6 +658,12 @@ export function* iterateSemanticPages(units:readonly SemanticPageUnit[],layout:S
         const leaf=flush();if(leaf)yield leaf;
       }
     }
+    // Accept only the complete browser-composed page, never a sum of isolated
+    // paragraph heights. This includes actual margins at the chosen leaf edge.
+    const wholeCandidate=measureWholePage([...pending,unit]);
+    if(wholeCandidate!==null&&wholeCandidate<=capacity-SEMANTIC_READER_PAGE_SAFETY_PX){
+      pending.push(unit);weight=wholeCandidate;continue;
+    }
     // The bottom paragraph margin is inter-paragraph spacing, not visible ink.
     // If every measured line fits at the page foot, retain the ENTIRE paragraph
     // and drop only the trailing margin on this leaf (CSS :last-child).
@@ -686,11 +702,13 @@ export function* iterateSemanticPages(units:readonly SemanticPageUnit[],layout:S
         }
       }
     }
-    if(pending.length && weight+unit.estimated_height>capacity){
+    const candidateHeight=measureWholePage([...pending,unit]);
+    if(pending.length&&(candidateHeight??weight+unit.estimated_height)>
+       capacity-SEMANTIC_READER_PAGE_SAFETY_PX){
       const leaf=flush();if(leaf)yield leaf;
     }
     pending.push(unit);
-    weight+=unit.estimated_height;
+    weight=measureWholePage(pending)??weight+unit.estimated_height;
     if(fittedPageBoundary){
       // The next piece of this very paragraph must start on the next leaf.
       // Otherwise an extra fit on the same leaf can undo the measured break,
