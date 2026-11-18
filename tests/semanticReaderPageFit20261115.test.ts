@@ -396,3 +396,102 @@ test("when all paragraph lines fit only bottom margin is removed at page edge",(
  assert.equal(pages[0].units[0].fragment,undefined);
  assert(pages[0].estimated_height<=83);
 });
+
+test("aggregate page measurement cannot force an early flush while a legal next physical line fits",()=>{
+ const first=paragraph("early-first","A first short paragraph fills the opening space.",80);
+ const raw=Array.from({length:75},(_,i)=>"word"+i).join(" ");
+ const second=paragraph("early-second",raw,110); // underestimates real wrapped DOM
+ let rowChecks=0;
+ const layout={
+  mode:"paged" as const,viewport_width:470,viewport_height:450,content_height:220,
+  font_scale:1,density:"comfortable" as const,
+  measured_unit_heights:{"early-first":80,"early-second":110},
+  measure_paragraph_rows:(unit:SemanticPageUnit)=>{
+   rowChecks++;
+   if(unit.id==="early-first")return null;
+   const from=unit.fragment?.start??0,until=unit.fragment?.end??raw.length;
+   const matches=[...raw.slice(from,until).matchAll(/\S+/g)];
+   const lines=[];
+   for(let i=0;i<matches.length;i+=5){
+    const words=matches.slice(i,i+5);
+    lines.push({sourceEnd:from+words.at(-1)!.index!+words.at(-1)![0].length,
+     top:Math.floor(i/5)*26,bottom:(Math.floor(i/5)+1)*26,fill:.94,words:words.length});
+   }
+   return lines;
+  },
+  measure_fragment_geometry:(unit:SemanticPageUnit)=>{
+   if(!unit.fragment)return null;
+   const count=(raw.slice(unit.fragment.start,unit.fragment.end).match(/\S+/g)??[]).length;
+   const lines=Math.ceil(count/5);
+   return {height:lines*26,last_line_top:(lines-1)*26,last_line_fill:.94,last_line_words:5};
+  },
+  measure_page_height:(units:readonly SemanticPageUnit[])=>{
+   let height=0;
+   for(const unit of units){
+    if(unit.id==="early-first")height+=80;
+    else{
+     const from=unit.fragment?.start??0,until=unit.fragment?.end??raw.length;
+     const count=(raw.slice(from,until).match(/\S+/g)??[]).length;
+     height+=Math.ceil(count/5)*26;
+    }
+   }
+   return height;
+  },
+ };
+ const pages=paginateSemanticUnits([first,second],layout);
+ assert.equal(verifySemanticPageCoverage([first,second],pages).ok,true);
+ assert(rowChecks>0);
+ assert(pages.length>2);
+ assert.equal(pages[0].units.length,2,"Must not flush the first short paragraph alone");
+ assert(pages[0].estimated_height>160,"Keep a legal continuation in the remaining height");
+ assert(pages.every(p=>p.estimated_height<=220));
+});
+
+test("chapter break is intentional but preceding long prose fills its own last page first",()=>{
+ const raw=Array.from({length:72},(_,i)=>"field"+i).join(" ");
+ const prose=paragraph("before-chapter",raw,840);
+ const title=heading("new-chapter");
+ const next=paragraph("after-chapter","The story begins in another place.",65);
+ const height=(units:readonly SemanticPageUnit[])=>units.reduce((n,u)=>{
+  if(u.id==="new-chapter")return n+66;
+  if(u.id==="after-chapter")return n+65;
+  const from=u.fragment?.start??0,until=u.fragment?.end??raw.length;
+  return n+Math.ceil((raw.slice(from,until).match(/\S+/g)??[]).length/6)*26;
+ },0);
+ const pages=paginateSemanticUnits([prose,title,next],{
+  mode:"paged",viewport_width:470,viewport_height:440,content_height:220,
+  font_scale:1,density:"comfortable",
+  measured_unit_heights:{"before-chapter":840,"new-chapter":66,"after-chapter":65},
+  measure_paragraph_rows:(unit)=>{
+   if(unit.id!=="before-chapter")return null;
+   const from=unit.fragment?.start??0,until=unit.fragment?.end??raw.length;
+   const chunks=[...raw.slice(from,until).matchAll(/\S+/g)];
+   return Array.from({length:Math.ceil(chunks.length/6)},(_,i)=>{
+    const last=chunks[Math.min(chunks.length-1,(i+1)*6-1)];
+    return {sourceEnd:from+last.index!+last[0].length,
+     top:i*26,bottom:(i+1)*26,fill:.92,words:6};
+   });
+  },
+  measure_fragment_geometry:(u)=>{
+   if(!u.fragment)return null;
+   const count=(raw.slice(u.fragment.start,u.fragment.end).match(/\S+/g)??[]).length;
+   const lines=Math.ceil(count/6);
+   return {height:lines*26,last_line_top:(lines-1)*26,last_line_fill:.92,last_line_words:6};
+  },
+  measure_page_height:height,
+ });
+ assert.equal(verifySemanticPageCoverage([prose,title,next],pages).ok,true);
+ const chapterPage=pages.findIndex(p=>p.units.some(u=>u.kind==="chapter_heading"));
+ assert(chapterPage>0);
+ assert.equal(pages[chapterPage].units[0].kind,"chapter_heading");
+ const pre=pages[chapterPage-1];
+ assert(pre.units.every(u=>u.id.startsWith("before-chapter")));
+ assert(pre.estimated_height>80,"Do not cut the pre-chapter prose mid-page");
+});
+
+test("last-row justification never stretches the true end of a paragraph",()=>{
+ const client=read("components/reader/SemanticReaderClient.tsx");
+ assert.match(client,/paragraph\.classList\.contains\("semantic-reader__fragment--final"\)/);
+ assert.match(client,/paragraph\.classList\.contains\("semantic-reader__fragment"\)/);
+ assert.match(client,/getComputedStyle\(paragraph\)\.textAlign!=="justify"/);
+});
