@@ -29,12 +29,12 @@ function chosenFirstCut(raw:string,lastLineStart:number,fillScale:number){
  assert(first);
  return first.end;
 }
-test("natural break inside second half of physically measured last line wins",()=>{
+test("a semicolon below the 80% measured fill threshold cannot discard a fuller physical row",()=>{
  const words="we observe that another person arrived, and took a quiet walk through the garden; after which the whole story continued with many more words ";
  const raw=words+words+words;
  const position=raw.indexOf("garden;")+"garden; ".length;
  const cut=chosenFirstCut(raw,20,100);
- assert.equal(cut,position,"semicolon is preferable when measured in second half of visible line");
+ assert(cut>position&&cut<=140,"early punctuation must not discard the fullest fitting row");
 });
 test("punctuation in first half cannot sacrifice rest of actual last line",()=>{
  const first="A careful sentence; ";

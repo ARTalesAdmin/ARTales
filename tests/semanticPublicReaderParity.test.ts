@@ -62,11 +62,11 @@ test("semantic page geometry is derived from the old book sheet and measured wit
  assert.match(client,/const pageHeight=Math\.round\(pageWidth\*1\.414\)/);
  assert.match(client,/Math\.round\(pageWidth\*1\.414\)/);
  assert.match(client,/pageContentHeight=Math\.max\(300,pageHeight-210\)/);
- assert.match(client,/viewport_height:actualCapacity\+100,content_height:actualCapacity/);
+ assert.match(client,/viewport_height:Math\.max\(320,actualCapacity\+100\),content_height:actualCapacity/);
  assert.match(client,/const contentRect=content\?\.getBoundingClientRect\(\)/);
  assert.match(client,/data-semantic-measure-id=\{unit\.id\}/);
  assert.match(client,/artales-reader__page-content semantic-public-reader__page-content/);
- assert.match(css,/grid-template-rows:32px minmax\(0,1fr\) 34px/);
+ assert.match(css,/grid-template-rows:32px minmax\(0,1fr\) 24px/);
  assert.match(css,/font-size:calc\(18px \* var\(--reader-font-scale,1\)\)/);
  assert.match(qaCss,/font-size:calc\(18px \* var\(--reader-scale,1\)\)/);
  assert.match(css,/hyphens:manual/);

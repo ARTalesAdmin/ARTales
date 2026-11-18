@@ -57,6 +57,6 @@ test("native fullscreen does not change page dimensions or hide the bottom of sh
  const fs=css.slice(css.indexOf("/* Browser fullscreen is orthogonal"));
  assert.doesNotMatch(fs,/grid-template-rows:|overflow:hidden!important|\.semantic-public-reader__paper\{/);
  assert.match(projection,/const terminal=before\.replace/);
- assert.match(projection,/const best=check\(bestIndex\)/);
+ assert.match(projection,/const fullest=check\(bestIndex\)/);
  assert.match(projection,/const whitespace=\[/);
 });
