@@ -159,9 +159,9 @@ test("AI proposal review offers one-by-one navigation and only server-owned pers
  assert.match(reader,/SemanticAiProposalReview/);
  assert.match(panel,/onOpenProposalReview/);
  assert.match(apply,/planQaProposalReview/);
- assert.match(apply,/commitSemanticQaBatch/);
- assert.match(apply,/resolveSemanticQaFlag/);
- assert.match(apply,/saveWorkTypographyRule/);
+ assert.match(apply,/artales_commit_editorial_review_batch/);
+ assert.match(apply,/plan\.confirmedNoChange/);
+ assert.match(apply,/plan\.protectedTerms/);
  assert.match(apply,/job.created_by!==actor.id/);
  assert.match(apply,/revision.revision_sha256!==input.revisionSha/);
  assert.doesNotMatch(apply,/requestArtalesAiResponse|generateSemanticAiQaSuggestions/);

@@ -19,8 +19,11 @@ export async function requestArtalesAiResponse(input: {
   payload: unknown;
   schemaName: string;
   schema: Record<string, unknown>;
-  maxOutputTokens?: 2200 | 4800;
+  maxOutputTokens?: number;
 }): Promise<GatewayRequestResult> {
+  const tokenLimit = Number.isInteger(input.maxOutputTokens) &&
+    (input.maxOutputTokens??0)>=2200 && (input.maxOutputTokens??0)<=6400
+    ?input.maxOutputTokens!:2200;
   const model = process.env.ARTALES_EDITORIAL_AI_MODEL;
   // Runtime token is injected in the Vercel Function request, never stored in env.
   const oidc = input.oidcToken;
@@ -36,7 +39,7 @@ export async function requestArtalesAiResponse(input: {
     body: JSON.stringify({
       model,
       store: false,
-      max_output_tokens: input.maxOutputTokens??2200,
+      max_output_tokens: tokenLimit,
       instructions: input.instructions,
       input: JSON.stringify(input.payload),
       text: {
@@ -48,7 +51,7 @@ export async function requestArtalesAiResponse(input: {
         }
       }
     }),
-    signal: AbortSignal.timeout(input.maxOutputTokens===4800?45000:30000),
+    signal: AbortSignal.timeout(tokenLimit>=4000?45000:30000),
     cache: "no-store"
   });
   if (!response.ok) {
