@@ -1,7 +1,7 @@
 import type {SemanticRevision,SemanticPageUnit,SemanticTitlePage} from "@/lib/semantic/model";
 import type {SupportedLocale} from "@/lib/i18n/config";
 import {selectEditorialEdition} from "@/lib/semantic/editionProjection";
-import {getSemanticPageUnits} from "@/lib/semantic/readerProjection";
+import {getSemanticPageUnits,projectFlatChapterHeadings} from "@/lib/semantic/readerProjection";
 import type {ApprovedSemanticImage} from "@/components/reader/SemanticPageUnit";
 import SemanticReaderClient from "@/components/reader/SemanticReaderClient";
 
@@ -37,6 +37,6 @@ export default function SemanticPublicReader({revision,title,author,slug,locale,
  return <SemanticReaderClient title={title} slug={slug} locale={locale}
   mode={isPreview?"preview":"full"}
   revisionSha={revision.revision_sha256}
-  units={[coverUnit,...visibleUnits]}
+  units={projectFlatChapterHeadings([coverUnit,...visibleUnits])}
   protectedTerms={protectedTerms} visuals={allowedVisuals}/>;
 }

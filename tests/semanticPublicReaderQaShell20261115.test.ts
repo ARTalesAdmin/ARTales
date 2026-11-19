@@ -15,7 +15,7 @@ test("public semantic Reader uses established Reader shell and shared semantic p
  assert.match(client,/semantic-reader__pages--scroll/);
  assert.match(client,/semantic-reader__pages--spread/);
  assert.match(client,/semantic-reader__viewport/);
- assert.match(client,/paginateSemanticUnits\(units/);
+ assert.match(client,/iterateSemanticPages\(semanticUnits/);
  assert.match(client,/unitView\(unit,protectedTerms,visuals\)/);
  assert.match(qa,/unitView\(u,protectedTerms\)/);
  assert.match(shared,/function coreUnitView/);
@@ -33,6 +33,7 @@ test("public semantic Reader delegates original typography controls and preserve
  assert.match(client,/onWidthChange=\{width=>patch/);
  assert.match(client,/onLayoutModeChange=\{layoutMode=>/);
  assert.match(client,/onGoToPage=\{n=>goToIndex\(n-1\)\}/);
+ assert.match(client,/notesEnabled=\{paginationSettled\}/);
  assert.match(client,/loadReaderNotes/);
  assert.match(client,/saveReaderProgress/);
 });

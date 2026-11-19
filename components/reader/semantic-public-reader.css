@@ -38,8 +38,8 @@
 }
 .artales-reader--semantic .semantic-public-reader__paper{
  display:grid;
- grid-template-rows:32px minmax(0,1fr) 34px;
- row-gap:clamp(10px,1.8vw,18px);
+ grid-template-rows:32px minmax(0,1fr) 24px;
+ row-gap:clamp(8px,1.1vw,12px);
  box-sizing:border-box;
  height:var(--reader-page-height);
  min-height:var(--reader-page-height);
@@ -48,7 +48,7 @@
  max-width:100%;
  overflow:hidden!important;
  padding:clamp(54px,5.6vw,78px) clamp(38px,7vw,88px)
-  clamp(32px,4vw,48px);
+  clamp(18px,2vw,28px);
  border:1px solid var(--reader-paper-border)!important;
  color:var(--reader-paper-text)!important;
  background:var(--reader-paper)!important;
@@ -77,6 +77,7 @@
 .artales-reader--semantic .semantic-public-reader__paper .semantic-reader__unit{
  max-width:100%;
  position:relative;
+ display:flow-root;
 }
 .artales-reader--semantic .semantic-public-reader__paper .semantic-reader__unit p{
  font:inherit;
@@ -84,7 +85,9 @@
  text-align:justify;
  text-align-last:start;
  text-justify:inter-word;
- text-wrap:pretty;
+ /* Stable browser word-wrap: 'pretty' can reflow earlier lines when a
+  * candidate fragment ends, invalidating full-paragraph row positions. */
+ text-wrap:wrap;
  word-spacing:normal;
  hyphens:manual;
  -webkit-hyphens:manual;
@@ -109,6 +112,7 @@
  text-align:center;
 }
 .artales-reader--semantic .semantic-public-reader__paper .semantic-reader__heading h3{
+ white-space:pre-line;
  color:var(--reader-paper-text);
  font:500 1.8em/1.18 Georgia,"Times New Roman",serif;
  text-align:center;
@@ -131,6 +135,17 @@
  margin-top:0!important;
  margin-bottom:0!important;
 }
+.artales-reader--semantic .semantic-public-reader__paper p.semantic-reader__fragment--final{
+ margin-bottom:var(--reader-paragraph-gap,1em)!important;
+}
+/* End-of-leaf prose does not need the separator margin after its last row.
+ * Margins between paragraphs remain intact. */
+.artales-reader--semantic .semantic-public-reader__page-content > .semantic-reader__unit:last-child > :is(p,blockquote,aside){
+ margin-bottom:0!important;
+}
+.artales-reader--semantic .semantic-public-reader__paper blockquote.semantic-reader__fragment--final{
+ margin-bottom:1.5em!important;
+}
 /* Same visible paper chrome and spacing as the legacy Reader. */
 .artales-reader--semantic .semantic-public-reader__paper-top{
  font:11px/1.35 Georgia,"Times New Roman",serif;
@@ -149,8 +164,8 @@
  display:flex;
  align-items:center;
  justify-content:center;
- min-height:34px;
- padding-top:9px;
+ min-height:24px;
+ padding-top:4px;
  border-top:1px solid color-mix(in srgb,var(--reader-paper-border) 72%,transparent);
 }
 .artales-reader--semantic .semantic-public-reader__cover-chrome{
@@ -245,9 +260,120 @@
   padding:32px 24px;
  }
 }
+/* Keep normal prose justified on narrow readers too. Only the final
+ * visual line remains naturally aligned; never stretch a short tail. */
 @media(max-width:520px){
  .artales-reader--semantic .semantic-public-reader__paper .semantic-reader__unit p,
  .artales-reader--semantic .semantic-public-reader__paper .semantic-reader__unit blockquote{
-  text-align:left;
+  text-align:justify;
+  text-align-last:start;
  }
 }
+
+/* Browser-native offscreen layout skipping. All source DOM stays available,
+ * including search, scroll navigation, and future pages. */
+.artales-reader--semantic .semantic-public-reader__flow .semantic-public-reader__paper{
+ content-visibility:auto;
+ contain-intrinsic-size:auto var(--reader-page-height);
+}
+.artales-reader--semantic .semantic-public-reader__reflow-status{
+ position:fixed;right:12px;bottom:12px;z-index:100;
+ padding:6px 11px;border-radius:6px;
+ background:var(--reader-paper);color:var(--reader-paper-text);
+ border:1px solid var(--reader-paper-border);
+ font:12px/1.4 system-ui,sans-serif;
+}
+
+/* Projection-only chapter typography: the original paragraph atoms remain
+ * immutable, while their source-evidenced roles control page layout. */
+.artales-reader--semantic .semantic-public-reader__paper .semantic-reader__chapter-number{
+ text-align:center;
+ margin:0 0 .55em;
+ font:500 1.08em/1.5 Georgia,"Times New Roman",serif;
+}
+.artales-reader--semantic .semantic-public-reader__paper .semantic-reader__chapter-title{
+ text-align:center;
+ margin:0 0 1.45em;
+ font:500 1.20em/1.3 Georgia,"Times New Roman",serif;
+ text-wrap:balance;
+}
+.artales-reader--semantic .semantic-public-reader__paper .semantic-reader__unit p{
+ text-wrap:wrap;
+}
+/* The cover must fit the measured inner paper, rather than adding its own
+ * viewport-based minimum size and an unwanted nested scroll bar. */
+.artales-reader--semantic .semantic-reader__front-page .semantic-reader__title-page{
+ height:100%;
+ min-height:0!important;
+ max-height:100%;
+ box-sizing:border-box;
+ padding:0!important;
+ gap:0!important;
+ overflow:hidden;
+}
+.artales-reader--semantic .semantic-reader__front-page [data-semantic-edition-title-page]{
+ height:100%;
+ min-height:0!important;
+ max-height:100%;
+ box-sizing:border-box;
+ padding:0!important;
+ margin:0!important;
+ border:0!important;
+ overflow:visible;
+ background:transparent!important;
+}
+.artales-reader--semantic .semantic-reader__front-page .semantic-public-reader__page-content{
+ overflow:hidden!important;
+}
+.artales-reader--semantic .semantic-reader__front-page .semantic-public-reader__page-content .semantic-reader__unit{
+ height:100%;
+}
+
+/* All ordinary prose lines stay justified; the true LAST line of any
+ * paragraph stays natural unless the visible measured width and bounded
+ * per-word gap permit safe justification, including completed paragraphs. */
+.artales-reader--semantic .semantic-public-reader__paper p.semantic-reader__fragment:not(.semantic-reader__fragment--final){
+ text-align-last:start;
+}
+.artales-reader--semantic .semantic-public-reader__paper p.semantic-reader__fragment--final{
+ text-align-last:start;
+}
+/* Shared gate: >=83% natural fill, >=4 words and <=7px extra space.
+ * Short endings and editorial alignment intentionally remain natural. */
+.artales-reader--semantic .semantic-public-reader__paper .semantic-reader__unit :is(p,blockquote,aside).semantic-reader__prose--justify-last{
+ text-align-last:justify;
+}
+
+/* Browser fullscreen is orthogonal to page/spread layout. The paper's
+ * dimensions, rows, padding and actual DOM measurements NEVER change
+ * on fullscreen entry. If a sheet is taller than the screen, the host
+ * scrolls vertically rather than clipping its lower part. */
+.artales-reader--semantic .semantic-reader__fullscreen-toggle{
+ display:inline-grid;place-items:center;width:38px;height:36px;
+ border:1px solid var(--reader-control-border);border-radius:9px;
+ background:var(--reader-control-bg);color:var(--reader-control-text);
+ font-size:21px;cursor:pointer;
+}
+.artales-reader--semantic .semantic-reader__fullscreen-toggle:focus-visible{
+ outline:2px solid var(--reader-accent);outline-offset:2px;
+}
+.artales-reader--semantic:fullscreen{
+ width:100%;height:100%;min-height:0;max-height:100%;
+ overflow-x:hidden;overflow-y:auto;
+ overscroll-behavior:contain;
+ scrollbar-width:thin;
+ scrollbar-color:color-mix(in srgb,var(--reader-accent) 30%,transparent) transparent;
+ background:var(--reader-outer-bg);
+}
+.artales-reader--semantic:fullscreen::-webkit-scrollbar{width:5px}
+.artales-reader--semantic:fullscreen::-webkit-scrollbar-thumb{
+ background:color-mix(in srgb,var(--reader-accent) 30%,transparent);
+ border-radius:10px;
+}
+.artales-reader--semantic:fullscreen .artales-reader-toolbar{
+ position:sticky;top:0;z-index:1050;
+}
+.artales-reader--semantic:fullscreen .semantic-public-reader__stage{
+ min-height:0;
+}
+/* Do not touch .semantic-public-reader__paper or its grid children. */

@@ -1,11 +1,12 @@
 import {createHash} from "node:crypto";
 import {inflateRawSync} from "node:zlib";
 import {posix} from "node:path";
+import type {StructureCue} from "../semantic/sourceStructure";
 const MAX_FILE=16*1024*1024,MAX_FILES=400,MAX_TOTAL=48*1024*1024;
 const digest=(b:Uint8Array)=>createHash("sha256").update(b).digest("hex");
 type Entry={name:string;bytes:Buffer;sha256:string};
 export type EpubExtract={schema:"artales.epub-extract.v1";epub_sha256:string;text:string;text_sha256:string;
- component_id:string;documents:{path:string;sha256:string;length:number}[];
+ component_id:string;structure_cues:StructureCue[];documents:{path:string;sha256:string;length:number}[];
  assets:{path:string;sha256:string;size:number;mime:string;publication_clearance:"excluded"}[]};
 export function readEpubEntries(input:Uint8Array):Entry[]{
  const b=Buffer.from(input);
@@ -65,6 +66,46 @@ export function xhtmlToSourceText(source:string):string{
  .replace(/<[^>]+>/g,"");
  return unescapeEntities(clean).replace(/\r\n?/g,"\n").replace(/[\t ]+\n/g,"\n").replace(/\n{4,}/g,"\n\n\n").trim();
 }
+/** Retain source offsets of unambiguous EPUB heading/verse markup while
+ * continuing to use the existing, lossless XHTML -> text normalization.
+ * These cues are evidence, never executable markup or HTML injected in UI.
+ */
+export function xhtmlToSourceWithStructure(source:string):{text:string;cues:StructureCue[]} {
+ const text=xhtmlToSourceText(source),cues:StructureCue[]=[];
+ const body=/<body\b[^>]*>([\s\S]*?)<\/body\s*>/i.exec(source)?.[1]??"";
+ type Candidate={markupStart:number;kind:StructureCue["kind"];method:StructureCue["evidence"];html:string};
+ const candidates:Candidate[]=[];
+ for(const m of body.matchAll(/<h([1-6])\b[^>]*>([\s\S]*?)<\/h\1\s*>/gi)){
+  candidates.push({markupStart:m.index!,kind:Number(m[1])<=2?"chapter":"section",
+   method:"xhtml-heading",html:m[2]});
+ }
+ for(const m of body.matchAll(/<(div|pre|blockquote)\b([^>]*\bclass\s*=\s*["'][^"']*\b(?:poem|poetry|verse)\b[^"']*["'][^>]*)>([\s\S]*?)<\/\1\s*>/gi)){
+  candidates.push({markupStart:m.index!,kind:"poem",method:"xhtml-poetry",html:m[3]});
+ }
+ let after=0;
+ for(const candidate of candidates.sort((a,b)=>a.markupStart-b.markupStart)){
+  const html=candidate.html.replace(/<br\s*\/?\s*>/gi,"\n")
+   .replace(/<\/(?:p|div|h[1-6]|li|blockquote|section|article|pre|tr)>/gi,"\n\n")
+   .replace(/<[^>]+>/g,"");
+  const wanted=unescapeEntities(html).replace(/\r\n?/g,"\n")
+   .replace(/[\t ]+\n/g,"\n").replace(/\n{4,}/g,"\n\n\n").trim();
+  if(!wanted||wanted.length>10000)continue;
+  // Require whole source paragraph or complete line block. Never select a
+  // substring from running prose as a heading just because words matched.
+  let at=text.indexOf(wanted,after);
+  while(at>=0){
+   const end=at+wanted.length;
+   if((at===0||text.slice(Math.max(0,at-2),at)==="\n\n")&&
+      (end===text.length||text.slice(end,end+2)==="\n\n"))break;
+   at=text.indexOf(wanted,at+1);
+  }
+  if(at<0)continue;
+  cues.push({kind:candidate.kind,start:at,end:at+wanted.length,evidence:candidate.method});
+  after=at+wanted.length;
+ }
+ return {text,cues};
+}
+
 export function extractEpub(input:Uint8Array):EpubExtract{
  const entries=readEpubEntries(input),byName=new Map(entries.map(e=>[e.name,e]));
  const container=byName.get("META-INF/container.xml")?.bytes.toString("utf8");
@@ -79,14 +120,19 @@ export function extractEpub(input:Uint8Array):EpubExtract{
  }
  const ids=[...opf.matchAll(/<itemref\s+([^>]*?)\/?\s*>/gi)].map(x=>/idref\s*=\s*["']([^"']+)["']/i.exec(x[1])?.[1]).filter((v):v is string=>!!v);
  if(!ids.length)throw Error("epub_spine_empty");
- const documents:{path:string;sha256:string;length:number}[]=[],segments:string[]=[];
+ const documents:{path:string;sha256:string;length:number}[]=[],segments:string[]=[],structure_cues:StructureCue[]=[];
  for(const id of ids){
   const item=manifest.get(id);if(!item||item.type!=="application/xhtml+xml")throw Error("epub_spine_item_invalid");
   const path=posix.normalize(posix.join(folder,item.href.split("#")[0]));
   if(path.startsWith("../"))throw Error("epub_href_escape");
   const entry=byName.get(path);if(!entry)throw Error("epub_spine_file_missing");
-  const txt=xhtmlToSourceText(new TextDecoder("utf-8",{fatal:true}).decode(entry.bytes));
-  if(txt){segments.push(txt);documents.push({path,sha256:entry.sha256,length:entry.bytes.length});}
+  const parsed=xhtmlToSourceWithStructure(new TextDecoder("utf-8",{fatal:true}).decode(entry.bytes));
+  if(parsed.text){
+   const offset=segments.length?segments.join("\n\n").length+2:0;
+   structure_cues.push(...parsed.cues.map(c=>({...c,start:c.start+offset,end:c.end+offset})));
+   segments.push(parsed.text);
+   documents.push({path,sha256:entry.sha256,length:entry.bytes.length});
+  }
  }
  const text=segments.join("\n\n");
  if(text.length<100)throw Error("epub_literary_body_too_short");
@@ -95,5 +141,5 @@ export function extractEpub(input:Uint8Array):EpubExtract{
   mime:/\.png$/i.test(x.name)?"image/png":/\.gif$/i.test(x.name)?"image/gif":/\.webp$/i.test(x.name)?"image/webp":"image/jpeg",
   publication_clearance:"excluded" as const
  }));
- return {schema:"artales.epub-extract.v1",epub_sha256:digest(input),text,text_sha256:digest(Buffer.from(text)),component_id:"epub:spine",documents,assets};
+ return {schema:"artales.epub-extract.v1",epub_sha256:digest(input),text,text_sha256:digest(Buffer.from(text)),component_id:"epub:spine",structure_cues,documents,assets};
 }

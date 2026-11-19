@@ -86,7 +86,9 @@ function validateTitlePage(page: SemanticTitlePage, workId: string) {
 
 type Span = { start: number; end: number };
 export type SemanticStructureHint = {
-  kind: "poem" | "quote" | "footnote" | "epigraph" | "section";
+  kind: "chapter" | "poem" | "quote" | "footnote" | "epigraph" | "section";
+  /** Optional extraction evidence, persisted on structural nodes only. */
+  evidence?: {method:"xhtml-heading"|"xhtml-poetry"|"deterministic-text";confidence:"high"|"medium"};
   start: number;
   end: number;
   label?: string;
@@ -177,7 +179,10 @@ function collectHints(hints: SemanticStructureHint[], length: number) {
   for (const h of sorted) {
     if (!Number.isInteger(h.start) || !Number.isInteger(h.end) ||
         h.start<end || h.start<0 || h.end>length || h.end<=h.start ||
-        !["poem","quote","footnote","epigraph","section"].includes(h.kind)) {
+        !["chapter","poem","quote","footnote","epigraph","section"].includes(h.kind)||
+        (h.evidence!==undefined&&(
+          !["xhtml-heading","xhtml-poetry","deterministic-text"].includes(h.evidence.method)||
+          !["high","medium"].includes(h.evidence.confidence)))) {
       throw new Error("Overlapping, invalid or out-of-range semantic structural hints.");
     }
     end=h.end;
@@ -209,14 +214,15 @@ export function composeSemanticRevision(input: SemanticInput): SemanticRevision 
       ...(kind==="footnote" && label?{footnote_label:label}:{})};
     append(item);
   }
-  function heading(start:number,end:number,kind:"chapter"|"section") {
+  function heading(start:number,end:number,kind:"chapter"|"section",evidence?:SemanticStructureHint["evidence"]) {
     const h=atom(input,rawBytes,normalized,byteAt,start,end);
     const item:SemanticSection={kind,id:"s:"+h.id,heading:h,children:[],
-      ...(kind==="chapter"?{presentation:{...DEFAULT_CHAPTER_PRESENTATION}}:{})};
+      ...(kind==="chapter"?{presentation:{...DEFAULT_CHAPTER_PRESENTATION}}:{}),
+      ...(evidence?{structure_evidence:evidence}:{})};
     if(kind==="chapter"){blocks.push(item);currentChapter=item;currentSection=null;}
     else{if(currentChapter)currentChapter.children.push(item);else blocks.push(item);currentSection=item;}
   }
-  function poem(start:number,end:number) {
+  function poem(start:number,end:number,evidence?:SemanticStructureHint["evidence"]) {
     const stanzas:SemanticPoem["stanzas"]=[];
     let lines:SemanticPoem["stanzas"][number]["lines"]=[];
     let lineStart=start;
@@ -243,7 +249,8 @@ export function composeSemanticRevision(input: SemanticInput): SemanticRevision 
     finishStanza();
     if(!stanzas.length)throw new Error("Poem hint has no text lines.");
     const node:SemanticPoem={kind:"poem",id:"po:"+sha([input.snapshot_ref,input.component_id,start,end].join(":")).slice(0,24),
-      stanzas,anchor:anchor(input,byteAt,start,end),layout:"stanza_natural"};
+      stanzas,anchor:anchor(input,byteAt,start,end),layout:"stanza_natural",
+      ...(evidence?{structure_evidence:evidence}:{})};
     append(node);
   }
   function ordinary(start:number,end:number){
@@ -267,8 +274,9 @@ export function composeSemanticRevision(input: SemanticInput): SemanticRevision 
   let cursor=0;
   for(const hint of hints){
     if(cursor<hint.start)ordinary(cursor,hint.start);
-    if(hint.kind==="poem")poem(hint.start,hint.end);
-    else if(hint.kind==="section")heading(hint.start,hint.end,"section");
+    if(hint.kind==="poem")poem(hint.start,hint.end,hint.evidence);
+    else if(hint.kind==="section"||hint.kind==="chapter")
+      heading(hint.start,hint.end,hint.kind,hint.evidence);
     else textBlock(hint.start,hint.end,hint.kind,hint.label);
     cursor=hint.end;
   }
@@ -355,6 +363,12 @@ export function verifySemanticRevision(revision:SemanticRevision, exactOriginalR
   const checkPresentations=(nodes:SemanticNode[])=>{
     for(const n of nodes){
       if(n.presentation)validateBlockPresentation(n.presentation,n.kind);
+      if("structure_evidence" in n&&n.structure_evidence){
+        const evidence=n.structure_evidence;
+        if(!["xhtml-heading","xhtml-poetry","deterministic-text"].includes(evidence.method)||
+          !["high","medium"].includes(evidence.confidence))
+          throw Error("Untrusted source structure evidence.");
+      }
       if(n.kind==="chapter"||n.kind==="section")checkPresentations(n.children);
     }
   };
