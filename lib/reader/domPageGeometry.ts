@@ -1,3 +1,6 @@
+import type {WorkBlock} from "@/lib/blocks";
+import {measureSemanticDomRows} from "@/lib/semantic/domLineGeometry";
+
 /** Browser geometry for the existing legacy WorkBlock Reader.
  * This measures its ACTUAL rendered CSS boxes. It does not create semantic
  * text atoms, modify source strings, or introduce another pagination engine.
@@ -8,6 +11,11 @@ export type LegacyReaderDomGeometry = {
   blockHeightsPx: number[];
   /** Physical Chromium rows, not logical sentences or source line breaks. */
   blockRows: number[];
+  /** Real source-word boundaries for single unmarked prose paragraphs. */
+  paragraphRows?: Array<{
+    textHeightPx: number;
+    rows: Array<{sourceEnd:number;bottomPx:number}>;
+  } | null>;
 };
 
 function finitePositive(value: number): boolean {
@@ -49,6 +57,7 @@ export function syncLegacyMeasuringPaper(
 export function measureLegacyReaderDom(
   measuringStage: HTMLElement,
   expectedFragmentCount: number,
+  sourceFragments?: readonly WorkBlock[],
 ): LegacyReaderDomGeometry | null {
   const content = measuringStage.querySelector<HTMLElement>(
     ".artales-reader__page-content",
@@ -66,7 +75,8 @@ export function measureLegacyReaderDom(
   if (fragments.length !== expectedFragmentCount) return null;
   const heights: number[] = [];
   const rows: number[] = [];
-  for (const fragment of fragments) {
+  const paragraphRows: NonNullable<LegacyReaderDomGeometry["paragraphRows"]> = [];
+  for (const [index,fragment] of fragments.entries()) {
     const rect = fragment.getBoundingClientRect();
     const css = getComputedStyle(fragment);
     const topMargin = parseFloat(css.marginTop) || 0;
@@ -81,13 +91,31 @@ export function measureLegacyReaderDom(
     let totalRows = 0;
     for (const el of textElements) totalRows += countLegacyRenderedRows(el);
     rows.push(totalRows);
-    // Text is measured physically, but the exact fragment cut is a later step.
+    const source = sourceFragments?.[index];
+    const p = fragment.querySelector<HTMLElement>(".artales-paragraph > p");
+    const plain = source?.type === "paragraph" && p &&
+      source.content === source.content.trim() &&
+      !/[\r\n<>]/.test(source.content) && !/&lt;/i.test(source.content) &&
+      p.textContent === source.content;
+    if (!plain || !p) {paragraphRows.push(null);continue;}
+    const measuredRows=measureSemanticDomRows(p,0,p);
+    const pHeight=p.getBoundingClientRect().height;
+    if (!(pHeight>0) || measuredRows.length<1 ||
+        measuredRows.some(row=>!Number.isFinite(row.bottom) ||
+          row.sourceEnd<1 || row.sourceEnd>source.content.length)) {
+      paragraphRows.push(null);continue;
+    }
+    paragraphRows.push({
+      textHeightPx:pHeight,
+      rows:measuredRows.map(row=>({sourceEnd:row.sourceEnd,bottomPx:row.bottom})),
+    });
   }
   return {
     contentHeightPx: Math.floor(contentRect.height * 2) / 2,
     contentWidthPx: Math.floor(contentRect.width * 2) / 2,
     blockHeightsPx: heights,
     blockRows: rows,
+    paragraphRows,
   };
 }
 

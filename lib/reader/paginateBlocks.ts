@@ -465,10 +465,18 @@ export function prepareLegacyReaderFragments(
   settings: ReaderSettings,
   tableMeasurements: TableBlockMeasurements = {},
   styles: LegacyBlockStyleMap = DEFAULT_LEGACY_BLOCK_STYLES,
+  preservePlainParagraphs = false,
 ): WorkBlock[] {
   const budget = getPageBudget(settings);
   return blocks.flatMap(block => {
     const style = styles[block.type];
+    // The browser, rather than estimated character budgets, may now split
+    // plain unmarked prose. Keep every other legacy block unchanged.
+    if (preservePlainParagraphs && block.type === "paragraph" &&
+      !style.keep_together && !style.own_page &&
+      block.content === block.content.trim() &&
+      block.content.length > 0 && !/[\r\n<>]/.test(block.content) &&
+      !/&lt;/i.test(block.content)) return [block];
     const effectiveBudget = Math.max(120,
       Math.round(budget / Math.max(.4, legacyBlockWeightMultiplier(style))));
     return splitBlock(block, effectiveBudget, settings, tableMeasurements, style);
@@ -483,39 +491,100 @@ function paginateMeasuredLegacyFragments(
   styles: LegacyBlockStyleMap,
   geometry: LegacyReaderDomGeometry,
 ): ReaderPage[] | null {
-  const {contentHeightPx,blockHeightsPx,blockRows} = geometry;
+  const {contentHeightPx,blockHeightsPx,blockRows,paragraphRows} = geometry;
   if (!Number.isFinite(contentHeightPx) || contentHeightPx < 80 ||
     fragments.length !== blockHeightsPx.length ||
     blockRows.length !== fragments.length) return null;
   if (blockHeightsPx.some(h => !Number.isFinite(h) || h <= 0 || h > 100000)) return null;
-  // Include a modest browser rounding budget: independent sibling margins are
-  // conservatively summed rather than assumed to collapse.
-  const capacity = Math.max(60, contentHeightPx - 6);
-  const pages: ReaderPage[] = [];
-  let current: WorkBlock[] = [];
-  let currentHeight = 0;
-  let currentOverflow = false;
-  const flush = () => {
-    if (!current.length) return;
-    pages.push({
-      blocks: current,
-      estimatedWeight: currentHeight,
-      ...(currentOverflow ? {overflow: "scroll_unit" as const} : {}),
-    });
-    current = []; currentHeight = 0; currentOverflow = false;
+  const capacity=Math.max(60,contentHeightPx-6);
+  const pages:ReaderPage[]=[];
+  let current:WorkBlock[]=[];
+  let currentHeight=0;
+  let currentOverflow=false;
+  const flush=()=>{
+    if(!current.length)return;
+    pages.push({blocks:current,estimatedWeight:currentHeight,
+      ...(currentOverflow?{overflow:"scroll_unit" as const}:{})});
+    current=[];currentHeight=0;currentOverflow=false;
   };
-  fragments.forEach((block,index) => {
-    const style = styles[block.type];
-    const height = blockHeightsPx[index];
-    if ((style.page_break_before || style.own_page) && current.length) flush();
-    if (current.length && currentHeight + height > capacity) flush();
+  const add=(block:WorkBlock,height:number)=>{
     current.push(block);
-    currentHeight += height;
-    if (height > capacity) currentOverflow = true;
-    if (style.own_page) flush();
+    currentHeight+=height;
+    if(height>capacity)currentOverflow=true;
+  };
+  fragments.forEach((block,index)=>{
+    const style=styles[block.type];
+    const height=blockHeightsPx[index];
+    if((style.page_break_before||style.own_page)&&current.length)flush();
+
+    // Strictly one unmarked paragraph: source offsets from measured DOM rows.
+    // These slices are display-only and cover exactly the original UTF-16
+    // content (no normalization, dropped whitespace or stored mutations).
+    const paragraph=block.type==="paragraph" && !style.keep_together && !style.own_page
+      ?paragraphRows?.[index]:null;
+    const raw=block.content;
+    const rows=paragraph?.rows;
+    const validRows=rows && rows.length>1 &&
+      rows.every((row,i)=>row.sourceEnd>0 && row.sourceEnd<=raw.length &&
+        row.bottomPx>0 && (i===0 ||
+          (row.sourceEnd>rows[i-1].sourceEnd && row.bottomPx>rows[i-1].bottomPx)));
+    if (!validRows || !paragraph || !rows) {
+      if(current.length && currentHeight+height>capacity)flush();
+      add(block,height);
+      if(style.own_page)flush();
+      return;
+    }
+    const chrome=Math.max(0,height-paragraph.textHeightPx);
+    let rowStart=0;
+    let charStart=0;
+    let guard=0;
+    while(rowStart<rows.length && guard++<=rows.length){
+      const previousBottom=rowStart?rows[rowStart-1].bottomPx:0;
+      const space=capacity-currentHeight;
+      let endRow=rowStart-1;
+      for(let j=rowStart;j<rows.length;j++){
+        const needed=chrome+rows[j].bottomPx-previousBottom;
+        if(needed>space-1)break;
+        endRow=j;
+      }
+      // Avoid an orphan single line if another sheet can hold two.
+      const remainder=rows.length-rowStart;
+      const fitted=endRow-rowStart+1;
+      if(current.length && (fitted<Math.min(2,remainder) ||
+        (fitted<remainder && remainder-fitted===1))){
+        flush();continue;
+      }
+      if(endRow<rowStart) {
+        if(current.length){flush();continue;}
+        // A single physical line is taller than the paper. Preserve access.
+        endRow=rowStart;
+      }
+      if(endRow<rows.length-1 && rows.length-endRow-1===1 &&
+         endRow>rowStart)endRow--;
+      const atEnd=endRow===rows.length-1;
+      const charEnd=atEnd?raw.length:rows[endRow].sourceEnd;
+      if(charEnd<=charStart || charEnd>raw.length){
+        // Unreliable DOM offsets: do not risk a lost or duplicated character.
+        if(current.length)flush();
+        add({...block,content:raw.slice(charStart)},capacity+1);
+        break;
+      }
+      const piece:WorkBlock=charStart===0 && atEnd?block:{
+        ...block,
+        id:block.id+"-dom-"+charStart+"-"+charEnd,
+        content:raw.slice(charStart,charEnd),
+        fields:{...block.fields,legacyReaderContinuation:charStart>0},
+      };
+      const measuredHeight=chrome+rows[endRow].bottomPx-previousBottom;
+      if(current.length && currentHeight+measuredHeight>capacity)flush();
+      add(piece,measuredHeight);
+      rowStart=endRow+1;
+      charStart=charEnd;
+      if(!atEnd)flush();
+    }
   });
   flush();
-  return pages.length ? pages : [{blocks:[],estimatedWeight:0}];
+  return pages.length?pages:[{blocks:[],estimatedWeight:0}];
 }
 
 export function paginateReaderBlocks(
@@ -528,7 +597,8 @@ export function paginateReaderBlocks(
   const budget = getPageBudget(settings);
   const softBudget = Math.round(budget * 0.9);
   const maxBudget = Math.round(budget * 1.08);
-  const splitBlocks = prepareLegacyReaderFragments(blocks,settings,tableMeasurements,styles);
+  const splitBlocks = prepareLegacyReaderFragments(
+    blocks,settings,tableMeasurements,styles,Boolean(measuredGeometry));
   if (measuredGeometry) {
     const measured = paginateMeasuredLegacyFragments(splitBlocks,styles,measuredGeometry);
     if (measured) return measured;
