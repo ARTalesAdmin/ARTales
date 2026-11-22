@@ -49,11 +49,16 @@
  text-indent:0!important;
 }
 
-/* Match the semantic Reader's bounded final-row rule ONLY for styled
-   legacy prose. Other alignments keep their editorial value: the helper
-   adds this class only after measuring natural fill and checking justify. */
+/* Apply the shared bounded final-row rule to all reader prose that is
+   actually computed as justified, not only blocks classified "paragraph".
+   Introductory matter, quotations and letters must obey the same typography;
+   editorial left/center alignment, verse and headings remain untouched.
+   The JS helper only adds this marker after measuring a naturally full row. */
 .artales-reader:not(.artales-reader--semantic) .artales-reader__paper
-  .artales-work-content [data-legacy-block-style="paragraph"]
-  > .artales-paragraph p.semantic-reader__prose--justify-last {
+  .artales-work-content [data-legacy-block-style]
+  :is(.artales-paragraph, .artales-quote, .artales-letter-body,
+    .artales-newspaper, .artales-preface, .artales-afterword,
+    .artales-acknowledgement)
+  > p.semantic-reader__prose--justify-last {
   text-align-last: justify;
 }
