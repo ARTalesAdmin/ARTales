@@ -134,7 +134,7 @@ with sync_playwright() as pw:
     for(let n=0;n<96;n++){
       const prose=(("The conversation was warm and everyone listened carefully. ".repeat(4))+
         "Neighbors gathered and shared their stories "+ "a ".repeat(n) +
-        "until the whole community understood the message"+terminal+" after that " +
+        "until the whole community understood the messages"+terminal+" after that " +
         ("the discussion carried on through many unhurried evenings ".repeat(16))).trim();
       visible.textContent=prose;
       measured.textContent=prose;
