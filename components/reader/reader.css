@@ -2431,6 +2431,13 @@
 .artales-reader__measurement-stage .artales-reader__page-content {
   overflow:visible!important;
 }
+/* Measure NATURAL ink positions before justification stretches ordinary rows.
+   The visible paragraph keeps its editorial block alignment unchanged.
+   Left/start alignment preserves the same wrap opportunities and widths. */
+.artales-reader__measurement-stage .artales-work-content
+  [data-legacy-block-style="paragraph"] > .artales-paragraph p {
+  text-align:start!important;
+}
 /* Only exceptional unbreakable ink receives a readable escape hatch. */
 .artales-reader__paper--scroll-unit .artales-reader__page-content {
   overflow-y:auto!important;

@@ -117,4 +117,81 @@ with sync_playwright() as pw:
  assert newline_result["source"]==single,newline_result
  assert newline_result["pageCount"]>1,newline_result
  print("Chromium legacy inline newline follows measured row path PASS",newline_result["rows"])
+
+ # General (not title-specific) punctuation regression on real physical DOM rows.
+ # The hidden sampler must report NATURAL punctuation positions, not positions
+ # inflated by Chromium's normal text justification.
+ for terminal in (";","." ):
+  selected=page.evaluate("""terminal=>{
+    const e=window.ARTalesLegacyDomEngine;
+    const paper=document.querySelector('#visible');
+    const sampler=document.querySelector('#probe');
+    if(!e.syncLegacyMeasuringPaper(sampler,paper))throw Error('Paper parity failed');
+    const measured=document.querySelector('#measured');
+    const visible=document.querySelector('#original');
+    let result=null;
+    const samples=[];
+    for(let n=0;n<96;n++){
+      const prose=(("The conversation was warm and everyone listened carefully. ".repeat(4))+
+        "Neighbors gathered and shared their stories "+ "a ".repeat(n) +
+        "until the whole community understood the messages"+terminal+" after that " +
+        ("the discussion carried on through many unhurried evenings ".repeat(16))).trim();
+      visible.textContent=prose;
+      measured.textContent=prose;
+      const block={id:'general-prose',type:'paragraph',content:prose,editor_note:null};
+      const geo=e.measureLegacyReaderDom(sampler,1,[block]);
+      const rows=geo?.paragraphRows?.[0]?.rows??[];
+      const hit=rows.findIndex((row,index)=>index<rows.length-1 &&
+        row.punctuationCuts?.some(mark=>mark.fill>=.8 && mark.fill<=.98 &&
+          mark.displayEnd<row.displayEnd));
+      if(hit<0){
+        if(n%20===0) samples.push({n,rows:rows.length,
+          marks:rows.flatMap((row,index)=>(row.punctuationCuts??[])
+            .map(mark=>({row:index,fill:mark.fill,cut:mark.displayEnd,
+              rowEnd:row.displayEnd,bottom:row.bottomPx})))
+        });
+        continue;
+      }
+      // The canonical paginator requires at least 80px of page height.
+      // Place the target punctuation well below the first physical rows.
+      const fitting=rows[hit];
+      if(fitting.bottomPx<80)continue;
+      // Page height includes the block's non-text chrome (margins), just as
+      // paginateMeasuredLegacyFragments does. The previous fixture counted
+      // only the glyph rows, incorrectly excluding its own target line.
+      const chrome=Math.max(0,geo.blockHeightsPx[0]-
+        geo.paragraphRows[0].textHeightPx);
+      const controlled={...geo,contentHeightPx:fitting.bottomPx+chrome+8};
+      const pages=e.paginateReaderBlocks([block],e.defaultReaderSettings,{},
+        e.DEFAULT_LEGACY_BLOCK_STYLES,controlled);
+      const first=pages[0]?.blocks?.[0];
+      if(first?.fields?.legacyReaderPageEndReason!=='punctuation_80'){
+        if(samples.length<10)samples.push({n,hit,reason:first?.fields?.legacyReaderPageEndReason,
+          first:first?.content?.slice(-120),pageCount:pages.length,
+          fitting,contentHeightPx:controlled.contentHeightPx});
+        continue;
+      }
+      result={
+        reason:first.fields.legacyReaderPageEndReason,
+        cut:first.content,source:pages.flatMap(page=>page.blocks.map(b=>b.content)).join(''),
+        expected:prose,sheets:pages.length,
+        samplerAlignment:getComputedStyle(measured).textAlign,
+        visibleAlignment:getComputedStyle(visible).textAlign,
+        punctuationFill:fitting.punctuationCuts.map(x=>x.fill),
+      };
+      break;
+    }
+    return {result,samples};
+  }""",terminal)
+  if selected["result"] is None:
+   print("PUNCTUATION_DIAGNOSTICS",terminal,str(selected["samples"])[:6500])
+  selected=selected["result"]
+  assert selected is not None, ("No physical 80% punctuation candidate",terminal)
+  assert selected["reason"]=="punctuation_80",selected
+  assert selected["cut"].rstrip().endswith(terminal),selected
+  assert selected["source"]==selected["expected"],selected
+  assert selected["sheets"]>1,selected
+  assert selected["samplerAlignment"] in ("start","left"),selected
+  assert selected["visibleAlignment"]=="justify",selected
+  print("Chromium natural 80% punctuation cut, title-independent PASS",terminal,selected["sheets"])
  browser.close()

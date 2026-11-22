@@ -7,6 +7,8 @@ import {
 import type { ReaderSettings } from "./readerSettings";
 import type {LegacyReaderDomGeometry} from "./domPageGeometry";
 import {parseLegacyInlineProse} from "./inlineProseSource";
+import {chooseSemanticFittingRowCut} from "@/lib/semantic/readerProjection";
+import {getProtectedTextSpans} from "@/lib/semantic/protectedSpans";
 import {DEFAULT_LEGACY_BLOCK_STYLES,legacyBlockWeightMultiplier,type LegacyBlockStyleMap,type LegacyBlockStyle} from "@/lib/rendering/legacyBlockStyles";
 
 export type ReaderPage = {
@@ -533,7 +535,8 @@ function paginateMeasuredLegacyFragments(
     const inline=block.type==="paragraph" ? parseLegacyInlineProse(raw) : null;
     // Source slices remain byte-for-byte contiguous. Rendering-only affixes
     // restore an emphasis tag that spans a physical page boundary.
-    const makeSlice=(start:number,end:number,reason:string):WorkBlock=>{
+    const makeSlice=(start:number,end:number,reason:string,
+      pageEndReason?:"punctuation_80"):WorkBlock=>{
       const startTag=inline?.activeTagAtSourceOffset(start);
       const endTag=inline?.activeTagAtSourceOffset(end);
       return {
@@ -543,6 +546,7 @@ function paginateMeasuredLegacyFragments(
         fields:{
           ...(block.fields??{}),
           legacyReaderContinuation:start>0,
+          ...(pageEndReason?{legacyReaderPageEndReason:pageEndReason}:{}),
           legacyReaderInlinePrefix:startTag?"<"+startTag+">":"",
           legacyReaderInlineSuffix:endTag?"</"+endTag+">":"",
         },
@@ -566,6 +570,7 @@ function paginateMeasuredLegacyFragments(
     const chrome=Math.max(0,height-paragraph.textHeightPx);
     let rowStart=0;
     let charStart=0;
+    let displayStart=0;
     let guard=0;
     while(rowStart<rows.length && guard++<rows.length*3){
       const previousBottom=rowStart?rows[rowStart-1].bottomPx:0;
@@ -585,7 +590,37 @@ function paginateMeasuredLegacyFragments(
         endRow=rowStart;
       }
       const atEnd=endRow===rows.length-1;
-      const charEnd=atEnd?raw.length:rows[endRow].sourceEnd;
+      const fittingRow=rows[endRow];
+      let charEnd=atEnd?raw.length:fittingRow.sourceEnd;
+      let chosenDisplayEnd=atEnd?inline?.visibleText.length:fittingRow.displayEnd;
+      let pageEndReason:"punctuation_80"|undefined;
+
+      // The semantic Reader selects a measured period/semicolon at >=80% of
+      // the LAST fitting physical row, not an earlier row or guessed character.
+      // Adapt its existing decision to inline-markup source offsets. Plain
+      // source and <em>/<i> follow the same policy.
+      if(!atEnd && inline && fittingRow.displayEnd!==undefined &&
+        fittingRow.punctuationCuts?.length){
+        const visible=inline.visibleText;
+        const legalEnds=new Set<number>([...visible.matchAll(/\s+/gu)]
+          .map(hit=>hit.index!+hit[0].length));
+        const selected=chooseSemanticFittingRowCut({
+          end:fittingRow.displayEnd,sourceEnd:fittingRow.displayEnd,
+          top:0,bottom:fittingRow.bottomPx,
+          fill:fittingRow.fill??0,words:fittingRow.words??0,
+          punctuationCuts:fittingRow.punctuationCuts.map(mark=>({
+            sourceEnd:mark.displayEnd,fill:mark.fill,
+          })),
+        },visible,displayStart,visible.length,legalEnds,
+        getProtectedTextSpans(visible));
+        const mapped=selected.reason==="punctuation_80"
+          ? inline.sourceOffsetAtTextOffset(selected.end) : null;
+        if(mapped!==null && mapped>charStart && mapped<fittingRow.sourceEnd){
+          charEnd=mapped;
+          chosenDisplayEnd=selected.end;
+          pageEndReason="punctuation_80";
+        }
+      }
       if(charEnd<=charStart || charEnd>raw.length){
         // Unreliable DOM offsets: do not risk a lost or duplicated character.
         if(current.length)flush();
@@ -594,12 +629,16 @@ function paginateMeasuredLegacyFragments(
         break;
       }
       const piece:WorkBlock=charStart===0 && atEnd
-        ? block : makeSlice(charStart,charEnd,"dom");
+        ? block : makeSlice(charStart,charEnd,"dom",pageEndReason);
       const measuredHeight=chrome+rows[endRow].bottomPx-previousBottom;
       if(current.length && currentHeight+measuredHeight>capacity)flush();
       add(piece,measuredHeight);
-      rowStart=endRow+1;
+      // A punctuation cut may move the trailing words of the SAME physical
+      // row to the next sheet. Count that row again there: it is a safe
+      // conservative height bound until the browser reflows the remainder.
+      rowStart=pageEndReason?endRow:endRow+1;
       charStart=charEnd;
+      displayStart=chosenDisplayEnd??displayStart;
       if(!atEnd)flush();
     }
     // The measurement cursor must never consume some but not all of a source
