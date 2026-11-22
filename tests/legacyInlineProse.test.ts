@@ -26,7 +26,7 @@ test("unknown, nested and incomplete markup use a safe fallback",()=>{
  assert.equal(parseLegacyInlineProse("Some <strong>bold</strong> text"),null);
  assert.equal(parseLegacyInlineProse("Nested <em>outer <i>inner</i></em>"),null);
  assert.equal(parseLegacyInlineProse("Missing <em>ending"),null);
- assert.equal(parseLegacyInlineProse("Multi\nparagraph"),null);
+ assert.equal(parseLegacyInlineProse("Multi\n\nparagraph"),null);
 });
 
 test("single source newline stays eligible for physical DOM row measurement",()=>{
