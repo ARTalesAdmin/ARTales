@@ -226,7 +226,7 @@ with sync_playwright() as pw:
    for(let n=0;n<140;n++){
      const intro="People talked patiently about the latest events in town. ".repeat(5);
      const text=(intro+"A thoughtful observer "+("carefully ".repeat(n))+
-       "explained the difficult subject. But the extraordinarily detailed " +
+       "explained the rather difficult subject. But the extraordinarily detailed " +
        "continuation carried onward through several new pages of prose. "+
        ("Another sentence discussed the lasting consequences. ".repeat(12))).trim();
      visible.textContent=text;
