@@ -1,5 +1,6 @@
 import type { CSSProperties, ReactNode } from "react";
 import type { TableBlockAlignment, WorkBlock } from "@/lib/blocks";
+import {legacyBlockStyleVars,type LegacyBlockStyleMap} from "@/lib/rendering/legacyBlockStyles";
 import {
   getAdaptiveTableColumnWidths,
   normalizeTableBlockFields,
@@ -19,6 +20,8 @@ type Props = {
   className?: string;
   formatPreset?: BlockFormatPresetId;
   footnotesLabel?: string;
+  /** Opt-in: enforce staff-managed formats in the old Reader only. */
+  legacyStyles?: LegacyBlockStyleMap;
 };
 
 type RenderBlockProps = {
@@ -524,6 +527,7 @@ export default function WorkContentRenderer({
   className,
   formatPreset = "defaultReader",
   footnotesLabel = "Footnotes",
+  legacyStyles,
 }: Props) {
   const preset = getBlockFormatPreset(formatPreset);
   const safeBlocks = Array.isArray(blocks) ? blocks : [];
@@ -571,9 +575,15 @@ export default function WorkContentRenderer({
         .join(" ")}
       data-format-preset={preset.id}
     >
-      {visibleBlocks.map((block, index) =>
-        renderBlock({ block, index, footnoteNumberByBlockId }),
-      )}
+      {visibleBlocks.map((block, index) => {
+        const body=renderBlock({block,index,footnoteNumberByBlockId});
+        if(!legacyStyles)return body;
+        const style=legacyStyles[block.type];
+        return <div key={getStableBlockKey(block,index)}
+          data-legacy-block-style={block.type} style={legacyBlockStyleVars(style)}>
+          {body}
+        </div>;
+      })}
 
       {footnoteBlocks.length > 0 ? (
         <section className="artales-footnotes" aria-label={footnotesLabel}>

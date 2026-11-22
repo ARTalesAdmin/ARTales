@@ -2415,3 +2415,41 @@
   .artales-reader-note-marker:focus-visible,
   .artales-reader-note-marker--selected { width: 14px; }
 }
+
+/* Staff-defined typography for the old WorkBlock Reader only.
+   Each visible block is keyed by the same canonical type as WorkBlocksEditor.
+   This scoped layer overrides older presets without touching SemanticPageUnit. */
+.artales-reader .artales-work-content [data-legacy-block-style] {
+  font-family:var(--artales-block-font)!important;
+  font-size:var(--artales-block-size)!important;
+  line-height:var(--artales-block-leading)!important;
+  text-align:var(--artales-block-align)!important;
+  margin-block:var(--artales-block-before) var(--artales-block-after)!important;
+  hyphens:var(--artales-block-hyphens)!important;
+  overflow-wrap:break-word;
+}
+.artales-reader .artales-work-content [data-legacy-block-style] > .artales-block {
+  font-family:inherit!important;
+  font-size:inherit!important;
+  line-height:inherit!important;
+  text-align:inherit!important;
+  margin:0!important;
+  break-inside:inherit;
+}
+.artales-reader .artales-work-content [data-legacy-block-style] :is(
+  h2,h3,h4,p,.artales-poem-text,.artales-quote,.artales-letter-body,
+  .artales-newspaper,.artales-note,.artales-footnote-ref,.artales-place-line,
+  .artales-preface,.artales-afterword,.artales-acknowledgement,.artales-dedication
+) {
+  font-family:inherit!important;
+  font-size:inherit!important;
+  line-height:inherit!important;
+  text-align:inherit!important;
+  hyphens:inherit!important;
+}
+.artales-reader .artales-work-content [data-legacy-block-style] p {
+  text-indent:var(--artales-block-indent)!important;
+}
+.artales-reader .artales-work-content [data-legacy-block-style] > .artales-paragraph p {
+  margin:0!important;
+}

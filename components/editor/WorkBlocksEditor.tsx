@@ -1025,6 +1025,7 @@ export default function WorkBlocksEditor({
     >
       <div>
         <h2 style={{ marginTop: 0, marginBottom: "8px" }}>Obsahové bloky</h2>
+        <a href="/member/block-formats" style={{fontSize:13}}>Správa výchozích formátů typů bloků</a>
         <p style={{ margin: 0, opacity: 0.8 }}>
           Skládej text z předdefinovaných bloků. Obrázkový blok je samostatný
           celek mezi odstavci: editor může rovnou nahrát soubor, doplnit alt

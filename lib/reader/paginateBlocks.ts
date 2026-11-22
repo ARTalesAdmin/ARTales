@@ -5,6 +5,7 @@ import {
   type WorkBlock,
 } from "@/lib/blocks";
 import type { ReaderSettings } from "./readerSettings";
+import {DEFAULT_LEGACY_BLOCK_STYLES,legacyBlockWeightMultiplier,type LegacyBlockStyleMap,type LegacyBlockStyle} from "@/lib/rendering/legacyBlockStyles";
 
 export type ReaderPage = {
   blocks: WorkBlock[];
@@ -20,13 +21,6 @@ export type TableBlockMeasurement = {
 
 export type TableBlockMeasurements = Record<string, TableBlockMeasurement>;
 
-const PAGE_BREAK_BLOCKS = new Set<WorkBlock["type"]>(["book_part", "chapter"]);
-const KEEP_TOGETHER_BLOCKS = new Set<WorkBlock["type"]>([
-  "headline",
-  "place_line",
-  "separator",
-  "image",
-]);
 
 const TERMINAL_PUNCTUATION = new Set([".", "!", "?", "…"]);
 const CLOSING_MARKS = new Set(["\"", "'", "”", "’", ")", "]", "}", "»", "›"]);
@@ -343,13 +337,17 @@ function splitBlock(
   budget: number,
   settings: ReaderSettings,
   tableMeasurements: TableBlockMeasurements,
+  style: LegacyBlockStyle,
 ): WorkBlock[] {
   if (block.type === "table") {
     return splitTableBlock(block, budget, settings, tableMeasurements);
   }
 
   const text = getBlockText(block);
-  if (!text || KEEP_TOGETHER_BLOCKS.has(block.type)) return [block];
+  // A keep-together request is enforced while the block is reasonably small.
+  // Never hide or discard exceptionally long content in a fixed-height paper.
+  const estimatedBlockCost=getBlockWeight(block)*legacyBlockWeightMultiplier(style);
+  if (!text || ((style.keep_together || style.own_page) && estimatedBlockCost <= budget * .85)) return [block];
 
   if (block.type === "poem" || block.type === "newspaper_article") {
     const lines = splitLines(text);
@@ -426,17 +424,17 @@ function getBlockWeight(block: WorkBlock) {
   }
 }
 
-function blockEndsAtSentenceBoundary(block: WorkBlock) {
-  if (PAGE_BREAK_BLOCKS.has(block.type) || KEEP_TOGETHER_BLOCKS.has(block.type)) return false;
+function blockEndsAtSentenceBoundary(block: WorkBlock,styles:LegacyBlockStyleMap) {
+  if (styles[block.type].keep_together || styles[block.type].own_page) return false;
   return isTerminalSentenceEnding(getBlockText(block));
 }
 
-function pageEndsAtSentenceBoundary(blocks: WorkBlock[]) {
+function pageEndsAtSentenceBoundary(blocks: WorkBlock[],styles:LegacyBlockStyleMap) {
   const lastTextBlock = [...blocks]
     .reverse()
     .find((block) => getBlockText(block).length > 0);
 
-  return lastTextBlock ? blockEndsAtSentenceBoundary(lastTextBlock) : false;
+  return lastTextBlock ? blockEndsAtSentenceBoundary(lastTextBlock,styles) : false;
 }
 
 function pushPage(
@@ -452,19 +450,22 @@ export function paginateReaderBlocks(
   blocks: WorkBlock[],
   settings: ReaderSettings,
   tableMeasurements: TableBlockMeasurements = {},
+  styles: LegacyBlockStyleMap = DEFAULT_LEGACY_BLOCK_STYLES,
 ): ReaderPage[] {
   const budget = getPageBudget(settings);
   const softBudget = Math.round(budget * 0.9);
   const maxBudget = Math.round(budget * 1.08);
   const splitBlocks = blocks.flatMap((block) =>
-    splitBlock(block, budget, settings, tableMeasurements),
+    splitBlock(block, budget, settings, tableMeasurements, styles[block.type]),
   );
   const pages: ReaderPage[] = [];
   let currentBlocks: WorkBlock[] = [];
   let currentWeight = 0;
 
   for (const block of splitBlocks) {
-    const weight = getBlockWeight(block);
+    const style=styles[block.type];
+    const weight = getBlockWeight(block)*legacyBlockWeightMultiplier(style)
+      + (style.space_before_em+style.space_after_em)*16*settings.fontScale;
 
     if (block.type === "table") {
       pushPage(pages, currentBlocks, currentWeight);
@@ -473,11 +474,15 @@ export function paginateReaderBlocks(
       currentWeight = 0;
       continue;
     }
+    // Page policy belongs to the same edited style used by WorkContentRenderer.
+    if ((style.page_break_before || style.own_page) && currentBlocks.length) {
+      pushPage(pages,currentBlocks,currentWeight);
+      currentBlocks=[];currentWeight=0;
+    }
     const nextWouldOverflow = currentBlocks.length > 0 && currentWeight + weight > maxBudget;
     const shouldStartNewPage =
       currentBlocks.length > 0 &&
-      (PAGE_BREAK_BLOCKS.has(block.type) ||
-        (nextWouldOverflow && pageEndsAtSentenceBoundary(currentBlocks)));
+      (nextWouldOverflow && pageEndsAtSentenceBoundary(currentBlocks,styles));
 
     if (shouldStartNewPage) {
       pushPage(pages, currentBlocks, currentWeight);
@@ -488,7 +493,7 @@ export function paginateReaderBlocks(
     currentBlocks.push(block);
     currentWeight += weight;
 
-    if (currentWeight >= softBudget && pageEndsAtSentenceBoundary(currentBlocks)) {
+    if (style.own_page || (currentWeight >= softBudget && pageEndsAtSentenceBoundary(currentBlocks,styles))) {
       pushPage(pages, currentBlocks, currentWeight);
       currentBlocks = [];
       currentWeight = 0;
