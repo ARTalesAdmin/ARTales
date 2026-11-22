@@ -33,3 +33,24 @@ test("all pagination fields and CSS variables come from the same style",()=>{
  assert.equal(css["--artales-block-size" as keyof typeof css],"1.3em");
  assert.ok(legacyBlockWeightMultiplier(value!)>1);
 });
+
+test("page breaks, isolated pages and font scaling affect the old Reader pagination",async()=>{
+ const {paginateReaderBlocks}=await import("../lib/reader/paginateBlocks");
+ const {defaultReaderSettings}=await import("../lib/reader/readerSettings");
+ const make=(id:string,text:string)=>({id,type:"paragraph" as const,content:text,editor_note:null});
+ const blocks=[
+  make("a","First short sentence."),
+  make("b","Second short sentence."),
+  make("c","Third short sentence.")
+ ];
+ const normal=paginateReaderBlocks(blocks,defaultReaderSettings);
+ assert.equal(normal.length,1);
+ const styled=structuredClone(DEFAULT_LEGACY_BLOCK_STYLES);
+ styled.paragraph={...styled.paragraph,page_break_before:true,own_page:true,keep_together:true};
+ const separate=paginateReaderBlocks(blocks,defaultReaderSettings,{},styled);
+ assert.equal(separate.length,3);
+ assert.deepEqual(separate.map(p=>p.blocks.map(b=>b.id)),[["a"],["b"],["c"]]);
+ const reset=structuredClone(DEFAULT_LEGACY_BLOCK_STYLES);
+ reset.paragraph={...reset.paragraph,own_page:false,page_break_before:false};
+ assert.equal(paginateReaderBlocks(blocks,defaultReaderSettings,{},reset).length,1);
+});

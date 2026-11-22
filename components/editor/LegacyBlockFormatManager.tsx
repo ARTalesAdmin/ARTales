@@ -1,5 +1,6 @@
 "use client";
 import {useState, useTransition, type CSSProperties} from "react";
+import "./legacy-block-format-manager.css";
 import {WORK_BLOCK_TYPES,WORK_BLOCK_TYPE_META,type WorkBlockType} from "@/lib/blocks";
 import {
  DEFAULT_LEGACY_BLOCK_STYLES,legacyBlockStyleVars,
@@ -50,7 +51,7 @@ export default function LegacyBlockFormatManager({initialStyles,save}:Props){
   :selected==="chapter"?"KAPITOLA PRVNÍ — ZAČÁTEK"
   :selected==="separator"?"* * *"
   :"Toto je orientační ukázka sazby zvoleného typu bloku. Jeho výsledný vzhled v Readeru respektuje nastavené písmo, velikost, mezery, řádkování, zarovnání a odsazení.";
- return <div style={{display:"grid",gridTemplateColumns:"minmax(190px,260px) minmax(0,1fr)",gap:20,alignItems:"start"}}>
+ return <div className="legacy-block-format-manager" style={{display:"grid",gap:20,alignItems:"start"}}>
   <aside aria-label="Typy bloků" style={{border:"1px solid #d5c7b7",borderRadius:12,padding:10,display:"grid",gap:4,maxHeight:750,overflowY:"auto"}}>
    {WORK_BLOCK_TYPES.map(type=><button type="button" key={type} onClick={()=>select(type)}
     aria-current={selected===type?"true":undefined}

@@ -467,7 +467,7 @@ export function paginateReaderBlocks(
     const weight = getBlockWeight(block)*legacyBlockWeightMultiplier(style)
       + (style.space_before_em+style.space_after_em)*16*settings.fontScale;
 
-    if (block.type === "table") {
+    if (block.type === "table" && style.own_page) {
       pushPage(pages, currentBlocks, currentWeight);
       pushPage(pages, [block], weight);
       currentBlocks = [];

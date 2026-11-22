@@ -53,7 +53,7 @@ const variants: Partial<Record<WorkBlockType, Partial<LegacyBlockStyle>>> = {
   afterword: { text_align: "center", space_before_em: 2.75, space_after_em: 2, hyphenation: "auto" },
   acknowledgement: { text_align: "center", space_before_em: 2.75, space_after_em: 2 },
   image: { text_align: "center", space_before_em: 2, space_after_em: 2, keep_together: true },
-  table: { font_size_em: .96, line_height: 1.5, space_before_em: 2, space_after_em: 2 },
+  table: { font_size_em: .96, line_height: 1.5, space_before_em: 2, space_after_em: 2, own_page: true },
 };
 
 export const DEFAULT_LEGACY_BLOCK_STYLES: LegacyBlockStyleMap = Object.fromEntries(
