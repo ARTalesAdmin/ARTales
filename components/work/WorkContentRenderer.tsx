@@ -13,6 +13,7 @@ import {
 } from "@/lib/rendering/blockFormats";
 import { getPublicStorageImageUrl } from "@/lib/storageImages";
 import "./work-content-renderer.css";
+import "./legacy-block-typography.css";
 
 type Props = {
   blocks: WorkBlock[];

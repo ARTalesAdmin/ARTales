@@ -11,7 +11,6 @@
 .legacy-format-spread__page-header{font:10px Arial,sans-serif;letter-spacing:.09em;text-transform:uppercase;color:#928471;border-bottom:1px solid #e6ddcf;padding-bottom:9px;margin-bottom:20px}
 .legacy-format-spread__context{font-family:Georgia,serif;font-size:13px;line-height:1.6;color:#766a5d;text-align:justify;margin:0 0 1.2em}
 .legacy-format-spread__following{margin-top:20px}
-.legacy-format-spread__sample{font-family:var(--artales-block-font);font-size:var(--artales-block-size);font-weight:var(--artales-block-weight);font-style:var(--artales-block-style);line-height:var(--artales-block-leading);text-align:var(--artales-block-align);text-indent:var(--artales-block-indent);hyphens:var(--artales-block-hyphens);margin-block:var(--artales-block-before) var(--artales-block-after);overflow-wrap:break-word}
 .legacy-format-spread__sample :is(p,h3,blockquote,figure){font:inherit;text-align:inherit;margin:0;white-space:inherit}
 .legacy-format-spread__sample p+p{margin-top:1em}
 .legacy-format-spread__sample table{border-collapse:collapse;width:100%;text-indent:0;font-family:inherit;font-size:.85em}

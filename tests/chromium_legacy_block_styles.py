@@ -5,6 +5,7 @@ from playwright.sync_api import sync_playwright
 ROOT=Path(__file__).resolve().parents[1]
 style_a=(ROOT/"components/work/work-content-renderer.css").read_text(encoding="utf-8")
 style_b=(ROOT/"components/reader/reader.css").read_text(encoding="utf-8")
+style_common=(ROOT/"components/work/legacy-block-typography.css").read_text(encoding="utf-8")
 html="""<main class="artales-reader artales-reader--theme-light">
 <article class="artales-work-content artales-renderer--reader-comfort">
 <div data-legacy-block-style="paragraph" style="
@@ -40,6 +41,7 @@ with sync_playwright() as p:
     page.set_content(html)
     page.add_style_tag(content=style_a)
     page.add_style_tag(content=style_b)
+    page.add_style_tag(content=style_common)
     got=page.evaluate("""() => {
       const wrap=document.querySelector('[data-legacy-block-style="paragraph"]');
       const para=wrap.querySelector('p');
