@@ -14,7 +14,7 @@ styles=[ROOT/"components/work/work-content-renderer.css",
 html="""<main class="artales-reader artales-reader--theme-light artales-reader--layout-spread">
 <section class="artales-reader__stage">
 <div class="artales-reader__spread">
-<article class="artales-reader__paper artales-reader__paper--paged" id="visible-paper">
+<article class="artales-reader__paper artales-reader__paper--paged artales-reader__paper--spread-left" id="visible-paper">
  <div class="artales-reader__page-content"><article class="artales-work-content">
   <div data-legacy-block-style="paragraph" data-legacy-page-split-after="true" id="prose-wrap"
    style="--artales-block-font:Georgia,serif;--artales-block-weight:400;--artales-block-style:normal;
@@ -54,9 +54,14 @@ html="""<main class="artales-reader artales-reader--theme-light artales-reader--
   </div>
  </article></div>
 </article>
+<article class="artales-reader__paper artales-reader__paper--paged artales-reader__paper--spread-right" id="right-paper">
+ <div class="artales-reader__page-content"><article class="artales-work-content">
+  <section class="artales-block artales-paragraph"><p>The opposite leaf has the same available width.</p></section>
+ </article></div>
+</article>
 </div>
 <div class="artales-reader__measurement-stage" id="hidden-stage">
- <article class="artales-reader__paper artales-reader__paper--paged">
+ <article class="artales-reader__paper artales-reader__paper--paged artales-reader__paper--spread-left">
   <div class="artales-reader__page-content"><article class="artales-work-content">
    <div data-legacy-block-style="paragraph" style="--artales-block-font:Georgia,serif;
     --artales-block-weight:400;--artales-block-style:normal;--artales-block-size:19px;
@@ -85,6 +90,16 @@ with sync_playwright() as browser_api:
  const verse=document.querySelector("#verse");
  const hidden=document.querySelector("#hidden-text");
  const all=document.querySelector("#visible-paper");
+ // Same physical reading width on left, right and measuring leaf. A transparent
+ // seam border is not a cosmetic detail: a single extra pixel can rewrap words.
+ const stage=document.querySelector("#hidden-stage");
+ const rightPaper=document.querySelector("#right-paper");
+ const leftBox=all.getBoundingClientRect();
+ stage.style.width=leftBox.width+"px";
+ stage.style.height=leftBox.height+"px";
+ const paperContentWidth=(paper)=>paper.querySelector(".artales-reader__page-content").getBoundingClientRect().width;
+ const contentWidths=[paperContentWidth(all),paperContentWidth(rightPaper),
+   paperContentWidth(stage.querySelector(".artales-reader__paper--paged"))];
  // Arrange several styled source blocks on one sheet: only the actual
  // terminal block is permitted to justify its last measured row.
  const work=all.querySelector(".artales-work-content");
@@ -124,7 +139,7 @@ with sync_playwright() as browser_api:
  const shortFill=short.dataset.visiblePageEndFill;
  return {
   changed:normalChanged,italicChanged,introChanged,shortChanged,editorialChanged,
-  shortDecision,shortFill,
+  shortDecision,shortFill,contentWidths,
   normalDecision:normal.dataset.visiblePageEndDecision,
   italicDecision:italic.dataset.visiblePageEndDecision,
   introDecision:intro.dataset.visiblePageEndDecision,
@@ -152,6 +167,7 @@ with sync_playwright() as browser_api:
     '.artales-newspaper,.artales-preface,.artales-afterword,.artales-acknowledgement) > p')).length
  };
  }""")
+ assert max(result["contentWidths"])-min(result["contentWidths"])<.35,result
  assert result["checkedSelector"]==4,result
  assert result["pass"]=={"checked":4,"justified":1},result
  assert result["changed"] and not result["italicChanged"] and not result["introChanged"],result
