@@ -75,3 +75,4 @@ export default function LegacyBlockSpreadPreview({blockType,style}:Props){
   </p>
   <span className="legacy-format-spread__sr-only">{WORK_BLOCK_TYPE_META[blockType].internalLabel}</span>
  </section>;
+}
