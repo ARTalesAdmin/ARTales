@@ -2415,3 +2415,22 @@
   .artales-reader-note-marker:focus-visible,
   .artales-reader-note-marker--selected { width: 14px; }
 }
+
+/* Physical DOM sample of legacy fragments, at the exact visible paper size.
+   It never participates in the visible layout and has no scroll clipping. */
+.artales-reader__measurement-stage {
+  position:fixed;left:-20000px;top:0;pointer-events:none;
+  visibility:hidden;z-index:-1;
+}
+.artales-reader__measurement-stage > .artales-reader__paper--paged {
+  box-sizing:border-box;width:100%!important;height:100%!important;
+  min-height:0!important;max-width:none!important;max-height:none!important;
+  overflow:visible!important;aspect-ratio:auto!important;
+}
+.artales-reader__measurement-stage .artales-reader__page-content {
+  overflow:visible!important;
+}
+/* Only exceptional unbreakable ink receives a readable escape hatch. */
+.artales-reader__paper--scroll-unit .artales-reader__page-content {
+  overflow-y:auto!important;
+}

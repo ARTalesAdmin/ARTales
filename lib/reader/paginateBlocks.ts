@@ -5,11 +5,14 @@ import {
   type WorkBlock,
 } from "@/lib/blocks";
 import type { ReaderSettings } from "./readerSettings";
+import type {LegacyReaderDomGeometry} from "./domPageGeometry";
 import {DEFAULT_LEGACY_BLOCK_STYLES,legacyBlockWeightMultiplier,type LegacyBlockStyleMap,type LegacyBlockStyle} from "@/lib/rendering/legacyBlockStyles";
 
 export type ReaderPage = {
   blocks: WorkBlock[];
   estimatedWeight: number;
+  /** Exceptional indivisible content must remain readable, never clipped. */
+  overflow?: "scroll_unit";
 };
 
 export type TableBlockMeasurement = {
@@ -454,21 +457,82 @@ function pushPage(
   pages.push({ blocks: [...blocks], estimatedWeight });
 }
 
+/** Keep the pre-existing legacy splitting policy. This work changes ONLY
+ * the way already-created fragments are assigned to sheets.
+ */
+export function prepareLegacyReaderFragments(
+  blocks: WorkBlock[],
+  settings: ReaderSettings,
+  tableMeasurements: TableBlockMeasurements = {},
+  styles: LegacyBlockStyleMap = DEFAULT_LEGACY_BLOCK_STYLES,
+): WorkBlock[] {
+  const budget = getPageBudget(settings);
+  return blocks.flatMap(block => {
+    const style = styles[block.type];
+    const effectiveBudget = Math.max(120,
+      Math.round(budget / Math.max(.4, legacyBlockWeightMultiplier(style))));
+    return splitBlock(block, effectiveBudget, settings, tableMeasurements, style);
+  });
+}
+
+/** The same canonical paginator can pack fragments by actual browser geometry
+ * once Chromium has measured them. No new source fragment or block type.
+ */
+function paginateMeasuredLegacyFragments(
+  fragments: readonly WorkBlock[],
+  styles: LegacyBlockStyleMap,
+  geometry: LegacyReaderDomGeometry,
+): ReaderPage[] | null {
+  const {contentHeightPx,blockHeightsPx,blockRows} = geometry;
+  if (!Number.isFinite(contentHeightPx) || contentHeightPx < 80 ||
+    fragments.length !== blockHeightsPx.length ||
+    blockRows.length !== fragments.length) return null;
+  if (blockHeightsPx.some(h => !Number.isFinite(h) || h <= 0 || h > 100000)) return null;
+  // Include a modest browser rounding budget: independent sibling margins are
+  // conservatively summed rather than assumed to collapse.
+  const capacity = Math.max(60, contentHeightPx - 6);
+  const pages: ReaderPage[] = [];
+  let current: WorkBlock[] = [];
+  let currentHeight = 0;
+  let currentOverflow = false;
+  const flush = () => {
+    if (!current.length) return;
+    pages.push({
+      blocks: current,
+      estimatedWeight: currentHeight,
+      ...(currentOverflow ? {overflow: "scroll_unit" as const} : {}),
+    });
+    current = []; currentHeight = 0; currentOverflow = false;
+  };
+  fragments.forEach((block,index) => {
+    const style = styles[block.type];
+    const height = blockHeightsPx[index];
+    if ((style.page_break_before || style.own_page) && current.length) flush();
+    if (current.length && currentHeight + height > capacity) flush();
+    current.push(block);
+    currentHeight += height;
+    if (height > capacity) currentOverflow = true;
+    if (style.own_page) flush();
+  });
+  flush();
+  return pages.length ? pages : [{blocks:[],estimatedWeight:0}];
+}
+
 export function paginateReaderBlocks(
   blocks: WorkBlock[],
   settings: ReaderSettings,
   tableMeasurements: TableBlockMeasurements = {},
   styles: LegacyBlockStyleMap = DEFAULT_LEGACY_BLOCK_STYLES,
+  measuredGeometry?: LegacyReaderDomGeometry | null,
 ): ReaderPage[] {
   const budget = getPageBudget(settings);
   const softBudget = Math.round(budget * 0.9);
   const maxBudget = Math.round(budget * 1.08);
-  const splitBlocks = blocks.flatMap((block) => {
-    const style=styles[block.type];
-    const effectiveBudget=Math.max(120,
-      Math.round(budget/Math.max(.4,legacyBlockWeightMultiplier(style))));
-    return splitBlock(block,effectiveBudget,settings,tableMeasurements,style);
-  });
+  const splitBlocks = prepareLegacyReaderFragments(blocks,settings,tableMeasurements,styles);
+  if (measuredGeometry) {
+    const measured = paginateMeasuredLegacyFragments(splitBlocks,styles,measuredGeometry);
+    if (measured) return measured;
+  }
   const pages: ReaderPage[] = [];
   let currentBlocks: WorkBlock[] = [];
   let currentWeight = 0;
