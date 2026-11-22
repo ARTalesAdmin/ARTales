@@ -130,8 +130,9 @@ with sync_playwright() as pw:
     const measured=document.querySelector('#measured');
     const visible=document.querySelector('#original');
     let result=null;
-    for(let n=0;n<32;n++){
-      const prose=("Neighbors gathered and shared their stories "+ "gently ".repeat(n) +
+    for(let n=0;n<96;n++){
+      const prose=(("The conversation was warm and everyone listened carefully. ".repeat(4))+
+        "Neighbors gathered and shared their stories "+ "a ".repeat(n) +
         "until the whole community understood the message"+terminal+" after that " +
         ("the discussion carried on through many unhurried evenings ".repeat(16))).trim();
       visible.textContent=prose;
@@ -143,8 +144,10 @@ with sync_playwright() as pw:
         row.punctuationCuts?.some(mark=>mark.fill>=.8 && mark.fill<=.98 &&
           mark.displayEnd<row.displayEnd));
       if(hit<0)continue;
-      // Select the sheet edge at exactly this measured physical row.
+      // The canonical paginator requires at least 80px of page height.
+      // Place the target punctuation well below the first physical rows.
       const fitting=rows[hit];
+      if(fitting.bottomPx<80)continue;
       const controlled={...geo,contentHeightPx:fitting.bottomPx+8};
       const pages=e.paginateReaderBlocks([block],e.defaultReaderSettings,{},
         e.DEFAULT_LEGACY_BLOCK_STYLES,controlled);
