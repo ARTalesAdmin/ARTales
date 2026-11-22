@@ -7,7 +7,7 @@ css=(ROOT/"components/work/work-content-renderer.css").read_text()
 shared=(ROOT/"components/work/legacy-block-typography.css").read_text()
 reader=(ROOT/"components/reader/reader.css").read_text()
 code=(out/"legacy-dom-bundle.js").read_text()
-raw="A beginning sentence with an ordinary number of words. "*19
+raw=("A beginning sentence with an ordinary number of words. "*19).strip()
 markup="""<main class="artales-reader artales-reader--layout-pagedFlow artales-reader--width-normal" style="--reader-font-scale:1">
 <div class="artales-reader__paged-flow"><article class="artales-reader__paper artales-reader__paper--paged" id="visible">
 <header class="artales-reader__page-header">Chapter</header>
