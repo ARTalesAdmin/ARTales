@@ -16,7 +16,9 @@ type TextSlice = {
 };
 
 export function parseLegacyInlineProse(source: string): LegacyInlineSource | null {
-  if (!source || source !== source.trim() || /[\r\n]/.test(source)) return null;
+  // A single source newline remains text in the canonical renderer;
+  // only CRLF normalization or multiple paragraph elements require fallback.
+  if (!source || source !== source.trim() || /\r|\n\s*\n/.test(source)) return null;
 
   // Match only tags already supported by renderInlineRichText in the canonical
   // WorkContentRenderer, including Project Gutenberg's escaped emphasis tags.

@@ -99,4 +99,22 @@ with sync_playwright() as pw:
  assert rich_result["marked"]>0,rich_result
  assert rich_result["computedHyphens"]=="none",rich_result
  print("Chromium italic rich text -> exact source and intact display PASS",rich_result["pieces"])
+
+ # Single-newline source paragraphs are one rendered <p>, not two.
+ single="An ordinary paragraph starts here and extends across one line.\nAnd this is its continuation in the same Gutenberg block. "*9
+ page.evaluate("(text)=>{document.querySelector('#original').textContent=text;document.querySelector('#measured').textContent=text;}",single)
+ newline_result=page.evaluate("""text=>{
+   const e=window.ARTalesLegacyDomEngine,stage=document.querySelector('#probe');
+   e.syncLegacyMeasuringPaper(stage,document.querySelector('#visible'));
+   const unit={id:'newline',type:'paragraph',content:text,editor_note:null};
+   const geo=e.measureLegacyReaderDom(stage,1,[unit]);
+   if(!geo?.paragraphRows?.[0])throw Error('Single newline failed DOM geometry');
+   const pages=e.paginateReaderBlocks([unit],e.defaultReaderSettings,{},
+    e.DEFAULT_LEGACY_BLOCK_STYLES,geo);
+   return {source:pages.flatMap(p=>p.blocks.map(b=>b.content)).join(''),
+    pageCount:pages.length,rows:geo.paragraphRows[0].rows.length};
+ }""",single)
+ assert newline_result["source"]==single,newline_result
+ assert newline_result["pageCount"]>1,newline_result
+ print("Chromium legacy inline newline follows measured row path PASS",newline_result["rows"])
  browser.close()
