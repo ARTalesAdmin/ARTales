@@ -7,6 +7,7 @@ on:
       - 'tests/semantic*.test.ts'
       - 'tests/chromium_reader_*'
       - 'tests/chromium_legacy_dom_*'
+      - 'tests/chromium_legacy_last_row.py'
       - 'tests/epubSemantic389.test.mjs'
       - 'lib/ingest/epubSemanticExtractor.ts'
       - 'app/api/member/snapshot/[candidateId]/auto-compose/route.ts'
@@ -18,6 +19,8 @@ on:
       - 'tests/legacyBlockFormats.test.ts'
       - 'tests/legacyDomPagePacking.test.ts'
       - 'tests/legacyDomRowFragments.test.ts'
+      - 'tests/legacyLastRow.test.ts'
+      - 'lib/reader/legacyLastRow.ts'
       - 'lib/reader/domPageGeometry.ts'
       - '.github/workflows/artales-semantic-integration.yml'
   pull_request:
@@ -30,6 +33,7 @@ on:
       - 'tests/semanticReaderPageFit20261115.test.ts'
       - 'tests/chromium_reader_*'
       - 'tests/chromium_legacy_dom_*'
+      - 'tests/chromium_legacy_last_row.py'
       - 'app/api/internal/editorial/ai-qa-jobs/**'
       - 'app/member/admin/ai-usage/**'
       - 'ops/sql/20261104_artales_ai_qa_durable_jobs.sql'
@@ -61,6 +65,8 @@ on:
       - 'tests/legacyBlockFormats.test.ts'
       - 'tests/legacyDomPagePacking.test.ts'
       - 'tests/legacyDomRowFragments.test.ts'
+      - 'tests/legacyLastRow.test.ts'
+      - 'lib/reader/legacyLastRow.ts'
       - 'lib/reader/domPageGeometry.ts'
       - 'lib/editorial/**'
       - 'supabase/migrations/20261110130000_artales_unique_existing_author_byline.sql'
@@ -127,6 +133,8 @@ jobs:
         run: npx tsx --test tests/legacyDomPagePacking.test.ts
       - name: Legacy physical-row fragmentation and complete-source coverage
         run: npx tsx --test tests/legacyDomRowFragments.test.ts
+      - name: Legacy last-row shared canonical contract
+        run: npx tsx --test tests/legacyLastRow.test.ts
       - name: Legacy style editor lint
         run: npx eslint lib/rendering/legacyBlockStyles.ts lib/rendering/legacyBlockStyles.server.ts components/editor/LegacyBlockFormatManager.tsx app/member/block-formats/actions.ts app/member/block-formats/page.tsx lib/reader/paginateBlocks.ts components/work/WorkContentRenderer.tsx
       - name: Existing semantic regression
@@ -198,6 +206,8 @@ jobs:
         run: python tests/chromium_reader_fixture.py
       - name: Chromium visible last-line justification with production CSS
         run: python tests/chromium_reader_last_line.py
+      - name: Chromium legacy Reader bounded last-line alignment
+        run: python tests/chromium_legacy_last_row.py
       - name: Chromium legacy Reader central block style CSS enforcement
         run: python tests/chromium_legacy_block_styles.py
       - name: Bundle original legacy DOM measuring module

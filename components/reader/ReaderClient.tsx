@@ -42,6 +42,7 @@ import {
   legacyPageInkOverflowPx, measureLegacyReaderDom, syncLegacyMeasuringPaper,
   type LegacyReaderDomGeometry,
 } from "@/lib/reader/domPageGeometry";
+import {applyLegacyPaperLastRowJustification} from "@/lib/reader/legacyLastRow";
 import { getPublicDictionary } from "@/lib/i18n/public";
 import type { SupportedLocale } from "@/lib/i18n/config";
 import ReaderToolbar from "./ReaderToolbar";
@@ -283,6 +284,65 @@ export default function ReaderClient({
   useEffect(() => {
     setInkOverflowPages(previous => previous.length ? [] : previous);
   }, [measureKey]);
+
+  // After pagination has settled, apply the semantic Reader's proven
+  // measured rule to the ACTUAL visible legacy paragraphs. Hidden measuring
+  // clones and unrelated block types are deliberately excluded.
+  useLayoutEffect(() => {
+    if (!measurementReady) return;
+    const root = readerRootRef.current;
+    if (!root) return;
+    const papers = Array.from(root.querySelectorAll<HTMLElement>(
+      ".artales-reader__paged-flow > .artales-reader__paper--paged, " +
+      ".artales-reader__spread:not(.artales-reader__spread--measurement) > .artales-reader__paper--paged",
+    ));
+    let active = true;
+    let frame = 0;
+    const applyIfVisible = (paper: HTMLElement) => {
+      if (!active || paper.classList.contains("artales-reader__paper--blank")) return;
+      const box = paper.getBoundingClientRect();
+      if (box.width < 1 || box.height < 1 ||
+          box.bottom <= 0 || box.top >= window.innerHeight) return;
+      applyLegacyPaperLastRowJustification(paper);
+    };
+    const refresh = () => {
+      if (!active) return;
+      for (const paper of papers) applyIfVisible(paper);
+    };
+    const schedule = () => {
+      if (!active) return;
+      cancelAnimationFrame(frame);
+      frame = requestAnimationFrame(refresh);
+    };
+    const observer = typeof IntersectionObserver === "function"
+      ? new IntersectionObserver(entries => {
+          for (const entry of entries) {
+            if (entry.isIntersecting) applyIfVisible(entry.target as HTMLElement);
+          }
+        }, {threshold: 0.01})
+      : null;
+    for (const paper of papers) observer?.observe(paper);
+    // Older browsers without IntersectionObserver retain the scroll path.
+    if (!observer) {
+      window.addEventListener("scroll", schedule, {passive: true});
+      root.addEventListener("scroll", schedule, {passive: true});
+    }
+    window.addEventListener("resize", schedule);
+    document.addEventListener("fullscreenchange", schedule);
+    void document.fonts?.ready.then(() => { if (active) schedule(); }).catch(() => {});
+    schedule();
+    return () => {
+      active = false;
+      cancelAnimationFrame(frame);
+      observer?.disconnect();
+      window.removeEventListener("scroll", schedule);
+      root.removeEventListener("scroll", schedule);
+      window.removeEventListener("resize", schedule);
+      document.removeEventListener("fullscreenchange", schedule);
+    };
+  }, [readerPages, measurementReady, normalizedPageIndex, isSpreadMode,
+      settings.fontScale, settings.density, settings.width, settings.pageFit,
+      nativeFullscreen]);
 
   // The measured page decision is still subject to last-pixel browser
   // rounding and unusual indivisible media. Never silently hide its ink.

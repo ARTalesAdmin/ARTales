@@ -46,3 +46,12 @@
 .artales-reader .artales-work-content [data-legacy-continuation="true"] > .artales-paragraph p{
  text-indent:0!important;
 }
+
+/* Match the semantic Reader's bounded final-row rule ONLY for styled
+   legacy prose. Other alignments keep their editorial value: the helper
+   adds this class only after measuring natural fill and checking justify. */
+.artales-reader:not(.artales-reader--semantic) .artales-reader__paper
+  .artales-work-content [data-legacy-block-style="paragraph"]
+  > .artales-paragraph p.semantic-reader__prose--justify-last {
+  text-align-last: justify;
+}
