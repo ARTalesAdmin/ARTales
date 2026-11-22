@@ -1,9 +1,10 @@
 "use client";
 import {useState, useTransition, type CSSProperties} from "react";
+import LegacyBlockSpreadPreview from "./LegacyBlockSpreadPreview";
 import "./legacy-block-format-manager.css";
 import {WORK_BLOCK_TYPES,WORK_BLOCK_TYPE_META,type WorkBlockType} from "@/lib/blocks";
 import {
- DEFAULT_LEGACY_BLOCK_STYLES,legacyBlockStyleVars,
+ DEFAULT_LEGACY_BLOCK_STYLES,
  type LegacyBlockStyle,type LegacyBlockStyleMap
 } from "@/lib/rendering/legacyBlockStyles";
 
@@ -12,7 +13,7 @@ type Props={
  save:(type:string,style:LegacyBlockStyle)=>Promise<{ok:boolean;message:string}>;
 };
 const label:Record<keyof LegacyBlockStyle,string>={
- font_family:"Písmo",font_size_em:"Velikost (násobek základní)",line_height:"Řádkování",
+ font_family:"Písmo",font_weight:"Tučnost",font_style:"Řez písma",font_size_em:"Velikost (násobek základní)",line_height:"Řádkování",
  text_align:"Zarovnání",text_indent_em:"Odsazení prvního řádku (em)",
  space_before_em:"Mezera před (em)",space_after_em:"Mezera za (em)",
  hyphenation:"Dělení slov",page_break_before:"Začít na nové stránce",
@@ -25,6 +26,8 @@ const numericFields=[
 const families={serif:"Patkové (Georgia)",sans:"Bezpatkové (Arial)",mono:"Neproporcionální"};
 const aligns={left:"Vlevo",center:"Na střed",right:"Vpravo",justify:"Do bloku"};
 const hyphens={none:"Bez dělení",manual:"Pouze ruční",auto:"Automaticky"};
+const weights={400:"Normální · 400",500:"Střední · 500",600:"Polotučné · 600",700:"Tučné · 700"};
+const fontStyles={normal:"Normální",italic:"Kurzíva"};
 const control:CSSProperties={width:"100%",minHeight:38,border:"1px solid #b6ab9d",borderRadius:8,padding:"6px 8px",background:"#fff",color:"#28221d"};
 export default function LegacyBlockFormatManager({initialStyles,save}:Props){
  const [selected,setSelected]=useState<WorkBlockType>("paragraph");
@@ -47,10 +50,6 @@ export default function LegacyBlockFormatManager({initialStyles,save}:Props){
     setFeedback(result.message);
   });
  };
- const previewText=selected==="poem"?"V dáli šumí starý les,\nvítr si šeptá svoji píseň."
-  :selected==="chapter"?"KAPITOLA PRVNÍ — ZAČÁTEK"
-  :selected==="separator"?"* * *"
-  :"Toto je orientační ukázka sazby zvoleného typu bloku. Jeho výsledný vzhled v Readeru respektuje nastavené písmo, velikost, mezery, řádkování, zarovnání a odsazení.";
  return <div className="legacy-block-format-manager" style={{display:"grid",gap:20,alignItems:"start"}}>
   <aside aria-label="Typy bloků" style={{border:"1px solid #d5c7b7",borderRadius:12,padding:10,display:"grid",gap:4,maxHeight:750,overflowY:"auto"}}>
    {WORK_BLOCK_TYPES.map(type=><button type="button" key={type} onClick={()=>select(type)}
@@ -77,6 +76,18 @@ export default function LegacyBlockFormatManager({initialStyles,save}:Props){
       {Object.entries(aligns).map(([v,l])=><option value={v} key={v}>{l}</option>)}
      </select>
     </label>
+    <label style={{display:"grid",gap:5,fontSize:14}}>{label.font_weight}
+      <select style={control} value={current.font_weight}
+        onChange={e=>update("font_weight",Number(e.target.value) as LegacyBlockStyle["font_weight"])}>
+        {Object.entries(weights).map(([v,l])=><option value={v} key={v}>{l}</option>)}
+      </select>
+    </label>
+    <label style={{display:"grid",gap:5,fontSize:14}}>{label.font_style}
+      <select style={control} value={current.font_style}
+        onChange={e=>update("font_style",e.target.value as LegacyBlockStyle["font_style"])}>
+        {Object.entries(fontStyles).map(([v,l])=><option value={v} key={v}>{l}</option>)}
+      </select>
+    </label>
     <label style={{display:"grid",gap:5,fontSize:14}}>{label.hyphenation}
      <select style={control} value={current.hyphenation} onChange={e=>update("hyphenation",e.target.value as LegacyBlockStyle["hyphenation"])}>
       {Object.entries(hyphens).map(([v,l])=><option value={v} key={v}>{l}</option>)}
@@ -97,17 +108,7 @@ export default function LegacyBlockFormatManager({initialStyles,save}:Props){
      </label>)}
     <small>Starý Reader používá váhové odhady. U příliš dlouhého bloku musí dát přednost dostupnosti textu před nedělitelnou stránkou.</small>
    </fieldset>
-   <div style={{border:"1px solid #d5c7b7",borderRadius:12,padding:20,background:"#f8f4ec"}}>
-    <strong>Orientační náhled</strong>
-    <div style={{...legacyBlockStyleVars(current),fontFamily:"var(--artales-block-font)",
-      fontSize:`calc(18px * ${current.font_size_em})`,lineHeight:current.line_height,
-      textAlign:current.text_align,marginTop:current.space_before_em+"em",
-      marginBottom:current.space_after_em+"em",textIndent:current.text_indent_em+"em",
-      hyphens:current.hyphenation,whiteSpace:selected==="poem"?"pre-wrap":"normal",
-      overflowWrap:"break-word",color:"#29231d"}}>
-      {previewText}
-    </div>
-   </div>
+   <LegacyBlockSpreadPreview blockType={selected} style={current}/>
    <div style={{display:"flex",flexWrap:"wrap",gap:10,alignItems:"center"}}>
     <button type="button" disabled={pending||!dirty} onClick={doSave}
      style={{...control,width:"auto",padding:"9px 20px",background:"#27211d",color:"#fff",cursor:"pointer"}}>
