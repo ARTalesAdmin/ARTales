@@ -222,6 +222,7 @@ with sync_playwright() as pw:
    const measured=document.querySelector('#measured');
    const stage=document.querySelector('#probe');
    let candidateCount=0, outcome=null;
+   const snapshots=[];
    for(let n=0;n<140;n++){
      const intro="People talked patiently about the latest events in town. ".repeat(5);
      const text=(intro+"A thoughtful observer "+("carefully ".repeat(n))+
@@ -240,7 +241,17 @@ with sync_playwright() as pw:
        row.bottomPx>=80 && row.punctuationCuts?.some(m=>
          m.fill>=.72 && m.fill<.8 && m.displayEnd<row.displayEnd &&
          text[m.displayEnd-1]==='.'));
-     if(hit<0)continue;
+     if(hit<0){
+       if(n%15===0){
+         const sample=rows.flatMap((row,i)=>(row.punctuationCuts??[])
+           .filter(m=>text[m.displayEnd-1]==='.' &&
+             /But the/.test(text.slice(m.displayEnd,row.sourceEnd+1)))
+           .map(m=>({n,i,fill:m.fill,tail:text.slice(m.displayEnd,row.sourceEnd),
+             end:row.sourceEnd,bottom:row.bottomPx})));
+         snapshots.push(...sample.slice(0,4));
+       }
+       continue;
+     }
      candidateCount++;
      const row=rows[hit];
      const chrome=Math.max(0,geo.blockHeightsPx[0]-geo.paragraphRows[0].textHeightPx);
@@ -261,7 +272,7 @@ with sync_playwright() as pw:
        expected:text,reflows,pageCount:pages.length};
      break;
    }
-   return {candidateCount,outcome};
+   return {candidateCount,outcome,snapshots:snapshots.slice(0,22)};
  }""")
  assert hanging_result["candidateCount"]>0,hanging_result
  assert hanging_result["outcome"] is not None,hanging_result
