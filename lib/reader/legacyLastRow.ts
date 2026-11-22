@@ -25,7 +25,14 @@ export function applyLegacyPaperLastRowJustification(paper: HTMLElement): {
   for (const paragraph of paragraphs) {
     if (!paragraph.getClientRects().length) continue;
     checked++;
-    if (applySemanticProseLastRowJustification(paragraph)) justified++;
+    const block=paragraph.closest<HTMLElement>("[data-legacy-block-style]");
+    // Page fragments are marked ONLY when their source block continues onto
+    // a new sheet. Complete editorial blocks never borrow words from another
+    // block or stretch their short final lines. Within a multi-p block only
+    // its final physical paragraph can close a page fragment.
+    const eligible=block?.dataset.legacyPageSplitAfter==="true" &&
+      paragraph.parentElement?.lastElementChild===paragraph;
+    if (applySemanticProseLastRowJustification(paragraph,eligible)) justified++;
   }
   paper.dataset.legacyLastRowChecked = String(checked);
   paper.dataset.legacyLastRowJustified = String(justified);

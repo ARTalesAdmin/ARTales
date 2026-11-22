@@ -329,7 +329,7 @@ export function fittingSemanticPageRows(
 
 /** Prefer a measured sentence/semicolon in the LAST fitting physical row.
  * Keep >=80% fill normally; allow >=72% only to avoid ending the page on
- * a hanging article, connector or preposition ("... But the").
+ * a hanging function word or a 1-3-word opening to the next clause.
  * The shared break assessment and the caller's reflow verification still
  * reject protected/invalid cuts and unsafe continuation geometry.
  */
@@ -350,13 +350,24 @@ export function chooseSemanticFittingRowCut(
  const avoidsHangingTail=Boolean(defaultPolicy?.allowed &&
    defaultPolicy.preference<0);
  for(const mark of row.punctuationCuts??[]){
-  if(mark.fill>1||mark.sourceEnd<=from||mark.sourceEnd>row.sourceEnd)continue;
+  if(!Number.isFinite(mark.fill)||mark.fill<0||mark.fill>1||
+     mark.sourceEnd<=from||mark.sourceEnd>row.sourceEnd)continue;
   let end=mark.sourceEnd;
   while(end<until&&/\s/u.test(raw[end]))end++;
   if(end>=row.end||!legalEnds.has(end))continue;
   const policy=assessSemanticPageBreak(raw,from,end,until,protectedRanges);
   if(!policy.allowed)continue;
-  if(mark.fill<semanticPageEndFillThreshold(policy.reason,avoidsHangingTail))continue;
+  // Avoid stranding the first one to three words of a fresh sentence or
+  // clause at the end of the sheet (not just a hard-coded connector list).
+  // The boundary must still be in this SAME measured last row, with at least
+  // 72% natural ink; after choosing it, the legacy paginator remeasures the
+  // whole continuation in its original DOM/CSS context.
+  const trailingClause=raw.slice(end,row.end).trim();
+  const openingWords=trailingClause ? trailingClause.split(/\s+/u) : [];
+  const strandedOpening=openingWords.length>0&&openingWords.length<=3&&
+    !/[.!?;:]/u.test(trailingClause);
+  const avoidPrematureEnd=avoidsHangingTail||strandedOpening;
+  if(mark.fill<semanticPageEndFillThreshold(policy.reason,avoidPrematureEnd))continue;
   if(chosen.reason==="latest_row"||end>chosen.end)
    chosen={end,fill:mark.fill,reason:"punctuation_80"};
  }
@@ -368,9 +379,14 @@ export function chooseSemanticFittingRowCut(
  */
 export function shouldJustifySemanticPageEnd(fill:number|null,words:number|null,
  width:number,eligible:boolean):boolean{
+ // A page-fragment ending is eligible only after its parent paginator
+ // confirms the original prose block CONTINUES on the next page. Complete
+ // editorial blocks and genuinely short rows keep natural left alignment.
+ // The small extra allowance accommodates near-full lines with 5-10 words,
+ // without stretching an orphaned half-width line.
  if(!eligible||fill===null||words===null||!Number.isFinite(fill)||
-    !Number.isFinite(width)||width<=0||fill<.83||fill>1||words<4)return false;
- return (1-fill)*width/(words-1)<=7;
+    !Number.isFinite(width)||width<=0||fill<.8||fill>1||words<4)return false;
+ return (1-fill)*width/(words-1)<=9;
 }
 
 /** Create one bounded fragment, preserving the root paragraph and its source anchor. */

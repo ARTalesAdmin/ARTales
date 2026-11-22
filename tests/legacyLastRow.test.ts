@@ -32,6 +32,16 @@ test("legacy last-row CSS is scoped and preserves semantic Reader",()=>{
 
 test("scoped CSS does not force last rows in verse or editorial alignment",()=>{
  assert.doesNotMatch(style,/\\.artales-poem[^\\n]*p\\.semantic-reader__prose--justify-last/);
- assert.ok(helper.includes("applySemanticProseLastRowJustification(paragraph)"));
+ assert.ok(helper.includes("applySemanticProseLastRowJustification(paragraph,eligible)"));
  assert.doesNotMatch(helper,/style\\.textAlign|style\\.wordSpacing/);
+});
+
+test("only a measured page-split continuation is eligible for bounded last-row spreading",()=>{
+ assert.match(helper,/legacyPageSplitAfter==="true"/);
+ assert.match(helper,/lastElementChild===paragraph/);
+ assert.match(helper,/applySemanticProseLastRowJustification\(paragraph,eligible\)/);
+ const renderer=readFileSync("components/work/WorkContentRenderer.tsx","utf8");
+ const paginator=readFileSync("lib/reader/paginateBlocks.ts","utf8");
+ assert.match(renderer,/data-legacy-page-split-after/);
+ assert.match(paginator,/legacyReaderPageSplitAfter:end<raw\.length/);
 });

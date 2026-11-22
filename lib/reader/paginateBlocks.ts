@@ -546,6 +546,12 @@ function paginateMeasuredLegacyFragments(
         fields:{
           ...(block.fields??{}),
           legacyReaderContinuation:start>0,
+          // A page break inside a source block is NOT its editorial end.
+          // Only such fragments may receive the optional bounded last-row
+          // justification. A complete block ending with two words remains
+          // naturally aligned and separate from the next block.
+          legacyReaderPageSplitAfter:end<raw.length &&
+            !inline?.parts.some(part=>part.sourceEnd===end),
           ...(pageEndReason?{legacyReaderPageEndReason:pageEndReason}:{}),
           legacyReaderInlinePrefix:startTag?"<"+startTag+">":"",
           legacyReaderInlineSuffix:endTag?"</"+endTag+">":"",

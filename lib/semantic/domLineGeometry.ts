@@ -114,12 +114,24 @@ export function measureSemanticDomLastRow(element:HTMLElement):SemanticDomLastRo
  * paragraph, regardless of whether it is a page fragment.
  * Editorial left/center/right alignment and all source text stay unchanged.
  */
-export function applySemanticProseLastRowJustification(element:HTMLElement):boolean{
+export function applySemanticProseLastRowJustification(
+ element:HTMLElement,eligible=true,
+):boolean{
  const marker="semantic-reader__prose--justify-last";
  element.classList.remove(marker);
  if(getComputedStyle(element).textAlign!=="justify"){
   element.dataset.visiblePageEndFill="editorial";
   element.dataset.visiblePageEndWords="editorial";
+  element.dataset.visiblePageEndDecision="editorial";
+  return false;
+ }
+ // Eligibility is supplied by the canonical page/block boundary. A
+ // naturally completed editorial block must never be stretched merely to
+ // fill a page or joined to the text of the following block.
+ if(!eligible){
+  element.dataset.visiblePageEndFill="block-complete";
+  element.dataset.visiblePageEndWords="block-complete";
+  element.dataset.visiblePageEndDecision="block-complete";
   return false;
  }
  const natural=measureSemanticDomLastRow(element);
@@ -129,5 +141,8 @@ export function applySemanticProseLastRowJustification(element:HTMLElement):bool
  if(allow)element.classList.add(marker);
  element.dataset.visiblePageEndFill=natural?natural.fill.toFixed(3):"unavailable";
  element.dataset.visiblePageEndWords=natural?String(natural.words):"unavailable";
+ element.dataset.visiblePageEndDecision=allow?"justified":"bounded-left";
+ element.dataset.visiblePageEndGapPx=natural&&natural.words>1?
+  ((1-natural.fill)*width/(natural.words-1)).toFixed(2):"unavailable";
  return allow;
 }
