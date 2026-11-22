@@ -213,6 +213,81 @@ with sync_playwright() as pw:
   assert selected["visibleAlignment"]=="justify",selected
   print("Chromium natural 80% punctuation cut, title-independent PASS",terminal,selected["sheets"])
 
+ # Real browser regression for the shared hanging-tail exception. A period
+ # around 72%-80% may win ONLY if leaving the physical row intact would
+ # strand "But the" at the end; both versions must preserve all source text.
+ hanging_result=page.evaluate("""()=>{
+   const e=window.ARTalesLegacyDomEngine;
+   const visible=document.querySelector('#original');
+   const measured=document.querySelector('#measured');
+   const stage=document.querySelector('#probe');
+   let candidateCount=0, outcome=null;
+   const snapshots=[];
+   for(const noun of ["subject","matter","question","situation","predicament",
+     "observation","development","circumstance","complication",
+     "transformation","responsibility","misunderstanding"]){
+    for(let n=0;n<28;n++){
+     const intro="People talked patiently about the latest events in town. ".repeat(5);
+     const text=(intro+"A thoughtful observer "+("carefully ".repeat(n))+
+       "explained the difficult "+noun+". But the extraordinarily detailed " +
+       "continuation carried onward through several new pages of prose. "+
+       ("Another sentence discussed the lasting consequences. ".repeat(12))).trim();
+     visible.textContent=text;
+     measured.textContent=text;
+     if(!e.syncLegacyMeasuringPaper(stage,document.querySelector('#visible')))
+       throw Error('Paper parity changed');
+     const block={id:'sentence-tail',type:'paragraph',content:text,editor_note:null};
+     const geo=e.measureLegacyReaderDom(stage,1,[block]);
+     const rows=geo?.paragraphRows?.[0]?.rows??[];
+     const hit=rows.findIndex((row,i)=>i<rows.length-1 &&
+       /But the$/.test(text.slice(0,row.sourceEnd)) &&
+       row.bottomPx>=80 && row.punctuationCuts?.some(m=>
+         m.fill>=.72 && m.fill<.8 && m.displayEnd<row.displayEnd &&
+         text[m.displayEnd-1]==='.'));
+     if(hit<0){
+       if(n%15===0){
+         const sample=rows.flatMap((row,i)=>(row.punctuationCuts??[])
+           .filter(m=>text[m.displayEnd-1]==='.' &&
+             /But the/.test(text.slice(m.displayEnd,row.sourceEnd+1)))
+           .map(m=>({n,i,fill:m.fill,tail:text.slice(m.displayEnd,row.sourceEnd),
+             end:row.sourceEnd,bottom:row.bottomPx})));
+         snapshots.push(...sample.slice(0,4).map(item=>({...item,noun})));
+       }
+       continue;
+     }
+     candidateCount++;
+     const row=rows[hit];
+     const chrome=Math.max(0,geo.blockHeightsPx[0]-geo.paragraphRows[0].textHeightPx);
+     const controlled={...geo,contentHeightPx:row.bottomPx+chrome+8};
+     let reflows=0;
+     const original=controlled.remeasureRemainder;
+     controlled.remeasureRemainder=(index,start,end)=>{
+       const measuredRemainder=original?.(index,start,end)??null;
+       if(measuredRemainder)reflows++;
+       return measuredRemainder;
+     };
+     const pages=e.paginateReaderBlocks([block],e.defaultReaderSettings,{},
+       e.DEFAULT_LEGACY_BLOCK_STYLES,controlled);
+     const first=pages[0]?.blocks?.[0];
+     if(first?.fields?.legacyReaderPageEndReason!=='punctuation_80')continue;
+     outcome={fill:row.punctuationCuts.filter(m=>m.fill<.8).map(m=>m.fill),
+       first:first.content,entire:pages.flatMap(p=>p.blocks.map(b=>b.content)).join(''),
+       expected:text,reflows,pageCount:pages.length};
+     break;
+    }
+    if(outcome)break;
+   }
+   return {candidateCount,outcome,snapshots:snapshots.slice(0,22)};
+ }""")
+ assert hanging_result["candidateCount"]>0,hanging_result
+ assert hanging_result["outcome"] is not None,hanging_result
+ assert hanging_result["outcome"]["first"].rstrip().endswith("."),hanging_result
+ assert hanging_result["outcome"]["entire"]==hanging_result["outcome"]["expected"],hanging_result
+ assert hanging_result["outcome"]["reflows"]>0,hanging_result
+ assert hanging_result["outcome"]["pageCount"]>1,hanging_result
+ print("Chromium general hanging-tail punctuation below 80% PASS",
+       hanging_result["outcome"]["fill"])
+
  # The canonical renderer can produce several <p> elements from ONE source
  # block. This used to trigger character-budget fragmentation for the ENTIRE
  # Gutenberg-style block, leaving arbitrarily short physical page endings.

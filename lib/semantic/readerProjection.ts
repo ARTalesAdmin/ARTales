@@ -254,8 +254,17 @@ export function assessSemanticPageBreak(
 
 /** Minimum naturally rendered last-line width before punctuation gets a bonus.
  *  The boundary is layout-only; it never changes source atom offsets. */
-export function semanticPageEndFillThreshold(reason:SemanticBreakAssessment["reason"]):number{
- return reason==="sentence"||reason==="semicolon"?.8:Infinity;
+/** A natural sentence/semicolon end normally needs >=80% real ink.
+ * Only when the *alternative* is a hanging function word may a clean
+ * grammatical boundary use a modestly shorter measured line (>=72%).
+ * This is shared by the legacy and semantic Readers; it never fabricates
+ * a cut or bypasses the DOM remainder verification.
+ */
+export function semanticPageEndFillThreshold(
+ reason:SemanticBreakAssessment["reason"],avoidsHangingTail=false,
+):number{
+ if(reason!=="sentence"&&reason!=="semicolon")return Infinity;
+ return avoidsHangingTail?.72:.8;
 }
 
 /** Choose a clean page end AFTER punctuation preference has selected a cut.
@@ -318,22 +327,36 @@ export function fittingSemanticPageRows(
  return result;
 }
 
-/** Choose a discretionary punctuation cut in the LAST height-fitting row.
- * The punctuation itself must be measured at >=80% of the actual line width.
- * Earlier rows, commas, dashes and punctuation in protected spans cannot win. */
+/** Prefer a measured sentence/semicolon in the LAST fitting physical row.
+ * Keep >=80% fill normally; allow >=72% only to avoid ending the page on
+ * a hanging article, connector or preposition ("... But the").
+ * The shared break assessment and the caller's reflow verification still
+ * reject protected/invalid cuts and unsafe continuation geometry.
+ */
 export function chooseSemanticFittingRowCut(
  row:SemanticMeasuredParagraphRow & {end:number},raw:string,from:number,until:number,
  legalEnds:ReadonlySet<number>,protectedRanges:readonly ProtectedTextSpan[],
 ):{end:number;fill:number;reason:"latest_row"|"punctuation_80"}{
  let chosen:{end:number;fill:number;reason:"latest_row"|"punctuation_80"}={
   end:row.end,fill:row.fill,reason:"latest_row"};
+ // The ink boundary precedes whitespace; assessSemanticPageBreak requires
+ // the legal cursor AFTER that whitespace. Without this normalization the
+ // default row looks like a forbidden mid-word cut and its hanging-tail
+ // penalty is silently ignored.
+ let defaultEnd=row.end;
+ while(defaultEnd<until&&/\s/u.test(raw[defaultEnd]))defaultEnd++;
+ const defaultPolicy=defaultEnd<until
+  ?assessSemanticPageBreak(raw,from,defaultEnd,until,protectedRanges):null;
+ const avoidsHangingTail=Boolean(defaultPolicy?.allowed &&
+   defaultPolicy.preference<0);
  for(const mark of row.punctuationCuts??[]){
-  if(mark.fill<.8||mark.fill>1||mark.sourceEnd<=from||mark.sourceEnd>row.sourceEnd)continue;
+  if(mark.fill>1||mark.sourceEnd<=from||mark.sourceEnd>row.sourceEnd)continue;
   let end=mark.sourceEnd;
   while(end<until&&/\s/u.test(raw[end]))end++;
   if(end>=row.end||!legalEnds.has(end))continue;
   const policy=assessSemanticPageBreak(raw,from,end,until,protectedRanges);
-  if(!policy.allowed||!(policy.reason==="sentence"||policy.reason==="semicolon"))continue;
+  if(!policy.allowed)continue;
+  if(mark.fill<semanticPageEndFillThreshold(policy.reason,avoidsHangingTail))continue;
   if(chosen.reason==="latest_row"||end>chosen.end)
    chosen={end,fill:mark.fill,reason:"punctuation_80"};
  }

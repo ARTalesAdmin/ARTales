@@ -401,3 +401,64 @@ test("punctuation reflows the very next page from its first real row",()=>{
   raw.slice(raw.indexOf(" then")+1,raw.indexOf("lengthy")+"lengthy".length));
  assert.equal(fragments.map(x=>x.content).join(""),raw);
 });
+
+
+test("shared page policy prefers a measured 76%-filled sentence to an orphan 'But the'",()=>{
+ const raw="The people carefully considered the long explanation. But the extraordinarily detailed continuation is still here.";
+ const sentenceEnd=raw.indexOf(" But the")+1;
+ const rowEnd=raw.indexOf("But the")+"But the".length;
+ const secondEnd=raw.indexOf("continuation")+"continuation".length;
+ for(const type of ["paragraph","quote","newspaper_article"] as const){
+  let remeasured=0;
+  const geometry={
+   contentHeightPx:93,contentWidthPx:460,
+   blockHeightsPx:[170],blockRows:[3],
+   paragraphRows:[{textHeightPx:155,rows:[
+    {sourceEnd:rowEnd,displayEnd:rowEnd,bottomPx:41,fill:.97,words:12,
+     punctuationCuts:[{displayEnd:raw.indexOf(".")+1,fill:.76}]},
+    {sourceEnd:secondEnd,displayEnd:secondEnd,bottomPx:98,fill:.91,words:5,
+     punctuationCuts:[]},
+    {sourceEnd:raw.length,displayEnd:raw.length,bottomPx:155,fill:.56,words:4,
+     punctuationCuts:[]},
+   ]}],
+   remeasureRemainder:(_index:number,sourceStart:number,displayStart:number)=>{
+    assert.equal(sourceStart,sentenceEnd);
+    assert.equal(displayStart,sentenceEnd);
+    remeasured++;
+    return {heightPx:103,textHeightPx:90,rows:[
+     {sourceEnd:secondEnd,displayEnd:secondEnd,bottomPx:42},
+     {sourceEnd:raw.length,displayEnd:raw.length,bottomPx:90},
+    ]};
+   },
+  };
+  const block={...make(raw),type,id:"common-"+type};
+  const pages=paginateReaderBlocks([block],defaultReaderSettings,{},
+   DEFAULT_LEGACY_BLOCK_STYLES,geometry);
+  const pieces=pages.flatMap(page=>page.blocks);
+  assert.equal(remeasured,1,type);
+  assert.equal(pieces[0].content,raw.slice(0,sentenceEnd),type);
+  assert.equal(pieces[0].fields?.legacyReaderPageEndReason,"punctuation_80",type);
+  assert.equal(pieces.map(x=>x.content).join(""),raw,type);
+  assert.ok(pieces.every(x=>x.type===type),type);
+ }
+});
+test("a hanging tail never authorizes a half-empty measured sentence break",()=>{
+ const raw="The people carefully considered the long explanation. But the extraordinarily detailed continuation is still here.";
+ const rowEnd=raw.indexOf("But the")+"But the".length;
+ const geo={contentHeightPx:93,contentWidthPx:460,
+  blockHeightsPx:[170],blockRows:[3],
+  paragraphRows:[{textHeightPx:155,rows:[
+   {sourceEnd:rowEnd,displayEnd:rowEnd,bottomPx:41,fill:.97,words:12,
+    punctuationCuts:[{displayEnd:raw.indexOf(".")+1,fill:.62}]},
+   {sourceEnd:raw.indexOf("continuation")+"continuation".length,bottomPx:98},
+   {sourceEnd:raw.length,bottomPx:155},
+  ]}],
+  remeasureRemainder:()=>{throw Error("unacceptable cut must never be remeasured");},
+ };
+ const pages=paginateReaderBlocks([make(raw)],defaultReaderSettings,{},
+  DEFAULT_LEGACY_BLOCK_STYLES,geo);
+ const first=pages[0].blocks[0];
+ assert.equal(first.fields?.legacyReaderPageEndReason,undefined);
+ assert.equal(first.content,raw.slice(0,rowEnd));
+ assert.equal(pages.flatMap(x=>x.blocks).map(x=>x.content).join(""),raw);
+});
