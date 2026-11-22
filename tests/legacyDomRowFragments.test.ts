@@ -23,7 +23,7 @@ test("plain prose is not prefragmented by old character budget for DOM measureme
 test("one paragraph splits at physical DOM source-word offsets with full coverage",()=>{
  const content="a ".repeat(120).trim()+".";
  const geometry={
-  contentHeightPx:110,contentWidthPx:450,
+  contentHeightPx:155,contentWidthPx:450,
   blockHeightsPx:[220],blockRows:[4],
   paragraphRows:[{textHeightPx:200,rows:[
    {sourceEnd:58,bottomPx:50},{sourceEnd:118,bottomPx:100},
