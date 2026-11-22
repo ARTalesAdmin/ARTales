@@ -33,10 +33,15 @@ import {
 } from "@/lib/reader/readerSettings";
 import {
   paginateReaderBlocks,
+  prepareLegacyReaderFragments,
   type ReaderPage,
   type TableBlockMeasurement,
   type TableBlockMeasurements,
 } from "@/lib/reader/paginateBlocks";
+import {
+  legacyPageInkOverflowPx, measureLegacyReaderDom, syncLegacyMeasuringPaper,
+  type LegacyReaderDomGeometry,
+} from "@/lib/reader/domPageGeometry";
 import { getPublicDictionary } from "@/lib/i18n/public";
 import type { SupportedLocale } from "@/lib/i18n/config";
 import ReaderToolbar from "./ReaderToolbar";
@@ -175,6 +180,9 @@ export default function ReaderClient({
   const restoredPagePosition = useRef(false);
   const flowRef = useRef<HTMLDivElement | null>(null);
   const spreadMeasurementRef = useRef<HTMLDivElement | null>(null);
+  const readerRootRef = useRef<HTMLElement | null>(null);
+  const domMeasurementRef = useRef<HTMLDivElement | null>(null);
+  const [inkOverflowPages, setInkOverflowPages] = useState<number[]>([]);
   const tableMeasurementSignatureRef = useRef("");
   const [tableMeasurements, setTableMeasurements] =
     useState<TableBlockMeasurements>({});
@@ -189,9 +197,30 @@ export default function ReaderClient({
   const fullHref = editorPreview
     ? editorReturnHref ?? `/member/works/${slug}/edit`
     : `/reader/${slug}?mode=full`;
-  const readerPages = useMemo(
-    () => paginateReaderBlocks(blocks, settings, tableMeasurements, legacyStyles),
+  // This slice changes page PACKING only. Existing sentence/word/poem/table
+  // fragments remain under the current legacy splitter.
+  const fragments = useMemo(
+    () => prepareLegacyReaderFragments(blocks, settings, tableMeasurements, legacyStyles),
     [blocks, settings, tableMeasurements, legacyStyles],
+  );
+  // A collected footnote list is rendered per page, unlike prose fragments.
+  // Until it has its own measured policy, keep that case on the old algorithm.
+  // Preview banners/CTA also remain on the existing fallback algorithm.
+  const measureEligible = mode === "full" && fragments.length > 0 &&
+    !blocks.some(block => block.type === "footnote");
+  const measureKey = useMemo(() => ({}), [
+    fragments, settings.layoutMode, settings.pageFit, settings.width,
+    settings.fontScale, settings.density,
+  ]);
+  const [domMeasurements, setDomMeasurements] = useState<{
+    key: object; geometry: LegacyReaderDomGeometry | null;
+  } | null>(null);
+  const measurementReady = !measureEligible || domMeasurements?.key === measureKey;
+  const measuredGeometry = measureEligible && domMeasurements?.key === measureKey
+    ? domMeasurements.geometry : null;
+  const readerPages = useMemo(
+    () => paginateReaderBlocks(blocks,settings,tableMeasurements,legacyStyles,measuredGeometry),
+    [blocks,settings,tableMeasurements,legacyStyles,measuredGeometry],
   );
   const pageCount = readerPages.length;
   const normalizedPageIndex = isSpreadMode ? getSpreadStartPage(pageIndex) : pageIndex;
@@ -203,6 +232,97 @@ export default function ReaderClient({
     return a.createdAt.localeCompare(b.createdAt);
   }), [notes]);
   const selectedNoteIndex = sortedNotes.findIndex((note) => note.id === selectedNoteId);
+
+  // Reuse the semantic Reader's width-parity principle: the hidden paper
+  // matches the visible paper's physical dimensions before we read any rows.
+  // React remains the sole renderer; the sampler never edits visible content.
+  useLayoutEffect(() => {
+    if (!measureEligible) return;
+    let active = true;
+    let frame = 0;
+    const stage = domMeasurementRef.current;
+    const root = readerRootRef.current;
+    if (!stage || !root) return;
+    const measure = () => {
+      if (!active) return;
+      const visible = root.querySelector<HTMLElement>(
+        ".artales-reader__paged-flow > .artales-reader__paper--paged, " +
+        ".artales-reader__spread:not(.artales-reader__spread--measurement) > .artales-reader__paper--paged",
+      );
+      const geometry = visible && syncLegacyMeasuringPaper(stage,visible)
+        ? measureLegacyReaderDom(stage,fragments.length) : null;
+      setDomMeasurements(previous => {
+        if (previous?.key === measureKey &&
+          JSON.stringify(previous.geometry) === JSON.stringify(geometry)) return previous;
+        return {key:measureKey,geometry};
+      });
+    };
+    const queue = () => {
+      cancelAnimationFrame(frame);
+      frame = requestAnimationFrame(measure);
+    };
+    const observer = typeof ResizeObserver !== "undefined" ? new ResizeObserver(queue) : null;
+    const visible = root.querySelector<HTMLElement>(
+      ".artales-reader__paged-flow > .artales-reader__paper--paged, " +
+      ".artales-reader__spread:not(.artales-reader__spread--measurement) > .artales-reader__paper--paged",
+    );
+    if (visible) observer?.observe(visible);
+    window.addEventListener("resize",queue);
+    // An image or webfont can change physical line wrapping after first paint.
+    stage.addEventListener("load",queue,true);
+    document.fonts?.ready.then(() => {if (active) queue();}).catch(() => {});
+    queue();
+    return () => {
+      active=false;cancelAnimationFrame(frame);observer?.disconnect();
+      window.removeEventListener("resize",queue);
+      stage.removeEventListener("load",queue,true);
+    };
+  }, [measureEligible,measureKey,fragments.length]);
+
+  useEffect(() => {
+    setInkOverflowPages(previous => previous.length ? [] : previous);
+  }, [measureKey]);
+
+  // The measured page decision is still subject to last-pixel browser
+  // rounding and unusual indivisible media. Never silently hide its ink.
+  useEffect(() => {
+    if (!measurementReady || !readerRootRef.current) return;
+    let frame = 0;
+    const checkVisible = () => {
+      const root = readerRootRef.current;
+      if (!root) return;
+      const papers = root.querySelectorAll<HTMLElement>(
+        ".artales-reader__paged-flow > .artales-reader__paper--paged, " +
+        ".artales-reader__spread:not(.artales-reader__spread--measurement) > .artales-reader__paper--paged",
+      );
+      const affected: number[] = [];
+      for (const paper of Array.from(papers)) {
+        const screen = paper.getBoundingClientRect();
+        if (screen.bottom < 0 || screen.top > window.innerHeight) continue;
+        const area = paper.querySelector<HTMLElement>(".artales-reader__page-content");
+        if (!area) continue;
+        const overflow = legacyPageInkOverflowPx(area);
+        if (overflow !== null) paper.dataset.legacyInkOverflowPx = overflow.toFixed(2);
+        if (overflow !== null && overflow > 2) {
+          const index = Number(paper.dataset.pageIndex);
+          if (Number.isInteger(index) && index >= 0) affected.push(index);
+        }
+      }
+      if (affected.length) setInkOverflowPages(previous => {
+        const next = [...new Set([...previous,...affected])];
+        return next.length === previous.length ? previous : next;
+      });
+    };
+    const queue = () => {cancelAnimationFrame(frame);frame=requestAnimationFrame(checkVisible);};
+    queue();
+    window.addEventListener("scroll",queue,{passive:true});
+    window.addEventListener("resize",queue);
+    return () => {
+      cancelAnimationFrame(frame);
+      window.removeEventListener("scroll",queue);
+      window.removeEventListener("resize",queue);
+    };
+  }, [readerPages,measurementReady,normalizedPageIndex,isSpreadMode]);
 
   useEffect(() => {
     tableMeasurementSignatureRef.current = "";
@@ -351,7 +471,7 @@ export default function ReaderClient({
 
   useEffect(() => {
     if (restoredPagePosition.current) return;
-    if (editorPreview || mode !== "full" || pageCount < 1) return;
+    if (editorPreview || mode !== "full" || pageCount < 1 || !measurementReady) return;
     restoredPagePosition.current = true;
 
     const saved = loadReaderProgress(slug);
@@ -373,7 +493,7 @@ export default function ReaderClient({
       }, 220);
     }
     setProgressRestoreReady(true);
-  }, [editorPreview, isSpreadMode, mode, pageCount, slug]);
+  }, [editorPreview, isSpreadMode, mode, pageCount, slug, measurementReady]);
 
   useEffect(() => {
     const nextProgress = getPageProgress(normalizedPageIndex, pageCount);
@@ -625,7 +745,7 @@ export default function ReaderClient({
     return (
       <article
         data-page-index={pageNumber}
-        className={`artales-reader__paper artales-reader__paper--paged ${extraClassName}`.trim()}
+        className={`artales-reader__paper artales-reader__paper--paged ${page?.overflow === "scroll_unit" || inkOverflowPages.includes(pageNumber) ? "artales-reader__paper--scroll-unit" : ""} ${extraClassName}`.trim()}
       >
         {markerNote ? (
           <button
@@ -658,6 +778,10 @@ export default function ReaderClient({
 
   return (
     <main
+      ref={readerRootRef}
+      data-legacy-page-measurement={measureEligible
+        ? (measuredGeometry ? "dom" : measurementReady ? "fallback" : "pending")
+        : "legacy"}
       className={`artales-reader artales-reader--theme-${settings.theme} artales-reader--width-${settings.width} artales-reader--density-${settings.density} artales-reader--layout-${settings.layoutMode} artales-reader--pagefit-${settings.pageFit}${turnDirection ? ` artales-reader--turn-${turnDirection}` : ""}`}
       style={readerStyle}
     >
@@ -704,6 +828,22 @@ export default function ReaderClient({
       />
 
       <section className="artales-reader__stage">
+        {measureEligible ? (
+          <div className="artales-reader__measurement-stage" ref={domMeasurementRef} aria-hidden="true">
+            <article className="artales-reader__paper artales-reader__paper--paged">
+              <header className="artales-reader__page-header"><span>{title}</span><span>1</span></header>
+              <div className="artales-reader__page-content">
+                <WorkContentRenderer
+                  blocks={fragments}
+                  legacyStyles={legacyStyles}
+                  formatPreset={settings.density === "compact" ? "readerCompact" : "readerComfort"}
+                  footnotesLabel={labels.footnotes}
+                />
+              </div>
+              <footer className="artales-reader__page-footer"><span>1</span></footer>
+            </article>
+          </div>
+        ) : null}
         {settings.layoutMode === "pagedFlow" ? (
           <div className="artales-reader__paged-flow" ref={flowRef}>
             {readerPages.map((page, index) => renderPagedPaper(index, page))}
