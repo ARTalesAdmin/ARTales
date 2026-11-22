@@ -491,9 +491,9 @@ export function paginateReaderBlocks(
       currentBlocks=[];currentWeight=0;
     }
     const nextWouldOverflow = currentBlocks.length > 0 && currentWeight + weight > maxBudget;
-    const shouldStartNewPage =
-      currentBlocks.length > 0 &&
-      (nextWouldOverflow && pageEndsAtSentenceBoundary(currentBlocks,styles));
+    // Hard safety budget overrides sentence preference: otherwise long
+    // unpunctuated text chunks can be put back onto one clipped paper.
+    const shouldStartNewPage = currentBlocks.length > 0 && nextWouldOverflow;
 
     if (shouldStartNewPage) {
       pushPage(pages, currentBlocks, currentWeight);
