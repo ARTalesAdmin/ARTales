@@ -4,6 +4,7 @@ import type {WorkBlockType} from "@/lib/blocks";
 import {WORK_BLOCK_TYPE_META} from "@/lib/blocks";
 import {legacyBlockStyleVars,type LegacyBlockStyle} from "@/lib/rendering/legacyBlockStyles";
 import "./legacy-block-format-spread.css";
+import "@/components/work/legacy-block-typography.css";
 
 type Props={blockType:WorkBlockType;style:LegacyBlockStyle};
 

@@ -1,125 +1,142 @@
 "use client";
-import {useState, useTransition, type CSSProperties} from "react";
+import {useState,useTransition} from "react";
+import {WORK_BLOCK_TYPES,WORK_BLOCK_TYPE_META,type WorkBlockType} from "@/lib/blocks";
+import {DEFAULT_LEGACY_BLOCK_STYLES,type LegacyBlockStyle,type LegacyBlockStyleMap} from "@/lib/rendering/legacyBlockStyles";
 import LegacyBlockSpreadPreview from "./LegacyBlockSpreadPreview";
 import "./legacy-block-format-manager.css";
-import {WORK_BLOCK_TYPES,WORK_BLOCK_TYPE_META,type WorkBlockType} from "@/lib/blocks";
-import {
- DEFAULT_LEGACY_BLOCK_STYLES,
- type LegacyBlockStyle,type LegacyBlockStyleMap
-} from "@/lib/rendering/legacyBlockStyles";
 
-type Props={
- initialStyles:LegacyBlockStyleMap;
- save:(type:string,style:LegacyBlockStyle)=>Promise<{ok:boolean;message:string}>;
-};
-const label:Record<keyof LegacyBlockStyle,string>={
- font_family:"Písmo",font_weight:"Tučnost",font_style:"Řez písma",font_size_em:"Velikost (násobek základní)",line_height:"Řádkování",
- text_align:"Zarovnání",text_indent_em:"Odsazení prvního řádku (em)",
- space_before_em:"Mezera před (em)",space_after_em:"Mezera za (em)",
- hyphenation:"Dělení slov",page_break_before:"Začít na nové stránce",
- own_page:"Samostatná stránka",keep_together:"Držet blok pohromadě",
-};
-const numericFields=[
- ["font_size_em",.7,2.8,.05],["line_height",1,2.6,.05],
- ["text_indent_em",0,4,.1],["space_before_em",0,7,.1],["space_after_em",0,7,.1],
-] as const;
-const families={serif:"Patkové (Georgia)",sans:"Bezpatkové (Arial)",mono:"Neproporcionální"};
+type Props={initialStyles:LegacyBlockStyleMap;save:(type:string,style:LegacyBlockStyle)=>Promise<{ok:boolean;message:string}>};
+const families={serif:"Patkové (Georgia)",sans:"Bezpatkové (Arial)",mono:"Psací stroj"};
 const aligns={left:"Vlevo",center:"Na střed",right:"Vpravo",justify:"Do bloku"};
-const hyphens={none:"Bez dělení",manual:"Pouze ruční",auto:"Automaticky"};
-const weights={400:"Normální · 400",500:"Střední · 500",600:"Polotučné · 600",700:"Tučné · 700"};
-const fontStyles={normal:"Normální",italic:"Kurzíva"};
-const control:CSSProperties={width:"100%",minHeight:38,border:"1px solid #b6ab9d",borderRadius:8,padding:"6px 8px",background:"#fff",color:"#28221d"};
+const hyphens={none:"Nedělit",manual:"Jen označená místa",auto:"Automaticky"};
+const weights={400:"Normální",500:"Střední",600:"Polotučné",700:"Tučné"};
+const styles={normal:"Běžné písmo",italic:"Kurzíva"};
+const numbers=[
+ {field:"font_size_em",title:"Velikost písma",min:.7,max:2.8,step:.05,hint:"1 = běžná velikost"},
+ {field:"line_height",title:"Řádkování",min:1,max:2.6,step:.05,hint:"Vyšší číslo = větší odstup řádků"},
+ {field:"text_indent_em",title:"Odsazení prvního řádku",min:0,max:4,step:.1,hint:"0 = bez odsazení"},
+ {field:"space_before_em",title:"Mezera před blokem",min:0,max:7,step:.1,hint:"0 = bez mezery"},
+ {field:"space_after_em",title:"Mezera za blokem",min:0,max:7,step:.1,hint:"0 = bez mezery"},
+] as const;
+const pageChoices=[
+ {field:"page_break_before",title:"Začít na nové stránce",detail:"Blok nezačne na konci předchozí strany."},
+ {field:"own_page",title:"Samostatná stránka",detail:"Následující blok až na další stránce."},
+ {field:"keep_together",title:"Držet pohromadě",detail:"Nedělit blok, pokud se vejde."},
+] as const;
 export default function LegacyBlockFormatManager({initialStyles,save}:Props){
  const [selected,setSelected]=useState<WorkBlockType>("paragraph");
- const [styles,setStyles]=useState<LegacyBlockStyleMap>(initialStyles);
+ const [values,setValues]=useState<LegacyBlockStyleMap>(initialStyles);
  const [saved,setSaved]=useState<LegacyBlockStyleMap>(initialStyles);
- const [pending,startTransition]=useTransition();
+ const [busy,startTransition]=useTransition();
  const [feedback,setFeedback]=useState("");
- const current=styles[selected];
- const dirty=JSON.stringify(current)!==JSON.stringify(saved[selected]);
- const update=<K extends keyof LegacyBlockStyle>(field:K,value:LegacyBlockStyle[K])=>{
-  setStyles(prev=>({...prev,[selected]:{...prev[selected],[field]:value}}));
+ const current=values[selected];
+ const changed=JSON.stringify(current)!==JSON.stringify(saved[selected]);
+ function update<K extends keyof LegacyBlockStyle>(field:K,value:LegacyBlockStyle[K]){
+  setValues(v=>({...v,[selected]:{...v[selected],[field]:value}}));
   setFeedback("");
- };
- const select=(type:WorkBlockType)=>{setSelected(type);setFeedback("")};
- const doSave=()=>{
+ }
+ function saveCurrent(){
   const type=selected,style={...current};
   startTransition(async()=>{
+   try{
     const result=await save(type,style);
-    if(result.ok)setSaved(prev=>({...prev,[type]:style}));
+    if(result.ok)setSaved(v=>({...v,[type]:style}));
     setFeedback(result.message);
+   }catch{setFeedback("Uložení se nepodařilo. Zkus to znovu.");}
   });
- };
- return <div className="legacy-block-format-manager" style={{display:"grid",gap:20,alignItems:"start"}}>
-  <aside aria-label="Typy bloků" style={{border:"1px solid #d5c7b7",borderRadius:12,padding:10,display:"grid",gap:4,maxHeight:750,overflowY:"auto"}}>
-   {WORK_BLOCK_TYPES.map(type=><button type="button" key={type} onClick={()=>select(type)}
-    aria-current={selected===type?"true":undefined}
-    style={{textAlign:"left",border:"1px solid "+(selected===type?"#8e714c":"transparent"),
-      background:selected===type?"#efe4d6":"transparent",padding:9,borderRadius:7,
-      cursor:"pointer",color:"#29231d",fontWeight:selected===type?700:400}}>
-    {WORK_BLOCK_TYPE_META[type].internalLabel}{JSON.stringify(styles[type])!==JSON.stringify(saved[type])?" •":""}
-   </button>)}
+ }
+ return <div className="legacy-format-manager">
+  <aside className="legacy-format-manager__sidebar" aria-label="Typy bloků">
+   <header className="legacy-format-manager__sidebar-head">
+    <p className="ed-eyebrow">Struktura knihy</p>
+    <h2>Typy bloků</h2>
+    <p>Vyber typ textu a nastav jeho společný vzhled.</p>
+   </header>
+   <div className="legacy-format-manager__items">
+    {WORK_BLOCK_TYPES.map(type=><button key={type} type="button"
+     className={"legacy-format-manager__item"+(selected===type?" is-selected":"")}
+     aria-pressed={selected===type} onClick={()=>{setSelected(type);setFeedback("");}}>
+     <span>{WORK_BLOCK_TYPE_META[type].internalLabel}</span>
+     {JSON.stringify(values[type])!==JSON.stringify(saved[type])
+      ?<span aria-label="Neuložené změny" className="legacy-format-manager__dot">●</span>:null}
+    </button>)}
+   </div>
   </aside>
-  <section style={{minWidth:0,display:"grid",gap:16}}>
-   <div>
-    <h2 style={{margin:"0 0 6px",fontFamily:"Georgia,serif",fontSize:24}}>{WORK_BLOCK_TYPE_META[selected].internalLabel}</h2>
-    <p style={{margin:0,opacity:.8}}>{WORK_BLOCK_TYPE_META[selected].internalHelp}</p>
-   </div>
-   <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(190px,1fr))",gap:12}}>
-    <label style={{display:"grid",gap:5,fontSize:14}}>{label.font_family}
-     <select style={control} value={current.font_family} onChange={e=>update("font_family",e.target.value as LegacyBlockStyle["font_family"])}>
-      {Object.entries(families).map(([v,l])=><option value={v} key={v}>{l}</option>)}
-     </select>
-    </label>
-    <label style={{display:"grid",gap:5,fontSize:14}}>{label.text_align}
-     <select style={control} value={current.text_align} onChange={e=>update("text_align",e.target.value as LegacyBlockStyle["text_align"])}>
-      {Object.entries(aligns).map(([v,l])=><option value={v} key={v}>{l}</option>)}
-     </select>
-    </label>
-    <label style={{display:"grid",gap:5,fontSize:14}}>{label.font_weight}
-      <select style={control} value={current.font_weight}
-        onChange={e=>update("font_weight",Number(e.target.value) as LegacyBlockStyle["font_weight"])}>
-        {Object.entries(weights).map(([v,l])=><option value={v} key={v}>{l}</option>)}
-      </select>
-    </label>
-    <label style={{display:"grid",gap:5,fontSize:14}}>{label.font_style}
-      <select style={control} value={current.font_style}
-        onChange={e=>update("font_style",e.target.value as LegacyBlockStyle["font_style"])}>
-        {Object.entries(fontStyles).map(([v,l])=><option value={v} key={v}>{l}</option>)}
-      </select>
-    </label>
-    <label style={{display:"grid",gap:5,fontSize:14}}>{label.hyphenation}
-     <select style={control} value={current.hyphenation} onChange={e=>update("hyphenation",e.target.value as LegacyBlockStyle["hyphenation"])}>
-      {Object.entries(hyphens).map(([v,l])=><option value={v} key={v}>{l}</option>)}
-     </select>
-    </label>
-    {numericFields.map(([field,min,max,step])=><label key={field} style={{display:"grid",gap:5,fontSize:14}}>
-     {label[field]}
-     <input style={control} type="number" min={min} max={max} step={step} value={current[field]}
-      onChange={e=>update(field,Number(e.target.value))}/>
-    </label>)}
-   </div>
-   <fieldset style={{border:"1px solid #d5c7b7",borderRadius:10,padding:12,display:"grid",gap:10}}>
+  <div className="legacy-format-manager__main">
+   <section className="ed-card legacy-format-manager__settings">
+    <header className="legacy-format-manager__heading">
+     <div><p className="ed-eyebrow">Výchozí formát</p>
+      <h2>{WORK_BLOCK_TYPE_META[selected].internalLabel}</h2>
+      <p>{WORK_BLOCK_TYPE_META[selected].internalHelp}</p>
+     </div>{changed?<span className="legacy-format-manager__unsaved">Neuložené změny</span>:null}
+    </header>
+    <div className="legacy-format-manager__section">
+     <h3>Písmo a zarovnání</h3>
+     <div className="legacy-format-manager__fields">
+      <label className="legacy-format-manager__field">Písmo
+       <select value={current.font_family} onChange={e=>update("font_family",e.target.value as LegacyBlockStyle["font_family"])}>
+        {Object.entries(families).map(([v,name])=><option key={v} value={v}>{name}</option>)}
+       </select>
+      </label>
+      <label className="legacy-format-manager__field">Tučnost
+       <select value={current.font_weight} onChange={e=>update("font_weight",Number(e.target.value) as LegacyBlockStyle["font_weight"])}>
+        {Object.entries(weights).map(([v,name])=><option key={v} value={v}>{name}</option>)}
+       </select>
+      </label>
+      <label className="legacy-format-manager__field">Řez písma
+       <select value={current.font_style} onChange={e=>update("font_style",e.target.value as LegacyBlockStyle["font_style"])}>
+        {Object.entries(styles).map(([v,name])=><option key={v} value={v}>{name}</option>)}
+       </select>
+      </label>
+      <label className="legacy-format-manager__field">Zarovnání
+       <select value={current.text_align} onChange={e=>update("text_align",e.target.value as LegacyBlockStyle["text_align"])}>
+        {Object.entries(aligns).map(([v,name])=><option key={v} value={v}>{name}</option>)}
+       </select>
+      </label>
+      <label className="legacy-format-manager__field">Dělení slov
+       <select value={current.hyphenation} onChange={e=>update("hyphenation",e.target.value as LegacyBlockStyle["hyphenation"])}>
+        {Object.entries(hyphens).map(([v,name])=><option key={v} value={v}>{name}</option>)}
+       </select>
+      </label>
+     </div>
+    </div>
+    <div className="legacy-format-manager__section">
+     <h3>Velikost a mezery</h3>
+     <p className="legacy-format-manager__help">Hodnoty jsou přizpůsobivé:
+      <strong> 1 </strong>odpovídá aktuální velikosti písma.
+      Při zvětšení textu čtenářem se odstupy také zvětšují.</p>
+     <div className="legacy-format-manager__fields legacy-format-manager__fields--numbers">
+      {numbers.map(({field,title,min,max,step,hint})=><label className="legacy-format-manager__field" key={field}>
+       {title}
+       <input type="number" min={min} max={max} step={step} value={current[field]}
+        onChange={e=>update(field,Number(e.target.value))}/>
+       <small>{hint}</small>
+      </label>)}
+     </div>
+    </div>
+   </section>
+   <fieldset className="ed-card legacy-format-manager__behavior">
     <legend>Chování při stránkování</legend>
-    {(["page_break_before","own_page","keep_together"] as const).map(field=>
-     <label key={field} style={{display:"flex",gap:8,alignItems:"center"}}>
+    <div className="legacy-format-manager__choices">
+     {pageChoices.map(({field,title,detail})=><label key={field} className="legacy-format-manager__choice">
       <input type="checkbox" checked={current[field]} onChange={e=>update(field,e.target.checked)}/>
-      {label[field]}
+      <span><strong>{title}</strong><small>{detail}</small></span>
      </label>)}
-    <small>Starý Reader používá váhové odhady. U příliš dlouhého bloku musí dát přednost dostupnosti textu před nedělitelnou stránkou.</small>
+    </div>
+    <p>Starý Reader stránky stále odhaduje. Příliš dlouhý blok může rozdělit,
+     aby z něj nezmizel text.</p>
    </fieldset>
    <LegacyBlockSpreadPreview blockType={selected} style={current}/>
-   <div style={{display:"flex",flexWrap:"wrap",gap:10,alignItems:"center"}}>
-    <button type="button" disabled={pending||!dirty} onClick={doSave}
-     style={{...control,width:"auto",padding:"9px 20px",background:"#27211d",color:"#fff",cursor:"pointer"}}>
-     {pending?"Ukládám…":"Uložit formát"}
+   <div className="legacy-format-manager__footer">
+    <button type="button" className="ed-button" disabled={busy||!changed} onClick={saveCurrent}>
+     {busy?"Ukládám…":"Uložit formát"}
     </button>
-    <button type="button" disabled={pending} onClick={()=>{
-      setStyles(prev=>({...prev,[selected]:{...DEFAULT_LEGACY_BLOCK_STYLES[selected]}}));setFeedback("");
-    }} style={{...control,width:"auto",padding:"9px 18px",cursor:"pointer"}}>Výchozí hodnoty</button>
-    {dirty?<span role="status">Neuložené změny</span>:null}
-    {feedback?<span role="status">{feedback}</span>:null}
+    <button type="button" className="ed-button ed-button--soft" disabled={busy}
+     onClick={()=>{setValues(v=>({...v,[selected]:{...DEFAULT_LEGACY_BLOCK_STYLES[selected]}}));setFeedback("");}}>
+     Obnovit výchozí hodnoty
+    </button>
+    <span role="status" aria-live="polite">{feedback}</span>
    </div>
-  </section>
+  </div>
  </div>;
 }
