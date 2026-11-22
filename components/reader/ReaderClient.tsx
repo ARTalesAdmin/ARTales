@@ -542,14 +542,18 @@ export default function ReaderClient({
       });
     };
     updateActivePage();
+    // In native fullscreen the Reader root, not window, owns the scrolling.
+    const root=readerRootRef.current;
+    root?.addEventListener("scroll",updateActivePage,{passive:true});
     window.addEventListener("scroll", updateActivePage, { passive: true });
     window.addEventListener("resize", updateActivePage);
     return () => {
       window.cancelAnimationFrame(frame);
+      root?.removeEventListener("scroll",updateActivePage);
       window.removeEventListener("scroll", updateActivePage);
       window.removeEventListener("resize", updateActivePage);
     };
-  }, [isSpreadMode, pageCount]);
+  }, [isSpreadMode, pageCount, nativeFullscreen]);
 
 
   const triggerPageTurn = useCallback((direction: "next" | "previous") => {
