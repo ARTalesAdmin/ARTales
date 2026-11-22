@@ -538,7 +538,7 @@ function paginateMeasuredLegacyFragments(
     let rowStart=0;
     let charStart=0;
     let guard=0;
-    while(rowStart<rows.length && guard++<=rows.length){
+    while(rowStart<rows.length && guard++<rows.length*3){
       const previousBottom=rowStart?rows[rowStart-1].bottomPx:0;
       const space=capacity-currentHeight;
       let endRow=rowStart-1;
@@ -581,6 +581,17 @@ function paginateMeasuredLegacyFragments(
       rowStart=endRow+1;
       charStart=charEnd;
       if(!atEnd)flush();
+    }
+    // The measurement cursor must never consume some but not all of a source
+    // paragraph. If browser rows cannot be trusted, retain its whole tail as
+    // an accessible overflow unit rather than silently dropping characters.
+    if(charStart<raw.length){
+      if(current.length)flush();
+      add({...block,
+        id:block.id+"-dom-remainder-"+charStart,
+        content:raw.slice(charStart),
+        fields:{...block.fields,legacyReaderContinuation:charStart>0}
+      },capacity+1);
     }
   });
   flush();
