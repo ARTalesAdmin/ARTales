@@ -591,6 +591,8 @@ export default function WorkContentRenderer({
         return <div key={getStableBlockKey(block,index)}
           data-legacy-block-style={block.type}
           data-legacy-continuation={block.fields?.legacyReaderContinuation === true ? "true" : undefined}
+          data-legacy-page-end-reason={block.fields?.legacyReaderPageEndReason === "punctuation_80"
+            ? "punctuation_80" : undefined}
           style={legacyBlockStyleVars(style)}>
           {body}
         </div>;

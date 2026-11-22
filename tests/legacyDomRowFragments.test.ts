@@ -143,3 +143,106 @@ test("hidden empty prose does not invalidate measurements for all remaining page
  assert.equal(result.diagnostics.mode,"dom");
  assert.deepEqual(result.pages.flatMap(page=>page.blocks),[real]);
 });
+
+
+test("legacy measured page ends at a semantic semicolon in final 20% of its physical row",()=>{
+ const raw="At dawn the market opened; nearby vendors gathered in the square and continued trading until sunset.";
+ const firstRow=raw.indexOf("vendors")+"vendors".length;
+ const secondRow=raw.indexOf("trading")+"trading".length;
+ const mark=raw.indexOf(";")+1;
+ const geo={contentHeightPx:80,contentWidthPx:450,
+  blockHeightsPx:[150],blockRows:[3],
+  paragraphRows:[{textHeightPx:150,rows:[
+   {sourceEnd:firstRow,displayEnd:firstRow,bottomPx:40,fill:.96,words:8,
+    punctuationCuts:[{displayEnd:mark,fill:.86}]},
+   {sourceEnd:secondRow,displayEnd:secondRow,bottomPx:90,fill:.94,words:7,
+    punctuationCuts:[]},
+   {sourceEnd:raw.length,displayEnd:raw.length,bottomPx:140,fill:.48,words:3,
+    punctuationCuts:[]},
+  ]}],
+ };
+ const pages=paginateReaderBlocks([make(raw)],defaultReaderSettings,{},
+  DEFAULT_LEGACY_BLOCK_STYLES,geo);
+ const parts=pages.flatMap(page=>page.blocks);
+ assert.equal(parts.map(block=>block.content).join(""),raw);
+ assert.equal(parts[0].content,"At dawn the market opened; ");
+ assert.equal(parts[0].fields?.legacyReaderPageEndReason,"punctuation_80");
+ assert.ok(parts.length>=2);
+ assert.ok(parts[1].content.startsWith("nearby vendors"));
+});
+
+test("legacy measured page does not choose an earlier-row or under-80% marker",()=>{
+ const raw="At dawn the market opened; nearby vendors gathered in the square and continued trading until sunset.";
+ const firstRow=raw.indexOf("vendors")+"vendors".length;
+ const secondRow=raw.indexOf("trading")+"trading".length;
+ const mark=raw.indexOf(";")+1;
+ const base={contentHeightPx:80,contentWidthPx:450,
+  blockHeightsPx:[150],blockRows:[3],
+  paragraphRows:[{textHeightPx:150,rows:[
+   {sourceEnd:firstRow,displayEnd:firstRow,bottomPx:40,fill:.96,words:8,
+    punctuationCuts:[{displayEnd:mark,fill:.79}]},
+   {sourceEnd:secondRow,displayEnd:secondRow,bottomPx:90,fill:.94,words:7,
+    punctuationCuts:[]},
+   {sourceEnd:raw.length,displayEnd:raw.length,bottomPx:140,fill:.48,words:3,
+    punctuationCuts:[]},
+  ]}],
+ };
+ const low=paginateReaderBlocks([make(raw)],defaultReaderSettings,{},
+  DEFAULT_LEGACY_BLOCK_STYLES,base);
+ assert.equal(low[0].blocks[0].content,raw.slice(0,firstRow));
+ assert.equal(low[0].blocks[0].fields?.legacyReaderPageEndReason,undefined);
+
+ const earlier={...base,contentHeightPx:110};
+ const later=paginateReaderBlocks([make(raw)],defaultReaderSettings,{},
+  DEFAULT_LEGACY_BLOCK_STYLES,earlier);
+ assert.equal(later[0].blocks[0].content,raw.slice(0,secondRow),
+  "punctuation in a previous row must not win over the latest fitting row");
+});
+
+test("semantic punctuation cut maps through inline emphasis without source loss",()=>{
+ const raw="The travelers saw <em>a quiet meadow; many birds</em> beyond the village while daylight remained bright.";
+ const inline=parseLegacyInlineProse(raw);
+ assert.ok(inline);
+ const visible=inline!.visibleText;
+ const marker=visible.indexOf(";")+1;
+ const firstEnd=visible.indexOf("birds")+"birds".length;
+ const sourceFirstEnd=inline!.sourceOffsetAtTextOffset(firstEnd)!;
+ const secondEnd=visible.indexOf("daylight")+"daylight".length;
+ const geo={contentHeightPx:85,contentWidthPx:450,
+  blockHeightsPx:[170],blockRows:[3],
+  paragraphRows:[{textHeightPx:170,rows:[
+   {sourceEnd:sourceFirstEnd,displayEnd:firstEnd,bottomPx:42,fill:.97,words:9,
+    punctuationCuts:[{displayEnd:marker,fill:.9}]},
+   {sourceEnd:inline!.sourceOffsetAtTextOffset(secondEnd)!,displayEnd:secondEnd,
+    bottomPx:95,fill:.91,words:7,punctuationCuts:[]},
+   {sourceEnd:raw.length,displayEnd:visible.length,bottomPx:160,
+    fill:.43,words:3,punctuationCuts:[]},
+  ]}],
+ };
+ const parts=paginateReaderBlocks([make(raw)],defaultReaderSettings,{},
+  DEFAULT_LEGACY_BLOCK_STYLES,geo).flatMap(page=>page.blocks);
+ assert.equal(parts.map(x=>x.content).join(""),raw);
+ assert.equal(parts[0].fields?.legacyReaderPageEndReason,"punctuation_80");
+ assert.equal(parts[0].fields?.legacyReaderInlineSuffix,"</em>");
+ assert.equal(parts[1].fields?.legacyReaderInlinePrefix,"<em>");
+});
+
+test("period can be selected at the same natural-row threshold",()=>{
+ const raw="Thoughtful neighbors settled the argument. Then the conversation continued through the evening.";
+ const firstEnd=raw.indexOf("conversation")+"conversation".length;
+ const mark=raw.indexOf(".")+1;
+ const geo={contentHeightPx:90,contentWidthPx:450,
+  blockHeightsPx:[130],blockRows:[2],
+  paragraphRows:[{textHeightPx:130,rows:[
+   {sourceEnd:firstEnd,displayEnd:firstEnd,bottomPx:40,fill:.98,words:8,
+    punctuationCuts:[{displayEnd:mark,fill:.88}]},
+   {sourceEnd:raw.length,displayEnd:raw.length,bottomPx:120,fill:.72,words:8,
+    punctuationCuts:[]},
+  ]}],
+ };
+ const parts=paginateReaderBlocks([make(raw)],defaultReaderSettings,{},
+  DEFAULT_LEGACY_BLOCK_STYLES,geo).flatMap(page=>page.blocks);
+ assert.equal(parts[0].fields?.legacyReaderPageEndReason,"punctuation_80");
+ assert.equal(parts[0].content,"Thoughtful neighbors settled the argument. ");
+ assert.equal(parts.map(x=>x.content).join(""),raw);
+});

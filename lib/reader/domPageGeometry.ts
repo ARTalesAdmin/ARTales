@@ -15,7 +15,18 @@ export type LegacyReaderDomGeometry = {
   /** Real source-word boundaries for prose, including supported inline emphasis. */
   paragraphRows?: Array<{
     textHeightPx: number;
-    rows: Array<{sourceEnd:number;bottomPx:number}>;
+    rows: Array<{
+      /** UTF-16 offset in the immutable source, including inline markup. */
+      sourceEnd:number;
+      /** UTF-16 offset in the actual displayed text, excluding markup. */
+      displayEnd?:number;
+      bottomPx:number;
+      /** Natural (non-justified) line geometry. */
+      fill?:number;
+      words?:number;
+      /** Non-destructive candidate breaks on the SAME physical row. */
+      punctuationCuts?:ReadonlyArray<{displayEnd:number;fill:number}>;
+    }>;
   } | null>;
 };
 
@@ -101,13 +112,23 @@ export function measureLegacyReaderDom(
     const measuredRows=measureSemanticDomRows(p,0,p);
     const sourceRows=measuredRows.map(row=>({
       sourceEnd:inline.sourceOffsetAtTextOffset(row.sourceEnd) ?? -1,
+      displayEnd:row.sourceEnd,
       bottomPx:row.bottom,
+      fill:row.fill,
+      words:row.words,
+      punctuationCuts:row.punctuationCuts?.map(mark=>({
+        displayEnd:mark.sourceEnd,
+        fill:mark.fill,
+      })),
     }));
     const pHeight=p.getBoundingClientRect().height;
     if (!(pHeight>0) || sourceRows.length<1 ||
         sourceRows.some((row,i)=>!Number.isFinite(row.bottomPx) ||
           row.sourceEnd<1 || row.sourceEnd>source!.content.length ||
-          (i>0 && row.sourceEnd<=sourceRows[i-1].sourceEnd))) {
+          row.displayEnd<1 || row.displayEnd>inline.visibleText.length ||
+          row.fill<0 || row.fill>1 || row.words<1 ||
+          (i>0 && (row.sourceEnd<=sourceRows[i-1].sourceEnd ||
+            row.displayEnd<=sourceRows[i-1].displayEnd)))) {
       paragraphRows.push(null);continue;
     }
     paragraphRows.push({textHeightPx:pHeight,rows:sourceRows});
