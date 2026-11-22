@@ -4,7 +4,11 @@ import {DEFAULT_LEGACY_BLOCK_STYLES} from "../lib/rendering/legacyBlockStyles";
 import {defaultReaderSettings} from "../lib/reader/readerSettings";
 import {paginateReaderBlocks,prepareLegacyReaderFragments} from "../lib/reader/paginateBlocks";
 const make=(id:string,content:string)=>({id,type:"paragraph" as const,content,editor_note:null});
-const geometry=(heights:number[],capacity=220)=>({contentHeightPx:capacity,contentWidthPx:480,blockHeightsPx:heights,blockRows:heights.map(()=>2)});
+const geometry=(heights:number[],capacity=220)=>({
+ contentHeightPx:capacity,contentWidthPx:480,blockHeightsPx:heights,
+ blockRows:heights.map(()=>1),
+ paragraphRows:heights.map(h=>({textHeightPx:h,rows:[{sourceEnd:1,bottomPx:h}]}))
+});
 test("DOM height, not weight, determines pages",()=>{
  const b=[make("a","Short."),make("b","Another short."),make("c","Last.")];
  const p=paginateReaderBlocks(b,defaultReaderSettings,{},DEFAULT_LEGACY_BLOCK_STYLES,geometry([90,90,90]));
@@ -37,9 +41,9 @@ test("invalid geometry falls back unchanged",()=>{
 });
 test("measured packing preserves all existing fragment IDs and content",()=>{
  const b=[make("long",Array.from({length:400},(_,i)=>"word"+i).join(" ")+".")];
- const fragments=prepareLegacyReaderFragments(b,defaultReaderSettings);
- assert.ok(fragments.length>1);
- const pages=paginateReaderBlocks(b,defaultReaderSettings,{},DEFAULT_LEGACY_BLOCK_STYLES,geometry(fragments.map(()=>60)));
+ const fragments=prepareLegacyReaderFragments(b,defaultReaderSettings,{},DEFAULT_LEGACY_BLOCK_STYLES,true);
+ assert.equal(fragments.length,1);
+ const pages=paginateReaderBlocks(b,defaultReaderSettings,{},DEFAULT_LEGACY_BLOCK_STYLES,geometry([60]));
  assert.deepEqual(pages.flatMap(x=>x.blocks.map(y=>y.id)),fragments.map(x=>x.id));
  assert.deepEqual(pages.flatMap(x=>x.blocks.map(y=>y.content)),fragments.map(x=>x.content));
 });

@@ -40,3 +40,9 @@
 .artales-reader .artales-work-content [data-legacy-block-style] > .artales-paragraph p {
   margin:0!important;
 }
+
+/* Page continuations do not re-indent a paragraph's second physical line.
+   The first fragment retains its original indentation. */
+.artales-reader .artales-work-content [data-legacy-continuation="true"] > .artales-paragraph p{
+ text-indent:0!important;
+}

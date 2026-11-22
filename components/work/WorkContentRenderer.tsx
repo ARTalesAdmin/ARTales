@@ -581,7 +581,9 @@ export default function WorkContentRenderer({
         if(!legacyStyles)return body;
         const style=legacyStyles[block.type];
         return <div key={getStableBlockKey(block,index)}
-          data-legacy-block-style={block.type} style={legacyBlockStyleVars(style)}>
+          data-legacy-block-style={block.type}
+          data-legacy-continuation={block.fields?.legacyReaderContinuation === true ? "true" : undefined}
+          style={legacyBlockStyleVars(style)}>
           {body}
         </div>;
       })}
