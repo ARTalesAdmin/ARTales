@@ -246,3 +246,48 @@ test("period can be selected at the same natural-row threshold",()=>{
  assert.equal(parts[0].content,"Thoughtful neighbors settled the argument. ");
  assert.equal(parts.map(x=>x.content).join(""),raw);
 });
+
+
+test("multi-paragraph prose and literal unsupported tags stay uncut until DOM measures them",()=>{
+ const source=("  <em>A long opening discussion with many words. </em> "+
+   "This is the rest of the introduction. \n\n "+
+   "A second paragraph has a <strong>literal tag</strong> and more text. ").repeat(8).trim();
+ const original=make(source);
+ const measured=prepareLegacyReaderFragments([original],defaultReaderSettings,{},
+  DEFAULT_LEGACY_BLOCK_STYLES,true);
+ assert.deepEqual(measured,[original]);
+ const map=parseLegacyInlineProse(source);
+ assert.ok(map);
+ assert.ok(map.parts.length>=2);
+ assert.equal(map.parts[0].sourceStart,0);
+ // Every DOM mapping still identifies original source offsets, not a
+ // rewritten, normalized, or word-budget fragment.
+ assert.equal(map.sourceOffsetAtTextOffset(map.parts[1].textStart),
+  source.indexOf("A second paragraph"));
+});
+
+test("multi-paragraph physical DOM cuts preserve source even across newline separators",()=>{
+ const raw="First paragraph ends here.\n\nSecond paragraph extends with lots of following words.";
+ const map=parseLegacyInlineProse(raw);
+ assert.ok(map);
+ const firstEnd=map.sourceOffsetAtTextOffset("First paragraph ends here.".length)!;
+ const secondTextEnd=map.visibleText.indexOf("extends")+"extends".length;
+ const secondEnd=map.sourceOffsetAtTextOffset(secondTextEnd)!;
+ const geo={contentHeightPx:90,contentWidthPx:450,
+  blockHeightsPx:[145],blockRows:[3],
+  paragraphRows:[{textHeightPx:130,rows:[
+   {sourceEnd:firstEnd,displayEnd:"First paragraph ends here.".length,
+    bottomPx:30,fill:.9,words:4,punctuationCuts:[]},
+   {sourceEnd:secondEnd,displayEnd:secondTextEnd,
+    bottomPx:73,fill:.92,words:5,punctuationCuts:[]},
+   {sourceEnd:raw.length,displayEnd:map.visibleText.length,
+    bottomPx:130,fill:.75,words:6,punctuationCuts:[]},
+  ]}],
+ };
+ const result=paginateReaderBlocksWithDiagnostics([make(raw)],defaultReaderSettings,{},
+  DEFAULT_LEGACY_BLOCK_STYLES,geo);
+ assert.equal(result.diagnostics.mode,"dom");
+ assert.equal(result.diagnostics.localFallbackBlocks,0);
+ assert.equal(result.pages.flatMap(page=>page.blocks).map(b=>b.content).join(""),raw);
+ assert.ok(result.pages.length>1);
+});
