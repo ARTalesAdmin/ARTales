@@ -9,6 +9,8 @@ html="""<main class="artales-reader artales-reader--theme-light">
 <article class="artales-work-content artales-renderer--reader-comfort">
 <div data-legacy-block-style="paragraph" style="
 --artales-block-font:Arial, Helvetica, sans-serif;
+--artales-block-weight:700;
+--artales-block-style:italic;
 --artales-block-size:1.3em;
 --artales-block-leading:1.7;
 --artales-block-align:right;
@@ -17,9 +19,11 @@ html="""<main class="artales-reader artales-reader--theme-light">
 --artales-block-after:2em;
 --artales-block-hyphens:none;
 break-before:page;break-inside:avoid">
-<section class="artales-block artales-paragraph"><p>First line text for style parity.</p></section></div>
+<section class="artales-block artales-paragraph"><p>First line text for style <em>parity</em>.</p></section></div>
 <div data-legacy-block-style="chapter" style="
 --artales-block-font:Georgia,serif;
+--artales-block-weight:500;
+--artales-block-style:normal;
 --artales-block-size:1.8em;
 --artales-block-leading:1.2;
 --artales-block-align:center;
@@ -44,13 +48,16 @@ with sync_playwright() as p:
       return {font:p.fontFamily,size:p.fontSize,align:p.textAlign,indent:p.textIndent,
         hyphens:p.hyphens,leading:p.lineHeight,marginBefore:w.marginTop,
         marginAfter:w.marginBottom,page:w.breakBefore,keep:w.breakInside,
-        headingAlign:c.textAlign,headingSize:c.fontSize};
+        headingAlign:c.textAlign,headingSize:c.fontSize,weight:p.fontWeight,italic:p.fontStyle,inlineItalic:getComputedStyle(para.querySelector('em')).fontStyle,headingWeight:c.fontWeight};
     }""")
     assert "Arial" in got["font"],got
     assert got["align"]=="right",got
     assert got["hyphens"]=="none",got
     assert got["page"]=="page" and got["keep"]=="avoid",got
     assert got["headingAlign"]=="center",got
+    assert got["weight"]=="700" and got["italic"]=="italic",got
+    assert got["inlineItalic"]=="italic",got
+    assert got["headingWeight"]=="500",got
     assert float(got["indent"].removesuffix("px"))>20,got
     assert float(got["size"].removesuffix("px"))>20,got
     assert float(got["headingSize"].removesuffix("px"))>25,got

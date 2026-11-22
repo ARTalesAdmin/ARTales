@@ -2421,6 +2421,8 @@
    This scoped layer overrides older presets without touching SemanticPageUnit. */
 .artales-reader .artales-work-content [data-legacy-block-style] {
   font-family:var(--artales-block-font)!important;
+  font-weight:var(--artales-block-weight)!important;
+  font-style:var(--artales-block-style)!important;
   font-size:var(--artales-block-size)!important;
   line-height:var(--artales-block-leading)!important;
   text-align:var(--artales-block-align)!important;
@@ -2430,6 +2432,8 @@
 }
 .artales-reader .artales-work-content [data-legacy-block-style] > .artales-block {
   font-family:inherit!important;
+  font-weight:inherit!important;
+  font-style:inherit!important;
   font-size:inherit!important;
   line-height:inherit!important;
   text-align:inherit!important;
@@ -2442,6 +2446,8 @@
   .artales-preface,.artales-afterword,.artales-acknowledgement,.artales-dedication
 ) {
   font-family:inherit!important;
+  font-weight:inherit!important;
+  font-style:inherit!important;
   font-size:inherit!important;
   line-height:inherit!important;
   text-align:inherit!important;

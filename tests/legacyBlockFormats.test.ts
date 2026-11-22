@@ -78,3 +78,27 @@ test("image blocks are never text-split even if keep-together is disabled",async
  assert.equal(pages.flatMap(x=>x.blocks).length,1);
  assert.equal(pages.flatMap(x=>x.blocks)[0].id,"photo");
 });
+
+test("bold and italic styles validate and reach the same CSS variables",()=>{
+ const updated=parseLegacyBlockStyle("paragraph",{font_weight:700,font_style:"italic"});
+ assert.ok(updated);
+ const vars=legacyBlockStyleVars(updated!);
+ assert.equal(vars["--artales-block-weight" as keyof typeof vars],"700");
+ assert.equal(vars["--artales-block-style" as keyof typeof vars],"italic");
+ assert.equal(parseLegacyBlockStyle("paragraph",{font_weight:250}),null);
+ assert.equal(parseLegacyBlockStyle("paragraph",{font_style:"oblique"}),null);
+});
+test("old JSON styles missing new keys load with backward-compatible defaults",()=>{
+ const older=Object.fromEntries(Object.entries(DEFAULT_LEGACY_BLOCK_STYLES.quote)
+   .filter(([key])=>key!=="font_weight" && key!=="font_style"));
+ const parsed=parseLegacyBlockStyle("quote",older);
+ assert.equal(parsed?.font_weight,400);
+ assert.equal(parsed?.font_style,"italic");
+});
+test("canonical default emphasis retains legacy chapter and verse appearance",()=>{
+ assert.equal(DEFAULT_LEGACY_BLOCK_STYLES.chapter.font_weight,500);
+ assert.equal(DEFAULT_LEGACY_BLOCK_STYLES.headline.font_weight,700);
+ assert.equal(DEFAULT_LEGACY_BLOCK_STYLES.poem.font_style,"italic");
+ assert.equal(DEFAULT_LEGACY_BLOCK_STYLES.paragraph.font_weight,400);
+ assert.equal(DEFAULT_LEGACY_BLOCK_STYLES.paragraph.font_style,"normal");
+});
