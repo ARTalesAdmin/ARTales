@@ -101,7 +101,7 @@ with sync_playwright() as pw:
  print("Chromium italic rich text -> exact source and intact display PASS",rich_result["pieces"])
 
  # Single-newline source paragraphs are one rendered <p>, not two.
- single="An ordinary paragraph starts here and extends across one line.\nAnd this is its continuation in the same Gutenberg block. "*9
+ single=("An ordinary paragraph starts here and extends across one line.\nAnd this is its continuation in the same Gutenberg block. "*9).strip()
  page.evaluate("(text)=>{document.querySelector('#original').textContent=text;document.querySelector('#measured').textContent=text;}",single)
  newline_result=page.evaluate("""text=>{
    const e=window.ARTalesLegacyDomEngine,stage=document.querySelector('#probe');
