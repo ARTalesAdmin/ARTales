@@ -6,6 +6,7 @@ import {
 } from "@/lib/blocks";
 import type { ReaderSettings } from "./readerSettings";
 import type {LegacyReaderDomGeometry} from "./domPageGeometry";
+import {parseLegacyInlineProse} from "./inlineProseSource";
 import {DEFAULT_LEGACY_BLOCK_STYLES,legacyBlockWeightMultiplier,type LegacyBlockStyleMap,type LegacyBlockStyle} from "@/lib/rendering/legacyBlockStyles";
 
 export type ReaderPage = {
@@ -470,13 +471,11 @@ export function prepareLegacyReaderFragments(
   const budget = getPageBudget(settings);
   return blocks.flatMap(block => {
     const style = styles[block.type];
-    // The browser, rather than estimated character budgets, may now split
-    // plain unmarked prose. Keep every other legacy block unchanged.
+    // Supported prose (plain or with inline emphasis) must reach the browser
+    // intact. Unsupported syntax retains the existing conservative splitter.
     if (preservePlainParagraphs && block.type === "paragraph" &&
       !style.keep_together && !style.own_page &&
-      block.content === block.content.trim() &&
-      block.content.length > 0 && !/[\r\n<>]/.test(block.content) &&
-      !/&lt;/i.test(block.content)) return [block];
+      parseLegacyInlineProse(block.content)) return [block];
     const effectiveBudget = Math.max(120,
       Math.round(budget / Math.max(.4, legacyBlockWeightMultiplier(style))));
     return splitBlock(block, effectiveBudget, settings, tableMeasurements, style);
@@ -490,7 +489,7 @@ function paginateMeasuredLegacyFragments(
   fragments: readonly WorkBlock[],
   styles: LegacyBlockStyleMap,
   geometry: LegacyReaderDomGeometry,
-): ReaderPage[] | null {
+): {pages:ReaderPage[];localFallbackBlocks:number} | null {
   const {contentHeightPx,blockHeightsPx,blockRows,paragraphRows} = geometry;
   if (!Number.isFinite(contentHeightPx) || contentHeightPx < 80 ||
     fragments.length !== blockHeightsPx.length ||
@@ -501,6 +500,7 @@ function paginateMeasuredLegacyFragments(
   let current:WorkBlock[]=[];
   let currentHeight=0;
   let currentOverflow=false;
+  let localFallbackBlocks=0;
   const flush=()=>{
     if(!current.length)return;
     pages.push({blocks:current,estimatedWeight:currentHeight,
@@ -523,12 +523,34 @@ function paginateMeasuredLegacyFragments(
     const paragraph=block.type==="paragraph" && !style.keep_together && !style.own_page
       ?paragraphRows?.[index]:null;
     const raw=block.content;
+    const inline=block.type==="paragraph" ? parseLegacyInlineProse(raw) : null;
+    // Source slices remain byte-for-byte contiguous. Rendering-only affixes
+    // restore an emphasis tag that spans a physical page boundary.
+    const makeSlice=(start:number,end:number,reason:string):WorkBlock=>{
+      const startTag=inline?.activeTagAtSourceOffset(start);
+      const endTag=inline?.activeTagAtSourceOffset(end);
+      return {
+        ...block,
+        id:block.id+"-"+reason+"-"+start+"-"+end,
+        content:raw.slice(start,end),
+        fields:{
+          ...(block.fields??{}),
+          legacyReaderContinuation:start>0,
+          legacyReaderInlinePrefix:startTag?"<"+startTag+">":"",
+          legacyReaderInlineSuffix:endTag?"</"+endTag+">":"",
+        },
+      };
+    };
     const rows=paragraph?.rows;
     const validRows=rows && rows.length>1 &&
       rows.every((row,i)=>row.sourceEnd>0 && row.sourceEnd<=raw.length &&
         row.bottomPx>0 && (i===0 ||
           (row.sourceEnd>rows[i-1].sourceEnd && row.bottomPx>rows[i-1].bottomPx)));
     if (!validRows || !paragraph || !rows) {
+      // Only THIS block uses the conservative indivisible fallback. Do not
+      // discard physical geometry for every other paragraph in the book.
+      if(block.type==="paragraph" && !style.keep_together && !style.own_page &&
+        (!rows || rows.length!==1))localFallbackBlocks++;
       if(current.length && currentHeight+height>capacity)flush();
       add(block,height);
       if(style.own_page)flush();
@@ -566,19 +588,12 @@ function paginateMeasuredLegacyFragments(
       if(charEnd<=charStart || charEnd>raw.length){
         // Unreliable DOM offsets: do not risk a lost or duplicated character.
         if(current.length)flush();
-        add({...block,content:raw.slice(charStart),
-          id:block.id+"-dom-invalid-"+charStart,
-          fields:{...block.fields,legacyReaderContinuation:charStart>0}
-        },capacity+1);
+        add(makeSlice(charStart,raw.length,"dom-invalid"),capacity+1);
         charStart=raw.length;
         break;
       }
-      const piece:WorkBlock=charStart===0 && atEnd?block:{
-        ...block,
-        id:block.id+"-dom-"+charStart+"-"+charEnd,
-        content:raw.slice(charStart,charEnd),
-        fields:{...block.fields,legacyReaderContinuation:charStart>0},
-      };
+      const piece:WorkBlock=charStart===0 && atEnd
+        ? block : makeSlice(charStart,charEnd,"dom");
       const measuredHeight=chrome+rows[endRow].bottomPx-previousBottom;
       if(current.length && currentHeight+measuredHeight>capacity)flush();
       add(piece,measuredHeight);
@@ -591,45 +606,41 @@ function paginateMeasuredLegacyFragments(
     // an accessible overflow unit rather than silently dropping characters.
     if(charStart<raw.length){
       if(current.length)flush();
-      add({...block,
-        id:block.id+"-dom-remainder-"+charStart,
-        content:raw.slice(charStart),
-        fields:{...block.fields,legacyReaderContinuation:charStart>0}
-      },capacity+1);
+      add(makeSlice(charStart,raw.length,"dom-remainder"),capacity+1);
     }
   });
   flush();
-  return pages.length?pages:[{blocks:[],estimatedWeight:0}];
+  return {pages:pages.length?pages:[{blocks:[],estimatedWeight:0}],localFallbackBlocks};
 }
 
-export function paginateReaderBlocks(
+export type LegacyPaginationDiagnostics = {
+  mode:"dom"|"estimated";
+  reason:"measured"|"geometry-unavailable"|"geometry-invalid";
+  localFallbackBlocks:number;
+};
+
+export function paginateReaderBlocksWithDiagnostics(
   blocks: WorkBlock[],
   settings: ReaderSettings,
   tableMeasurements: TableBlockMeasurements = {},
   styles: LegacyBlockStyleMap = DEFAULT_LEGACY_BLOCK_STYLES,
   measuredGeometry?: LegacyReaderDomGeometry | null,
-): ReaderPage[] {
+): {pages:ReaderPage[];diagnostics:LegacyPaginationDiagnostics} {
   const budget = getPageBudget(settings);
   const softBudget = Math.round(budget * 0.9);
   const maxBudget = Math.round(budget * 1.08);
-  // Browser geometry comes from unsplit plain paragraphs. If it is incomplete
-  // or cannot safely provide physical rows, fall all the way back to the
-  // legacy fragmenter; never keep a giant paragraph indivisible by accident.
+  // A missing ROW is not a book-wide failure. Existing DOM geometry still
+  // packs every other block; only absent or invalid BOOK geometry falls back.
+  let reason:LegacyPaginationDiagnostics["reason"] = "geometry-unavailable";
   if (measuredGeometry) {
     const uncut = prepareLegacyReaderFragments(
       blocks,settings,tableMeasurements,styles,true);
-    const eligibleParagraphs = uncut.map((block,index) =>
-      block.type === "paragraph" && !styles[block.type].keep_together &&
-      !styles[block.type].own_page && block.content === block.content.trim() &&
-      block.content.length > 0 && !/[\r\n<>]/.test(block.content) &&
-      !/&lt;/i.test(block.content) ? index : -1).filter(x=>x>=0);
-    const complete = eligibleParagraphs.every(index =>
-      measuredGeometry.paragraphRows?.[index] &&
-      measuredGeometry.paragraphRows[index]!.rows.length > 0);
-    if (complete) {
-      const measured=paginateMeasuredLegacyFragments(uncut,styles,measuredGeometry);
-      if (measured) return measured;
-    }
+    const measured=paginateMeasuredLegacyFragments(uncut,styles,measuredGeometry);
+    if (measured) return {
+      pages:measured.pages,
+      diagnostics:{mode:"dom",reason:"measured",localFallbackBlocks:measured.localFallbackBlocks},
+    };
+    reason="geometry-invalid";
   }
   const splitBlocks = prepareLegacyReaderFragments(
     blocks,settings,tableMeasurements,styles);
@@ -677,5 +688,20 @@ export function paginateReaderBlocks(
 
   pushPage(pages, currentBlocks, currentWeight);
 
-  return pages.length > 0 ? pages : [{ blocks: [], estimatedWeight: 0 }];
+  return {
+    pages:pages.length > 0 ? pages : [{ blocks: [], estimatedWeight: 0 }],
+    diagnostics:{mode:"estimated",reason,localFallbackBlocks:0},
+  };
+}
+
+/** Compatibility entrypoint: all callers share the same canonical paginator. */
+export function paginateReaderBlocks(
+  blocks:WorkBlock[],
+  settings:ReaderSettings,
+  tableMeasurements:TableBlockMeasurements = {},
+  styles:LegacyBlockStyleMap = DEFAULT_LEGACY_BLOCK_STYLES,
+  measuredGeometry?:LegacyReaderDomGeometry | null,
+):ReaderPage[] {
+  return paginateReaderBlocksWithDiagnostics(
+    blocks,settings,tableMeasurements,styles,measuredGeometry).pages;
 }

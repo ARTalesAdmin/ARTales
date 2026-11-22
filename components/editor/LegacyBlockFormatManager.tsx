@@ -8,7 +8,6 @@ import "./legacy-block-format-manager.css";
 type Props={initialStyles:LegacyBlockStyleMap;save:(type:string,style:LegacyBlockStyle)=>Promise<{ok:boolean;message:string}>};
 const families={serif:"Patkové (Georgia)",sans:"Bezpatkové (Arial)",mono:"Psací stroj"};
 const aligns={left:"Vlevo",center:"Na střed",right:"Vpravo",justify:"Do bloku"};
-const hyphens={none:"Nedělit",manual:"Jen označená místa",auto:"Automaticky"};
 const weights={400:"Normální",500:"Střední",600:"Polotučné",700:"Tučné"};
 const styles={normal:"Běžné písmo",italic:"Kurzíva"};
 const numbers=[
@@ -93,11 +92,6 @@ export default function LegacyBlockFormatManager({initialStyles,save}:Props){
         {Object.entries(aligns).map(([v,name])=><option key={v} value={v}>{name}</option>)}
        </select>
       </label>
-      <label className="legacy-format-manager__field">Dělení slov
-       <select value={current.hyphenation} onChange={e=>update("hyphenation",e.target.value as LegacyBlockStyle["hyphenation"])}>
-        {Object.entries(hyphens).map(([v,name])=><option key={v} value={v}>{name}</option>)}
-       </select>
-      </label>
      </div>
     </div>
     <div className="legacy-format-manager__section">
@@ -123,8 +117,8 @@ export default function LegacyBlockFormatManager({initialStyles,save}:Props){
       <span><strong>{title}</strong><small>{detail}</small></span>
      </label>)}
     </div>
-    <p>Starý Reader stránky stále odhaduje. Příliš dlouhý blok může rozdělit,
-     aby z něj nezmizel text.</p>
+    <p>Čtečka měří skutečné řádky, pokud má platnou geometrii. Při chybě měření
+     použije bezpečnou náhradní cestu; obsah nikdy nesmí zmizet.</p>
    </fieldset>
    <LegacyBlockSpreadPreview blockType={selected} style={current}/>
    <div className="legacy-format-manager__footer">

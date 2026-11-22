@@ -32,7 +32,7 @@ import {
   type ReaderWidthId,
 } from "@/lib/reader/readerSettings";
 import {
-  paginateReaderBlocks,
+  paginateReaderBlocksWithDiagnostics,
   prepareLegacyReaderFragments,
   type ReaderPage,
   type TableBlockMeasurement,
@@ -203,6 +203,8 @@ export default function ReaderClient({
   // fragments remain under the current legacy splitter.
   // The offscreen sampler must measure the EXACT fragments passed to the
   // measured paginator. Plain prose is not pre-split by the old estimates.
+  // Footnotes currently render both in their source block and in an appended
+  // summary. Preserve the established output until that summary is measured.
   const measureEligible = mode === "full" && blocks.length > 0 &&
     !blocks.some(block => block.type === "footnote");
   const fragments = useMemo(
@@ -220,10 +222,12 @@ export default function ReaderClient({
   const measurementReady = !measureEligible || domMeasurements?.key === measureKey;
   const measuredGeometry = measureEligible && domMeasurements?.key === measureKey
     ? domMeasurements.geometry : null;
-  const readerPages = useMemo(
-    () => paginateReaderBlocks(blocks,settings,tableMeasurements,legacyStyles,measuredGeometry),
+  const pagination = useMemo(
+    () => paginateReaderBlocksWithDiagnostics(
+      blocks,settings,tableMeasurements,legacyStyles,measuredGeometry),
     [blocks,settings,tableMeasurements,legacyStyles,measuredGeometry],
   );
+  const readerPages = pagination.pages;
   const pageCount = readerPages.length;
   const normalizedPageIndex = isSpreadMode ? getSpreadStartPage(pageIndex) : pageIndex;
   const sortedNotes = useMemo(() => [...notes].sort((a, b) => {
@@ -861,8 +865,15 @@ export default function ReaderClient({
     <main
       ref={readerRootRef}
       data-legacy-page-measurement={measureEligible
-        ? (measuredGeometry ? "dom" : measurementReady ? "fallback" : "pending")
+        ? (!measurementReady ? "pending"
+          : pagination.diagnostics.mode === "dom"
+            ? (pagination.diagnostics.localFallbackBlocks > 0
+              ? "dom-local-fallback" : "dom")
+            : "fallback")
         : "legacy"}
+      data-legacy-page-measurement-reason={measurementReady
+        ? pagination.diagnostics.reason : "pending"}
+      data-legacy-local-fallback-count={pagination.diagnostics.localFallbackBlocks}
       className={`artales-reader artales-reader--theme-${settings.theme} artales-reader--width-${settings.width} artales-reader--density-${settings.density} artales-reader--layout-${settings.layoutMode} artales-reader--pagefit-${settings.pageFit}${turnDirection ? ` artales-reader--turn-${turnDirection}` : ""}`}
       style={readerStyle}
     >

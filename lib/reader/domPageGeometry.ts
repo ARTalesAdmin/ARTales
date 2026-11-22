@@ -1,5 +1,6 @@
 import type {WorkBlock} from "@/lib/blocks";
 import {measureSemanticDomRows} from "@/lib/semantic/domLineGeometry";
+import {parseLegacyInlineProse} from "./inlineProseSource";
 
 /** Browser geometry for the existing legacy WorkBlock Reader.
  * This measures its ACTUAL rendered CSS boxes. It does not create semantic
@@ -11,7 +12,7 @@ export type LegacyReaderDomGeometry = {
   blockHeightsPx: number[];
   /** Physical Chromium rows, not logical sentences or source line breaks. */
   blockRows: number[];
-  /** Real source-word boundaries for single unmarked prose paragraphs. */
+  /** Real source-word boundaries for prose, including supported inline emphasis. */
   paragraphRows?: Array<{
     textHeightPx: number;
     rows: Array<{sourceEnd:number;bottomPx:number}>;
@@ -93,22 +94,23 @@ export function measureLegacyReaderDom(
     rows.push(totalRows);
     const source = sourceFragments?.[index];
     const p = fragment.querySelector<HTMLElement>(".artales-paragraph > p");
-    const plain = source?.type === "paragraph" && p &&
-      source.content === source.content.trim() &&
-      !/[\r\n<>]/.test(source.content) && !/&lt;/i.test(source.content) &&
-      p.textContent === source.content;
-    if (!plain || !p) {paragraphRows.push(null);continue;}
+    const inline = source?.type === "paragraph"
+      ? parseLegacyInlineProse(source.content) : null;
+    const supported = Boolean(inline && p && p.textContent === inline.visibleText);
+    if (!supported || !p || !inline) {paragraphRows.push(null);continue;}
     const measuredRows=measureSemanticDomRows(p,0,p);
+    const sourceRows=measuredRows.map(row=>({
+      sourceEnd:inline.sourceOffsetAtTextOffset(row.sourceEnd) ?? -1,
+      bottomPx:row.bottom,
+    }));
     const pHeight=p.getBoundingClientRect().height;
-    if (!(pHeight>0) || measuredRows.length<1 ||
-        measuredRows.some(row=>!Number.isFinite(row.bottom) ||
-          row.sourceEnd<1 || row.sourceEnd>source.content.length)) {
+    if (!(pHeight>0) || sourceRows.length<1 ||
+        sourceRows.some((row,i)=>!Number.isFinite(row.bottomPx) ||
+          row.sourceEnd<1 || row.sourceEnd>source!.content.length ||
+          (i>0 && row.sourceEnd<=sourceRows[i-1].sourceEnd))) {
       paragraphRows.push(null);continue;
     }
-    paragraphRows.push({
-      textHeightPx:pHeight,
-      rows:measuredRows.map(row=>({sourceEnd:row.sourceEnd,bottomPx:row.bottom})),
-    });
+    paragraphRows.push({textHeightPx:pHeight,rows:sourceRows});
   }
   return {
     contentHeightPx: Math.floor(contentRect.height * 2) / 2,

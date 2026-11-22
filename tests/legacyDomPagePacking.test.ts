@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import {DEFAULT_LEGACY_BLOCK_STYLES} from "../lib/rendering/legacyBlockStyles";
 import {defaultReaderSettings} from "../lib/reader/readerSettings";
-import {paginateReaderBlocks,prepareLegacyReaderFragments} from "../lib/reader/paginateBlocks";
+import {paginateReaderBlocks,paginateReaderBlocksWithDiagnostics,prepareLegacyReaderFragments} from "../lib/reader/paginateBlocks";
 const make=(id:string,content:string)=>({id,type:"paragraph" as const,content,editor_note:null});
 const geometry=(heights:number[],capacity=220)=>({
  contentHeightPx:capacity,contentWidthPx:480,blockHeightsPx:heights,
@@ -46,4 +46,12 @@ test("measured packing preserves all existing fragment IDs and content",()=>{
  const pages=paginateReaderBlocks(b,defaultReaderSettings,{},DEFAULT_LEGACY_BLOCK_STYLES,geometry([60]));
  assert.deepEqual(pages.flatMap(x=>x.blocks.map(y=>y.id)),fragments.map(x=>x.id));
  assert.deepEqual(pages.flatMap(x=>x.blocks.map(y=>y.content)),fragments.map(x=>x.content));
+});
+
+test("diagnostics report fallback when whole-sheet geometry is invalid",()=>{
+ const blocks=[make("a","A"),make("b","B")];
+ const result=paginateReaderBlocksWithDiagnostics(blocks,defaultReaderSettings,{},DEFAULT_LEGACY_BLOCK_STYLES,geometry([30]));
+ assert.equal(result.diagnostics.mode,"estimated");
+ assert.equal(result.diagnostics.reason,"geometry-invalid");
+ assert.deepEqual(result.pages,paginateReaderBlocks(blocks,defaultReaderSettings));
 });

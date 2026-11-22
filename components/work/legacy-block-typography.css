@@ -9,7 +9,9 @@
   text-align:var(--artales-block-align)!important;
   margin-block:var(--artales-block-before) var(--artales-block-after)!important;
   hyphens:var(--artales-block-hyphens)!important;
+  /* Keep normal word boundaries; split only a token wider than the paper. */
   overflow-wrap:break-word;
+  word-break:normal;
 }
 .artales-reader .artales-work-content [data-legacy-block-style] > .artales-block {
   font-family:inherit!important;

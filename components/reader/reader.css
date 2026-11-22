@@ -543,7 +543,7 @@
   .artales-newspaper p,
   .artales-preface p
 ) {
-  hyphens: auto;
+  hyphens: none;
   overflow-wrap: break-word;
   text-align: justify;
   text-justify: inter-word;
@@ -640,7 +640,7 @@
     .artales-newspaper p,
     .artales-preface p
   ) {
-    hyphens: manual;
+    hyphens: none;
     text-align: left;
   }
 }
@@ -2141,8 +2141,9 @@
   .artales-letter-place-year,
   .artales-letter-date-signature
 ) {
-  hyphens: auto;
-  overflow-wrap: anywhere;
+  hyphens: none;
+  /* Emergency break only if an unbreakable token would escape the paper. */
+  overflow-wrap: break-word;
   word-break: normal;
 }
 
