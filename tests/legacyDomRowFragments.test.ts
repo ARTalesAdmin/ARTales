@@ -507,3 +507,35 @@ test("complete two-word editorial blocks remain separate even next to a long pag
  assert.equal(pieces.slice(1).map(x=>x.content).join(""),long.content);
  assert.ok(pieces.slice(1).every(x=>x.id!==short.id));
 });
+
+
+test("estimated fallback marks only genuine continuing prose fragments",()=>{
+ const original=make(("Every physical page has a verifiable text boundary. "+
+ "The editorial paragraph remains independent. ").repeat(110).trim());
+ const parts=prepareLegacyReaderFragments([original],defaultReaderSettings,{},
+  DEFAULT_LEGACY_BLOCK_STYLES,false);
+ assert.ok(parts.length>4,"force multiple fallback slices from one source block");
+ for(let i=0;i<parts.length;i++){
+  assert.equal(parts[i].fields?.legacyReaderPageSplitAfter,i<parts.length-1,
+   "a complete editorial block must not advertise a page continuation");
+  if(i>0)assert.equal(parts[i].fields?.legacyReaderContinuation,true);
+ }
+ const result=paginateReaderBlocksWithDiagnostics([original],defaultReaderSettings,
+  {},DEFAULT_LEGACY_BLOCK_STYLES,null);
+ assert.equal(result.diagnostics.mode,"estimated");
+ const flattened=result.pages.flatMap(p=>p.blocks);
+ assert.deepEqual(flattened,parts);
+ assert.ok(flattened.at(-1)?.fields?.legacyReaderPageSplitAfter!==true);
+});
+test("fallback never joins a short complete block to the next editorial block",()=>{
+ const short=make("A farewell.");
+ const long={...make(("Many useful words still remain on the paper. ").repeat(160).trim()),
+  id:"following-prose"};
+ const parts=prepareLegacyReaderFragments([short,long],defaultReaderSettings,{},
+  DEFAULT_LEGACY_BLOCK_STYLES,false);
+ const first=parts.find(p=>p.id===short.id);
+ assert.ok(first);
+ assert.notEqual(first.fields?.legacyReaderPageSplitAfter,true);
+ assert.ok(parts.filter(p=>p.id.startsWith("following-prose-")).length>1);
+ assert.equal(parts.at(-1)?.fields?.legacyReaderPageSplitAfter,false);
+});

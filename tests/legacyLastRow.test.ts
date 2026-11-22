@@ -45,3 +45,17 @@ test("only a measured page-split continuation is eligible for bounded last-row s
  assert.match(renderer,/data-legacy-page-split-after/);
  assert.match(paginator,/legacyReaderPageSplitAfter:end<raw\.length/);
 });
+
+
+test("only the final source block of each page may stretch its terminal row",()=>{
+ assert.match(helper,/sourceBlocks\.at\(-1\)/);
+ assert.match(helper,/block===lastBlock/);
+ assert.match(helper,/legacyPageSplitAfter==="true"/);
+ assert.match(helper,/lastElementChild===paragraph/);
+});
+test("estimate fallback emits the same page continuation contract as DOM measurement",()=>{
+ const paginator=readFileSync("lib/reader/paginateBlocks.ts","utf8");
+ assert.match(paginator,/const continues=partIndex<parts\.length-1/);
+ assert.match(paginator,/legacyReaderPageSplitAfter:continues/);
+ assert.match(paginator,/legacyReaderContinuation:isContinuation/);
+});

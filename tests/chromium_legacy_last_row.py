@@ -85,6 +85,11 @@ with sync_playwright() as browser_api:
  const verse=document.querySelector("#verse");
  const hidden=document.querySelector("#hidden-text");
  const all=document.querySelector("#visible-paper");
+ // Arrange several styled source blocks on one sheet: only the actual
+ // terminal block is permitted to justify its last measured row.
+ const work=all.querySelector(".artales-work-content");
+ document.querySelector("#short").before(normal);
+ work.append(document.querySelector("#prose-wrap"));
  const pan="Look about you, Clarke. You see the mountain and hill following "+
   "after hill, as wave on wave, you see the woods and orchard, the fields "+
   "of ripe corn, and the meadows reaching to the reed-beds by the river. "+
@@ -121,6 +126,9 @@ with sync_playwright() as browser_api:
  return {
   changed:normalChanged,italicChanged,introChanged,shortChanged,editorialChanged,
   shortDecision,shortFill,
+  normalDecision:normal.dataset.visiblePageEndDecision,
+  italicDecision:italic.dataset.visiblePageEndDecision,
+  introDecision:intro.dataset.visiblePageEndDecision,
   pass,
   align:getComputedStyle(normal).textAlignLast,
   quoteAlign:getComputedStyle(italic).textAlignLast,
@@ -146,13 +154,15 @@ with sync_playwright() as browser_api:
  };
  }""")
  assert result["checkedSelector"]==4,result
- assert result["pass"]=={"checked":4,"justified":3},result
- assert result["changed"] and result["italicChanged"] and result["introChanged"],result
+ assert result["pass"]=={"checked":4,"justified":1},result
+ assert result["changed"] and not result["italicChanged"] and not result["introChanged"],result
  assert result["hasClass"],result
  assert not result["shortChanged"] and not result["editorialChanged"],result
  assert result["shortDecision"]=="block-complete",result
- assert result["align"]=="justify" and result["quoteAlign"]=="justify",result
- assert result["prefaceAlign"]=="justify" and result["prefacePolicy"]=="justify",result
+ assert result["align"]=="justify" and result["quoteAlign"]!="justify",result
+ assert result["prefaceAlign"]!="justify" and result["prefacePolicy"]=="justify",result
+ assert result["italicDecision"]=="block-complete" and result["introDecision"]=="block-complete",result
+ assert result["normalDecision"]=="justified",result
  assert result["shortAlign"]!="justify",result
  assert result["verseAlign"]=="left",result
  assert result["sourceSame"] and result["hiddenSame"] and not result["hiddenClass"],result
