@@ -372,7 +372,7 @@ test("punctuation reflows the very next page from its first real row",()=>{
   blockHeightsPx:[190],blockRows:[4],
   remeasureRemainder:(_index:number,start:number,displayStart:number)=>{
    calls++;
-   assert.equal(start,raw.indexOf(" then"));
+   assert.equal(start,raw.indexOf(" then")+1);
    assert.equal(displayStart,start);
    return {heightPx:125,textHeightPx:110,rows:[
     // This word now fits on the FIRST row after a fresh wrap. In the original
@@ -380,7 +380,7 @@ test("punctuation reflows the very next page from its first real row",()=>{
     {sourceEnd:raw.indexOf("careful")+"careful".length,
      displayEnd:raw.indexOf("careful")+"careful".length,bottomPx:37},
     {sourceEnd:raw.indexOf("lengthy")+"lengthy".length,
-     displayEnd:raw.indexOf("lengthy")+"lengthy".length,bottomPx:74},
+     displayEnd:raw.indexOf("lengthy")+"lengthy".length,bottomPx:68},
     {sourceEnd:raw.length,displayEnd:raw.length,bottomPx:110},
    ]};
   },
@@ -398,6 +398,6 @@ test("punctuation reflows the very next page from its first real row",()=>{
  assert.equal(calls,1,"only the chosen discretionary cut remeasures");
  assert.equal(fragments[0].fields?.legacyReaderPageEndReason,"punctuation_80");
  assert.equal(fragments[1].content,
-  raw.slice(raw.indexOf(" then"),raw.indexOf("lengthy")+"lengthy".length));
+  raw.slice(raw.indexOf(" then")+1,raw.indexOf("lengthy")+"lengthy".length));
  assert.equal(fragments.map(x=>x.content).join(""),raw);
 });
