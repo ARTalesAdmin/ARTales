@@ -14,11 +14,24 @@ test("last-row pass applies only to visible old prose after page settlement",()=
  assert.match(reader,/if \(!measurementReady\) return;/);
  assert.match(reader,/applyLegacyPaperLastRowJustification\(paper\)/);
  assert.match(reader,/classList\.contains\("artales-reader__paper--blank"\)/);
- assert.match(helper,/\[data-legacy-block-style="paragraph"\]/);
+ // Justified prose uses one canonical measured pass regardless of block type.
+ assert.match(helper,/\[data-legacy-block-style\]/);
+ for(const type of ["artales-paragraph","artales-quote","artales-letter-body",
+   "artales-newspaper","artales-preface","artales-afterword","artales-acknowledgement"]){
+  assert.ok(helper.includes(type),"missing prose selector: "+type);
+  assert.ok(style.includes(type),"missing CSS coverage: "+type);
+ }
+ assert.doesNotMatch(helper,/"pride-and-prejudice"|workId|slug/);
  assert.doesNotMatch(helper,/innerHTML|textContent\s*=/);
 });
 test("legacy last-row CSS is scoped and preserves semantic Reader",()=>{
  assert.match(style,/artales-reader:not\(\.artales-reader--semantic\)/);
  assert.match(style,/semantic-reader__prose--justify-last/);
  assert.match(style,/text-align-last:\s*justify/);
+});
+
+test("scoped CSS does not force last rows in verse or editorial alignment",()=>{
+ assert.doesNotMatch(style,/\\.artales-poem[^\\n]*p\\.semantic-reader__prose--justify-last/);
+ assert.ok(helper.includes("applySemanticProseLastRowJustification(paragraph)"));
+ assert.doesNotMatch(helper,/style\\.textAlign|style\\.wordSpacing/);
 });

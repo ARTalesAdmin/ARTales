@@ -8,9 +8,17 @@ export function applyLegacyPaperLastRowJustification(paper: HTMLElement): {
   checked: number;
   justified: number;
 } {
+  // WorkContentRenderer has several prose containers which can be
+  // editorially justified (e.g. italic quotations and introductory matter).
+  // The former paragraph-only selector silently skipped their last rows.
+  // Keep source blocks and their alignment policy authoritative; the
+  // canonical helper checks computed text-align before applying the class.
   const paragraphs = paper.querySelectorAll<HTMLElement>(
     '.artales-reader__page-content .artales-work-content ' +
-    '[data-legacy-block-style="paragraph"] > .artales-paragraph p',
+    '[data-legacy-block-style] ' +
+    ':is(.artales-paragraph, .artales-quote, .artales-letter-body, ' +
+    '.artales-newspaper, .artales-preface, .artales-afterword, ' +
+    '.artales-acknowledgement) > p',
   );
   let checked = 0;
   let justified = 0;

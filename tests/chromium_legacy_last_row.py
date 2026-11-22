@@ -25,6 +25,18 @@ html="""<main class="artales-reader artales-reader--theme-light artales-reader--
     <p id="normal"></p><p id="short">The night grew cold.</p>
    </section>
   </div>
+  <div data-legacy-block-style="quote" style="--artales-block-font:Georgia,serif;
+   --artales-block-weight:400;--artales-block-style:italic;--artales-block-size:19px;
+   --artales-block-leading:1.62;--artales-block-align:justify;--artales-block-indent:0em;
+   --artales-block-before:0em;--artales-block-after:1em;--artales-block-hyphens:none">
+   <blockquote class="artales-block artales-quote"><p id="italic-quote"></p></blockquote>
+  </div>
+  <div data-legacy-block-style="preface" style="--artales-block-font:Georgia,serif;
+   --artales-block-weight:400;--artales-block-style:italic;--artales-block-size:19px;
+   --artales-block-leading:1.62;--artales-block-align:justify;--artales-block-indent:0em;
+   --artales-block-before:0em;--artales-block-after:1em;--artales-block-hyphens:none">
+   <section class="artales-block artales-preface"><p id="intro"></p></section>
+  </div>
   <div data-legacy-block-style="poem" style="--artales-block-font:Georgia,serif;
    --artales-block-weight:400;--artales-block-style:italic;--artales-block-size:19px;
    --artales-block-leading:1.62;--artales-block-align:left;--artales-block-indent:0em;
@@ -59,6 +71,8 @@ with sync_playwright() as browser_api:
  if(!api?.applySemanticProseLastRowJustification) throw Error("Missing canonical helper");
  const normal=document.querySelector("#normal");
  const short=document.querySelector("#short");
+ const italic=document.querySelector("#italic-quote");
+ const intro=document.querySelector("#intro");
  const verse=document.querySelector("#verse");
  const hidden=document.querySelector("#hidden-text");
  const all=document.querySelector("#visible-paper");
@@ -67,28 +81,39 @@ with sync_playwright() as browser_api:
   "of ripe corn, and the meadows reaching to the reed-beds by the river. "+
   "You see me standing here beside you, and hear my voice; but I tell you "+
   "that all these things are but dreams and shadows that hide the real world.";
- let candidate=null,natural=null;
  const words=pan.split(/\\s+/);
- for(let i=18;i<=words.length;i++){
-  normal.textContent=words.slice(0,i).join(" ");
-  const last=api.measureSemanticDomLastRow(normal);
-  if(last && api.shouldJustifySemanticPageEnd(last.fill,last.words,
-      normal.getBoundingClientRect().width,true)){
-   candidate=normal.textContent;natural=last;break;
+ function fillNaturallyFull(el) {
+  for(let i=18;i<=words.length;i++) {
+   el.textContent=words.slice(0,i).join(" ");
+   const last=api.measureSemanticDomLastRow(el);
+   if(last && api.shouldJustifySemanticPageEnd(last.fill,last.words,
+       el.getBoundingClientRect().width,true))return last;
   }
+  throw Error("No eligible measured paragraph for "+el.id);
  }
- if(!candidate)throw Error("No eligible measured paragraph in legacy page");
+ const natural=fillNaturallyFull(normal);
+ const italicNatural=fillNaturallyFull(italic);
+ const introNatural=fillNaturallyFull(intro);
  const textBefore=all.textContent,hiddenBefore=hidden.textContent;
  const beforeRows=api.measureSemanticDomRows(normal);
- const beforeHeight=normal.getBoundingClientRect().height;
- const normalChanged=api.applySemanticProseLastRowJustification(normal);
- const shortChanged=api.applySemanticProseLastRowJustification(short);
- const editorialChanged=api.applySemanticProseLastRowJustification(verse);
+ const beforeHeights=[normal,italic,intro].map(e=>e.getBoundingClientRect().height);
+ if(!api.applyLegacyPaperLastRowJustification)
+   throw Error("Production legacy paper pass not bundled");
+ const pass=api.applyLegacyPaperLastRowJustification(all);
  const afterRows=api.measureSemanticDomRows(normal);
- const afterHeight=normal.getBoundingClientRect().height;
+ const afterHeights=[normal,italic,intro].map(e=>e.getBoundingClientRect().height);
+ const normalChanged=normal.classList.contains("semantic-reader__prose--justify-last");
+ const italicChanged=italic.classList.contains("semantic-reader__prose--justify-last");
+ const introChanged=intro.classList.contains("semantic-reader__prose--justify-last");
+ const shortChanged=short.classList.contains("semantic-reader__prose--justify-last");
+ const editorialChanged=verse.classList.contains("semantic-reader__prose--justify-last");
  return {
-  changed:normalChanged,shortChanged,editorialChanged,
+  changed:normalChanged,italicChanged,introChanged,shortChanged,editorialChanged,
+  pass,
   align:getComputedStyle(normal).textAlignLast,
+  quoteAlign:getComputedStyle(italic).textAlignLast,
+  prefaceAlign:getComputedStyle(intro).textAlignLast,
+  prefacePolicy:getComputedStyle(intro).textAlign,
   shortAlign:getComputedStyle(short).textAlignLast,
   verseAlign:getComputedStyle(verse).textAlign,
   hasClass:normal.classList.contains("semantic-reader__prose--justify-last"),
@@ -97,21 +122,28 @@ with sync_playwright() as browser_api:
   hiddenClass: hidden.classList.contains("semantic-reader__prose--justify-last"),
   rowsSame: beforeRows.length===afterRows.length &&
     beforeRows.every((r,i)=>r.sourceEnd===afterRows[i].sourceEnd),
-  heightDelta:afterHeight-beforeHeight,
+  heightDeltas:afterHeights.map((h,i)=>h-beforeHeights[i]),
   naturalFill:natural.fill,
+  quoteNaturalFill:italicNatural.fill,
+  introNaturalFill:introNatural.fill,
   afterFill:afterRows.at(-1).fill,
   checkedSelector:Array.from(all.querySelectorAll(
     '.artales-reader__page-content .artales-work-content '+
-    '[data-legacy-block-style="paragraph"] > .artales-paragraph p')).length
+    '[data-legacy-block-style] :is(.artales-paragraph,.artales-quote,.artales-letter-body,'+
+    '.artales-newspaper,.artales-preface,.artales-afterword,.artales-acknowledgement) > p')).length
  };
  }""")
- assert result["checkedSelector"]==2,result
- assert result["changed"] and result["hasClass"],result
+ assert result["checkedSelector"]==4,result
+ assert result["pass"]=={"checked":4,"justified":3},result
+ assert result["changed"] and result["italicChanged"] and result["introChanged"],result
+ assert result["hasClass"],result
  assert not result["shortChanged"] and not result["editorialChanged"],result
- assert result["align"]=="justify" and result["shortAlign"]!="justify",result
+ assert result["align"]=="justify" and result["quoteAlign"]=="justify",result
+ assert result["prefaceAlign"]=="justify" and result["prefacePolicy"]=="justify",result
+ assert result["shortAlign"]!="justify",result
  assert result["verseAlign"]=="left",result
  assert result["sourceSame"] and result["hiddenSame"] and not result["hiddenClass"],result
- assert result["rowsSame"] and abs(result["heightDelta"])<.5,result
+ assert result["rowsSame"] and all(abs(delta)<.5 for delta in result["heightDeltas"]),result
  assert result["afterFill"]>=.975,result
  print("CHROMIUM_LEGACY_LAST_ROW: PASS",result)
  browser.close()
