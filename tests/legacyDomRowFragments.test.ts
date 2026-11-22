@@ -291,3 +291,34 @@ test("multi-paragraph physical DOM cuts preserve source even across newline sepa
  assert.equal(result.pages.flatMap(page=>page.blocks).map(b=>b.content).join(""),raw);
  assert.ok(result.pages.length>1);
 });
+
+test("all DOM-rendered prose types share the same measured source-boundary paginator",()=>{
+ const types=["paragraph","quote","newspaper_article","preface","afterword","acknowledgement"] as const;
+ const raw=("An opening phrase with <em>carefully chosen words</em> and "+
+   "a following observation about the page. ").repeat(4).trim();
+ const offset=Math.floor(raw.length/2);
+ const legalCut=raw.indexOf("page. ",offset)+"page.".length;
+ const geometry={
+   contentHeightPx:95,contentWidthPx:450,
+   blockHeightsPx:[145],blockRows:[3],
+   paragraphRows:[{textHeightPx:130,rows:[
+     {sourceEnd:legalCut,bottomPx:39},
+     {sourceEnd:Math.min(raw.length-3,legalCut+30),bottomPx:86},
+     {sourceEnd:raw.length,bottomPx:130},
+   ]}],
+ };
+ for(const type of types){
+   const block={id:"shared-"+type,type,content:raw,editor_note:null};
+   const uncut=prepareLegacyReaderFragments(
+     [block],defaultReaderSettings,{},DEFAULT_LEGACY_BLOCK_STYLES,true);
+   assert.deepEqual(uncut,[block],"uncut source: "+type);
+   const result=paginateReaderBlocksWithDiagnostics(
+     [block],defaultReaderSettings,{},DEFAULT_LEGACY_BLOCK_STYLES,geometry);
+   assert.equal(result.diagnostics.mode,"dom",type);
+   assert.equal(result.diagnostics.localFallbackBlocks,0,type);
+   const pieces=result.pages.flatMap(page=>page.blocks);
+   assert.ok(pieces.length>=2,type);
+   assert.equal(pieces.map(piece=>piece.content).join(""),raw,type);
+   assert.ok(pieces.every(piece=>piece.type===type),type);
+ }
+});

@@ -238,4 +238,45 @@ with sync_playwright() as pw:
  assert multi_result["pages"]>1,multi_result
  assert multi_result["emphasisContinuations"]>0,multi_result
  print("Chromium multiple paragraphs/markup: exact DOM rows, unchanged source PASS",multi_result["pages"])
+
+ # Rendered quote/front-matter/newspaper prose uses the identical DOM source
+ # mapping and physical-line fragments as standard paragraphs.
+ for block_type,semantic_class in (
+   ("quote","artales-quote"),
+   ("newspaper_article","artales-newspaper"),
+   ("preface","artales-preface"),
+   ("afterword","artales-afterword"),
+   ("acknowledgement","artales-acknowledgement"),
+ ):
+  prose=("An ordinary reading paragraph with many carefully considered words "+
+   "and a natural ending. ")*18
+  probe=page.evaluate("""args=>{
+   const [type,cls,text]=args;
+   for(const id of ['#visible','#probe']){
+     const parent=document.querySelector(id+' .artales-work-content [data-legacy-block-style]');
+     const section=parent.querySelector('.artales-block');
+     section.className='artales-block '+cls;
+     section.innerHTML='';
+     const p=document.createElement('p');
+     p.textContent=text;
+     section.append(p);
+   }
+   const engine=window.ARTalesLegacyDomEngine;
+   const stage=document.querySelector('#probe');
+   engine.syncLegacyMeasuringPaper(stage,document.querySelector('#visible'));
+   const block={id:'shared-prose',type,content:text,editor_note:null};
+   const geometry=engine.measureLegacyReaderDom(stage,1,[block]);
+   const rows=geometry?.paragraphRows?.[0]?.rows??[];
+   if(rows.length<2) return {rows:rows.length,source:null};
+   const pages=engine.paginateReaderBlocks([block],engine.defaultReaderSettings,{},
+     engine.DEFAULT_LEGACY_BLOCK_STYLES,geometry);
+   return {rows:rows.length,source:pages.flatMap(page=>
+     page.blocks.map(b=>b.content)).join(''),
+     pageCount:pages.length,
+     sourceTypeOk:pages.every(page=>page.blocks.every(b=>b.type===type))};
+  }""",[block_type,semantic_class,prose.strip()])
+  assert probe["rows"]>1,(block_type,probe)
+  assert probe["source"]==prose.strip(),(block_type,probe)
+  assert probe["sourceTypeOk"],(block_type,probe)
+  print("Chromium same physical DOM paths for prose",block_type,"PASS",probe["pageCount"])
  browser.close()

@@ -89,6 +89,18 @@ function renderInlineRichText(text: string) {
   return parts.length > 0 ? parts : normalizedText;
 }
 
+function renderLegacyProseText(block:WorkBlock,text:string) {
+  // Same render-only emphasis affixes for every DOM-fragmentable prose type.
+  // Editorial and stored text remain exactly as supplied.
+  const prefix=block.fields?.legacyReaderInlinePrefix;
+  const suffix=block.fields?.legacyReaderInlineSuffix;
+  return (
+    (prefix === "<em>" || prefix === "<i>" ? prefix : "") +
+    text +
+    (suffix === "</em>" || suffix === "</i>" ? suffix : "")
+  );
+}
+
 function renderMultiParagraphText(text: string, className?: string) {
   const paragraphs = splitParagraphs(text);
 
@@ -330,15 +342,7 @@ function renderBlock({
           className="artales-block artales-paragraph"
           data-block-type={block.type}
         >
-          {renderMultiParagraphText(
-            (block.fields?.legacyReaderInlinePrefix === "<em>" ||
-             block.fields?.legacyReaderInlinePrefix === "<i>"
-              ? block.fields.legacyReaderInlinePrefix : "") +
-            text +
-            (block.fields?.legacyReaderInlineSuffix === "</em>" ||
-             block.fields?.legacyReaderInlineSuffix === "</i>"
-              ? block.fields.legacyReaderInlineSuffix : "")
-          )}
+          {renderMultiParagraphText(renderLegacyProseText(block,text))}
         </section>
       );
 
@@ -349,7 +353,7 @@ function renderBlock({
           className="artales-block artales-quote"
           data-block-type={block.type}
         >
-          {renderMultiParagraphText(text)}
+          {renderMultiParagraphText(renderLegacyProseText(block,text))}
         </blockquote>
       );
 
@@ -398,7 +402,7 @@ function renderBlock({
           className="artales-block artales-newspaper"
           data-block-type={block.type}
         >
-          {renderMultiParagraphText(text)}
+          {renderMultiParagraphText(renderLegacyProseText(block,text))}
         </article>
       );
 
@@ -499,7 +503,7 @@ function renderBlock({
           className="artales-block artales-preface"
           data-block-type={block.type}
         >
-          {renderMultiParagraphText(text)}
+          {renderMultiParagraphText(renderLegacyProseText(block,text))}
         </section>
       );
 
@@ -510,7 +514,7 @@ function renderBlock({
           className="artales-block artales-afterword"
           data-block-type={block.type}
         >
-          {renderMultiParagraphText(text)}
+          {renderMultiParagraphText(renderLegacyProseText(block,text))}
         </section>
       );
 
@@ -521,7 +525,7 @@ function renderBlock({
           className="artales-block artales-acknowledgement"
           data-block-type={block.type}
         >
-          {renderMultiParagraphText(text)}
+          {renderMultiParagraphText(renderLegacyProseText(block,text))}
         </section>
       );
 
