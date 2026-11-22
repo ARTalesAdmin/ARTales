@@ -15,6 +15,8 @@ on:
       - 'components/work/WorkContentRenderer.tsx'
       - 'app/member/block-formats/**'
       - 'tests/legacyBlockFormats.test.ts'
+      - 'tests/legacyDomPagePacking.test.ts'
+      - 'lib/reader/domPageGeometry.ts'
       - '.github/workflows/artales-semantic-integration.yml'
   pull_request:
     branches: [main]
@@ -54,6 +56,8 @@ on:
       - 'components/work/WorkContentRenderer.tsx'
       - 'app/member/block-formats/**'
       - 'tests/legacyBlockFormats.test.ts'
+      - 'tests/legacyDomPagePacking.test.ts'
+      - 'lib/reader/domPageGeometry.ts'
       - 'lib/editorial/**'
       - 'supabase/migrations/20261110130000_artales_unique_existing_author_byline.sql'
       - 'tests/editorialTaskEntryAuthorMatch.test.ts'
@@ -115,6 +119,8 @@ jobs:
         run: npx eslint lib/semantic lib/ingest/epubSemanticExtractor.ts components/editor/SemanticReaderLab.tsx components/editor/SemanticReaderNotesQa.tsx app/api/internal/editorial/ai-qa-jobs/route.ts app/member/admin/ai-usage/page.tsx components/editor/SemanticQaPanel.tsx 'app/member/semantic/[candidateId]/qa-actions.ts' 'app/member/semantic/[candidateId]/page.tsx' app/member/editorial-pipeline/actions.ts app/member/editorial-pipeline/page.tsx 'app/member/editorial-detail/[candidateId]/actions.ts' 'app/member/editorial-detail/[candidateId]/page.tsx' components/editor/CandidateCoverInput.tsx components/editor/CandidateBilingualAnnotationFields.tsx components/editor/BilingualProfileText.tsx components/member/MemberZoneNav.tsx components/member/MemberHelpButton.tsx app/member/editorial-help/actions.ts app/member/layout.tsx components/reader/ProtectedProseText.tsx components/reader/SemanticReaderClient.tsx components/reader/SemanticPageUnit.tsx 'app/reader/[slug]/page.tsx' 'app/api/member/semantic/[candidateId]/compose/route.ts'
       - name: Canonical legacy block format and page-policy regression
         run: npx tsx --test tests/legacyBlockFormats.test.ts
+      - name: DOM-measured legacy page packing regression
+        run: npx tsx --test tests/legacyDomPagePacking.test.ts
       - name: Legacy style editor lint
         run: npx eslint lib/rendering/legacyBlockStyles.ts lib/rendering/legacyBlockStyles.server.ts components/editor/LegacyBlockFormatManager.tsx app/member/block-formats/actions.ts app/member/block-formats/page.tsx lib/reader/paginateBlocks.ts components/work/WorkContentRenderer.tsx
       - name: Existing semantic regression
