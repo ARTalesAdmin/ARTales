@@ -32,6 +32,6 @@ test("legacy last-row CSS is scoped and preserves semantic Reader",()=>{
 
 test("scoped CSS does not force last rows in verse or editorial alignment",()=>{
  assert.doesNotMatch(style,/\\.artales-poem[^\\n]*p\\.semantic-reader__prose--justify-last/);
- assert.match(helper,/applySemanticProseLastRowJustification\\(paragraph\\)/);
+ assert.ok(helper.includes("applySemanticProseLastRowJustification(paragraph)"));
  assert.doesNotMatch(helper,/style\\.textAlign|style\\.wordSpacing/);
 });
