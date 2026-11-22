@@ -157,7 +157,7 @@ with sync_playwright() as browser_api:
   italicDecision:italic.dataset.visiblePageEndDecision,
   introDecision:intro.dataset.visiblePageEndDecision,
   pass,
-  align:getComputedStyle(normal).textAlignLast,
+  align:getComputedStyle(replacement).textAlignLast,
   quoteAlign:getComputedStyle(italic).textAlignLast,
   prefaceAlign:getComputedStyle(intro).textAlignLast,
   prefacePolicy:getComputedStyle(intro).textAlign,
