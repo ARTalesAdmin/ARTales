@@ -26,5 +26,15 @@ test("unknown, nested and incomplete markup use a safe fallback",()=>{
  assert.equal(parseLegacyInlineProse("Some <strong>bold</strong> text"),null);
  assert.equal(parseLegacyInlineProse("Nested <em>outer <i>inner</i></em>"),null);
  assert.equal(parseLegacyInlineProse("Missing <em>ending"),null);
- assert.equal(parseLegacyInlineProse("Multi\nparagraph"),null);
+ assert.equal(parseLegacyInlineProse("Multi\n\nparagraph"),null);
+});
+
+test("single source newline stays eligible for physical DOM row measurement",()=>{
+ const input="A complete sentence.\nThis is still the same prose block.";
+ const result=parseLegacyInlineProse(input);
+ assert.ok(result);
+ assert.equal(result.visibleText,input);
+ assert.equal(result.sourceOffsetAtTextOffset(input.length),input.length);
+ assert.equal(parseLegacyInlineProse("One paragraph.\n\nAnother paragraph."),null);
+ assert.equal(parseLegacyInlineProse("Windows\r\nline breaks need renderer normalization"),null);
 });

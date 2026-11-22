@@ -97,3 +97,49 @@ test("invalid row offsets cannot discard text",()=>{
  const pages=paginateReaderBlocks([make(content.trim())],defaultReaderSettings,{},DEFAULT_LEGACY_BLOCK_STYLES,geometry);
  assert.equal(pages.flatMap(p=>p.blocks).map(x=>x.content).join("").replace(/\s+/g," ").trim(),content.trim());
 });
+
+test("measured paginator uses the last physical row fitting the current sheet",()=>{
+ const intro={...make("An introduction."),id:"intro"};
+ const raw="one two three four";
+ const next={...make(raw),id:"next"};
+ const geometry={
+  contentHeightPx:170,contentWidthPx:450,
+  blockHeightsPx:[110,160],blockRows:[1,4],
+  paragraphRows:[
+   {textHeightPx:20,rows:[{sourceEnd:intro.content.length,bottomPx:20}]},
+   {textHeightPx:160,rows:[
+    {sourceEnd:3,bottomPx:40},{sourceEnd:7,bottomPx:80},
+    {sourceEnd:13,bottomPx:120},{sourceEnd:18,bottomPx:160},
+   ]},
+  ],
+ };
+ const result=paginateReaderBlocksWithDiagnostics(
+  [intro,next],defaultReaderSettings,{},DEFAULT_LEGACY_BLOCK_STYLES,geometry);
+ assert.equal(result.diagnostics.mode,"dom");
+ assert.equal(result.pages[0].blocks.length,2,
+  "one fitting physical row must not be moved to the next sheet");
+ assert.equal(result.pages[0].blocks.at(-1)?.content,"one");
+ assert.equal(result.pages.slice(1).flatMap(page=>page.blocks)
+  .map(block=>block.content).join("")," two three four");
+ assert.equal(result.pages.flatMap(page=>page.blocks)
+  .map(block=>block.content).join(""),intro.content+raw);
+});
+test("hidden empty prose does not invalidate measurements for all remaining pages",()=>{
+ const empty=make("   ");
+ const real={...make("A long and readable paragraph."),id:"real"};
+ const input=[empty,real];
+ const fragments=prepareLegacyReaderFragments(input,defaultReaderSettings,{},
+  DEFAULT_LEGACY_BLOCK_STYLES,true);
+ assert.deepEqual(fragments,[real]);
+ const geo={
+  contentHeightPx:180,contentWidthPx:450,
+  blockHeightsPx:[55],blockRows:[1],
+  paragraphRows:[{textHeightPx:35,rows:[
+   {sourceEnd:real.content.length,bottomPx:35},
+  ]}],
+ };
+ const result=paginateReaderBlocksWithDiagnostics(input,defaultReaderSettings,{},
+  DEFAULT_LEGACY_BLOCK_STYLES,geo);
+ assert.equal(result.diagnostics.mode,"dom");
+ assert.deepEqual(result.pages.flatMap(page=>page.blocks),[real]);
+});

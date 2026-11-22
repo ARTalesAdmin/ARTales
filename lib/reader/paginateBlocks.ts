@@ -470,6 +470,13 @@ export function prepareLegacyReaderFragments(
 ): WorkBlock[] {
   const budget = getPageBudget(settings);
   return blocks.flatMap(block => {
+    // WorkContentRenderer does not render empty prose / headings. Keeping
+    // invisible fragments in the measurement input breaks exact DOM counts
+    // and forces ALL later paragraphs into the character-estimate fallback.
+    if(block.type!=="separator" && block.type!=="table" && block.type!=="image"
+       && !getBlockText(block))return [];
+    if(block.type==="image" && !getBlockText(block) &&
+       !String(block.fields?.storage_path??"").trim())return [];
     const style = styles[block.type];
     // Supported prose (plain or with inline emphasis) must reach the browser
     // intact. Unsupported syntax retains the existing conservative splitter.
@@ -569,20 +576,14 @@ function paginateMeasuredLegacyFragments(
         if(needed>space-1)break;
         endRow=j;
       }
-      // Avoid an orphan single line if another sheet can hold two.
-      const remainder=rows.length-rowStart;
-      const fitted=endRow-rowStart+1;
-      if(current.length && (fitted<Math.min(2,remainder) ||
-        (fitted<remainder && remainder-fitted===1))){
-        flush();continue;
-      }
+      // Mirror semantic DOM paging: retain the furthest real physical row
+      // that fits. A two-line widow/orphan preference must never pull a
+      // correctly fitting row back onto the next page.
       if(endRow<rowStart) {
         if(current.length){flush();continue;}
         // A single physical line is taller than the paper. Preserve access.
         endRow=rowStart;
       }
-      if(endRow<rows.length-1 && rows.length-endRow-1===1 &&
-         endRow>rowStart)endRow--;
       const atEnd=endRow===rows.length-1;
       const charEnd=atEnd?raw.length:rows[endRow].sourceEnd;
       if(charEnd<=charStart || charEnd>raw.length){
