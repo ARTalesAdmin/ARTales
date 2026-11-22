@@ -348,6 +348,8 @@ function splitBlock(
   if (block.type === "table") {
     return splitTableBlock(block, budget, settings, tableMeasurements);
   }
+  // A media path cannot be split as prose even if the editor changes page policy.
+  if (block.type === "image") return [block];
 
   const text = getBlockText(block);
   // A keep-together request is enforced while the block is reasonably small.

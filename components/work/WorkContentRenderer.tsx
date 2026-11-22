@@ -593,6 +593,8 @@ export default function WorkContentRenderer({
               <li
                 key={getStableBlockKey(block, index)}
                 id={`footnote-${index + 1}`}
+                data-legacy-block-style={legacyStyles ? "footnote" : undefined}
+                style={legacyStyles ? legacyBlockStyleVars(legacyStyles.footnote) : undefined}
               >
                 {renderInlineRichText(getBlockText(block))}
               </li>

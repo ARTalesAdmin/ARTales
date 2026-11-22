@@ -66,3 +66,15 @@ test("oversized styled paragraphs preserve every word across fragments",async()=
  assert.equal(flattened,raw);
  assert.ok(pages.length>1);
 });
+
+test("image blocks are never text-split even if keep-together is disabled",async()=>{
+ const {paginateReaderBlocks}=await import("../lib/reader/paginateBlocks");
+ const {defaultReaderSettings}=await import("../lib/reader/readerSettings");
+ const styles=structuredClone(DEFAULT_LEGACY_BLOCK_STYLES);
+ styles.image={...styles.image,keep_together:false,font_size_em:2.8};
+ const image={id:"photo",type:"image" as const,content:"works/1/inline/cover.webp",editor_note:null,
+   fields:{storage_path:"works/1/inline/cover.webp"}};
+ const pages=paginateReaderBlocks([image],defaultReaderSettings,{},styles);
+ assert.equal(pages.flatMap(x=>x.blocks).length,1);
+ assert.equal(pages.flatMap(x=>x.blocks)[0].id,"photo");
+});
