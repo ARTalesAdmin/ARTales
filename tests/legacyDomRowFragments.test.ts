@@ -533,7 +533,7 @@ test("fallback never joins a short complete block to the next editorial block",(
   id:"following-prose"};
  const parts=prepareLegacyReaderFragments([short,long],defaultReaderSettings,{},
   DEFAULT_LEGACY_BLOCK_STYLES,false);
- const first=parts.find(p=>p.id===short.id);
+ const first=parts.find(p=>p.content===short.content);
  assert.ok(first);
  assert.notEqual(first.fields?.legacyReaderPageSplitAfter,true);
  assert.ok(parts.filter(p=>p.id.startsWith("following-prose-")).length>1);

@@ -88,7 +88,6 @@ with sync_playwright() as browser_api:
  // Arrange several styled source blocks on one sheet: only the actual
  // terminal block is permitted to justify its last measured row.
  const work=all.querySelector(".artales-work-content");
- document.querySelector("#short").before(normal);
  work.append(document.querySelector("#prose-wrap"));
  const pan="Look about you, Clarke. You see the mountain and hill following "+
   "after hill, as wave on wave, you see the woods and orchard, the fields "+
