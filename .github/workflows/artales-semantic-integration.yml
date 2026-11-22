@@ -201,7 +201,7 @@ jobs:
       - name: Chromium legacy Reader central block style CSS enforcement
         run: python tests/chromium_legacy_block_styles.py
       - name: Bundle original legacy DOM measuring module
-        run: npx esbuild tests/chromium_legacy_dom_entry.ts --bundle --platform=browser --format=iife --global-name=ARTalesLegacyDomEngine --outfile=reader-chromium-artifacts/legacy-dom-bundle.js
+        run: npx esbuild tests/chromium_legacy_dom_entry.ts --bundle --platform=browser --format=iife --global-name=ARTalesLegacyDomEngine --alias:node:crypto=./tests/chromium_node_crypto_stub.ts --outfile=reader-chromium-artifacts/legacy-dom-bundle.js
       - name: Chromium legacy measured physical rows and paper parity
         run: python tests/chromium_legacy_dom_geometry.py
       - name: Chromium legacy source word boundaries and real rows
