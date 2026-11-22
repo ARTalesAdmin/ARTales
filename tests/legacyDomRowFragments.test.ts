@@ -387,7 +387,7 @@ test("punctuation reflows the very next page from its first real row",()=>{
   paragraphRows:[{textHeightPx:185,rows:[
    {sourceEnd:originalFirst,displayEnd:originalFirst,bottomPx:38,
     fill:.96,words:9,punctuationCuts:[{displayEnd:mark,fill:.87}]},
-   {sourceEnd:raw.indexOf("unusually")+"unusually".length,bottomPx:76},
+   {sourceEnd:raw.indexOf("unusually")+"unusually".length,bottomPx:90},
    {sourceEnd:raw.indexOf("afternoon")+"afternoon".length,bottomPx:115},
    {sourceEnd:raw.length,bottomPx:185},
   ]}],
