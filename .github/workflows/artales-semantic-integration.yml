@@ -186,6 +186,8 @@ jobs:
         run: python tests/chromium_reader_fixture.py
       - name: Chromium visible last-line justification with production CSS
         run: python tests/chromium_reader_last_line.py
+      - name: Chromium legacy Reader central block style CSS enforcement
+        run: python tests/chromium_legacy_block_styles.py
       # Signed-in public Reader E2E is manual until a scoped test identity is available.
       # A login redirect must never be represented as a passing automated check.
       - name: Preserve public-page screenshots and metrics
