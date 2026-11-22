@@ -621,7 +621,7 @@ export function paginateReaderBlocks(
     const eligibleParagraphs = uncut.map((block,index) =>
       block.type === "paragraph" && !styles[block.type].keep_together &&
       !styles[block.type].own_page && block.content === block.content.trim() &&
-      block.content.length > 0 && !/[\\r\\n<>]/.test(block.content) &&
+      block.content.length > 0 && !/[\r\n<>]/.test(block.content) &&
       !/&lt;/i.test(block.content) ? index : -1).filter(x=>x>=0);
     const complete = eligibleParagraphs.every(index =>
       measuredGeometry.paragraphRows?.[index] &&
