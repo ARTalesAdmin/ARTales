@@ -10,8 +10,14 @@ test("legacy last-line uses canonical semantic measurement, not a copied thresho
  assert.match(helper,/import \{applySemanticProseLastRowJustification\} from "@\/lib\/semantic\/domLineGeometry"/);
  assert.doesNotMatch(helper,/\.83|\.83\b|7\s*\*|words\s*>=/);
 });
-test("last-row pass applies only to visible old prose after page settlement",()=>{
- assert.match(reader,/if \(!measurementReady\) return;/);
+test("last-row pass runs before paint and survives subsequent visible page replacements",()=>{
+ const visiblePass=reader.slice(reader.indexOf("// Preserve the render-only last-row decision"));
+ const effect=visiblePass.split("// The measured page decision")[0];
+ assert.doesNotMatch(effect,/if \(!measurementReady\) return;/);
+ assert.match(effect,/refresh\(\);\s*schedule\(\);/);
+ assert.match(effect,/new MutationObserver\(schedule\)/);
+ assert.match(effect,/mutationObserver\?\.disconnect\(\)/);
+ assert.match(effect,/window\.addEventListener\("scroll", schedule/);
  assert.match(reader,/applyLegacyPaperLastRowJustification\(paper\)/);
  assert.match(reader,/classList\.contains\("artales-reader__paper--blank"\)/);
  // Justified prose uses one canonical measured pass regardless of block type.

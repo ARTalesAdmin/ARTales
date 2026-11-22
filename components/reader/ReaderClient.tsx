@@ -301,11 +301,10 @@ export default function ReaderClient({
     setInkOverflowPages(previous => previous.length ? [] : previous);
   }, [measureKey]);
 
-  // After pagination has settled, apply the semantic Reader's proven
-  // measured rule to the ACTUAL visible legacy paragraphs. Hidden measuring
-  // clones and unrelated block types are deliberately excluded.
+  // Preserve the render-only last-row decision on ACTUAL visible prose.
+  // The page may first render from estimates and then switch to measured DOM;
+  // the existing per-fragment boundary marker determines eligibility.
   useLayoutEffect(() => {
-    if (!measurementReady) return;
     const root = readerRootRef.current;
     if (!root) return;
     const papers = Array.from(root.querySelectorAll<HTMLElement>(
@@ -337,20 +336,33 @@ export default function ReaderClient({
           }
         }, {threshold: 0.01})
       : null;
-    for (const paper of papers) observer?.observe(paper);
-    // Older browsers without IntersectionObserver retain the scroll path.
-    if (!observer) {
-      window.addEventListener("scroll", schedule, {passive: true});
-      root.addEventListener("scroll", schedule, {passive: true});
+    // Spread mode reuses its two paper elements when turning pages.
+    // Watch React's later child/text replacement, not our own class/dataset
+    // mutations; reapply the SAME canonical paper pass after a replacement.
+    const mutationObserver = isSpreadMode && typeof MutationObserver === "function"
+      ? new MutationObserver(schedule) : null;
+    for (const paper of papers) {
+      observer?.observe(paper);
+      const content=paper.querySelector(".artales-reader__page-content");
+      if (content) mutationObserver?.observe(content,{
+        childList:true,characterData:true,subtree:true,
+      });
     }
+    // A scroll event must still refresh visible leaves even when the
+    // IntersectionObserver API exists but no new intersection was reported.
+    window.addEventListener("scroll", schedule, {passive: true});
+    root.addEventListener("scroll", schedule, {passive: true});
     window.addEventListener("resize", schedule);
     document.addEventListener("fullscreenchange", schedule);
     void document.fonts?.ready.then(() => { if (active) schedule(); }).catch(() => {});
+    // Apply before paint. The follow-up frame picks up late layout changes.
+    refresh();
     schedule();
     return () => {
       active = false;
       cancelAnimationFrame(frame);
       observer?.disconnect();
+      mutationObserver?.disconnect();
       window.removeEventListener("scroll", schedule);
       root.removeEventListener("scroll", schedule);
       window.removeEventListener("resize", schedule);
