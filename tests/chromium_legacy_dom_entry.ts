@@ -1,0 +1,1 @@
+export {countLegacyRenderedRows,measureLegacyReaderDom,syncLegacyMeasuringPaper,legacyPageInkOverflowPx} from "../lib/reader/domPageGeometry";
