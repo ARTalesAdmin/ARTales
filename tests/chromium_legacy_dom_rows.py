@@ -223,10 +223,13 @@ with sync_playwright() as pw:
    const stage=document.querySelector('#probe');
    let candidateCount=0, outcome=null;
    const snapshots=[];
-   for(let n=0;n<140;n++){
+   for(const noun of ["subject","matter","question","situation","predicament",
+     "observation","development","circumstance","complication",
+     "transformation","responsibility","misunderstanding"]){
+    for(let n=0;n<28;n++){
      const intro="People talked patiently about the latest events in town. ".repeat(5);
      const text=(intro+"A thoughtful observer "+("carefully ".repeat(n))+
-       "explained the difficult circumstances. But the extraordinarily detailed " +
+       "explained the difficult "+noun+". But the extraordinarily detailed " +
        "continuation carried onward through several new pages of prose. "+
        ("Another sentence discussed the lasting consequences. ".repeat(12))).trim();
      visible.textContent=text;
@@ -248,7 +251,7 @@ with sync_playwright() as pw:
              /But the/.test(text.slice(m.displayEnd,row.sourceEnd+1)))
            .map(m=>({n,i,fill:m.fill,tail:text.slice(m.displayEnd,row.sourceEnd),
              end:row.sourceEnd,bottom:row.bottomPx})));
-         snapshots.push(...sample.slice(0,4));
+         snapshots.push(...sample.slice(0,4).map(item=>({...item,noun})));
        }
        continue;
      }
@@ -271,6 +274,8 @@ with sync_playwright() as pw:
        first:first.content,entire:pages.flatMap(p=>p.blocks.map(b=>b.content)).join(''),
        expected:text,reflows,pageCount:pages.length};
      break;
+    }
+    if(outcome)break;
    }
    return {candidateCount,outcome,snapshots:snapshots.slice(0,22)};
  }""")
