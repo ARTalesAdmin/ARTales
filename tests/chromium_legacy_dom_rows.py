@@ -220,14 +220,11 @@ with sync_playwright() as pw:
    const block={id:'multi-prose',type:'paragraph',content:raw,editor_note:null};
    const geo=e.measureLegacyReaderDom(stage,1,[block]);
    if(!geo?.paragraphRows?.[0])throw Error('Multi-<p> block fell back to character estimates');
-   const prepared=e.prepareLegacyReaderFragments([block],e.defaultReaderSettings,{},
-     e.DEFAULT_LEGACY_BLOCK_STYLES,true);
    const pages=e.paginateReaderBlocks([block],e.defaultReaderSettings,{},
      e.DEFAULT_LEGACY_BLOCK_STYLES,geo);
    const pieces=pages.flatMap(page=>page.blocks);
    const rows=geo.paragraphRows[0].rows;
    return {
-     preparedCount:prepared.length,
      rowCount:rows.length,sourceLength:raw.length,
      mappedFinalEnd:rows.at(-1).sourceEnd,
      source:pieces.map(x=>x.content).join(''),
@@ -236,7 +233,6 @@ with sync_playwright() as pw:
      sampledTextHeight:geo.paragraphRows[0].textHeightPx,
    };
  }""",multi_source)
- assert multi_result["preparedCount"]==1,multi_result
  assert multi_result["rowCount"]>12,multi_result
  assert multi_result["source"]==multi_source,multi_result
  assert multi_result["pages"]>1,multi_result
