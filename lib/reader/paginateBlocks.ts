@@ -144,9 +144,11 @@ function splitLines(text: string) {
 function splitLongText(text: string, maxLength: number) {
   const sentences = splitSentences(text);
   if (sentences.length <= 1) {
-    // Prefer an oversized complete sentence to a prettier page that ends mid-
-    // sentence. Only fall back to word chunks when there is no terminal ending.
-    return isTerminalSentenceEnding(text) ? [normalizeWhitespace(text)] : splitByWordLimit(text, maxLength);
+    // Keep complete sentences when they fit. A sentence that cannot possibly
+    // fit is split at word boundaries rather than clipped by the page.
+    const normalized=normalizeWhitespace(text);
+    return isTerminalSentenceEnding(normalized) && normalized.length<=maxLength
+      ? [normalized] : splitByWordLimit(normalized,maxLength);
   }
 
   const chunks: string[] = [];
@@ -156,11 +158,15 @@ function splitLongText(text: string, maxLength: number) {
     const normalizedSentence = normalizeWhitespace(sentence);
     const candidate = current ? `${current} ${normalizedSentence}` : normalizedSentence;
 
-    if (candidate.length > maxLength && current) {
+    if (normalizedSentence.length > maxLength) {
+      if(current){chunks.push(current);current="";}
+      const fragments=splitByWordLimit(normalizedSentence,maxLength);
+      chunks.push(...fragments);
+    } else if(candidate.length > maxLength && current) {
       chunks.push(current);
-      current = normalizedSentence;
+      current=normalizedSentence;
     } else {
-      current = candidate;
+      current=candidate;
     }
   }
 
@@ -353,7 +359,7 @@ function splitBlock(
     const lines = splitLines(text);
     if (lines.length <= 1) return [block];
 
-    const lineBudget = Math.max(10, Math.floor(budget / 135));
+    const lineBudget = Math.max(2, Math.floor(budget / 135));
     const chunks: WorkBlock[] = [];
     for (let index = 0; index < lines.length; index += lineBudget) {
       chunks.push(
@@ -368,7 +374,7 @@ function splitBlock(
   }
 
   const paragraphs = splitParagraphs(text);
-  const chunkLimit = Math.max(520, Math.round(budget * 0.5));
+  const chunkLimit = Math.max(100, Math.round(budget * 0.5));
   const chunks: WorkBlock[] = [];
 
   for (const [paragraphIndex, paragraph] of paragraphs.entries()) {
@@ -455,9 +461,12 @@ export function paginateReaderBlocks(
   const budget = getPageBudget(settings);
   const softBudget = Math.round(budget * 0.9);
   const maxBudget = Math.round(budget * 1.08);
-  const splitBlocks = blocks.flatMap((block) =>
-    splitBlock(block, budget, settings, tableMeasurements, styles[block.type]),
-  );
+  const splitBlocks = blocks.flatMap((block) => {
+    const style=styles[block.type];
+    const effectiveBudget=Math.max(120,
+      Math.round(budget/Math.max(.4,legacyBlockWeightMultiplier(style))));
+    return splitBlock(block,effectiveBudget,settings,tableMeasurements,style);
+  });
   const pages: ReaderPage[] = [];
   let currentBlocks: WorkBlock[] = [];
   let currentWeight = 0;

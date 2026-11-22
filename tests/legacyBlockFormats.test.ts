@@ -54,3 +54,15 @@ test("page breaks, isolated pages and font scaling affect the old Reader paginat
  reset.paragraph={...reset.paragraph,own_page:false,page_break_before:false};
  assert.equal(paginateReaderBlocks(blocks,defaultReaderSettings,{},reset).length,1);
 });
+
+test("oversized styled paragraphs preserve every word across fragments",async()=>{
+ const {paginateReaderBlocks}=await import("../lib/reader/paginateBlocks");
+ const {defaultReaderSettings}=await import("../lib/reader/readerSettings");
+ const styles=structuredClone(DEFAULT_LEGACY_BLOCK_STYLES);
+ styles.paragraph={...styles.paragraph,font_size_em:2.8,line_height:2.4};
+ const raw=Array.from({length:120},(_,i)=>"word"+i).join(" ")+".";
+ const pages=paginateReaderBlocks([{id:"long",type:"paragraph",content:raw,editor_note:null}],defaultReaderSettings,{},styles);
+ const flattened=pages.flatMap(p=>p.blocks).map(b=>b.content).join(" ");
+ assert.equal(flattened,raw);
+ assert.ok(pages.length>1);
+});
