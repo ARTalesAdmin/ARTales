@@ -612,12 +612,27 @@ export function paginateReaderBlocks(
   const budget = getPageBudget(settings);
   const softBudget = Math.round(budget * 0.9);
   const maxBudget = Math.round(budget * 1.08);
-  const splitBlocks = prepareLegacyReaderFragments(
-    blocks,settings,tableMeasurements,styles,Boolean(measuredGeometry));
+  // Browser geometry comes from unsplit plain paragraphs. If it is incomplete
+  // or cannot safely provide physical rows, fall all the way back to the
+  // legacy fragmenter; never keep a giant paragraph indivisible by accident.
   if (measuredGeometry) {
-    const measured = paginateMeasuredLegacyFragments(splitBlocks,styles,measuredGeometry);
-    if (measured) return measured;
+    const uncut = prepareLegacyReaderFragments(
+      blocks,settings,tableMeasurements,styles,true);
+    const eligibleParagraphs = uncut.map((block,index) =>
+      block.type === "paragraph" && !styles[block.type].keep_together &&
+      !styles[block.type].own_page && block.content === block.content.trim() &&
+      block.content.length > 0 && !/[\\r\\n<>]/.test(block.content) &&
+      !/&lt;/i.test(block.content) ? index : -1).filter(x=>x>=0);
+    const complete = eligibleParagraphs.every(index =>
+      measuredGeometry.paragraphRows?.[index] &&
+      measuredGeometry.paragraphRows[index]!.rows.length > 0);
+    if (complete) {
+      const measured=paginateMeasuredLegacyFragments(uncut,styles,measuredGeometry);
+      if (measured) return measured;
+    }
   }
+  const splitBlocks = prepareLegacyReaderFragments(
+    blocks,settings,tableMeasurements,styles);
   const pages: ReaderPage[] = [];
   let currentBlocks: WorkBlock[] = [];
   let currentWeight = 0;
