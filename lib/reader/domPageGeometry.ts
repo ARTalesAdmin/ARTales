@@ -104,24 +104,37 @@ export function measureLegacyReaderDom(
     for (const el of textElements) totalRows += countLegacyRenderedRows(el);
     rows.push(totalRows);
     const source = sourceFragments?.[index];
-    const p = fragment.querySelector<HTMLElement>(".artales-paragraph > p");
+    const paragraphs = Array.from(fragment.querySelectorAll<HTMLElement>(
+      ".artales-paragraph > p",
+    ));
     const inline = source?.type === "paragraph"
       ? parseLegacyInlineProse(source.content) : null;
-    const supported = Boolean(inline && p && p.textContent === inline.visibleText);
-    if (!supported || !p || !inline) {paragraphRows.push(null);continue;}
-    const measuredRows=measureSemanticDomRows(p,0,p);
-    const sourceRows=measuredRows.map(row=>({
-      sourceEnd:inline.sourceOffsetAtTextOffset(row.sourceEnd) ?? -1,
-      displayEnd:row.sourceEnd,
-      bottomPx:row.bottom,
-      fill:row.fill,
-      words:row.words,
-      punctuationCuts:row.punctuationCuts?.map(mark=>({
-        displayEnd:mark.sourceEnd,
-        fill:mark.fill,
-      })),
-    }));
-    const pHeight=p.getBoundingClientRect().height;
+    // The actual React renderer is the authority for paragraph count and
+    // visible characters. Unsupported markup falls back for THIS block only.
+    const supported = Boolean(inline && paragraphs.length === inline.parts.length &&
+      paragraphs.every((p,i)=>p.textContent === inline.parts[i].text));
+    if (!supported || !inline || !paragraphs.length) {
+      paragraphRows.push(null);continue;
+    }
+    const firstRect = paragraphs[0].getBoundingClientRect();
+    const lastRect = paragraphs[paragraphs.length - 1].getBoundingClientRect();
+    const sourceRows = paragraphs.flatMap((p,i) => {
+      const part = inline.parts[i];
+      const rect = p.getBoundingClientRect();
+      const topOffset = rect.top - firstRect.top;
+      return measureSemanticDomRows(p,0,p).map(row=>({
+        sourceEnd:inline.sourceOffsetAtTextOffset(part.textStart+row.sourceEnd) ?? -1,
+        displayEnd:part.textStart+row.sourceEnd,
+        bottomPx:topOffset+row.bottom,
+        fill:row.fill,
+        words:row.words,
+        punctuationCuts:row.punctuationCuts?.map(mark=>({
+          displayEnd:part.textStart+mark.sourceEnd,
+          fill:mark.fill,
+        })),
+      }));
+    });
+    const pHeight = lastRect.bottom - firstRect.top;
     if (!(pHeight>0) || sourceRows.length<1 ||
         sourceRows.some((row,i)=>!Number.isFinite(row.bottomPx) ||
           row.sourceEnd<1 || row.sourceEnd>source!.content.length ||

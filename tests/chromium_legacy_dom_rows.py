@@ -194,4 +194,52 @@ with sync_playwright() as pw:
   assert selected["samplerAlignment"] in ("start","left"),selected
   assert selected["visibleAlignment"]=="justify",selected
   print("Chromium natural 80% punctuation cut, title-independent PASS",terminal,selected["sheets"])
+
+ # The canonical renderer can produce several <p> elements from ONE source
+ # block. This used to trigger character-budget fragmentation for the ENTIRE
+ # Gutenberg-style block, leaving arbitrarily short physical page endings.
+ multi_first="<em>"+("A reflective introduction with many carefully chosen words. "*30).strip()+"</em>"
+ multi_second=("The following discussion has ordinary words and a "+
+   "<strong>literal tag</strong> that the renderer does not interpret. ")*15
+ multi_source=multi_first+"\n\n"+multi_second.strip()
+ page.evaluate("""(parts)=>{
+   for(const selector of ['#visible .artales-paragraph','#probe .artales-paragraph']){
+     const parent=document.querySelector(selector);
+     parent.replaceChildren();
+     const first=document.createElement('p');
+     first.id=selector.includes('#probe')?'measured':'original';
+     first.innerHTML=parts[0];
+     const second=document.createElement('p');
+     second.textContent=parts[1];
+     parent.append(first,second);
+   }
+ }""",[multi_first,multi_second.strip()])
+ multi_result=page.evaluate("""raw=>{
+   const e=window.ARTalesLegacyDomEngine,stage=document.querySelector('#probe');
+   e.syncLegacyMeasuringPaper(stage,document.querySelector('#visible'));
+   const block={id:'multi-prose',type:'paragraph',content:raw,editor_note:null};
+   const geo=e.measureLegacyReaderDom(stage,1,[block]);
+   if(!geo?.paragraphRows?.[0])throw Error('Multi-<p> block fell back to character estimates');
+   const prepared=e.prepareLegacyReaderFragments([block],e.defaultReaderSettings,{},
+     e.DEFAULT_LEGACY_BLOCK_STYLES,true);
+   const pages=e.paginateReaderBlocks([block],e.defaultReaderSettings,{},
+     e.DEFAULT_LEGACY_BLOCK_STYLES,geo);
+   const pieces=pages.flatMap(page=>page.blocks);
+   const rows=geo.paragraphRows[0].rows;
+   return {
+     preparedCount:prepared.length,
+     rowCount:rows.length,sourceLength:raw.length,
+     mappedFinalEnd:rows.at(-1).sourceEnd,
+     source:pieces.map(x=>x.content).join(''),
+     pages:pages.length,
+     emphasisContinuations:pieces.filter(x=>x.fields?.legacyReaderInlinePrefix==='<em>').length,
+     sampledTextHeight:geo.paragraphRows[0].textHeightPx,
+   };
+ }""",multi_source)
+ assert multi_result["preparedCount"]==1,multi_result
+ assert multi_result["rowCount"]>12,multi_result
+ assert multi_result["source"]==multi_source,multi_result
+ assert multi_result["pages"]>1,multi_result
+ assert multi_result["emphasisContinuations"]>0,multi_result
+ print("Chromium multiple paragraphs/markup: exact DOM rows, unchanged source PASS",multi_result["pages"])
  browser.close()
