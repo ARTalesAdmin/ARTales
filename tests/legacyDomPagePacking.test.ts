@@ -8,7 +8,7 @@ const geometry=(heights:number[],capacity=220)=>({contentHeightPx:capacity,conte
 test("DOM height, not weight, determines pages",()=>{
  const b=[make("a","Short."),make("b","Another short."),make("c","Last.")];
  const p=paginateReaderBlocks(b,defaultReaderSettings,{},DEFAULT_LEGACY_BLOCK_STYLES,geometry([90,90,90]));
- assert.deepEqual(p.map(x=>x.blocks.map(y=>y.id)),[["a","b"],["c"]]);
+ assert.deepEqual(p.map(x=>x.blocks.map(y=>y.id.replace(/-page-\d+-\d+$/,""))),[["a","b"],["c"]]);
  assert.deepEqual(p.map(x=>x.estimatedWeight),[180,90]);
 });
 test("changed row height changes page count",()=>{
@@ -27,7 +27,7 @@ test("oversize content is not silently clipped",()=>{
  const b=[make("a","A"),make("b","B")];
  const pages=paginateReaderBlocks(b,defaultReaderSettings,{},DEFAULT_LEGACY_BLOCK_STYLES,geometry([400,30]));
  assert.equal(pages[0].overflow,"scroll_unit");
- assert.deepEqual(pages.map(x=>x.blocks.map(y=>y.id)),[["a"],["b"]]);
+ assert.deepEqual(pages.map(x=>x.blocks.map(y=>y.id.replace(/-page-\d+-\d+$/,""))),[["a"],["b"]]);
 });
 test("invalid geometry falls back unchanged",()=>{
  const b=[make("a","A"),make("b","B")];
