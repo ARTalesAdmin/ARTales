@@ -145,7 +145,7 @@ with sync_playwright() as browser_api:
  for(const key of ["visiblePageEndFill","visiblePageEndWords",
    "visiblePageEndDecision","visiblePageEndGapPx"])delete replacement.dataset[key];
  normal.replaceWith(replacement);
- const beforeReapply=replacement.dataset.visiblePageEndDecision;
+ const beforeReapply=replacement.dataset.visiblePageEndDecision ?? null;
  const afterSwapPass=api.applyLegacyPaperLastRowJustification(all);
  const afterSwapDecision=replacement.dataset.visiblePageEndDecision;
  const afterSwapAlign=getComputedStyle(replacement).textAlignLast;
