@@ -1,6 +1,6 @@
 import type {WorkBlock} from "@/lib/blocks";
 import {measureSemanticDomRows} from "@/lib/semantic/domLineGeometry";
-import {parseLegacyInlineProse} from "./inlineProseSource";
+import {isLegacyMeasurableProse,parseLegacyInlineProse} from "./inlineProseSource";
 
 /** Browser geometry for the existing legacy WorkBlock Reader.
  * This measures its ACTUAL rendered CSS boxes. It does not create semantic
@@ -105,9 +105,9 @@ export function measureLegacyReaderDom(
     rows.push(totalRows);
     const source = sourceFragments?.[index];
     const paragraphs = Array.from(fragment.querySelectorAll<HTMLElement>(
-      ".artales-paragraph > p",
+      ":scope > .artales-block > p",
     ));
-    const inline = source?.type === "paragraph"
+    const inline = source && isLegacyMeasurableProse(source.type)
       ? parseLegacyInlineProse(source.content) : null;
     // The actual React renderer is the authority for paragraph count and
     // visible characters. Unsupported markup falls back for THIS block only.

@@ -161,3 +161,14 @@ export function parseLegacyInlineProse(source: string): LegacyInlineSource | nul
     },
   };
 }
+
+/** Reader blocks whose content is rendered as direct <p> descendants.
+ * The DOM measurement verifies exact source-to-text correspondence before
+ * splitting; headings, media and letter metadata stay on their safe paths. */
+const LEGACY_MEASURABLE_PROSE = new Set([
+  "paragraph", "quote", "newspaper_article", "preface",
+  "afterword", "acknowledgement",
+]);
+export function isLegacyMeasurableProse(type:string):boolean{
+  return LEGACY_MEASURABLE_PROSE.has(type);
+}

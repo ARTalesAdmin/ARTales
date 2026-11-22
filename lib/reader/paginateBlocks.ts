@@ -6,7 +6,7 @@ import {
 } from "@/lib/blocks";
 import type { ReaderSettings } from "./readerSettings";
 import type {LegacyReaderDomGeometry} from "./domPageGeometry";
-import {parseLegacyInlineProse} from "./inlineProseSource";
+import {isLegacyMeasurableProse,parseLegacyInlineProse} from "./inlineProseSource";
 import {chooseSemanticFittingRowCut} from "@/lib/semantic/readerProjection";
 import {getProtectedTextSpans} from "@/lib/semantic/protectedSpans";
 import {DEFAULT_LEGACY_BLOCK_STYLES,legacyBlockWeightMultiplier,type LegacyBlockStyleMap,type LegacyBlockStyle} from "@/lib/rendering/legacyBlockStyles";
@@ -482,7 +482,7 @@ export function prepareLegacyReaderFragments(
     const style = styles[block.type];
     // Supported prose (plain or with inline emphasis) must reach the browser
     // intact. Unsupported syntax retains the existing conservative splitter.
-    if (preservePlainParagraphs && block.type === "paragraph" &&
+    if (preservePlainParagraphs && isLegacyMeasurableProse(block.type) &&
       !style.keep_together && !style.own_page &&
       parseLegacyInlineProse(block.content)) return [block];
     const effectiveBudget = Math.max(120,
@@ -529,10 +529,10 @@ function paginateMeasuredLegacyFragments(
     // Strictly one unmarked paragraph: source offsets from measured DOM rows.
     // These slices are display-only and cover exactly the original UTF-16
     // content (no normalization, dropped whitespace or stored mutations).
-    const paragraph=block.type==="paragraph" && !style.keep_together && !style.own_page
+    const paragraph=isLegacyMeasurableProse(block.type) && !style.keep_together && !style.own_page
       ?paragraphRows?.[index]:null;
     const raw=block.content;
-    const inline=block.type==="paragraph" ? parseLegacyInlineProse(raw) : null;
+    const inline=isLegacyMeasurableProse(block.type) ? parseLegacyInlineProse(raw) : null;
     // Source slices remain byte-for-byte contiguous. Rendering-only affixes
     // restore an emphasis tag that spans a physical page boundary.
     const makeSlice=(start:number,end:number,reason:string,
@@ -560,7 +560,7 @@ function paginateMeasuredLegacyFragments(
     if (!validRows || !paragraph || !rows) {
       // Only THIS block uses the conservative indivisible fallback. Do not
       // discard physical geometry for every other paragraph in the book.
-      if(block.type==="paragraph" && !style.keep_together && !style.own_page &&
+      if(isLegacyMeasurableProse(block.type) && !style.keep_together && !style.own_page &&
         (!rows || rows.length!==1))localFallbackBlocks++;
       if(current.length && currentHeight+height>capacity)flush();
       add(block,height);
