@@ -1058,7 +1058,9 @@
 }
 
 .artales-reader__paper--spread-right {
-  border-left: 0;
+  /* Keep the seam visually borderless WITHOUT widening the right text box.
+     The hidden paginator measures the left-page content width for all leaves. */
+  border-left: 1px solid transparent;
   border-radius: 8px 28px 28px 8px;
   box-shadow:
     18px 22px 54px rgba(13, 21, 40, 0.14),
