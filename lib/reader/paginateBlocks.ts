@@ -388,9 +388,22 @@ function splitBlock(
   for (const [paragraphIndex, paragraph] of paragraphs.entries()) {
     const parts = splitLongText(paragraph, chunkLimit);
     for (const [partIndex, part] of parts.entries()) {
-      chunks.push(
-        cloneBlock(block, part, `page-${paragraphIndex}-${partIndex}`),
-      );
+      const clone=cloneBlock(block,part,`page-${paragraphIndex}-${partIndex}`);
+      // The estimated fallback also splits ONE editorial paragraph into
+      // multiple source fragments. Its clones must carry the SAME boundary
+      // contract as measured DOM slices. Previously they never received the
+      // marker, so a physically full last row was not even considered for
+      // bounded justification. Do not mark the end of the editorial
+      // paragraph (or merge it with the following block).
+      const continues=partIndex<parts.length-1;
+      const isContinuation=partIndex>0;
+      if(isLegacyMeasurableProse(block.type) && (continues||isContinuation)){
+        chunks.push({...clone,fields:{
+          ...(clone.fields??{}),
+          legacyReaderContinuation:isContinuation,
+          legacyReaderPageSplitAfter:continues,
+        }});
+      }else chunks.push(clone);
     }
   }
 

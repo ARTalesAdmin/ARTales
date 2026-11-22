@@ -20,6 +20,10 @@ export function applyLegacyPaperLastRowJustification(paper: HTMLElement): {
     '.artales-newspaper, .artales-preface, .artales-afterword, ' +
     '.artales-acknowledgement) > p',
   );
+  const sourceBlocks=Array.from(paper.querySelectorAll<HTMLElement>(
+    ".artales-reader__page-content .artales-work-content > [data-legacy-block-style]",
+  ));
+  const lastBlock=sourceBlocks.at(-1);
   let checked = 0;
   let justified = 0;
   for (const paragraph of paragraphs) {
@@ -30,7 +34,8 @@ export function applyLegacyPaperLastRowJustification(paper: HTMLElement): {
     // a new sheet. Complete editorial blocks never borrow words from another
     // block or stretch their short final lines. Within a multi-p block only
     // its final physical paragraph can close a page fragment.
-    const eligible=block?.dataset.legacyPageSplitAfter==="true" &&
+    const eligible=block===lastBlock &&
+      block?.dataset.legacyPageSplitAfter==="true" &&
       paragraph.parentElement?.lastElementChild===paragraph;
     if (applySemanticProseLastRowJustification(paragraph,eligible)) justified++;
   }
