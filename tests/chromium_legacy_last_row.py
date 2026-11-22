@@ -137,8 +137,21 @@ with sync_playwright() as browser_api:
  const editorialChanged=verse.classList.contains("semantic-reader__prose--justify-last");
  const shortDecision=short.dataset.visiblePageEndDecision;
  const shortFill=short.dataset.visiblePageEndFill;
+ // Simulate React replacing a paragraph on a page turn. The already
+ // existing canonical helper must restore the visible decision on the
+ // replacement node without altering source text or sibling blocks.
+ const replacement=normal.cloneNode(true);
+ replacement.classList.remove("semantic-reader__prose--justify-last");
+ for(const key of ["visiblePageEndFill","visiblePageEndWords",
+   "visiblePageEndDecision","visiblePageEndGapPx"])delete replacement.dataset[key];
+ normal.replaceWith(replacement);
+ const beforeReapply=replacement.dataset.visiblePageEndDecision;
+ const afterSwapPass=api.applyLegacyPaperLastRowJustification(all);
+ const afterSwapDecision=replacement.dataset.visiblePageEndDecision;
+ const afterSwapAlign=getComputedStyle(replacement).textAlignLast;
  return {
   changed:normalChanged,italicChanged,introChanged,shortChanged,editorialChanged,
+  beforeReapply,afterSwapPass,afterSwapDecision,afterSwapAlign,
   shortDecision,shortFill,contentWidths,
   normalDecision:normal.dataset.visiblePageEndDecision,
   italicDecision:italic.dataset.visiblePageEndDecision,
@@ -169,6 +182,9 @@ with sync_playwright() as browser_api:
  }""")
  assert max(result["contentWidths"])-min(result["contentWidths"])<.35,result
  assert result["checkedSelector"]==4,result
+ assert result["beforeReapply"] is None,result
+ assert result["afterSwapPass"]=={"checked":4,"justified":1},result
+ assert result["afterSwapDecision"]=="justified" and result["afterSwapAlign"]=="justify",result
  assert result["pass"]=={"checked":4,"justified":1},result
  assert result["changed"] and not result["italicChanged"] and not result["introChanged"],result
  assert result["hasClass"],result
