@@ -936,7 +936,7 @@ export default function ReaderClient({
       <section className="artales-reader__stage">
         {measureEligible ? (
           <div className="artales-reader__measurement-stage" ref={domMeasurementRef} aria-hidden="true">
-            <article className="artales-reader__paper artales-reader__paper--paged">
+            <article className={`artales-reader__paper artales-reader__paper--paged${isSpreadMode ? " artales-reader__paper--spread-left" : ""}`}>
               <header className="artales-reader__page-header"><span>{title}</span><span>1</span></header>
               <div className="artales-reader__page-content">
                 <WorkContentRenderer
