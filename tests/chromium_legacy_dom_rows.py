@@ -24,6 +24,7 @@ with sync_playwright() as pw:
  browser=pw.chromium.launch()
  page=browser.new_page(viewport={"width":1170,"height":850})
  page.set_content(markup)
+ page.add_style_tag(content="#visible{height:550px!important;min-height:550px!important;max-height:550px!important;}")
  page.evaluate("(raw)=>{document.querySelector('#original').textContent=raw;document.querySelector('#measured').textContent=raw;}",raw)
  for style in [css,reader,shared]:page.add_style_tag(content=style)
  page.add_script_tag(content=code)
@@ -40,5 +41,20 @@ with sync_playwright() as pw:
  assert all(rows[i]["sourceEnd"]<rows[i+1]["sourceEnd"] for i in range(len(rows)-1)),rows
  assert all(rows[i]["bottomPx"]<rows[i+1]["bottomPx"] for i in range(len(rows)-1)),rows
  assert rows[-1]["sourceEnd"]<=len(raw),rows
+ paged=page.evaluate("""raw=>{
+  const e=window.ARTalesLegacyDomEngine,stage=document.querySelector('#probe');
+  e.syncLegacyMeasuringPaper(stage,document.querySelector('#visible'));
+  const unit={id:'prose',type:'paragraph',content:raw,editor_note:null};
+  const geo=e.measureLegacyReaderDom(stage,1,[unit]);
+  const pages=e.paginateReaderBlocks([unit],e.defaultReaderSettings,{},e.DEFAULT_LEGACY_BLOCK_STYLES,geo);
+  return {source:pages.flatMap(p=>p.blocks.map(b=>b.content)).join(""),
+    pageCount:pages.length,heights:pages.map(p=>p.estimatedWeight),
+    capacity:geo.contentHeightPx,overflows:pages.map(p=>p.overflow??"none")};
+ }""",raw)
+ assert paged["source"]==raw,paged
+ assert paged["pageCount"]>1,paged
+ assert all(h<=paged["capacity"]+1 or o=="scroll_unit"
+   for h,o in zip(paged["heights"],paged["overflows"])),paged
+ print("Chromium measured physical rows -> complete page coverage PASS",paged["pageCount"])
  print("Chromium measured physical rows and ordered source offsets PASS",len(rows))
  browser.close()
