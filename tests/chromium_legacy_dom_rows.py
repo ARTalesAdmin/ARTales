@@ -162,6 +162,19 @@ with sync_playwright() as pw:
       const chrome=Math.max(0,geo.blockHeightsPx[0]-
         geo.paragraphRows[0].textHeightPx);
       const controlled={...geo,contentHeightPx:fitting.bottomPx+chrome+8};
+      let reflows=0;
+      let firstReflow=null;
+      const remeasure=controlled.remeasureRemainder;
+      controlled.remeasureRemainder=(index,start,displayStart)=>{
+        const result=remeasure?.(index,start,displayStart)??null;
+        if(result){
+          reflows++;
+          firstReflow??={sourceStart:start,displayStart,
+            rows:result.rows.slice(0,3),
+            textHeight:result.textHeightPx,height:result.heightPx};
+        }
+        return result;
+      };
       const pages=e.paginateReaderBlocks([block],e.defaultReaderSettings,{},
         e.DEFAULT_LEGACY_BLOCK_STYLES,controlled);
       const first=pages[0]?.blocks?.[0];
@@ -178,6 +191,7 @@ with sync_playwright() as pw:
         samplerAlignment:getComputedStyle(measured).textAlign,
         visibleAlignment:getComputedStyle(visible).textAlign,
         punctuationFill:fitting.punctuationCuts.map(x=>x.fill),
+        reflows,firstReflow,
       };
       break;
     }
@@ -188,6 +202,10 @@ with sync_playwright() as pw:
   selected=selected["result"]
   assert selected is not None, ("No physical 80% punctuation candidate",terminal)
   assert selected["reason"]=="punctuation_80",selected
+  assert selected["reflows"]>0,selected
+  assert selected["firstReflow"]["sourceStart"]>0,selected
+  assert selected["firstReflow"]["rows"][0]["sourceEnd"]>selected["firstReflow"]["sourceStart"],selected
+  assert selected["firstReflow"]["height"]>=selected["firstReflow"]["textHeight"],selected
   assert selected["cut"].rstrip().endswith(terminal),selected
   assert selected["source"]==selected["expected"],selected
   assert selected["sheets"]>1,selected

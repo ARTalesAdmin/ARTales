@@ -151,6 +151,12 @@ test("legacy measured page ends at a semantic semicolon in final 20% of its phys
  const secondRow=raw.indexOf("trading")+"trading".length;
  const mark=raw.indexOf(";")+1;
  const geo={contentHeightPx:80,contentWidthPx:450,
+  remeasureRemainder:(_index:number,start:number)=>({
+   heightPx:100,textHeightPx:90,rows:[
+    {sourceEnd:raw.indexOf("sunset"),bottomPx:40},
+    {sourceEnd:raw.length,bottomPx:80},
+  ],
+  }),
   blockHeightsPx:[150],blockRows:[3],
   paragraphRows:[{textHeightPx:150,rows:[
    {sourceEnd:firstRow,displayEnd:firstRow,bottomPx:40,fill:.96,words:8,
@@ -209,6 +215,12 @@ test("semantic punctuation cut maps through inline emphasis without source loss"
  const sourceFirstEnd=inline!.sourceOffsetAtTextOffset(firstEnd)!;
  const secondEnd=visible.indexOf("daylight")+"daylight".length;
  const geo={contentHeightPx:85,contentWidthPx:450,
+  remeasureRemainder:(_index:number,start:number)=>({
+   heightPx:100,textHeightPx:90,rows:[
+    {sourceEnd:inline!.sourceOffsetAtTextOffset(visible.indexOf("daylight")+"daylight".length)!,bottomPx:43},
+    {sourceEnd:raw.length,bottomPx:85},
+  ],
+  }),
   blockHeightsPx:[170],blockRows:[3],
   paragraphRows:[{textHeightPx:170,rows:[
    {sourceEnd:sourceFirstEnd,displayEnd:firstEnd,bottomPx:42,fill:.97,words:9,
@@ -232,6 +244,12 @@ test("period can be selected at the same natural-row threshold",()=>{
  const firstEnd=raw.indexOf("conversation")+"conversation".length;
  const mark=raw.indexOf(".")+1;
  const geo={contentHeightPx:90,contentWidthPx:450,
+  remeasureRemainder:(_index:number,start:number)=>({
+   heightPx:100,textHeightPx:90,rows:[
+    {sourceEnd:raw.indexOf("evening"),bottomPx:43},
+    {sourceEnd:raw.length,bottomPx:85},
+  ],
+  }),
   blockHeightsPx:[130],blockRows:[2],
   paragraphRows:[{textHeightPx:130,rows:[
    {sourceEnd:firstEnd,displayEnd:firstEnd,bottomPx:40,fill:.98,words:8,
@@ -321,4 +339,65 @@ test("all DOM-rendered prose types share the same measured source-boundary pagin
    assert.equal(pieces.map(piece=>piece.content).join(""),raw,type);
    assert.ok(pieces.every(piece=>piece.type===type),type);
  }
+});
+
+
+test("discretionary punctuation cuts are refused without measured reflow",()=>{
+ const raw="First a complete sentence. Then a long continuation proceeds with several words to the following page.";
+ const cut=raw.indexOf("continuation")+"continuation".length;
+ const mark=raw.indexOf(".")+1;
+ const geo={contentHeightPx:100,contentWidthPx:450,
+  blockHeightsPx:[170],blockRows:[3],
+  paragraphRows:[{textHeightPx:155,rows:[
+   {sourceEnd:cut,displayEnd:cut,bottomPx:43,fill:.98,words:8,
+    punctuationCuts:[{displayEnd:mark,fill:.87}]},
+   {sourceEnd:raw.indexOf("following")+"following".length,bottomPx:89},
+   {sourceEnd:raw.length,bottomPx:155},
+  ]}],
+ };
+ const pages=paginateReaderBlocks([make(raw)],defaultReaderSettings,{},
+  DEFAULT_LEGACY_BLOCK_STYLES,geo);
+ const first=pages[0].blocks[0];
+ assert.equal(first.fields?.legacyReaderPageEndReason,undefined);
+ assert.equal(first.content,raw.slice(0,cut));
+ assert.equal(pages.flatMap(page=>page.blocks).map(x=>x.content).join(""),raw);
+});
+
+test("punctuation reflows the very next page from its first real row",()=>{
+ const raw="Many gathered here; then their discussion continued with unusually many careful words across a lengthy afternoon.";
+ const mark=raw.indexOf(";")+1;
+ const originalFirst=raw.indexOf("discussion")+"discussion".length;
+ let calls=0;
+ const geo={contentHeightPx:90,contentWidthPx:450,
+  blockHeightsPx:[190],blockRows:[4],
+  remeasureRemainder:(_index:number,start:number,displayStart:number)=>{
+   calls++;
+   assert.equal(start,raw.indexOf(" then")+1);
+   assert.equal(displayStart,start);
+   return {heightPx:125,textHeightPx:110,rows:[
+    // This word now fits on the FIRST row after a fresh wrap. In the original
+    // page it belonged to the previous row, so old rowStart=endRow was wrong.
+    {sourceEnd:raw.indexOf("careful")+"careful".length,
+     displayEnd:raw.indexOf("careful")+"careful".length,bottomPx:37},
+    {sourceEnd:raw.indexOf("lengthy")+"lengthy".length,
+     displayEnd:raw.indexOf("lengthy")+"lengthy".length,bottomPx:68},
+    {sourceEnd:raw.length,displayEnd:raw.length,bottomPx:110},
+   ]};
+  },
+  paragraphRows:[{textHeightPx:185,rows:[
+   {sourceEnd:originalFirst,displayEnd:originalFirst,bottomPx:38,
+    fill:.96,words:9,punctuationCuts:[{displayEnd:mark,fill:.87}]},
+   {sourceEnd:raw.indexOf("unusually")+"unusually".length,bottomPx:90},
+   {sourceEnd:raw.indexOf("afternoon")+"afternoon".length,bottomPx:115},
+   {sourceEnd:raw.length,bottomPx:185},
+  ]}],
+ };
+ const pages=paginateReaderBlocks([make(raw)],defaultReaderSettings,{},
+  DEFAULT_LEGACY_BLOCK_STYLES,geo);
+ const fragments=pages.flatMap(page=>page.blocks);
+ assert.equal(calls,1,"only the chosen discretionary cut remeasures");
+ assert.equal(fragments[0].fields?.legacyReaderPageEndReason,"punctuation_80");
+ assert.equal(fragments[1].content,
+  raw.slice(raw.indexOf(" then")+1,raw.indexOf("lengthy")+"lengthy".length));
+ assert.equal(fragments.map(x=>x.content).join(""),raw);
 });

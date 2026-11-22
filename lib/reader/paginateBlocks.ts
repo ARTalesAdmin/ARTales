@@ -567,17 +567,21 @@ function paginateMeasuredLegacyFragments(
       if(style.own_page)flush();
       return;
     }
-    const chrome=Math.max(0,height-paragraph.textHeightPx);
+    // The first rows describe the entire source block. After a punctuation
+    // cut, Chromium remeasures the remaining source as a NEW prose fragment;
+    // original row positions are no longer valid for its first wrapped line.
+    let activeRows=rows;
+    let activeChrome=Math.max(0,height-paragraph.textHeightPx);
     let rowStart=0;
     let charStart=0;
     let displayStart=0;
     let guard=0;
-    while(rowStart<rows.length && guard++<rows.length*3){
-      const previousBottom=rowStart?rows[rowStart-1].bottomPx:0;
+    while(rowStart<activeRows.length && guard++<Math.max(32,raw.length)){
+      const previousBottom=rowStart?activeRows[rowStart-1].bottomPx:0;
       const space=capacity-currentHeight;
       let endRow=rowStart-1;
-      for(let j=rowStart;j<rows.length;j++){
-        const needed=chrome+rows[j].bottomPx-previousBottom;
+      for(let j=rowStart;j<activeRows.length;j++){
+        const needed=activeChrome+activeRows[j].bottomPx-previousBottom;
         if(needed>space-1)break;
         endRow=j;
       }
@@ -589,11 +593,12 @@ function paginateMeasuredLegacyFragments(
         // A single physical line is taller than the paper. Preserve access.
         endRow=rowStart;
       }
-      const atEnd=endRow===rows.length-1;
-      const fittingRow=rows[endRow];
+      const atEnd=endRow===activeRows.length-1;
+      const fittingRow=activeRows[endRow];
       let charEnd=atEnd?raw.length:fittingRow.sourceEnd;
       let chosenDisplayEnd=atEnd?inline?.visibleText.length:fittingRow.displayEnd;
       let pageEndReason:"punctuation_80"|undefined;
+      let remeasured:ReturnType<NonNullable<LegacyReaderDomGeometry["remeasureRemainder"]>>=null;
 
       // The semantic Reader selects a measured period/semicolon at >=80% of
       // the LAST fitting physical row, not an earlier row or guessed character.
@@ -616,9 +621,19 @@ function paginateMeasuredLegacyFragments(
         const mapped=selected.reason==="punctuation_80"
           ? inline.sourceOffsetAtTextOffset(selected.end) : null;
         if(mapped!==null && mapped>charStart && mapped<fittingRow.sourceEnd){
-          charEnd=mapped;
-          chosenDisplayEnd=selected.end;
-          pageEndReason="punctuation_80";
+          // Equivalent to the semantic Reader's verified-fragment path:
+          // never accept an intra-row cut unless we can actually measure
+          // its rewrapped continuation in the very same DOM/CSS context.
+          const continuation=geometry.remeasureRemainder?.(index,mapped,selected.end);
+          if(continuation && continuation.rows.length>0 &&
+             continuation.rows[0].sourceEnd>mapped &&
+             continuation.rows.at(-1)!.sourceEnd<=raw.length &&
+             continuation.textHeightPx>0 && continuation.heightPx>=continuation.textHeightPx){
+            charEnd=mapped;
+            chosenDisplayEnd=selected.end;
+            pageEndReason="punctuation_80";
+            remeasured=continuation;
+          }
         }
       }
       if(charEnd<=charStart || charEnd>raw.length){
@@ -630,13 +645,18 @@ function paginateMeasuredLegacyFragments(
       }
       const piece:WorkBlock=charStart===0 && atEnd
         ? block : makeSlice(charStart,charEnd,"dom",pageEndReason);
-      const measuredHeight=chrome+rows[endRow].bottomPx-previousBottom;
+      const measuredHeight=activeChrome+activeRows[endRow].bottomPx-previousBottom;
       if(current.length && currentHeight+measuredHeight>capacity)flush();
       add(piece,measuredHeight);
-      // A punctuation cut may move the trailing words of the SAME physical
-      // row to the next sheet. Count that row again there: it is a safe
-      // conservative height bound until the browser reflows the remainder.
-      rowStart=pageEndReason?endRow:endRow+1;
+      // Never reuse old row geometry after an intra-line cut. The next page
+      // begins from the freshly measured first row of the remainder.
+      if(remeasured){
+        activeRows=remeasured.rows;
+        activeChrome=Math.max(0,remeasured.heightPx-remeasured.textHeightPx);
+        rowStart=0;
+      }else{
+        rowStart=endRow+1;
+      }
       charStart=charEnd;
       displayStart=chosenDisplayEnd??displayStart;
       if(!atEnd)flush();

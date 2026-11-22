@@ -218,14 +218,20 @@ export default function ReaderClient({
   ]);
   const [domMeasurements, setDomMeasurements] = useState<{
     key: object; geometry: LegacyReaderDomGeometry | null;
+    /** Computed only in the layout effect while the DOM sampler is valid. */
+    pagination: ReturnType<typeof paginateReaderBlocksWithDiagnostics> | null;
   } | null>(null);
   const measurementReady = !measureEligible || domMeasurements?.key === measureKey;
   const measuredGeometry = measureEligible && domMeasurements?.key === measureKey
     ? domMeasurements.geometry : null;
   const pagination = useMemo(
-    () => paginateReaderBlocksWithDiagnostics(
-      blocks,settings,tableMeasurements,legacyStyles,measuredGeometry),
-    [blocks,settings,tableMeasurements,legacyStyles,measuredGeometry],
+    () => measureEligible && domMeasurements?.key===measureKey &&
+      domMeasurements.pagination
+      ? domMeasurements.pagination
+      : paginateReaderBlocksWithDiagnostics(
+          blocks,settings,tableMeasurements,legacyStyles,null),
+    [blocks,settings,tableMeasurements,legacyStyles,
+      measureEligible,measureKey,domMeasurements],
   );
   const readerPages = pagination.pages;
   const pageCount = readerPages.length;
@@ -257,10 +263,15 @@ export default function ReaderClient({
       );
       const geometry = visible && syncLegacyMeasuringPaper(stage,visible)
         ? measureLegacyReaderDom(stage,fragments.length,fragments) : null;
+      // This is intentionally done in the layout phase, NOT while React
+      // renders: the canonical paginator can now verify a discretionary cut
+      // against a temporary DOM clone of the newly wrapped continuation.
+      const computed=geometry?paginateReaderBlocksWithDiagnostics(
+        blocks,settings,tableMeasurements,legacyStyles,geometry):null;
       setDomMeasurements(previous => {
         if (previous?.key === measureKey &&
           JSON.stringify(previous.geometry) === JSON.stringify(geometry)) return previous;
-        return {key:measureKey,geometry};
+        return {key:measureKey,geometry,pagination:computed};
       });
     };
     const queue = () => {
@@ -283,7 +294,8 @@ export default function ReaderClient({
       window.removeEventListener("resize",queue);
       stage.removeEventListener("load",queue,true);
     };
-  }, [measureEligible,measureKey,fragments.length]);
+  }, [measureEligible,measureKey,fragments,blocks,settings,
+      tableMeasurements,legacyStyles]);
 
   useEffect(() => {
     setInkOverflowPages(previous => previous.length ? [] : previous);
