@@ -1,5 +1,6 @@
 import { notFound, redirect } from "next/navigation";
 import ReaderClient from "@/components/reader/ReaderClient";
+import {getLegacyBlockStyles} from "@/lib/rendering/legacyBlockStyles.server";
 import { getWorkBySlug } from "@/lib/dbWorks";
 import { getPreviewBlocks, getPreviewFallbackContent } from "@/lib/workPreview";
 import { getCurrentProfile } from "@/lib/auth";
@@ -67,6 +68,7 @@ export default async function ReaderPage({
       visuals={semanticRelease.visual_manifest??[]}/>;
   }
   }
+  const legacyStyles = await getLegacyBlockStyles();
   const blocks = isPreview
     ? getPreviewBlocks(work.content_blocks)
     : work.content_blocks;
@@ -81,6 +83,7 @@ export default async function ReaderPage({
       authorName={work.author?.name ?? null}
       mode={readerMode}
       blocks={blocks}
+      legacyStyles={legacyStyles}
       fallbackContent={fallbackContent}
       locale={locale}
     />

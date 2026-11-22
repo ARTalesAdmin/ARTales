@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 import ReaderClient from "@/components/reader/ReaderClient";
+import {getLegacyBlockStyles} from "@/lib/rendering/legacyBlockStyles.server";
 import { requireEditorOrAdmin } from "@/lib/guards";
 import { getWorkForEditBySlug } from "@/lib/dbWorks";
 import { getCookieLocale, resolveProfileLocale } from "@/lib/i18n/server";
@@ -13,7 +14,7 @@ export const dynamic = "force-dynamic";
 export default async function InternalWorkReaderPage({ params }: PageProps) {
   const profile = await requireEditorOrAdmin();
   const { slug } = await params;
-  const work = await getWorkForEditBySlug(slug);
+  const [work,legacyStyles] = await Promise.all([getWorkForEditBySlug(slug),getLegacyBlockStyles()]);
 
   if (!work) {
     notFound();
@@ -49,6 +50,7 @@ export default async function InternalWorkReaderPage({ params }: PageProps) {
         title={work.title_cs || work.title_en || work.title}
         mode="full"
         blocks={work.content_blocks}
+        legacyStyles={legacyStyles}
         fallbackContent={work.content}
         locale={locale}
         editorPreview

@@ -1,0 +1,2 @@
+.legacy-block-format-manager{grid-template-columns:minmax(185px,260px) minmax(0,1fr);}
+@media(max-width:720px){.legacy-block-format-manager{grid-template-columns:minmax(0,1fr);}.legacy-block-format-manager aside{max-height:260px!important;}}

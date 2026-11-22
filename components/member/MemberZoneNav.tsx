@@ -47,6 +47,7 @@ export default function MemberZoneNav({ role, assignedOpenCount=0 }: { role: str
         ? [
             ...(SEMANTIC_PIPELINE_ENABLED ? [{href:"/member/editorial-pipeline",label:"Redakční úkoly"}] : []),
             { href: "/member/works", label: member.works },
+            { href: "/member/block-formats", label: "Formáty bloků" },
             { href: "/member/authors", label: member.authors },
             { href: "/member/collections", label: member.collections },
             { href: "/member/tags", label: "Tagy" },

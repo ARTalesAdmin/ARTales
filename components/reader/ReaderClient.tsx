@@ -12,6 +12,7 @@ import {
 } from "react";
 import WorkContentRenderer from "@/components/work/WorkContentRenderer";
 import type { WorkBlock } from "@/lib/blocks";
+import type {LegacyBlockStyleMap} from "@/lib/rendering/legacyBlockStyles";
 import {
   loadReaderNotes,
   loadReaderProgress,
@@ -47,6 +48,7 @@ type ReaderClientProps = {
   authorName?: string | null;
   mode: "preview" | "full";
   blocks: WorkBlock[];
+  legacyStyles: LegacyBlockStyleMap;
   fallbackContent?: string | null;
   locale: SupportedLocale;
   editorPreview?: boolean;
@@ -150,6 +152,7 @@ export default function ReaderClient({
   title,
   mode,
   blocks,
+  legacyStyles,
   fallbackContent,
   locale,
   editorPreview = false,
@@ -187,8 +190,8 @@ export default function ReaderClient({
     ? editorReturnHref ?? `/member/works/${slug}/edit`
     : `/reader/${slug}?mode=full`;
   const readerPages = useMemo(
-    () => paginateReaderBlocks(blocks, settings, tableMeasurements),
-    [blocks, settings, tableMeasurements],
+    () => paginateReaderBlocks(blocks, settings, tableMeasurements, legacyStyles),
+    [blocks, settings, tableMeasurements, legacyStyles],
   );
   const pageCount = readerPages.length;
   const normalizedPageIndex = isSpreadMode ? getSpreadStartPage(pageIndex) : pageIndex;
@@ -587,6 +590,7 @@ export default function ReaderClient({
 
         <WorkContentRenderer
           blocks={page?.blocks ?? []}
+          legacyStyles={legacyStyles}
           fallbackContent={page?.blocks.length ? null : fallbackContent}
           formatPreset={
             settings.density === "compact" ? "readerCompact" : "readerComfort"
