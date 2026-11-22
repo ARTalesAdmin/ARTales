@@ -22,7 +22,16 @@ html="""<main class="artales-reader artales-reader--theme-light artales-reader--
    --artales-block-indent:0em;--artales-block-before:0em;--artales-block-after:1em;
    --artales-block-hyphens:none">
    <section class="artales-block artales-paragraph">
-    <p id="normal"></p><p id="short">The night grew cold.</p>
+    <p id="normal"></p>
+   </section>
+  </div>
+  <div data-legacy-block-style="paragraph"
+   style="--artales-block-font:Georgia,serif;--artales-block-weight:400;--artales-block-style:normal;
+   --artales-block-size:19px;--artales-block-leading:1.62;--artales-block-align:justify;
+   --artales-block-indent:0em;--artales-block-before:0em;--artales-block-after:1em;
+   --artales-block-hyphens:none">
+   <section class="artales-block artales-paragraph">
+    <p id="short">The night grew cold.</p>
    </section>
   </div>
   <div data-legacy-block-style="quote" data-legacy-page-split-after="true" style="--artales-block-font:Georgia,serif;

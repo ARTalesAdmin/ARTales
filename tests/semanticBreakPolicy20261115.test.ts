@@ -69,7 +69,7 @@ test("one shared measured rule prefers a 76%-filled sentence over hanging 'But t
 test("do not make a 72%-80% punctuation cut unless the alternative hangs",()=>{
  const long="The people carefully considered the long explanation. But there was more to discuss much later.";
  const mark=long.indexOf(".")+1;
- const rowEnd=long.indexOf("But there")+"But there".length;
+ const rowEnd=long.indexOf("discuss")+"discuss".length;
  const legal=new Set([...long.matchAll(/\s+/g)].map(m=>m.index!+m[0].length));
  const row={sourceEnd:rowEnd,end:rowEnd,top:0,bottom:28,fill:.96,words:11,
   punctuationCuts:[{sourceEnd:mark,fill:.76}]};
