@@ -168,6 +168,7 @@ export default function ReaderClient({
     controlsCollapsed: true,
   }));
   const [progressPercent, setProgressPercent] = useState(0);
+  const [nativeFullscreen, setNativeFullscreen] = useState(false);
   const [pageIndex, setPageIndex] = useState(0);
   const [notes, setNotes] = useState<ReaderNote[]>([]);
   const [selectedNoteId, setSelectedNoteId] = useState<string | null>(null);
@@ -199,15 +200,15 @@ export default function ReaderClient({
     : `/reader/${slug}?mode=full`;
   // This slice changes page PACKING only. Existing sentence/word/poem/table
   // fragments remain under the current legacy splitter.
-  const fragments = useMemo(
-    () => prepareLegacyReaderFragments(blocks, settings, tableMeasurements, legacyStyles),
-    [blocks, settings, tableMeasurements, legacyStyles],
-  );
-  // A collected footnote list is rendered per page, unlike prose fragments.
-  // Until it has its own measured policy, keep that case on the old algorithm.
-  // Preview banners/CTA also remain on the existing fallback algorithm.
-  const measureEligible = mode === "full" && fragments.length > 0 &&
+  // The offscreen sampler must measure the EXACT fragments passed to the
+  // measured paginator. Plain prose is not pre-split by the old estimates.
+  const measureEligible = mode === "full" && blocks.length > 0 &&
     !blocks.some(block => block.type === "footnote");
+  const fragments = useMemo(
+    () => prepareLegacyReaderFragments(
+      blocks, settings, tableMeasurements, legacyStyles, measureEligible),
+    [blocks, settings, tableMeasurements, legacyStyles, measureEligible],
+  );
   const measureKey = useMemo(() => ({}), [
     fragments, settings.layoutMode, settings.pageFit, settings.width,
     settings.fontScale, settings.density,
@@ -250,7 +251,7 @@ export default function ReaderClient({
         ".artales-reader__spread:not(.artales-reader__spread--measurement) > .artales-reader__paper--paged",
       );
       const geometry = visible && syncLegacyMeasuringPaper(stage,visible)
-        ? measureLegacyReaderDom(stage,fragments.length) : null;
+        ? measureLegacyReaderDom(stage,fragments.length,fragments) : null;
       setDomMeasurements(previous => {
         if (previous?.key === measureKey &&
           JSON.stringify(previous.geometry) === JSON.stringify(geometry)) return previous;
@@ -596,6 +597,22 @@ export default function ReaderClient({
     return () => window.removeEventListener("keydown", onKeyDown);
   }, [goToNextPage, goToPreviousPage, isSpreadMode]);
 
+  // Shared native Fullscreen API used by the semantic Reader. Fullscreen does
+  // not change the reader's saved spread/single-page preference.
+  useEffect(() => {
+    const onChange = () => setNativeFullscreen(
+      document.fullscreenElement === readerRootRef.current);
+    document.addEventListener("fullscreenchange",onChange);
+    return () => document.removeEventListener("fullscreenchange",onChange);
+  }, []);
+  const toggleFullscreen = () => {
+    if (document.fullscreenElement) {
+      void document.exitFullscreen().catch(() => {});
+      return;
+    }
+    void readerRootRef.current?.requestFullscreen?.().catch(() => {});
+  };
+
   const readerStyle = useMemo(
     () =>
       ({
@@ -810,6 +827,8 @@ export default function ReaderClient({
           updateSettings({ density })
         }
         onLayoutModeChange={handleLayoutModeChange}
+        fullscreenActive={nativeFullscreen}
+        onToggleFullscreen={toggleFullscreen}
         onToggleControls={handleToggleControls}
         onAddNote={handleAddNote}
         onGoToNote={handleGoToNote}
