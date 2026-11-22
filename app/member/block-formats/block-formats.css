@@ -1,0 +1,8 @@
+.legacy-formats-page{max-width:1360px}
+.legacy-formats-page__summary{display:flex;align-items:center;flex-wrap:wrap;gap:8px 20px;
+ padding:13px 17px;margin:0 0 21px;border:1px solid var(--ed-border);border-radius:12px;
+ background:var(--ed-paper);color:var(--ed-muted);font-size:12px;line-height:1.5}
+.legacy-formats-page__summary strong{color:var(--ed-ink);font-size:14px}
+.legacy-formats-page__summary span+span::before{content:"";display:inline-block;width:5px;height:5px;
+ background:var(--ed-gold);border-radius:50%;margin:0 10px 2px 0}
+@media(max-width:700px){.legacy-formats-page__summary span+span::before{display:none}}
