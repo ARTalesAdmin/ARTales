@@ -17,7 +17,7 @@ export default async function LegacyBlockFormatsPage(){
       Formáty obsahových bloků
     </h1>
     <p style={{maxWidth:780,lineHeight:1.65}}>
-      Společný výchozí vzhled všech 17 typů pro starý Reader.
+      Společný výchozí vzhled všech dostupných typů pro starý Reader.
       Změny se projeví ve veřejném i redakčním náhledu starého Readeru;
       publikovaná sémantická čtečka je nedotčená. Lokální výjimky pro dílo
       ani vytváření vlastních typů zatím nejsou součástí tohoto nástroje.
