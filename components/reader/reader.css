@@ -2435,7 +2435,9 @@
    The visible paragraph keeps its editorial block alignment unchanged.
    Left/start alignment preserves the same wrap opportunities and widths. */
 .artales-reader__measurement-stage .artales-work-content
-  [data-legacy-block-style="paragraph"] > .artales-paragraph p {
+  [data-legacy-block-style]
+  :is(.artales-paragraph, .artales-quote, .artales-newspaper,
+    .artales-preface, .artales-afterword, .artales-acknowledgement) > p {
   text-align:start!important;
 }
 /* Only exceptional unbreakable ink receives a readable escape hatch. */
