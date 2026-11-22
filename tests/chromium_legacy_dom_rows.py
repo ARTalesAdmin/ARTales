@@ -156,7 +156,12 @@ with sync_playwright() as pw:
       // Place the target punctuation well below the first physical rows.
       const fitting=rows[hit];
       if(fitting.bottomPx<80)continue;
-      const controlled={...geo,contentHeightPx:fitting.bottomPx+8};
+      // Page height includes the block's non-text chrome (margins), just as
+      // paginateMeasuredLegacyFragments does. The previous fixture counted
+      // only the glyph rows, incorrectly excluding its own target line.
+      const chrome=Math.max(0,geo.blockHeightsPx[0]-
+        geo.paragraphRows[0].textHeightPx);
+      const controlled={...geo,contentHeightPx:fitting.bottomPx+chrome+8};
       const pages=e.paginateReaderBlocks([block],e.defaultReaderSettings,{},
         e.DEFAULT_LEGACY_BLOCK_STYLES,controlled);
       const first=pages[0]?.blocks?.[0];
