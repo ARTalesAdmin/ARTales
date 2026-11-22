@@ -566,7 +566,11 @@ function paginateMeasuredLegacyFragments(
       if(charEnd<=charStart || charEnd>raw.length){
         // Unreliable DOM offsets: do not risk a lost or duplicated character.
         if(current.length)flush();
-        add({...block,content:raw.slice(charStart)},capacity+1);
+        add({...block,content:raw.slice(charStart),
+          id:block.id+"-dom-invalid-"+charStart,
+          fields:{...block.fields,legacyReaderContinuation:charStart>0}
+        },capacity+1);
+        charStart=raw.length;
         break;
       }
       const piece:WorkBlock=charStart===0 && atEnd?block:{
