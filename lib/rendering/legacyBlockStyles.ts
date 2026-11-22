@@ -32,7 +32,7 @@ const base: LegacyBlockStyle = {
   font_family: "serif", font_weight: 400, font_style: "normal", font_size_em: 1, line_height: 1.62,
   text_align: "left", text_indent_em: 0,
   space_before_em: 0, space_after_em: 1.25,
-  hyphenation: "manual", page_break_before: false, own_page: false,
+  hyphenation: "none", page_break_before: false, own_page: false,
   keep_together: false,
 };
 
@@ -40,7 +40,7 @@ const base: LegacyBlockStyle = {
 const variants: Partial<Record<WorkBlockType, Partial<LegacyBlockStyle>>> = {
   book_part: { font_weight: 500, font_size_em: 2.2, line_height: 1.12, text_align: "center", space_before_em: 3.5, space_after_em: 2, page_break_before: true, keep_together: true },
   chapter: { font_weight: 500, font_size_em: 1.8, line_height: 1.18, text_align: "center", space_before_em: 3, space_after_em: 1.75, page_break_before: true, keep_together: true },
-  paragraph: { text_align: "justify", text_indent_em: 1.2, space_after_em: .95, hyphenation: "auto" },
+  paragraph: { text_align: "justify", text_indent_em: 1.2, space_after_em: .95, hyphenation: "none" },
   headline: { font_weight: 700, font_size_em: 1.35, line_height: 1.28, text_align: "center", space_before_em: 2, space_after_em: .85, keep_together: true },
   quote: { font_style: "italic", font_size_em: 1.03, line_height: 1.62, text_align: "justify", space_before_em: 1.75, space_after_em: 1.75 },
   poem: { font_style: "italic", line_height: 1.72, text_align: "left", space_before_em: 1.75, space_after_em: 1.75, hyphenation: "none" },
@@ -51,8 +51,8 @@ const variants: Partial<Record<WorkBlockType, Partial<LegacyBlockStyle>>> = {
   note: { font_size_em: .94, line_height: 1.62, space_before_em: .8, space_after_em: 1.25 },
   footnote: { font_size_em: .94, line_height: 1.55, space_before_em: .8, space_after_em: 1.25 },
   dedication: { font_style: "italic", text_align: "center", space_before_em: 2.25, space_after_em: 2.25, keep_together: true },
-  preface: { text_align: "center", space_before_em: 2.75, space_after_em: 2, hyphenation: "auto" },
-  afterword: { text_align: "center", space_before_em: 2.75, space_after_em: 2, hyphenation: "auto" },
+  preface: { text_align: "center", space_before_em: 2.75, space_after_em: 2, hyphenation: "none" },
+  afterword: { text_align: "center", space_before_em: 2.75, space_after_em: 2, hyphenation: "none" },
   acknowledgement: { text_align: "center", space_before_em: 2.75, space_after_em: 2 },
   image: { text_align: "center", space_before_em: 2, space_after_em: 2, keep_together: true },
   table: { font_size_em: .96, line_height: 1.5, space_before_em: 2, space_after_em: 2, own_page: true },
@@ -87,7 +87,8 @@ export function parseLegacyBlockStyle(type: WorkBlockType, data: unknown): Legac
       typeof value.page_break_before !== "boolean" ||
       typeof value.own_page !== "boolean" ||
       typeof value.keep_together !== "boolean") return null;
-  return value as LegacyBlockStyle;
+  // Retain the stored field for JSON compatibility, but enforce one Reader policy.
+  return {...value,hyphenation: "none"} as LegacyBlockStyle;
 }
 
 export function legacyBlockStyleVars(style: LegacyBlockStyle): CSSProperties {
@@ -106,7 +107,7 @@ export function legacyBlockStyleVars(style: LegacyBlockStyle): CSSProperties {
     "--artales-block-indent": style.text_indent_em + "em",
     "--artales-block-before": style.space_before_em + "em",
     "--artales-block-after": style.space_after_em + "em",
-    "--artales-block-hyphens": style.hyphenation,
+    "--artales-block-hyphens": "none",
     breakBefore: style.page_break_before || style.own_page ? "page" : undefined,
     breakAfter: style.own_page ? "page" : undefined,
     breakInside: style.keep_together || style.own_page ? "avoid" : "auto",

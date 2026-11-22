@@ -102,3 +102,13 @@ test("canonical default emphasis retains legacy chapter and verse appearance",()
  assert.equal(DEFAULT_LEGACY_BLOCK_STYLES.paragraph.font_weight,400);
  assert.equal(DEFAULT_LEGACY_BLOCK_STYLES.paragraph.font_style,"normal");
 });
+
+test("legacy automatic hyphenation values are normalized without losing styles",()=>{
+ const old=parseLegacyBlockStyle("paragraph",{hyphenation:"auto",font_size_em:1.45});
+ assert.equal(old?.hyphenation,"none");
+ assert.equal(old?.font_size_em,1.45);
+ assert.equal(legacyBlockStyleVars(old!)["--artales-block-hyphens" as keyof ReturnType<typeof legacyBlockStyleVars>],"none");
+ for(const type of WORK_BLOCK_TYPES){
+  assert.equal(DEFAULT_LEGACY_BLOCK_STYLES[type].hyphenation,"none");
+ }
+});

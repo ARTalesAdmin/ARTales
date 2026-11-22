@@ -14,11 +14,13 @@ on:
       - 'components/reader/**'
       - 'lib/rendering/**'
       - 'lib/reader/paginateBlocks.ts'
+      - 'lib/reader/inlineProseSource.ts'
       - 'components/work/WorkContentRenderer.tsx'
       - 'app/member/block-formats/**'
       - 'tests/legacyBlockFormats.test.ts'
       - 'tests/legacyDomPagePacking.test.ts'
       - 'tests/legacyDomRowFragments.test.ts'
+      - 'tests/legacyInlineProse.test.ts'
       - 'tests/legacyLastRow.test.ts'
       - 'lib/reader/legacyLastRow.ts'
       - 'lib/reader/domPageGeometry.ts'
@@ -60,11 +62,13 @@ on:
       - 'components/member/**'
       - 'lib/rendering/**'
       - 'lib/reader/paginateBlocks.ts'
+      - 'lib/reader/inlineProseSource.ts'
       - 'components/work/WorkContentRenderer.tsx'
       - 'app/member/block-formats/**'
       - 'tests/legacyBlockFormats.test.ts'
       - 'tests/legacyDomPagePacking.test.ts'
       - 'tests/legacyDomRowFragments.test.ts'
+      - 'tests/legacyInlineProse.test.ts'
       - 'tests/legacyLastRow.test.ts'
       - 'lib/reader/legacyLastRow.ts'
       - 'lib/reader/domPageGeometry.ts'
@@ -133,10 +137,12 @@ jobs:
         run: npx tsx --test tests/legacyDomPagePacking.test.ts
       - name: Legacy physical-row fragmentation and complete-source coverage
         run: npx tsx --test tests/legacyDomRowFragments.test.ts
+      - name: Inline prose source mapping and lossless emphasis boundaries
+        run: npx tsx --test tests/legacyInlineProse.test.ts
       - name: Legacy last-row shared canonical contract
         run: npx tsx --test tests/legacyLastRow.test.ts
       - name: Legacy style editor lint
-        run: npx eslint lib/rendering/legacyBlockStyles.ts lib/rendering/legacyBlockStyles.server.ts components/editor/LegacyBlockFormatManager.tsx app/member/block-formats/actions.ts app/member/block-formats/page.tsx lib/reader/paginateBlocks.ts components/work/WorkContentRenderer.tsx
+        run: npx eslint lib/rendering/legacyBlockStyles.ts lib/rendering/legacyBlockStyles.server.ts components/editor/LegacyBlockFormatManager.tsx app/member/block-formats/actions.ts app/member/block-formats/page.tsx lib/reader/paginateBlocks.ts lib/reader/inlineProseSource.ts components/work/WorkContentRenderer.tsx
       - name: Existing semantic regression
         run: npx tsx --test tests/semanticReaderV2.test.ts
       - name: Published Reader pagination coverage and page-boundary regression

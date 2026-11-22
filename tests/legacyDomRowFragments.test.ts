@@ -2,7 +2,8 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import {DEFAULT_LEGACY_BLOCK_STYLES} from "../lib/rendering/legacyBlockStyles";
 import {defaultReaderSettings} from "../lib/reader/readerSettings";
-import {paginateReaderBlocks,prepareLegacyReaderFragments} from "../lib/reader/paginateBlocks";
+import {paginateReaderBlocks,paginateReaderBlocksWithDiagnostics,prepareLegacyReaderFragments} from "../lib/reader/paginateBlocks";
+import {parseLegacyInlineProse} from "../lib/reader/inlineProseSource";
 
 const make=(content:string)=>({id:"prose",type:"paragraph" as const,content,editor_note:null});
 const data=(content:string,cut:number)=>({
@@ -38,11 +39,54 @@ test("one paragraph splits at physical DOM source-word offsets with full coverag
  assert.equal(fragments[0].content.length,118);
  assert.equal(fragments[1].content.length,content.length-118);
 });
-test("unsupported inline rich prose remains on original legacy split path",()=>{
- const original=make("A <em>highlighted</em> passage continues in the old book.");
- const prepared=prepareLegacyReaderFragments([original],defaultReaderSettings,{},DEFAULT_LEGACY_BLOCK_STYLES,true);
- assert.equal(prepared[0].content,original.content);
- assert.notEqual(prepared[0].id,original.id);
+test("supported inline emphasis reaches DOM measuring without legacy pre-splitting",()=>{
+ const original=make(("Opening <em>important " + "words ".repeat(200) + "</em> " +
+   "a closing sentence.").trim());
+ const prepared=prepareLegacyReaderFragments(
+   [original],defaultReaderSettings,{},DEFAULT_LEGACY_BLOCK_STYLES,true);
+ assert.equal(prepared.length,1);
+ assert.deepEqual(prepared[0],original);
+});
+test("DOM rows split inside emphasis with exact source and valid rendering affixes",()=>{
+ const raw="Hello <em>bright warm favorite language</em> there.";
+ const parsed=parseLegacyInlineProse(raw);
+ assert.ok(parsed);
+ const text=parsed!.visibleText;
+ const cuts=["Hello","bright","warm","language"].map(word=>{
+   const start=text.indexOf(word);
+   return parsed!.sourceOffsetAtTextOffset(start+word.length)!;
+ });
+ const geometry={
+   contentHeightPx:120,contentWidthPx:450,
+   blockHeightsPx:[180],blockRows:[4],
+   paragraphRows:[{textHeightPx:160,rows:cuts.map((sourceEnd,index)=>({
+     sourceEnd,bottomPx:40*(index+1),
+   }))}],
+ };
+ const pages=paginateReaderBlocks([make(raw)],defaultReaderSettings,{},
+   DEFAULT_LEGACY_BLOCK_STYLES,geometry);
+ const pieces=pages.flatMap(page=>page.blocks);
+ assert.equal(pieces.map(piece=>piece.content).join(""),raw);
+ assert.ok(pieces.length>1);
+ assert.equal(pieces[0].fields?.legacyReaderInlineSuffix,"</em>");
+ assert.equal(pieces[1].fields?.legacyReaderInlinePrefix,"<em>");
+});
+test("missing row offsets in one paragraph do not switch the whole book to estimates",()=>{
+ const first=make("Word ".repeat(120).trim());
+ const second={...make("Second measured paragraph."),id:"second"};
+ const geo={contentHeightPx:130,contentWidthPx:450,
+   blockHeightsPx:[210,45],blockRows:[4,1],
+   paragraphRows:[null,{textHeightPx:45,
+     rows:[{sourceEnd:second.content.length,bottomPx:45}]}],
+ };
+ const result=paginateReaderBlocksWithDiagnostics(
+   [first,second],defaultReaderSettings,{},DEFAULT_LEGACY_BLOCK_STYLES,geo);
+ assert.equal(result.diagnostics.mode,"dom");
+ assert.equal(result.diagnostics.localFallbackBlocks,1);
+ assert.equal(result.pages[0].overflow,"scroll_unit");
+ assert.equal(result.pages.at(-1)?.blocks[0].id,"second");
+ assert.equal(result.pages.flatMap(page=>page.blocks)
+   .map(block=>block.content).join(""),first.content+second.content);
 });
 test("invalid row offsets cannot discard text",()=>{
  const content="abc ".repeat(120);

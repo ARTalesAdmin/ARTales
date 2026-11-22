@@ -330,7 +330,15 @@ function renderBlock({
           className="artales-block artales-paragraph"
           data-block-type={block.type}
         >
-          {renderMultiParagraphText(text)}
+          {renderMultiParagraphText(
+            (block.fields?.legacyReaderInlinePrefix === "<em>" ||
+             block.fields?.legacyReaderInlinePrefix === "<i>"
+              ? block.fields.legacyReaderInlinePrefix : "") +
+            text +
+            (block.fields?.legacyReaderInlineSuffix === "</em>" ||
+             block.fields?.legacyReaderInlineSuffix === "</i>"
+              ? block.fields.legacyReaderInlineSuffix : "")
+          )}
         </section>
       );
 
