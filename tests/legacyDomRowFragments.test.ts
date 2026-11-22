@@ -462,3 +462,48 @@ test("a hanging tail never authorizes a half-empty measured sentence break",()=>
  assert.equal(first.content,raw.slice(0,rowEnd));
  assert.equal(pages.flatMap(x=>x.blocks).map(x=>x.content).join(""),raw);
 });
+
+
+test("only a continuing source block advertises eligibility for page-end justification",()=>{
+ const raw="A sentence of careful literary commentary continues across the page and develops its argument without rewriting a word.";
+ const cut1=raw.indexOf("continues")+"continues".length;
+ const cut2=raw.indexOf("without")+"without".length;
+ const geo={contentHeightPx:93,contentWidthPx:470,blockHeightsPx:[158],blockRows:[3],
+  paragraphRows:[{textHeightPx:142,rows:[
+   {sourceEnd:cut1,bottomPx:41,displayEnd:cut1,fill:.92,words:8},
+   {sourceEnd:cut2,bottomPx:85,displayEnd:cut2,fill:.93,words:7},
+   {sourceEnd:raw.length,bottomPx:142,displayEnd:raw.length,fill:.52,words:3},
+  ]}],
+ };
+ const pieces=paginateReaderBlocks([make(raw)],defaultReaderSettings,{},
+  DEFAULT_LEGACY_BLOCK_STYLES,geo).flatMap(page=>page.blocks);
+ assert.ok(pieces.length>=2);
+ assert.equal(pieces.map(piece=>piece.content).join(""),raw);
+ for(const piece of pieces.slice(0,-1))
+  assert.equal(piece.fields?.legacyReaderPageSplitAfter,true);
+ assert.notEqual(pieces.at(-1)?.fields?.legacyReaderPageSplitAfter,true);
+});
+
+test("complete two-word editorial blocks remain separate even next to a long paged block",()=>{
+ const short={...make("A farewell."),id:"short-editorial-block"};
+ const long={...make("The next block is distinct and continues with its own text and structure. ".repeat(10)),
+  id:"following-editorial-block"};
+ const geo={contentHeightPx:98,contentWidthPx:450,
+  blockHeightsPx:[34,169],blockRows:[1,3],
+  paragraphRows:[
+   {textHeightPx:29,rows:[{sourceEnd:short.content.length,bottomPx:29}]},
+   {textHeightPx:150,rows:[
+    {sourceEnd:Math.floor(long.content.length*.3),bottomPx:42},
+    {sourceEnd:Math.floor(long.content.length*.6),bottomPx:87},
+    {sourceEnd:long.content.length,bottomPx:150},
+   ]},
+  ]};
+ const pages=paginateReaderBlocks([short,long],defaultReaderSettings,{},
+  DEFAULT_LEGACY_BLOCK_STYLES,geo);
+ const pieces=pages.flatMap(page=>page.blocks);
+ assert.equal(pieces[0].content,"A farewell.");
+ assert.equal(pieces[0].id,short.id);
+ assert.notEqual(pieces[0].fields?.legacyReaderPageSplitAfter,true);
+ assert.equal(pieces.slice(1).map(x=>x.content).join(""),long.content);
+ assert.ok(pieces.slice(1).every(x=>x.id!==short.id));
+});

@@ -1,6 +1,6 @@
 import {test} from "node:test";
 import {strict as assert} from "node:assert";
-import {assessSemanticPageBreak,chooseSemanticFittingRowCut,semanticPageEndFillThreshold,paginateSemanticUnits,verifySemanticPageCoverage} from "../lib/semantic/readerProjection";
+import {assessSemanticPageBreak,chooseSemanticFittingRowCut,semanticPageEndFillThreshold,shouldJustifySemanticPageEnd,paginateSemanticUnits,verifySemanticPageCoverage} from "../lib/semantic/readerProjection";
 import {getProtectedTextSpans} from "../lib/semantic/protectedSpans";
 import type {SemanticPageUnit} from "../lib/semantic/model";
 
@@ -69,7 +69,7 @@ test("one shared measured rule prefers a 76%-filled sentence over hanging 'But t
 test("do not make a 72%-80% punctuation cut unless the alternative hangs",()=>{
  const long="The people carefully considered the long explanation. But there was more to discuss much later.";
  const mark=long.indexOf(".")+1;
- const rowEnd=long.indexOf("But there")+"But there".length;
+ const rowEnd=long.indexOf("discuss")+"discuss".length;
  const legal=new Set([...long.matchAll(/\s+/g)].map(m=>m.index!+m[0].length));
  const row={sourceEnd:rowEnd,end:rowEnd,top:0,bottom:28,fill:.96,words:11,
   punctuationCuts:[{sourceEnd:mark,fill:.76}]};
@@ -97,4 +97,44 @@ test("protected spans and earlier rows cannot become an exception to the 80% rul
   punctuationCuts:[{sourceEnd:period,fill:.76}],
  },raw,0,raw.length,allowed,spans);
  assert.equal(chosen.reason,"latest_row","abbreviation inside protected name is not a sentence end");
+});
+
+
+test("generic 1-3-word opening after a full stop yields to a measured page break",()=>{
+ const openings=["It is","She would","These findings may","Another observation"];
+ for(const opening of openings){
+  const raw="After a careful review the committee reached a conclusion. "+
+   opening+" continue the explanation with more detail later.";
+  const mark=raw.indexOf(".")+1;
+  const rowEnd=raw.indexOf(opening)+opening.length;
+  const legal=new Set([...raw.matchAll(/\s+/g)].map(m=>m.index!+m[0].length));
+  const cut=chooseSemanticFittingRowCut({
+   sourceEnd:rowEnd,end:rowEnd,top:0,bottom:32,fill:.96,words:11,
+   punctuationCuts:[{sourceEnd:mark,fill:.76}],
+  },raw,0,raw.length,legal,getProtectedTextSpans(raw));
+  assert.equal(cut.reason,"punctuation_80",opening);
+  assert.equal(cut.end,raw.indexOf(opening),opening);
+ }
+});
+test("generic short-opening rule never overrides a full natural line if too early or not an opening",()=>{
+ const full="After a careful review the committee reached a conclusion. The subjects have had plenty of time to prepare the answer.";
+ const mark=full.indexOf(".")+1;
+ const until=full.length;
+ const rowEnd=full.indexOf("prepare")+"prepare".length;
+ const legal=new Set([...full.matchAll(/\s+/g)].map(m=>m.index!+m[0].length));
+ const candidate=(fill:number)=>chooseSemanticFittingRowCut({
+  sourceEnd:rowEnd,end:rowEnd,top:0,bottom:31,fill:.97,words:12,
+  punctuationCuts:[{sourceEnd:mark,fill}],
+ },full,0,until,legal,getProtectedTextSpans(full));
+ assert.equal(candidate(.76).reason,"latest_row");
+ assert.equal(candidate(.71).reason,"latest_row");
+});
+test("shared last-row cap helps full continuations but never forces completed or sparse prose",()=>{
+ // 15% remaining width / 8 gaps = 8.625px. Old 7px cap refused
+ // such a visually full, 9-word line despite a safe bounded adjustment.
+ assert.equal(shouldJustifySemanticPageEnd(.85,9,460,true),true);
+ assert.equal(shouldJustifySemanticPageEnd(.85,9,460,false),false);
+ assert.equal(shouldJustifySemanticPageEnd(.65,9,460,true),false);
+ assert.equal(shouldJustifySemanticPageEnd(.9,2,460,true),false);
+ assert.equal(shouldJustifySemanticPageEnd(.8,4,460,true),false);
 });

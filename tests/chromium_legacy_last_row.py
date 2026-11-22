@@ -16,22 +16,31 @@ html="""<main class="artales-reader artales-reader--theme-light artales-reader--
 <div class="artales-reader__spread">
 <article class="artales-reader__paper artales-reader__paper--paged" id="visible-paper">
  <div class="artales-reader__page-content"><article class="artales-work-content">
-  <div data-legacy-block-style="paragraph" id="prose-wrap"
+  <div data-legacy-block-style="paragraph" data-legacy-page-split-after="true" id="prose-wrap"
    style="--artales-block-font:Georgia,serif;--artales-block-weight:400;--artales-block-style:normal;
    --artales-block-size:19px;--artales-block-leading:1.62;--artales-block-align:justify;
    --artales-block-indent:0em;--artales-block-before:0em;--artales-block-after:1em;
    --artales-block-hyphens:none">
    <section class="artales-block artales-paragraph">
-    <p id="normal"></p><p id="short">The night grew cold.</p>
+    <p id="normal"></p>
    </section>
   </div>
-  <div data-legacy-block-style="quote" style="--artales-block-font:Georgia,serif;
+  <div data-legacy-block-style="paragraph"
+   style="--artales-block-font:Georgia,serif;--artales-block-weight:400;--artales-block-style:normal;
+   --artales-block-size:19px;--artales-block-leading:1.62;--artales-block-align:justify;
+   --artales-block-indent:0em;--artales-block-before:0em;--artales-block-after:1em;
+   --artales-block-hyphens:none">
+   <section class="artales-block artales-paragraph">
+    <p id="short">The night grew cold.</p>
+   </section>
+  </div>
+  <div data-legacy-block-style="quote" data-legacy-page-split-after="true" style="--artales-block-font:Georgia,serif;
    --artales-block-weight:400;--artales-block-style:italic;--artales-block-size:19px;
    --artales-block-leading:1.62;--artales-block-align:justify;--artales-block-indent:0em;
    --artales-block-before:0em;--artales-block-after:1em;--artales-block-hyphens:none">
    <blockquote class="artales-block artales-quote"><p id="italic-quote"></p></blockquote>
   </div>
-  <div data-legacy-block-style="preface" style="--artales-block-font:Georgia,serif;
+  <div data-legacy-block-style="preface" data-legacy-page-split-after="true" style="--artales-block-font:Georgia,serif;
    --artales-block-weight:400;--artales-block-style:italic;--artales-block-size:19px;
    --artales-block-leading:1.62;--artales-block-align:justify;--artales-block-indent:0em;
    --artales-block-before:0em;--artales-block-after:1em;--artales-block-hyphens:none">
@@ -107,8 +116,11 @@ with sync_playwright() as browser_api:
  const introChanged=intro.classList.contains("semantic-reader__prose--justify-last");
  const shortChanged=short.classList.contains("semantic-reader__prose--justify-last");
  const editorialChanged=verse.classList.contains("semantic-reader__prose--justify-last");
+ const shortDecision=short.dataset.visiblePageEndDecision;
+ const shortFill=short.dataset.visiblePageEndFill;
  return {
   changed:normalChanged,italicChanged,introChanged,shortChanged,editorialChanged,
+  shortDecision,shortFill,
   pass,
   align:getComputedStyle(normal).textAlignLast,
   quoteAlign:getComputedStyle(italic).textAlignLast,
@@ -138,6 +150,7 @@ with sync_playwright() as browser_api:
  assert result["changed"] and result["italicChanged"] and result["introChanged"],result
  assert result["hasClass"],result
  assert not result["shortChanged"] and not result["editorialChanged"],result
+ assert result["shortDecision"]=="block-complete",result
  assert result["align"]=="justify" and result["quoteAlign"]=="justify",result
  assert result["prefaceAlign"]=="justify" and result["prefacePolicy"]=="justify",result
  assert result["shortAlign"]!="justify",result
