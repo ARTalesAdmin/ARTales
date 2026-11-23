@@ -1,4 +1,5 @@
 import type {AiQaSuggestion} from "./aiQaProposalEngine";
+import {isExplicitWholeBlockExclusion,requestsTextRemoval} from "./qaExclusionPolicy";
 
 /** Choices are local editorial decisions. No AI output is trusted as authority. */
 export type QaProposalDecision={flagId:string;choice:"approve"|"reject"};
@@ -6,10 +7,12 @@ export function isSafeWorkTypographyTerm(term:string):boolean{
  return term.length>=2&&term.length<=80&&/^[\p{L}][\p{L} '\u2019-]{1,79}$/u.test(term);
 }
 
-export type QaProposalFlag={id:string;kind:string;status:string};
+export type QaProposalFlag={id:string;kind:string;status:string;comment?:string};
 export type QaProposalPlan={
  layout:{flagId:string;action:"compact"|"airy"|"center"}[];
  protectedTerms:{flagId:string;term:string}[];
+ /** Editor-authorized exact source atoms only; canonical commit handles safety. */
+ exclusions:{flagId:string}[];
  confirmedNoChange:string[];
  rejected:string[];
 };
@@ -26,7 +29,8 @@ export function planQaProposalReview(
   throw new Error("Návrhy nebo redakční rozhodnutí nejsou úplné.");
  const byFlag=new Map(flags.map(f=>[f.id,f]));
  const byChoice=new Map(choices.map(c=>[c.flagId,c.choice]));
- const result:QaProposalPlan={layout:[],protectedTerms:[],confirmedNoChange:[],rejected:[]};
+ const result:QaProposalPlan={layout:[],protectedTerms:[],exclusions:[],
+  confirmedNoChange:[],rejected:[]};
  for(const suggestion of suggestions){
   const flag=byFlag.get(suggestion.flagId);
   const decision=byChoice.get(suggestion.flagId);
@@ -34,6 +38,25 @@ export function planQaProposalReview(
     !["approve","reject"].includes(decision??""))
    throw new Error("Nález není ve správné revizi nebo chybí rozhodnutí.");
   if(decision==="reject"){result.rejected.push(flag.id);continue;}
+  const requestedExclusion=isExplicitWholeBlockExclusion(flag.comment??"");
+  if(!requestedExclusion&&requestsTextRemoval(flag.comment??""))
+   throw new Error("Nález požaduje úpravu části textu, kterou tato AI dávka neumí provést. "+
+    "Ponech nález otevřený, neoznačuj jej za opravený.");
+  if(requestedExclusion){
+   // Never treat "Smazat" as "reviewed, no change", even when AI
+   // returned a normal manual_review label. The extra intent must be in
+   // the persisted job's structured suggestion before an exclusion is valid.
+   if(flag.status!=="open"||
+      suggestion.action!=="manual_review"||
+      suggestion.editorialIntent!=="exclude_from_edition"||
+      !["text","typography","structure","other"].includes(flag.kind))
+    throw new Error("Nález požadující vyřazení nelze uzavřít beze změny. "+
+     "Znovu odešli nález AI nebo jej vyřaď ručně.");
+   result.exclusions.push({flagId:flag.id});
+   continue;
+  }
+  if(suggestion.editorialIntent==="exclude_from_edition")
+   throw new Error("Vyřazení není podloženo výslovným pokynem editora.");
   if(["compact","airy","center"].includes(suggestion.action)){
    if(flag.status!=="open"||!["typography","structure"].includes(flag.kind))
     throw new Error("Schvalovaná sazební oprava nemá otevřený příslušný nález.");

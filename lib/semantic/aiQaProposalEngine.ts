@@ -3,6 +3,7 @@ import type {ArtalesAiUsage} from "@/lib/semantic/aiGatewayUsage";
 import type {SupabaseClient} from "@supabase/supabase-js";
 import {verifySemanticRevision,walkSemanticAtoms} from "@/lib/semantic/compose";
 import type {SemanticRevision} from "@/lib/semantic/model";
+import {getExcludableAtomIds,isExplicitWholeBlockExclusion,requestsTextRemoval} from "@/lib/semantic/qaExclusionPolicy";
 
 /** Suggestions ONLY. No semantic revision, source text or QA status is changed here. */
 export type AiQaSuggestion={
@@ -11,6 +12,9 @@ export type AiQaSuggestion={
  term:string;
  rationale:string;
  targetAtomIds:string[];
+ /** A review-required sub-intent; serialized under the DB's existing
+  * manual_review action, not a new SQL enum or a new mutation path. */
+ editorialIntent?:"none"|"exclude_from_edition";
 };
 export type AiQaSuggestResult={ok:boolean;message:string;suggestions:AiQaSuggestion[];generalRequest?:boolean;usage?:ArtalesAiUsage|null};
 const sha=/^[a-f0-9]{64}$/;
@@ -47,6 +51,7 @@ export async function generateSemanticAiQaSuggestions(input:{
   atoms=walkSemanticAtoms(revision.blocks);
  }catch{return fail("Integrita výchozí revize nebyla potvrzena.");}
  const byAtom=new Map(atoms.map((a,i)=>[a.id,{atom:a,index:i}]));
+ const excludable=getExcludableAtomIds(record.revision as SemanticRevision);
  const generalFlags=flags.filter(f=>f.kind==="other"&&f.comment.startsWith("Obecné zadání "));
  const isGeneral=generalFlags.length>0;
  // Bounded whole-work survey for general requests. The model sees at most
@@ -67,22 +72,23 @@ export async function generateSemanticAiQaSuggestions(input:{
  const schema={
   type:"object",additionalProperties:false,required:["suggestions"],properties:{
    suggestions:{type:"array",items:{type:"object",additionalProperties:false,
-    required:["flagId","action","term","rationale","targetAtomIds"],properties:{
+    required:["flagId","action","term","rationale","targetAtomIds","editorialIntent"],properties:{
      flagId:{type:"string"},action:{type:"string",enum:[...actions]},
      term:{type:"string"},rationale:{type:"string"},
-     targetAtomIds:{type:"array",items:{type:"string"}}
+     targetAtomIds:{type:"array",items:{type:"string"}},
+     editorialIntent:{type:"string",enum:["none","exclude_from_edition"]}
     }}}
   }
  };
  try{
   const {body,usage}=await requestArtalesAiResponse({
    candidateId:input.candidateId,editorId:input.editorId,oidcToken:input.oidcToken,
-   instructions:"Jsi konzervativní redakční navrhovatel ARTales. Nevytvářej ani neměň literární text. Pracuj pouze s dodanými nálezy přesné revize. Pro každý flagId vrať právě jeden návrh. compact/airy/center jen pro typografické nebo strukturální nálezy; nikdy nezahazuj text. protect_term pro jména, názvy a jiné výrazy, které nemají být rozděleny. manual_review pro nejisté či obsahové nálezy. Pro běžný nález vrať targetAtomIds jako prázdné pole. Pro obecné zadání vyber nejvýše 24 konkrétních atomId výhradně z generalCandidates, kam problém podle ukázek skutečně patří. Neznámé atomId jsou zakázány. Obecné zadání je pouze návrh pro redakční kontrolu: action=manual_review, pokud nejde o jeden bezpečně doložený nedělitelný výraz v textu (protect_term). V žádném případě neslibuj pokrytí celého díla při omezeném vzorku. Zdůvodnění stručně česky. Neznámé flagId a změny originálního textu jsou zakázány.",
-   payload:{schema:"artales/editorial-ai-suggestions/v1",
+   instructions:"Jsi konzervativní redakční navrhovatel ARTales. Nevytvářej ani neměň literární text. Pracuj pouze s dodanými nálezy přesné revize. Pro každý flagId vrať právě jeden návrh. compact/airy/center jen pro typografické nebo strukturální nálezy; nikdy nezahazuj text. protect_term pro jména, názvy a jiné výrazy, které nemají být rozděleny. manual_review pro nejisté či obsahové nálezy. Pro běžný nález vrať targetAtomIds jako prázdné pole. Pokud editor jednoznačně požaduje vyřazení celého označeného bloku z publikované edice (např. Smazat), použij action=manual_review a editorialIntent=exclude_from_edition. To není pouhé potvrzení bez změny: po přesném náhledu a schválení editorem se použije zabezpečené vyřazení existujícího bloku. Archivní originál zůstane. U jiných návrhů editorialIntent=none. Nelze takto odstranit část věty, nadpis kapitoly, poezii ani změnit text. Nejasné požadavky nech jako manual_review/none.  Pro obecné zadání vyber nejvýše 24 konkrétních atomId výhradně z generalCandidates, kam problém podle ukázek skutečně patří. Neznámé atomId jsou zakázány. Obecné zadání je pouze návrh pro redakční kontrolu: action=manual_review, pokud nejde o jeden bezpečně doložený nedělitelný výraz v textu (protect_term). V žádném případě neslibuj pokrytí celého díla při omezeném vzorku. Zdůvodnění stručně česky. Neznámé flagId a změny originálního textu jsou zakázány.",
+   payload:{schema:"artales/editorial-ai-suggestions/v2",
      revisionSha:input.revisionSha,requests,generalCandidates,generalCoverage,
      totalAtoms:atoms.length},
    schemaName:"artales_qa_suggestions",schema,
-   maxOutputTokens:isGeneral?4800:2200
+   maxOutputTokens:isGeneral?4800:Math.min(6400,Math.max(2200,flags.length*190))
   });
   const output=body.output as Array<{content?:Array<{type:string;text?:string}>}>|undefined;
   const raw=(output??[]).flatMap(o=>o.content??[])
@@ -92,10 +98,40 @@ export async function generateSemanticAiQaSuggestions(input:{
   if(!Array.isArray(parsed.suggestions)||parsed.suggestions.length!==flags.length)
    return fail("AI vrátila neúplný seznam. Návrhy nebyly přijaty.",usage);
   const expected=new Map(flags.map(f=>[f.id,f]));
+  // Deterministic editorial intent wins over model classification. A model
+  // cannot silently turn a request to remove an exact block into cosmetic
+  // formatting or "reviewed, no change". The human still authorizes the
+  // actual exclusion through the existing secured editorial commit.
+  const normalized=parsed.suggestions.map(suggestion=>{
+   const flag=expected.get(suggestion.flagId);
+   if(flag&&isExplicitWholeBlockExclusion(flag.comment)&&
+      excludable.has(flag.target_atom_id)){
+    return {...suggestion,action:"manual_review" as const,
+     editorialIntent:"exclude_from_edition" as const,term:"",
+     targetAtomIds:[],
+     rationale:"Editor výslovně požádal o vyřazení označeného textového bloku z čtenářské edice. "+
+      "Zkontroluj přesný blok a schval vyřazení; archivní originál se nemění."};
+   }
+   // Unsupported removal targets or partial deletion requests must remain
+   // an explicit manual-review proposal, NEVER a cosmetic fix or no-op.
+   if(flag&&requestsTextRemoval(flag.comment)){
+    return {...suggestion,action:"manual_review" as const,
+     editorialIntent:"none" as const,term:"",targetAtomIds:[],
+     rationale:"Požadovanou část textu nebo tento typ bloku nelze bezpečně vyřadit aktuální AI operací. "+
+      "Nález musí zůstat otevřený k ručnímu posouzení."};
+   }
+   return suggestion;
+  });
   const seen=new Set<string>();
-  for(const suggestion of parsed.suggestions){
+  for(const suggestion of normalized){
    const flag=expected.get(suggestion.flagId);
    if(!flag||seen.has(suggestion.flagId)||!actions.has(suggestion.action)||
+      !["none","exclude_from_edition"].includes(suggestion.editorialIntent??"")||
+      (suggestion.editorialIntent==="exclude_from_edition"&&
+        (suggestion.action!=="manual_review"||
+         !flag||!excludable.has(flag.target_atom_id)||
+         !isExplicitWholeBlockExclusion(flag.comment)||
+         suggestion.targetAtomIds.length!==0))||
       typeof suggestion.term!=="string"||typeof suggestion.rationale!=="string"||
       suggestion.rationale.length>500||suggestion.term.length>80||
       !Array.isArray(suggestion.targetAtomIds)||suggestion.targetAtomIds.length>24||
@@ -116,7 +152,7 @@ export async function generateSemanticAiQaSuggestions(input:{
       byAtom.get(flag.target_atom_id)?.atom.raw.includes(suggestion.term.trim()))))
     return fail("AI navrhla ochranu výrazu, který se nenachází v bloku.",usage);
   }
-  return {ok:true,message:"Návrhy AI jsou připraveny ke kontrole; zatím nic nemění.",suggestions:parsed.suggestions,generalRequest:isGeneral,usage};
+  return {ok:true,message:"Návrhy AI jsou připraveny ke kontrole; zatím nic nemění.",suggestions:normalized,generalRequest:isGeneral,usage};
  }catch{
   return fail("AI návrh se nepodařilo bezpečně získat nebo ověřit; žádná data nebyla změněna.");
  }
