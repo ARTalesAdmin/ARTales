@@ -1,0 +1,503 @@
+{
+  "schema": "artales-production-history-checkpoint/v1",
+  "status": "source-only-proposal",
+  "repository": "ARTalesAdmin/ARTales",
+  "projectRef": "nmhdwmszbwgrgfbmlguu",
+  "observedDate": "2026-11-26",
+  "sourceMainSha": "17e437eeb7867ed352a705d52f3d7700f8f3cfe1",
+  "cutoff": "20261122085733",
+  "ledgerDigestAlgorithm": "sha256(UTF8(PostgreSQL to_json(statements)::text))",
+  "ledger": [
+    {
+      "version": "20260926142755",
+      "name": "remote_schema",
+      "statementCount": 557,
+      "ledgerSha256": "ac65ea8e442a4b4019df17aeb899eb73b7feac38ff4a4e575b4ad325c8977e50",
+      "firstMd5": "956b60f8a0946477f2a967f3a98e23e2",
+      "source": {
+        "path": "supabase/migrations/20260926142755_remote_schema.sql",
+        "blobSha": "b0278e7df288204c9bc0768f85e6a08f003631f7",
+        "relation": "baseline_dump_not_byte_equivalent"
+      }
+    },
+    {
+      "version": "20261023063248",
+      "name": "prescreen_shadow_library_v1",
+      "statementCount": 1,
+      "ledgerSha256": "4b82d9844ba074682ff19d3832503849072566b3a9ec6421af092e79288f74d0",
+      "firstMd5": "119028282d844acb3192f88a64cfd3ac",
+      "source": {
+        "path": "supabase/migrations/20261023063248_prescreen_shadow_library_v1.sql",
+        "blobSha": "96d438cfe86fd44d3c9ef8f4ce27f2feeea66f8b",
+        "relation": "byte_exact_single_statement"
+      }
+    },
+    {
+      "version": "20261024073928",
+      "name": "candidate_intake_ab",
+      "statementCount": 1,
+      "ledgerSha256": "d4b719a5c4afc90af8b8c4052e7908c9e014badcbdf4ce81a1bff8be97030374",
+      "firstMd5": "9c286d05ce350a15a3b939e233424d6c",
+      "source": {
+        "path": "supabase/migrations/20261024073928_candidate_intake_ab.sql",
+        "blobSha": "00309487795af9432f9f6c844895e593b3968e07",
+        "relation": "byte_exact_single_statement"
+      }
+    },
+    {
+      "version": "20261025095658",
+      "name": "legal_screen_v1",
+      "statementCount": 1,
+      "ledgerSha256": "a49e89c8dc30960fc7aaf0d276276020df4e0ee6579a60c40774c6e6dbee4303",
+      "firstMd5": "1ae567c85655900e53d4ec70ae7b4a07",
+      "source": {
+        "path": "supabase/migrations/20261025095658_legal_screen_v1.sql",
+        "blobSha": "cc32c74a796fba56901f97955557da9efa1f3ff5",
+        "relation": "byte_exact_single_statement"
+      }
+    },
+    {
+      "version": "20261027081945",
+      "name": "snapshot389_storage_admin_rls",
+      "statementCount": 1,
+      "ledgerSha256": "274f2785c9401df72d8fe1ec48665518ae59e69e2f732af74cdcf679cb436b8f",
+      "firstMd5": "490d1bfebad3de5a10e6634d953db379",
+      "source": {
+        "path": "supabase/migrations/20261027081945_snapshot389_storage_admin_rls.sql",
+        "blobSha": "843d4c3287c8b2baa20186ddde6276e65af4ccdc",
+        "relation": "byte_exact_single_statement"
+      }
+    },
+    {
+      "version": "20261105105037",
+      "name": "artales_editorial_pool_ownership_v3",
+      "statementCount": 1,
+      "ledgerSha256": "0c08865ef10736a92f3abbd34d69547a366b6f31149685b69aa2264f5b11c303",
+      "firstMd5": "e42145df9f1245ef5f8bb38d83d4065e",
+      "source": null
+    },
+    {
+      "version": "20261105111955",
+      "name": "artales_candidate_editorial_metadata_gate_v1",
+      "statementCount": 1,
+      "ledgerSha256": "00e60cb38beadc53734bf40f00bbd1307f2e21fdb36de6f45ad6162f9f7fee47",
+      "firstMd5": "8cf4267366b41791a18d7cd3499b1f83",
+      "source": {
+        "path": "ops/sql/20261105_artales_candidate_editorial_metadata_gate.sql",
+        "blobSha": "6489ca7252ae2e9390b5a2d11e2304b6d47d2585",
+        "relation": "byte_exact_single_statement"
+      }
+    },
+    {
+      "version": "20261105121231",
+      "name": "artales_candidate_bilingual_descriptions_v1",
+      "statementCount": 1,
+      "ledgerSha256": "feeaa89eae81f6147d91163e81d9ab20c9f5f76984948e168e35250cca024558",
+      "firstMd5": "100acd82899411d09693274615d34b0e",
+      "source": {
+        "path": "ops/sql/20261105_artales_candidate_bilingual_descriptions.sql",
+        "blobSha": "b12a895df434bee4981b90463c2f8f148041f01d",
+        "relation": "byte_exact_single_statement"
+      }
+    },
+    {
+      "version": "20261105122336",
+      "name": "artales_author_collection_bilingual_evidence_v1",
+      "statementCount": 1,
+      "ledgerSha256": "5fcdd795bee946589dc4602bf3ae2d8da653657faeb7a34f75834a65ce2cc1bf",
+      "firstMd5": "edf2ad953e83fa01f194d16de315dd32",
+      "source": {
+        "path": "ops/sql/20261105_artales_author_collection_bilingual_evidence.sql",
+        "blobSha": "9dbc1ef0ccdd0af1493756f2e9657ae55c21cc37",
+        "relation": "byte_exact_single_statement"
+      }
+    },
+    {
+      "version": "20261106145932",
+      "name": "artales_ai_qa_durable_jobs_p0",
+      "statementCount": 1,
+      "ledgerSha256": "fbb843c9fdb9de4ea4bb8bc3cfe008f3b675afb3c0e3d01134f20de3b6416186",
+      "firstMd5": "3a1bad34f54bd6defc771a9b049fa471",
+      "source": {
+        "path": "ops/sql/20261104_artales_ai_qa_durable_jobs.sql",
+        "blobSha": "88b007c12b79c1992b4eb43bcdc349f66b125371",
+        "relation": "byte_exact_single_statement"
+      }
+    },
+    {
+      "version": "20261106145935",
+      "name": "artales_qa_change_decisions_p0",
+      "statementCount": 1,
+      "ledgerSha256": "f60fbeab22d860fcecf5a0c866d36241b9d2de60587cd6cc5619e9a9a47b4141",
+      "firstMd5": "39294ad8c23cc40f4db240c04560fe46",
+      "source": {
+        "path": "ops/sql/20261104_artales_qa_change_decisions_v4.sql",
+        "blobSha": "1074354fd73fde08aad7ef9c961c7464bceba308",
+        "relation": "byte_exact_single_statement"
+      }
+    },
+    {
+      "version": "20261106145937",
+      "name": "artales_qa_closeout_p0",
+      "statementCount": 1,
+      "ledgerSha256": "5136f4e432925da49883b59f656e4f45a2c5b2ccc58a7f865b6b2107713128ab",
+      "firstMd5": "fe01d34698a93a72fdbbcb7d97d1c0fc",
+      "source": {
+        "path": "ops/sql/20261104_artales_qa_closeout_v4.sql",
+        "blobSha": "612e8b81a92a8505be8282c3957163b0108c69b0",
+        "relation": "byte_exact_single_statement"
+      }
+    },
+    {
+      "version": "20261106145940",
+      "name": "artales_safe_layout_commit_p0",
+      "statementCount": 1,
+      "ledgerSha256": "0732bb5f62b494dba30ed74d1309f2c85d207d0c1cb2158d45139408a1067ae0",
+      "firstMd5": "7577b205243298da86d9b757539121ee",
+      "source": {
+        "path": "ops/sql/20261104_artales_safe_layout_commit_v4.sql",
+        "blobSha": "f2b43317d742189b41ee92ddab1e952b5b028ed1",
+        "relation": "byte_exact_single_statement"
+      }
+    },
+    {
+      "version": "20261106145944",
+      "name": "artales_ai_gateway_usage_p0",
+      "statementCount": 1,
+      "ledgerSha256": "37edb4511145fadc273ffb9a0e75b0e5cfdf16409670347f1434d2947df365dc",
+      "firstMd5": "1398a7230ec85b3e61b4216ac7933e1e",
+      "source": {
+        "path": "ops/sql/20261106_artales_ai_gateway_usage.sql",
+        "blobSha": "91ad6ba4f9bb1d6b8741169c625e2546df1bf732",
+        "relation": "byte_exact_single_statement"
+      }
+    },
+    {
+      "version": "20261106201035",
+      "name": "artales_safe_layout_coalesce_hotfix",
+      "statementCount": 1,
+      "ledgerSha256": "1fb132b108b6d1a0af84b7dd6f44e9e0df4b87829eb4ef8bf5a6fe40e85c0059",
+      "firstMd5": "53951ef52e860c1b03b94c1b5c08797d",
+      "source": {
+        "path": "supabase/migrations/20261106201500_artales_safe_layout_coalesce_hotfix.sql",
+        "blobSha": "9179dc8b5b5988bbfbec2300c4bc72949aded765",
+        "relation": "byte_exact_single_statement"
+      }
+    },
+    {
+      "version": "20261107091114",
+      "name": "artales_candidate_release_canonical",
+      "statementCount": 1,
+      "ledgerSha256": "270315109775f25659a15c34ae017aa3e520c5d857b4f787529e52696d856553",
+      "firstMd5": "c81b3c75b2926dc599eb8255e73a915b",
+      "source": {
+        "path": "supabase/migrations/20261107094500_artales_candidate_release_canonical.sql",
+        "blobSha": "f606cf547fba7caf43e2ba3e0481c7a9a2983349",
+        "relation": "byte_exact_single_statement"
+      }
+    },
+    {
+      "version": "20261107094358",
+      "name": "artales_release_verified_snapshot_gate",
+      "statementCount": 1,
+      "ledgerSha256": "fff9cd3aa8275e30717d9670868f6c1f8705f438485d5fbbab5df5bddbf58624",
+      "firstMd5": "07e8d32a00b4b0045763f09541ad49cd",
+      "source": {
+        "path": "supabase/migrations/20261107104000_artales_release_verified_snapshot_gate.sql",
+        "blobSha": "da564e0f72a095de9f6accfc9336555f7158c053",
+        "relation": "byte_exact_single_statement"
+      }
+    },
+    {
+      "version": "20261107112202",
+      "name": "artales_snapshot_claimed_storage_access",
+      "statementCount": 1,
+      "ledgerSha256": "5251e90d1ff9d8910b74a8b9eecdaa159e3c0a0441dd6dde80ef98391ef6cacc",
+      "firstMd5": "88d928e6f063e6de6036937ec8b08164",
+      "source": {
+        "path": "supabase/migrations/20261107114500_artales_snapshot_claimed_storage_access.sql",
+        "blobSha": "9d629b2543929d661e7f66f251eea2ea4f3e6ef1",
+        "relation": "byte_exact_single_statement"
+      }
+    },
+    {
+      "version": "20261108082933",
+      "name": "artales_compose_assignee_rls",
+      "statementCount": 1,
+      "ledgerSha256": "713809ef6d22379193f810159b3a666e60acd2e5ec5a57e748a673f72893ea1d",
+      "firstMd5": "c1518d37baec054946b3c695e3450eaf",
+      "source": {
+        "path": "supabase/migrations/20261108093500_artales_compose_assignee_rls.sql",
+        "blobSha": "e765d1b528d664051269a1d14acce7adf304ff10",
+        "relation": "byte_exact_single_statement"
+      }
+    },
+    {
+      "version": "20261108090846",
+      "name": "artales_candidate_authority_task_routing",
+      "statementCount": 1,
+      "ledgerSha256": "ddbe798df817ae6f73f81d84d53c625da1035e7993f0a8a0239f3d7d3ca86861",
+      "firstMd5": "d314c2e0a8b595e2dd45b5a24ce874b5",
+      "source": {
+        "path": "supabase/migrations/20261108104500_artales_candidate_authority_task_routing.sql",
+        "blobSha": "3328d56993e9da457f0977ad53cc951bc326b601",
+        "relation": "byte_exact_single_statement"
+      }
+    },
+    {
+      "version": "20261110104812",
+      "name": "artales_gutenberg_risk_acceptance",
+      "statementCount": 1,
+      "ledgerSha256": "cb397a3f55b0f512b5f76ab3227492797acc6ca66383c647f8bbfe9f07b17877",
+      "firstMd5": "770b6487a7dfd7764814454ecd0a75de",
+      "source": {
+        "path": "supabase/migrations/20261110113500_artales_gutenberg_risk_acceptance.sql",
+        "blobSha": "859b3590d2b3ee9ff6fdf7842425236e7ab180cc",
+        "relation": "byte_exact_single_statement"
+      }
+    },
+    {
+      "version": "20261110111723",
+      "name": "artales_unique_existing_author_byline",
+      "statementCount": 1,
+      "ledgerSha256": "c5825308bae7cc4b1d07c50a46d9c6b16445c2a023fb9b5f74257479603880d0",
+      "firstMd5": "a581000f1fe2d5c2316a833c0b6ef125",
+      "source": {
+        "path": "supabase/migrations/20261110130000_artales_unique_existing_author_byline.sql",
+        "blobSha": "f2df2638ad5d11b31fc3559e671eef8ab8760550",
+        "relation": "byte_exact_single_statement"
+      }
+    },
+    {
+      "version": "20261111123854",
+      "name": "artales_editorial_exclusion_and_author_guard",
+      "statementCount": 1,
+      "ledgerSha256": "e4b4d402523615db9003df7c0867e17570050b874b6e3b308097bfcf4c5c5fc1",
+      "firstMd5": "6894234fdcad0c6e42dda20c2fb59176",
+      "source": {
+        "path": "supabase/migrations/20261111133000_artales_editorial_exclusion_and_author_guard.sql",
+        "blobSha": "9b7e1b3b25624d2d68eb7da45e96e1eb7c099c23",
+        "relation": "byte_exact_single_statement"
+      }
+    },
+    {
+      "version": "20261114122502",
+      "name": "artales_release_author_evidence_contract_20261114",
+      "statementCount": 1,
+      "ledgerSha256": "1933bc55738278f049dbf7d74d78e0e754fa64c0345a4a2f80d3c78c5d62f63a",
+      "firstMd5": "d9c3d02df1bd17d247908224bfa50cb5",
+      "source": null
+    },
+    {
+      "version": "20261114173942",
+      "name": "artales_qa_publication_finalization_20261114",
+      "statementCount": 1,
+      "ledgerSha256": "8d45d92224442846a4a3f501e519ee1cc16d3903e712985bf8a247145613e83f",
+      "firstMd5": "3107c98c48018ef1ab54c6f5a84ad696",
+      "source": {
+        "path": "supabase/migrations/20261114190000_artales_qa_publication_finalization.sql",
+        "blobSha": "84ef24bf94daf572a9715f5dfb37741ce0da3950",
+        "relation": "byte_exact_single_statement"
+      }
+    },
+    {
+      "version": "20261115073440",
+      "name": "artales_semantic_publication_date_and_author_name_20261115",
+      "statementCount": 1,
+      "ledgerSha256": "b8c4d3359a8be8c8ea6f61fc33e38a4ba9c7e21c8a6858e5482bf9bb5b3f739c",
+      "firstMd5": "f06387b460be690e3bc5e261dcb25d4c",
+      "source": {
+        "path": "supabase/migrations/20261115084500_artales_semantic_publication_date_and_author_name.sql",
+        "blobSha": "f78d9a0a871e3e08689df945194dd87db608b14a",
+        "relation": "byte_exact_single_statement"
+      }
+    },
+    {
+      "version": "20261115090957",
+      "name": "artales_public_published_typography_rules_20261115",
+      "statementCount": 1,
+      "ledgerSha256": "c225f307d72828c0bee584cf5da8c81f39c408165c38eb0d5443964bcf4d3f3e",
+      "firstMd5": "c4a5f428114113f479a3c1d0145b8f39",
+      "source": {
+        "path": "supabase/migrations/20261115112000_artales_public_published_typography_rules.sql",
+        "blobSha": "b82880c0474d51d370079ed64ddcca2ab8254abd",
+        "relation": "byte_exact_single_statement"
+      }
+    },
+    {
+      "version": "20261122084955",
+      "name": "artales_legacy_block_style_registry_v1",
+      "statementCount": 1,
+      "ledgerSha256": "27662b7190244b761d3c041ff24fb81d6fcaba53fe4f7221f4790d1bc76bc225",
+      "firstMd5": "41e93cbef004b4aab5726f154d100097",
+      "source": {
+        "path": "supabase/migrations/20261122100000_legacy_block_style_registry_v1.sql",
+        "blobSha": "43703a97cc8f3f06747a6557cb699e9e4f9ec6bb",
+        "relation": "byte_exact_single_statement"
+      }
+    },
+    {
+      "version": "20261122085254",
+      "name": "artales_legacy_block_style_least_privilege_v1",
+      "statementCount": 1,
+      "ledgerSha256": "b7cbe08dc8d94b9cc37e5a000368fc9e1042e7233ff88b9cfb5b8c0da12993e4",
+      "firstMd5": "4fa0e35139bc0ae0d545cee6376853b0",
+      "source": {
+        "path": "supabase/migrations/20261122103000_legacy_block_style_least_privilege_v1.sql",
+        "blobSha": "8680d42ba23440c23001522ce048571dd821aef8",
+        "relation": "byte_exact_single_statement"
+      }
+    },
+    {
+      "version": "20261122085646",
+      "name": "artales_legacy_block_style_upsert_permissions",
+      "statementCount": 1,
+      "ledgerSha256": "b62797fed5e8cd3aa4107412e67e13dd5222b118080bc4f20bff47be65f31332",
+      "firstMd5": "1531a2d97b38eae1234ca0336ebbda74",
+      "source": {
+        "path": "supabase/migrations/20261122110000_legacy_block_style_upsert_permissions.sql",
+        "blobSha": "45616382a866bcc874da4cdc14ae5a4867e1bd7a",
+        "relation": "byte_exact_single_statement"
+      }
+    },
+    {
+      "version": "20261122085733",
+      "name": "artales_legacy_block_style_authenticated_upsert_read",
+      "statementCount": 1,
+      "ledgerSha256": "90e2b0e2d67905bb1ca20bc4c0ad93c2e04fba4dd7635da3ea9b75b5c5924241",
+      "firstMd5": "e246ee592be00e7a9d475599e51ae7a4",
+      "source": {
+        "path": "supabase/migrations/20261122113000_legacy_block_style_authenticated_upsert_read.sql",
+        "blobSha": "c18497ae9948e686e16b98965270033e10d16bb9",
+        "relation": "byte_exact_single_statement"
+      }
+    }
+  ],
+  "legacyInventory": [
+    {
+      "path": "supabase/migrations/20260926142755_remote_schema.sql",
+      "blobSha": "b0278e7df288204c9bc0768f85e6a08f003631f7",
+      "disposition": "matched_historical_source"
+    },
+    {
+      "path": "supabase/migrations/20261023063248_prescreen_shadow_library_v1.sql",
+      "blobSha": "96d438cfe86fd44d3c9ef8f4ce27f2feeea66f8b",
+      "disposition": "matched_historical_source"
+    },
+    {
+      "path": "supabase/migrations/20261024073928_candidate_intake_ab.sql",
+      "blobSha": "00309487795af9432f9f6c844895e593b3968e07",
+      "disposition": "matched_historical_source"
+    },
+    {
+      "path": "supabase/migrations/20261025095658_legal_screen_v1.sql",
+      "blobSha": "cc32c74a796fba56901f97955557da9efa1f3ff5",
+      "disposition": "matched_historical_source"
+    },
+    {
+      "path": "supabase/migrations/20261027081945_snapshot389_storage_admin_rls.sql",
+      "blobSha": "843d4c3287c8b2baa20186ddde6276e65af4ccdc",
+      "disposition": "matched_historical_source"
+    },
+    {
+      "path": "supabase/migrations/20261028091029_artales_identity_role_authority_v1.sql",
+      "blobSha": "1a0f3be3cd685809a18f5387a9f8f120c8c7b232",
+      "disposition": "unregistered_historical_source_not_replayable"
+    },
+    {
+      "path": "supabase/migrations/20261028110000_artales_snapshot_general_v1.sql",
+      "blobSha": "95c9363dddc22d6b97b103429ba5e6ecd7c28bfc",
+      "disposition": "unregistered_historical_source_not_replayable"
+    },
+    {
+      "path": "supabase/migrations/20261028111000_artales_snapshot389_register.sql",
+      "blobSha": "909c54b904f6db44775838ebf4e8d4463a60659b",
+      "disposition": "unregistered_historical_source_not_replayable"
+    },
+    {
+      "path": "supabase/migrations/20261102172000_artales_semantic_editorial_pipeline.sql",
+      "blobSha": "089fd82bd7702f716d3655f365e21a8d21a6fd87",
+      "disposition": "unregistered_historical_source_not_replayable"
+    },
+    {
+      "path": "supabase/migrations/20261106201500_artales_safe_layout_coalesce_hotfix.sql",
+      "blobSha": "9179dc8b5b5988bbfbec2300c4bc72949aded765",
+      "disposition": "matched_historical_source"
+    },
+    {
+      "path": "supabase/migrations/20261107094500_artales_candidate_release_canonical.sql",
+      "blobSha": "f606cf547fba7caf43e2ba3e0481c7a9a2983349",
+      "disposition": "matched_historical_source"
+    },
+    {
+      "path": "supabase/migrations/20261107104000_artales_release_verified_snapshot_gate.sql",
+      "blobSha": "da564e0f72a095de9f6accfc9336555f7158c053",
+      "disposition": "matched_historical_source"
+    },
+    {
+      "path": "supabase/migrations/20261107114500_artales_snapshot_claimed_storage_access.sql",
+      "blobSha": "9d629b2543929d661e7f66f251eea2ea4f3e6ef1",
+      "disposition": "matched_historical_source"
+    },
+    {
+      "path": "supabase/migrations/20261108093500_artales_compose_assignee_rls.sql",
+      "blobSha": "e765d1b528d664051269a1d14acce7adf304ff10",
+      "disposition": "matched_historical_source"
+    },
+    {
+      "path": "supabase/migrations/20261108104500_artales_candidate_authority_task_routing.sql",
+      "blobSha": "3328d56993e9da457f0977ad53cc951bc326b601",
+      "disposition": "matched_historical_source"
+    },
+    {
+      "path": "supabase/migrations/20261110113500_artales_gutenberg_risk_acceptance.sql",
+      "blobSha": "859b3590d2b3ee9ff6fdf7842425236e7ab180cc",
+      "disposition": "matched_historical_source"
+    },
+    {
+      "path": "supabase/migrations/20261110130000_artales_unique_existing_author_byline.sql",
+      "blobSha": "f2df2638ad5d11b31fc3559e671eef8ab8760550",
+      "disposition": "matched_historical_source"
+    },
+    {
+      "path": "supabase/migrations/20261111133000_artales_editorial_exclusion_and_author_guard.sql",
+      "blobSha": "9b7e1b3b25624d2d68eb7da45e96e1eb7c099c23",
+      "disposition": "matched_historical_source"
+    },
+    {
+      "path": "supabase/migrations/20261114190000_artales_qa_publication_finalization.sql",
+      "blobSha": "84ef24bf94daf572a9715f5dfb37741ce0da3950",
+      "disposition": "matched_historical_source"
+    },
+    {
+      "path": "supabase/migrations/20261115084500_artales_semantic_publication_date_and_author_name.sql",
+      "blobSha": "f78d9a0a871e3e08689df945194dd87db608b14a",
+      "disposition": "matched_historical_source"
+    },
+    {
+      "path": "supabase/migrations/20261115112000_artales_public_published_typography_rules.sql",
+      "blobSha": "b82880c0474d51d370079ed64ddcca2ab8254abd",
+      "disposition": "matched_historical_source"
+    },
+    {
+      "path": "supabase/migrations/20261122100000_legacy_block_style_registry_v1.sql",
+      "blobSha": "43703a97cc8f3f06747a6557cb699e9e4f9ec6bb",
+      "disposition": "matched_historical_source"
+    },
+    {
+      "path": "supabase/migrations/20261122103000_legacy_block_style_least_privilege_v1.sql",
+      "blobSha": "8680d42ba23440c23001522ce048571dd821aef8",
+      "disposition": "matched_historical_source"
+    },
+    {
+      "path": "supabase/migrations/20261122110000_legacy_block_style_upsert_permissions.sql",
+      "blobSha": "45616382a866bcc874da4cdc14ae5a4867e1bd7a",
+      "disposition": "matched_historical_source"
+    },
+    {
+      "path": "supabase/migrations/20261122113000_legacy_block_style_authenticated_upsert_read.sql",
+      "blobSha": "c18497ae9948e686e16b98965270033e10d16bb9",
+      "disposition": "matched_historical_source"
+    }
+  ]
+}
