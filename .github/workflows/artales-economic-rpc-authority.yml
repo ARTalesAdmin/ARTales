@@ -59,7 +59,9 @@ jobs:
           psql -X -v ON_ERROR_STOP=1 -f tests/db/artalesEconomicRpcVerification.sql
           psql -X -v ON_ERROR_STOP=1 -f tests/db/artalesEconomicRpcIntegrityVerification.sql
           psql -X -v ON_ERROR_STOP=1 -f tests/db/artalesEconomicRpcReplayVerification.sql
+          psql -X -v ON_ERROR_STOP=1 -f tests/db/artalesEconomicRpcRollbackVerification.sql
           bash tests/db/artalesEconomicRpcConcurrency.sh
+          sha256sum "$migration" "$integrity"
       - name: Inspect compatibility helper call sites
         run: |
           git grep -n 'unlockOnlineReadWithCredit' -- '*.ts' '*.tsx' || true

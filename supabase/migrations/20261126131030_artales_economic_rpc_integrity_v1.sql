@@ -606,20 +606,45 @@ begin
 end;
 $$;
 
+-- Persistence boundary for customer AT debits, including the old application's
+-- direct contribution INSERT during rollout. The RPCs still own business logic.
+-- Administrative reversals are intentionally excluded (C1/C2).
+create function public.artales_guard_customer_credit_debit()
+returns trigger language plpgsql security invoker set search_path=pg_catalog
+as $
+declare
+  v_balance bigint;
+begin
+  if new.source not in ('credit_spend','contribution') then return new; end if;
+  if new.credit_type <> 'at_credit' or new.amount >= 0 then
+    raise exception 'Invalid customer credit debit' using errcode='23514';
+  end if;
+  if current_setting('transaction_isolation') <> 'read committed' then
+    raise exception 'Economic debit requires READ COMMITTED' using errcode='25000';
+  end if;
+  perform 1 from public.profiles where id=new.user_id and is_active for update;
+  if not found then
+    raise exception 'Inactive account for credit debit' using errcode='23514';
+  end if;
+  select coalesce(sum(amount),0) into v_balance
+    from public.reader_credit_ledger where user_id=new.user_id and credit_type='at_credit';
+  if v_balance < -(new.amount::bigint) then
+    raise exception 'Insufficient balance for customer debit' using errcode='23514';
+  end if;
+  return new;
+end;
+$;
+revoke execute on function public.artales_guard_customer_credit_debit() from public, anon, authenticated, service_role;
+create trigger artales_customer_credit_debit_guard
+before insert on public.reader_credit_ledger
+for each row execute function public.artales_guard_customer_credit_debit();
+
 -- Preserve the existing one-time welcome benefit even if the entitlement
 -- is later deactivated, reclassified or removed with a work. Backfill only
 -- evidence still present in historical entitlement rows.
 alter table public.profiles add column welcome_unlock_claimed_at timestamptz;
 revoke insert(welcome_unlock_claimed_at), update(welcome_unlock_claimed_at)
   on public.profiles from public, anon, authenticated;
-update public.profiles p
-set welcome_unlock_claimed_at = e.first_claim
-from (
-  select user_id,min(created_at) as first_claim
-  from public.reader_entitlements
-  where source='welcome_unlock' group by user_id
-) e
-where p.id=e.user_id and p.welcome_unlock_claimed_at is null;
 
 -- Protect both new and still-deployed legacy grant paths during rollout.
 -- This is an invoker trigger; no owner privilege elevation.
@@ -638,6 +663,10 @@ begin
       end if;
       return new;
     end if;
+    if old.entitlement_type='online_read' and old.is_active and old.starts_at<=clock_timestamp()
+      and (old.expires_at is null or old.expires_at>clock_timestamp()) then
+      raise exception 'Existing access must not consume welcome unlock' using errcode='23514';
+    end if;
   end if;
   update public.profiles
     set welcome_unlock_claimed_at=clock_timestamp()
@@ -646,6 +675,15 @@ begin
   if not found then
     raise exception 'Welcome unlock unavailable' using errcode='23514';
   end if;
+  perform 1 from public.works where id=new.work_id and status::text='published' for share;
+  if not found then
+    raise exception 'Welcome target is not published' using errcode='23514';
+  end if;
+  if exists(select 1 from public.reader_entitlements where user_id=new.user_id
+    and entitlement_type='membership_access' and is_active and starts_at<=clock_timestamp()
+    and (expires_at is null or expires_at>clock_timestamp()) and metadata->>'plan'='library') then
+    raise exception 'Existing library access must not consume welcome unlock' using errcode='23514';
+  end if;
   return new;
 end;
 $$;
@@ -653,6 +691,16 @@ revoke execute on function public.artales_record_welcome_claim() from public, an
 create trigger artales_welcome_claim_guard
 before insert or update of source,user_id,work_id,entitlement_type on public.reader_entitlements
 for each row execute function public.artales_record_welcome_claim();
+
+-- Backfill after installing the trigger and taking its table lock, inside the same migration transaction.
+update public.profiles p
+set welcome_unlock_claimed_at = e.first_claim
+from (
+  select user_id,min(created_at) as first_claim
+  from public.reader_entitlements
+  where source='welcome_unlock' group by user_id
+) e
+where p.id=e.user_id and p.welcome_unlock_claimed_at is null;
 
 create function public.artales_claim_welcome_unlock(p_user_id uuid,p_work_id uuid)
 returns jsonb language plpgsql security invoker set search_path=pg_catalog

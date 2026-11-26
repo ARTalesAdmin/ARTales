@@ -62,3 +62,25 @@ run_pair "welcome on two different titles" "public.artales_claim_welcome_unlock(
 [[ "$(root -c "select count(*) from public.reader_entitlements where user_id='$Y'")" == 1 ]]
 [[ "$(root -c "select count(*) from public.reader_entitlements where user_id='$Q'")" == 1 ]]
 echo "PASS: concurrent identical request and one-time welcome invariants"
+
+# Model the still-deployed direct contribution INSERT, not an alternate runtime path.
+T=12121212-1212-4212-8212-121212121212
+root -c "insert into public.profiles(id) values ('$T'); insert into public.reader_credit_ledger(user_id,amount,source) values ('$T',1,'purchase');"
+root <<'SQL'
+create function public.ci_legacy_gift(p_user uuid,p_amount integer)
+returns jsonb language plpgsql security invoker as $$
+begin
+  insert into public.reader_credit_ledger(user_id,amount,source) values(p_user,-p_amount,'contribution');
+  return jsonb_build_object('code','legacy_gift_inserted');
+exception when check_violation then
+  if sqlerrm <> 'Insufficient balance for customer debit' then raise; end if;
+  return jsonb_build_object('code','legacy_gift_rejected');
+end;
+$$;
+revoke execute on function public.ci_legacy_gift(uuid,integer) from public;
+grant execute on function public.ci_legacy_gift(uuid,integer) to service_role;
+SQL
+run_pair "legacy contribution versus canonical unlock" "public.use_at_credit_online_unlock('$T','$W')" "public.ci_legacy_gift('$T',1)" credit_unlock_used legacy_gift_rejected
+[[ "$(root -c "select sum(amount) from public.reader_credit_ledger where user_id='$T'")" == 0 ]]
+[[ "$(root -c "select count(*) from public.reader_credit_ledger where user_id='$T' and source='contribution'")" == 0 ]]
+echo "PASS: transitional legacy writer cannot overdraw the wallet"
