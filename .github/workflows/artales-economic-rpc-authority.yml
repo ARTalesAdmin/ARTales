@@ -33,9 +33,6 @@ jobs:
       - uses: actions/checkout@v4
         with:
           persist-credentials: false
-      - uses: supabase/setup-cli@v1
-        with:
-          version: 2.122.0
       - name: Install client
         run: command -v psql || (sudo apt-get update && sudo apt-get install -y postgresql-client)
       - name: Test exact canonical migration in disposable PostgreSQL
@@ -52,22 +49,8 @@ jobs:
           test -f "$migration"
           psql -X -v ON_ERROR_STOP=1 -f tests/db/artalesEconomicRpcFixture.sql
           psql -X -v ON_ERROR_STOP=1 -1 -f "$migration"
-          shopt -s nullglob
-          files=(supabase/migrations/*_artales_economic_rpc_integrity_v1.sql)
-          if (( ${#files[@]} == 1 )); then
-            integrity="${files[0]}"
-          elif (( ${#files[@]} == 0 )) && [[ -f tests/db/artalesEconomicRpcIntegrityCandidate.sql ]]; then
-            workdir="$(mktemp -d)"
-            (cd "$workdir" && supabase init && supabase migration new artales_economic_rpc_integrity_v1)
-            generated=("$workdir"/supabase/migrations/*_artales_economic_rpc_integrity_v1.sql)
-            [[ ${#generated[@]} == 1 ]]
-            integrity="${generated[0]}"
-            cp tests/db/artalesEconomicRpcIntegrityCandidate.sql "$integrity"
-            echo "CLI integrity migration identity: $(basename "$integrity")"
-          else
-            echo "Expected one integrity migration or draft candidate" >&2
-            exit 1
-          fi
+          integrity=supabase/migrations/20261126131030_artales_economic_rpc_integrity_v1.sql
+          test -f "$integrity"
           psql -X -v ON_ERROR_STOP=1 -1 -f "$integrity"
           psql -X -v ON_ERROR_STOP=1 -f tests/db/artalesEconomicRpcVerification.sql
           psql -X -v ON_ERROR_STOP=1 -f tests/db/artalesEconomicRpcIntegrityVerification.sql
