@@ -611,7 +611,7 @@ $$;
 -- Administrative reversals are intentionally excluded (C1/C2).
 create function public.artales_guard_customer_credit_debit()
 returns trigger language plpgsql security invoker set search_path=pg_catalog
-as $
+as $$
 declare
   v_balance bigint;
 begin
@@ -633,7 +633,7 @@ begin
   end if;
   return new;
 end;
-$;
+$$;
 revoke execute on function public.artales_guard_customer_credit_debit() from public, anon, authenticated, service_role;
 create trigger artales_customer_credit_debit_guard
 before insert on public.reader_credit_ledger
