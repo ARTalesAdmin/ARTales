@@ -1,6 +1,7 @@
 "use server";
 
 import { redirect } from "next/navigation";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { requireCompletedAccountProfile } from "@/lib/account";
 import { canOpenFullReader } from "@/lib/entitlements";
 import { normalizeRole } from "@/lib/permissions";
@@ -11,6 +12,20 @@ function getUnlockTarget(formData: FormData) {
     slug: String(formData.get("slug") ?? "").trim(),
     workId: String(formData.get("work_id") ?? "").trim(),
   };
+}
+
+async function matchesPublishedWork(slug: string, workId: string) {
+  const { data, error } = await createAdminClient()
+    .from("works")
+    .select("id")
+    .eq("slug", slug)
+    .eq("status", "published")
+    .maybeSingle();
+  if (error) {
+    console.error("Unlock target verification failed:", error);
+    return false;
+  }
+  return data?.id === workId;
 }
 
 export async function useMemberOnlineUnlock(formData: FormData): Promise<void> {
@@ -27,6 +42,9 @@ export async function useMemberOnlineUnlock(formData: FormData): Promise<void> {
     redirect(`/reader/${slug}?mode=full`);
   }
 
+  if (!(await matchesPublishedWork(slug, workId))) {
+    redirect(`/account/credit-unlock/${slug}?error=invalid_unlock_target`);
+  }
   const alreadyOpen = await canOpenFullReader(profile, workId);
   if (alreadyOpen) {
     redirect(`/reader/${slug}?mode=full`);
@@ -58,6 +76,9 @@ export async function useAtCreditOnlineUnlock(formData: FormData): Promise<void>
     redirect(`/reader/${slug}?mode=full`);
   }
 
+  if (!(await matchesPublishedWork(slug, workId))) {
+    redirect(`/account/credit-unlock/${slug}?error=invalid_unlock_target`);
+  }
   const alreadyOpen = await canOpenFullReader(profile, workId);
   if (alreadyOpen) {
     redirect(`/reader/${slug}?mode=full`);

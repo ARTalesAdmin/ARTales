@@ -311,58 +311,29 @@ export async function unlockOnlineReadWithCredit(params: {
   slug?: string | null;
   cost?: number;
 }): Promise<CreditUnlockResult> {
-  const cost = Math.max(1, Math.floor(params.cost ?? ONLINE_READ_CREDIT_COST));
-
-  try {
-    const alreadyUnlocked = await hasOnlineReadEntitlement(params.userId, params.workId);
-    if (alreadyUnlocked) return { status: "already_unlocked" };
-
-    const balance = await getAtCreditBalance(params.userId);
-    if (balance < cost) {
-      return { status: "insufficient_credit", balance, required: cost };
-    }
-
-    const entitlementId = await grantOnlineReadEntitlement({
-      userId: params.userId,
-      workId: params.workId,
-      source: "credit_spend",
-      grantedByUserId: null,
-      note: "Online čtení bylo odemčeno za AT kredit.",
-    });
-
-    const admin = createAdminClient();
-    const now = new Date().toISOString();
-
-    const { error: ledgerError } = await admin.from("reader_credit_ledger").insert({
-      user_id: params.userId,
-      credit_type: "at_credit",
-      amount: -cost,
-      source: "credit_spend",
-      related_work_id: params.workId,
-      note: "Online čtení bylo odemčeno za AT kredit.",
-      metadata: {
-        action: "online_read_unlock",
-        entitlement_id: entitlementId,
-        entitlement_type: "online_read",
-        cost,
-        slug: params.slug ?? null,
-        created_at: now,
-      },
-    });
-
-    if (ledgerError) {
-      console.error("Credit spend ledger insert failed after entitlement grant:", ledgerError);
-      return { status: "error", message: ledgerError.message };
-    }
-
-    return { status: "unlocked", entitlementId };
-  } catch (error) {
-    console.error("Credit unlock failed:", error);
-    return {
-      status: "error",
-      message: error instanceof Error ? error.message : "Unknown credit unlock error.",
-    };
+  const cost = params.cost ?? ONLINE_READ_CREDIT_COST;
+  // Historical helper retained as a compatibility adapter, never a second
+  // grant-then-debit implementation. The existing online unlock costs 1 AT.
+  if (cost !== ONLINE_READ_CREDIT_COST) {
+    return { status: "error", message: "Unsupported online unlock price." };
   }
+  const { data, error } = await createAdminClient().rpc("use_at_credit_online_unlock", {
+    p_user_id: params.userId,
+    p_work_id: params.workId,
+  });
+  if (error) {
+    console.error("Credit unlock RPC failed:", error);
+    return { status: "error", message: error.message };
+  }
+  const result = (data ?? {}) as { ok?: boolean; code?: string; entitlement_id?: string; balance?: number };
+  if (result.code === "already_unlocked") return { status: "already_unlocked" };
+  if (result.code === "not_enough_credit") {
+    return { status: "insufficient_credit", balance: Number(result.balance ?? 0), required: cost };
+  }
+  if (result.ok && result.entitlement_id) {
+    return { status: "unlocked", entitlementId: result.entitlement_id };
+  }
+  return { status: "error", message: result.code ?? "Credit unlock failed." };
 }
 
 export async function canReadWorkOnline(

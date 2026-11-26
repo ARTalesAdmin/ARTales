@@ -4,8 +4,8 @@ create role anon nologin;
 create role authenticated nologin;
 create role service_role nologin bypassrls;
 grant usage on schema public to anon, authenticated, service_role;
-create table public.profiles (id uuid primary key);
-create table public.works (id uuid primary key);
+create table public.profiles (id uuid primary key, is_active boolean not null default true, role text not null default 'reader');
+create table public.works (id uuid primary key, status text not null default 'published');
 create table public.membership_plans (
   code text primary key, name text not null, description text not null default '',
   intro_price_eur numeric not null default 0, future_price_eur numeric not null default 0,
@@ -36,6 +36,7 @@ create table public.reader_entitlements (
   updated_at timestamptz not null default now(),
   check (entitlement_type = 'membership_access' or work_id is not null)
 );
+create unique index reader_entitlements_active_unique_work_access_idx on public.reader_entitlements(user_id,work_id,entitlement_type) where is_active and work_id is not null;
 alter table public.reader_credit_ledger enable row level security;
 alter table public.reader_member_unlock_ledger enable row level security;
 alter table public.reader_entitlements enable row level security;
@@ -46,8 +47,8 @@ grant all on all tables in schema public to service_role;
 grant execute on function public.activate_reader_membership_with_credits(uuid,text,integer,integer,integer,boolean) to anon, authenticated, service_role;
 grant execute on function public.use_at_credit_online_unlock(uuid,uuid) to anon, authenticated, service_role;
 grant execute on function public.use_member_online_unlock(uuid,uuid) to anon, authenticated, service_role;
-insert into public.profiles values ('11111111-1111-4111-8111-111111111111');
-insert into public.works values ('22222222-2222-4222-8222-222222222222'),('33333333-3333-4333-8333-333333333333');
+insert into public.profiles(id) values ('11111111-1111-4111-8111-111111111111');
+insert into public.works(id) values ('22222222-2222-4222-8222-222222222222'),('33333333-3333-4333-8333-333333333333');
 insert into public.reader_credit_ledger(user_id,amount,source) values ('11111111-1111-4111-8111-111111111111',3,'purchase');
 
 do $$
