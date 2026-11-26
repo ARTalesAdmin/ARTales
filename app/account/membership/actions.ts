@@ -1,6 +1,7 @@
 "use server";
 
 import { redirect } from "next/navigation";
+import { parseEconomicRequestId } from "@/lib/economicRequest";
 import { requireCompletedAccountProfile } from "@/lib/account";
 import { activateMembershipWithCredits, isActivatableMembershipTier } from "@/lib/readerMembership";
 
@@ -12,7 +13,9 @@ export async function activateMembership(formData: FormData): Promise<void> {
   }
 
   const profile = await requireCompletedAccountProfile("/account/membership");
-  const result = await activateMembershipWithCredits({ userId: profile.id, tier });
+  const requestId = parseEconomicRequestId(formData.get("economic_request_id"));
+  if (!requestId) redirect("/account/membership?error=request_id_required");
+  const result = await activateMembershipWithCredits({ userId: profile.id, tier, requestId });
 
   if (!result.ok) {
     redirect(`/account/membership?error=${encodeURIComponent(result.code)}`);

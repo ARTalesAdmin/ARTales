@@ -17,7 +17,7 @@ begin
   foreach role_name in array array['anon','authenticated'] loop
     execute format('set local role %I',role_name);
     begin
-      perform public.artales_gift_reader_credit('44444444-4444-4444-8444-444444444444',1);
+      perform public.artales_gift_reader_credit('44444444-4444-4444-8444-444444444444',1,gen_random_uuid());
       raise exception 'Expected gift RPC denial';
     exception when insufficient_privilege then
       raise notice 'PASS: gift denied for %',role_name;
@@ -55,17 +55,17 @@ begin
   if r->>'code' is distinct from 'invalid_account' then raise exception 'Inactive profile charged: %',r; end if;
   r:=public.activate_reader_membership_with_credits(disabled,'basic',2,2,0,false);
   if r->>'code' is distinct from 'invalid_account' then raise exception 'Inactive membership: %',r; end if;
-  r:=public.artales_gift_reader_credit(disabled,1);
+  r:=public.artales_gift_reader_credit(disabled,1,gen_random_uuid());
   if r->>'code' is distinct from 'invalid_account' then raise exception 'Inactive gift: %',r; end if;
-  r:=public.artales_gift_reader_credit(u,0);
+  r:=public.artales_gift_reader_credit(u,0,gen_random_uuid());
   if r->>'code' is distinct from 'invalid_credit_gift' then raise exception 'Invalid gift accepted: %',r; end if;
-  r:=public.artales_gift_reader_credit(u,11);
+  r:=public.artales_gift_reader_credit(u,11,gen_random_uuid());
   if r->>'code' is distinct from 'not_enough_credit' then raise exception 'Oversized gift accepted: %',r; end if;
   if (select sum(amount) from public.reader_credit_ledger where user_id=u) <> 10
      or exists(select 1 from public.reader_entitlements where user_id in (u,disabled))
      or exists(select 1 from public.reader_member_unlock_ledger where user_id in (u,disabled))
      then raise exception 'Invalid requests changed economic data'; end if;
-  r:=public.artales_gift_reader_credit(u,3);
+  r:=public.artales_gift_reader_credit(u,3,gen_random_uuid());
   if r->>'code' is distinct from 'credit_gifted' or (select sum(amount) from public.reader_credit_ledger where user_id=u) <> 7 then raise exception 'Valid gift failed: %',r; end if;
   r:=public.activate_reader_membership_with_credits(library_user,'library',7,0,0,true);
   if r->>'code' is distinct from 'activated' then raise exception 'Library activation failed: %',r; end if;
@@ -85,7 +85,7 @@ begin
     'public.activate_reader_membership_with_credits(uuid,text,integer,integer,integer,boolean)'::regprocedure,
     'public.use_at_credit_online_unlock(uuid,uuid)'::regprocedure,
     'public.use_member_online_unlock(uuid,uuid)'::regprocedure,
-    'public.artales_gift_reader_credit(uuid,integer)'::regprocedure
+    'public.artales_gift_reader_credit(uuid,integer,uuid)'::regprocedure
   ] loop
     if (select prosecdef from pg_proc where oid=f) then raise exception 'Unexpected owner privilege: %',f; end if;
   end loop;

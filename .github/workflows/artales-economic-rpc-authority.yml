@@ -7,7 +7,11 @@ on:
       - 'lib/entitlements.ts'
       - 'lib/readerMembership.ts'
       - 'lib/memberPricebook.ts'
-      - 'app/account/credits/actions.ts'
+      - 'app/account/credits/**'
+      - 'app/account/membership/**'
+      - 'app/account/unlock/**'
+      - 'lib/economicRequest.ts'
+      - 'tests/economicRequest.test.ts'
       - 'app/account/credit-unlock/**'
       - 'supabase/migrations/**'
       - '.github/workflows/artales-economic-rpc-authority.yml'
@@ -54,7 +58,27 @@ jobs:
           psql -X -v ON_ERROR_STOP=1 -1 -f "$integrity"
           psql -X -v ON_ERROR_STOP=1 -f tests/db/artalesEconomicRpcVerification.sql
           psql -X -v ON_ERROR_STOP=1 -f tests/db/artalesEconomicRpcIntegrityVerification.sql
+          psql -X -v ON_ERROR_STOP=1 -f tests/db/artalesEconomicRpcReplayVerification.sql
           bash tests/db/artalesEconomicRpcConcurrency.sh
       - name: Inspect compatibility helper call sites
         run: |
           git grep -n 'unlockOnlineReadWithCredit' -- '*.ts' '*.tsx' || true
+  economic-rpc-application:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - run: npx tsc --noEmit
+      - name: Scoped lint
+        run: npx eslint lib/economicRequest.ts lib/readerMembership.ts lib/entitlements.ts app/account/credits/actions.ts app/account/credits/page.tsx app/account/membership/actions.ts app/account/membership/page.tsx 'app/account/credit-unlock/[slug]/actions.ts' 'app/account/unlock/[slug]/actions.ts'
+      - run: npx tsx --test tests/economicRequest.test.ts
+      - name: Inspect economic server call sites
+        run: |
+          git grep -n -E 'activateMembershipWithCredits|grantWelcomeUnlock|hasUsedWelcomeUnlock|artales_gift_reader_credit|unlockOnlineReadWithCredit' -- '*.ts' '*.tsx'

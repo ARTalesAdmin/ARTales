@@ -1,3 +1,8 @@
+-- The committed debit is the idempotency record, not a second ledger.
+create unique index reader_credit_ledger_economic_request_idx
+  on public.reader_credit_ledger(user_id,(metadata->>'economic_request_id'))
+  where metadata ? 'economic_request_id';
+
 -- A1.2 economic RPC integrity, source proposal.
 -- Existing public signatures retained. Server-only functions run as their
 -- service caller rather than with owner privileges. No changes to plan values,
@@ -8,7 +13,8 @@ create or replace function public.activate_reader_membership_with_credits(
   p_price_at integer,
   p_member_unlocks integer,
   p_bonus_at integer,
-  p_library_access boolean
+  p_library_access boolean,
+  p_request_id uuid
 )
 returns jsonb
 language plpgsql
@@ -23,6 +29,9 @@ declare
   v_base_start timestamptz;
   v_starts_at timestamptz;
   v_expires_at timestamptz;
+  v_request jsonb := jsonb_build_object('kind','membership_activation','tier',p_tier,'price_at',p_price_at,'member_unlocks',p_member_unlocks,'bonus_at',p_bonus_at,'library_access',p_library_access);
+  v_previous jsonb;
+  v_result jsonb;
 begin
   if p_tier is null or p_tier not in ('basic', 'plus', 'library') then
     return jsonb_build_object('ok', false, 'code', 'invalid_tier');
@@ -44,6 +53,21 @@ begin
     return jsonb_build_object('ok', false, 'code', 'invalid_account');
   end if;
   v_now := clock_timestamp();
+
+  if p_request_id is null then
+    return jsonb_build_object('ok', false, 'code', 'request_id_required');
+  end if;
+  select metadata into v_previous
+  from public.reader_credit_ledger
+  where user_id = p_user_id and metadata ? 'economic_request_id'
+    and metadata->>'economic_request_id' = p_request_id::text;
+  if found then
+    if v_previous->'economic_request' is distinct from v_request
+       or v_previous->'economic_result' is null then
+      return jsonb_build_object('ok', false, 'code', 'request_conflict');
+    end if;
+    return v_previous->'economic_result';
+  end if;
 
   -- The existing wallet-cleanup migration mirrors founding AT values in the
   -- historical intro_price_eur field. Compare the server pricebook snapshot;
@@ -99,6 +123,19 @@ begin
   v_starts_at := greatest(v_now, coalesce(v_base_start, v_now));
   v_expires_at := v_starts_at + interval '30 days';
 
+  v_result := jsonb_build_object(
+    'ok', true,
+    'code', 'activated',
+    'plan', p_tier,
+    'starts_at', v_starts_at,
+    'expires_at', v_expires_at,
+    'price_at', p_price_at,
+    'bonus_at', 0,
+    'member_unlocks', p_member_unlocks,
+    'balance_before', v_balance,
+    'balance_after', v_balance - p_price_at
+  );
+
   insert into public.reader_credit_ledger (
     user_id,
     amount,
@@ -117,7 +154,10 @@ begin
       'starts_at', v_starts_at,
       'expires_at', v_expires_at,
       'bonus_at', 0,
-      'bonus_policy', 'at_wallet_cleanup_v01013j'
+      'bonus_policy', 'at_wallet_cleanup_v01013j',
+      'economic_request_id', p_request_id,
+      'economic_request', v_request,
+      'economic_result', v_result
     )
   );
 
@@ -172,19 +212,25 @@ begin
     )
   );
 
-  return jsonb_build_object(
-    'ok', true,
-    'code', 'activated',
-    'plan', p_tier,
-    'starts_at', v_starts_at,
-    'expires_at', v_expires_at,
-    'price_at', p_price_at,
-    'bonus_at', 0,
-    'member_unlocks', p_member_unlocks,
-    'balance_before', v_balance,
-    'balance_after', v_balance - p_price_at
-  );
+  return v_result;
 end;
+$$;
+
+-- Compatibility for the currently deployed six-argument server caller.
+-- It remains service-only and delegates to the canonical implementation.
+-- Retire its service grant after the request-ID application is deployed and verified.
+create or replace function public.activate_reader_membership_with_credits(
+  p_user_id uuid,p_tier text,p_price_at integer,p_member_unlocks integer,
+  p_bonus_at integer,p_library_access boolean
+)
+returns jsonb
+language sql
+security invoker
+set search_path = pg_catalog
+as $$
+  select public.activate_reader_membership_with_credits(
+    p_user_id,p_tier,p_price_at,p_member_unlocks,p_bonus_at,p_library_access,gen_random_uuid()
+  );
 $$;
 
 create or replace function public.use_member_online_unlock(
@@ -501,7 +547,7 @@ begin
 end;
 $$;
 
-create or replace function public.artales_gift_reader_credit(p_user_id uuid, p_amount integer)
+create or replace function public.artales_gift_reader_credit(p_user_id uuid, p_amount integer, p_request_id uuid)
 returns jsonb
 language plpgsql
 security invoker
@@ -510,6 +556,9 @@ as $$
 declare
   v_balance bigint;
   v_now timestamptz;
+  v_request jsonb := jsonb_build_object('kind','credit_gift','amount',p_amount);
+  v_previous jsonb;
+  v_result jsonb;
 begin
   if p_amount is null or p_amount <= 0 then
     return jsonb_build_object('ok', false, 'code', 'invalid_credit_gift');
@@ -527,24 +576,146 @@ begin
   end if;
   v_now := clock_timestamp();
 
+  if p_request_id is null then
+    return jsonb_build_object('ok', false, 'code', 'request_id_required');
+  end if;
+  select metadata into v_previous
+  from public.reader_credit_ledger
+  where user_id = p_user_id and metadata ? 'economic_request_id'
+    and metadata->>'economic_request_id' = p_request_id::text;
+  if found then
+    if v_previous->'economic_request' is distinct from v_request
+       or v_previous->'economic_result' is null then
+      return jsonb_build_object('ok', false, 'code', 'request_conflict');
+    end if;
+    return v_previous->'economic_result';
+  end if;
+
   select coalesce(sum(amount),0) into v_balance
   from public.reader_credit_ledger
   where user_id = p_user_id and credit_type = 'at_credit';
   if v_balance < p_amount then
     return jsonb_build_object('ok', false, 'code', 'not_enough_credit');
   end if;
+  v_result := jsonb_build_object('ok',true,'code','credit_gifted','balance_after',v_balance-p_amount);
   insert into public.reader_credit_ledger (user_id,credit_type,amount,source,note,metadata)
   values (p_user_id,'at_credit',-p_amount,'contribution','Dar kreditu projektu ARTales',
-    jsonb_build_object('contribution_kind','artales_project_support','amount',p_amount));
-  return jsonb_build_object('ok',true,'code','credit_gifted','balance_after',v_balance-p_amount);
+    jsonb_build_object('contribution_kind','artales_project_support','amount',p_amount,
+      'economic_request_id',p_request_id,'economic_request',v_request,'economic_result',v_result));
+  return v_result;
+end;
+$$;
+
+-- Preserve the existing one-time welcome benefit even if the entitlement
+-- is later deactivated, reclassified or removed with a work. Backfill only
+-- evidence still present in historical entitlement rows.
+alter table public.profiles add column welcome_unlock_claimed_at timestamptz;
+revoke insert(welcome_unlock_claimed_at), update(welcome_unlock_claimed_at)
+  on public.profiles from public, anon, authenticated;
+update public.profiles p
+set welcome_unlock_claimed_at = e.first_claim
+from (
+  select user_id,min(created_at) as first_claim
+  from public.reader_entitlements
+  where source='welcome_unlock' group by user_id
+) e
+where p.id=e.user_id and p.welcome_unlock_claimed_at is null;
+
+-- Protect both new and still-deployed legacy grant paths during rollout.
+-- This is an invoker trigger; no owner privilege elevation.
+create function public.artales_record_welcome_claim()
+returns trigger language plpgsql security invoker set search_path=pg_catalog
+as $$
+begin
+  if new.source <> 'welcome_unlock' then return new; end if;
+  if new.entitlement_type <> 'online_read' then
+    raise exception 'Invalid welcome entitlement type' using errcode='23514';
+  end if;
+  if tg_op='UPDATE' then
+    if old.source='welcome_unlock' then
+      if old.user_id is distinct from new.user_id or old.work_id is distinct from new.work_id then
+        raise exception 'Welcome entitlement cannot be moved' using errcode='23514';
+      end if;
+      return new;
+    end if;
+  end if;
+  update public.profiles
+    set welcome_unlock_claimed_at=clock_timestamp()
+    where id=new.user_id and welcome_unlock_claimed_at is null
+      and is_active and role::text='reader';
+  if not found then
+    raise exception 'Welcome unlock unavailable' using errcode='23514';
+  end if;
+  return new;
+end;
+$$;
+revoke execute on function public.artales_record_welcome_claim() from public, anon, authenticated, service_role;
+create trigger artales_welcome_claim_guard
+before insert or update of source,user_id,work_id,entitlement_type on public.reader_entitlements
+for each row execute function public.artales_record_welcome_claim();
+
+create function public.artales_claim_welcome_unlock(p_user_id uuid,p_work_id uuid)
+returns jsonb language plpgsql security invoker set search_path=pg_catalog
+as $$
+declare
+  v_claimed timestamptz;
+  v_now timestamptz;
+  v_entitlement_id uuid;
+begin
+  if p_user_id is null or p_work_id is null then
+    return jsonb_build_object('ok',false,'code','invalid_unlock_target');
+  end if;
+  if current_setting('transaction_isolation') <> 'read committed' then
+    raise exception 'Economic RPC requires READ COMMITTED' using errcode='25000';
+  end if;
+  select welcome_unlock_claimed_at into v_claimed from public.profiles
+    where id=p_user_id and is_active and role::text='reader' for update;
+  if not found then return jsonb_build_object('ok',false,'code','invalid_account'); end if;
+  v_now := clock_timestamp();
+  perform 1 from public.works where id=p_work_id and status::text='published' for share;
+  if not found then return jsonb_build_object('ok',false,'code','invalid_unlock_target'); end if;
+  select id into v_entitlement_id from public.reader_entitlements
+    where user_id=p_user_id and work_id=p_work_id and entitlement_type='online_read'
+      and is_active and starts_at<=v_now and (expires_at is null or expires_at>v_now)
+    limit 1;
+  if found then
+    return jsonb_build_object('ok',true,'code','already_unlocked','entitlement_id',v_entitlement_id);
+  end if;
+  if exists(select 1 from public.reader_entitlements where user_id=p_user_id
+    and entitlement_type='membership_access' and is_active and starts_at<=v_now
+    and (expires_at is null or expires_at>v_now) and metadata->>'plan'='library') then
+    return jsonb_build_object('ok',true,'code','already_unlocked');
+  end if;
+  if v_claimed is not null then
+    return jsonb_build_object('ok',false,'code','welcome_already_used');
+  end if;
+  select id into v_entitlement_id from public.reader_entitlements
+    where user_id=p_user_id and work_id=p_work_id and entitlement_type='online_read'
+    order by is_active desc,created_at desc limit 1;
+  if found then
+    update public.reader_entitlements
+      set source='welcome_unlock',granted_by_user_id=null,note='Free Reader welcome unlock.',
+        is_active=true,starts_at=v_now,expires_at=null,updated_at=v_now
+      where id=v_entitlement_id;
+  else
+    insert into public.reader_entitlements(user_id,work_id,entitlement_type,source,note,starts_at)
+      values(p_user_id,p_work_id,'online_read','welcome_unlock','Free Reader welcome unlock.',v_now)
+      returning id into v_entitlement_id;
+  end if;
+  -- Trigger owns the durable claim marker. It is part of this transaction.
+  return jsonb_build_object('ok',true,'code','welcome_claimed','entitlement_id',v_entitlement_id);
 end;
 $$;
 
 revoke execute on function public.activate_reader_membership_with_credits(uuid,text,integer,integer,integer,boolean) from public, anon, authenticated;
+revoke execute on function public.activate_reader_membership_with_credits(uuid,text,integer,integer,integer,boolean,uuid) from public, anon, authenticated;
+revoke execute on function public.artales_claim_welcome_unlock(uuid,uuid) from public, anon, authenticated;
+grant execute on function public.activate_reader_membership_with_credits(uuid,text,integer,integer,integer,boolean,uuid) to service_role;
+grant execute on function public.artales_claim_welcome_unlock(uuid,uuid) to service_role;
 revoke execute on function public.use_at_credit_online_unlock(uuid,uuid) from public, anon, authenticated;
 revoke execute on function public.use_member_online_unlock(uuid,uuid) from public, anon, authenticated;
-revoke execute on function public.artales_gift_reader_credit(uuid,integer) from public, anon, authenticated;
-grant execute on function public.artales_gift_reader_credit(uuid,integer) to service_role;
+revoke execute on function public.artales_gift_reader_credit(uuid,integer,uuid) from public, anon, authenticated;
+grant execute on function public.artales_gift_reader_credit(uuid,integer,uuid) to service_role;
 grant execute on function public.activate_reader_membership_with_credits(uuid,text,integer,integer,integer,boolean) to service_role;
 grant execute on function public.use_at_credit_online_unlock(uuid,uuid) to service_role;
 grant execute on function public.use_member_online_unlock(uuid,uuid) to service_role;
@@ -558,7 +729,9 @@ begin
     'public.activate_reader_membership_with_credits(uuid,text,integer,integer,integer,boolean)'::regprocedure,
     'public.use_at_credit_online_unlock(uuid,uuid)'::regprocedure,
     'public.use_member_online_unlock(uuid,uuid)'::regprocedure,
-    'public.artales_gift_reader_credit(uuid,integer)'::regprocedure
+    'public.artales_gift_reader_credit(uuid,integer,uuid)'::regprocedure,
+    'public.activate_reader_membership_with_credits(uuid,text,integer,integer,integer,boolean,uuid)'::regprocedure,
+    'public.artales_claim_welcome_unlock(uuid,uuid)'::regprocedure
   ] loop
     if has_function_privilege('anon',f,'EXECUTE')
        or has_function_privilege('authenticated',f,'EXECUTE')
@@ -566,5 +739,16 @@ begin
       raise exception 'Unexpected effective RPC permissions: %', f;
     end if;
   end loop;
+end;
+$$;
+do $$
+begin
+  if has_column_privilege('anon','public.profiles','welcome_unlock_claimed_at','UPDATE')
+    or has_column_privilege('authenticated','public.profiles','welcome_unlock_claimed_at','UPDATE')
+    or has_column_privilege('anon','public.profiles','welcome_unlock_claimed_at','INSERT')
+    or has_column_privilege('authenticated','public.profiles','welcome_unlock_claimed_at','INSERT')
+    or not has_column_privilege('service_role','public.profiles','welcome_unlock_claimed_at','UPDATE') then
+    raise exception 'Unexpected welcome claim marker permissions';
+  end if;
 end;
 $$;

@@ -4,7 +4,8 @@ create role anon nologin;
 create role authenticated nologin;
 create role service_role nologin bypassrls;
 grant usage on schema public to anon, authenticated, service_role;
-create table public.profiles (id uuid primary key, is_active boolean not null default true, role text not null default 'reader');
+create table public.profiles (id uuid primary key, is_active boolean not null default true, role text not null default 'reader',display_name text not null default 'Synthetic');
+grant update(display_name) on public.profiles to authenticated;
 create table public.works (id uuid primary key, status text not null default 'published');
 create table public.membership_plans (
   code text primary key, name text not null, description text not null default '',
@@ -50,6 +51,10 @@ grant execute on function public.use_member_online_unlock(uuid,uuid) to anon, au
 insert into public.profiles(id) values ('11111111-1111-4111-8111-111111111111');
 insert into public.works(id) values ('22222222-2222-4222-8222-222222222222'),('33333333-3333-4333-8333-333333333333');
 insert into public.reader_credit_ledger(user_id,amount,source) values ('11111111-1111-4111-8111-111111111111',3,'purchase');
+-- An inactive historical welcome claim still consumes the benefit.
+insert into public.profiles(id) values ('99999999-9999-4999-8999-999999999999');
+insert into public.reader_entitlements(user_id,work_id,entitlement_type,source,is_active)
+values ('99999999-9999-4999-8999-999999999999','22222222-2222-4222-8222-222222222222','online_read','welcome_unlock',false);
 
 do $$
 declare f regprocedure;

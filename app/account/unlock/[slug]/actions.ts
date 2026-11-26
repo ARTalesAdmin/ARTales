@@ -2,7 +2,7 @@
 
 import { redirect } from "next/navigation";
 import { requireCompletedAccountProfile } from "@/lib/account";
-import { grantWelcomeUnlock } from "@/lib/entitlements";
+import { grantWelcomeUnlock, matchesPublishedWork } from "@/lib/entitlements";
 import { normalizeRole } from "@/lib/permissions";
 
 export async function useWelcomeUnlock(formData: FormData): Promise<void> {
@@ -18,6 +18,10 @@ export async function useWelcomeUnlock(formData: FormData): Promise<void> {
 
   if (role !== "reader") {
     redirect(`/reader/${slug}?mode=full`);
+  }
+
+  if (!(await matchesPublishedWork(slug, workId))) {
+    redirect(`/account/unlock/${slug}?error=invalid_unlock_target`);
   }
 
   try {

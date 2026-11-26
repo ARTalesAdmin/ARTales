@@ -1,9 +1,8 @@
 "use server";
 
 import { redirect } from "next/navigation";
-import { createAdminClient } from "@/lib/supabase/admin";
 import { requireCompletedAccountProfile } from "@/lib/account";
-import { canOpenFullReader } from "@/lib/entitlements";
+import { canOpenFullReader, matchesPublishedWork } from "@/lib/entitlements";
 import { normalizeRole } from "@/lib/permissions";
 import { spendAtCreditForOnlineUnlock, spendMemberUnlockForOnlineReading } from "@/lib/readerMembership";
 
@@ -12,20 +11,6 @@ function getUnlockTarget(formData: FormData) {
     slug: String(formData.get("slug") ?? "").trim(),
     workId: String(formData.get("work_id") ?? "").trim(),
   };
-}
-
-async function matchesPublishedWork(slug: string, workId: string) {
-  const { data, error } = await createAdminClient()
-    .from("works")
-    .select("id")
-    .eq("slug", slug)
-    .eq("status", "published")
-    .maybeSingle();
-  if (error) {
-    console.error("Unlock target verification failed:", error);
-    return false;
-  }
-  return data?.id === workId;
 }
 
 export async function useMemberOnlineUnlock(formData: FormData): Promise<void> {

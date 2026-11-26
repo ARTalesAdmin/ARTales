@@ -24,7 +24,7 @@ $$;
 do $$
 begin
   if (select count(*) from public.reader_credit_ledger) <> 1
-     or exists(select 1 from public.reader_entitlements)
+     or exists(select 1 from public.reader_entitlements where user_id='11111111-1111-4111-8111-111111111111')
      or exists(select 1 from public.reader_member_unlock_ledger) then
     raise exception 'Denied requests changed fixture data';
   end if;

@@ -254,21 +254,16 @@ export async function hasActiveLibraryMembership(userId: string) {
 
 export async function hasUsedWelcomeUnlock(userId: string) {
   const supabase = await createClient();
-
   const { data, error } = await supabase
-    .from("reader_entitlements")
-    .select("id")
-    .eq("user_id", userId)
-    .eq("source", "welcome_unlock")
-    .eq("is_active", true)
-    .limit(1);
-
-  if (error) {
-    console.error("Welcome unlock status check failed:", error);
-    return false;
+    .from("profiles")
+    .select("welcome_unlock_claimed_at")
+    .eq("id", userId)
+    .maybeSingle();
+  if (error || !data) {
+    console.error("Welcome unlock status unavailable:", error);
+    return true; // Fail closed; do not advertise an unverified free claim.
   }
-
-  return Boolean(data && data.length > 0);
+  return data.welcome_unlock_claimed_at != null;
 }
 
 export async function getWelcomeUnlockStatus(userId: string) {
@@ -787,22 +782,32 @@ export async function grantOnlineReadEntitlement(params: {
   return String(data.id);
 }
 
+export async function matchesPublishedWork(slug: string, workId: string) {
+  const { data, error } = await createAdminClient()
+    .from("works")
+    .select("id")
+    .eq("slug", slug)
+    .eq("status", "published")
+    .maybeSingle();
+  if (error) {
+    console.error("Unlock target verification failed:", error);
+    return false;
+  }
+  return data?.id === workId;
+}
+
 export async function grantWelcomeUnlock(params: {
   userId: string;
   workId: string;
 }) {
-  const used = await hasUsedWelcomeUnlock(params.userId);
-  if (used) {
-    throw new Error("Welcome unlock has already been used.");
-  }
-
-  return grantOnlineReadEntitlement({
-    userId: params.userId,
-    workId: params.workId,
-    source: "welcome_unlock",
-    grantedByUserId: null,
-    note: "Free Reader welcome unlock.",
+  const { data, error } = await createAdminClient().rpc("artales_claim_welcome_unlock", {
+    p_user_id: params.userId,
+    p_work_id: params.workId,
   });
+  if (error) throw new Error(`Welcome claim failed: ${error.message}`);
+  const result = (data ?? {}) as { ok?: boolean; code?: string; entitlement_id?: string };
+  if (!result.ok) throw new Error(result.code ?? "Welcome claim failed.");
+  return result.entitlement_id ?? null;
 }
 
 export async function listEntitlementRequests(

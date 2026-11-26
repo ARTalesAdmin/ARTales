@@ -40,7 +40,7 @@ X=cccccccc-cccc-4ccc-8ccc-cccccccccccc
 W=88888888-8888-4888-8888-888888888888
 W2=22222222-2222-4222-8222-222222222222
 root -c "insert into public.profiles(id) values ('$U'),('$V'),('$X'); insert into public.reader_credit_ledger(user_id,amount,source) values ('$U',1,'purchase'),('$V',1,'purchase'),('$X',2,'purchase'); insert into public.reader_member_unlock_ledger(user_id,amount,source) values ('$V',1,'promo');"
-run_pair "gift versus credit unlock" "public.artales_gift_reader_credit('$U',1)" "public.use_at_credit_online_unlock('$U','$W')" credit_gifted not_enough_credit
+run_pair "gift versus credit unlock" "public.artales_gift_reader_credit('$U',1,'00000000-0000-4000-8000-000000000001')" "public.use_at_credit_online_unlock('$U','$W')" credit_gifted not_enough_credit
 run_pair "AT versus member unlock of same title" "public.use_at_credit_online_unlock('$V','$W')" "public.use_member_online_unlock('$V','$W')" credit_unlock_used already_unlocked
 run_pair "membership versus credit unlock" "public.activate_reader_membership_with_credits('$X','basic',2,2,0,false)" "public.use_at_credit_online_unlock('$X','$W2')" activated not_enough_credit
 [[ "$(root -c "select sum(amount) from public.reader_credit_ledger where user_id in ('$U','$V','$X')")" == 0 ]]
@@ -48,3 +48,17 @@ run_pair "membership versus credit unlock" "public.activate_reader_membership_wi
 [[ "$(root -c "select count(*) from public.reader_entitlements where user_id='$V' and work_id='$W'")" == 1 ]]
 [[ "$(root -c "select count(*) from public.reader_entitlements where user_id='$U'")" == 0 ]]
 echo "PASS: balances and entitlement counts after concurrent transactions"
+
+Y=dddddddd-dddd-4ddd-8ddd-dddddddddddd
+Z=eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee
+Q=ffffffff-ffff-4fff-8fff-ffffffffffff
+K=00000000-0000-4000-8000-000000000002
+root -c "insert into public.profiles(id) values ('$Y'),('$Z'),('$Q'); insert into public.reader_credit_ledger(user_id,amount,source) values ('$Y',5,'purchase'),('$Z',5,'purchase');"
+run_pair "same membership request" "public.activate_reader_membership_with_credits('$Y','basic',2,2,0,false,'$K')" "public.activate_reader_membership_with_credits('$Y','basic',2,2,0,false,'$K')" activated activated
+run_pair "same gift request" "public.artales_gift_reader_credit('$Z',2,'$K')" "public.artales_gift_reader_credit('$Z',2,'$K')" credit_gifted credit_gifted
+run_pair "welcome on two different titles" "public.artales_claim_welcome_unlock('$Q','$W')" "public.artales_claim_welcome_unlock('$Q','$W2')" welcome_claimed welcome_already_used
+[[ "$(root -c "select sum(amount) from public.reader_credit_ledger where user_id='$Y'")" == 3 ]]
+[[ "$(root -c "select sum(amount) from public.reader_credit_ledger where user_id='$Z'")" == 3 ]]
+[[ "$(root -c "select count(*) from public.reader_entitlements where user_id='$Y'")" == 1 ]]
+[[ "$(root -c "select count(*) from public.reader_entitlements where user_id='$Q'")" == 1 ]]
+echo "PASS: concurrent identical request and one-time welcome invariants"

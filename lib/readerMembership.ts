@@ -93,6 +93,7 @@ export async function getReaderMembershipStatus(userId: string): Promise<ReaderM
 export async function activateMembershipWithCredits(params: {
   userId: string;
   tier: ActivatableMembershipTierCode;
+  requestId: string;
 }) {
   const admin = createAdminClient();
   const tier = MEMBERSHIP_PRICEBOOK.tiers[params.tier];
@@ -104,6 +105,7 @@ export async function activateMembershipWithCredits(params: {
     p_member_unlocks: tier.monthlyUnlocks ?? 0,
     p_bonus_at: tier.bonusAt,
     p_library_access: tier.libraryAccess,
+    p_request_id: params.requestId,
   });
 
   if (error) {

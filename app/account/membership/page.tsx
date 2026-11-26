@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { randomUUID } from "node:crypto";
 import { requireCompletedAccountProfile } from "@/lib/account";
 import { getPublicDictionary } from "@/lib/i18n/public";
 import { getCookieLocale, resolveProfileLocale } from "@/lib/i18n/server";
@@ -128,6 +129,7 @@ export default async function AccountMembershipPage({ searchParams }: PageProps)
                   ) : (
                     <form action={activateMembership}>
                       <input type="hidden" name="tier" value={tierCode} />
+                      <input type="hidden" name="economic_request_id" value={randomUUID()} />
                       <button className="artales-button" type="submit">
                         {dictionary.activateCta}
                       </button>
