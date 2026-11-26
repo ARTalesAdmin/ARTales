@@ -1,0 +1,65 @@
+name: ARTales economic RPC isolated PostgreSQL 17
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'tests/db/artalesEconomicRpc*.sql'
+      - 'supabase/migrations/**'
+      - '.github/workflows/artales-economic-rpc-authority.yml'
+permissions:
+  contents: read
+jobs:
+  economic-rpc-postgres:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_PASSWORD: ci-root-only
+          POSTGRES_DB: postgres
+        ports: [5432:5432]
+        options: >-
+          --health-cmd "pg_isready -U postgres -d postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 12
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: supabase/setup-cli@v1
+        with:
+          version: 2.122.0
+      - name: Install client
+        run: command -v psql || (sudo apt-get update && sudo apt-get install -y postgresql-client)
+      - name: Generate migration identity and test exact SQL in disposable PostgreSQL
+        env:
+          PGHOST: 127.0.0.1
+          PGPORT: '5432'
+          PGDATABASE: postgres
+          PGUSER: postgres
+          PGPASSWORD: ci-root-only
+        run: |
+          set -euo pipefail
+          [[ "$PGHOST" == 127.0.0.1 && "$PGDATABASE" == postgres ]]
+          shopt -s nullglob
+          files=(supabase/migrations/*_artales_economic_rpc_authority_v1.sql)
+          if (( ${#files[@]} == 1 )); then
+            migration="${files[0]}"
+          elif (( ${#files[@]} == 0 )) && [[ -f tests/db/artalesEconomicRpcAuthorityCandidate.sql ]]; then
+            # Temporary draft-only source staging, removed before merge.
+            workdir="$(mktemp -d)"
+            (cd "$workdir" && supabase init && supabase migration new artales_economic_rpc_authority_v1)
+            generated=("$workdir"/supabase/migrations/*_artales_economic_rpc_authority_v1.sql)
+            [[ ${#generated[@]} == 1 ]]
+            migration="${generated[0]}"
+            cp tests/db/artalesEconomicRpcAuthorityCandidate.sql "$migration"
+            echo "CLI migration identity: $(basename "$migration")"
+          else
+            echo "Expected exactly one canonical migration or draft candidate" >&2
+            exit 1
+          fi
+          psql -X -v ON_ERROR_STOP=1 -f tests/db/artalesEconomicRpcFixture.sql
+          psql -X -v ON_ERROR_STOP=1 -1 -f "$migration"
+          psql -X -v ON_ERROR_STOP=1 -f tests/db/artalesEconomicRpcVerification.sql
