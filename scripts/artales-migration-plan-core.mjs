@@ -2,6 +2,7 @@
 import {createHash} from "node:crypto";
 import {readFileSync,readdirSync,lstatSync} from "node:fs";
 import {join} from "node:path";
+import {verifyLedgerRows,ledgerFingerprint} from "./artales-migration-history.mjs";
 export const PROJECT="nmhdwmszbwgrgfbmlguu", REPO="ARTalesAdmin/ARTales";
 const BASE="20260926142755";
 const filenameRe=/^([0-9]{14})_([a-z0-9][a-z0-9_]*)\.sql$/;
@@ -29,7 +30,8 @@ export function admission({inventory,readback,request,checkoutSha,nowISO}){
  if(!request||request.schema!=="artales-migration-request/v0"||request.projectRef!==PROJECT||
   request.repository!==REPO||request.ref!=="refs/heads/main"||
   !isHex(request.headSha,40)||checkoutSha!==request.headSha)fail("source_identity");
- if(!readback||readback.schema!=="artales-migration-readback/v0"||
+ const fullHistory=readback?.schema==="artales-migration-readback/v1";
+ if(!readback||(!fullHistory&&readback.schema!=="artales-migration-readback/v0")||
   readback.source!=="operator-attested-provider-readback"||
   readback.projectRef!==PROJECT||!Array.isArray(readback.migrations)||
   readback.migrations.length<5||readback.migrations.length>200)fail("readback_identity");
@@ -44,13 +46,17 @@ export function admission({inventory,readback,request,checkoutSha,nowISO}){
    fail("local_drift");
   local.set(r.version,r);names.add(r.name);
  }
+ if(fullHistory)verifyLedgerRows(readback.migrations);
  const applied=new Set();let previous="";
  for(const r of readback.migrations){
   if(!r||!/^\d{14}$/.test(r.version)||r.version<=previous)fail("remote_order_or_duplicate");
   previous=r.version;
   const matching=local.get(r.version);
   if(!matching||matching.name!==r.name)fail("unknown_remote_migration");
-  if(r.version===BASE){
+  if(fullHistory){
+   if(matching.verifiedLedger?.statementCount!==r.statementCount||matching.verifiedLedger?.ledgerSha256!==r.ledgerSha256)
+    fail("full_ledger_fingerprint_mismatch:"+r.version);
+  }else if(r.version===BASE){
    if(r.name!=="remote_schema")fail("baseline_drift");
   }else if(r.statementMd5!==matching.md5){
    fail("remote_sql_fingerprint_mismatch:"+r.version);
@@ -70,7 +76,8 @@ export function admission({inventory,readback,request,checkoutSha,nowISO}){
  const safePending=pending.map(r=>({version:r.version,name:r.name,filename:r.filename,sha256:r.sha256}));
  const artifact={schema:"artales-migration-plan/v0",projectRef:PROJECT,repository:REPO,
   ref:request.ref,headSha:request.headSha,
-  providerReadbackObservedAt:readback.observedAt,appliedCount:applied.size,pending:safePending};
+  providerReadbackObservedAt:readback.observedAt,appliedCount:applied.size,pending:safePending,
+  ...(fullHistory?{historyDigest:ledgerFingerprint(readback.migrations)}:{})};
  return {...artifact,planDigest:hash("sha256",JSON.stringify(artifact)),
   evidenceClass:"offline-source-plus-operator-attested-readback",
   liveCliDryRunVerified:false,productionApplyAuthorized:false,mayApply:false};
