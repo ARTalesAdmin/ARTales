@@ -10,6 +10,7 @@ on:
       - 'docs/protocols/ARTALES_PRODUCTION_APPLY_OPERATOR_V0.md'
       - 'tests/db/artalesIdentityOwnerFixture.sql'
       - 'tests/db/artalesIdentityOwnerIsolation.sh'
+      - 'scripts/artales-disposable-apply-ledger-proof.mjs'
 permissions:
   contents: read
 jobs:
@@ -58,3 +59,34 @@ jobs:
           PGUSER: postgres
           PGPASSWORD: isolated-only
         run: bash tests/db/artalesIdentityOwnerIsolation.sh
+  isolated-cli-ledger:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: isolated-only
+          POSTGRES_DB: artales_identity_fixture
+        ports: [5432:5432]
+        options: >-
+          --health-cmd "pg_isready -U postgres -d artales_identity_fixture"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 12
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install client
+        run: command -v psql || (sudo apt-get update && sudo apt-get install -y postgresql-client)
+      - name: Observe exact CLI write and ledger format in isolated PG17
+        env:
+          ARTALES_LOCAL_PG17_ONLY: '1'
+          PGHOST: 127.0.0.1
+          PGDATABASE: artales_identity_fixture
+        run: node scripts/artales-disposable-apply-ledger-proof.mjs
