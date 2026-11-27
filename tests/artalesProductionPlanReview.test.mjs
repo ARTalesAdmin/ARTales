@@ -6,7 +6,8 @@ import {inventoryFromDirectory,PROJECT,REPO} from "../scripts/artales-migration-
 import {CLI_PIN,planCommands} from "../scripts/artales-migration-plan-v01-core.mjs";
 import {verifyPlanForHumanReview,describeApplyBoundary} from "../scripts/artales-production-plan-review.mjs";
 const root=resolve(dirname(fileURLToPath(import.meta.url)),"..");
-const base=inventoryFromDirectory(join(root,"supabase","migrations"));
+// Legacy v0 compatibility fixture represents the original October baseline, not the current directory.
+const base=inventoryFromDirectory(join(root,"supabase","migrations")).filter(m=>m.version<="20261027081945");
 const SHA="c".repeat(40),NOW="2026-10-28T14:30:00.000Z";
 const next={version:"20261028091029",name:"artales_identity_role_authority_v1",
  filename:"20261028091029_artales_identity_role_authority_v1.sql",

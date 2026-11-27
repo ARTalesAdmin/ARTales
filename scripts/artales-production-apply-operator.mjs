@@ -4,18 +4,22 @@
 // No credentials, rights or environment are created by this source file.
 import {spawnSync} from "node:child_process";
 import {readFileSync,mkdtempSync,rmSync,writeFileSync} from "node:fs";
+import {createHash} from "node:crypto";
 import {tmpdir} from "node:os";
 import {join,resolve} from "node:path";
 import {fileURLToPath} from "node:url";
-import {inventoryFromDirectory,PROJECT,REPO} from "./artales-migration-plan-core.mjs";
+import {PROJECT,REPO} from "./artales-migration-plan-core.mjs";
+import {LEDGER_ROW_SQL,verifyLedgerRows,assertLedgerSourceMatch,ledgerFingerprint,LEGACY_SOURCE_CUTOFF} from "./artales-migration-history.mjs";
+import {safeStderr,stripCliUpdateNotice} from "./artales-production-db-url-observation.mjs";
 import {CLI_PIN,REDACTED_DB_URL,planCommands,verifyPlanV01} from "./artales-migration-plan-v01-core.mjs";
 import {prepareOneMigrationStage} from "./artales-production-one-migration-stage.mjs";
 import {assertCurrentRemoteMain,validatePlanCertificate} from "./artales-production-plan-operator.mjs";
 
-const ROLE="postgres"; // Existing owner of identity tables, auth sync function and ledger.
+// ARTales-only proposed owner execution surface, distinct from the old
+// identity-only environment. Provisioning requires separate human approval.
+const ROLE="postgres";
+const APPLY_ENV="artales-production-migrations";
 const PLAN_WORKFLOW=".github/workflows/artales-production-readonly-plan.yml";
-const ALLOWED=new Set(["20261028091029_artales_identity_role_authority_v1.sql"]);
-// Owner access is one-time IDENTITY maintenance only. Snapshot/storage are excluded.
 const hex=(s,n)=>typeof s==="string"&&new RegExp("^[a-f0-9]{"+n+"}$").test(s);
 const eq=(a,b)=>JSON.stringify(a)===JSON.stringify(b);
 const fail=s=>{throw Error("artales_apply_blocked:"+s);};
@@ -24,15 +28,15 @@ export function validateApplyDispatch(env,sha,clean){
     env.GITHUB_EVENT_NAME!=="workflow_dispatch"||
     env.GITHUB_REF!=="refs/heads/main"||env.GITHUB_REPOSITORY!==REPO||
     !hex(sha,40)||sha!==env.GITHUB_SHA||sha!==env.ARTALES_APPLY_MAIN_SHA||
-    env.ARTALES_PRODUCTION_APPLY_ENV!=="artales-production-identity-owner-maintenance"||
-    env.ARTALES_OWNER_MAINTENANCE_SCOPE!=="identity-20261028091029"||
+    env.ARTALES_PRODUCTION_APPLY_ENV!==APPLY_ENV||
     env.GITHUB_RUN_ATTEMPT!=="1"||clean!==true)
   fail("dispatch_or_main_not_exact");
  const filename=env.ARTALES_APPLY_FILENAME;
  const sqlSha=env.ARTALES_APPLY_SQL_SHA256;
  const proof=env.ARTALES_APPLY_PLAN_PROOF_DIGEST;
  const runId=env.ARTALES_APPLY_PLAN_RUN_ID;
- if(!ALLOWED.has(filename)||!hex(sqlSha,64)||!hex(proof,64)||
+ if(typeof filename!=="string"||! /^[0-9]{14}_[a-z0-9_]+\.sql$/.test(filename)||
+    filename.slice(0,14)<=LEGACY_SOURCE_CUTOFF||!hex(sqlSha,64)||!hex(proof,64)||
     typeof runId!=="string"||!/^[1-9][0-9]{5,17}$/.test(runId))
   fail("approved_artifact_or_migration_missing");
  return Object.freeze({sha,filename,sqlSha,proof,runId});
@@ -61,17 +65,18 @@ export function validatePriorPlan(run,receipt,selection,nowISO){
  const created=Date.parse(run.created_at),now=Date.parse(nowISO);
  if(!Number.isFinite(created)||!Number.isFinite(now)||
     created>now+30000||now-created>86400000)fail("plan_run_stale");
- if(!receipt||receipt.schema!=="artales-production-readonly-plan/v0"||
+ if(!receipt||receipt.schema!=="artales-production-readonly-plan/v1"||
     receipt.repository!==REPO||receipt.projectRef!==PROJECT||
     receipt.mainSha!==selection.sha||receipt.mode!=="one-migration"||
     !receipt.migration||receipt.migration.filename!==selection.filename||
     receipt.migration.sha256!==selection.sqlSha||
     receipt.planProofDigest!==selection.proof||
-    !hex(receipt.sourcePlanDigest,64)||
+    !hex(receipt.sourcePlanDigest,64)||!hex(receipt.historyDigest,64)||
+    !hex(receipt.checkpointDigest,64)||
     receipt.role!=="artales_prod_plan_ro"||receipt.cliVersion!==CLI_PIN||
     receipt.mayApply!==false||receipt.productionApplyAuthorized!==false||
     receipt.independentReadbackRequired!==true||
-    !Number.isInteger(receipt.appliedCount)||receipt.appliedCount<5||
+    !Number.isInteger(receipt.appliedCount)||receipt.appliedCount<31||
     !Array.isArray(receipt.deferred)||
     receipt.evidenceClass!=="operator-attested-cli-not-independently-authenticated")
   fail("plan_receipt_drift_or_untrusted");
@@ -86,27 +91,38 @@ export function validateApplyLedger(data){
     data.database!=="postgres"||data.readOnly!=="off"||
     data.superuser!==false||data.createRole!==true||
     data.createDb!==true||data.bypassRls!==true||
-    data.profilesOwner!==ROLE||data.invitesOwner!==ROLE||
-    data.syncFunctionOwner!==ROLE||data.ledgerOwner!==ROLE||
-    !Array.isArray(data.migrations)||data.migrations.length<5||
-    data.migrations.length>200)fail("apply_role_or_ledger_invalid");
- let previous="";
- for(const r of data.migrations){
-  if(!r||!/^[0-9]{14}$/.test(r.version||"")||
-     !/^[a-z0-9_]+$/.test(r.name||"")||
-     (r.version!=="20260926142755"&&!hex(r.statementMd5,32))||
-     r.version<=previous)fail("apply_ledger_order_or_fingerprint");
-  previous=r.version;
- }
- return data.migrations.map(x=>({...x}));
+    data.ledgerOwner!==ROLE||!Array.isArray(data.migrations)||
+    data.migrations.length<31||data.migrations.length>200)
+  fail("apply_role_or_ledger_invalid");
+ return verifyLedgerRows(data.migrations);
 }
-export function assertPostApply(before,after,selected){
+export function assertPostApply(before,after,selected,body){
  if(!Array.isArray(before)||!Array.isArray(after)||
     after.length!==before.length+1||!eq(after.slice(0,-1),before)||
-    !selected||!hex(selected.md5,32)||
-    !eq(after.at(-1),{
-      version:selected.version,name:selected.name,statementMd5:selected.md5
-    }))fail("post_apply_history_mismatch");
+    !selected||!hex(selected.sha256,64)||typeof body!=="string"||
+    createHash("sha256").update(body).digest("hex")!==selected.sha256||
+    after.at(-1)?.version!==selected.version||after.at(-1)?.name!==selected.name)
+  fail("post_apply_history_mismatch");
+ verifyLedgerRows(after);
+ assertLedgerSourceMatch(after.at(-1),body);
+ return true;
+}
+export function assertApprovedApplyEnvironment(environment){
+ if(!environment||environment.name!==APPLY_ENV||
+    environment.deployment_branch_policy?.custom_branch_policies!==true||
+    !Array.isArray(environment.protection_rules)||
+    !environment.protection_rules.some(r=>r.type==="required_reviewers"&&Array.isArray(r.reviewers)&&
+     r.reviewers.length===1&&r.reviewers[0].type==="User"&&
+     r.reviewers[0].reviewer?.login?.toLowerCase()==="artalesadmin"))
+  fail("protected_apply_environment_required");
+ return true;
+}
+export function assertPlanHistory(receipt,stageReceipt){
+ if(receipt.appliedCount!==stageReceipt.appliedCount||
+    receipt.historyDigest!==stageReceipt.historyDigest||
+    receipt.checkpointDigest!==stageReceipt.checkpointDigest||
+    !eq(receipt.deferred,stageReceipt.deferred))
+  fail("pending_or_history_changed_since_plan");
  return true;
 }
 const SQL=[
@@ -118,17 +134,13 @@ const SQL=[
 " 'createRole',(SELECT rolcreaterole FROM pg_roles WHERE rolname=current_user),",
 " 'createDb',(SELECT rolcreatedb FROM pg_roles WHERE rolname=current_user),",
 " 'bypassRls',(SELECT rolbypassrls FROM pg_roles WHERE rolname=current_user),",
-" 'profilesOwner',(SELECT pg_get_userbyid(relowner) FROM pg_class WHERE oid='public.profiles'::regclass),",
-" 'invitesOwner',(SELECT pg_get_userbyid(relowner) FROM pg_class WHERE oid='public.invites'::regclass),",
-" 'syncFunctionOwner',(SELECT pg_get_userbyid(proowner) FROM pg_proc WHERE oid='public.artales_sync_profile_from_auth_user_v081()'::regprocedure),",
 " 'ledgerOwner',(SELECT pg_get_userbyid(relowner) FROM pg_class WHERE oid='supabase_migrations.schema_migrations'::regclass),",
-" 'migrations',(SELECT COALESCE(json_agg(json_build_object(",
-"  'version',version,'name',name,'statementMd5',md5(statements[1]))",
+" 'migrations',(SELECT COALESCE(json_agg("+LEDGER_ROW_SQL,
 "  ORDER BY version),'[]'::json)",
 "  FROM supabase_migrations.schema_migrations));"
 ].join("\n");
 function runBin(bin,args,cwd){
- const p=spawnSync(bin,args,{cwd,encoding:"utf8",timeout:180000,maxBuffer:131072,
+ const p=spawnSync(bin,args,{cwd,encoding:"utf8",timeout:180000,maxBuffer:16777216,
   stdio:["ignore","pipe","pipe"],
   env:{PATH:process.env.PATH||"",HOME:process.env.HOME||"",
    CI:"true",NPM_CONFIG_FUND:"false",NPM_CONFIG_UPDATE_NOTIFIER:"false"}});
@@ -138,7 +150,7 @@ function runBin(bin,args,cwd){
 function ledger(url){
  const r=runBin("psql",["-X","--no-password","-v","ON_ERROR_STOP=1",
   "-t","-A","--dbname",url,"-c",SQL]);
- if(r.stderr.trim()||r.stdout.length>110000)fail("psql_warning_or_size");
+ if(r.stderr.trim()||r.stdout.length>16000000)fail("psql_warning_or_size");
  let data;try{data=JSON.parse(r.stdout.trim());}catch{fail("psql_invalid_json");}
  return {migrations:validateApplyLedger(data),observedAt:new Date().toISOString()};
 }
@@ -151,7 +163,7 @@ function checkedPlanCli(stage,url,sha,inventory,readback,selection){
   const args=spec.argv.map(a=>a===REDACTED_DB_URL?url:a);
   const value=cli(stage,args);
   return {id:spec.id,argv:spec.argv,exitCode:0,
-    stdout:value.stdout,stderr:value.stderr};
+    stdout:value.stdout,stderr:safeStderr(spec.id,value.stderr,value.stdout)};
  });
  const observation={schema:"artales-cli-plan-observation/v0.2",
   source:"operator-attested-cli-json",transport:"db-url-redacted",
@@ -163,9 +175,9 @@ function checkedPlanCli(stage,url,sha,inventory,readback,selection){
      {filename:selection.filename,sha256:selection.sqlSha}]},
   checkoutSha:sha,observation,nowISO:new Date().toISOString()});
 }
-async function getRun(runId){
+async function getGithubEvidence(path){
  if(!process.env.GITHUB_TOKEN)fail("github_actions_read_token_missing");
- const url="https://api.github.com/repos/"+REPO+"/actions/runs/"+runId;
+ const url="https://api.github.com/repos/"+REPO+path;
  let res;try{res=await fetch(url,{headers:{
   Accept:"application/vnd.github+json",
   Authorization:"Bearer "+process.env.GITHUB_TOKEN,
@@ -191,11 +203,12 @@ async function main(){
  try{const data=readFileSync(receiptPath,"utf8");if(data.length>15000)fail("plan_receipt_size");
      receipt=JSON.parse(data);}
  catch{fail("plan_receipt_unavailable");}
- const run=await getRun(selected.runId);
+ const run=await getGithubEvidence("/actions/runs/"+selected.runId);
+ assertApprovedApplyEnvironment(await getGithubEvidence("/environments/"+APPLY_ENV));
  validatePriorPlan(run,receipt,selected,new Date().toISOString());
- const dbUrl=process.env.ARTALES_PROD_OWNER_DB_URL;
+ const dbUrl=process.env.ARTALES_PROD_MIGRATION_DB_URL;
  const identity=validateApplyConnection(dbUrl);
- const pem=validatePlanCertificate(process.env.ARTALES_PROD_OWNER_CA_PEM);
+ const pem=validatePlanCertificate(process.env.ARTALES_PROD_MIGRATION_CA_PEM);
  const workspace=mkdtempSync(join(tmpdir(),"artales-one-apply-"));
  try{
   const certPath=join(workspace,"supabase-root-ca.pem");
@@ -209,20 +222,19 @@ async function main(){
   const stage=prepareOneMigrationStage({
    sourceMigrationsDir:join(root,"supabase","migrations"),
    stageRoot:join(workspace,"stage"),sourceSha:sha,projectRef:PROJECT,
-   repository:REPO,applied:before.migrations.map(r=>({version:r.version,name:r.name})),
+   repository:REPO,applied:before.migrations,
    selectedFilename:selected.filename,selectedSha256:selected.sqlSha
   });
-  if(!eq(stage.receipt.deferred,receipt.deferred))
-   fail("pending_set_changed_since_plan");
-  const inventory=inventoryFromDirectory(join(stage.stageRoot,"supabase","migrations"));
+  assertPlanHistory(receipt,stage.receipt);
+  const inventory=stage.inventory;
   const chosen=inventory.at(-1);
   if(!chosen||chosen.filename!==selected.filename||chosen.sha256!==selected.sqlSha)
    fail("selected_sql_digest_changed");
-  const readback={schema:"artales-migration-readback/v0",
+  const readback={schema:"artales-migration-readback/v1",
    source:"operator-attested-provider-readback",projectRef:PROJECT,
    observedAt:before.observedAt,migrations:before.migrations};
   const version=cli(stage.stageRoot,["--version"]);
-  if(version.stdout.trim()!==CLI_PIN||version.stderr.trim())
+  if(version.stdout.trim()!==CLI_PIN||stripCliUpdateNotice(version.stderr).trim())
    fail("cli_version_changed");
   const proof=checkedPlanCli(stage.stageRoot,url,sha,inventory,readback,selected);
   if(!eq(proof.pending,[selected.filename])||proof.mayApply!==false)
@@ -232,17 +244,21 @@ async function main(){
    fail("provider_drift_before_apply");
   assertCurrentRemoteMain(sha,runBin("git",
     ["ls-remote","--exit-code","origin","refs/heads/main"],root).stdout);
-  // A durable held_unknown artifact is written BEFORE provider mutation;
+  const chosenBody=readFileSync(join(stage.stageRoot,"supabase","migrations",chosen.filename),"utf8");
+  if(createHash("sha256").update(chosenBody).digest("hex")!==chosen.sha256)
+   fail("selected_sql_digest_changed");
+  // A local held_unknown receipt is written BEFORE provider mutation;
   // any interrupted call requires independent readback, never automatic retry.
   const path=join(process.env.RUNNER_TEMP,"artales-apply-receipt.json");
-  const data={schema:"artales-production-one-migration-apply/v0",
-   authorityClass:"one-time-owner-maintenance-separately-approved",
+  const data={schema:"artales-production-one-migration-apply/v1",
+   authorityClass:"artales-owner-one-migration-separately-approved",
    ownerIdentityExpected:"postgres",
    repository:REPO,projectRef:PROJECT,mainSha:sha,filename:selected.filename,
    sqlSha256:selected.sqlSha,planRunId:selected.runId,
    planProofDigest:selected.proof,preflightDigest:proof.proofDigest,
    operatorRole:identity.role,connectionClass:identity.connectionClass,
    appliedCountBefore:before.migrations.length,
+   historyDigestBefore:stage.receipt.historyDigest,checkpointDigest:stage.receipt.checkpointDigest,
    status:"held_unknown",requiresIndependentReadback:true,autoRetryAllowed:false,
    completedAt:null};
   writeFileSync(path,JSON.stringify(data,null,2)+"\n",{flag:"wx",mode:0o600});
@@ -254,11 +270,13 @@ async function main(){
     !eq(output.roles,[])||output.message!=="Finished supabase db push.")
    fail("write_output_unknown");
   const after=ledger(url);
-  assertPostApply(before.migrations,after.migrations,chosen);
+  assertPostApply(before.migrations,after.migrations,chosen,chosenBody);
   assertCurrentRemoteMain(sha,runBin("git",
     ["ls-remote","--exit-code","origin","refs/heads/main"],root).stdout);
   data.status="applied_requires_independent_readback";
   data.appliedCountAfter=after.migrations.length;
+  data.historyDigestAfter=ledgerFingerprint(after.migrations);
+  data.appliedLedgerSha256=after.migrations.at(-1).ledgerSha256;
   data.completedAt=new Date().toISOString();
   writeFileSync(path,JSON.stringify(data,null,2)+"\n",{mode:0o600});
   process.stdout.write("ARTALES_ONE_MIGRATION_APPLIED_INDEPENDENT_READBACK_REQUIRED\n");

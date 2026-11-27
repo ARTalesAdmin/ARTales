@@ -6,10 +6,11 @@ import {mkdtempSync,rmSync,writeFileSync} from "node:fs";
 import {tmpdir} from "node:os";
 import {join,resolve} from "node:path";
 import {fileURLToPath} from "node:url";
-import {inventoryFromDirectory,PROJECT,REPO} from "./artales-migration-plan-core.mjs";
+import {PROJECT,REPO} from "./artales-migration-plan-core.mjs";
+import {LEDGER_ROW_SQL,verifyLedgerRows} from "./artales-migration-history.mjs";
 import {CLI_PIN,REDACTED_DB_URL,planCommands,verifyPlanV01} from "./artales-migration-plan-v01-core.mjs";
 import {prepareOneMigrationStage} from "./artales-production-one-migration-stage.mjs";
-import {buildRedactedDbUrlObservation} from "./artales-production-db-url-observation.mjs";
+import {buildRedactedDbUrlObservation,stripCliUpdateNotice} from "./artales-production-db-url-observation.mjs";
 import {verifyPlanForHumanReview} from "./artales-production-plan-review.mjs";
 const ROLE="artales_prod_plan_ro";
 const fail=s=>{throw Error("artales_production_plan_blocked:"+s);};
@@ -73,20 +74,9 @@ export function validatePlanLedger(data){
     ["superuser","createRole","createDb","bypassRls","canCreateDatabase",
      "canCreateMigrationSchema","canCreatePublicSchema",
      "canInsert","canUpdate","canDelete","canTruncate"].some(k=>data[k]!==false)||
-    !Array.isArray(data.migrations)||data.migrations.length<5||
+    !Array.isArray(data.migrations)||data.migrations.length<31||
     data.migrations.length>200)fail("role_or_ledger_invalid");
- let prev="";
- const result=[];
- for(const row of data.migrations){
-  if(!row||!/^[0-9]{14}$/.test(row.version||"")||row.version<=prev||
-    !/^[a-z0-9_]+$/.test(row.name||"")||
-    (row.version!=="20260926142755"&&
-     !/^[a-f0-9]{32}$/.test(row.statementMd5||"")))
-   fail("ledger_order_or_fingerprint");
-  prev=row.version;
-  result.push({version:row.version,name:row.name,
-   ...(row.version==="20260926142755"?{}:{statementMd5:row.statementMd5})});
- }
+ const result=verifyLedgerRows(data.migrations);
  if(result[0].version!=="20260926142755"||result[0].name!=="remote_schema")
   fail("baseline_missing");
  return result;
@@ -111,14 +101,13 @@ const READ_SQL=[
  " 'canUpdate',has_table_privilege(current_user,'supabase_migrations.schema_migrations','UPDATE'),",
  " 'canDelete',has_table_privilege(current_user,'supabase_migrations.schema_migrations','DELETE'),",
  " 'canTruncate',has_table_privilege(current_user,'supabase_migrations.schema_migrations','TRUNCATE'),",
- " 'migrations',(SELECT COALESCE(json_agg(json_build_object(",
- "  'version',version,'name',name,'statementMd5',md5(statements[1]))",
+ " 'migrations',(SELECT COALESCE(json_agg("+LEDGER_ROW_SQL,
  "  ORDER BY version),'[]'::json)",
  "  FROM supabase_migrations.schema_migrations));"
 ].join("\n");
 function runBin(command,args,cwd){
  const p=spawnSync(command,args,{
-  cwd,encoding:"utf8",timeout:150000,maxBuffer:131072,
+  cwd,encoding:"utf8",timeout:150000,maxBuffer:16777216,
   stdio:["ignore","pipe","pipe"],
   env:{PATH:process.env.PATH||"",HOME:process.env.HOME||"",
    CI:"true",NPM_CONFIG_FUND:"false",NPM_CONFIG_UPDATE_NOTIFIER:"false"}
@@ -129,7 +118,7 @@ function runBin(command,args,cwd){
 function readLedger(dbUrl){
  const r=runBin("psql",["-X","--no-password","-v","ON_ERROR_STOP=1",
   "-t","-A","--dbname",dbUrl,"-c",READ_SQL]);
- if(r.stderr.trim()||r.stdout.length>120000)fail("psql_warning_or_size");
+ if(r.stderr.trim()||r.stdout.length>16000000)fail("psql_warning_or_size");
  let parsed;try{parsed=JSON.parse(r.stdout.trim());}catch{fail("psql_invalid_json");}
  return {migrations:validatePlanLedger(parsed),observedAt:new Date().toISOString()};
 }
@@ -164,24 +153,19 @@ function main(){
    projectRef:PROJECT,repository:REPO,ref:"refs/heads/main",
    headSha:sha,expectedPending:selected.mode==="baseline"?[]:[
     {filename:selected.filename,sha256:selected.sha256}]};
-  const readback={schema:"artales-migration-readback/v0",
+  const readback={schema:"artales-migration-readback/v1",
    source:"operator-attested-provider-readback",projectRef:PROJECT,
    observedAt:before.observedAt,migrations:before.migrations};
-  let cwd=root,stageReceipt=null;
-  if(selected.mode==="one-migration"){
-   const stage=prepareOneMigrationStage({
-    sourceMigrationsDir:join(root,"supabase","migrations"),
-    stageRoot:join(workspace,"stage"),sourceSha:sha,
-    projectRef:PROJECT,repository:REPO,
-    applied:before.migrations.map(({version,name})=>({version,name})),
-    selectedFilename:selected.filename,selectedSha256:selected.sha256
-   });
-   cwd=stage.stageRoot;stageReceipt=stage.receipt;
-  }
-  const inventory=inventoryFromDirectory(join(cwd,"supabase","migrations"));
+  const stage=prepareOneMigrationStage({
+   sourceMigrationsDir:join(root,"supabase","migrations"),
+   stageRoot:join(workspace,"stage"),sourceSha:sha,
+   projectRef:PROJECT,repository:REPO,applied:before.migrations,
+   mode:selected.mode,selectedFilename:selected.filename,selectedSha256:selected.sha256
+  });
+  const cwd=stage.stageRoot,stageReceipt=stage.receipt,inventory=stage.inventory;
   const version=runBin("npm",["exec","--yes","--package=supabase@"+CLI_PIN,
    "--","supabase","--version"],cwd);
-  if(version.stdout.trim()!==CLI_PIN||version.stderr.trim())
+  if(version.stdout.trim()!==CLI_PIN||stripCliUpdateNotice(version.stderr).trim())
    fail("cli_version_mismatch");
   const observation=buildRedactedDbUrlObservation({
    dbUrl:runtimeDbUrl,expectedRole:identity.role,projectRef:PROJECT,repository:REPO,
@@ -206,10 +190,11 @@ function main(){
    fail("ledger_changed_during_plan");
   assertCurrentRemoteMain(sha,runBin("git",["ls-remote","--exit-code","origin","refs/heads/main"],root).stdout);
   if(!process.env.RUNNER_TEMP)fail("missing_runner_temp");
-  const receipt={schema:"artales-production-readonly-plan/v0",
+  const receipt={schema:"artales-production-readonly-plan/v1",
    repository:REPO,projectRef:PROJECT,mainSha:sha,mode:selected.mode,
    migration:review?.migration||null,
-   deferred:stageReceipt?.deferred||[],
+   deferred:stageReceipt.deferred,
+   historyDigest:stageReceipt.historyDigest,checkpointDigest:stageReceipt.checkpointDigest,
    role:identity.role,connectionClass:identity.connectionClass,
    appliedCount:before.migrations.length,
    preReadbackAt:before.observedAt,postReadbackAt:after.observedAt,
