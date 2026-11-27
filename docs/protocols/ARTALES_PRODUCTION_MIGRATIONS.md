@@ -3,6 +3,17 @@
 Status: source-governance proposal; NO Production apply / merge authorization.
 Date: 2026-10-28. Applies to **ARTalesAdmin/ARTales**, not Nexus control-plane DB.
 
+## 2026-11-27 — current proposed ARTales runner (PR #381)
+
+This section supersedes the older October/November operator design below for future migrations, once reviewed, merged and activated. ARTales only; no Nexus dependency or project-generic service.
+
+- The production history checkpoint contains 31 provider rows and 25 frozen source files. Treat this as the forward baseline, not a replayable database. Future SQL filenames must follow the latest historical Git version (20261122113000). No migration repair or historical replay.
+- Use the existing manual PLAN workflow on exact main, mode one-migration, with first pending filename and SHA-256. It validates the checkpoint and full ledger, stages only that SQL, runs the pinned native CLI read-only and records a v1 receipt with stable history/checkpoint hashes. Other pending files are deferred.
+- APPLY requires a fresh successful v1 PLAN on the same main SHA, exact receipt digest and separate human approval in the **new** environment `artales-production-migrations`. It rechecks exact history, stage, source and CLI dry-run and verifies full ordered statements after the write. Unknown outcome means independent readback before another attempt. The old identity-only environment/secrets are not reused.
+- Proposed execution identity is the actual ARTales PostgreSQL `postgres` owner (needed for existing owner-bound DDL; broad privileges, not a least-privilege claim). Provisioning, environment reviewer protection (ARTalesAdmin as sole required reviewer), main-only custom branch policy, no admin bypass, and secrets `ARTALES_PROD_MIGRATION_DB_URL` / `ARTALES_PROD_MIGRATION_CA_PEM` are separate explicit authorization/setup. Environment variable `ARTALES_PRODUCTION_APPLY_ENV=artales-production-migrations` is required. The source checks required-reviewer protection before connecting. Do not copy the identity-only credential into it without approval.
+- Source-only CI and merge are not authorization to APPLY. Recheck Supabase auto-deploy coupling before merging SQL. Verify migration ledger and changed schema/RLS/function behavior independently after APPLY. No automatic retry or rollback.
+- A schema-only disposable image including roles and grants is the next test-environment improvement, not a blocker to this single-project runner. No production customer data in public Git or CI.
+
 ## Scope and invariant
 
 - Canonical new migration files live in `supabase/migrations/YYYYMMDDHHMMSS_name.sql`.

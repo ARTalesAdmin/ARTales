@@ -1,5 +1,7 @@
 # ARTales single-migration APPLY operator v0 — source-only proposal
 
+**Historical design:** Superseded for future migrations by the 2026-11-27 proposal in [ARTALES_PRODUCTION_MIGRATIONS.md](ARTALES_PRODUCTION_MIGRATIONS.md). The old identity-only authorization is not carried forward.
+
 **Status:** IMPLEMENTED ONLY AS SOURCE IN DRAFT PR. No configured APPLY environment, no APPLY identity, no new grants, no secrets, no activation, no merge, no provider mutation authorized. A workflow file committed to a branch **does not** prove an execution surface exists or is approved.
 
 ## Target
