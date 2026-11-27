@@ -68,7 +68,7 @@ jobs:
         run: bash tests/db/artalesIdentityOwnerIsolation.sh
   isolated-cli-ledger:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 15
     services:
       postgres:
         image: postgres:17
@@ -91,7 +91,7 @@ jobs:
           node-version: '22'
       - name: Install client
         run: command -v psql || (sudo apt-get update && sudo apt-get install -y postgresql-client)
-      - name: Observe exact CLI write and ledger format in isolated PG17
+      - name: Run two staged PLAN/APPLY cycles and final read-only PLAN on isolated PG17
         env:
           ARTALES_LOCAL_PG17_ONLY: '1'
           PGHOST: 127.0.0.1
