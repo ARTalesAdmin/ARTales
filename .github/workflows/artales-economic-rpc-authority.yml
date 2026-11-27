@@ -1,0 +1,86 @@
+name: ARTales economic RPC isolated PostgreSQL 17
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'tests/db/artalesEconomicRpc*'
+      - 'lib/entitlements.ts'
+      - 'lib/readerMembership.ts'
+      - 'lib/memberPricebook.ts'
+      - 'app/account/credits/**'
+      - 'app/account/membership/**'
+      - 'app/account/unlock/**'
+      - 'lib/economicRequest.ts'
+      - 'tests/economicRequest.test.ts'
+      - 'app/account/credit-unlock/**'
+      - 'supabase/migrations/**'
+      - '.github/workflows/artales-economic-rpc-authority.yml'
+permissions:
+  contents: read
+jobs:
+  economic-rpc-postgres:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_PASSWORD: ci-root-only
+          POSTGRES_DB: postgres
+        ports: [5432:5432]
+        options: >-
+          --health-cmd "pg_isready -U postgres -d postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 12
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Install client
+        run: command -v psql || (sudo apt-get update && sudo apt-get install -y postgresql-client)
+      - name: Test exact canonical migration in disposable PostgreSQL
+        env:
+          PGHOST: 127.0.0.1
+          PGPORT: '5432'
+          PGDATABASE: postgres
+          PGUSER: postgres
+          PGPASSWORD: ci-root-only
+        run: |
+          set -euo pipefail
+          [[ "$PGHOST" == 127.0.0.1 && "$PGDATABASE" == postgres ]]
+          migration=supabase/migrations/20261126125926_artales_economic_rpc_authority_v1.sql
+          test -f "$migration"
+          psql -X -v ON_ERROR_STOP=1 -f tests/db/artalesEconomicRpcFixture.sql
+          psql -X -v ON_ERROR_STOP=1 -1 -f "$migration"
+          integrity=supabase/migrations/20261126131030_artales_economic_rpc_integrity_v1.sql
+          test -f "$integrity"
+          psql -X -v ON_ERROR_STOP=1 -1 -f "$integrity"
+          psql -X -v ON_ERROR_STOP=1 -f tests/db/artalesEconomicRpcVerification.sql
+          psql -X -v ON_ERROR_STOP=1 -f tests/db/artalesEconomicRpcIntegrityVerification.sql
+          psql -X -v ON_ERROR_STOP=1 -f tests/db/artalesEconomicRpcReplayVerification.sql
+          psql -X -v ON_ERROR_STOP=1 -f tests/db/artalesEconomicRpcRollbackVerification.sql
+          bash tests/db/artalesEconomicRpcConcurrency.sh
+          sha256sum "$migration" "$integrity"
+      - name: Inspect compatibility helper call sites
+        run: |
+          git grep -n 'unlockOnlineReadWithCredit' -- '*.ts' '*.tsx' || true
+  economic-rpc-application:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - run: npx tsc --noEmit
+      - name: Scoped lint
+        run: npx eslint lib/economicRequest.ts lib/readerMembership.ts lib/entitlements.ts app/account/credits/actions.ts app/account/credits/page.tsx app/account/membership/actions.ts app/account/membership/page.tsx 'app/account/credit-unlock/[slug]/actions.ts' 'app/account/unlock/[slug]/actions.ts'
+      - run: npx tsx --test tests/economicRequest.test.ts
+      - name: Inspect economic server call sites
+        run: |
+          git grep -n -E 'activateMembershipWithCredits|grantWelcomeUnlock|hasUsedWelcomeUnlock|artales_gift_reader_credit|unlockOnlineReadWithCredit' -- '*.ts' '*.tsx'

@@ -47,9 +47,11 @@ function prepareFixture(){
  const repo=join(root,"repo"),dir=join(repo,"supabase","migrations");
  mkdirSync(dir,{recursive:true});
  mkdirSync(join(repo,"supabase","history"),{recursive:true});
- cpSync("supabase/migrations",dir,{recursive:true});
- cpSync("ops/sql",join(repo,"ops","sql"),{recursive:true});
  const checkpoint=JSON.parse(readFileSync(CHECKPOINT_PATH,"utf8"));
+ // Only the frozen historical inventory belongs in a synthetic fixture.
+ // The actual checkout (including new migrations) was checked above.
+ for(const file of checkpoint.legacyInventory)cpSync(file.path,join(repo,file.path));
+ cpSync("ops/sql",join(repo,"ops","sql"),{recursive:true});
  // This file and all test ledger entries exist only inside the scratch fixture.
  const inserts=[];
  for(const row of checkpoint.ledger){
