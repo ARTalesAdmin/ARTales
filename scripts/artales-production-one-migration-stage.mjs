@@ -4,7 +4,7 @@ import {createHash} from "node:crypto";
 import {mkdirSync,readFileSync,writeFileSync,existsSync} from "node:fs";
 import {join,resolve,sep} from "node:path";
 import {inventoryFromDirectory,PROJECT,REPO} from "./artales-migration-plan-core.mjs";
-import {CHECKPOINT_CUTOFF,verifyCheckpoint,verifyLedgerRows,ledgerFingerprint,assertLedgerSourceMatch} from "./artales-migration-history.mjs";
+import {LEGACY_SOURCE_CUTOFF,verifyCheckpoint,verifyLedgerRows,ledgerFingerprint,assertLedgerSourceMatch} from "./artales-migration-history.mjs";
 const fail=reason=>{throw Error("artales_stage_blocked:"+reason);};
 const hex=(s,n)=>typeof s==="string"&&new RegExp("^[a-f0-9]{"+n+"}$").test(s);
 const hash=b=>createHash("sha256").update(b).digest("hex");
@@ -29,7 +29,7 @@ export function prepareOneMigrationStage({
  if(ledger.length<checkpoint.rows.length||
     ledgerFingerprint(ledger.slice(0,checkpoint.rows.length))!==ledgerFingerprint(checkpoint.rows))
   fail("historical_provider_checkpoint_drift");
- const future=source.filter(r=>r.version>CHECKPOINT_CUTOFF);
+ const future=source.filter(r=>r.version>LEGACY_SOURCE_CUTOFF);
  const seenNames=new Set(checkpoint.rows.map(r=>r.name));
  for(const r of future){
   if(seenNames.has(r.name))fail("duplicate_historical_migration_name");

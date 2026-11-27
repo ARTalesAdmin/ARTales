@@ -9,7 +9,8 @@ import {buildRedactedDbUrlObservation}
  from "../scripts/artales-production-db-url-observation.mjs";
 import {verifyPlanForHumanReview} from "../scripts/artales-production-plan-review.mjs";
 const root=resolve(dirname(fileURLToPath(import.meta.url)),"..");
-const base=inventoryFromDirectory(join(root,"supabase","migrations"));
+// Legacy v0 compatibility fixture represents the original October baseline, not the current directory.
+const base=inventoryFromDirectory(join(root,"supabase","migrations")).filter(m=>m.version<="20261027081945");
 const HEAD="c".repeat(40),NOW="2026-10-31T19:40:00.000Z";
 const dbUrl="postgresql://artales_plan_probe_ro:disposable-secret-123@127.0.0.1:5432/cli_contract";
 const next={version:"20261028091029",name:"artales_identity_role_authority_v1",
@@ -158,4 +159,14 @@ test("full zero-pending redacted-db-url baseline proof remains read-only",()=>{
  assert.equal(proof.transport,"db-url-redacted");
  assert.equal(proof.productionApplyAuthorized,false);
  assert.equal(proof.mayApply,false);
+});
+
+test("pinned CLI update advisory is informational, other output remains blocked",()=>{
+ const f=fixture();
+ const notice="A new version of Supabase CLI is available: v3.4.0 (currently installed v2.122.0)\nWe recommend updating regularly for new features and bug fixes: https://supabase.com/docs/guides/cli/getting-started#updating-the-supabase-cli\n";
+ f.config.rawCommands[0].stderr="Connecting to remote database...\n"+notice;
+ const result=buildRedactedDbUrlObservation(f.config);
+ assert.equal(result.commands[0].stderr,"Connecting to remote database...\n");
+ f.config.rawCommands[0].stderr+="unexpected warning\n";
+ assert.throws(()=>buildRedactedDbUrlObservation(f.config),/blocked/);
 });

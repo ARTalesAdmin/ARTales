@@ -3,7 +3,9 @@
 import {createHash} from "node:crypto";
 import {readFileSync,lstatSync} from "node:fs";
 import {join,resolve} from "node:path";
+// Provider and Git source clocks differ for the last historical migrations.
 export const CHECKPOINT_CUTOFF="20261122085733";
+export const LEGACY_SOURCE_CUTOFF="20261122113000";
 export const CHECKPOINT_PATH="supabase/history/production-checkpoint-20261126.json";
 const PROJECT="nmhdwmszbwgrgfbmlguu", REPO="ARTalesAdmin/ARTales";
 const fail=s=>{throw Error("artales_stage_blocked:"+s);};
@@ -81,7 +83,7 @@ export function verifyCheckpoint(sourceDir,source){
  const rows=verifyLedgerRows(c.ledger);
  if(rows.length!==31||rows[0].version!=="20260926142755"||rows[0].name!=="remote_schema"||
     rows.at(-1).version!==CHECKPOINT_CUTOFF)fail("checkpoint_extent");
- const legacy=source.filter(r=>r.version<=CHECKPOINT_CUTOFF).map(r=>"supabase/migrations/"+r.filename).sort();
+ const legacy=source.filter(r=>r.version<=LEGACY_SOURCE_CUTOFF).map(r=>"supabase/migrations/"+r.filename).sort();
  const frozen=c.legacyInventory.map(x=>x.path).sort();
  if(legacy.length!==25||JSON.stringify(legacy)!==JSON.stringify(frozen))fail("historical_inventory_drift");
  for(const f of c.legacyInventory)checkedBlob(root,f.path,f.blobSha);
