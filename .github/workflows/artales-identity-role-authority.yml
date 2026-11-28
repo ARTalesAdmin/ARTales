@@ -6,6 +6,8 @@ on:
       - 'supabase/migrations/20261028091029_artales_identity_role_authority_v1.sql'
       - 'tests/db/artalesIdentityFixture.sql'
       - 'tests/db/artalesIdentityIsolation.sh'
+      - 'tests/db/artalesInviteBoundary*'
+      - 'supabase/migrations/*_artales_invite_access_boundary_v1.sql'
       - 'lib/dbInvites.ts'
       - 'lib/inviteTokenLookup.ts'
       - 'tests/inviteTokenLookup.test.ts'
@@ -44,6 +46,12 @@ jobs:
           PGPORT: '5432'
           PGDATABASE: postgres
         run: bash tests/db/artalesIdentityIsolation.sh
+      - name: Prove scoped invite boundary with actual synthetic database roles
+        env:
+          PGHOST: 127.0.0.1
+          PGPORT: '5432'
+          PGDATABASE: postgres
+        run: bash tests/db/artalesInviteBoundaryIsolation.sh supabase/migrations/20261128094513_artales_invite_access_boundary_v1.sql
   invite-boundary-application:
     runs-on: ubuntu-latest
     timeout-minutes: 10
