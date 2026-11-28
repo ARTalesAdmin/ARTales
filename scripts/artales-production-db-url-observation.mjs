@@ -42,10 +42,17 @@ function safeStdout(id,stdout){
 }
 // Only specifically observed, non-secret CLI 2.122.0 diagnostics are admissible.
 // The "Would push" filename must match the already validated JSON payload.
-function safeStderr(id,stderr,sanitizedStdout){
+// CLI 2.122.0 can append a release advisory even when explicitly pinned.
+// Only the exact observed informational suffix is removed.
+export function stripCliUpdateNotice(stderr){
+ if(typeof stderr!=="string"||stderr.length>2048)fail("stderr_invalid_type_or_length");
+ const value=stderr.replace(/\r\n/g,"\n");
+ return value.replace(/(?:^|(?<=\n))A new version of Supabase CLI is available: v[0-9]+\.[0-9]+\.[0-9]+ \(currently installed v2\.122\.0\)\nWe recommend updating regularly for new features and bug fixes: https:\/\/supabase\.com\/docs\/guides\/cli\/getting-started#updating-the-supabase-cli\n?$/,"");
+}
+export function safeStderr(id,stderr,sanitizedStdout){
  if(typeof stderr!=="string"||stderr.length>1024)
   fail("stderr_invalid_type_or_length");
- const value=stderr.replace(/\r\n/g,"\n");
+ const value=stripCliUpdateNotice(stderr);
  const connecting="Connecting to remote database...";
  if(value===""||value===connecting||value===connecting+"\n")
   return value;
