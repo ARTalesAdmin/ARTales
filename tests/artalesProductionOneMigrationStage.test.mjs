@@ -15,7 +15,10 @@ function fixture(){
  const root=mkdtempSync(join(tmpdir(),"artales-stage-test-"));
  const repo=join(root,"repo"),src=join(repo,"supabase","migrations"),out=join(root,"stage");
  mkdirSync(src,{recursive:true});mkdirSync(join(repo,"supabase","history"),{recursive:true});
- cpSync("supabase/migrations",src,{recursive:true});cpSync("ops/sql",join(repo,"ops","sql"),{recursive:true});
+ // Copy only the frozen baseline, not future real migrations. The full actual
+ // checkout is separately checked by the last test below.
+ for(const file of historical.legacyInventory)cpSync(file.path,join(repo,file.path));
+ cpSync("ops/sql",join(repo,"ops","sql"),{recursive:true});
  writeFileSync(join(repo,CHECKPOINT_PATH),JSON.stringify(historical));
  writeFileSync(join(src,first),sql);writeFileSync(join(src,second),"select 2;\n");
  const applied=historical.ledger.map(({version,name,statementCount,ledgerSha256})=>({version,name,statementCount,ledgerSha256,statements:null}));
