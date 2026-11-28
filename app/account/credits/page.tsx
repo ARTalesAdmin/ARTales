@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { randomUUID } from "node:crypto";
 import { requireCompletedAccountProfile } from "@/lib/account";
 import { getReaderCommerceSummary, type ReaderManualQrPaymentItem, type ReaderCreditLedgerItem } from "@/lib/readerCommerce";
 import { getPublicDictionary } from "@/lib/i18n/public";
@@ -320,6 +321,7 @@ export default async function AccountCreditsPage({ searchParams }: PageProps) {
           <p>{dictionary.giftText}</p>
         </div>
         <form action={giftCreditToArtales} className="artales-credit-gift-form">
+          <input type="hidden" name="economic_request_id" value={randomUUID()} />
           <div className="artales-credit-gift-presets" aria-label={dictionary.giftAmountLabel}>
             {[1, 3, 5].map((amount) => (
               <button
