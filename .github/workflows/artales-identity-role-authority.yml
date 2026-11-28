@@ -6,6 +6,8 @@ on:
       - 'supabase/migrations/20261028091029_artales_identity_role_authority_v1.sql'
       - 'tests/db/artalesIdentityFixture.sql'
       - 'tests/db/artalesIdentityIsolation.sh'
+      - 'tests/db/artalesInviteBoundary*'
+      - 'supabase/migrations/*_artales_invite_access_boundary_v1.sql'
       - 'lib/dbInvites.ts'
       - 'lib/inviteTokenLookup.ts'
       - 'tests/inviteTokenLookup.test.ts'
@@ -44,6 +46,33 @@ jobs:
           PGPORT: '5432'
           PGDATABASE: postgres
         run: bash tests/db/artalesIdentityIsolation.sh
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Allocate canonical migration identity (source only, no provider)
+        run: |
+          set -euo pipefail
+          work="$(mktemp -d)"
+          mkdir -p "$work/supabase/migrations"
+          cd "$work"
+          cli=(npm exec --yes --package=supabase@2.122.0 -- supabase)
+          "${cli[@]}" --version
+          "${cli[@]}" migration new --help
+          "${cli[@]}" migration new artales_invite_access_boundary_v1
+          shopt -s nullglob
+          files=(supabase/migrations/*_artales_invite_access_boundary_v1.sql)
+          [[ "${#files[@]}" == 1 ]]
+          name="$(basename "${files[0]}")"
+          [[ "$name" =~ ^[0-9]{14}_artales_invite_access_boundary_v1[.]sql$ ]]
+          [[ "${name:0:14}" > 20261126131030 ]]
+          echo "ARTALES_CANONICAL_FILENAME=$name"
+          sha256sum "$GITHUB_WORKSPACE/tests/db/artalesInviteBoundaryCandidate.sql"
+      - name: Prove scoped invite boundary with actual synthetic database roles
+        env:
+          PGHOST: 127.0.0.1
+          PGPORT: '5432'
+          PGDATABASE: postgres
+        run: bash tests/db/artalesInviteBoundaryIsolation.sh tests/db/artalesInviteBoundaryCandidate.sql
   invite-boundary-application:
     runs-on: ubuntu-latest
     timeout-minutes: 10
