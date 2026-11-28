@@ -6,6 +6,12 @@ on:
       - 'supabase/migrations/20261028091029_artales_identity_role_authority_v1.sql'
       - 'tests/db/artalesIdentityFixture.sql'
       - 'tests/db/artalesIdentityIsolation.sh'
+      - 'lib/dbInvites.ts'
+      - 'lib/inviteTokenLookup.ts'
+      - 'tests/inviteTokenLookup.test.ts'
+      - 'lib/actions/invites.ts'
+      - 'app/invite/**'
+      - 'app/member/invites/**'
       - '.github/workflows/artales-identity-role-authority.yml'
   workflow_dispatch:
 permissions:
@@ -38,3 +44,21 @@ jobs:
           PGPORT: '5432'
           PGDATABASE: postgres
         run: bash tests/db/artalesIdentityIsolation.sh
+  invite-boundary-application:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - run: npx tsc --noEmit
+      - name: Scoped lint
+        run: npx eslint lib/dbInvites.ts lib/inviteTokenLookup.ts tests/inviteTokenLookup.test.ts
+      - run: npx tsx --test tests/inviteTokenLookup.test.ts
+      - name: Inspect invite lookup call sites
+        run: git grep -n -E 'getInviteByToken|lookupPendingInviteByToken|artales_find_pending_invite_for_email' -- '*.ts' '*.tsx'
