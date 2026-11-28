@@ -15,6 +15,10 @@ I=77777777-7777-4777-8777-777777777777
 # Bring the minimal historical fixture to the audited live invite contract.
 root <<'SQL' >/dev/null
 ALTER TABLE public.invites ADD COLUMN note text;
+-- Mirror the explicit direct ACLs independently observed in production.
+-- A grant inherited solely from PUBLIC must not masquerade as service access.
+GRANT EXECUTE ON FUNCTION public.artales_find_pending_invite_for_email(text)
+ TO anon,authenticated,service_role;
 ALTER TABLE public.invites ALTER COLUMN id SET DEFAULT gen_random_uuid();
 ALTER TABLE public.invites ALTER COLUMN status SET DEFAULT 'pending';
 ALTER TABLE public.invites ADD CONSTRAINT fixture_token_unique UNIQUE(token_hash);
