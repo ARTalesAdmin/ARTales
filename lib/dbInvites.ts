@@ -1,4 +1,6 @@
-import crypto from "node:crypto";
+import "server-only";
+import { createAdminClient } from "@/lib/supabase/admin";
+import { lookupPendingInviteByToken } from "@/lib/inviteTokenLookup";
 import { createClient } from "@/lib/supabase/server";
 
 export type InviteStatus = "pending" | "accepted" | "revoked" | "expired";
@@ -16,13 +18,7 @@ export type InviteItem = {
   note: string | null;
 };
 
-export function generateInviteToken() {
-  return crypto.randomBytes(24).toString("base64url");
-}
-
-export function hashInviteToken(token: string) {
-  return crypto.createHash("sha256").update(token).digest("hex");
-}
+export { generateInviteToken, hashInviteToken } from "@/lib/inviteTokenLookup";
 
 export async function listRecentInvites() {
   const supabase = await createClient();
@@ -42,22 +38,8 @@ export async function listRecentInvites() {
   return (data ?? []) as InviteItem[];
 }
 
+// The bearer token is resolved on the server only. Manager listing retains
+// its existing session-scoped client and RLS.
 export async function getInviteByToken(token: string) {
-  const supabase = await createClient();
-  const tokenHash = hashInviteToken(token);
-
-  const { data, error } = await supabase
-    .from("invites")
-    .select(
-      "id, email, invited_role, status, invited_by_user_id, accepted_by_user_id, expires_at, accepted_at, created_at, note",
-    )
-    .eq("token_hash", tokenHash)
-    .maybeSingle();
-
-  if (error) {
-    console.error("Invite token load error:", error);
-    return null;
-  }
-
-  return data as InviteItem | null;
+  return lookupPendingInviteByToken(createAdminClient(), token);
 }
