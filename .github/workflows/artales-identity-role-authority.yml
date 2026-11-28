@@ -7,6 +7,8 @@ on:
       - 'tests/db/artalesIdentityFixture.sql'
       - 'tests/db/artalesIdentityIsolation.sh'
       - 'tests/db/artalesInviteBoundary*'
+      - 'tests/db/artalesIdentityLifecycle*'
+      - 'supabase/migrations/*_artales_identity_lifecycle_v1.sql'
       - 'supabase/migrations/*_artales_invite_access_boundary_v1.sql'
       - 'lib/dbInvites.ts'
       - 'lib/inviteTokenLookup.ts'
@@ -52,6 +54,33 @@ jobs:
           PGPORT: '5432'
           PGDATABASE: postgres
         run: bash tests/db/artalesInviteBoundaryIsolation.sh supabase/migrations/20261128094513_artales_invite_access_boundary_v1.sql
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Allocate canonical identity for lifecycle candidate (source only)
+        run: |
+          set -euo pipefail
+          work="$(mktemp -d)"
+          mkdir -p "$work/supabase/migrations"
+          cd "$work"
+          cli=(npm exec --yes --package=supabase@2.122.0 -- supabase)
+          "${cli[@]}" --version
+          "${cli[@]}" migration new --help
+          "${cli[@]}" migration new artales_identity_lifecycle_v1
+          shopt -s nullglob
+          files=(supabase/migrations/*_artales_identity_lifecycle_v1.sql)
+          [[ "${#files[@]}" == 1 ]]
+          name="$(basename "${files[0]}")"
+          [[ "$name" =~ ^[0-9]{14}_artales_identity_lifecycle_v1[.]sql$ ]]
+          [[ "${name:0:14}" > 20261128094513 ]]
+          echo "ARTALES_CANONICAL_FILENAME=$name"
+          sha256sum "$GITHUB_WORKSPACE/tests/db/artalesIdentityLifecycleCandidate.sql"
+      - name: Prove identity lifecycle and transactional invitation races
+        env:
+          PGHOST: 127.0.0.1
+          PGPORT: '5432'
+          PGDATABASE: postgres
+        run: bash tests/db/artalesIdentityLifecycleIsolation.sh tests/db/artalesIdentityLifecycleCandidate.sql
   invite-boundary-application:
     runs-on: ubuntu-latest
     timeout-minutes: 10
